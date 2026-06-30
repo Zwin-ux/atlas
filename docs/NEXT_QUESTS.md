@@ -7,6 +7,15 @@ contracts are complete locally as docs only. Stripe is connected for planning,
 but the next planned lane still requires human approval before any persistence,
 checkout, billing webhooks, evidence, or XP implementation.
 
+Recommended priority chain:
+1. E9.1 approval packet and storage/auth decision.
+2. E9.2 Hosted Clawd onboarding spec.
+3. E8.7 app review/public QA polish only if the deployed app drifts.
+4. E7.5 visual/product feel pass if the next priority is map quality.
+5. E9.3 persistence implementation only after `HUMAN_APPROVAL_BEFORE_PERSISTENCE`.
+6. E9.4 Stripe implementation only after persistence exists and
+   `HUMAN_APPROVAL_BEFORE_MONEY` is approved.
+
 Parallel execution posture:
 Use at most two code-writing Codex worktrees plus one integration/QA thread. The
 current safe split is E8.6 County Question Slice plus a separate integration/QA
@@ -334,6 +343,54 @@ Acceptance:
 - `HUMAN_APPROVAL_BEFORE_MONEY` and `HUMAN_APPROVAL_BEFORE_PERSISTENCE` remain
   blocking gates before implementation. Done locally.
 
+### Quest E9.1: Hosted Clawd Approval And Storage Choice
+
+Prepared the human approval packet for moving Hosted Clawd from session-only
+Alpha planning into persisted Beta implementation.
+
+Issue:
+`docs/issues/E9.1-hosted-clawd-approval-and-storage-choice.md`
+
+Spec:
+`docs/HOSTED_CLAWD_APPROVAL_PACKET.md`
+
+Acceptance:
+
+- Storage provider options and recommended default are documented. Done locally.
+- Auth/account ownership model is specified. Done locally.
+- First persisted capability is recommended as business profile plus saved
+  campaign preview. Done locally.
+- Required ownership, unauthenticated-denial, idempotency, and usage-limit tests
+  are listed before implementation. Done locally.
+- Stripe remains downstream of persistence unless the money gate is explicitly
+  approved. Done locally.
+- Evidence and XP remain out of the first persistence implementation. Done
+  locally.
+
+### Quest E9.2: Hosted Clawd Onboarding Spec
+
+Defined the map-first Hosted Clawd upgrade/onboarding flow without implementing
+auth, persistence, checkout, evidence, XP, or automation.
+
+Issue:
+`docs/issues/E9.2-hosted-clawd-onboarding-spec.md`
+
+Spec:
+`docs/HOSTED_CLAWD_ONBOARDING_SPEC.md`
+
+Acceptance:
+
+- Upgrade entry points are defined for map tray, Scout Drop preview, Campaign
+  Preview, and upgrade tool responses. Done locally.
+- Session-only Alpha, invite Beta, and paid Beta states are distinct. Done
+  locally.
+- First saved artifact is chosen. Done locally.
+- Onboarding steps preserve map-first context. Done locally.
+- Copy rules avoid hype, payment claims, saved-state claims, and automation
+  claims before gates. Done locally.
+- Checkout appears after business/persistence context, not as a standalone
+  generic pricing screen. Done locally.
+
 ## Next
 
 ### Quest E6.5: Quest Preview slice parked
@@ -482,7 +539,7 @@ Implemented routes:
 - `GET /api/world/counties/riverside-ca`
 - `GET /api/world/counties/riverside-ca/districts/eastvale-city-slice`
 
-### Quest E9.1: Hosted Clawd Approval And Storage Choice
+### Quest E9.3: Hosted Clawd Persistence Foundation
 
 Human approval gate before code:
 `HUMAN_APPROVAL_BEFORE_PERSISTENCE`.
@@ -504,3 +561,15 @@ Anti-scope until approved:
   webhook endpoints.
 - No evidence uploads.
 - No XP grants.
+
+Implementation starts from:
+- `docs/HOSTED_CLAWD_APPROVAL_PACKET.md`
+- `docs/HOSTED_CLAWD_ONBOARDING_SPEC.md`
+- `docs/DATABASE_SCHEMA_BETA.md`
+
+First implementation target after approval:
+- authenticated user context
+- persistent Clawd row
+- business profile row
+- saved campaign preview from an existing Scout Drop
+- ownership and idempotency tests first

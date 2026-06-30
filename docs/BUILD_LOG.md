@@ -514,3 +514,38 @@ Verification:
 Next:
 Keep E9.1 blocked until the human gates approve storage, auth, and Stripe
 implementation.
+
+## Entry 030
+
+Quest:
+E9.1 Hosted Clawd approval prep and E9.2 onboarding spec.
+
+What changed:
+Added `docs/HOSTED_CLAWD_APPROVAL_PACKET.md` and
+`docs/HOSTED_CLAWD_ONBOARDING_SPEC.md`, plus issue docs for E9.1 and E9.2.
+Updated `docs/NEXT_QUESTS.md` with the priority chain from approval prep to
+onboarding, public QA, visual polish, persistence, and then Stripe. Added a
+durable decision that persistence comes before paid checkout. Added future
+Hosted Clawd failure shapes to `docs/TOOL_CONTRACTS.md` for unauthenticated,
+persistence-disabled, inactive subscription, wrong-owner, limit-exceeded, and
+idempotency-conflict cases.
+
+Product notes:
+The recommended first persisted capability is a confirmed business profile plus
+a saved campaign preview from an existing Scout Drop. Checkout, evidence, XP,
+weekly reports, exports, and automation remain out of scope. The onboarding spec
+keeps Atlas map-first and avoids a generic SaaS pricing page. Session promotion
+requires explicit user confirmation; demo XP never merges into the real XP
+ledger.
+
+Maturity:
+Docs-only M1 planning toward M3 Persisted Beta. No code crossed
+`HUMAN_APPROVAL_BEFORE_PERSISTENCE` or `HUMAN_APPROVAL_BEFORE_MONEY`.
+
+Verification:
+`pnpm --dir packages/core test` passed with 8 test files and 24 tests.
+`git diff --check` passed with only Windows LF-to-CRLF warnings.
+
+Next:
+Review the approval packet with the human. If approved, start E9.3 persistence
+foundation with ownership and idempotency tests first.

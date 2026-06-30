@@ -37,17 +37,19 @@ shared renderer, tool, and doc files.
 
 ### Current Recommended Split
 
-Run only these lanes until the Alpha app is reviewable:
+Run only these lanes until the Alpha app is reviewable and the Hosted Clawd gate
+is approved:
 
-- Thread A: E8.6 County Question Slice.
-- Thread B: E8.5 ChatGPT Tool Surface Hardening only if app review/tool
-  verification is currently failing.
-- Thread C: Integration/QA captain.
+- Thread A: Integration/QA captain for deployed app health and docs.
+- Thread B: E9 Hosted Clawd planning lane for approval packets, onboarding
+  specs, and implementation prompts only.
+- Thread C: Visual lane only if a specific E7.5 map-quality issue exists.
 
-If Thread B has no concrete blocker, leave it idle. A third thread is only fast
-when it owns a real slice with non-overlapping files. If the visible map starts
-changing again, finish and verify that renderer slice before branching new
-workers from it.
+Do not run a Stripe implementation thread until persistence exists and
+`HUMAN_APPROVAL_BEFORE_MONEY` is approved. A third thread is only fast when it
+owns a real slice with non-overlapping files. If the visible map starts changing
+again, finish and verify that renderer slice before branching new workers from
+it.
 
 ### Worktree Setup Commands
 
@@ -369,4 +371,44 @@ Acceptance criteria:
 - Define access-control and idempotency tests before implementation.
 - Keep Alpha tool copy clear that nothing is saved yet.
 - Update docs only unless the user explicitly asks for implementation.
+```
+
+## Prompt 7: E9.3 Hosted Clawd Persistence Foundation After Approval
+
+```md
+Current quest:
+Implement the first Hosted Clawd persistence foundation after human approval.
+
+Required approval:
+Do not start unless `HUMAN_APPROVAL_BEFORE_PERSISTENCE` is explicitly approved.
+Do not implement Stripe unless `HUMAN_APPROVAL_BEFORE_MONEY` is also explicitly
+approved.
+
+Likely files:
+- server/src/**
+- packages/core/src/**
+- packages/core/test/**
+- docs/HOSTED_CLAWD_APPROVAL_PACKET.md
+- docs/HOSTED_CLAWD_ONBOARDING_SPEC.md
+- docs/DATABASE_SCHEMA_BETA.md
+- docs/BUILD_LOG.md
+- docs/NEXT_QUESTS.md
+
+Anti-scope:
+No Stripe checkout, no Customer Portal, no subscription webhooks, no evidence
+uploads, no XP grants, no weekly reports, no exports, no automation, and no
+generic dashboard shell.
+
+Task:
+Implement only authenticated ownership foundation plus the approved first saved
+capability. Start with tests for unauthenticated denial, cross-user access
+denial, idempotent save, and free/session Clawd separation.
+
+Acceptance criteria:
+- Authenticated context is required for every saved write.
+- Every persisted row has owner enforcement.
+- First saved business/campaign artifact survives reload.
+- Free Alpha behavior remains session-only.
+- Tool responses distinguish session-only and saved states.
+- Focused tests pass.
 ```

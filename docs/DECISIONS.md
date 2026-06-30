@@ -91,3 +91,7 @@ E9.0 defines Hosted Clawd Beta entities, tool gates, pricing boundaries, and req
 ## Decision 023: Hosted Clawd uses Stripe Billing hosted subscription flow
 
 Hosted Clawd Beta should use Stripe Billing with Stripe-hosted Checkout Sessions in `subscription` mode, recurring Prices, webhook-synced subscription state, and Stripe Customer Portal for billing management. Atlas should not use raw PaymentIntents, success-page redirects, or client-trusted prices to grant Hosted Clawd access. No Stripe mutations or billing code start before `HUMAN_APPROVAL_BEFORE_MONEY` and persistence approval.
+
+## Decision 024: Persistence comes before paid checkout
+
+Hosted Clawd should first prove account ownership and saved business/campaign state before Stripe gates are implemented. The recommended first saved capability is a confirmed business profile plus a saved campaign preview from an existing Scout Drop. Evidence, XP, weekly reports, exports, and Stripe checkout stay behind later gates so the first persisted slice can focus on ownership, idempotency, and session-only versus saved-state clarity.

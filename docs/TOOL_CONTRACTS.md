@@ -304,3 +304,77 @@ Must not:
 - Alpha tools do not auto-post, auto-DM, execute advertising, create accounts, run checkout, save evidence, grant XP, or persist campaigns.
 - Paid tools must check plan server-side.
 - Free tools must not pretend temporary state is permanent.
+
+## Future hosted failure shapes
+
+Future Hosted Clawd tools should use consistent refusal/error payloads so the
+model, widget, and user see the same boundary.
+
+### unauthenticated
+
+Use when:
+The request has no valid account session.
+
+Response shape:
+- `status: "blocked"`
+- `reason: "unauthenticated"`
+- `message`: explain that Hosted Clawd requires sign-in
+- `nextAction`: `sign_in`
+
+### persistence_not_enabled
+
+Use when:
+The feature is still Alpha/session-only or the human persistence gate has not
+been crossed.
+
+Response shape:
+- `status: "blocked"`
+- `reason: "persistence_not_enabled"`
+- `message`: explain that saving is not live yet
+- `nextAction`: `join_waitlist` or `continue_session`
+
+### subscription_inactive
+
+Use when:
+The user is authenticated but does not have webhook-confirmed active Hosted
+Clawd access.
+
+Response shape:
+- `status: "blocked"`
+- `reason: "subscription_inactive"`
+- `message`: explain that paid writes require active Hosted Clawd
+- `nextAction`: `start_checkout` or `open_billing_portal`
+
+### wrong_owner
+
+Use when:
+The user tries to read or write another user's persisted object.
+
+Response shape:
+- `status: "blocked"`
+- `reason: "wrong_owner"`
+- `message`: avoid leaking whether the target object exists
+- `nextAction`: `select_owned_resource`
+
+### limit_exceeded
+
+Use when:
+The plan limit is reached.
+
+Response shape:
+- `status: "blocked"`
+- `reason: "limit_exceeded"`
+- `limitName`
+- `resetAt` when applicable
+- `nextAction`: `upgrade`, `manage_plan`, or `wait_for_reset`
+
+### idempotency_conflict
+
+Use when:
+The client request id was already used for a different payload.
+
+Response shape:
+- `status: "blocked"`
+- `reason: "idempotency_conflict"`
+- `message`: ask the client to retry with a new request id
+- `nextAction`: `retry_with_new_request_id`
