@@ -24,6 +24,11 @@ local verification exposes a real tool-surface blocker. Do not create worker
 branches from a dirty active renderer slice; finish or park that slice first so
 new worktrees do not start from stale code.
 
+Integration support:
+Use `docs/INTEGRATION_QA_PLAYBOOK.md` as the captain checklist for worker
+handoffs, merge gates, local/public verification, browser QA, and rejection
+rules.
+
 Production evolution posture:
 Use `docs/PRODUCTION_EVOLUTION_GATES.md` for every substantial slice. Each quest
 must name the current maturity level, target maturity level, human approval
@@ -390,6 +395,22 @@ Acceptance:
   claims before gates. Done locally.
 - Checkout appears after business/persistence context, not as a standalone
   generic pricing screen. Done locally.
+
+### Operating slice: Integration QA Playbook
+
+Added the captain playbook for parallel worker support.
+
+Spec:
+`docs/INTEGRATION_QA_PLAYBOOK.md`
+
+Acceptance:
+
+- Worker handoff format is explicit. Done locally.
+- Rejection rules cover persistence, Stripe, XP/evidence, automation, provider
+  payloads, MCP drift, and map regressions. Done locally.
+- Verification matrix covers docs-only, server/tool, UI/preview, and deploy
+  slices. Done locally.
+- Active E7.5 and E9.3 worker lane boundaries are documented. Done locally.
 
 ## Next
 

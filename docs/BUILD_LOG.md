@@ -549,3 +549,27 @@ Verification:
 Next:
 Review the approval packet with the human. If approved, start E9.3 persistence
 foundation with ownership and idempotency tests first.
+
+## Entry 031
+
+Quest:
+Integration/QA captain support playbook.
+
+What changed:
+Added `docs/INTEGRATION_QA_PLAYBOOK.md` so parallel Atlas threads have a
+standard handoff format, rejection rules, verification matrix, and merge order.
+Updated `docs/NEXT_QUESTS.md` to point worker and captain lanes at the playbook.
+
+Product notes:
+This is an operating-support slice only. It does not change the app, renderer,
+MCP tools, submission JSON, persistence plan, Stripe plan, XP, evidence, or
+deployment state.
+
+Verification:
+`pnpm --dir packages/core test` passed with 8 test files and 24 tests.
+`git diff --check -- docs/INTEGRATION_QA_PLAYBOOK.md docs/NEXT_QUESTS.md docs/BUILD_LOG.md`
+passed with only Windows LF-to-CRLF warnings.
+
+Next:
+Use the playbook when the E7.5 visual thread or E9.3 persistence-gate thread
+lands changes.
