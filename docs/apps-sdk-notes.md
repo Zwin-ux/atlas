@@ -45,6 +45,12 @@ This avoids remounting the iframe on every data operation and lets the model rea
 
 ## Atlas E4 Pattern
 
+- `select_county` is the first ChatGPT county entrypoint. It returns a compact
+  county scene summary in `structuredContent` and the full compiled
+  `VoxelScene` in `_meta.scene`.
+- `ask_county_question` answers closed-world Riverside/Eastvale questions from
+  curated Alpha facts only. It returns source notes, limitations, and a
+  supported/refused flag.
 - `render_voxel_county` returns a compact scene summary in `structuredContent` and the full `VoxelScene` in `_meta.scene`.
 - `preview_scout_drop` returns model-readable scout signals, route, risks, limitations, and upgrade prompt in `structuredContent`.
 - The Scout Drop widget reads the full preview from `_meta.scoutPreview` and treats local fallback data as preview-only.

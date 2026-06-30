@@ -1,0 +1,273 @@
+import type { CountyMapNode, CountyPack, CountySource } from "./types.js";
+import { CountyPackService } from "./CountyPackService.js";
+
+export type CountyQuestionTopic =
+  | "eastvale_first_slice"
+  | "business_signals"
+  | "county_summary"
+  | "source_limits"
+  | "unsupported";
+
+export type CountyQuestionFact = {
+  label: string;
+  value: string;
+  sourceNodeIds?: string[];
+};
+
+export type CountyQuestionAnswer = {
+  type: "countyQuestionAnswer";
+  countySlug: string;
+  question: string;
+  supported: boolean;
+  topic: CountyQuestionTopic;
+  answer: string;
+  facts: CountyQuestionFact[];
+  sourceNotes: CountySource[];
+  limitations: string[];
+  suggestedNextTool?: "select_county" | "preview_scout_drop" | "lookup_world_places";
+};
+
+export type CountyQuestionInput = {
+  countySlug?: string;
+  question: string;
+  businessType?: string;
+};
+
+const ALPHA_COUNTY_SLUG = "riverside-ca";
+const SUPPORTED_BUSINESS_LABELS: Record<string, string> = {
+  mobile_detailing: "mobile detailing",
+  cleaning: "cleaning",
+  local_event: "local event",
+};
+
+export class CountyQuestionService {
+  constructor(private readonly countyPacks = new CountyPackService()) {}
+
+  answer(input: CountyQuestionInput): CountyQuestionAnswer {
+    const countySlug = input.countySlug ?? ALPHA_COUNTY_SLUG;
+    const question = input.question.trim();
+
+    if (countySlug !== ALPHA_COUNTY_SLUG) {
+      return unsupportedAnswer({
+        countySlug,
+        question,
+        answer: `Atlas Alpha can answer county questions only for Riverside County right now. It cannot make claims about ${countySlug} from this curated pack.`,
+        facts: [{ label: "Supported Alpha county", value: "Riverside County, CA", sourceNodeIds: ["eastvale"] }],
+      });
+    }
+
+    const pack = this.countyPacks.loadCountyPack(countySlug);
+    const businessKey = normalizeBusinessKey(input.businessType ?? detectBusinessFromQuestion(question));
+
+    if ((input.businessType || businessKey) && !businessKey) {
+      return unsupportedBusinessAnswer(pack, question, input.businessType ?? question);
+    }
+
+    if (isUnsupportedBusinessQuestion(question, businessKey)) {
+      return unsupportedBusinessAnswer(pack, question, input.businessType ?? question);
+    }
+
+    if (isSourceQuestion(question)) {
+      return sourceLimitsAnswer(pack, question);
+    }
+
+    if (businessKey) {
+      return businessSignalsAnswer(pack, question, businessKey);
+    }
+
+    if (isFirstSliceQuestion(question)) {
+      return eastvaleFirstSliceAnswer(pack, question);
+    }
+
+    return countySummaryAnswer(pack, question);
+  }
+}
+
+export function answerCountyQuestion(input: CountyQuestionInput, countyPacks?: CountyPackService): CountyQuestionAnswer {
+  return new CountyQuestionService(countyPacks).answer(input);
+}
+
+function eastvaleFirstSliceAnswer(pack: CountyPack, question: string): CountyQuestionAnswer {
+  const eastvale = requireNode(pack, "eastvale");
+  const connected = pack.mapEdges
+    .filter((edge) => edge.from === "eastvale")
+    .map((edge) => requireNode(pack, edge.to));
+
+  return supportedAnswer(pack, {
+    question,
+    topic: "eastvale_first_slice",
+    answer:
+      "Eastvale is the first playable Atlas slice because the curated pack gives it a compact county loop: residential demand, short route access, QR flyer surfaces, a gym/plaza partner target, and an apartment/property-manager outreach pocket. That is enough to test Explore -> Ask -> Drop Clawd -> Scout -> Campaign without pretending Atlas has live market coverage.",
+    facts: [
+      factForNode(eastvale, "Selected start"),
+      ...connected.slice(0, 3).map((node) => factForNode(node, "Connected signal")),
+      { label: "Alpha boundary", value: pack.summary, sourceNodeIds: ["eastvale"] },
+    ],
+    suggestedNextTool: "select_county",
+  });
+}
+
+function businessSignalsAnswer(pack: CountyPack, question: string, businessKey: string): CountyQuestionAnswer {
+  const businessLabel = SUPPORTED_BUSINESS_LABELS[businessKey] ?? businessKey;
+  const ranked = pack.mapNodes
+    .filter((node) => typeof node.scores[businessKey] === "number")
+    .sort((a, b) => (b.scores[businessKey] ?? 0) - (a.scores[businessKey] ?? 0));
+
+  const top = ranked.slice(0, 4);
+  const signalList = unique(top.flatMap((node) => node.signals));
+
+  return supportedAnswer(pack, {
+    question,
+    topic: "business_signals",
+    answer: `For ${businessLabel}, the curated Riverside pack supports Eastvale because the strongest nodes cluster around homes, errands, and short routes. Top signals are ${signalList.join(", ")}. Treat these as Alpha planning signals, not live demand or ROI proof.`,
+    facts: top.map((node) => ({
+      label: node.name,
+      value: `${node.scores[businessKey]} curated ${businessLabel} score; ${node.signals.join(", ")}. ${node.campaignSuggestion}`,
+      sourceNodeIds: [node.id],
+    })),
+    suggestedNextTool: businessKey === "mobile_detailing" ? "preview_scout_drop" : "select_county",
+  });
+}
+
+function countySummaryAnswer(pack: CountyPack, question: string): CountyQuestionAnswer {
+  return supportedAnswer(pack, {
+    question,
+    topic: "county_summary",
+    answer:
+      "The Riverside Alpha pack is a small curated county model for the Eastvale demo. It can answer basic questions about supported nodes, routes, signals, and the first business-planning lanes, but it does not claim full county coverage.",
+    facts: [
+      { label: "County", value: `${pack.county}, ${pack.state}` },
+      { label: "Curated nodes", value: String(pack.mapNodes.length), sourceNodeIds: pack.mapNodes.map((node) => node.id) },
+      { label: "Curated edges", value: String(pack.mapEdges.length) },
+      { label: "Supported business lanes", value: Object.values(SUPPORTED_BUSINESS_LABELS).join(", ") },
+    ],
+    suggestedNextTool: "select_county",
+  });
+}
+
+function sourceLimitsAnswer(pack: CountyPack, question: string): CountyQuestionAnswer {
+  return supportedAnswer(pack, {
+    question,
+    topic: "source_limits",
+    answer:
+      "This answer is closed-world. It uses the Atlas curated Riverside Alpha pack and source notes only. It does not call Google, ingest live county data, save provider results, or claim current market truth.",
+    facts: [
+      { label: "Pack version", value: pack.version },
+      { label: "Last updated", value: pack.lastUpdated },
+      ...pack.confidenceNotes.map((note) => ({ label: "Confidence note", value: note })),
+    ],
+    suggestedNextTool: "lookup_world_places",
+  });
+}
+
+function unsupportedBusinessAnswer(pack: CountyPack, question: string, requested: string): CountyQuestionAnswer {
+  return unsupportedAnswer({
+    countySlug: pack.slug,
+    question,
+    answer: `Atlas Alpha cannot support that business claim from the curated Riverside pack. Requested scope: ${requested}. Supported score lanes are ${Object.values(SUPPORTED_BUSINESS_LABELS).join(", ")}. Narrow this to one of those lanes before using it for a Scout Drop.`,
+    facts: [
+      { label: "Supported business lanes", value: Object.values(SUPPORTED_BUSINESS_LABELS).join(", ") },
+      { label: "Alpha boundary", value: pack.summary },
+    ],
+    sourceNotes: pack.sources,
+    limitations: alphaLimitations(pack),
+    suggestedNextTool: "select_county",
+  });
+}
+
+function supportedAnswer(
+  pack: CountyPack,
+  answer: Omit<CountyQuestionAnswer, "type" | "countySlug" | "supported" | "sourceNotes" | "limitations">,
+): CountyQuestionAnswer {
+  return {
+    type: "countyQuestionAnswer",
+    countySlug: pack.slug,
+    supported: true,
+    sourceNotes: pack.sources,
+    limitations: alphaLimitations(pack),
+    ...answer,
+  };
+}
+
+function unsupportedAnswer(input: {
+  countySlug: string;
+  question: string;
+  answer: string;
+  facts: CountyQuestionFact[];
+  sourceNotes?: CountySource[];
+  limitations?: string[];
+  suggestedNextTool?: CountyQuestionAnswer["suggestedNextTool"];
+}): CountyQuestionAnswer {
+  return {
+    type: "countyQuestionAnswer",
+    countySlug: input.countySlug,
+    question: input.question,
+    supported: false,
+    topic: "unsupported",
+    answer: input.answer,
+    facts: input.facts,
+    sourceNotes: input.sourceNotes ?? [],
+    limitations: input.limitations ?? [
+      "Atlas Alpha only answers from curated supported county packs.",
+      "Unsupported counties and unsupported business claims are narrowed or refused.",
+    ],
+    suggestedNextTool: input.suggestedNextTool ?? "select_county",
+  };
+}
+
+function factForNode(node: CountyMapNode, label: string): CountyQuestionFact {
+  return {
+    label: `${label}: ${node.name}`,
+    value: `${node.signals.join(", ")}. ${node.campaignSuggestion}`,
+    sourceNodeIds: [node.id],
+  };
+}
+
+function requireNode(pack: CountyPack, nodeId: string): CountyMapNode {
+  const node = pack.mapNodes.find((item) => item.id === nodeId);
+  if (!node) throw new Error(`County pack ${pack.slug} does not include node ${nodeId}.`);
+  return node;
+}
+
+function alphaLimitations(pack: CountyPack): string[] {
+  return [
+    ...pack.confidenceNotes,
+    "Closed-world answer from curated Atlas Alpha data only.",
+    "No saved state, XP, evidence, outreach, or live market guarantee.",
+  ];
+}
+
+function normalizeBusinessKey(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (normalized in SUPPORTED_BUSINESS_LABELS) return normalized;
+  if (normalized.includes("detail")) return "mobile_detailing";
+  if (normalized.includes("clean")) return "cleaning";
+  if (normalized.includes("event")) return "local_event";
+  return undefined;
+}
+
+function detectBusinessFromQuestion(question: string): string | undefined {
+  const lower = question.toLowerCase();
+  if (lower.includes("mobile detail") || lower.includes("detailing")) return "mobile_detailing";
+  if (lower.includes("cleaning") || lower.includes("cleaner")) return "cleaning";
+  if (lower.includes("local event") || lower.includes("event")) return "local_event";
+  return undefined;
+}
+
+function isUnsupportedBusinessQuestion(question: string, detectedBusinessKey: string | undefined): boolean {
+  if (detectedBusinessKey) return false;
+  return /\b(roofing|plumb|hvac|restaurant|insurance|real estate|law firm|med spa|landscap)\b/i.test(question);
+}
+
+function isFirstSliceQuestion(question: string): boolean {
+  return /(why|first|start|slice|eastvale)/i.test(question) && /eastvale|slice|start|first/i.test(question);
+}
+
+function isSourceQuestion(question: string): boolean {
+  return /\b(source|confidence|live|current|data|provider|google)\b/i.test(question);
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
+}

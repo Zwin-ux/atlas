@@ -51,3 +51,39 @@ E5 creates a 7-day manual campaign preview from an existing `ScoutPreviewState`.
 ## Decision 013: Submission surface is product-only
 
 E6 removes starter-era brief tools from the exposed MCP surface and keeps the review-facing Alpha tools to `render_voxel_county`, `preview_scout_drop`, `preview_campaign_engine`, and `get_upgrade_options`. All exposed Alpha tools are read-only, non-destructive, closed-world, and return explicit output schemas.
+
+## Decision 014: Map-first city world before Quest Preview
+
+E6.6 parks the partial Quest Preview slice and makes the visible Alpha experience a geo-grounded city/world map. `VoxelScene` now carries optional `VoxelWorld` data for country/state/county/district/place hierarchy, known places, ambient activity, session-only stickers, and session-only notes. Campaign and Scout tools remain available, but the default UI opens on the map.
+
+## Decision 015: Full-screen CityWorldRenderer is the next map target
+
+The current card/panel voxel UI should not be iterated further. E7.0 will replace the visible map UI with a full-screen Pixi `CityWorldRenderer` driven by typed `CityWorldScene` data. React is limited to tiny HUD overlays. Lottie is limited to optional UI-only animation, Rive is deferred for future Clawd state-machine animation, and Three.js remains out of scope.
+
+## Decision 016: Hybrid voxel art before real atlases
+
+E7.1 improves the city map through code-generated Pixi art while adding atlas-ready metadata to `CityWorldScene`. This keeps the Alpha shippable without new dependencies, but gives each building, prop, actor, and terrain object stable keys for future tile and sprite atlas replacement. Pixi remains responsible for map objects and animation; Lottie stays UI-only, Rive stays deferred for Clawd, and no dashboard/card shell returns.
+
+## Decision 017: USA-scale engine through backend world contracts
+
+Atlas V1 should target the entire United States, but not by rendering a giant national canvas. The backend owns national indexing, provider adapters, cache/TTL/source policy, and normalized country/state/county/district/place identity. The renderer consumes bounded `CityWorldScene` slices for the selected county or district. Additional MCP servers or connectors should be added only when they solve a concrete deploy, provider, database, or submission-review bottleneck.
+
+## Decision 018: ChatGPT county selection compiles from curated packs
+
+The first real ChatGPT demo slice starts with `select_county` for Riverside. The server loads the curated Riverside county pack, compiles a typed `VoxelScene`, highlights Eastvale, and sends the full scene to the widget through `_meta.scene`. Renderers consume Atlas scene contracts only; raw Google/provider payloads stay behind backend adapters.
+
+## Decision 019: First real sprite ships as bundled data URL
+
+E7.4 proves the atlas resolver sprite path with `pin-sticker-favorite.svg`. The web build inlines SVG textures as data URLs, and Pixi loads them through `Assets.load` before the resolver returns sprite mode. This keeps the ChatGPT widget self-contained with no broader resource domain while preserving primitive fallback during load failure or missing textures.
+
+## Decision 020: County questions stay closed-world in Alpha
+
+E8.6 adds `ask_county_question` as a read-only curated-data tool, not a broad Q&A engine. It answers Riverside/Eastvale questions from the county pack and source notes only, refuses unsupported counties or business claims, and does not call Google, save state, grant XP, or claim live market truth.
+
+## Decision 021: Production promotion requires explicit gates
+
+Atlas work progresses through named maturity levels: mock scaffold, curated Alpha, verified live read-only, persisted Beta, and production release. Any slice that promotes mocks, curated claims, live provider scope, persistence, money, or automation must name the human approval gate before it crosses that boundary.
+
+## Decision 022: Hosted Clawd contracts precede persistence
+
+E9.0 defines Hosted Clawd Beta entities, tool gates, pricing boundaries, and required tests before any auth, database, Stripe, evidence, or XP code. The next implementation step must first clear `HUMAN_APPROVAL_BEFORE_PERSISTENCE`; checkout or pricing work also requires `HUMAN_APPROVAL_BEFORE_MONEY`.

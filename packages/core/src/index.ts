@@ -1,7 +1,47 @@
 export * from "./county/CountyPackService.js";
+export * from "./county/CountyQuestionService.js";
 export * from "./county/schema.js";
 export * from "./county/types.js";
-export { CampaignPreviewService, ScoutDropService, previewCampaignFromScout, previewScoutDrop } from "./scout/index.js";
+export { createNationalWorldService, NationalWorldService, normalizeWorldPlaceCategory } from "./world/index.js";
+export type {
+  UsCountryResponse,
+  UsCountySummary,
+  UsCountyWorldResponse,
+  UsDistrictSummary,
+  UsDistrictWorldResponse,
+  UsPlaceSummary,
+  UsStateCountiesResponse,
+  UsStateSummary,
+  UsWorldIdentity,
+  UsWorldScope,
+  WorldLookupPlaceInput,
+  WorldLookupPlaceSummary,
+  WorldLookupResolvedLocation,
+  WorldCachePolicy,
+  WorldPlaceCategory,
+  WorldPlaceLookupResponse,
+  WorldSourceKind,
+  WorldSourceNote,
+} from "./world/index.js";
+export {
+  CampaignPreviewService,
+  ScoutDropService,
+  previewCampaignFromScout,
+  previewScoutDrop,
+} from "./scout/index.js";
+export {
+  compileCityWorldScene,
+  compileVoxelSceneFromCountyPack,
+  createVoxelNote,
+  createVoxelSticker,
+  serializeVoxelMapSession,
+  validateVoxelWorld,
+} from "./voxel/index.js";
+export type {
+  CreateVoxelNoteInput,
+  CreateVoxelStickerInput,
+  VoxelMapSession,
+} from "./voxel/mapSession.js";
 export type {
   CampaignAssetPlaceholder,
   CampaignChannel,
@@ -29,13 +69,61 @@ export type {
   ClawdRenderState,
   ScoutReportPanel,
   UpgradePanel,
+  VoxelAmbientState,
+  VoxelDistrict,
   VoxelFlowStep,
+  VoxelNote,
+  VoxelPlace,
+  VoxelPlaceKind,
   VoxelPoint as VoxelScenePoint,
   VoxelScene,
+  VoxelSticker,
+  VoxelStickerKind,
   VoxelTheme,
   VoxelTile,
   VoxelTileKind,
+  VoxelWorld,
+  VoxelWorldNode,
+  VoxelWorldScale,
 } from "./voxel/types.js";
+export type {
+  CityWorldActor,
+  CityWorldAtlasMetadata,
+  CityWorldAmbient,
+  CityWorldBounds,
+  CityWorldBuilding,
+  CityWorldCameraPreset,
+  CityWorldDetailLevel,
+  CityWorldFacadeStyle,
+  CityWorldHudDefaults,
+  CityWorldLot,
+  CityWorldPin,
+  CityWorldPlace,
+  CityWorldPoint,
+  CityWorldProp,
+  CityWorldRegion,
+  CityWorldRoofShape,
+  CityWorldRoadSegment,
+  CityWorldScene,
+  CityWorldSessionState,
+  CityWorldTerrainTile,
+} from "./voxel/cityWorldTypes.js";
+export type {
+  CityWorldAtlasAnchor,
+  CityWorldAtlasFallbackKind,
+  CityWorldAtlasFrame,
+  CityWorldAtlasKind,
+  CityWorldAtlasManifest,
+  CityWorldAtlasPalette,
+  CityWorldAtlasSprite,
+  CityWorldAtlasTile,
+  CityWorldAtlasValidationResult,
+} from "./voxel/cityWorldAtlas.js";
+export {
+  REQUIRED_CITY_WORLD_ATLAS_TAGS,
+  validateCityWorldAtlasManifest,
+  validateCityWorldSceneAtlasKeys,
+} from "./voxel/cityWorldAtlas.js";
 
 export type AtlasPhase = "skeleton" | "county-pack" | "renderer" | "scout-drop" | "campaign" | "mcp-tools";
 

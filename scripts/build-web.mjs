@@ -20,6 +20,9 @@ await esbuild.build({
   define: {
     "process.env.NODE_ENV": '"production"',
   },
+  loader: {
+    ".svg": "dataurl",
+  },
   minify: true,
   sourcemap: true,
   logLevel: "info",

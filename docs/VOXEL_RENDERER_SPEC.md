@@ -21,6 +21,7 @@ type VoxelScene = {
   objects?: VoxelObject[];
   camera?: VoxelCamera;
   layers?: VoxelLayer[];
+  world?: VoxelWorld;
   clawd: ClawdRenderState;
   panel: ScoutReportPanel | CampaignPreviewPanel | UpgradePanel;
 };
@@ -30,27 +31,27 @@ type VoxelScene = {
 
 - lighter map, not muddy dark
 - bright county board
-- dark UI panels around the map
+- light place inspector around the map
 - readable nodes and markers
-- playful but useful
+- polished cute city/world map feel
 - no generic SaaS
 
 ## Required Alpha visuals
 
 - county tile board
-- Eastvale marker
-- Clawd sprite placeholder
-- scout route line
-- green opportunity marker
-- orange risk marker
-- blue scouted marker
-- right-side Scout Report panel
-- bottom flow rail
+- Riverside county hub
+- Eastvale playable district
+- known place dots and labels
+- session-only sticker badges
+- session-only note editor
+- subtle residents/traffic/activity
+- right-side place inspector
+- bottom collection rail
 
-## Current E4.5 behavior
+## Current E6.6 behavior
 
 - Pixi owns only the map stage; React still owns the report panel and flow rail.
 - SVG fallback renders if Pixi cannot mount or scene validation fails.
-- Desktop uses full node labels and visual objects without object-label clutter.
-- Compact/mobile maps keep the focused node readable and avoid horizontal overflow.
+- Desktop uses district/place labels and visual objects without object-label clutter.
+- Compact/mobile maps keep the selected place readable and avoid horizontal overflow.
 - Apps SDK tools return compact summaries in `structuredContent` and pass full `VoxelScene` payloads through `_meta`.

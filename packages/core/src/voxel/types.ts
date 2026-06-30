@@ -54,6 +54,8 @@ export type AtlasMarker = {
 export type VoxelObjectKind =
   | "home"
   | "plaza"
+  | "park"
+  | "landmark"
   | "road"
   | "freeway"
   | "warehouse"
@@ -83,6 +85,76 @@ export type VoxelLayer = {
   id: string;
   label: string;
   visible: boolean;
+};
+
+export type VoxelWorldScale = "country" | "state" | "county" | "district" | "place";
+
+export type VoxelWorldNode = {
+  id: string;
+  label: string;
+  scale: VoxelWorldScale;
+  parentId?: string;
+  slug?: string;
+  position?: VoxelPoint;
+};
+
+export type VoxelDistrict = {
+  id: string;
+  label: string;
+  countySlug: string;
+  worldNodeId: string;
+  summary: string;
+  playable: boolean;
+  focusNodeIds: string[];
+  position: VoxelPoint;
+};
+
+export type VoxelPlaceKind = "home_area" | "shop" | "plaza" | "park" | "road" | "landmark";
+
+export type VoxelPlace = {
+  id: string;
+  label: string;
+  kind: VoxelPlaceKind;
+  districtId: string;
+  nodeId: string;
+  position: VoxelPoint;
+  description: string;
+  activity: number;
+};
+
+export type VoxelStickerKind = "home" | "shop" | "park" | "favorite" | "idea" | "question";
+
+export type VoxelSticker = {
+  id: string;
+  placeId: string;
+  kind: VoxelStickerKind;
+  label: string;
+  noteId?: string;
+};
+
+export type VoxelNote = {
+  id: string;
+  placeId: string;
+  body: string;
+  stickerId?: string;
+};
+
+export type VoxelAmbientState = {
+  timeOfDay: "morning" | "midday" | "evening";
+  activity: "calm" | "busy" | "closing";
+  traffic: number;
+  residents: number;
+};
+
+export type VoxelWorld = {
+  activeScale: VoxelWorldScale;
+  selectedDistrictId: string;
+  nodes: VoxelWorldNode[];
+  districts: VoxelDistrict[];
+  places: VoxelPlace[];
+  ambient: VoxelAmbientState;
+  stickers?: VoxelSticker[];
+  notes?: VoxelNote[];
 };
 
 export type ClawdRenderState = {
@@ -198,6 +270,7 @@ export type VoxelScene = {
   objects?: VoxelObject[];
   camera?: VoxelCamera;
   layers?: VoxelLayer[];
+  world?: VoxelWorld;
   clawd: ClawdRenderState;
   panel: ScoutReportPanel | CampaignPreviewPanel | UpgradePanel;
   flow: VoxelFlowStep[];

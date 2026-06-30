@@ -1,67 +1,93 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { previewCampaignFromScout, previewScoutDrop } from "@atlas/core/scout";
-import type { VoxelFlowStep } from "@atlas/core/voxel";
-import { VoxelSceneView } from "./VoxelSceneView";
+import {
+  createVoxelNote,
+  createVoxelSticker,
+  riversideDemoVoxelScene,
+  type VoxelNote,
+  type VoxelSticker,
+  type VoxelStickerKind,
+} from "@atlas/core/voxel";
+import { CityWorldView } from "./CityWorldView";
 import "./styles.css";
 
-const defaultScoutPreview = previewScoutDrop({
-  countySlug: "riverside-ca",
-  nodeId: "eastvale",
-  businessType: "mobile detailing",
-});
-
 function WidgetShell() {
-  const [scene, setScene] = useState(defaultScoutPreview.scene);
-  const [selectedNodeId, setSelectedNodeId] = useState(defaultScoutPreview.selectedNodeId);
-  const [activeStepId, setActiveStepId] = useState<VoxelFlowStep["id"]>("county");
-  const selectedNode = useMemo(() => {
-    return scene.nodes.find((node) => node.id === selectedNodeId);
-  }, [scene.nodes, selectedNodeId]);
+  const [selectedDistrictId, setSelectedDistrictId] = useState(riversideDemoVoxelScene.world?.selectedDistrictId);
+  const [selectedPlaceId, setSelectedPlaceId] = useState(riversideDemoVoxelScene.world?.places[0]?.id);
+  const [selectedNodeId, setSelectedNodeId] = useState(riversideDemoVoxelScene.world?.places[0]?.nodeId ?? riversideDemoVoxelScene.selectedNodeId);
+  const [stickerMode, setStickerMode] = useState<VoxelStickerKind>("favorite");
+  const [stickers, setStickers] = useState<VoxelSticker[]>([]);
+  const [notes, setNotes] = useState<VoxelNote[]>([]);
+  const [noteDraft, setNoteDraft] = useState("");
+  const selectedPlace = useMemo(() => {
+    return riversideDemoVoxelScene.world?.places.find((place) => place.id === selectedPlaceId);
+  }, [selectedPlaceId]);
 
-  useEffect(() => {
-    setActiveStepId("county");
-    const dropTimer = window.setTimeout(() => setActiveStepId("drop"), 180);
-    const reportTimer = window.setTimeout(() => setActiveStepId("report"), 420);
-    return () => {
-      window.clearTimeout(dropTimer);
-      window.clearTimeout(reportTimer);
-    };
-  }, []);
-
-  const askForCampaignPath = () => {
-    const campaignPreview = previewCampaignFromScout(defaultScoutPreview);
-    setScene(campaignPreview.scene);
-    setSelectedNodeId(campaignPreview.selectedNodeId);
-    setActiveStepId("campaign");
-    window.dispatchEvent(
-      new CustomEvent("atlas:campaign-path", {
-        detail: {
-          scoutPreviewId: defaultScoutPreview.id,
-          campaignPreviewId: campaignPreview.id,
-          nodeId: selectedNode?.id,
-          label: selectedNode?.label,
-          route: defaultScoutPreview.route,
-        },
-      }),
-    );
+  const selectDistrict = (districtId: string) => {
+    const firstPlace = riversideDemoVoxelScene.world?.places.find((place) => place.districtId === districtId);
+    setSelectedDistrictId(districtId);
+    setSelectedPlaceId(firstPlace?.id);
+    setSelectedNodeId(firstPlace?.nodeId ?? selectedNodeId);
+    setNoteDraft("");
   };
 
-  const contextTitle =
-    scene.panel.type === "campaign_preview"
-      ? `${defaultScoutPreview.businessType} Campaign Preview`
-      : `${defaultScoutPreview.businessType} Scout Drop`;
+  const selectPlace = (placeId: string) => {
+    const place = riversideDemoVoxelScene.world?.places.find((item) => item.id === placeId);
+    setSelectedPlaceId(placeId);
+    setSelectedDistrictId(place?.districtId ?? selectedDistrictId);
+    setSelectedNodeId(place?.nodeId ?? selectedNodeId);
+    setNoteDraft("");
+  };
+
+  const placeSticker = (placeId: string, kind: VoxelStickerKind) => {
+    setStickerMode(kind);
+    setStickers((current) => [
+      ...current,
+      uniqueSticker(createVoxelSticker(riversideDemoVoxelScene, { placeId, kind, label: stickerLabel(kind) }), current.length + 1),
+    ]);
+  };
+
+  const saveNote = (placeId: string, body: string) => {
+    setNotes((current) => [...current, uniqueNote(createVoxelNote(riversideDemoVoxelScene, { placeId, body }), current.length + 1)]);
+    setNoteDraft("");
+  };
 
   return (
-    <VoxelSceneView
-      scene={scene}
-      selectedNodeId={selectedNodeId}
-      activeStepId={activeStepId}
-      contextTitle={contextTitle}
-      onSelectNode={setSelectedNodeId}
-      onAskCampaign={askForCampaignPath}
+    <CityWorldView
+      scene={riversideDemoVoxelScene}
+      selectedDistrictId={selectedDistrictId}
+      selectedPlaceId={selectedPlaceId}
+      stickers={stickers}
+      notes={notes}
+      stickerMode={stickerMode}
+      noteDraft={noteDraft}
+      onSelectPlace={selectPlace}
+      onSelectStickerMode={setStickerMode}
+      onPlaceSticker={placeSticker}
+      onNoteDraftChange={setNoteDraft}
+      onSaveNote={saveNote}
     />
   );
+}
+
+function uniqueSticker(sticker: VoxelSticker, count: number): VoxelSticker {
+  return { ...sticker, id: `${sticker.id}-${count}` };
+}
+
+function uniqueNote(note: VoxelNote, count: number): VoxelNote {
+  return { ...note, id: `${note.id}-${count}` };
+}
+
+function stickerLabel(kind: VoxelStickerKind): string {
+  const labels: Record<VoxelStickerKind, string> = {
+    home: "Home",
+    shop: "Shop",
+    park: "Park",
+    favorite: "Favorite",
+    idea: "Idea",
+    question: "Question",
+  };
+  return labels[kind];
 }
 
 const root = document.getElementById("root");

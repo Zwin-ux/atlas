@@ -1,4 +1,4 @@
-import type { AtlasEdge, AtlasMarker, AtlasNode, VoxelObject, VoxelScene, VoxelTile, VoxelTileKind } from "./types.js";
+import type { AtlasEdge, AtlasMarker, AtlasNode, VoxelObject, VoxelScene, VoxelTile, VoxelTileKind, VoxelWorld } from "./types.js";
 
 const nodeSource = [
   {
@@ -113,11 +113,12 @@ export const riversideDemoVoxelScene: VoxelScene = {
     maxZoom: 1.34,
   },
   layers: [
-    { id: "terrain", label: "Terrain", visible: true },
-    { id: "routes", label: "Routes", visible: true },
-    { id: "signals", label: "Signals", visible: true },
-    { id: "scout", label: "Scout", visible: true },
+    { id: "terrain", label: "Blocks", visible: true },
+    { id: "routes", label: "Roads", visible: true },
+    { id: "places", label: "Places", visible: true },
+    { id: "stickers", label: "Stickers", visible: true },
   ],
+  world: createWorld(),
   clawd: {
     nodeId: "eastvale",
     routeNodeIds: ["eastvale", "norco", "corona"],
@@ -146,6 +147,129 @@ export const riversideDemoVoxelScene: VoxelScene = {
   selectedNodeId: "eastvale",
 };
 
+function createWorld(): VoxelWorld {
+  return {
+    activeScale: "district",
+    selectedDistrictId: "eastvale-district",
+    nodes: [
+      { id: "us", label: "United States", scale: "country", slug: "us" },
+      { id: "ca", label: "California", scale: "state", parentId: "us", slug: "ca" },
+      { id: "riverside-ca", label: "Riverside County", scale: "county", parentId: "ca", slug: "riverside-ca", position: { x: 32, y: 18, z: 0 } },
+      { id: "eastvale-district", label: "Eastvale", scale: "district", parentId: "riverside-ca", slug: "eastvale", position: { x: 32, y: 18, z: 1 } },
+      { id: "corona-corridor", label: "Corona Corridor", scale: "district", parentId: "riverside-ca", slug: "corona-corridor", position: { x: 26, y: 24, z: 1 } },
+      { id: "place-eastvale-core", label: "Eastvale Core", scale: "place", parentId: "eastvale-district", position: { x: 32, y: 18, z: 1.3 } },
+      { id: "place-neighborhood-blocks", label: "Neighborhood Blocks", scale: "place", parentId: "eastvale-district", position: { x: 34, y: 17, z: 1.3 } },
+      { id: "place-plaza-row", label: "Plaza Row", scale: "place", parentId: "eastvale-district", position: { x: 36, y: 20, z: 1.3 } },
+      { id: "place-community-park", label: "Community Park", scale: "place", parentId: "eastvale-district", position: { x: 35, y: 22, z: 1.2 } },
+      { id: "place-norco-route", label: "Norco Route", scale: "place", parentId: "corona-corridor", position: { x: 28, y: 21, z: 1.2 } },
+    ],
+    districts: [
+      {
+        id: "eastvale-district",
+        label: "Eastvale City Slice",
+        countySlug: "riverside-ca",
+        worldNodeId: "eastvale-district",
+        summary: "A playable Eastvale slice with homes, plaza lots, parks, and route edges.",
+        playable: true,
+        focusNodeIds: ["eastvale", "residential-eastvale", "gym-plaza-eastvale", "apartment-cluster", "norco"],
+        position: { x: 32, y: 18, z: 1 },
+      },
+      {
+        id: "corona-corridor",
+        label: "Corona Corridor",
+        countySlug: "riverside-ca",
+        worldNodeId: "corona-corridor",
+        summary: "A locked county corridor preview for later expansion.",
+        playable: false,
+        focusNodeIds: ["corona", "riverside"],
+        position: { x: 26, y: 24, z: 1 },
+      },
+    ],
+    places: [
+      {
+        id: "place-eastvale-core",
+        label: "Eastvale Core",
+        kind: "landmark",
+        districtId: "eastvale-district",
+        nodeId: "eastvale",
+        position: { x: 32, y: 18, z: 1.32 },
+        description: "The starting place for the Riverside city map.",
+        activity: 0.76,
+      },
+      {
+        id: "place-neighborhood-blocks",
+        label: "Neighborhood Blocks",
+        kind: "home_area",
+        districtId: "eastvale-district",
+        nodeId: "residential-eastvale",
+        position: { x: 34, y: 17, z: 1.32 },
+        description: "A compact home-area cluster for collecting notes and stickers.",
+        activity: 0.88,
+      },
+      {
+        id: "place-plaza-row",
+        label: "Plaza Row",
+        kind: "plaza",
+        districtId: "eastvale-district",
+        nodeId: "gym-plaza-eastvale",
+        position: { x: 36, y: 20, z: 1.32 },
+        description: "A small shop-and-plaza row for place cards and future props.",
+        activity: 0.82,
+      },
+      {
+        id: "place-eastvale-gym",
+        label: "Gym",
+        kind: "landmark",
+        districtId: "eastvale-district",
+        nodeId: "gym-plaza-eastvale",
+        position: { x: 36, y: 20, z: 1.36 },
+        description: "A busy local gym block with parking, foot traffic, and errand overlap.",
+        activity: 0.84,
+      },
+      {
+        id: "place-eastvale-apartments",
+        label: "Apartments",
+        kind: "home_area",
+        districtId: "eastvale-district",
+        nodeId: "apartment-cluster",
+        position: { x: 38, y: 23, z: 1.34 },
+        description: "A compact apartment pocket for resident notes and collected pins.",
+        activity: 0.74,
+      },
+      {
+        id: "place-community-park",
+        label: "Community Park",
+        kind: "park",
+        districtId: "eastvale-district",
+        nodeId: "eastvale",
+        position: { x: 35, y: 22, z: 1.22 },
+        description: "A soft green pocket that makes the district feel lived in.",
+        activity: 0.64,
+      },
+      {
+        id: "place-norco-route",
+        label: "Norco Route",
+        kind: "road",
+        districtId: "corona-corridor",
+        nodeId: "norco",
+        position: { x: 28, y: 21, z: 1.18 },
+        description: "A county route marker for later corridor expansion.",
+        activity: 0.58,
+      },
+    ],
+    ambient: {
+      timeOfDay: "midday",
+      activity: "busy",
+      traffic: 0.62,
+      residents: 0.72,
+    },
+    stickers: [
+      { id: "sticker-place-eastvale-core-favorite", placeId: "place-eastvale-core", kind: "favorite", label: "Start" },
+    ],
+    notes: [],
+  };
+}
+
 function createTiles(): VoxelTile[] {
   const tiles: VoxelTile[] = [];
   const startX = 24;
@@ -171,25 +295,24 @@ function createTiles(): VoxelTile[] {
 
 function createObjects(): VoxelObject[] {
   return [
-    { id: "home-eastvale-1", kind: "home", position: { x: 31.2, y: 17.2, z: 1.2 }, label: "Driveway density", nodeId: "eastvale", layerId: "signals", intensity: 0.8 },
-    { id: "home-eastvale-2", kind: "home", position: { x: 33.2, y: 17.1, z: 1.2 }, label: "Residential block", nodeId: "residential-eastvale", layerId: "signals", intensity: 0.9 },
-    { id: "home-eastvale-3", kind: "home", position: { x: 35.1, y: 16.8, z: 1.2 }, label: "Residential block", nodeId: "residential-eastvale", layerId: "signals", intensity: 0.72 },
-    { id: "plaza-eastvale", kind: "plaza", position: { x: 36, y: 20, z: 1.2 }, label: "Gym / plaza surface", nodeId: "gym-plaza-eastvale", layerId: "signals", intensity: 0.82 },
-    { id: "qr-gym-window", kind: "qr_surface", position: { x: 36.8, y: 19.3, z: 1.4 }, label: "QR flyer surface", nodeId: "gym-plaza-eastvale", layerId: "signals", intensity: 0.78 },
-    { id: "gate-apartment", kind: "risk_gate", position: { x: 38, y: 23, z: 1.4 }, label: "Access gate watch", nodeId: "apartment-cluster", layerId: "signals", intensity: 0.72 },
-    { id: "drop-zone-eastvale", kind: "drop_zone", position: { x: 32, y: 18, z: 1.35 }, label: "Scout Drop", nodeId: "eastvale", layerId: "scout", intensity: 1 },
-    { id: "road-eastvale-norco", kind: "road", position: { x: 30, y: 20, z: 1.05 }, label: "Short route", layerId: "routes", intensity: 0.68 },
-    { id: "road-norco-corona", kind: "freeway", position: { x: 27, y: 22.5, z: 1.05 }, label: "Route extension", layerId: "routes", intensity: 0.74 },
-    { id: "scout-norco", kind: "scout_marker", position: { x: 28, y: 21, z: 1.3 }, label: "Scouted extension", nodeId: "norco", layerId: "scout", intensity: 0.68 },
+    { id: "home-eastvale-1", kind: "home", position: { x: 31.2, y: 17.2, z: 1.2 }, label: "Cottage row", nodeId: "eastvale", layerId: "places", intensity: 0.8 },
+    { id: "home-eastvale-2", kind: "home", position: { x: 33.2, y: 17.1, z: 1.2 }, label: "Garden block", nodeId: "residential-eastvale", layerId: "places", intensity: 0.9 },
+    { id: "home-eastvale-3", kind: "home", position: { x: 35.1, y: 16.8, z: 1.2 }, label: "Patio homes", nodeId: "residential-eastvale", layerId: "places", intensity: 0.72 },
+    { id: "home-eastvale-4", kind: "home", position: { x: 37.2, y: 22.2, z: 1.16 }, label: "Apartment row", nodeId: "apartment-cluster", layerId: "places", intensity: 0.76 },
+    { id: "plaza-eastvale", kind: "plaza", position: { x: 36, y: 20, z: 1.2 }, label: "Main street shops", nodeId: "gym-plaza-eastvale", layerId: "places", intensity: 0.82 },
+    { id: "plaza-eastvale-2", kind: "plaza", position: { x: 37.4, y: 19.2, z: 1.18 }, label: "Corner market", nodeId: "gym-plaza-eastvale", layerId: "places", intensity: 0.68 },
+    { id: "park-eastvale", kind: "park", position: { x: 35, y: 22, z: 1.16 }, label: "Community park", nodeId: "eastvale", layerId: "places", intensity: 0.68 },
+    { id: "park-eastvale-2", kind: "park", position: { x: 33.4, y: 20.4, z: 1.12 }, label: "Pocket green", nodeId: "eastvale", layerId: "places", intensity: 0.58 },
+    { id: "landmark-eastvale", kind: "landmark", position: { x: 32, y: 18, z: 1.42 }, label: "Eastvale core", nodeId: "eastvale", layerId: "places", intensity: 0.8 },
+    { id: "road-eastvale-norco", kind: "road", position: { x: 30, y: 20, z: 1.05 }, label: "Norco road", layerId: "routes", intensity: 0.68 },
+    { id: "road-norco-corona", kind: "freeway", position: { x: 27, y: 22.5, z: 1.05 }, label: "Corona road", layerId: "routes", intensity: 0.74 },
   ];
 }
 
 function tileKindFor(x: number, y: number): VoxelTileKind {
-  if (isNear(x, y, 32, 18) || isNear(x, y, 34, 17)) return "residential";
-  if (isNear(x, y, 36, 20) || isNear(x, y, 42, 28)) return "commercial";
-  if (isNear(x, y, 38, 23)) return "risk";
   if (isRouteTile(x, y)) return "route";
-  if (isNear(x, y, 28, 21)) return "scouted";
+  if (isNear(x, y, 32, 18) || isNear(x, y, 34, 17) || isNear(x, y, 37, 22)) return "residential";
+  if (isNear(x, y, 36, 20) || isNear(x, y, 42, 28)) return "commercial";
   return "open";
 }
 

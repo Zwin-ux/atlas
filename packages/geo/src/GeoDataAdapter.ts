@@ -44,6 +44,7 @@ export type NearbyPlaceSignal = {
   address?: string;
   primaryType?: string;
   types: string[];
+  category: string;
   source: GeoSource;
   attribution: string;
   ttlSeconds: number;
@@ -107,4 +108,3 @@ export interface GeoDataAdapter {
   aggregatePlaces(input: PlacesAggregateInput): Promise<PlaceAggregateSignal[]>;
   route(input: RouteInput): Promise<RouteHint[]>;
 }
-

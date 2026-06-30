@@ -5,6 +5,7 @@ import type {
   PlacesAggregateInput,
   ResolvedLocation,
 } from "./GeoDataAdapter.js";
+import { normalizeProviderPlaceCategory } from "./PlaceCategoryNormalizer.js";
 
 const GOOGLE_ATTRIBUTION = "Google Maps Platform";
 const DEFAULT_TTL_SECONDS = 60 * 60 * 24;
@@ -75,6 +76,7 @@ export function extractNearbyPlaceSignals(places: GooglePlace[]): NearbyPlaceSig
         ...(place.formattedAddress ? { address: place.formattedAddress } : {}),
         ...(place.primaryType ? { primaryType: place.primaryType } : {}),
         types: place.types ?? [],
+        category: normalizeProviderPlaceCategory({ primaryType: place.primaryType, types: place.types }),
         source: "google",
         attribution: GOOGLE_ATTRIBUTION,
         ttlSeconds: DEFAULT_TTL_SECONDS,

@@ -6,6 +6,14 @@
 - React widget rendered in ChatGPT
 - Web dashboard later
 
+## V1 backend direction
+
+- USA-scale world index
+- state/county/district/place lookup APIs
+- provider adapters behind server-only credentials
+- derived-signal cache with TTL/source notes
+- `VoxelScene` and `CityWorldScene` compilers as the renderer boundary
+
 ## Renderer
 
 Recommended Alpha renderer: **PixiJS**.
@@ -37,6 +45,8 @@ Do not use Three.js in Alpha.
 - Places Aggregate API: counts/competition/location scoring
 - Maps Datasets API: custom GeoJSON/CSV/KML layers later
 - WebGLOverlayView + Three.js: future experimental georeferenced 3D overlay
+
+Google is a data provider, not the rendered Atlas map. The server converts Google responses into normalized world/place signals before the renderer sees anything.
 
 ## Non-Google fallback later
 

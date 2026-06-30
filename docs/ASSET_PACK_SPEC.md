@@ -2,7 +2,12 @@
 
 ## Purpose
 
-Atlas needs an original icon/asset system before UI code gets too far.
+Atlas needs an original city-map asset system that can replace Pixi primitives
+without changing the map-first ChatGPT app experience.
+
+The current visual target is a full-screen isometric city map with tiny HUD
+overlays. This spec should support `CityWorldScene` and the E7.2 atlas readiness
+lane, not the older report/dashboard surface.
 
 ## Asset lanes
 
@@ -18,34 +23,40 @@ Assets that Atlas can ship.
 - Atlas app icon
 - Atlas wordmark placeholder
 - Clawd paw/compass mark
-- Hosted Clawd badge
-- Scout Drop pin
-- Campaign clipboard icon
+- city map pin
+- sticker badge set
+- note marker
 
 ### Clawd states
 - idle
-- scouting
-- excited
-- blocked
-- daemon mode
-- level up
+- walking
+- inspecting
+- happy
+- waiting
+- hosted mode placeholder
 
-### Voxel tiles
-- residential tile
-- commercial/plaza tile
-- warehouse tile
-- road/freeway tile
-- opportunity marker
-- scouted marker
-- campaign quest marker
+### City-world tiles and sprites
+- grass, park, plaza, sidewalk, water fill, and water edge tiles
+- road straight, intersection, driveway, curb, lane mark, and crosswalk details
+- suburban homes
+- storefront shops
+- gym building
+- apartment building
+- civic landmark
+- trees, bushes, benches, streetlights, shop signs, parked cars, water shimmer
+- tiny cars and walkers
+- selected ring, hover glow, city pin, sticker badges, note marker
 
 ## Style
 
-High-quality voxel/pixel hybrid.  
-Dark interface.  
-Emerald/blue/purple glow accents.  
-Clawd should feel like a local scout, not a generic cute mascot.  
+High-quality isometric voxel/pixel hybrid.
+Colorful city map first, not dark dashboard chrome.
+Readable silhouettes, warm terrain, bright civic accents, and restrained HUD
+materials.
+Clawd should feel like a local map companion, not a generic mascot.
 Avoid copying OpenAI/Codex/third-party pet assets.
+
+Avoid tactical, campaign, report, or generic SaaS visual language.
 
 ## Output formats
 
@@ -59,3 +70,16 @@ For final art stage:
 - SVG icons
 - sprite sheet metadata
 - favicon/app icon sizes
+
+For E7.2:
+- `packages/assets/city-world/atlas.manifest.json`
+- stable `spriteKey` and `paletteKey` coverage for current `CityWorldScene`
+- primitive fallback for missing texture art
+
+For E7.4:
+- `packages/assets/city-world/textures/pin-sticker-favorite.svg`
+- manifest `frame`, `anchor`, and `scale` metadata for `pin.sticker.favorite`
+- web bundle inlines SVG textures as data URLs for the ChatGPT widget
+- Pixi loads sprite textures through `Assets.load`
+- resolver returns sprite mode only after texture load; primitive fallback remains
+  the baseline for missing texture art

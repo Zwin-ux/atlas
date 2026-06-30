@@ -1,9 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
-import { previewCampaignFromScout, previewScoutDrop, type CampaignPreviewState, type ScoutPreviewState } from "@atlas/core/scout";
-import { riversideDemoVoxelScene, type VoxelScene } from "@atlas/core/voxel";
-import { sendUserMessage, updateModelContext, useToolResult, useWidgetState } from "./bridge";
+import { useMemo } from "react";
+import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
+import {
+  createVoxelNote,
+  createVoxelSticker,
+  riversideDemoVoxelScene,
+  type VoxelNote,
+  type VoxelScene,
+  type VoxelSticker,
+  type VoxelStickerKind,
+} from "@atlas/core/voxel";
+import { updateModelContext, useToolResult, useWidgetState } from "./bridge";
+import { CityWorldView } from "./CityWorldView";
 import type { WidgetState } from "./types";
-import { VoxelSceneView } from "./VoxelSceneView";
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
   sceneId: string;
@@ -34,18 +42,19 @@ type ToolStructuredContent =
   | VoxelSceneStructuredContent
   | null;
 
-const defaultScoutPreview = previewScoutDrop({
-  countySlug: "riverside-ca",
-  nodeId: "eastvale",
-  businessType: "mobile detailing",
-});
+const defaultPlace = riversideDemoVoxelScene.world?.places[0];
 
 const defaultWidgetState: WidgetState = {
-  selectedNodeId: defaultScoutPreview.selectedNodeId,
+  selectedNodeId: defaultPlace?.nodeId ?? riversideDemoVoxelScene.selectedNodeId,
+  selectedDistrictId: riversideDemoVoxelScene.world?.selectedDistrictId,
+  selectedPlaceId: defaultPlace?.id,
   compact: false,
-  activeSceneId: defaultScoutPreview.scene.id,
-  scoutPreviewId: defaultScoutPreview.id,
+  activeSceneId: riversideDemoVoxelScene.id,
   activeStepId: "county",
+  stickerMode: "favorite",
+  stickers: [],
+  notes: [],
+  noteDraft: "",
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -104,12 +113,7 @@ function isClawdValue(value: unknown): boolean {
 }
 
 function isScoutPreview(value: unknown): value is ScoutPreviewState {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      (value as { type?: unknown }).type === "scoutPreview" &&
-      isVoxelScene((value as { scene?: unknown }).scene),
-  );
+  return Boolean(value && typeof value === "object" && (value as { type?: unknown }).type === "scoutPreview" && isVoxelScene((value as { scene?: unknown }).scene));
 }
 
 function isCampaignPreview(value: unknown): value is CampaignPreviewState {
@@ -131,9 +135,7 @@ function isScoutPreviewStructuredContent(value: unknown): value is ScoutPreviewS
       typeof value === "object" &&
       (value as { type?: unknown }).type === "scoutPreview" &&
       typeof (value as { id?: unknown }).id === "string" &&
-      typeof (value as { sceneId?: unknown }).sceneId === "string" &&
-      Array.isArray((value as { route?: unknown }).route) &&
-      Array.isArray((value as { signals?: unknown }).signals),
+      typeof (value as { sceneId?: unknown }).sceneId === "string",
   );
 }
 
@@ -144,9 +146,7 @@ function isCampaignPreviewStructuredContent(value: unknown): value is CampaignPr
       (value as { type?: unknown }).type === "campaignPreview" &&
       typeof (value as { id?: unknown }).id === "string" &&
       typeof (value as { scoutPreviewId?: unknown }).scoutPreviewId === "string" &&
-      typeof (value as { sceneId?: unknown }).sceneId === "string" &&
-      Array.isArray((value as { days?: unknown }).days) &&
-      Array.isArray((value as { assetPlaceholders?: unknown }).assetPlaceholders),
+      typeof (value as { sceneId?: unknown }).sceneId === "string",
   );
 }
 
@@ -184,14 +184,12 @@ function isVoxelSceneStructuredContent(value: unknown): value is VoxelSceneStruc
       typeof value === "object" &&
       (value as { type?: unknown }).type === "voxelSceneSummary" &&
       typeof (value as { sceneId?: unknown }).sceneId === "string" &&
-      typeof (value as { selectedNodeId?: unknown }).selectedNodeId === "string" &&
-      Array.isArray((value as { routeNodeIds?: unknown }).routeNodeIds),
+      typeof (value as { selectedNodeId?: unknown }).selectedNodeId === "string",
   );
 }
 
 export function App() {
   const result = useToolResult<ToolStructuredContent>(null);
-  const [localCampaignPreview, setLocalCampaignPreview] = useState<CampaignPreviewState | null>(null);
   const structuredContent = result?.structuredContent;
   const meta = result?._meta;
   const metaCampaignPreview = isCampaignPreview(meta?.campaignPreview) ? meta.campaignPreview : null;
@@ -202,139 +200,125 @@ export function App() {
   const sceneSummary = isVoxelSceneStructuredContent(structuredContent) ? structuredContent : null;
   const structuredCampaignPreview = isCampaignPreview(structuredContent) ? structuredContent : null;
   const structuredScoutPreview = isScoutPreview(structuredContent) ? structuredContent : null;
-  const toolCampaignPreview =
+  const campaignPreview =
     structuredCampaignPreview ??
     metaCampaignPreview ??
     (campaignPreviewSummary && metaScene ? ({ ...campaignPreviewSummary, scene: metaScene } as CampaignPreviewState) : null);
-  const campaignPreview = toolCampaignPreview ?? localCampaignPreview;
-  const toolScoutPreview =
+  const scoutPreview =
     structuredScoutPreview ??
     metaScoutPreview ??
     (scoutPreviewSummary && metaScene ? ({ ...scoutPreviewSummary, scene: metaScene } as ScoutPreviewState) : null);
   const toolScene = isVoxelScene(structuredContent) ? structuredContent : null;
-  const shouldUseFallbackScout = !campaignPreview && !toolScene && !sceneSummary && !metaScene && !scoutPreviewSummary;
-  const scoutPreview = toolScoutPreview ?? (shouldUseFallbackScout ? defaultScoutPreview : null);
-  const scene = toolScene ?? campaignPreview?.scene ?? scoutPreview?.scene ?? metaScene ?? riversideDemoVoxelScene;
+  const scene = toolScene ?? campaignPreview?.scene ?? scoutPreview?.scene ?? metaScene ?? (sceneSummary ? riversideDemoVoxelScene : riversideDemoVoxelScene);
   const [widgetState, setWidgetState] = useWidgetState<WidgetState>(defaultWidgetState);
-  const selectedNodeId = widgetState.activeSceneId === scene.id ? widgetState.selectedNodeId : scene.selectedNodeId;
-  const activeStepId = widgetState.activeSceneId === scene.id ? widgetState.activeStepId : undefined;
 
-  const scoutPreviewId = scoutPreview?.id;
-  const scoutSceneId = scoutPreview?.scene.id;
-  const scoutSelectedNodeId = scoutPreview?.selectedNodeId;
-  const campaignPreviewId = campaignPreview?.id;
-  const campaignScoutPreviewId = campaignPreview?.scoutPreviewId;
-  const campaignSceneId = campaignPreview?.scene.id;
-  const campaignSelectedNodeId = campaignPreview?.selectedNodeId;
+  const activeSceneMatches = widgetState.activeSceneId === scene.id;
+  const selectedDistrictId = activeSceneMatches ? widgetState.selectedDistrictId ?? scene.world?.selectedDistrictId : scene.world?.selectedDistrictId;
+  const selectedPlaceId = activeSceneMatches ? widgetState.selectedPlaceId ?? scene.world?.places[0]?.id : scene.world?.places[0]?.id;
+  const selectedPlace = useMemo(() => scene.world?.places.find((place) => place.id === selectedPlaceId), [scene.world?.places, selectedPlaceId]);
+  const selectedNodeId = activeSceneMatches
+    ? widgetState.selectedNodeId
+    : selectedPlace?.nodeId ?? scene.selectedNodeId;
+  const stickers = activeSceneMatches ? widgetState.stickers ?? [] : [];
+  const notes = activeSceneMatches ? widgetState.notes ?? [] : [];
+  const stickerMode = activeSceneMatches ? widgetState.stickerMode ?? "favorite" : "favorite";
+  const noteDraft = activeSceneMatches ? widgetState.noteDraft ?? "" : "";
 
-  useEffect(() => {
-    if (!scoutPreviewId || !scoutSceneId || !scoutSelectedNodeId) return;
-
-    const setStep = (activeStepId: NonNullable<WidgetState["activeStepId"]>) => {
-      setWidgetState((current) => {
-        if (
-          current.scoutPreviewId === scoutPreviewId &&
-          current.activeSceneId === scoutSceneId &&
-          current.activeStepId === activeStepId
-        ) {
-          return current;
-        }
-
-        return {
-          ...current,
-          selectedNodeId: scoutSelectedNodeId,
-          activeSceneId: scoutSceneId,
-          scoutPreviewId,
-          activeStepId,
-        };
-      });
-    };
-
-    setStep("county");
-    const dropTimer = window.setTimeout(() => setStep("drop"), 180);
-    const reportTimer = window.setTimeout(() => setStep("report"), 420);
-    return () => {
-      window.clearTimeout(dropTimer);
-      window.clearTimeout(reportTimer);
-    };
-  }, [scoutPreviewId, scoutSceneId, scoutSelectedNodeId]);
-
-  useEffect(() => {
-    if (!campaignPreviewId || !campaignScoutPreviewId || !campaignSceneId || !campaignSelectedNodeId) return;
-
-    setWidgetState((current) => {
-      if (current.activeSceneId === campaignSceneId && current.activeStepId === "campaign") return current;
-
-      return {
-        ...current,
-        selectedNodeId: campaignSelectedNodeId,
-        activeSceneId: campaignSceneId,
-        scoutPreviewId: campaignScoutPreviewId,
-        activeStepId: "campaign",
-      };
-    });
-  }, [campaignPreviewId, campaignScoutPreviewId, campaignSceneId, campaignSelectedNodeId]);
-
-  const selectedNode = useMemo(() => {
-    return (
-      scene.nodes.find((node) => node.id === selectedNodeId) ??
-      scene.nodes.find((node) => node.id === scene.selectedNodeId)
-    );
-  }, [scene.nodes, scene.selectedNodeId, selectedNodeId]);
-
-  const selectNode = (nodeId: string) => {
-    const node = scene.nodes.find((item) => item.id === nodeId);
+  const selectDistrict = (districtId: string) => {
+    const district = scene.world?.districts.find((item) => item.id === districtId);
+    const firstPlace = scene.world?.places.find((place) => place.districtId === districtId);
     setWidgetState((current) => ({
       ...current,
-      selectedNodeId: nodeId,
       activeSceneId: scene.id,
-      ...(scoutPreview ? { scoutPreviewId: scoutPreview.id, activeStepId: "report" as const } : {}),
+      selectedDistrictId: districtId,
+      selectedPlaceId: firstPlace?.id,
+      selectedNodeId: firstPlace?.nodeId ?? current.selectedNodeId,
+      activeStepId: district?.playable ? "district" : "county",
+      noteDraft: "",
     }));
-    if (node) {
-      const context = scoutPreview
-        ? `User focused ${node.label} inside Scout Drop ${scoutPreview.id}. Score: ${node.score}.`
-        : `User focused ${node.label} in the Riverside VoxelScene. Score: ${node.score}.`;
-      void updateModelContext(context);
+  };
+
+  const selectPlace = (placeId: string) => {
+    const place = scene.world?.places.find((item) => item.id === placeId);
+    setWidgetState((current) => ({
+      ...current,
+      activeSceneId: scene.id,
+      selectedDistrictId: place?.districtId ?? current.selectedDistrictId,
+      selectedPlaceId: placeId,
+      selectedNodeId: place?.nodeId ?? current.selectedNodeId,
+      activeStepId: "place",
+      noteDraft: "",
+    }));
+    if (place) {
+      void updateModelContext(`User selected ${place.label} in the ${scene.county.name} city map. Place kind: ${place.kind}.`);
     }
   };
 
-  const askForCampaignPath = () => {
-    if (!selectedNode) return;
-    if (campaignPreview) {
-      void sendUserMessage(
-        `Use Campaign Preview ${campaignPreview.id} to draft the first manual asset for ${selectedNode.label}. Keep it non-automated and start with the QR flyer copy plus approval checklist.`,
-      );
-      return;
-    }
+  const placeSticker = (placeId: string, kind: VoxelStickerKind) => {
+    setWidgetState((current) => {
+      const nextCount = (current.stickers ?? []).length + 1;
+      const sticker = uniqueSticker(createVoxelSticker(scene, { placeId, kind, label: stickerLabel(kind) }), nextCount);
+      return {
+        ...current,
+        activeSceneId: scene.id,
+        selectedPlaceId: placeId,
+        selectedNodeId: scene.world?.places.find((place) => place.id === placeId)?.nodeId ?? current.selectedNodeId,
+        activeStepId: "collect",
+        stickerMode: kind,
+        stickers: [...(current.stickers ?? []), sticker],
+      };
+    });
+  };
 
-    if (scoutPreview) {
-      void sendUserMessage(
-        `Use Scout Drop ${scoutPreview.id} to draft the next manual campaign preview for ${selectedNode.label}. Keep it non-automated: QR flyer route, local group post draft, property manager outreach checklist, and route plan.`,
-      );
-      if (window.parent === window) {
-        setLocalCampaignPreview(previewCampaignFromScout(scoutPreview));
-      }
-      return;
-    }
-
-    void sendUserMessage(
-      `Turn the ${selectedNode.label} scout signal into a mobile detailing campaign path using the Riverside VoxelScene context.`,
-    );
+  const saveNote = (placeId: string, body: string) => {
+    setWidgetState((current) => {
+      const nextCount = (current.notes ?? []).length + 1;
+      const note = uniqueNote(createVoxelNote(scene, { placeId, body }), nextCount);
+      return {
+        ...current,
+        activeSceneId: scene.id,
+        selectedPlaceId: placeId,
+        notes: [...(current.notes ?? []), note],
+        noteDraft: "",
+        activeStepId: "collect",
+      };
+    });
   };
 
   return (
-    <VoxelSceneView
+    <CityWorldView
       scene={scene}
-      selectedNodeId={selectedNodeId}
-      {...(activeStepId ? { activeStepId } : {})}
-      {...(campaignPreview
-        ? { contextTitle: `${campaignPreview.businessType} Campaign Preview` }
-        : scoutPreview
-          ? { contextTitle: `${scoutPreview.businessType} Scout Drop` }
-          : {})}
-      compact={widgetState.compact}
-      onSelectNode={selectNode}
-      onAskCampaign={askForCampaignPath}
+      selectedDistrictId={selectedDistrictId}
+      selectedPlaceId={selectedPlaceId}
+      stickers={stickers}
+      notes={notes}
+      stickerMode={stickerMode}
+      noteDraft={noteDraft}
+      onSelectPlace={selectPlace}
+      onSelectStickerMode={(kind) => setWidgetState((current) => ({ ...current, stickerMode: kind }))}
+      onPlaceSticker={placeSticker}
+      onNoteDraftChange={(value) => setWidgetState((current) => ({ ...current, activeSceneId: scene.id, noteDraft: value }))}
+      onSaveNote={saveNote}
     />
   );
+}
+
+function uniqueSticker(sticker: VoxelSticker, count: number): VoxelSticker {
+  return { ...sticker, id: `${sticker.id}-${count}` };
+}
+
+function uniqueNote(note: VoxelNote, count: number): VoxelNote {
+  return { ...note, id: `${note.id}-${count}` };
+}
+
+function stickerLabel(kind: VoxelStickerKind): string {
+  const labels: Record<VoxelStickerKind, string> = {
+    home: "Home",
+    shop: "Shop",
+    park: "Park",
+    favorite: "Favorite",
+    idea: "Idea",
+    question: "Question",
+  };
+  return labels[kind];
 }

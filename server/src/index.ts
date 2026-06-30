@@ -9,21 +9,45 @@ import {
 } from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { previewCampaignFromScout, previewScoutDrop, type CampaignPreviewState, type ScoutPreviewState } from "@atlas/core/scout";
+import {
+  previewCampaignFromScout,
+  previewScoutDrop,
+  type CampaignPreviewState,
+  type ScoutPreviewState,
+} from "@atlas/core/scout";
+import {
+  CountyPackService,
+  CountyQuestionService,
+  compileVoxelSceneFromCountyPack,
+  createNationalWorldService,
+  type WorldLookupPlaceInput,
+  type WorldPlaceLookupResponse,
+} from "@atlas/core";
 import { riversideDemoVoxelScene } from "@atlas/core/voxel";
 import { createGeoDataAdapter, isGoogleMapsConfigured, readGeoAdapterConfig } from "@atlas/geo";
 import { z } from "zod";
 
 const SERVER_VERSION = "0.1.0";
-const WIDGET_URI = "ui://widget/atlas-board-v2.html";
+const WIDGET_URI = "ui://widget/atlas-city-world-v1.html";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = resolve(__dirname, "../..");
+const MAX_WORLD_LOOKUP_CACHE_ENTRIES = 100;
 
 loadLocalEnv();
 
 const WEB_DIST = resolve(ROOT_DIR, "web/dist");
 const PORT = Number(process.env.PORT ?? 8787);
 const MCP_PATH = process.env.MCP_PATH ?? "/mcp";
+const countyPackService = new CountyPackService(resolve(ROOT_DIR, "data", "county_packs"));
+const countyQuestionService = new CountyQuestionService(countyPackService);
+const worldService = createNationalWorldService([riversideDemoVoxelScene]);
+
+type WorldLookupCacheEntry = {
+  response: WorldPlaceLookupResponse;
+  expiresAtMs: number;
+};
+
+const worldLookupCache = new Map<string, WorldLookupCacheEntry>();
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
   sceneId: string;
@@ -40,7 +64,13 @@ type VoxelSceneStructuredContent = {
   sceneId: string;
   county: ScoutPreviewState["scene"]["county"];
   selectedNodeId: string;
+  selectedDistrictId?: string;
+  activeScale?: string;
   nodeCount: number;
+  districtCount: number;
+  placeCount: number;
+  stickerCount: number;
+  noteCount: number;
   routeNodeIds: string[];
   flow: ScoutPreviewState["scene"]["flow"];
 };
@@ -85,7 +115,7 @@ const atlasMarkerSchema = z.object({
 
 const voxelObjectSchema = z.object({
   id: z.string(),
-  kind: z.enum(["home", "plaza", "road", "freeway", "warehouse", "qr_surface", "risk_gate", "drop_zone", "scout_marker"]),
+  kind: z.enum(["home", "plaza", "park", "landmark", "road", "freeway", "warehouse", "qr_surface", "risk_gate", "drop_zone", "scout_marker"]),
   position: voxelPointSchema,
   label: z.string(),
   nodeId: z.string().optional(),
@@ -104,6 +134,74 @@ const voxelLayerSchema = z.object({
   id: z.string(),
   label: z.string(),
   visible: z.boolean(),
+});
+
+const voxelWorldScaleSchema = z.enum(["country", "state", "county", "district", "place"]);
+const voxelPlaceKindSchema = z.enum(["home_area", "shop", "plaza", "park", "road", "landmark"]);
+const voxelStickerKindSchema = z.enum(["home", "shop", "park", "favorite", "idea", "question"]);
+
+const voxelWorldNodeSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  scale: voxelWorldScaleSchema,
+  parentId: z.string().optional(),
+  slug: z.string().optional(),
+  position: voxelPointSchema.optional(),
+});
+
+const voxelDistrictSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  countySlug: z.string(),
+  worldNodeId: z.string(),
+  summary: z.string(),
+  playable: z.boolean(),
+  focusNodeIds: z.array(z.string()),
+  position: voxelPointSchema,
+});
+
+const voxelPlaceSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  kind: voxelPlaceKindSchema,
+  districtId: z.string(),
+  nodeId: z.string(),
+  position: voxelPointSchema,
+  description: z.string(),
+  activity: z.number(),
+});
+
+const voxelStickerSchema = z.object({
+  id: z.string(),
+  placeId: z.string(),
+  kind: voxelStickerKindSchema,
+  label: z.string(),
+  noteId: z.string().optional(),
+});
+
+const voxelNoteSchema = z.object({
+  id: z.string(),
+  placeId: z.string(),
+  body: z.string(),
+  stickerId: z.string().optional(),
+});
+
+const voxelAmbientStateSchema = z.object({
+  timeOfDay: z.enum(["morning", "midday", "evening"]),
+  activity: z.enum(["calm", "busy", "closing"]),
+  traffic: z.number(),
+  residents: z.number(),
+});
+
+const voxelWorldSchema = z.object({
+  activeScale: voxelWorldScaleSchema,
+  selectedDistrictId: z.string(),
+  nodes: z.array(voxelWorldNodeSchema),
+  districts: z.array(voxelDistrictSchema),
+  places: z.array(voxelPlaceSchema),
+  ambient: voxelAmbientStateSchema,
+  stickers: z.array(voxelStickerSchema).optional(),
+  notes: z.array(voxelNoteSchema).optional(),
 });
 
 const clawdStateSchema = z.object({
@@ -221,6 +319,7 @@ const voxelSceneOutputSchema = {
   objects: z.array(voxelObjectSchema).optional(),
   camera: voxelCameraSchema.optional(),
   layers: z.array(voxelLayerSchema).optional(),
+  world: voxelWorldSchema.optional(),
   clawd: clawdStateSchema,
   panel: z.union([scoutReportPanelSchema, campaignPreviewPanelSchema, upgradePanelSchema]),
   flow: z.array(flowStepSchema),
@@ -236,7 +335,13 @@ const voxelSceneSummaryOutputSchema = {
     slug: z.string(),
   }),
   selectedNodeId: z.string(),
+  selectedDistrictId: z.string().optional(),
+  activeScale: z.string().optional(),
   nodeCount: z.number(),
+  districtCount: z.number(),
+  placeCount: z.number(),
+  stickerCount: z.number(),
+  noteCount: z.number(),
   routeNodeIds: z.array(z.string()),
   flow: z.array(flowStepSchema),
 };
@@ -317,6 +422,98 @@ const upgradeOptionsOutputSchema = {
   nextStep: z.string(),
 };
 
+const worldSourceNoteSchema = z.object({
+  source: z.enum(["mock", "curated", "google", "census", "osm", "local-open-data"]),
+  label: z.string(),
+  attribution: z.string(),
+  ttlSeconds: z.number(),
+});
+
+const worldPlaceCategorySchema = z.enum([
+  "home_area",
+  "food_drink",
+  "shop",
+  "service",
+  "park",
+  "school",
+  "civic",
+  "health",
+  "fitness",
+  "entertainment",
+  "transit",
+  "landmark",
+  "unknown",
+]);
+
+const worldPlaceLookupOutputSchema = {
+  type: z.literal("worldPlaceLookup"),
+  query: z.string(),
+  radiusMeters: z.number(),
+  mode: z.enum(["mock", "google"]),
+  resolvedLocation: z.object({
+    id: z.string(),
+    label: z.string(),
+    coordinates: z.object({
+      latitude: z.number(),
+      longitude: z.number(),
+    }),
+    formattedAddress: z.string().optional(),
+    placeId: z.string().optional(),
+  }),
+  places: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      category: worldPlaceCategorySchema,
+      coordinates: z
+        .object({
+          latitude: z.number(),
+          longitude: z.number(),
+        })
+        .optional(),
+      address: z.string().optional(),
+      sourceNotes: z.array(worldSourceNoteSchema),
+    }),
+  ),
+  cache: z.object({
+    key: z.string(),
+    ttlSeconds: z.number(),
+    sourceNotes: z.array(worldSourceNoteSchema),
+  }),
+  runtime: z
+    .object({
+      cacheHit: z.boolean(),
+      cachedAt: z.string(),
+      expiresAt: z.string(),
+    })
+    .optional(),
+};
+
+const countyQuestionAnswerOutputSchema = {
+  type: z.literal("countyQuestionAnswer"),
+  countySlug: z.string(),
+  question: z.string(),
+  supported: z.boolean(),
+  topic: z.enum(["eastvale_first_slice", "business_signals", "county_summary", "source_limits", "unsupported"]),
+  answer: z.string(),
+  facts: z.array(
+    z.object({
+      label: z.string(),
+      value: z.string(),
+      sourceNodeIds: z.array(z.string()).optional(),
+    }),
+  ),
+  sourceNotes: z.array(
+    z.object({
+      name: z.string(),
+      sourceType: z.string(),
+      confidenceScore: z.number(),
+    }),
+  ),
+  limitations: z.array(z.string()),
+  suggestedNextTool: z.enum(["select_county", "preview_scout_drop", "lookup_world_places"]).optional(),
+};
+
 function scoutPreviewStructuredContent(preview: ScoutPreviewState): ScoutPreviewStructuredContent {
   const { scene, ...content } = preview;
   return {
@@ -341,10 +538,21 @@ function voxelSceneStructuredContent(scene: ScoutPreviewState["scene"]): VoxelSc
     sceneId: scene.id,
     county: scene.county,
     selectedNodeId: scene.selectedNodeId,
+    ...(scene.world?.selectedDistrictId ? { selectedDistrictId: scene.world.selectedDistrictId } : {}),
+    ...(scene.world?.activeScale ? { activeScale: scene.world.activeScale } : {}),
     nodeCount: scene.nodes.length,
+    districtCount: scene.world?.districts.length ?? 0,
+    placeCount: scene.world?.places.length ?? 0,
+    stickerCount: scene.world?.stickers?.length ?? 0,
+    noteCount: scene.world?.notes?.length ?? 0,
     routeNodeIds: scene.clawd.routeNodeIds,
     flow: scene.flow,
   };
+}
+
+function compileCountyScene(countySlug = "riverside-ca", selectedNodeId?: string): ScoutPreviewState["scene"] {
+  const pack = countyPackService.loadCountyPack(countySlug);
+  return compileVoxelSceneFromCountyPack(pack, { selectedNodeId });
 }
 
 function upgradeOptionsStructuredContent(trigger?: string) {
@@ -354,7 +562,7 @@ function upgradeOptionsStructuredContent(trigger?: string) {
     free: {
       label: "Clawd Companion",
       included: [
-        "Explore the Riverside voxel board.",
+        "Explore the Riverside city map.",
         "Run temporary Scout Drop previews.",
         "Draft manual campaign previews from a Scout Drop.",
       ],
@@ -393,11 +601,19 @@ function readBuiltWidget(): string {
   const js = readFileSync(jsPath, "utf8");
   const css = readFileSync(cssPath, "utf8");
 
-  return `
-<div id="root"></div>
-<style>${css}</style>
-<script type="module">${js}</script>
-`.trim();
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Atlas City Map</title>
+    <style>${css}</style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">${js}</script>
+  </body>
+</html>`;
 }
 
 function textResponse(res: ServerResponse, status: number, body: string): void {
@@ -461,6 +677,80 @@ function geoStatusPayload(): unknown {
   };
 }
 
+function handleWorldRoute(url: URL, res: ServerResponse): boolean {
+  if (url.pathname === "/api/world/us/states") {
+    jsonResponse(res, 200, worldService.listCountry());
+    return true;
+  }
+
+  const stateCountiesMatch = url.pathname.match(/^\/api\/world\/us\/states\/([a-zA-Z]{2})\/counties$/);
+  if (stateCountiesMatch) {
+    const stateCode = stateCountiesMatch[1];
+    if (!stateCode) {
+      jsonResponse(res, 400, { ok: false, error: "Missing state code." });
+      return true;
+    }
+    jsonResponse(res, 200, worldService.listStateCounties(stateCode));
+    return true;
+  }
+
+  const countyMatch = url.pathname.match(/^\/api\/world\/counties\/([a-z0-9-]+)$/);
+  if (countyMatch) {
+    const countySlug = countyMatch[1];
+    if (!countySlug) {
+      jsonResponse(res, 400, { ok: false, error: "Missing county slug." });
+      return true;
+    }
+    try {
+      jsonResponse(res, 200, worldService.getCounty(countySlug));
+    } catch (error) {
+      jsonResponse(res, 404, { ok: false, error: error instanceof Error ? error.message : "Unknown county." });
+    }
+    return true;
+  }
+
+  const districtMatch = url.pathname.match(/^\/api\/world\/counties\/([a-z0-9-]+)\/districts\/([a-z0-9-]+)$/);
+  if (districtMatch) {
+    const countySlug = districtMatch[1];
+    const districtSlug = districtMatch[2];
+    if (!countySlug || !districtSlug) {
+      jsonResponse(res, 400, { ok: false, error: "Missing county or district slug." });
+      return true;
+    }
+    try {
+      jsonResponse(res, 200, worldService.getDistrict(countySlug, districtSlug));
+    } catch (error) {
+      jsonResponse(res, 404, { ok: false, error: error instanceof Error ? error.message : "Unknown district." });
+    }
+    return true;
+  }
+
+  return false;
+}
+
+async function handleWorldLookup(url: URL, res: ServerResponse): Promise<void> {
+  const query = url.searchParams.get("query")?.trim();
+  if (!query) {
+    jsonResponse(res, 400, { ok: false, error: "Missing query." });
+    return;
+  }
+
+  const radiusMeters = parseRadiusMeters(url.searchParams.get("radiusMeters"));
+  if (!radiusMeters) {
+    jsonResponse(res, 400, { ok: false, error: "radiusMeters must be between 100 and 50000." });
+    return;
+  }
+
+  try {
+    jsonResponse(res, 200, await performWorldLookup(query, radiusMeters));
+  } catch (error) {
+    jsonResponse(res, 500, {
+      ok: false,
+      error: error instanceof Error ? error.message : "World lookup failed.",
+    });
+  }
+}
+
 async function handleGeoGeocode(url: URL, res: ServerResponse): Promise<void> {
   const query = url.searchParams.get("query")?.trim();
   if (!query) {
@@ -478,6 +768,100 @@ async function handleGeoGeocode(url: URL, res: ServerResponse): Promise<void> {
       error: error instanceof Error ? error.message : "Geocode failed.",
     });
   }
+}
+
+function parseRadiusMeters(value: string | null): number | undefined {
+  const radius = value ? Number.parseInt(value, 10) : 3500;
+  if (!Number.isFinite(radius) || radius < 100 || radius > 50_000) {
+    return undefined;
+  }
+  return radius;
+}
+
+async function performWorldLookup(query: string, radiusMeters: number): Promise<WorldPlaceLookupResponse> {
+  const config = readGeoAdapterConfig(process.env);
+  const cacheKey = worldLookupCacheKey(query, radiusMeters, config.mode);
+  const cached = getWorldLookupCache(cacheKey);
+  if (cached) {
+    return withLookupRuntime(cached.response, true, cached.expiresAtMs);
+  }
+
+  const adapter = createGeoDataAdapter(config);
+  const resolvedLocation = await adapter.geocode({ query });
+  const places = await adapter.nearbySearch({
+    center: resolvedLocation.coordinates,
+    radiusMeters,
+    maxResultCount: 20,
+    rankPreference: "POPULARITY",
+  });
+
+  const response = worldService.lookupPlaces({
+    query,
+    radiusMeters,
+    mode: adapter.mode,
+    resolvedLocation: {
+      id: resolvedLocation.id,
+      label: resolvedLocation.label,
+      coordinates: resolvedLocation.coordinates,
+      ...(resolvedLocation.formattedAddress ? { formattedAddress: resolvedLocation.formattedAddress } : {}),
+      ...(resolvedLocation.placeId ? { placeId: resolvedLocation.placeId } : {}),
+    },
+    places: places.map(
+      (place): WorldLookupPlaceInput => ({
+        placeId: place.placeId,
+        label: place.label,
+        category: place.category,
+        ...(place.coordinates ? { coordinates: place.coordinates } : {}),
+        ...(place.address ? { address: place.address } : {}),
+        source: place.source,
+        attribution: place.attribution,
+        ttlSeconds: place.ttlSeconds,
+      }),
+    ),
+  });
+  const expiresAtMs = Date.now() + response.cache.ttlSeconds * 1000;
+  setWorldLookupCache(cacheKey, response, expiresAtMs);
+  return withLookupRuntime(response, false, expiresAtMs);
+}
+
+function worldLookupCacheKey(query: string, radiusMeters: number, mode: "mock" | "google"): string {
+  return `world-lookup:${mode}:${radiusMeters}:${query.trim().toLowerCase().replace(/\s+/g, " ")}`;
+}
+
+function getWorldLookupCache(cacheKey: string): WorldLookupCacheEntry | undefined {
+  const entry = worldLookupCache.get(cacheKey);
+  if (!entry) return undefined;
+  if (Date.now() >= entry.expiresAtMs) {
+    worldLookupCache.delete(cacheKey);
+    return undefined;
+  }
+  return entry;
+}
+
+function setWorldLookupCache(cacheKey: string, response: WorldPlaceLookupResponse, expiresAtMs: number): void {
+  if (worldLookupCache.size >= MAX_WORLD_LOOKUP_CACHE_ENTRIES) {
+    const oldestKey = worldLookupCache.keys().next().value;
+    if (oldestKey) {
+      worldLookupCache.delete(oldestKey);
+    }
+  }
+  worldLookupCache.set(cacheKey, { response, expiresAtMs });
+}
+
+function withLookupRuntime(
+  response: WorldPlaceLookupResponse,
+  cacheHit: boolean,
+  expiresAtMs: number,
+): WorldPlaceLookupResponse {
+  const cachedAt = new Date().toISOString();
+  return {
+    ...response,
+    runtime: {
+      cacheHit,
+      cachedAt,
+      expiresAt: new Date(expiresAtMs).toISOString(),
+    },
+  };
 }
 
 function handleScoutDrop(url: URL, res: ServerResponse): void {
@@ -540,11 +924,11 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Use render_voxel_county to show the Atlas board. Use preview_scout_drop when the user asks to drop Clawd or scout a local business opportunity. Use preview_campaign_engine only after a Scout Drop exists and the user asks for a manual campaign preview. Use get_upgrade_options for Hosted Clawd limits. Keep structuredContent concise. Do not claim persistence, posting, DMs, paid ads, automation, or live market research in Alpha.",
+        "Use select_county to open the Riverside/Eastvale Atlas demo slice. Use render_voxel_county when the user asks to refresh or focus the voxel scene. Use ask_county_question for closed-world questions answered from the curated Riverside Alpha pack. Use lookup_world_places for real nearby place/category lookup. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for Hosted Clawd limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution in Alpha.",
     },
   );
 
-  registerAppResource(server, "atlas-board-widget", WIDGET_URI, {}, async () => ({
+  registerAppResource(server, "atlas-city-world-widget", WIDGET_URI, {}, async () => ({
     contents: [
       {
         uri: WIDGET_URI,
@@ -552,14 +936,14 @@ function createAtlasServer(): McpServer {
         text: readBuiltWidget(),
         _meta: {
           ui: {
-            prefersBorder: true,
+            prefersBorder: false,
             ...(process.env.WIDGET_DOMAIN ? { domain: process.env.WIDGET_DOMAIN } : {}),
             csp: {
               connectDomains: [],
               resourceDomains: [],
             },
           },
-          "openai/widgetDescription": "Shows the Atlas Riverside voxel county board with Eastvale scout signals and campaign flow.",
+          "openai/widgetDescription": "Shows the Atlas Riverside voxel city map with places, stickers, notes, and temporary Alpha planning previews.",
         },
       },
     ],
@@ -567,10 +951,133 @@ function createAtlasServer(): McpServer {
 
   registerAppTool(
     server,
+    "lookup_world_places",
+    {
+      title: "Lookup world places",
+      description:
+        "Resolve a location and return nearby places normalized into Atlas-owned place categories. This is read-only and may use Google Maps Platform when configured.",
+      inputSchema: {
+        query: z.string().min(1).describe("Location query, such as Eastvale, CA."),
+        radiusMeters: z
+          .number()
+          .int()
+          .min(100)
+          .max(50_000)
+          .optional()
+          .describe("Lookup radius in meters. Defaults to 3500."),
+      },
+      outputSchema: worldPlaceLookupOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: true,
+        destructiveHint: false,
+      },
+      _meta: {
+        "openai/toolInvocation/invoking": "Looking up nearby places...",
+        "openai/toolInvocation/invoked": "Nearby places ready.",
+      },
+    },
+    async ({ query, radiusMeters }) => {
+      const lookup = await performWorldLookup(query, radiusMeters ?? 3500);
+      const categories = [...new Set(lookup.places.map((place) => place.category))].sort();
+      return {
+        structuredContent: lookup,
+        content: [
+          {
+            type: "text" as const,
+            text: `Found ${lookup.places.length} nearby places around ${lookup.resolvedLocation.label}. Categories: ${categories.join(", ")}. Results are normalized into Atlas categories and are not saved.`,
+          },
+        ],
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "select_county",
+    {
+      title: "Select county",
+      description:
+        "Select the Riverside County Alpha demo and return the compiled Eastvale VoxelScene for the ChatGPT widget. Uses curated Atlas county data only.",
+      inputSchema: {
+        countySlug: z.string().optional().describe("County slug. Alpha supports riverside-ca."),
+      },
+      outputSchema: voxelSceneSummaryOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: WIDGET_URI },
+        "openai/outputTemplate": WIDGET_URI,
+        "openai/toolInvocation/invoking": "Loading Riverside County...",
+        "openai/toolInvocation/invoked": "Riverside County ready.",
+      },
+    },
+    async ({ countySlug }) => {
+      const scene = compileCountyScene(countySlug ?? "riverside-ca", "eastvale");
+      return {
+        structuredContent: voxelSceneStructuredContent(scene),
+        _meta: {
+          scene,
+        },
+        content: [
+          {
+            type: "text" as const,
+            text: `Selected ${scene.county.name}. Eastvale is highlighted from the curated Atlas county pack.`,
+          },
+        ],
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "ask_county_question",
+    {
+      title: "Ask county question",
+      description:
+        "Answer a small set of Riverside/Eastvale county and business questions from the curated Atlas Alpha pack only. Closed-world and read-only.",
+      inputSchema: {
+        question: z.string().min(1).describe("County or business question to answer from curated Atlas data."),
+        countySlug: z.string().optional().describe("County slug. Alpha supports riverside-ca."),
+        businessType: z
+          .string()
+          .optional()
+          .describe("Optional supported business lane, such as mobile detailing, cleaning, or local event."),
+      },
+      outputSchema: countyQuestionAnswerOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+      _meta: {
+        "openai/toolInvocation/invoking": "Checking curated county data...",
+        "openai/toolInvocation/invoked": "County answer ready.",
+      },
+    },
+    async ({ question, countySlug, businessType }) => {
+      const answer = countyQuestionService.answer({ question, countySlug, businessType });
+      return {
+        structuredContent: answer,
+        content: [
+          {
+            type: "text" as const,
+            text: `${answer.answer}\n\nLimits: ${answer.limitations.join(" ")}`,
+          },
+        ],
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
     "render_voxel_county",
     {
       title: "Render voxel county",
-      description: "Render the Riverside County voxel board for the Atlas Alpha demo.",
+      description: "Render the Riverside County voxel city map for the Atlas Alpha demo.",
       inputSchema: {
         countySlug: z.string().optional(),
         selectedNodeId: z.string().optional(),
@@ -584,15 +1091,12 @@ function createAtlasServer(): McpServer {
       _meta: {
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Opening county board...",
-        "openai/toolInvocation/invoked": "County board ready.",
+        "openai/toolInvocation/invoking": "Opening city map...",
+        "openai/toolInvocation/invoked": "City map ready.",
       },
     },
     async ({ countySlug, selectedNodeId }) => {
-      const scene = {
-        ...riversideDemoVoxelScene,
-        selectedNodeId: selectedNodeId ?? riversideDemoVoxelScene.selectedNodeId,
-      };
+      const scene = compileCountyScene(countySlug ?? "riverside-ca", selectedNodeId ?? "eastvale");
       return {
         structuredContent: voxelSceneStructuredContent(scene),
         _meta: {
@@ -601,7 +1105,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `Showing ${countySlug ?? scene.county.slug} voxel county board.`,
+            text: `Showing ${countySlug ?? scene.county.slug} voxel city map.`,
           },
         ],
       };
@@ -658,7 +1162,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `${preview.summary} Best offer: ${preview.bestOffer}`,
+            text: `${preview.summary} Best offer: ${preview.bestOffer}. This is a temporary Alpha preview and is not saved.`,
           },
         ],
       };
@@ -817,6 +1321,12 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/favicon.ico" && req.method === "GET") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   if (url.pathname === "/api/geo/status" && req.method === "GET") {
     jsonResponse(res, 200, geoStatusPayload());
     return;
@@ -824,6 +1334,15 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/api/geo/geocode" && req.method === "GET") {
     await handleGeoGeocode(url, res);
+    return;
+  }
+
+  if (url.pathname === "/api/world/lookup" && req.method === "GET") {
+    await handleWorldLookup(url, res);
+    return;
+  }
+
+  if (req.method === "GET" && handleWorldRoute(url, res)) {
     return;
   }
 

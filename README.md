@@ -1,6 +1,6 @@
 # Atlas ChatGPT App Workspace
 
-Atlas is a ChatGPT app that turns counties into voxel worlds. Users explore local business signals with Clawd Companion for free. Paid users can host Clawd Daemon to save business memory, Scout Drops, campaigns, quests, evidence, XP, and progress.
+Atlas is a ChatGPT app that turns counties into playable voxel worlds. The Alpha map opens as a geo-grounded Riverside County city map: users pick a district, inspect known places, drop stickers, and keep session-only notes. Scout Drops and campaign previews still exist as backend tools, but the primary UI is the map.
 
 The first Alpha demo is:
 
@@ -105,9 +105,13 @@ The official Apps SDK examples repo is cloned under `.reference/openai-apps-sdk-
 
 See `docs/NEXT_QUESTS.md`.
 
-Quest E5 is complete. Quest E6 hardens the Apps SDK/MCP surface for review:
+Quest E6 is complete. Quest E6.6 shifts the visible product toward a map-first city world.
+The active ChatGPT county entrypoint is now `select_county` for the Riverside/Eastvale demo slice:
 
+- `select_county`
+- `ask_county_question`
 - `render_voxel_county`
+- `lookup_world_places`
 - `preview_scout_drop`
 - `preview_campaign_engine`
 - `get_upgrade_options`
@@ -117,7 +121,7 @@ The Railway backend is live at `https://atlas-backend-production-e6fc.up.railway
 ## State Model
 
 - Server or backend owns business data.
-- Widget state owns ephemeral view behavior such as the selected lane.
+- Widget state owns ephemeral view behavior such as selected district/place, stickers, and notes.
 - Durable cross-session state belongs in a backend storage layer once the product needs it.
 - The widget can call `ui/update-model-context` when UI state should affect the model's next turn.
 

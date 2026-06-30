@@ -1,15 +1,36 @@
 import { useMemo, type KeyboardEvent } from "react";
-import type { AtlasNode, VoxelFlowStep, VoxelPoint, VoxelScene, VoxelTile } from "@atlas/core/voxel";
+import type {
+  VoxelFlowStep,
+  VoxelNote,
+  VoxelPlace,
+  VoxelPoint,
+  VoxelScene,
+  VoxelSticker,
+  VoxelStickerKind,
+  VoxelTile,
+} from "@atlas/core/voxel";
 import { PixiVoxelSceneView } from "./PixiVoxelSceneView";
 
 export type VoxelSceneViewProps = {
   scene: VoxelScene;
   selectedNodeId: string;
-  activeStepId?: VoxelFlowStep["id"];
-  contextTitle?: string;
-  compact?: boolean;
+  activeStepId?: VoxelFlowStep["id"] | undefined;
+  contextTitle?: string | undefined;
+  compact?: boolean | undefined;
+  selectedDistrictId?: string | undefined;
+  selectedPlaceId?: string | undefined;
+  stickers?: VoxelSticker[] | undefined;
+  notes?: VoxelNote[] | undefined;
+  stickerMode?: VoxelStickerKind | undefined;
+  noteDraft?: string | undefined;
   onSelectNode: (nodeId: string) => void;
-  onAskCampaign?: () => void;
+  onSelectDistrict?: ((districtId: string) => void) | undefined;
+  onSelectPlace?: ((placeId: string) => void) | undefined;
+  onSelectStickerMode?: ((kind: VoxelStickerKind) => void) | undefined;
+  onPlaceSticker?: ((placeId: string, kind: VoxelStickerKind) => void) | undefined;
+  onNoteDraftChange?: ((value: string) => void) | undefined;
+  onSaveNote?: ((placeId: string, body: string) => void) | undefined;
+  onAskCampaign?: (() => void) | undefined;
 };
 
 type ProjectedPoint = {
@@ -17,368 +38,225 @@ type ProjectedPoint = {
   y: number;
 };
 
-type DisplaySignal = {
-  label: string;
-  detail?: string;
-  score?: number;
-};
+const STICKER_KINDS: VoxelStickerKind[] = ["home", "shop", "park", "favorite", "idea", "question"];
 
-export function VoxelSceneView({ scene, selectedNodeId, activeStepId, contextTitle, compact = false, onSelectNode, onAskCampaign }: VoxelSceneViewProps) {
+export function VoxelSceneView({
+  scene,
+  selectedNodeId,
+  activeStepId,
+  compact = false,
+  selectedDistrictId,
+  selectedPlaceId,
+  stickers = [],
+  notes = [],
+  stickerMode = "favorite",
+  noteDraft = "",
+  onSelectNode,
+  onSelectDistrict,
+  onSelectPlace,
+  onSelectStickerMode,
+  onPlaceSticker,
+  onNoteDraftChange,
+  onSaveNote,
+}: VoxelSceneViewProps) {
   const nodeById = useMemo(() => new Map(scene.nodes.map((node) => [node.id, node])), [scene.nodes]);
-  const selectedNode = nodeById.get(selectedNodeId) ?? nodeById.get(scene.selectedNodeId) ?? scene.nodes[0];
-  const clawdNode = nodeById.get(scene.clawd.nodeId) ?? selectedNode;
-  const routeNodes = scene.clawd.routeNodeIds
-    .map((nodeId) => nodeById.get(nodeId))
-    .filter((node): node is AtlasNode => Boolean(node));
-  const routePoints = routeNodes.map((node) => project(scene, node.position));
-  const scoutPanel = scene.panel.type === "scout_report" ? scene.panel : null;
-  const campaignPanel = scene.panel.type === "campaign_preview" ? scene.panel : null;
-  const panelFocused = Boolean(scoutPanel && scoutPanel.focusNodeId === selectedNode?.id);
-  const campaignFocused = Boolean(campaignPanel && campaignPanel.focusNodeId === selectedNode?.id);
-  const panelSignals = panelFocused ? scoutPanel?.signals ?? [] : [];
-  const displaySignals: DisplaySignal[] =
-    panelSignals.length > 0 ? panelSignals : (selectedNode?.signals ?? []).map((signal) => ({ label: signal }));
-  const scoutScore =
-    panelSignals.length > 0
-      ? Math.round(panelSignals.reduce((total, signal) => total + signal.score, 0) / panelSignals.length)
-      : selectedNode?.score ?? 0;
-  const reportKicker = contextTitle ?? (campaignFocused && campaignPanel ? campaignPanel.title : panelFocused && scoutPanel ? scoutPanel.title : scene.panel.title);
-  const reportHeading =
-    campaignFocused && selectedNode
-      ? `7-day ${selectedNode.label} launch`
-      : panelFocused && selectedNode
-        ? `Drop: ${selectedNode.label}`
-        : selectedNode?.label ?? scene.panel.title;
-  const reportSummary =
-    campaignFocused && campaignPanel ? campaignPanel.summary : panelFocused && scoutPanel ? scoutPanel.summary : selectedNode?.campaignSuggestion ?? scene.panel.summary;
-  const scoreLabel = panelFocused ? "Scout fit" : "Opportunity";
-  const flow = useMemo(() => resolveFlow(scene.flow, activeStepId), [activeStepId, scene.flow]);
+  const world = scene.world;
+  const worldStickers = world?.stickers ?? [];
+  const worldNotes = world?.notes ?? [];
+  const sessionStickers = [...worldStickers, ...stickers];
+  const sessionNotes = [...worldNotes, ...notes];
+  const activeDistrictId = selectedDistrictId ?? world?.selectedDistrictId;
+  const activeDistrict = world?.districts.find((district) => district.id === activeDistrictId) ?? world?.districts[0];
+  const places = activeDistrict ? world?.places.filter((place) => place.districtId === activeDistrict.id) ?? [] : world?.places ?? [];
+  const selectedPlace =
+    places.find((place) => place.id === selectedPlaceId) ??
+    world?.places.find((place) => place.nodeId === selectedNodeId) ??
+    places[0] ??
+    world?.places[0];
+  const selectedNode = selectedPlace ? nodeById.get(selectedPlace.nodeId) : nodeById.get(selectedNodeId) ?? scene.nodes[0];
+  const placeStickers = selectedPlace ? sessionStickers.filter((sticker) => sticker.placeId === selectedPlace.id) : [];
+  const placeNotes = selectedPlace ? sessionNotes.filter((note) => note.placeId === selectedPlace.id) : [];
+  const collectedPlaceIds = new Set(sessionStickers.map((sticker) => sticker.placeId));
+  const collectedCount = collectedPlaceIds.size;
+  const ambient = world?.ambient;
 
-  const handleNodeKeyDown = (event: KeyboardEvent<SVGGElement>, nodeId: string) => {
+  const handlePlaceKeyDown = (event: KeyboardEvent<SVGGElement>, place: VoxelPlace) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onSelectNode(nodeId);
+      onSelectPlace?.(place.id);
+      onSelectNode(place.nodeId);
     }
   };
 
-  return (
-    <main className={compact ? "voxel-shell is-compact" : "voxel-shell"}>
-      <section className="voxel-stage" aria-label="Riverside VoxelScene">
-        <div className="voxel-map-column">
-          <div className="voxel-map-frame">
-            <header className="voxel-topbar">
-              <div>
-                <p className="voxel-kicker">ATLAS COUNTY BOARD</p>
-                <h1>{scene.county.name}</h1>
-              </div>
-              <div className="voxel-live-chip">
-                <span>Google mode</span>
-                <strong>{scene.county.state}</strong>
-              </div>
-            </header>
+  const saveNote = () => {
+    if (!selectedPlace || !noteDraft.trim()) return;
+    onSaveNote?.(selectedPlace.id, noteDraft);
+  };
 
-            <PixiVoxelSceneView
-              scene={scene}
-              selectedNodeId={selectedNodeId}
-              {...(activeStepId ? { activeStepId } : {})}
-              {...(contextTitle ? { contextTitle } : {})}
-              compact={compact}
-              onSelectNode={onSelectNode}
-              {...(onAskCampaign ? { onAskCampaign } : {})}
-              fallback={
-                <svg
-                  className="voxel-map"
-                  viewBox={`0 0 ${scene.viewport.width} ${scene.viewport.height}`}
-                  role="img"
-                  aria-label={`${scene.county.name} light voxel board with Eastvale Scout Drop highlighted`}
-                >
+  return (
+    <main className={compact ? "voxel-shell voxel-shell-map-only is-compact" : "voxel-shell voxel-shell-map-only"}>
+      <section className="voxel-map-only-stage" aria-label={`${scene.county.name} voxel city map`}>
+        <PixiVoxelSceneView
+          scene={scene}
+          selectedNodeId={selectedNode?.id ?? selectedNodeId}
+          {...(activeStepId ? { activeStepId } : {})}
+          compact={compact}
+          selectedDistrictId={activeDistrict?.id}
+          selectedPlaceId={selectedPlace?.id}
+          stickers={sessionStickers}
+          notes={sessionNotes}
+          stickerMode={stickerMode}
+          onSelectNode={onSelectNode}
+          onSelectPlace={onSelectPlace}
+          fallback={
+            <svg
+              className="voxel-map"
+              viewBox={`0 0 ${scene.viewport.width} ${scene.viewport.height}`}
+              role="img"
+              aria-label={`${scene.county.name} cozy voxel district map`}
+            >
               <rect className="voxel-map-bg" width={scene.viewport.width} height={scene.viewport.height} rx="0" />
               <g className="voxel-tiles">
                 {scene.tiles.map((tile) => (
                   <TileShape key={tile.id} scene={scene} tile={tile} />
                 ))}
               </g>
-              <g className="voxel-edges">
-                {scene.edges.map((edge) => {
-                  const from = nodeById.get(edge.from);
-                  const to = nodeById.get(edge.to);
-                  if (!from || !to) return null;
-                  const start = project(scene, from.position);
-                  const end = project(scene, to.position);
-                  return (
-                    <line
-                      key={edge.id}
-                      className={`voxel-edge voxel-edge-${edge.kind}`}
-                      x1={start.x}
-                      y1={start.y}
-                      x2={end.x}
-                      y2={end.y}
-                    />
-                  );
-                })}
-              </g>
-              {routePoints.length > 1 ? (
-                <polyline className="voxel-route-line" points={routePoints.map((point) => `${point.x},${point.y}`).join(" ")} />
-              ) : null}
-              <g className="voxel-markers">
-                {scene.markers.map((marker) => {
-                  const node = nodeById.get(marker.nodeId);
-                  if (!node) return null;
-                  const point = project(scene, node.position);
-                  return (
-                    <g key={marker.id} className={`voxel-marker voxel-marker-${marker.kind}`} transform={`translate(${point.x} ${point.y - 28})`}>
-                      <path d="M0 -15 L12 0 L0 15 L-12 0 Z" />
-                      <circle r="4" />
-                    </g>
-                  );
-                })}
-              </g>
-              <g className="voxel-nodes">
-                {scene.nodes.map((node) => {
-                  const point = project(scene, node.position);
-                  const selected = node.id === selectedNode?.id;
-                  const labelWidth = Math.max(64, node.label.length * 6.5 + 18);
+              <g className="voxel-places">
+                {places.map((place) => {
+                  const point = project(scene, place.position);
+                  const selected = place.id === selectedPlace?.id;
                   return (
                     <g
-                      key={node.id}
+                      key={place.id}
                       role="button"
                       tabIndex={0}
-                      aria-label={`Select ${node.label}`}
-                      className={selected ? "voxel-node is-selected" : "voxel-node"}
+                      className={selected ? "voxel-place is-selected" : "voxel-place"}
                       transform={`translate(${point.x} ${point.y})`}
-                      onClick={() => onSelectNode(node.id)}
-                      onKeyDown={(event) => handleNodeKeyDown(event, node.id)}
+                      onClick={() => {
+                        onSelectPlace?.(place.id);
+                        onSelectNode(place.nodeId);
+                      }}
+                      onKeyDown={(event) => handlePlaceKeyDown(event, place)}
                     >
-                      <circle className="voxel-node-halo" r={selected ? 25 : 18} />
-                      <circle className={`voxel-node-dot voxel-node-${node.kind}`} r={selected ? 12 : 9} />
-                      <rect className="voxel-node-label-bg" x={-labelWidth / 2} y="18" width={labelWidth} height="22" rx="3" />
-                      <text className="voxel-node-label" y="33" textAnchor="middle">
-                        {node.label}
-                      </text>
+                      <circle className={`voxel-place-dot voxel-place-${place.kind}`} r={selected ? 15 : 11} />
+                      <text y="31" textAnchor="middle">{place.label}</text>
                     </g>
                   );
                 })}
               </g>
-              {clawdNode ? (
-                <g className="clawd-sprite" transform={`translate(${project(scene, clawdNode.position).x - 34} ${project(scene, clawdNode.position).y - 56})`}>
-                  <rect width="48" height="34" rx="6" />
-                  <path d="M13 21h22M16 14h4M28 14h4M20 25l4 4 4-4" />
-                  <text x="24" y="-7" textAnchor="middle">
-                    {scene.clawd.label}
-                  </text>
-                </g>
-              ) : null}
-                </svg>
-              }
-            />
-          </div>
+              <g className="voxel-stickers">
+                {sessionStickers.map((sticker) => {
+                  const place = world?.places.find((item) => item.id === sticker.placeId);
+                  if (!place) return null;
+                  const point = project(scene, place.position);
+                  return (
+                    <g key={sticker.id} className={`voxel-sticker voxel-sticker-${sticker.kind}`} transform={`translate(${point.x + 18} ${point.y - 28})`}>
+                      <circle r="12" />
+                      <text y="4" textAnchor="middle">{stickerGlyph(sticker.kind)}</text>
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          }
+        />
 
-          <footer className="voxel-flow" aria-label="Atlas flow">
-            {flow.map((step, index) => (
-              <div key={step.id} className={`voxel-flow-step is-${step.status}`}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <strong>{step.label}</strong>
-              </div>
-            ))}
-          </footer>
+        <div className="voxel-map-location-hud" aria-label="Current map">
+          <strong>{scene.county.name}</strong>
+          <span>{activeDistrict?.label ?? scene.county.state}</span>
         </div>
 
-        <aside className="voxel-report" aria-label="Scout report">
-          <p className="voxel-kicker">{reportKicker}</p>
-          <h2>{reportHeading}</h2>
-          {campaignFocused && campaignPanel ? (
-            <p className="voxel-status-line">
-              <span>Manual only</span>
-              <strong>{campaignPanel.days.length} day plan</strong>
-            </p>
-          ) : panelFocused ? (
-            <p className="voxel-status-line">
-              <span>{scene.clawd.status}</span>
-              <strong>{routeNodes.length} stop route</strong>
-            </p>
-          ) : null}
-          <p className="voxel-report-copy">{reportSummary}</p>
+        {world ? (
+          <div className="voxel-map-district-dots" aria-label="Districts">
+            {world.districts.map((district) => (
+              <button
+                key={district.id}
+                type="button"
+                className={district.id === activeDistrict?.id ? "is-active" : ""}
+                onClick={() => onSelectDistrict?.(district.id)}
+              >
+                <span>{district.playable ? "Open" : "Soon"}</span>
+                {district.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
-          {campaignFocused && campaignPanel ? (
-            <div className="voxel-best-offer">
-              <span>Offer anchor</span>
-              <strong>{campaignPanel.offer}</strong>
-            </div>
-          ) : (
-            <div className="voxel-score">
-              <span>{scoreLabel}</span>
-              <strong>{scoutScore}</strong>
-              <div>
-                <i style={{ width: `${scoutScore}%` }} />
-              </div>
-            </div>
-          )}
+        <div className="voxel-map-sticker-strip" aria-label="Sticker shelf">
+          {STICKER_KINDS.map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              title={stickerLabel(kind)}
+              className={kind === stickerMode ? "is-active" : ""}
+              disabled={!selectedPlace}
+              onClick={() => {
+                onSelectStickerMode?.(kind);
+                if (selectedPlace) onPlaceSticker?.(selectedPlace.id, kind);
+              }}
+            >
+              <span>{stickerGlyph(kind)}</span>
+            </button>
+          ))}
+        </div>
 
-          {panelFocused && scoutPanel?.bestOffer ? (
-            <div className="voxel-best-offer">
-              <span>Best offer</span>
-              <strong>{scoutPanel.bestOffer}</strong>
-            </div>
-          ) : null}
-
-          {campaignFocused && campaignPanel ? (
-            <section className="voxel-panel-section">
-              <h3>7-day plan</h3>
-              <ol className="voxel-day-list">
-                {campaignPanel.days.map((day) => (
-                  <li key={day.day}>
-                    <span>{String(day.day).padStart(2, "0")}</span>
-                    <div>
-                      <strong>{day.label}</strong>
-                      <p>{day.focus}</p>
-                      <small>{channelLabel(day.channel)} / {day.proof}</small>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : (
-            <ul className="voxel-signal-list">
-              {displaySignals.map((signal) => (
-                <li key={signal.label}>
-                  <strong>
-                    <span>{signal.label}</span>
-                    {typeof signal.score === "number" ? <b>{signal.score}</b> : null}
-                  </strong>
-                  {signal.detail ? <small>{signal.detail}</small> : null}
-                </li>
+        <div className="voxel-map-place-tray" aria-label="Selected place">
+          <div className="voxel-place-tray-copy">
+            <span>{selectedPlace ? placeKindLabel(selectedPlace.kind) : "City map"} / {ambient ? ambient.timeOfDay : scene.county.state}</span>
+            <strong>{selectedPlace?.label ?? "Pick a place"}</strong>
+            <p>{selectedPlace?.description ?? activeDistrict?.summary ?? "Drag around the city and click a place."}</p>
+          </div>
+          <div className="voxel-place-tray-stats" aria-label="Map collection">
+            <span>{collectedCount} stickers</span>
+            <span>{sessionNotes.length} notes</span>
+            <span>{selectedPlace ? `${Math.round(selectedPlace.activity * 100)}% active` : "city live"}</span>
+          </div>
+          <div className="voxel-map-note-row">
+            <input
+              value={noteDraft}
+              maxLength={160}
+              disabled={!selectedPlace}
+              onChange={(event) => onNoteDraftChange?.(event.currentTarget.value)}
+              placeholder={selectedPlace ? `Note for ${selectedPlace.label}` : "Select a place"}
+            />
+            <button type="button" disabled={!selectedPlace || !noteDraft.trim()} onClick={saveNote}>
+              Save
+            </button>
+          </div>
+          {placeStickers.length || placeNotes.length ? (
+            <div className="voxel-place-tray-history">
+              {placeStickers.map((sticker) => (
+                <span key={sticker.id}>{stickerGlyph(sticker.kind)} {sticker.label}</span>
               ))}
-            </ul>
-          )}
-
-          {campaignFocused && campaignPanel?.routePriorities.length ? (
-            <section className="voxel-panel-section">
-              <h3>Route priorities</h3>
-              <ol className="voxel-route-list">
-                {campaignPanel.routePriorities.slice(0, 6).map((priority) => (
-                  <li key={priority.nodeId}>
-                    <span>{String(priority.priority).padStart(2, "0")}</span>
-                    <strong>{priority.label}</strong>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : null}
-
-          {campaignFocused && campaignPanel?.assetPlaceholders.length ? (
-            <section className="voxel-panel-section">
-              <h3>Assets</h3>
-              <ul className="voxel-asset-list">
-                {campaignPanel.assetPlaceholders.map((asset) => (
-                  <li key={asset.id}>
-                    <strong>{asset.label}</strong>
-                    <span>{formatLabel(asset.format)} / {channelLabel(asset.channel)}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {campaignFocused && campaignPanel?.guardrails.length ? (
-            <section className="voxel-panel-section">
-              <h3>Guardrails</h3>
-              <ul className="voxel-mini-list">
-                {campaignPanel.guardrails.slice(0, 3).map((guardrail) => (
-                  <li key={guardrail}>{guardrail}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {panelFocused && routeNodes.length > 1 ? (
-            <section className="voxel-panel-section">
-              <h3>Route</h3>
-              <ol className="voxel-route-list">
-                {routeNodes.map((node, index) => (
-                  <li key={node.id}>
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                    <strong>{node.label}</strong>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : null}
-          {panelFocused && scoutPanel?.channels?.length ? (
-            <section className="voxel-panel-section">
-              <h3>Channels</h3>
-              <div className="voxel-channel-list">
-                {scoutPanel.channels.map((channel) => (
-                  <span key={channel}>{channel}</span>
-                ))}
-              </div>
-            </section>
-          ) : null}
-          {panelFocused && scoutPanel?.risks?.length ? (
-            <section className="voxel-panel-section">
-              <h3>Watch</h3>
-              <ul className="voxel-mini-list">
-                {scoutPanel.risks.slice(0, 2).map((risk) => (
-                  <li key={risk}>{risk}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          {panelFocused && scoutPanel?.nextActions?.length ? (
-            <section className="voxel-panel-section">
-              <h3>Next</h3>
-              <ul className="voxel-mini-list">
-                {scoutPanel.nextActions.slice(0, 3).map((action) => (
-                  <li key={action}>{action}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          {"stats" in scene.panel ? (
-            <div className="voxel-stat-grid">
-              {scene.panel.stats.map((stat) => (
-                <div key={stat.label} className={`voxel-stat voxel-stat-${stat.tone}`}>
-                  <span>{stat.label}</span>
-                  <strong>{stat.value}</strong>
-                </div>
+              {placeNotes.slice(-1).map((note) => (
+                <span key={note.id}>{note.body}</span>
               ))}
             </div>
           ) : null}
-          {panelFocused && scoutPanel?.upgradePrompt ? <p className="voxel-upgrade-note">{scoutPanel.upgradePrompt}</p> : null}
-          {campaignFocused && campaignPanel?.upgradePrompt ? <p className="voxel-upgrade-note">{campaignPanel.upgradePrompt}</p> : null}
-          <button type="button" className="voxel-action" onClick={onAskCampaign}>
-            {campaignFocused ? "Draft first asset" : panelFocused ? "Draft manual campaign" : "Draft campaign path"}
-          </button>
-        </aside>
+        </div>
       </section>
     </main>
   );
 }
 
 function resolveFlow(flow: VoxelFlowStep[], activeStepId: VoxelFlowStep["id"] | undefined): VoxelFlowStep[] {
-  if (!activeStepId) return flow;
+  const mapFlow: VoxelFlowStep[] = [
+    { id: "county", label: "County hub", status: "active" },
+    { id: "district", label: "District", status: "next" },
+    { id: "place", label: "Place", status: "next" },
+    { id: "collect", label: "Collect", status: "next" },
+  ];
+  const active =
+    activeStepId === "drop" ? "district" : activeStepId === "report" ? "place" : activeStepId === "campaign" ? "collect" : activeStepId;
+  if (!active) return mapFlow;
 
-  const activeIndex = flow.findIndex((step) => step.id === activeStepId);
-  if (activeIndex < 0) return flow;
+  const activeIndex = mapFlow.findIndex((step) => step.id === active);
+  if (activeIndex < 0) return mapFlow;
 
-  return flow.map((step, index) => ({
+  return mapFlow.map((step, index) => ({
     ...step,
     status: index < activeIndex ? "done" : index === activeIndex ? "active" : "next",
   }));
-}
-
-function channelLabel(channel: string): string {
-  const labels: Record<string, string> = {
-    qr_flyer: "QR flyer",
-    local_group: "Local group",
-    property_manager: "Property manager",
-    partner: "Partner ask",
-    google_profile: "Google profile",
-  };
-  return labels[channel] ?? channel;
-}
-
-function formatLabel(format: string): string {
-  return format.replace(/_/g, " ");
 }
 
 function TileShape({ scene, tile }: { scene: VoxelScene; tile: VoxelTile }) {
@@ -428,4 +306,44 @@ function sidePoints(center: ProjectedPoint, width: number, height: number, depth
     `${center.x},${center.y + height / 2 + depth}`,
     `${center.x + width / 2},${center.y + depth}`,
   ].join(" ");
+}
+
+function stickerGlyph(kind: VoxelStickerKind): string {
+  const glyphs: Record<VoxelStickerKind, string> = {
+    home: "H",
+    shop: "S",
+    park: "P",
+    favorite: "*",
+    idea: "!",
+    question: "?",
+  };
+  return glyphs[kind];
+}
+
+function stickerLabel(kind: VoxelStickerKind): string {
+  const labels: Record<VoxelStickerKind, string> = {
+    home: "Home",
+    shop: "Shop",
+    park: "Park",
+    favorite: "Fav",
+    idea: "Idea",
+    question: "Ask",
+  };
+  return labels[kind];
+}
+
+function placeKindLabel(kind: VoxelPlace["kind"]): string {
+  const labels: Record<VoxelPlace["kind"], string> = {
+    home_area: "Home area",
+    shop: "Shop",
+    plaza: "Plaza",
+    park: "Park",
+    road: "Road",
+    landmark: "Landmark",
+  };
+  return labels[kind];
+}
+
+function mapStepLabel(label: string): string {
+  return label.replace(/drop/i, "District").replace(/report/i, "Place").replace(/campaign/i, "Collect");
 }

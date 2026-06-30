@@ -10,6 +10,7 @@ server/dist/
 web/dist/
 
 # Local tooling and reference material
+.codex/
 .gstack/
 .reference/
 

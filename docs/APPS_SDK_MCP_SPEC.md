@@ -11,15 +11,22 @@ Tools return:
 
 ## Exposed Alpha tools
 
+- select_county
+- ask_county_question
 - render_voxel_county
+- lookup_world_places
 - preview_scout_drop
 - preview_campaign_engine
 - get_upgrade_options
 
-These tools are read-only, non-destructive, and closed-world. They compute
-temporary Alpha previews from curated Riverside data and do not persist campaign
-state, create accounts, run checkout, post, message, buy ads, or claim live
-market research.
+These tools are read-only and non-destructive. `lookup_world_places` is
+open-world because it can use Google Maps Platform when configured; the other
+Alpha tools are closed-world curated/demo flows. `select_county` compiles the
+Riverside `VoxelScene` from the curated county pack and sends the full scene to
+the widget through `_meta.scene`. `ask_county_question` answers only from curated
+Riverside pack facts and narrows unsupported counties or business lanes. Alpha tools do not persist
+campaign state, save evidence, grant XP, create accounts, run checkout, post,
+message, buy ads, or execute campaigns.
 
 ## Future paid Beta tools
 
