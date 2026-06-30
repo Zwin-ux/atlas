@@ -87,3 +87,7 @@ Atlas work progresses through named maturity levels: mock scaffold, curated Alph
 ## Decision 022: Hosted Clawd contracts precede persistence
 
 E9.0 defines Hosted Clawd Beta entities, tool gates, pricing boundaries, and required tests before any auth, database, Stripe, evidence, or XP code. The next implementation step must first clear `HUMAN_APPROVAL_BEFORE_PERSISTENCE`; checkout or pricing work also requires `HUMAN_APPROVAL_BEFORE_MONEY`.
+
+## Decision 023: Hosted Clawd uses Stripe Billing hosted subscription flow
+
+Hosted Clawd Beta should use Stripe Billing with Stripe-hosted Checkout Sessions in `subscription` mode, recurring Prices, webhook-synced subscription state, and Stripe Customer Portal for billing management. Atlas should not use raw PaymentIntents, success-page redirects, or client-trusted prices to grant Hosted Clawd access. No Stripe mutations or billing code start before `HUMAN_APPROVAL_BEFORE_MONEY` and persistence approval.

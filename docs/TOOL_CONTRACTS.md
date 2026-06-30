@@ -145,6 +145,45 @@ Output:
 
 ## Future paid/hosted tools
 
+### start_hosted_clawd_checkout
+Creates a Stripe-hosted Checkout Session for Hosted Clawd.
+
+Maturity:
+M3 Persisted Beta only after `HUMAN_APPROVAL_BEFORE_MONEY`.
+
+Requires:
+- authenticated user
+- explicit user intent to upgrade
+- server-owned Stripe Price id or lookup key
+- no client-trusted price amount
+
+Returns:
+- Stripe-hosted checkout URL
+
+Must not:
+- start checkout silently from a free tool call
+- grant access from the success URL alone
+- expose Stripe secrets
+- create persisted Clawd state without webhook-backed subscription sync
+
+### open_billing_portal
+Creates a Stripe Customer Portal Session for an existing Hosted Clawd subscriber.
+
+Maturity:
+M3 Persisted Beta only after `HUMAN_APPROVAL_BEFORE_MONEY`.
+
+Requires:
+- authenticated user
+- stored Stripe customer id owned by that user
+- existing subscription or billing history
+
+Returns:
+- Stripe-hosted portal URL
+
+Must not:
+- accept arbitrary customer ids from the client
+- mutate Atlas plan state without webhook confirmation
+
 ### host_clawd
 Creates or activates Hosted Clawd Daemon.
 
@@ -153,7 +192,7 @@ M3 Persisted Beta only.
 
 Requires:
 - authenticated user
-- active or pending subscription state
+- active subscription state synced from Stripe webhooks
 - server-side plan check
 
 Must not:

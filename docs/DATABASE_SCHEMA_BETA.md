@@ -32,11 +32,13 @@ Fields:
 - `id`
 - `email`
 - `display_name`
+- `stripe_customer_id`
 - `created_at`
 - `updated_at`
 
 Tests:
 - User can access only their own hosted state.
+- Stripe customer id is unique when present and never grants cross-user access.
 
 ### clawds
 
@@ -252,13 +254,46 @@ Fields:
 - `id`
 - `owner_user_id`
 - `provider`
-- `provider_customer_id`
+- `stripe_customer_id`
+- `stripe_subscription_id`
+- `stripe_product_id`
+- `stripe_price_id`
 - `status`
+- `current_period_start`
 - `current_period_end`
+- `cancel_at_period_end`
+- `trial_end`
+- `last_invoice_id`
+- `last_payment_status`
+- `updated_from_event_id`
+- `created_at`
+- `updated_at`
 
 Tests:
 - Paid tools deny access when subscription is inactive.
 - Webhook replay does not duplicate subscription state.
+- Redirecting to a success URL without a verified webhook does not grant access.
+- Customer Portal access requires the stored customer id to belong to the
+  authenticated user.
+
+### stripe_webhook_events
+
+Purpose:
+Idempotency and audit trail for Stripe subscription sync.
+
+Fields:
+- `id`
+- `stripe_event_id`
+- `event_type`
+- `processing_status`
+- `processed_at`
+- `error_summary`
+
+Tests:
+- Unique `stripe_event_id` prevents replay from changing subscription state
+  twice.
+- Invalid webhook signatures are rejected before processing.
+- Raw payment method data is never stored.
 
 ### usage_events
 
@@ -296,12 +331,16 @@ Tests:
 - Usage limits for free vs Hosted Clawd.
 - Idempotency for Scout Drop save, campaign save, quest completion, evidence
   submission, XP grant, and subscription webhook replay.
+- Stripe checkout fulfillment must be webhook-backed. Success-page redirects are
+  not enough to grant Hosted Clawd access.
 - County pack parsing/version pinning.
 - Map state schema validity.
 
 ## Out Of Scope Until Approved
 
 - Stripe checkout.
+- Stripe Products, Prices, Checkout Sessions, Customer Portal Sessions, and
+  subscription webhooks.
 - OAuth/account linking.
 - Database migrations.
 - XP grants.

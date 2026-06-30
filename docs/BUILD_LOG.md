@@ -485,3 +485,32 @@ E8.6 is deployed as M1 Curated Alpha. E9.0 is contracts-only and remains behind 
 
 Next:
 Human approval is required before implementing Hosted Clawd persistence, Stripe, evidence, or XP. The next safe code lane is either a small review polish fix if app review finds one, or a docs/design pass for Hosted Clawd onboarding copy without checkout.
+
+## Entry 029
+
+Quest:
+E9.0A Stripe Billing Plan for Hosted Clawd.
+
+What changed:
+Added `docs/STRIPE_BILLING_PLAN.md` and updated pricing, Beta schema, tool
+contracts, E9 issue docs, next quests, and decisions so Stripe is part of the
+Hosted Clawd execution plan. The plan uses Stripe Billing, Stripe-hosted
+Checkout Sessions in subscription mode, recurring Prices, Customer Portal, and
+webhook-synced access.
+
+Stripe:
+Verified the connected Stripe account for planning as `acct_1RTDWJKHzChTixtj`
+with display name `ColdCopy`. No Stripe Products, Prices, Checkout Sessions,
+Customer Portal Sessions, customers, webhooks, or payment flows were created.
+
+Maturity:
+Docs-only M1/M3 planning. `HUMAN_APPROVAL_BEFORE_MONEY` and
+`HUMAN_APPROVAL_BEFORE_PERSISTENCE` still block implementation.
+
+Verification:
+`pnpm --dir packages/core test` passed with 8 test files and 24 tests.
+`git diff --check` passed with only Windows LF-to-CRLF warnings.
+
+Next:
+Keep E9.1 blocked until the human gates approve storage, auth, and Stripe
+implementation.

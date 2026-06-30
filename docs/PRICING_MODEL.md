@@ -45,6 +45,9 @@ $20/month.
 Status:
 Planned Beta, not available in Alpha.
 
+Planned billing provider:
+Stripe Billing with Stripe-hosted Checkout Sessions in subscription mode.
+
 Paid users get:
 
 - Persistent Clawd.
@@ -86,9 +89,27 @@ Join Hosted Clawd waitlist
 Beta CTA after approval:
 Host Clawd - $20/month
 
+## Stripe Plan
+
+Stripe is connected for planning, but payment is not live.
+
+Planned implementation:
+- Create one Stripe Product: `Hosted Clawd Daemon`.
+- Create one monthly recurring Stripe Price for `$20/month`.
+- Store the server-side Price id in `STRIPE_HOSTED_CLAWD_PRICE_ID`.
+- Use Stripe Checkout Sessions with `mode: subscription`.
+- Use Stripe Customer Portal for payment method updates, invoices,
+  cancellation, and plan management.
+- Grant paid access only from verified webhook-synced subscription state.
+
+Reference:
+`docs/STRIPE_BILLING_PLAN.md`
+
 ## Copy Rules
 
 - Do not say payment is available until Stripe/checkout is approved and built.
+- Do not create Stripe Products, Prices, Checkout Sessions, Customer Portal
+  sessions, or webhooks until `HUMAN_APPROVAL_BEFORE_MONEY` is approved.
 - Do not say progress is saved unless persistence is live for that user.
 - Do not mix demo/session XP with real Hosted Clawd XP.
 - Do not imply Atlas will post, DM, run ads, or automate outreach.

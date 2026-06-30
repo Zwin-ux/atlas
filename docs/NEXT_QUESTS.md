@@ -3,8 +3,9 @@
 ## Current phase
 
 Quest E8.6 County Question Slice is deployed on Railway. E9.0 Hosted Clawd Beta
-contracts are complete locally as docs only. The next planned lane requires human
-approval before any persistence, Stripe, evidence, or XP implementation.
+contracts are complete locally as docs only. Stripe is connected for planning,
+but the next planned lane still requires human approval before any persistence,
+checkout, billing webhooks, evidence, or XP implementation.
 
 Parallel execution posture:
 Use at most two code-writing Codex worktrees plus one integration/QA thread. The
@@ -315,6 +316,24 @@ Acceptance:
 - Human approval gates are named before persistence or money work starts. Done
   locally.
 
+### Quest E9.0A: Stripe Billing Plan
+
+Added Stripe Billing planning to the Hosted Clawd Beta contract without creating
+Stripe products, prices, checkout sessions, Customer Portal sessions, webhooks,
+or paid access code.
+
+Acceptance:
+
+- Connected Stripe account is documented for planning only. Done locally.
+- Hosted Clawd billing shape uses Stripe Billing, hosted Checkout Sessions,
+  recurring Prices, Customer Portal, and webhook-synced access. Done locally.
+- Database contract includes Stripe subscription and webhook idempotency fields.
+  Done locally.
+- Future tool contracts include checkout and billing portal boundaries. Done
+  locally.
+- `HUMAN_APPROVAL_BEFORE_MONEY` and `HUMAN_APPROVAL_BEFORE_PERSISTENCE` remain
+  blocking gates before implementation. Done locally.
+
 ## Next
 
 ### Quest E6.5: Quest Preview slice parked
@@ -468,14 +487,20 @@ Implemented routes:
 Human approval gate before code:
 `HUMAN_APPROVAL_BEFORE_PERSISTENCE`.
 
+Human approval gate before checkout or Stripe mutations:
+`HUMAN_APPROVAL_BEFORE_MONEY`.
+
 Decision needed:
 - Storage provider and migration strategy.
 - Auth/account ownership model.
 - Whether pricing remains $20/month before Stripe work starts.
+- Whether to create the Hosted Clawd Stripe Product and recurring Price in test
+  mode first, then copy to live only after launch approval.
 
 Anti-scope until approved:
 - No database migrations.
 - No OAuth/account linking.
-- No Stripe checkout.
+- No Stripe Products, Prices, Checkout Sessions, Customer Portal Sessions, or
+  webhook endpoints.
 - No evidence uploads.
 - No XP grants.
