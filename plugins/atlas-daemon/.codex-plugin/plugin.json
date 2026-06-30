@@ -1,0 +1,12 @@
+{
+  "name": "atlas-daemon",
+  "version": "0.2.0",
+  "description": "Codex skills for engineering Atlas: voxel county maps, Scout Drop, Google Maps adapter, campaign engine, and deslop loops.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Atlas Daemon",
+    "shortDescription": "Build Atlas without scope explosion.",
+    "developerName": "Atlas",
+    "category": "Developer Tools"
+  }
+}

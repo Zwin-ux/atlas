@@ -1,0 +1,33 @@
+{
+  "name": "@atlas/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./voxel": {
+      "types": "./dist/voxel/index.d.ts",
+      "default": "./dist/voxel/index.js"
+    },
+    "./scout": {
+      "types": "./dist/scout/index.d.ts",
+      "default": "./dist/scout/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "vitest": "^3.2.4",
+    "typescript": "^5.9.2"
+  }
+}

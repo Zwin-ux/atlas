@@ -1,0 +1,128 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Atlas",
+    "subtitle": "Scout local campaigns",
+    "description": "Atlas turns a curated county view into a tactical local business planning flow. Users can render the Riverside voxel board, drop Clawd on Eastvale for a temporary Scout Drop, generate a manual 7-day campaign preview, and review the free Alpha limits versus planned Hosted Clawd persistence. Alpha previews do not save state, start checkout, post, message, buy ads, or perform live campaign execution.",
+    "category": "BUSINESS"
+  },
+  "tools": {
+    "render_voxel_county": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Computes and returns a Riverside voxel scene summary without creating or updating server state.",
+        "open_world_justification": "Does not write to public internet state or any third-party system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, send messages, or perform irreversible actions."
+      }
+    },
+    "preview_scout_drop": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Generates a temporary Scout Drop preview from curated Alpha data without saving it.",
+        "open_world_justification": "Does not publish, message, submit forms, buy ads, or change external systems.",
+        "destructive_justification": "Does not delete, overwrite, send irreversible communications, or alter user data."
+      }
+    },
+    "preview_campaign_engine": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates a temporary manual campaign preview from a Scout Drop id and does not persist campaign state.",
+        "open_world_justification": "Does not post, DM, buy ads, submit outreach, or change any public or third-party system.",
+        "destructive_justification": "Does not delete, overwrite, charge, send, or perform irreversible actions."
+      }
+    },
+    "get_upgrade_options": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Returns explanatory Alpha and planned Beta capability information without creating accounts or checkout sessions.",
+        "open_world_justification": "Does not contact payment systems, publish content, message users, or modify external services.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Render the Alpha voxel county board.",
+      "user_prompt": "Show me the Atlas board for Riverside County and focus on Eastvale.",
+      "file_attachment_urls": null,
+      "tools_triggered": "render_voxel_county",
+      "expected_output": "Renders the Riverside voxel board with a concise scene summary and Eastvale-focused state.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Run the core Scout Drop demo.",
+      "user_prompt": "Drop Clawd in Eastvale for a mobile detailing business.",
+      "file_attachment_urls": null,
+      "tools_triggered": "preview_scout_drop",
+      "expected_output": "Returns a temporary Eastvale Scout Drop with route, opportunity signals, risks, next actions, and Alpha limitations.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Generate a campaign preview after Scout Drop.",
+      "user_prompt": "Use that Scout Drop to draft the first 7-day manual campaign preview.",
+      "file_attachment_urls": null,
+      "tools_triggered": "preview_scout_drop, preview_campaign_engine",
+      "expected_output": "Creates a manual 7-day campaign preview tied to the Scout Drop id with route priorities, asset placeholders, and guardrails.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Explain upgrade boundaries when the user asks to save progress.",
+      "user_prompt": "Can Clawd save this campaign and track evidence for me?",
+      "file_attachment_urls": null,
+      "tools_triggered": "get_upgrade_options",
+      "expected_output": "Explains that free Alpha previews are temporary and that Hosted Clawd persistence is planned for Beta, with no checkout started.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Handle a campaign preview request that names the existing Scout Drop id.",
+      "user_prompt": "Create the campaign preview for scout-riverside-ca-eastvale-mobile-detailing, but keep it manual and non-automated.",
+      "file_attachment_urls": null,
+      "tools_triggered": "preview_campaign_engine",
+      "expected_output": "Returns the matching manual campaign preview and states that Atlas does not post, message, buy ads, or persist state in Alpha.",
+      "expected_output_url": null
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "Do not trigger for unrelated travel planning.",
+      "user_prompt": "Plan a weekend trip to Palm Springs with hotels and restaurants.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because the request is travel planning, not Atlas county scouting or campaign preview work.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for automatic messaging or spam execution.",
+      "user_prompt": "Send DMs to every property manager near Eastvale about my detailing deal.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not perform or offer automated messaging; it may answer that Atlas only supports manual planning guardrails.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for payments or account creation.",
+      "user_prompt": "Charge my card and activate Hosted Clawd right now.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not create an account or start checkout because Hosted Clawd and Stripe are not available in Alpha.",
+      "expected_output_url": null
+    }
+  ]
+}

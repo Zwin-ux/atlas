@@ -1,0 +1,38 @@
+{
+  "name": "Atlas Alpha Placeholder Asset Pack",
+  "version": "0.1",
+  "style": "high-quality voxel/pixel hybrid, dark console UI, emerald/blue/purple glow",
+  "assets": [
+    {
+      "key": "atlas-icon",
+      "path": "assets/generated/placeholders/svg/atlas-icon.svg",
+      "status": "placeholder"
+    },
+    {
+      "key": "clawd-paw-compass",
+      "path": "assets/generated/placeholders/svg/clawd-paw-compass.svg",
+      "status": "placeholder"
+    },
+    {
+      "key": "scout-drop-pin",
+      "path": "assets/generated/placeholders/svg/scout-drop-pin.svg",
+      "status": "placeholder"
+    },
+    {
+      "key": "hosted-clawd-badge",
+      "path": "assets/generated/placeholders/svg/hosted-clawd-badge.svg",
+      "status": "placeholder"
+    },
+    {
+      "key": "campaign-clipboard",
+      "path": "assets/generated/placeholders/svg/campaign-clipboard.svg",
+      "status": "placeholder"
+    }
+  ],
+  "finalArtRules": [
+    "Do not copy OpenAI/Codex/third-party pet assets.",
+    "Use generated or commissioned original assets only.",
+    "Preserve readability at small sizes.",
+    "Keep Clawd as a local scout/daemon, not a generic cute mascot."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "baseUrl": ".",
+    "paths": {
+      "@atlas/assets": ["packages/assets/src/index.ts"],
+      "@atlas/config": ["packages/config/src/index.ts"],
+      "@atlas/core": ["packages/core/src/index.ts"],
+      "@atlas/core/scout": ["packages/core/src/scout/index.ts"],
+      "@atlas/core/voxel": ["packages/core/src/voxel/index.ts"],
+      "@atlas/geo": ["packages/geo/src/index.ts"],
+      "@atlas/mcp": ["packages/mcp/src/index.ts"]
+    },
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "atlas-chatgpt-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "env:check": "node scripts/check-env.mjs",
+    "build:core": "pnpm --dir packages/core build",
+    "build:web": "pnpm build:core && node scripts/build-web.mjs",
+    "build:geo": "pnpm --dir packages/geo build",
+    "build:server": "pnpm build:core && pnpm build:geo && tsc -p server/tsconfig.json",
+    "build:starter": "pnpm build:web && pnpm build:server",
+    "build:workspaces": "tsc -p packages/config/tsconfig.json && tsc -p packages/core/tsconfig.json && tsc -p packages/assets/tsconfig.json && tsc -p packages/geo/tsconfig.json && tsc -p packages/mcp/tsconfig.json && tsc -p apps/web/tsconfig.json && pnpm --dir apps/widget build",
+    "build": "pnpm build:starter && pnpm build:workspaces",
+    "typecheck:starter": "pnpm build:core && pnpm build:geo && tsc -p server/tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
+    "typecheck:workspaces": "tsc -p packages/config/tsconfig.json --noEmit && tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/assets/tsconfig.json --noEmit && tsc -p packages/geo/tsconfig.json --noEmit && tsc -p packages/mcp/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/widget/tsconfig.json --noEmit",
+    "typecheck": "pnpm typecheck:starter && pnpm typecheck:workspaces",
+    "test:core": "pnpm --dir packages/core test",
+    "verify:mcp": "node scripts/verify-mcp-flow.mjs",
+    "check": "pnpm env:check && pnpm typecheck && pnpm build",
+    "dev:widget": "pnpm --dir apps/widget dev",
+    "dev": "pnpm build:web && pnpm build:geo && tsx server/src/index.ts",
+    "start": "node server/dist/index.js",
+    "inspect": "pnpm dlx @modelcontextprotocol/inspector@latest --server-url http://localhost:8787/mcp --transport http"
+  },
+  "dependencies": {
+    "@atlas/core": "workspace:*",
+    "@atlas/geo": "workspace:*",
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
+    "@modelcontextprotocol/sdk": "^1.20.2",
+    "pixi.js": "8.19.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "esbuild": "^0.25.12",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.1"
+  }
+}

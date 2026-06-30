@@ -1,0 +1,20 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "baseUrl": "..",
+    "paths": {
+      "@atlas/core/scout": ["packages/core/dist/scout/index.d.ts"],
+      "@atlas/core/voxel": ["packages/core/dist/voxel/index.d.ts"],
+      "@atlas/geo": ["packages/geo/dist/index.d.ts"]
+    },
+    "rootDir": "src",
+    "outDir": "dist",
+    "exactOptionalPropertyTypes": false,
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,191 @@
+{
+  "county": "Riverside County",
+  "state": "CA",
+  "slug": "riverside-ca",
+  "version": "0.2-alpha-demo",
+  "lastUpdated": "2026-06-29",
+  "summary": "Curated Alpha demo pack for Atlas. Not live market data.",
+  "mapNodes": [
+    {
+      "id": "eastvale",
+      "name": "Eastvale",
+      "type": "city",
+      "voxel": {
+        "x": 32,
+        "y": 18,
+        "z": 0
+      },
+      "scores": {
+        "mobile_detailing": 78,
+        "cleaning": 72,
+        "local_event": 48
+      },
+      "signals": [
+        "Residential Demand",
+        "Fast Route Access",
+        "QR Flyer Opportunity"
+      ],
+      "campaignSuggestion": "QR flyers, local Facebook posts, property manager outreach."
+    },
+    {
+      "id": "residential-eastvale",
+      "name": "Eastvale Residential Cluster",
+      "type": "residential_cluster",
+      "voxel": {
+        "x": 34,
+        "y": 17,
+        "z": 0
+      },
+      "scores": {
+        "mobile_detailing": 85,
+        "cleaning": 75,
+        "local_event": 45
+      },
+      "signals": [
+        "Residential Demand",
+        "High Willingness to Pay"
+      ],
+      "campaignSuggestion": "Promote first-time mobile detail offer."
+    },
+    {
+      "id": "gym-plaza-eastvale",
+      "name": "Eastvale Gym / Plaza",
+      "type": "commercial_plaza",
+      "voxel": {
+        "x": 36,
+        "y": 20,
+        "z": 0
+      },
+      "scores": {
+        "mobile_detailing": 82,
+        "cleaning": 50,
+        "local_event": 54
+      },
+      "signals": [
+        "Partnership Target",
+        "QR Flyer Opportunity"
+      ],
+      "campaignSuggestion": "Partner flyer/QR campaign near gym/plaza audience."
+    },
+    {
+      "id": "apartment-cluster",
+      "name": "Apartment Cluster",
+      "type": "apartment_cluster",
+      "voxel": {
+        "x": 38,
+        "y": 23,
+        "z": 0
+      },
+      "scores": {
+        "mobile_detailing": 72,
+        "cleaning": 82,
+        "local_event": 50
+      },
+      "signals": [
+        "Property Manager Outreach"
+      ],
+      "campaignSuggestion": "Contact property managers with resident service offer."
+    },
+    {
+      "id": "corona",
+      "name": "Corona",
+      "type": "city",
+      "voxel": {
+        "x": 26,
+        "y": 24,
+        "z": 0
+      },
+      "scores": {
+        "mobile_detailing": 74,
+        "cleaning": 70,
+        "local_event": 52
+      },
+      "signals": [
+        "Fast Route Access",
+        "Partnership Target"
+      ],
+      "campaignSuggestion": "Use plaza partnerships and neighborhood groups."
+    },
+    {
+      "id": "norco",
+      "name": "Norco",
+      "type": "city",
+      "voxel": {
+        "x": 28,
+        "y": 21,
+        "z": 0
+      },
+      "scores": {
+        "mobile_detailing": 68,
+        "cleaning": 55,
+        "local_event": 40
+      },
+      "signals": [
+        "Fast Route Access"
+      ],
+      "campaignSuggestion": "Bundle with Eastvale/Corona route."
+    },
+    {
+      "id": "riverside",
+      "name": "Riverside",
+      "type": "regional_center",
+      "voxel": {
+        "x": 42,
+        "y": 28,
+        "z": 0
+      },
+      "scores": {
+        "mobile_detailing": 70,
+        "cleaning": 76,
+        "local_event": 70
+      },
+      "signals": [
+        "Commercial Foot Traffic",
+        "Partnership Target"
+      ],
+      "campaignSuggestion": "Use targeted commercial/office outreach."
+    }
+  ],
+  "mapEdges": [
+    {
+      "from": "eastvale",
+      "to": "residential-eastvale",
+      "type": "signal"
+    },
+    {
+      "from": "eastvale",
+      "to": "gym-plaza-eastvale",
+      "type": "signal"
+    },
+    {
+      "from": "eastvale",
+      "to": "apartment-cluster",
+      "type": "signal"
+    },
+    {
+      "from": "eastvale",
+      "to": "norco",
+      "type": "route"
+    },
+    {
+      "from": "norco",
+      "to": "corona",
+      "type": "route"
+    },
+    {
+      "from": "corona",
+      "to": "riverside",
+      "type": "regional_route"
+    }
+  ],
+  "sources": [
+    {
+      "name": "Atlas Alpha curated demo pack",
+      "sourceType": "curated_demo",
+      "confidenceScore": 0.55
+    }
+  ],
+  "confidenceNotes": [
+    "Prototype data only. Replace/augment with sourced data before public claims."
+  ]
+}

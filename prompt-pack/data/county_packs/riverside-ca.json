@@ -1,0 +1,295 @@
+{
+  "county": "Riverside County",
+  "state": "CA",
+  "slug": "riverside-ca",
+  "version": "0.1-alpha-demo",
+  "lastUpdated": "2026-06-29",
+  "summary": "Curated Alpha demo pack for Atlas. This is not live data. It supports the Eastvale mobile detailing Scout Drop demo.",
+  "cities": [
+    {
+      "id": "eastvale",
+      "name": "Eastvale",
+      "summary": "Suburban, service-business-friendly demo node."
+    },
+    {
+      "id": "corona",
+      "name": "Corona",
+      "summary": "Residential/commercial corridor demo node."
+    },
+    {
+      "id": "norco",
+      "name": "Norco",
+      "summary": "Route-adjacent demo node."
+    },
+    {
+      "id": "riverside",
+      "name": "Riverside",
+      "summary": "Regional center demo node."
+    },
+    {
+      "id": "moreno-valley",
+      "name": "Moreno Valley",
+      "summary": "Residential/logistics corridor demo node."
+    }
+  ],
+  "corridors": [
+    {
+      "id": "eastvale-corona-norco",
+      "name": "Eastvale\u2013Norco\u2013Corona corridor",
+      "tags": [
+        "mobile-detailing",
+        "suburban",
+        "route-access"
+      ]
+    },
+    {
+      "id": "riverside-moreno-valley",
+      "name": "Riverside\u2013Moreno Valley corridor",
+      "tags": [
+        "residential",
+        "commuter",
+        "service-business"
+      ]
+    }
+  ],
+  "businessSignals": [
+    "Residential Demand",
+    "Fast Route Access",
+    "QR Flyer Opportunity",
+    "Property Manager Outreach",
+    "Partnership Target",
+    "Google Business Profile Opportunity"
+  ],
+  "publicPrograms": [],
+  "campaignUseCases": [
+    "mobile_detailing",
+    "cleaning",
+    "local_event"
+  ],
+  "mapNodes": [
+    {
+      "id": "eastvale",
+      "name": "Eastvale",
+      "type": "city",
+      "voxel": {
+        "x": 32,
+        "y": 18,
+        "z": 0
+      },
+      "tags": [
+        "residential",
+        "suburban",
+        "service-business"
+      ],
+      "scores": {
+        "mobile_detailing": 78,
+        "cleaning": 72,
+        "local_event": 48
+      },
+      "signals": [
+        "Residential Demand",
+        "Fast Route Access",
+        "QR Flyer Opportunity"
+      ],
+      "risk": "Competition and city business license requirements should be checked.",
+      "campaignSuggestion": "Start with QR flyers, local Facebook posts, and property manager outreach."
+    },
+    {
+      "id": "corona",
+      "name": "Corona",
+      "type": "city",
+      "voxel": {
+        "x": 26,
+        "y": 24,
+        "z": 0
+      },
+      "tags": [
+        "residential",
+        "commercial",
+        "route-access"
+      ],
+      "scores": {
+        "mobile_detailing": 74,
+        "cleaning": 70,
+        "local_event": 52
+      },
+      "signals": [
+        "Fast Route Access",
+        "Partnership Target"
+      ],
+      "risk": "Larger market may require tighter targeting.",
+      "campaignSuggestion": "Use plaza partnerships and neighborhood group posts."
+    },
+    {
+      "id": "norco",
+      "name": "Norco",
+      "type": "city",
+      "voxel": {
+        "x": 28,
+        "y": 21,
+        "z": 0
+      },
+      "tags": [
+        "route",
+        "residential"
+      ],
+      "scores": {
+        "mobile_detailing": 68,
+        "cleaning": 55,
+        "local_event": 40
+      },
+      "signals": [
+        "Fast Route Access"
+      ],
+      "risk": "Smaller node; use as part of route rather than standalone campaign.",
+      "campaignSuggestion": "Bundle with Eastvale/Corona route."
+    },
+    {
+      "id": "riverside",
+      "name": "Riverside",
+      "type": "regional_center",
+      "voxel": {
+        "x": 42,
+        "y": 28,
+        "z": 0
+      },
+      "tags": [
+        "commercial",
+        "residential",
+        "regional"
+      ],
+      "scores": {
+        "mobile_detailing": 70,
+        "cleaning": 76,
+        "local_event": 70
+      },
+      "signals": [
+        "Commercial Foot Traffic",
+        "Partnership Target"
+      ],
+      "risk": "Broader geography may dilute early campaign.",
+      "campaignSuggestion": "Use targeted commercial/office outreach."
+    },
+    {
+      "id": "residential-cluster-eastvale",
+      "name": "Eastvale residential cluster",
+      "type": "residential_cluster",
+      "voxel": {
+        "x": 34,
+        "y": 17,
+        "z": 0
+      },
+      "tags": [
+        "driveways",
+        "family-neighborhoods"
+      ],
+      "scores": {
+        "mobile_detailing": 85,
+        "cleaning": 75,
+        "local_event": 45
+      },
+      "signals": [
+        "Residential Demand",
+        "High Willingness to Pay"
+      ],
+      "risk": "Avoid intrusive door-to-door tactics; use compliant flyers/groups.",
+      "campaignSuggestion": "Promote first-time mobile detail offer."
+    },
+    {
+      "id": "gym-plaza-eastvale",
+      "name": "Eastvale gym/plaza node",
+      "type": "commercial_plaza",
+      "voxel": {
+        "x": 36,
+        "y": 20,
+        "z": 0
+      },
+      "tags": [
+        "gym",
+        "plaza",
+        "partnership"
+      ],
+      "scores": {
+        "mobile_detailing": 82,
+        "cleaning": 50,
+        "local_event": 54
+      },
+      "signals": [
+        "Partnership Target",
+        "QR Flyer Opportunity"
+      ],
+      "risk": "Ask permission before placing materials.",
+      "campaignSuggestion": "Partner flyer/QR campaign near gym/plaza audience."
+    },
+    {
+      "id": "apartment-cluster",
+      "name": "Apartment cluster",
+      "type": "apartment_cluster",
+      "voxel": {
+        "x": 38,
+        "y": 23,
+        "z": 0
+      },
+      "tags": [
+        "apartments",
+        "property-manager"
+      ],
+      "scores": {
+        "mobile_detailing": 72,
+        "cleaning": 82,
+        "local_event": 50
+      },
+      "signals": [
+        "Property Manager Outreach"
+      ],
+      "risk": "Needs manager permission and clear offer.",
+      "campaignSuggestion": "DM/call property managers with resident service offer."
+    }
+  ],
+  "mapEdges": [
+    {
+      "from": "eastvale",
+      "to": "norco",
+      "type": "route"
+    },
+    {
+      "from": "norco",
+      "to": "corona",
+      "type": "route"
+    },
+    {
+      "from": "eastvale",
+      "to": "residential-cluster-eastvale",
+      "type": "signal"
+    },
+    {
+      "from": "eastvale",
+      "to": "gym-plaza-eastvale",
+      "type": "signal"
+    },
+    {
+      "from": "eastvale",
+      "to": "apartment-cluster",
+      "type": "signal"
+    },
+    {
+      "from": "corona",
+      "to": "riverside",
+      "type": "regional_route"
+    }
+  ],
+  "sources": [
+    {
+      "name": "Atlas Alpha curated demo pack",
+      "url": "",
+      "sourceType": "curated_demo",
+      "licenseNote": "Internal prototype data. Replace with sourced public data before production claims.",
+      "confidenceScore": 0.55
+    }
+  ],
+  "confidenceNotes": [
+    "Alpha pack is structured for product demo only.",
+    "Do not present this as live or authoritative market data.",
+    "Add public sources and refresh pipeline before public release."
+  ]
+}

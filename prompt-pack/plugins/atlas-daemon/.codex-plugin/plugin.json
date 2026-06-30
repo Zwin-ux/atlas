@@ -1,0 +1,21 @@
+{
+  "name": "atlas-daemon",
+  "version": "0.1.0",
+  "description": "Codex workflows for Atlas: voxel county maps, Clawd Scout Drop, campaign planning, and Hosted Clawd Daemon.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Atlas Daemon",
+    "shortDescription": "Build Atlas with Clawd Scout Drop and voxel counties.",
+    "longDescription": "Atlas Daemon provides Codex skills for pre-production, voxel map implementation, Scout Drop flows, campaign engine design, original asset generation, and deslop cleanup.",
+    "developerName": "Atlas",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Product planning",
+      "Voxel map UI",
+      "Scout Drop",
+      "Campaign planning",
+      "Asset generation prompts",
+      "Code cleanup"
+    ]
+  }
+}
