@@ -95,3 +95,12 @@ Hosted Clawd Beta should use Stripe Billing with Stripe-hosted Checkout Sessions
 ## Decision 024: Persistence comes before paid checkout
 
 Hosted Clawd should first prove account ownership and saved business/campaign state before Stripe gates are implemented. The recommended first saved capability is a confirmed business profile plus a saved campaign preview from an existing Scout Drop. Evidence, XP, weekly reports, exports, and Stripe checkout stay behind later gates so the first persisted slice can focus on ownership, idempotency, and session-only versus saved-state clarity.
+
+## Decision 025: Engine Beta precedes Paid Beta
+
+Alpha Path B is accepted, but the next Beta target is the voxel county engine,
+not Hosted Clawd monetization. Atlas must first remove decorative scene noise,
+tighten building/road/camera quality, and prove the map-first product loop with
+desktop and mobile screenshots. Hosted Clawd persistence, Stripe, XP, evidence,
+OAuth, automation, reports, and exports remain parked until Engine Beta is
+visually credible and the human explicitly reopens those gates.

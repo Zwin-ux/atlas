@@ -2,27 +2,32 @@
 
 ## Current phase
 
-Quest E8.6 County Question Slice is deployed on Railway. E9.0 Hosted Clawd Beta
-contracts are complete locally as docs only. Stripe is connected for planning,
-but the next planned lane still requires human approval before any persistence,
-checkout, billing webhooks, evidence, or XP implementation.
+Alpha Path B is accepted. Atlas is now in Engine Beta, not Paid Beta. Hosted
+Clawd contracts and Stripe planning remain parked until the voxel county engine
+is visually credible and the human explicitly reopens persistence or money.
 
 Recommended priority chain:
-1. E9.1 approval packet and storage/auth decision.
-2. E9.2 Hosted Clawd onboarding spec.
-3. E8.7 app review/public QA polish only if the deployed app drifts.
-4. E7.5 visual/product feel pass if the next priority is map quality.
-5. E9.3 persistence implementation only after `HUMAN_APPROVAL_BEFORE_PERSISTENCE`.
-6. E9.4 Stripe implementation only after persistence exists and
+1. Engine Beta cleanup: remove emitted cars, walkers, parked cars, clouds,
+   streetlights, benches, signs, and fountain from the production city scene.
+2. Rowhome-only production renderer intake spike using
+   `docs/brain/THREE_ASSET_PRODUCTION_INTAKE_SPEC.md` if available in the
+   active visual branch; reject after two anchor/scale attempts if pasted-on.
+3. Camera/framing pass: reduce empty green board on desktop while preserving
+   `390x844` mobile usability.
+4. Residential module quality pass: reduce repeated generic houses with a small
+   controlled module set before expanding stores or civic modules.
+5. E8.7 app review/public QA polish only if the deployed app drifts.
+6. E9.3 persistence implementation only after Engine Beta is visually credible
+   and `HUMAN_APPROVAL_BEFORE_PERSISTENCE` is explicitly reopened.
+7. E9.4 Stripe implementation only after persistence exists and
    `HUMAN_APPROVAL_BEFORE_MONEY` is approved.
 
 Parallel execution posture:
-Use at most two code-writing Codex worktrees plus one integration/QA thread. The
-current safe split is E8.6 County Question Slice plus a separate integration/QA
-captain. Add E8.5 as the second code-writing worktree only if app review or
-local verification exposes a real tool-surface blocker. Do not create worker
-branches from a dirty active renderer slice; finish or park that slice first so
-new worktrees do not start from stale code.
+Use at most two code-writing Codex worktrees plus one integration/QA thread. For
+Engine Beta, the safe split is one production renderer/compiler worktree, one
+visual-engine worktree owned by Lumen only when a scoped asset/camera slice is
+opened, and one Mira/Forge QA/split lane. Do not stage or deploy from the dirty
+mixed workspace.
 
 Integration support:
 Use `docs/INTEGRATION_QA_PLAYBOOK.md` as the captain checklist for worker

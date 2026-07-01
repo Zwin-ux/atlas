@@ -31,7 +31,37 @@ Alpha does not include:
 - Full data ingestion pipeline
 - Automated posting/DMs
 
-## Beta: Hosted Clawd
+## Beta: Engine Beta
+
+Goal: Make Atlas feel like a serious voxel county engine before paid systems
+reopen.
+
+Engine Beta ships when:
+1. The production city scene removes useless cars, walkers, parked cars, and
+   decorative prop clutter.
+2. Buildings, roads, lots, terrain, selected-place state, and user pins/notes
+   remain the visual focus.
+3. Camera/framing reduces the empty-board read on desktop while preserving
+   mobile `390x844` usability.
+4. The first production renderer intake spike proves one better residential
+   module without pasted-on sprite drift.
+5. Repeated generic houses are reduced through a small controlled residential
+   module set.
+6. Desktop and mobile screenshots pass a visual slop audit before deploy.
+7. Browser QA protects place selection, pan/zoom, sticker/pin, and note save.
+8. Public state stays honest and session-only.
+
+Engine Beta does not include:
+- Stripe
+- Full OAuth/account linking
+- Hosted Clawd persistence
+- XP or evidence
+- Reports or exports
+- Automated posting/DMs
+- Broad live county ingestion
+- Three.js
+
+## Paid Beta: Hosted Clawd
 
 Goal: Turn Alpha into a paid early-user product.
 

@@ -15,8 +15,13 @@ describe("CityWorld compiler", () => {
     expect(city.roadSegments.map((road) => road.kind)).toEqual(expect.arrayContaining(["avenue", "street", "driveway", "crosswalk"]));
     expect(city.lots.map((lot) => lot.kind)).toEqual(expect.arrayContaining(["home", "shop", "park", "gym", "apartments", "civic", "waterfront"]));
     expect(city.buildings.map((building) => building.kind)).toEqual(expect.arrayContaining(["home", "shop", "gym", "apartment", "civic"]));
-    expect(city.props.map((prop) => prop.kind)).toEqual(expect.arrayContaining(["tree", "bush", "bench", "streetlight", "parked_car", "fountain", "water_shimmer", "cloud"]));
-    expect(city.actors.map((actor) => actor.kind)).toEqual(expect.arrayContaining(["car", "walker", "clawd"]));
+    const propKinds = city.props.map((prop) => prop.kind);
+    const actorKinds = city.actors.map((actor) => actor.kind);
+
+    expect(propKinds).toEqual(expect.arrayContaining(["tree", "bush", "water_shimmer"]));
+    expect(propKinds).not.toEqual(expect.arrayContaining(["bench", "streetlight", "parked_car", "fountain", "sign", "cloud"]));
+    expect(actorKinds).toEqual(["clawd"]);
+    expect(actorKinds).not.toEqual(expect.arrayContaining(["car", "walker"]));
   });
 
   it("adds atlas-ready metadata to city world objects", () => {

@@ -573,3 +573,64 @@ passed with only Windows LF-to-CRLF warnings.
 Next:
 Use the playbook when the E7.5 visual thread or E9.3 persistence-gate thread
 lands changes.
+
+## Entry 032
+
+Quest:
+Engine Beta cleanup slice 1: remove decorative car/human/prop noise from the
+production city scene.
+
+What changed:
+Re-cut the first Engine Beta implementation from the clean Alpha Path B RC
+worktree instead of the dirty mixed workspace. The city-world compiler no longer
+emits moving cars, walkers, parked cars, clouds, streetlights, benches, signs,
+or the fountain. It keeps buildings, roads, lots, terrain, Clawd, trees/bushes,
+water shimmer, selected-place markers, and session-only user pins/notes. Core
+compiler tests now assert that cars/walkers/decorative props are absent and
+Clawd remains present.
+
+Product notes:
+Alpha Path B is accepted. The next Beta target is Engine Beta before Paid Beta:
+cleaner voxel map, stronger building grammar, better camera/framing, and tighter
+visual QA before Hosted Clawd persistence, Stripe, XP, evidence, OAuth,
+automation, reports, or exports reopen.
+
+Verification:
+`pnpm test:core` passed with 8 files and 24 tests. `pnpm typecheck:starter`
+passed. `pnpm build:starter` passed. `pnpm verify:preview:http` passed against
+`http://127.0.0.1:8787/preview` after starting a temporary local server.
+`node scripts/verify-alpha-product-loop.mjs --url http://127.0.0.1:8787/preview
+--screenshots C:\Users\mzwin\AppData\Local\Temp\atlas-engine-beta-cleanup-product-loop`
+passed on desktop `1280x720` and mobile `390x844`: one nonblank canvas, no
+horizontal overflow, clean console, selected-place tray visible, pin count
+increased, note count increased, and the latest note was visible.
+Local `ATLAS_MCP_URL=http://127.0.0.1:8787/mcp pnpm verify:mcp` and
+`ATLAS_MCP_URL=http://127.0.0.1:8787/mcp pnpm verify:submission` also passed
+with the seven-tool Alpha surface intact.
+
+Worker audits:
+Lumen reported no P0 visual blockers and marked the cleanup deployable from a
+visual gate perspective. Mira reported no product-loop blocker and confirmed the
+bottom sticker/pin controls should stay because they are functional session
+state, not decorative clutter. Forge confirmed no package/lock/env/server,
+Hosted Clawd, persistence, renderer, type, or atlas-manifest drift in the code
+slice.
+
+Railway:
+`railway up --detach --service atlas-backend --environment production --message
+"Engine Beta cleanup city scene noise"` uploaded deployment
+`95e4e9e8-7603-440e-be80-5fc2ca0c5bbc`.
+
+Public verification:
+Production `/health` returned ok. Public `ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp
+pnpm verify:mcp` passed with all seven tools. Public `pnpm verify:submission`
+passed. Public `ATLAS_PREVIEW_URL=https://atlas-backend-production-e6fc.up.railway.app/preview
+pnpm verify:preview:http` passed. Public
+`node scripts/verify-alpha-product-loop.mjs --url https://atlas-backend-production-e6fc.up.railway.app/preview
+--screenshots C:\Users\mzwin\AppData\Local\Temp\atlas-engine-beta-cleanup-public-product-loop`
+passed on desktop and mobile with one nonblank canvas, no horizontal overflow,
+clean console, selected-place tray, pin increment, note increment, and visible
+latest note.
+
+Next:
+Continue to the rowhome-only production renderer intake spike.

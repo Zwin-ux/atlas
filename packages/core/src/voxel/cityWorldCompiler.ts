@@ -75,7 +75,7 @@ export function compileCityWorldScene(scene: VoxelScene, session: CityWorldSessi
     actors: createActors(scene),
     ambient: {
       ...world.ambient,
-      clouds: 0.34,
+      clouds: 0,
       waterShimmer: 0.72,
     },
     hudDefaults: {
@@ -310,22 +310,9 @@ function createBuildings(): CityWorldBuilding[] {
 
 function createProps(): CityWorldProp[] {
   const props: CityWorldProp[] = [
-    { id: "prop-fountain", kind: "fountain", position: { x: 18, y: 20.2, z: 0 }, variant: 0, placeId: "place-community-park" },
-    { id: "prop-plaza-sign", kind: "sign", position: { x: 28, y: 14.8, z: 0 }, variant: 1, placeId: "place-plaza-row" },
-    { id: "prop-gym-sign", kind: "sign", position: { x: 32.8, y: 15.5, z: 0 }, variant: 2, placeId: "place-eastvale-gym" },
-    { id: "prop-civic-sign", kind: "sign", position: { x: 22.8, y: 11.8, z: 0 }, variant: 3, placeId: "place-eastvale-core" },
     { id: "prop-water-shimmer-a", kind: "water_shimmer", position: { x: 36, y: 24, z: 0 }, variant: 0 },
     { id: "prop-water-shimmer-b", kind: "water_shimmer", position: { x: 39, y: 26, z: 0 }, variant: 1 },
     { id: "prop-water-shimmer-c", kind: "water_shimmer", position: { x: 38.5, y: 21.5, z: 0 }, variant: 2 },
-    { id: "prop-cloud-a", kind: "cloud", position: { x: 8, y: 2, z: 6 }, variant: 0 },
-    { id: "prop-cloud-b", kind: "cloud", position: { x: 30, y: 3, z: 7 }, variant: 1 },
-    { id: "prop-bench-park-a", kind: "bench", position: { x: 16, y: 19.2, z: 0 }, variant: 0, placeId: "place-community-park" },
-    { id: "prop-bench-park-b", kind: "bench", position: { x: 19.4, y: 21.4, z: 0 }, variant: 1, placeId: "place-community-park" },
-    { id: "prop-bench-plaza", kind: "bench", position: { x: 29.5, y: 14.2, z: 0 }, variant: 2, placeId: "place-plaza-row" },
-    { id: "prop-parked-car-plaza-red", kind: "parked_car", position: { x: 26.7, y: 15.4, z: 0 }, variant: 0, placeId: "place-plaza-row" },
-    { id: "prop-parked-car-plaza-blue", kind: "parked_car", position: { x: 29.8, y: 15.7, z: 0 }, variant: 1, placeId: "place-plaza-row" },
-    { id: "prop-parked-car-gym", kind: "parked_car", position: { x: 34, y: 16.5, z: 0 }, variant: 2, placeId: "place-eastvale-gym" },
-    { id: "prop-parked-car-civic", kind: "parked_car", position: { x: 19.2, y: 12.2, z: 0 }, variant: 3, placeId: "place-eastvale-core" },
   ];
 
   const treePoints: CityWorldPoint[] = [
@@ -371,25 +358,6 @@ function createProps(): CityWorldProp[] {
       ...(index >= 2 && index <= 3 ? { placeId: "place-community-park" } : {}),
     });
   });
-
-  for (let i = 0; i < 9; i += 1) {
-    props.push({
-      id: `prop-streetlight-${i}`,
-      kind: "streetlight",
-      position: { x: 8 + i * 3.2, y: i % 2 === 0 ? 13.8 : 12.2, z: 0 },
-      variant: i % 3,
-    });
-  }
-
-  for (let i = 0; i < 7; i += 1) {
-    props.push({
-      id: `prop-limonite-light-${i}`,
-      kind: "streetlight",
-      position: { x: 10 + i * 3.6, y: i % 2 === 0 ? 21.8 : 20.2, z: 0 },
-      variant: (i + 1) % 3,
-    });
-  }
-
   return props.map(withPropMetadata);
 }
 
@@ -438,120 +406,6 @@ function createPins(places: CityWorldPlace[], stickers: NonNullable<CityWorldSes
 
 function createActors(scene: VoxelScene): CityWorldActor[] {
   const actors: CityWorldActor[] = [
-    {
-      id: "actor-car-hamner-red",
-      kind: "car",
-      color: "#d94c42",
-      position: { x: 7, y: 13, z: 0 },
-      path: [
-        { x: 5, y: 13, z: 0 },
-        { x: 37, y: 13, z: 0 },
-      ],
-      speed: 0.055,
-      phase: 0.1,
-    },
-    {
-      id: "actor-car-limonite-blue",
-      kind: "car",
-      color: "#3c7fb5",
-      position: { x: 34, y: 21, z: 0 },
-      path: [
-        { x: 34, y: 21, z: 0 },
-        { x: 8, y: 21, z: 0 },
-      ],
-      speed: 0.043,
-      phase: 0.46,
-    },
-    {
-      id: "actor-car-scholar-yellow",
-      kind: "car",
-      color: "#e0b84b",
-      position: { x: 24, y: 7, z: 0 },
-      path: [
-        { x: 24, y: 7, z: 0 },
-        { x: 24, y: 24, z: 0 },
-      ],
-      speed: 0.038,
-      phase: 0.72,
-    },
-    {
-      id: "actor-car-citrus-green",
-      kind: "car",
-      color: "#5ca96a",
-      position: { x: 13, y: 20, z: 0 },
-      path: [
-        { x: 13, y: 24, z: 0 },
-        { x: 13, y: 6, z: 0 },
-      ],
-      speed: 0.034,
-      phase: 0.29,
-    },
-    {
-      id: "actor-car-sumner-cream",
-      kind: "car",
-      color: "#f1d36d",
-      position: { x: 32, y: 9, z: 0 },
-      path: [
-        { x: 32, y: 8, z: 0 },
-        { x: 32, y: 24, z: 0 },
-      ],
-      speed: 0.032,
-      phase: 0.61,
-    },
-    {
-      id: "actor-walker-park-a",
-      kind: "walker",
-      color: "#3f7f58",
-      position: { x: 17, y: 19, z: 0 },
-      path: [
-        { x: 15, y: 18, z: 0 },
-        { x: 19, y: 18, z: 0 },
-        { x: 20, y: 22, z: 0 },
-        { x: 16, y: 22, z: 0 },
-      ],
-      speed: 0.02,
-      phase: 0.18,
-      placeId: "place-community-park",
-    },
-    {
-      id: "actor-walker-plaza-a",
-      kind: "walker",
-      color: "#9b5c74",
-      position: { x: 28, y: 14, z: 0 },
-      path: [
-        { x: 26, y: 14, z: 0 },
-        { x: 33, y: 14, z: 0 },
-      ],
-      speed: 0.025,
-      phase: 0.52,
-      placeId: "place-plaza-row",
-    },
-    {
-      id: "actor-walker-gym-a",
-      kind: "walker",
-      color: "#426f9f",
-      position: { x: 32, y: 16.2, z: 0 },
-      path: [
-        { x: 30, y: 15.8, z: 0 },
-        { x: 34, y: 15.8, z: 0 },
-      ],
-      speed: 0.021,
-      phase: 0.78,
-      placeId: "place-eastvale-gym",
-    },
-    {
-      id: "actor-walker-civic-a",
-      kind: "walker",
-      color: "#8b6542",
-      position: { x: 21.8, y: 12.2, z: 0 },
-      path: [
-        { x: 19.5, y: 12, z: 0 },
-        { x: 23.5, y: 12, z: 0 },
-      ],
-      speed: 0.018,
-      phase: 0.34,
-      placeId: "place-eastvale-core",
-    },
     {
       id: "actor-clawd",
       kind: "clawd",
