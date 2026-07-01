@@ -60,6 +60,8 @@ export function CityWorldView({
   const noteCount = notes.length + worldNotes.length;
   const placeNotes = activePlace ? [...worldNotes, ...notes].filter((note) => note.placeId === activePlace.id) : [];
   const latestPlaceNote = placeNotes[placeNotes.length - 1];
+  const activePlacePulse = activePlace ? `${Math.round(activePlace.activity * 100)}% active` : "Pick a place";
+  const latestNoteBody = latestPlaceNote?.body ?? "";
 
   useEffect(() => {
     const openaiWindow = window as Window & {
@@ -80,77 +82,154 @@ export function CityWorldView({
   };
 
   return (
-    <main className="city-world-shell">
+    <main
+      className="city-world-shell"
+      data-qa="alpha-city-world"
+      data-qa-selected-place={activePlace?.id ?? ""}
+      data-qa-pin-count={stickerCount}
+      data-qa-note-count={noteCount}
+      data-qa-latest-note={latestNoteBody}
+      data-qa-session-boundary="session-only"
+    >
       <CityWorldRenderer ref={rendererRef} scene={cityScene} selectedPlaceId={activePlace?.id} onSelectPlace={onSelectPlace} />
 
-      <div className="city-world-location" aria-label="Current city map">
+      <div className="city-world-location" aria-label="Current city map" data-qa="current-city-map">
         <span>{cityScene.region.county}</span>
         <strong>{cityScene.region.district.replace(" City Slice", "")}</strong>
       </div>
 
-      <div className="city-world-zoom" aria-label="Map zoom controls">
-        <button type="button" aria-label="Zoom in" onClick={() => rendererRef.current?.zoomIn()}>
-          +
+      <div className="city-world-zoom" aria-label="Map zoom controls" data-qa="map-zoom-controls">
+        <button type="button" aria-label="Zoom in" data-qa="zoom-in-button" onClick={() => rendererRef.current?.zoomIn()}>
+          <ZoomInIcon />
         </button>
-        <button type="button" aria-label="Center map" onClick={() => rendererRef.current?.center()}>
-          O
+        <button type="button" aria-label="Center map" data-qa="center-map-button" onClick={() => rendererRef.current?.center()}>
+          <CenterIcon />
         </button>
-        <button type="button" aria-label="Zoom out" onClick={() => rendererRef.current?.zoomOut()}>
-          -
+        <button type="button" aria-label="Zoom out" data-qa="zoom-out-button" onClick={() => rendererRef.current?.zoomOut()}>
+          <ZoomOutIcon />
         </button>
       </div>
 
-      <div className="city-world-stickers" aria-label="Sticker tools">
+      <div className="city-world-stickers" aria-label="Sticker tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
         {STICKER_ORDER.map((kind) => (
           <button
             key={kind}
             type="button"
             aria-label={`Use ${stickerLabel(kind)} sticker`}
             aria-pressed={kind === stickerMode}
+            data-qa={`sticker-mode-${kind}`}
             className={kind === stickerMode ? "is-active" : ""}
             onClick={() => onSelectStickerMode(kind)}
           >
-            {stickerGlyph(kind)}
+            <span aria-hidden="true">{stickerGlyph(kind)}</span>
           </button>
         ))}
-        <button type="button" aria-label="Drop sticker on selected place" className="city-world-drop" disabled={!activePlace} onClick={dropSticker}>
-          PIN
+        <button
+          type="button"
+          aria-label="Drop sticker on selected place"
+          className="city-world-drop"
+          data-qa="drop-sticker-button"
+          disabled={!activePlace}
+          onClick={dropSticker}
+        >
+          <PinIcon />
+          <span>Pin</span>
         </button>
       </div>
 
-      <section className="city-world-tray" aria-label="Selected place">
-        <div>
-          <span>{activePlace ? placeKindLabel(activePlace.kind) : "Place"}</span>
-          <strong>{activePlace?.label ?? "Pick a place"}</strong>
-          <p>{activePlace?.description ?? "Drag around the map and click a place."}</p>
+      <section
+        className="city-world-tray"
+        aria-label="Selected place"
+        data-qa="selected-place-tray"
+        data-qa-selected-place={activePlace?.id ?? ""}
+        data-qa-selected-place-label={activePlace?.label ?? ""}
+        data-qa-pin-count={stickerCount}
+        data-qa-note-count={noteCount}
+        data-qa-latest-note={latestNoteBody}
+      >
+        <div className="city-world-tray-head">
+          <div className="city-world-place-copy">
+            <span className="city-world-place-type">{activePlace ? placeKindLabel(activePlace.kind) : "Place"}</span>
+            <strong data-qa="selected-place-label">{activePlace?.label ?? "Pick a place"}</strong>
+            <p>{activePlace?.description ?? "Drag around the map and click a place."}</p>
+          </div>
+          <span className="city-world-place-pulse">{activePlacePulse}</span>
         </div>
         <div className="city-world-tray-meta" aria-label="Map collection">
-          <span>{stickerCount} stickers</span>
-          <span>{noteCount} notes</span>
-          <span>{activePlace ? `${Math.round(activePlace.activity * 100)}% active` : "live"}</span>
+          <span data-qa="pin-count">
+            <b>{stickerCount}</b> pins
+          </span>
+          <span data-qa="note-count">
+            <b>{noteCount}</b> notes
+          </span>
+          <span data-qa="selected-place-pin-count">
+            <b>{placePins.length}</b> here
+          </span>
         </div>
+        <div className="city-world-session-boundary" data-qa="session-only-boundary">
+          Pins and notes stay in this chat.
+        </div>
+        {latestPlaceNote ? (
+          <div className="city-world-latest-note" data-qa="latest-note">
+            {latestPlaceNote.body}
+          </div>
+        ) : null}
         <div className="city-world-note">
           <input
             value={noteDraft}
             maxLength={160}
             disabled={!activePlace}
+            data-qa="note-input"
             onChange={(event) => onNoteDraftChange(event.currentTarget.value)}
-            placeholder={activePlace ? `Note for ${activePlace.label}` : "Select a place"}
+            placeholder={activePlace ? `Add note for ${activePlace.label}` : "Select a place"}
           />
-          <button type="button" aria-label="Save note" disabled={!activePlace || !noteDraft.trim()} onClick={saveNote}>
-            OK
+          <button type="button" aria-label="Save note" data-qa="save-note-button" disabled={!activePlace || !noteDraft.trim()} onClick={saveNote}>
+            Save
           </button>
         </div>
         {placePins.length > 0 ? (
-          <div className="city-world-pin-row">
+          <div className="city-world-pin-row" aria-label="Pins on selected place" data-qa="selected-place-pins">
             {placePins.slice(-4).map((pin) => (
               <span key={pin.id}>{pin.kind === "note" ? "N" : stickerGlyph(pin.kind)}</span>
             ))}
           </div>
         ) : null}
-        {latestPlaceNote ? <div className="city-world-latest-note">{latestPlaceNote.body}</div> : null}
       </section>
     </main>
+  );
+}
+
+function ZoomInIcon() {
+  return (
+    <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M10 4v12M4 10h12" />
+    </svg>
+  );
+}
+
+function ZoomOutIcon() {
+  return (
+    <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M4 10h12" />
+    </svg>
+  );
+}
+
+function CenterIcon() {
+  return (
+    <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M10 3v3M10 14v3M3 10h3M14 10h3" />
+      <circle cx="10" cy="10" r="3.5" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg className="city-world-pin-icon" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M10 3.5c-2.7 0-4.8 2-4.8 4.6 0 3.4 4.8 8.4 4.8 8.4s4.8-5 4.8-8.4c0-2.6-2.1-4.6-4.8-4.6Z" />
+      <circle cx="10" cy="8.1" r="1.6" />
+    </svg>
   );
 }
 
