@@ -10,7 +10,7 @@ const CLASSIFICATIONS = [
   "unknown",
 ];
 
-const RC_MODES = new Set(["functional-alpha", "mira-tray-hardening"]);
+const RC_MODES = new Set(["functional-alpha", "mira-tray-hardening", "engine-beta-renderer", "engine-beta-data", "provider-boundary"]);
 
 const SAFE_FUNCTIONAL_RC_DOCS = new Set([
   "docs/ALPHA_COMMAND_CENTER.md",
@@ -22,6 +22,149 @@ const SAFE_FUNCTIONAL_RC_DOCS = new Set([
 ]);
 
 const MIRA_TRAY_HARDENING_FILES = new Set(["web/src/CityWorldView.tsx", "web/src/styles.css"]);
+
+const ENGINE_BETA_RENDERER_FILES = new Set([
+  "web/src/CityWorldRenderer.tsx",
+  "web/src/cityWorldAtlasResolver.ts",
+  "docs/BUILD_LOG.md",
+  "docs/ANAHEIM_VENUE_OBJECT_GRAMMAR_RESEARCH.md",
+  "docs/ANAHEIM_NATIVE_VENUE_OBJECT_GRAMMAR_SPEC.md",
+  "docs/ATLAS_BACKEND_PRODUCT_TASTE_RESEARCH.md",
+  "docs/ATLAS_BACKEND_SERVICE_MAP.md",
+  "docs/ATLAS_BACKEND_SERVICE_BRIEF.md",
+  "docs/AXIOM_BIG4_ARTIFACT_DISPATCH.md",
+  "docs/AXIOM_ENGINE_REFERENCE_STACK.md",
+  "docs/AXIOM_BIG4_WAKEUP_PROTOCOL.md",
+  "docs/BIG4_ARTIFACT_OPERATING_MODEL.md",
+  "docs/CHATGPT_ENTRY_SURFACE_PROOF.md",
+  "docs/GAMEBLOCKS_ATLAS_ADAPTER.md",
+  "docs/EXTERNAL_VOXEL_REFERENCE_ADAPTER.md",
+  "docs/ATLAS_PRODUCT_BACKEND_UML_SPEC.md",
+  "docs/ATLAS_REAL_CONSUMER_APP_ROADMAP.md",
+  "docs/CHATGPT_ENTRY_SURFACE_PROOF.md",
+  "docs/DECISIONS.md",
+  "docs/NEXT_QUESTS.md",
+  "docs/SECOND_DISTRICT_VISUAL_ACCEPTANCE_BAR.md",
+  "docs/SECOND_DISTRICT_VOXEL_GRAMMAR_PACKET.md",
+  "docs/SECOND_DISTRICT_VISUAL_PACKET_TEMPLATE.md",
+  "docs/SECOND_DISTRICT_PROMOTION_GATE.md",
+  "docs/USA_PUBLIC_RELEASE_ENGINE_PLAN.md",
+]);
+
+const ENGINE_BETA_RENDERER_PREFIXES = [
+  "packages/core/src/voxel/",
+  "packages/core/test/",
+  "packages/assets/city-world/",
+];
+
+const ENGINE_BETA_DATA_FILES = new Set([
+  "LOOP.md",
+  "STATE.md",
+  "loop-budget.md",
+  "loop-run-log.md",
+  "loop-constraints.md",
+  "server/src/index.ts",
+  "server/src/scenePacketMemoryAdapter.ts",
+  "docs/SCENE_PACKET_DB_PERSISTENCE_PLAN.md",
+  "docs/ATLAS_FULL_PROJECT_LOOP_SPEC.md",
+  "scripts/create-second-district-promotion-packet.mjs",
+  "scripts/export-second-district-readiness-artifact.mjs",
+  "scripts/verify-atlas-loop-readiness.mjs",
+  "scripts/debug-city-world-engine.mjs",
+  "scripts/verify-california-district-pipeline.mjs",
+  "scripts/verify-second-district-readiness.mjs",
+  "scripts/verify-second-district-owner-gate-cutline.mjs",
+  "scripts/prepare-second-district-visual-packet.mjs",
+  "scripts/verify-second-district-draft-scene.mjs",
+  "scripts/verify-second-district-visual-packet.mjs",
+  "scripts/verify-county-switcher.mjs",
+  "scripts/verify-county-index-source.mjs",
+  "scripts/verify-anaheim-draft-scene.mjs",
+  "scripts/verify-anaheim-object-source-quality.mjs",
+  "scripts/verify-anaheim-promotion-readiness.mjs",
+  "scripts/verify-engine-beta-coverage.mjs",
+  "scripts/verify-object-authorship-scene-grammar.mjs",
+  "scripts/verify-roads-roofs-scene-grammar.mjs",
+  "scripts/verify-terrain-chunk-massing-grammar.mjs",
+  "scripts/verify-terrain-elevation-chunk-grammar.mjs",
+  "scripts/verify-terrain-parcel-composition.mjs",
+  "scripts/verify-shell-county-widget.mjs",
+  "scripts/verify-mcp-flow.mjs",
+  "scripts/verify-submission.mjs",
+  "scripts/verify-world-lookup-boundary.mjs",
+  "scripts/verify-big4-artifact-packets.mjs",
+  "scripts/verify-big4-wakeup-protocol.mjs",
+  "scripts/verify-chatgpt-entry-surface.mjs",
+  "scripts/verify-chatgpt-entry-surface.mjs",
+  "scripts/verify-gameblocks-atlas-adapter.mjs",
+  "scripts/verify-external-voxel-reference-adapter.mjs",
+  "scripts/verify-no-google-in-renderer.mjs",
+  "scripts/verify-provider-boundaries.mjs",
+  "scripts/verify-tool-result-shape.mjs",
+  "scripts/verify-scout-campaign-alpha-loop.mjs",
+  "scripts/verify-worldbasis-terrain-sampler.mjs",
+  "scripts/verify-cityworld-derived-terrain-maps.mjs",
+  "scripts/verify-cityworld-mobile-occlusion.mjs",
+  "scripts/verify-face-orientation-source-contrast.mjs",
+  "scripts/verify-civic-venue-object-kit-contract.mjs",
+  "scripts/verify-public-civic-landmark-authorship.mjs",
+  "scripts/verify-public-object-kit-prefab-palette.mjs",
+  "scripts/verify-object-kit-renderer-consumption.mjs",
+  "scripts/verify-commerce-strip-prefab-geometry.mjs",
+  "scripts/verify-plaza-row-focused-capture.mjs",
+  "scripts/select-engine-quality-axis.mjs",
+  "scripts/verify-render-command-layer-budget.mjs",
+  "scripts/verify-scene-window-compiler.mjs",
+  "scripts/verify-window-aware-renderer.mjs",
+  "scripts/verify-dynamic-window-refresh.mjs",
+  "scripts/verify-scene-packet-cache-contract.mjs",
+  "scripts/verify-scene-packet-memory-adapter.mjs",
+  "scripts/verify-scene-packet-db-persistence-plan.mjs",
+  "docs/ATLAS_ENGINE_BACKEND_OPERATING_BRIEF.md",
+  "web/src/App.tsx",
+  "web/src/bridge.ts",
+  "web/src/CountyCoverageView.tsx",
+  "web/src/CountySwitcher.tsx",
+  "web/src/CityWorldView.tsx",
+  "web/src/styles.css",
+  "packages/core/src/scout/CampaignPreviewService.ts",
+  "packages/core/src/scout/ScoutDropService.ts",
+  "packages/core/src/scout/index.ts",
+  "packages/core/src/scout/types.ts",
+]);
+
+const ENGINE_BETA_DATA_PREFIXES = [
+  "artifacts/",
+  "data/district_candidate_packs/",
+  "data/district_curated_packs/",
+  "data/district_place_anchor_packs/",
+  "docs/architecture/",
+  "docs/updates/",
+  "packages/core/src/world/",
+  "packages/geo/src/",
+];
+
+const PROVIDER_BOUNDARY_FILES = new Set([
+  "artifacts/current-update.json",
+  "artifacts/update-manifest.schema.json",
+  "docs/BUILD_LOG.md",
+  "docs/DECISIONS.md",
+  "docs/NEXT_QUESTS.md",
+  "docs/architecture/ENGINEERING_OVERVIEW.md",
+  "docs/architecture/GOOGLE_USAGE_POLICY.md",
+  "docs/architecture/PROVIDER_BOUNDARIES.md",
+  "docs/architecture/UML.md",
+  "docs/updates/ATLAS_RELEASE_LADDER.md",
+  "docs/updates/prealpha-0.1e-provider-boundary.md",
+  "scripts/verify-alpha-rc-split.mjs",
+  "scripts/verify-no-google-in-renderer.mjs",
+  "scripts/verify-provider-boundaries.mjs",
+  "scripts/verify-tool-result-shape.mjs",
+]);
+
+const PROVIDER_BOUNDARY_PREFIXES = [
+  "packages/geo/src/",
+];
 
 const EXACT_RULES = [
   ["hosted-clawd-parked", ".env.example", "DB and invite-token env placeholders are not part of public Alpha RC."],
@@ -71,7 +214,7 @@ Default mode inspects staged files with:
   git diff --cached --name-only
 
 --working-tree inspects dirty working-tree paths with:
-  git status --short
+  git status --short --untracked-files=all
 
 --json-only suppresses human-readable blocker output and prints only the JSON
 summary. The exit code still fails when blockers are present.
@@ -83,6 +226,13 @@ for the selected RC mode. Use this before staging/deploy claims.
   functional-alpha       Default conservative docs-only Functional Alpha policy.
   mira-tray-hardening    Allows only Mira tray-hardening product-code paths in
                          addition to functional RC support docs.
+  engine-beta-renderer   Allows only the Engine Beta renderer/compiler/atlas
+                         file envelope plus focused release docs.
+  engine-beta-data       Allows the already-accepted Engine Beta renderer
+                         envelope plus focused world coverage/data contract,
+                         server tool guard, and verifier files.
+  provider-boundary      Allows only Pre-Alpha 0.1E provider boundary docs,
+                         geo package policy files, and focused verifiers.
 
 The check is conservative. Parked runtime/backend/visual paths, shared docs
 that require hunk review, and unknown paths block a Functional Alpha RC.`);
@@ -109,7 +259,7 @@ for (let index = 0; index < rawArgs.length; index += 1) {
 const mode = args.has("--working-tree") ? "working-tree" : "staged";
 const jsonOnly = args.has("--json-only");
 const strictSelectedRc = args.has("--strict-selected-rc");
-const sourceCommand = mode === "working-tree" ? "git status --short" : "git diff --cached --name-only";
+const sourceCommand = mode === "working-tree" ? "git status --short --untracked-files=all" : "git diff --cached --name-only";
 const selectedRcAllowedPaths = getSelectedRcAllowedPaths(rcMode);
 const paths = mode === "working-tree" ? getWorkingTreePaths() : getStagedPaths();
 const results = paths.map((path) => ({ path, ...classifyPath(path) }));
@@ -120,11 +270,11 @@ for (const result of results) {
 }
 
 const blockers = results
-  .filter((result) => (strictSelectedRc ? !selectedRcAllowedPaths.has(result.path) : !isAllowedClassification(result.classification)))
+  .filter((result) => (strictSelectedRc ? !isSelectedRcAllowedPath(result.path) : !isAllowedClassification(result.classification)))
   .map((result) => ({
     path: result.path,
     classification: result.classification,
-    reason: strictSelectedRc && !selectedRcAllowedPaths.has(result.path) ? "Path is not in the strict selected-RC allowlist." : result.reason,
+    reason: strictSelectedRc && !isSelectedRcAllowedPath(result.path) ? "Path is not in the strict selected-RC allowlist." : result.reason,
   }));
 
 const summary = {
@@ -137,8 +287,8 @@ const summary = {
   blockerCount: blockers.length,
   counts: Object.fromEntries(CLASSIFICATIONS.map((classification) => [classification, filesByClassification[classification].length])),
   safeToStageForFunctionalRc: filesByClassification["functional-rc-docs"],
-  safeToStageForSelectedRc: CLASSIFICATIONS.filter(isAllowedClassification).flatMap((classification) => filesByClassification[classification]),
-  strictSelectedRcAllowlist: [...selectedRcAllowedPaths],
+  safeToStageForSelectedRc: results.filter((result) => isSelectedRcAllowedPath(result.path)).map((result) => result.path),
+  strictSelectedRcAllowlist: getSelectedRcAllowlistSummary(rcMode),
   strictUnexpectedPaths: blockers.map((blocker) => blocker.path),
   filesByClassification,
   blockers,
@@ -173,7 +323,7 @@ function getStagedPaths() {
 }
 
 function getWorkingTreePaths() {
-  return runGit(["status", "--short"])
+  return runGit(["status", "--short", "--untracked-files=all"])
     .split(/\r?\n/)
     .map(parseStatusPath)
     .filter(Boolean)
@@ -200,6 +350,27 @@ function classifyPath(path) {
     return {
       classification: "product-code-rc-candidate",
       reason: "Allowed only in the named Mira tray-hardening product-code RC mode.",
+    };
+  }
+
+  if (rcMode === "engine-beta-renderer" && isEngineBetaRendererPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named Engine Beta renderer RC mode.",
+    };
+  }
+
+  if (rcMode === "engine-beta-data" && isEngineBetaDataPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named Engine Beta data/coverage contract RC mode.",
+    };
+  }
+
+  if (rcMode === "provider-boundary" && isProviderBoundaryPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named Pre-Alpha 0.1E provider-boundary RC mode.",
     };
   }
 
@@ -236,7 +407,80 @@ function getSelectedRcAllowedPaths(modeName) {
       paths.add(path);
     }
   }
+  if (modeName === "engine-beta-renderer") {
+    for (const path of ENGINE_BETA_RENDERER_FILES) {
+      paths.add(path);
+    }
+  }
+  if (modeName === "engine-beta-data") {
+    for (const path of ENGINE_BETA_RENDERER_FILES) {
+      paths.add(path);
+    }
+    for (const path of ENGINE_BETA_DATA_FILES) {
+      paths.add(path);
+    }
+    paths.add("packages/core/src/index.ts");
+    paths.add("packages/core/test/national-world-service.test.ts");
+  }
+  if (modeName === "provider-boundary") {
+    for (const path of PROVIDER_BOUNDARY_FILES) {
+      paths.add(path);
+    }
+  }
   return paths;
+}
+
+function isSelectedRcAllowedPath(path) {
+  if (selectedRcAllowedPaths.has(path)) {
+    return true;
+  }
+  if (rcMode === "engine-beta-renderer") {
+    return ENGINE_BETA_RENDERER_PREFIXES.some((prefix) => path.startsWith(prefix));
+  }
+  if (rcMode === "engine-beta-data") {
+    return isEngineBetaDataPath(path);
+  }
+  if (rcMode === "provider-boundary") {
+    return isProviderBoundaryPath(path);
+  }
+  return false;
+}
+
+function isEngineBetaRendererPath(path) {
+  return ENGINE_BETA_RENDERER_FILES.has(path) || ENGINE_BETA_RENDERER_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+function isEngineBetaDataPath(path) {
+  return (
+    isEngineBetaRendererPath(path) ||
+    ENGINE_BETA_DATA_FILES.has(path) ||
+    isProviderBoundaryPath(path) ||
+    path === "packages/core/src/index.ts" ||
+    path === "packages/core/test/national-world-service.test.ts" ||
+    ENGINE_BETA_DATA_PREFIXES.some((prefix) => path.startsWith(prefix))
+  );
+}
+
+function isProviderBoundaryPath(path) {
+  return PROVIDER_BOUNDARY_FILES.has(path) || PROVIDER_BOUNDARY_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+function getSelectedRcAllowlistSummary(modeName) {
+  const exact = [...selectedRcAllowedPaths];
+  if (modeName === "engine-beta-renderer") {
+    return [...exact, ...ENGINE_BETA_RENDERER_PREFIXES.map((prefix) => `${prefix}*`)];
+  }
+  if (modeName === "engine-beta-data") {
+    return [
+      ...exact,
+      ...ENGINE_BETA_RENDERER_PREFIXES.map((prefix) => `${prefix}*`),
+      ...ENGINE_BETA_DATA_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "provider-boundary") {
+    return [...exact, ...PROVIDER_BOUNDARY_PREFIXES.map((prefix) => `${prefix}*`)];
+  }
+  return exact;
 }
 
 function getOptionValue(values, name) {

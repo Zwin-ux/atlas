@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="330" height="250" viewBox="0 0 330 250" role="img" aria-label="Atlas two lane road corner voxel asset">
+  <defs>
+    <filter id="contact" x="-12%" y="-12%" width="124%" height="132%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#344b47" flood-opacity="0.2"/>
+    </filter>
+    <style>
+      .edge { stroke: rgba(43, 60, 58, 0.13); stroke-width: 1; stroke-linejoin: round; }
+      .soft { stroke: rgba(43, 60, 58, 0.08); stroke-width: 1; stroke-linejoin: round; }
+      .mark { stroke: rgba(250, 238, 196, 0.38); stroke-width: 3; stroke-linecap: round; }
+    </style>
+  </defs>
+
+  <g filter="url(#contact)">
+    <polygon class="soft" points="43,110 139,65 284,135 189,181" fill="#7d9691" opacity="0.1"/>
+    <polygon class="edge" points="43,97 139,51 284,121 188,167" fill="#afbeb8"/>
+    <polygon class="edge" points="188,167 284,121 284,132 188,178" fill="#879e98"/>
+    <polygon class="edge" points="43,97 188,167 188,178 43,108" fill="#819994"/>
+
+    <polygon class="edge" points="91,132 166,96 240,132 165,168" fill="#a7b8b2"/>
+    <polygon class="edge" points="165,168 240,132 240,142 165,179" fill="#849b95"/>
+    <polygon class="edge" points="91,132 165,168 165,179 91,143" fill="#7e9690"/>
+
+    <polygon class="edge" points="45,83 139,38 178,57 84,102" fill="#eee2bf"/>
+    <polygon class="edge" points="84,102 178,57 178,69 84,115" fill="#cdbb88"/>
+    <polygon class="edge" points="45,83 84,102 84,115 45,96" fill="#b9a676"/>
+
+    <polygon class="edge" points="226,91 293,123 293,136 226,104" fill="#cdbb88"/>
+    <polygon class="edge" points="189,109 226,91 293,123 256,141" fill="#eee2bf"/>
+    <polygon class="edge" points="256,141 293,123 293,136 256,154" fill="#cdbb88"/>
+
+    <polygon class="edge" points="79,150 165,191 165,204 79,163" fill="#b9a676"/>
+    <polygon class="edge" points="79,150 116,132 202,174 165,191" fill="#eee2bf"/>
+    <polygon class="edge" points="165,191 202,174 202,187 165,204" fill="#cdbb88"/>
+
+    <polygon class="edge" points="128,72 147,63 254,115 235,124" fill="#b9a676"/>
+    <polygon class="edge" points="235,124 254,115 254,128 235,137" fill="#b09d72"/>
+    <polygon class="edge" points="128,72 235,124 235,137 128,85" fill="#baa87c"/>
+
+    <polygon class="edge" points="102,117 120,108 190,142 172,151" fill="#b9a676"/>
+    <polygon class="edge" points="172,151 190,142 190,154 172,164" fill="#b09d72"/>
+    <polygon class="edge" points="102,117 172,151 172,164 102,130" fill="#baa87c"/>
+
+    <polygon class="edge" points="147,78 166,69 166,122 147,132" fill="#eee2bf"/>
+    <polygon class="edge" points="147,132 166,122 166,135 147,145" fill="#cdbb88"/>
+    <polygon class="edge" points="128,68 147,78 147,145 128,135" fill="#b9a676"/>
+
+    <polygon class="edge" points="185,96 204,87 204,154 185,164" fill="#eee2bf"/>
+    <polygon class="edge" points="185,164 204,154 204,167 185,177" fill="#cdbb88"/>
+    <polygon class="edge" points="166,87 185,96 185,177 166,168" fill="#b9a676"/>
+
+    <path class="mark" d="M79 92 L115 75"/>
+    <path class="mark" d="M133 119 L160 106" opacity="0.56"/>
+    <path class="mark" d="M198 126 L227 140" opacity="0.48"/>
+    <path class="mark" d="M145 149 L174 163" opacity="0.44"/>
+
+    <polygon points="82,106 99,98 116,106 99,114" fill="#78928d" opacity="0.24"/>
+    <polygon points="128,89 146,81 162,89 145,97" fill="#78928d" opacity="0.2"/>
+    <polygon points="191,118 208,110 226,118 209,126" fill="#78928d" opacity="0.22"/>
+    <polygon points="134,142 151,135 168,143 152,151" fill="#78928d" opacity="0.24"/>
+
+    <polygon class="soft" points="58,83 74,75 91,83 75,91" fill="#fff1cf" opacity="0.52"/>
+    <polygon class="soft" points="239,123 254,116 270,124 255,131" fill="#fff1cf" opacity="0.48"/>
+    <polygon class="soft" points="151,183 166,176 183,184 168,192" fill="#fff1cf" opacity="0.44"/>
+  </g>
+</svg>

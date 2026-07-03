@@ -1,0 +1,93 @@
+{
+  "id": "postalpha-0.38e-engine-quality-axis-review-next-target-selection",
+  "name": "Post-Alpha 0.38E - Engine Quality Axis Review / Next Target Selection",
+  "status": "local_green",
+  "playerPromise": "Atlas stops repeating commerce polish and chooses the next public engine-quality target from measured evidence.",
+  "engineeringPromise": "A selector artifact reads the 0.37E update manifest, structural diagnostics, object-kit metrics, mobile LOD budget, screenshot evidence, and Anaheim readiness blockers, then emits one next quest with blocked alternatives.",
+  "axisChosen": "public_object_identity",
+  "recommendedNextQuest": "0.39E Public Object Identity / Civic-Service Read Pass",
+  "metricResult": {
+    "selectedAxis": "public_object_identity",
+    "publicObjectIdentityScore": 87,
+    "terrainWorldEdgeScore": 31,
+    "mobileEntryDensityScore": 28,
+    "hiddenSecondDistrictReadinessScore": 52,
+    "commerceRepeatScore": 0,
+    "terrainMassingCoverageRatio": 0.899,
+    "emptyBoardRatio": 0.056,
+    "firstViewportCompositionScore": 0.775,
+    "chunkEdgeReadabilityFloorScore": 0.761,
+    "homeClonePressure": 0.2,
+    "weakestObjectFamily": "civic_landmark",
+    "weakestCivicVenueStressCell": "eastvale-core-civic-landmark",
+    "mobileReadabilityScore": 0.752,
+    "mobileOcclusionRiskScore": 0.248,
+    "plazaRowBayCount": 7,
+    "plazaRowSignMountCount": 5,
+    "commerceWindowCommandVisibilityRatio": 0.059,
+    "anaheimReadinessBlockerCount": 9,
+    "strictSplitBlockers": 0,
+    "strictSplitUnknowns": 0
+  },
+  "blockedAxes": {
+    "public_terrain_world_edge": "terrain, empty-board, and chunk-edge floors are currently green",
+    "mobile_entry_density": "playable mobile budget and readability floors are currently green",
+    "hidden_second_district_readiness": "Anaheim still has 9 promotion blockers",
+    "commerce_repeat": "blocked unless a human names one exact Plaza Row blocker after 0.37E focused proof"
+  },
+  "verification": {
+    "selector": "scripts/select-engine-quality-axis.mjs",
+    "selectorArtifact": "artifacts/engine-quality-axis/postalpha-0.38e-next-target-selection.json",
+    "currentUpdateInput": "postalpha-0.37e-plaza-row-focused-capture-commerce-read-proof",
+    "browserCoverageRoot": "C:\\Users\\mzwin\\AppData\\Local\\Temp\\atlas-postalpha-037e-plaza-row-focused-capture-local\\coverage",
+    "commerceDetailScreenshotRoot": "C:\\Users\\mzwin\\AppData\\Local\\Temp\\atlas-postalpha-037e-plaza-row-focused-capture-local\\commerce-detail"
+  },
+  "nextCodeStep": "0.39E should implement the Public Object Identity / Civic-Service Read Pass. Target Eastvale Core civic/service readability and public object identity, not commerce repeat, terrain, mobile entry, hidden Anaheim promotion, DB, or provider work.",
+  "forbiddenScope": [
+    "renderer geometry in 0.38E",
+    "public UI changes in 0.38E",
+    "server route changes",
+    "new MCP tools",
+    "database implementation",
+    "DATABASE_URL or database secrets",
+    "DB package dependencies",
+    "migrations",
+    "live provider normalization",
+    "provider or Google geometry",
+    "public Anaheim/Ontario promotion",
+    "Hosted Clawd",
+    "Stripe",
+    "XP or evidence",
+    "OAuth",
+    "automation product features",
+    "user-facing reports or exports",
+    "cars, humans, decorative prop clutter, dashboard panels, or label crutches"
+  ],
+  "gates": [
+    {
+      "id": "selector-artifact",
+      "label": "scripts/select-engine-quality-axis.mjs selects exactly one next target",
+      "required": true
+    },
+    {
+      "id": "commerce-not-repeated",
+      "label": "commerce_repeat remains blocked without a human-named Plaza Row blocker",
+      "required": true
+    },
+    {
+      "id": "public-axis-wins",
+      "label": "public_object_identity beats hidden readiness because Anaheim promotion blockers remain",
+      "required": true
+    },
+    {
+      "id": "db-still-parked",
+      "label": "0.33E remains planning-only; no DB implementation appears",
+      "required": true
+    },
+    {
+      "id": "hidden-candidates-stay-hidden",
+      "label": "Anaheim/Ontario stay hidden and non-playable",
+      "required": true
+    }
+  ]
+}

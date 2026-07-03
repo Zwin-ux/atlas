@@ -12,9 +12,14 @@ export type CityWorldRoofShape = "gable" | "hip" | "flat" | "sawtooth" | "tower"
 
 export type CityWorldFacadeStyle =
   | "suburban"
+  | "cottage"
+  | "ranch"
+  | "rowhome"
   | "storefront"
+  | "strip_store"
   | "fitness"
   | "apartment"
+  | "lowrise"
   | "civic"
   | "park"
   | "waterfront";
@@ -23,6 +28,171 @@ export type CityWorldAtlasMetadata = {
   spriteKey?: string;
   paletteKey?: string;
   detailLevel?: CityWorldDetailLevel;
+};
+
+export type CityWorldTerrainProfile =
+  | "quiet_socal_grass"
+  | "neighborhood_parcel_field"
+  | "landmark_civic_ground"
+  | "civic_green"
+  | "commercial_plaza"
+  | "water_edge"
+  | "shell_grid";
+
+export type CityWorldTerrainCompositionProfile =
+  | "quiet_field"
+  | "neighborhood_yard_fabric"
+  | "civic_focus_field"
+  | "commercial_apron_field"
+  | "park_basin"
+  | "waterfront_edge_strata"
+  | "shell_boundary"
+  | "hidden_draft_field";
+
+export type CityWorldTerrainElevationProfile =
+  | "flat_field"
+  | "raised_parcel_shelf"
+  | "civic_plinth_shelf"
+  | "commercial_slab_field"
+  | "park_basin_shelf"
+  | "water_edge_cut"
+  | "shell_flat"
+  | "hidden_draft_shelf";
+
+export type CityWorldChunkEdgeProfile =
+  | "none"
+  | "world_edge"
+  | "parcel_cluster_edge"
+  | "waterfront_bank_edge"
+  | "park_basin_edge"
+  | "hidden_draft_boundary";
+
+export type CityWorldTerrainChunkMassingProfile =
+  | "none"
+  | "outer_world_edge_mass"
+  | "civic_plinth_mass"
+  | "residential_shelf_mass"
+  | "commercial_slab_mass"
+  | "park_basin_cut_mass"
+  | "waterfront_bank_cut_mass"
+  | "shell_boundary_mass"
+  | "hidden_draft_mass";
+
+export type CityWorldRoadProfile = "embedded_asphalt_slab" | "driveway_cut" | "paver_crosswalk";
+
+export type CityWorldLotProfile =
+  | "home_parcel_pad"
+  | "residential_yard_grid"
+  | "commercial_forecourt"
+  | "landmark_civic_ground"
+  | "civic_plaza_pad"
+  | "apartment_court"
+  | "park_soft_edge"
+  | "waterfront_edge";
+
+export type CityWorldParcelCompositionProfile =
+  | "home_yard_grid"
+  | "commercial_apron"
+  | "civic_landmark_plinth"
+  | "apartment_court_grid"
+  | "park_path_basin"
+  | "waterfront_bank"
+  | "hidden_draft_anchor_pad";
+
+export type CityWorldParcelElevationProfile =
+  | "thin_pad_lip"
+  | "raised_home_shelf"
+  | "commercial_slab_lip"
+  | "civic_plinth_stack"
+  | "apartment_court_lip"
+  | "park_basin_lip"
+  | "waterfront_bank_cut"
+  | "hidden_anchor_shelf";
+
+export type CityWorldBuildingMaterialProfile =
+  | "socal_stucco_warm"
+  | "socal_stucco_light"
+  | "socal_cool_stucco"
+  | "socal_storefront"
+  | "socal_lowrise"
+  | "civic_glass_stucco";
+
+export type CityWorldRoofMaterialProfile =
+  | "terracotta_barrel_tile"
+  | "cool_clay_tile"
+  | "sage_tile"
+  | "flat_parapet_cap"
+  | "blue_metal_utility"
+  | "civic_glass_cap";
+
+export type CityWorldContactProfile = "soft_ground_shadow" | "parcel_pad_shadow" | "curb_shadow" | "landmark_base_shadow";
+
+export type CityWorldObjectFamily =
+  | "residential_kit"
+  | "commerce_strip"
+  | "civic_landmark"
+  | "lowrise_cluster"
+  | "service_block"
+  | "venue_anchor"
+  | "transit_anchor";
+
+export type CityWorldClusterRole = "anchor" | "support" | "fabric" | "edge";
+
+export type CityWorldNoLabelPriority = "none" | "supporting" | "primary_anchor";
+
+export type CityWorldObjectKitPrefabFamily =
+  | "civic_landmark"
+  | "residential_cottage"
+  | "residential_ranch"
+  | "residential_rowhome"
+  | "commerce_strip"
+  | "lowrise_apartment"
+  | "service_gym";
+
+export type CityWorldObjectKitPaletteRole =
+  | "stucco"
+  | "terracotta"
+  | "glass"
+  | "asphalt"
+  | "curb"
+  | "vegetation"
+  | "foundation";
+
+export type CityWorldCommerceStripPrefabGeometry = {
+  bayCount: number;
+  signMountCount: number;
+  apronDepth: number;
+  glassRecessDepth: number;
+  parapetWeight: number;
+  focusTarget?: "plaza_row";
+};
+
+export type CityWorldObjectKitMetadata = {
+  prefabFamily: CityWorldObjectKitPrefabFamily;
+  paletteRoles: CityWorldObjectKitPaletteRole[];
+  cloneGroupKey: string;
+  signatureTags: string[];
+  roofBodySeparationScore: number;
+  landmarkSignatureScore?: number;
+  commerceGeometry?: CityWorldCommerceStripPrefabGeometry;
+};
+
+export type CityWorldVisualGrammar = {
+  terrainProfile?: CityWorldTerrainProfile;
+  terrainComposition?: CityWorldTerrainCompositionProfile;
+  terrainElevation?: CityWorldTerrainElevationProfile;
+  chunkEdge?: CityWorldChunkEdgeProfile;
+  terrainChunkMassing?: CityWorldTerrainChunkMassingProfile;
+  roadProfile?: CityWorldRoadProfile;
+  lotProfile?: CityWorldLotProfile;
+  parcelComposition?: CityWorldParcelCompositionProfile;
+  parcelElevation?: CityWorldParcelElevationProfile;
+  materialProfile?: CityWorldBuildingMaterialProfile;
+  roofProfile?: CityWorldRoofMaterialProfile;
+  objectFamily?: CityWorldObjectFamily;
+  clusterRole?: CityWorldClusterRole;
+  noLabelPriority?: CityWorldNoLabelPriority;
+  contactProfile: CityWorldContactProfile;
 };
 
 export type CityWorldRegion = {
@@ -40,7 +210,7 @@ export type CityWorldBounds = {
 };
 
 export type CityWorldCameraPreset = {
-  id: "desktop" | "mobile";
+  id: "desktop" | "mobile" | "residential_detail" | "commerce_detail";
   center: CityWorldPoint;
   zoom: number;
   minZoom: number;
@@ -59,6 +229,7 @@ export type CityWorldTerrainTile = {
   spriteKey?: string;
   paletteKey?: string;
   detailLevel?: CityWorldDetailLevel;
+  visualGrammar?: CityWorldVisualGrammar;
 };
 
 export type CityWorldRoadKind = "street" | "avenue" | "driveway" | "crosswalk";
@@ -72,6 +243,7 @@ export type CityWorldRoadSegment = {
   spriteKey?: string;
   paletteKey?: string;
   detailLevel?: CityWorldDetailLevel;
+  visualGrammar?: CityWorldVisualGrammar;
 };
 
 export type CityWorldLotKind = "home" | "shop" | "park" | "gym" | "apartments" | "civic" | "waterfront";
@@ -87,6 +259,7 @@ export type CityWorldLot = {
   spriteKey?: string;
   paletteKey?: string;
   detailLevel?: CityWorldDetailLevel;
+  visualGrammar?: CityWorldVisualGrammar;
 };
 
 export type CityWorldBuildingKind = "home" | "shop" | "gym" | "apartment" | "civic";
@@ -107,6 +280,8 @@ export type CityWorldBuilding = {
   roofShape?: CityWorldRoofShape;
   facadeStyle?: CityWorldFacadeStyle;
   detailLevel?: CityWorldDetailLevel;
+  visualGrammar?: CityWorldVisualGrammar;
+  objectKit?: CityWorldObjectKitMetadata;
 };
 
 export type CityWorldPropKind =
@@ -183,11 +358,20 @@ export type CityWorldHudDefaults = {
   selectedPlaceId: string;
 };
 
+export type CityWorldCoverage = {
+  countySlug: string;
+  coverageTier: "L0_UNSUPPORTED" | "L1_COUNTY_SHELL" | "L2_CURATED_DISTRICT" | "L3_PROVIDER_NORMALIZED" | "L4_PUBLIC_QUALITY";
+  coverageLabel: string;
+  coverageMessage: string;
+  playable: boolean;
+};
+
 export type CityWorldScene = {
   type: "cityWorldScene";
   id: string;
   sourceSceneId: VoxelScene["id"];
   label: string;
+  coverage?: CityWorldCoverage;
   region: CityWorldRegion;
   bounds: CityWorldBounds;
   cameraPresets: CityWorldCameraPreset[];

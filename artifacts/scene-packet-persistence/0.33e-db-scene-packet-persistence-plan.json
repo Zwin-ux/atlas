@@ -1,0 +1,213 @@
+{
+  "id": "postalpha-0.33e-db-scene-packet-persistence-plan",
+  "status": "planning_only",
+  "implementationAllowed": false,
+  "humanApprovalRequiredBeforeImplementation": true,
+  "basis": {
+    "contractUpdate": "postalpha-0.31e-server-scene-packet-cache-contract",
+    "runtimeAdapterUpdate": "postalpha-0.32e-runtime-scene-packet-memory-adapter",
+    "currentStorageMode": "runtime_memory",
+    "nextAllowedWork": "schema_review_migration_rollback_review_only"
+  },
+  "decision": {
+    "preferredStore": "postgres_compatible_relational_store",
+    "preferredDeploymentContext": "future_railway_postgres_or_equivalent",
+    "reason": "Scene packets need deterministic key lookup, TTL expiry, JSON payload boundaries, and rollback-safe additive migrations. A relational store is sufficient before introducing a queue or object store.",
+    "notChosenYet": [
+      "exact provider",
+      "database url",
+      "migration tool",
+      "connection pool package",
+      "background worker",
+      "persistent Hosted Clawd state"
+    ]
+  },
+  "featureFlagPlan": {
+    "futureEnvName": "ATLAS_SCENE_PACKET_STORAGE",
+    "defaultValue": "runtime_memory",
+    "allowedFutureValues": [
+      "runtime_memory",
+      "db_read_through",
+      "db_write_through"
+    ],
+    "rolloutOrder": [
+      "runtime_memory",
+      "db_read_through",
+      "db_write_through"
+    ],
+    "rollbackValue": "runtime_memory",
+    "note": "This plan does not add the env var. It names the future switch so migration review can verify fallback behavior."
+  },
+  "schema": {
+    "tables": [
+      {
+        "name": "scene_packet_cache_entries",
+        "purpose": "Stores deterministic scene packet metadata and optional bounded scene payloads after DB gates open.",
+        "columns": [
+          { "name": "key", "type": "text", "constraints": ["primary_key"] },
+          { "name": "readiness", "type": "text", "constraints": ["not_null", "enum:public_playable|shell_only|hidden_draft|unsupported|blocked"] },
+          { "name": "country_code", "type": "text", "constraints": ["not_null"] },
+          { "name": "state_code", "type": "text", "constraints": ["not_null"] },
+          { "name": "county_slug", "type": "text", "constraints": ["not_null", "indexed"] },
+          { "name": "district_slug", "type": "text", "constraints": ["not_null", "indexed"] },
+          { "name": "camera_preset_id", "type": "text", "constraints": ["not_null"] },
+          { "name": "window_hash", "type": "text", "constraints": ["not_null"] },
+          { "name": "scene_schema_version", "type": "text", "constraints": ["not_null"] },
+          { "name": "engine_update_id", "type": "text", "constraints": ["not_null", "indexed"] },
+          { "name": "payload_kind", "type": "text", "constraints": ["not_null", "enum:voxel_scene|coverage_shell_metadata|unsupported_status|hidden_draft_evidence"] },
+          { "name": "scene_id", "type": "text", "constraints": ["nullable"] },
+          { "name": "packet_summary_json", "type": "jsonb", "constraints": ["not_null", "no_full_scene_payload"] },
+          { "name": "scene_payload_json", "type": "jsonb", "constraints": ["nullable", "only_when_readiness_allows_scene"] },
+          { "name": "payload_digest", "type": "text", "constraints": ["not_null"] },
+          { "name": "source_notes_json", "type": "jsonb", "constraints": ["not_null", "no_raw_provider_payload"] },
+          { "name": "generation_status", "type": "text", "constraints": ["not_null"] },
+          { "name": "generation_mode", "type": "text", "constraints": ["not_null"] },
+          { "name": "generation_blockers_json", "type": "jsonb", "constraints": ["not_null"] },
+          { "name": "safety_json", "type": "jsonb", "constraints": ["not_null"] },
+          { "name": "created_at", "type": "timestamptz", "constraints": ["not_null"] },
+          { "name": "refreshed_at", "type": "timestamptz", "constraints": ["not_null"] },
+          { "name": "expires_at", "type": "timestamptz", "constraints": ["not_null", "indexed"] },
+          { "name": "last_accessed_at", "type": "timestamptz", "constraints": ["not_null"] },
+          { "name": "hit_count", "type": "integer", "constraints": ["not_null", "default:0"] },
+          { "name": "deleted_at", "type": "timestamptz", "constraints": ["nullable", "soft_delete"] }
+        ],
+        "indexes": [
+          "scene_packet_cache_entries_county_district_idx",
+          "scene_packet_cache_entries_expires_at_idx",
+          "scene_packet_cache_entries_engine_update_idx"
+        ]
+      },
+      {
+        "name": "scene_packet_generation_jobs",
+        "purpose": "Future background-generation status only. No worker is enabled by this plan.",
+        "columns": [
+          { "name": "job_key", "type": "text", "constraints": ["primary_key"] },
+          { "name": "packet_key", "type": "text", "constraints": ["not_null", "references:scene_packet_cache_entries.key"] },
+          { "name": "status", "type": "text", "constraints": ["not_null", "enum:blocked|queued|running|succeeded|failed"] },
+          { "name": "mode", "type": "text", "constraints": ["not_null", "enum:curated_static|provider_normalized_future|background_generation_future"] },
+          { "name": "blockers_json", "type": "jsonb", "constraints": ["not_null"] },
+          { "name": "started_at", "type": "timestamptz", "constraints": ["nullable"] },
+          { "name": "finished_at", "type": "timestamptz", "constraints": ["nullable"] },
+          { "name": "created_at", "type": "timestamptz", "constraints": ["not_null"] }
+        ],
+        "indexes": [
+          "scene_packet_generation_jobs_packet_key_idx",
+          "scene_packet_generation_jobs_status_idx"
+        ]
+      },
+      {
+        "name": "scene_packet_audit_events",
+        "purpose": "Records cache writes, refreshes, evictions, and rollback actions without storing user data or provider payloads.",
+        "columns": [
+          { "name": "id", "type": "uuid", "constraints": ["primary_key"] },
+          { "name": "packet_key", "type": "text", "constraints": ["nullable", "indexed"] },
+          { "name": "event_type", "type": "text", "constraints": ["not_null", "enum:cache_write|cache_refresh|cache_expire|cache_evict|rollback_disable_db|rollback_purge"] },
+          { "name": "reason", "type": "text", "constraints": ["not_null"] },
+          { "name": "created_at", "type": "timestamptz", "constraints": ["not_null"] }
+        ],
+        "indexes": [
+          "scene_packet_audit_events_packet_key_idx",
+          "scene_packet_audit_events_created_at_idx"
+        ]
+      }
+    ],
+    "constraints": [
+      "unsupported packets must not store scene_payload_json",
+      "shell_only packets must not store scene_payload_json",
+      "hidden_draft packets must remain publicRouteAllowed false",
+      "provider_normalized_future and background_generation_future jobs stay blocked until provider and worker gates reopen",
+      "packet_summary_json must be safe for diagnostics and must not contain full scene arrays",
+      "scene_payload_json size budget requires separate review before migration approval"
+    ]
+  },
+  "ttlPlan": {
+    "public_playable": { "ttlSeconds": 3600, "staleWhileRevalidateSeconds": 300, "persistScenePayloadAfterApproval": true },
+    "shell_only": { "ttlSeconds": 86400, "staleWhileRevalidateSeconds": 3600, "persistScenePayloadAfterApproval": false },
+    "hidden_draft": { "ttlSeconds": 1800, "staleWhileRevalidateSeconds": 0, "persistScenePayloadAfterApproval": false },
+    "unsupported": { "ttlSeconds": 0, "staleWhileRevalidateSeconds": 0, "persistScenePayloadAfterApproval": false }
+  },
+  "dataBoundaries": {
+    "allowedStoredFields": [
+      "deterministic cache key",
+      "readiness",
+      "county and district identity",
+      "camera/window/schema/update parts",
+      "safe packet summary",
+      "curated source notes",
+      "generation status and blockers",
+      "safety result",
+      "bounded compiled scene payload only after approval"
+    ],
+    "forbiddenStoredFields": [
+      "raw Google provider payload",
+      "Google placeId",
+      "Google primaryType or types arrays",
+      "provider geometry",
+      "user id",
+      "Clawd id",
+      "business private notes",
+      "Stripe customer id",
+      "OAuth token",
+      "XP ledger",
+      "evidence payload",
+      "automation target"
+    ],
+    "structuredContentRule": "No persisted scene packet or cache diagnostic may move full scene data into structuredContent."
+  },
+  "migrationReviewPlan": {
+    "migrationStyle": "additive_first",
+    "preMigrationChecks": [
+      "human approves DB provider and migration tool",
+      "env review approves DATABASE_URL shape without committing secrets",
+      "package dependency review approves the smallest DB client",
+      "SQL migration reviewed for additive-only create table/index changes",
+      "provider-boundary verifier proves no provider geometry or raw Google payload storage",
+      "MCP verifier proves seven-tool list and structuredContent shape remain unchanged"
+    ],
+    "postMigrationChecks": [
+      "runtime_memory mode still works",
+      "db_read_through mode misses safely and falls back to runtime generation",
+      "db_write_through mode writes only approved packet shapes",
+      "diagnostic route never returns scene_payload_json",
+      "public Riverside product loop remains green",
+      "Orange shell and Unknown/L0 recovery remain green"
+    ],
+    "rollbackPlan": [
+      "set ATLAS_SCENE_PACKET_STORAGE back to runtime_memory",
+      "redeploy without changing MCP tools or widget contract",
+      "leave additive tables in place while expired rows age out",
+      "if needed, run reviewed purge for scene_packet_cache_entries where expires_at < now",
+      "only drop tables in a later reviewed migration after verifying no code path reads them"
+    ]
+  },
+  "reviewGates": [
+    { "id": "human-approval", "owner": "Axiom/Human", "required": true, "status": "missing" },
+    { "id": "env-review", "owner": "Forge", "required": true, "status": "missing" },
+    { "id": "migration-review", "owner": "Forge", "required": true, "status": "missing" },
+    { "id": "provider-boundary-review", "owner": "Forge", "required": true, "status": "missing" },
+    { "id": "mcp-product-proof", "owner": "Mira", "required": true, "status": "missing" },
+    { "id": "public-loop-proof", "owner": "Mira", "required": true, "status": "missing" },
+    { "id": "visual-regression-check", "owner": "Lumen", "required": false, "status": "not_required_unless_renderer_changes" }
+  ],
+  "blockedUntilApproval": [
+    "adding DATABASE_URL or database secrets",
+    "adding DB package dependencies",
+    "creating migrations",
+    "writing scene packet rows",
+    "reading persisted rows in MCP handlers",
+    "background scene generation jobs",
+    "live provider normalization",
+    "Hosted Clawd persistence",
+    "Stripe",
+    "XP/evidence",
+    "OAuth",
+    "automation/reports/exports"
+  ],
+  "successCriteriaForThisPlan": [
+    "plan artifact is machine-readable",
+    "schema names concrete tables and constraints",
+    "TTL and rollback behavior are explicit",
+    "review gates block implementation",
+    "verifier proves no DB implementation entered this slice"
+  ]
+}

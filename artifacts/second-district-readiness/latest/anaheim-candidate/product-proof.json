@@ -1,0 +1,171 @@
+{
+  "proofKind": "chatgptEntrySurfaceProof",
+  "version": "e15.6",
+  "mcpUrl": "https://atlas-backend-production-e6fc.up.railway.app/mcp",
+  "checkedAt": "2026-07-03T17:56:53.932Z",
+  "districtSlug": "anaheim-candidate",
+  "proofStatus": "passed",
+  "promotionReady": false,
+  "publicPlayable": false,
+  "miraAcceptance": false,
+  "productBoundary": {
+    "riversidePlayableNow": true,
+    "shellCountiesBrowseOnly": true,
+    "lookupNotSaved": true,
+    "lookupNotCoverageProof": true,
+    "noInternalLanguage": true,
+    "noPersistencePaidXpEvidenceAutomationClaims": true,
+    "sevenToolListStable": true
+  },
+  "scenarios": [
+    {
+      "id": "direct-play-riverside",
+      "prompt": "I want to play Atlas now. Open the playable county map.",
+      "toolName": "select_county",
+      "arguments": {
+        "countySlug": "riverside-ca"
+      },
+      "status": "passed",
+      "userFacingText": "Selected Riverside County. Eastvale is the playable district in this county. Use the map for places, pins, and session-only notes.",
+      "structuredSummary": {
+        "type": "voxelSceneSummary",
+        "selectedNodeId": "eastvale"
+      }
+    },
+    {
+      "id": "shell-browse-orange",
+      "prompt": "Show me Orange County in Atlas.",
+      "toolName": "select_county",
+      "arguments": {
+        "countySlug": "orange-ca"
+      },
+      "status": "passed",
+      "userFacingText": "Orange County is indexed from Census county identity data, but Atlas has not built a playable local scene for it yet. Orange County is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties.",
+      "structuredSummary": {
+        "type": "countyCoverageSummary",
+        "countySlug": "orange-ca",
+        "coverageTier": "L1_COUNTY_SHELL",
+        "playableDistrictCount": 0,
+        "placeCount": 0,
+        "supported": true
+      }
+    },
+    {
+      "id": "negative-anaheim-not-playable",
+      "prompt": "Is Anaheim playable in Atlas right now?",
+      "toolName": "render_voxel_county",
+      "arguments": {
+        "countySlug": "orange-ca"
+      },
+      "status": "passed",
+      "userFacingText": "Orange County is indexed from Census county identity data, but Atlas has not built a playable local scene for it yet. Orange County is browse-only in Atlas right now. Atlas only draws a local world after a curated playable district exists. Open Riverside/Eastvale for the playable map.",
+      "structuredSummary": {
+        "type": "countyCoverageSummary",
+        "countySlug": "orange-ca",
+        "coverageTier": "L1_COUNTY_SHELL",
+        "playableDistrictCount": 0,
+        "placeCount": 0,
+        "supported": true
+      }
+    },
+    {
+      "id": "lookup-places-not-saved",
+      "prompt": "Look up places near Eastvale. Do not save them or treat them as county readiness.",
+      "toolName": "lookup_world_places",
+      "arguments": {
+        "query": "Eastvale, CA",
+        "radiusMeters": 4187
+      },
+      "status": "passed",
+      "userFacingText": "Found 20 lookup-only places around Eastvale, CA, USA. Categories: fitness, food_drink, landmark, park, school, shop. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a playable county map.",
+      "structuredSummary": {
+        "type": "worldPlaceLookup",
+        "placeCount": 20,
+        "categories": [
+          "fitness",
+          "food_drink",
+          "landmark",
+          "park",
+          "school",
+          "shop"
+        ],
+        "cacheHit": false
+      }
+    },
+    {
+      "id": "unsupported-unknown-county",
+      "prompt": "Open Made Up County in Atlas.",
+      "toolName": "select_county",
+      "arguments": {
+        "countySlug": "made-up-ca"
+      },
+      "status": "passed",
+      "userFacingText": "Atlas does not have an indexed or curated county contract for this slug yet. Use Riverside County for the playable Engine Beta slice. This county is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties.",
+      "structuredSummary": {
+        "type": "countyCoverageSummary",
+        "countySlug": "made-up-ca",
+        "coverageTier": "L0_UNSUPPORTED",
+        "playableDistrictCount": 0,
+        "placeCount": 0,
+        "supported": false
+      }
+    }
+  ],
+  "toolTexts": {
+    "selectCountyPlayable": "Selected Riverside County. Eastvale is the playable district in this county. Use the map for places, pins, and session-only notes.",
+    "selectCountyShell": "Orange County is indexed from Census county identity data, but Atlas has not built a playable local scene for it yet. Orange County is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties.",
+    "renderVoxelCountyPlayable": "Showing the Riverside/Eastvale playable map. Pins and notes stay in this chat.",
+    "renderVoxelCountyShell": "Orange County is indexed from Census county identity data, but Atlas has not built a playable local scene for it yet. Orange County is browse-only in Atlas right now. Atlas only draws a local world after a curated playable district exists. Open Riverside/Eastvale for the playable map.",
+    "askCountyQuestion": "Curated Riverside/Eastvale answer. For mobile detailing, the curated Riverside pack supports Eastvale because the strongest nodes cluster around homes, errands, and short routes. Top signals are Residential Demand, High Willingness to Pay, Partnership Target, QR Flyer Opportunity, Fast Route Access. Treat these as Alpha planning signals, not live demand or ROI proof.\n\nLimits: Prototype data only. Replace/augment with sourced data before public claims. Closed-world answer from curated Atlas Alpha data only. No saved state, XP, evidence, outreach, or live market guarantee. No saves, XP, evidence, or automation are created by this answer.",
+    "lookupWorldPlaces": "Found 20 lookup-only places around Eastvale, CA, USA. Categories: fitness, food_drink, landmark, park, school, shop. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a playable county map.",
+    "selectCountyUnsupported": "Atlas does not have an indexed or curated county contract for this slug yet. Use Riverside County for the playable Engine Beta slice. This county is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties."
+  },
+  "structuredSummary": {
+    "selectCountyPlayable": {
+      "type": "voxelSceneSummary",
+      "selectedNodeId": "eastvale"
+    },
+    "selectCountyShell": {
+      "type": "countyCoverageSummary",
+      "coverageTier": "L1_COUNTY_SHELL",
+      "playableDistrictCount": 0,
+      "placeCount": 0
+    },
+    "renderVoxelCountyPlayable": {
+      "type": "voxelSceneSummary",
+      "selectedNodeId": "eastvale"
+    },
+    "renderVoxelCountyShell": {
+      "type": "countyCoverageSummary",
+      "coverageTier": "L1_COUNTY_SHELL",
+      "playableDistrictCount": 0,
+      "placeCount": 0
+    },
+    "askCountyQuestion": {
+      "type": "countyQuestionAnswer",
+      "supported": true,
+      "topic": "business_signals"
+    },
+    "lookupWorldPlaces": {
+      "type": "worldPlaceLookup",
+      "placeCount": 20,
+      "categories": [
+        "fitness",
+        "food_drink",
+        "landmark",
+        "park",
+        "school",
+        "shop"
+      ],
+      "cacheHit": false
+    },
+    "selectCountyUnsupported": {
+      "type": "countyCoverageSummary",
+      "countySlug": "made-up-ca",
+      "coverageTier": "L0_UNSUPPORTED",
+      "playableDistrictCount": 0,
+      "placeCount": 0,
+      "supported": false
+    }
+  }
+}

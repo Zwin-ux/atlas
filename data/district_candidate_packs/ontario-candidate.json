@@ -1,0 +1,160 @@
+{
+  "packId": "ontario-candidate-pack",
+  "version": "0.1-engine-beta-candidate",
+  "stateCode": "CA",
+  "countySlug": "san-bernardino-ca",
+  "countyGeoid": "06071",
+  "districtSlug": "ontario-candidate",
+  "districtLabel": "Ontario",
+  "districtGeoid": "0653896",
+  "candidateStatus": "candidate_only",
+  "currentCoverageTier": "L1_COUNTY_SHELL",
+  "targetCoverageTier": "L2_CURATED_DISTRICT",
+  "playableNow": false,
+  "promotionBlocked": true,
+  "sourceNotes": [
+    {
+      "id": "census-2024-place-gazetteer-ca",
+      "source": "census",
+      "label": "2024 Census California place gazetteer",
+      "attribution": "U.S. Census Bureau Gazetteer Files, 2024",
+      "url": "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_gaz_place_06.txt",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Ontario city place identity",
+        "Ontario place GEOID 0653896"
+      ]
+    },
+    {
+      "id": "atlas-engine-beta-candidate-brief",
+      "source": "curated",
+      "label": "Atlas Engine Beta candidate design brief",
+      "attribution": "Atlas local engine planning notes",
+      "lastChecked": "2026-07-02",
+      "verifies": [
+        "Candidate scene stressors",
+        "Required object-kit categories before playable promotion"
+      ]
+    }
+  ],
+  "anchorRequirements": [
+    {
+      "id": "ontario-place-identity",
+      "label": "Ontario city identity anchor",
+      "category": "unknown",
+      "anchorKind": "district_identity",
+      "sourceNoteIds": [
+        "census-2024-place-gazetteer-ca"
+      ],
+      "renderableNow": false,
+      "requiredForPlayable": true,
+      "sceneStressors": [
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "ontario-residential-variety",
+      "label": "Residential variety requirement",
+      "category": "home_area",
+      "anchorKind": "area_role",
+      "sourceNoteIds": [
+        "atlas-engine-beta-candidate-brief"
+      ],
+      "renderableNow": false,
+      "requiredForPlayable": true,
+      "sceneStressors": [
+        "residential_variety",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "ontario-commerce-service-blocks",
+      "label": "Commerce and service block requirement",
+      "category": "service",
+      "anchorKind": "category_role",
+      "sourceNoteIds": [
+        "atlas-engine-beta-candidate-brief"
+      ],
+      "renderableNow": false,
+      "requiredForPlayable": true,
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "road_lot_contact",
+        "parking_apron_without_cars"
+      ]
+    },
+    {
+      "id": "ontario-food-service-mix",
+      "label": "Food and service mix requirement",
+      "category": "food_drink",
+      "anchorKind": "category_role",
+      "sourceNoteIds": [
+        "atlas-engine-beta-candidate-brief"
+      ],
+      "renderableNow": false,
+      "requiredForPlayable": true,
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "road_lot_contact"
+      ]
+    },
+    {
+      "id": "ontario-fitness-civic-edge",
+      "label": "Fitness or civic edge requirement",
+      "category": "fitness",
+      "anchorKind": "category_role",
+      "sourceNoteIds": [
+        "atlas-engine-beta-candidate-brief"
+      ],
+      "renderableNow": false,
+      "requiredForPlayable": true,
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "ontario-transit-logistics-edge",
+      "label": "Transit and logistics edge requirement",
+      "category": "transit",
+      "anchorKind": "category_role",
+      "sourceNoteIds": [
+        "atlas-engine-beta-candidate-brief"
+      ],
+      "renderableNow": false,
+      "requiredForPlayable": true,
+      "sceneStressors": [
+        "road_lot_contact",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ]
+    }
+  ],
+  "requiredBeforePlayable": [
+    "curated_district_pack",
+    "place_anchors_with_source_notes",
+    "bounded_scene_compiler_proof",
+    "desktop_mobile_product_loop_screenshots",
+    "lumen_visual_acceptance",
+    "mira_readiness_acceptance",
+    "forge_split_guard"
+  ],
+  "knownGaps": [
+    "no_curated_places",
+    "no_local_scene",
+    "no_provider_normalized_categories",
+    "not_public_quality"
+  ],
+  "acceptanceCriteria": [
+    "Ontario remains candidate-only until source-noted place anchors exist.",
+    "The first playable compiler proof must reuse CityWorldScene and the existing object kit.",
+    "Desktop and 390x844 screenshots must prove broader inland road, service, residential, and lot grammar without cars, humans, filler props, or fake local claims.",
+    "Riverside remains the rollback playable county until Ontario passes all L2 gates."
+  ],
+  "rejectRules": [
+    "Do not make Ontario selectable as playable by metadata flip.",
+    "Do not create fake places or local scenes without source notes.",
+    "Do not use Google lookup as coverage proof.",
+    "Do not add cars, humans, decorative props, dashboard panels, persistence, paid scope, XP, evidence, OAuth, automation, reports, or exports."
+  ]
+}

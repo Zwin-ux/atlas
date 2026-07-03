@@ -41,6 +41,15 @@ export class CampaignPreviewService {
       routePriorities,
       assetPlaceholders,
       guardrails,
+      alphaBoundary: {
+        mode: "session_only_alpha",
+        savesState: false,
+        executesActions: false,
+        grantsXp: false,
+        requiresHostedClawdForSave: true,
+        nextTool: "get_upgrade_options",
+        userActionLabel: "Host Clawd to save and track this campaign",
+      },
       scene,
     };
   }

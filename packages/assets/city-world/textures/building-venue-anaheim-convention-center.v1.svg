@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="340" viewBox="0 0 560 340" role="img" aria-label="Atlas Anaheim Convention Center voxel venue asset">
+  <defs>
+    <filter id="contact" x="-8%" y="-8%" width="116%" height="125%">
+      <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="#314640" flood-opacity="0.16"/>
+    </filter>
+    <style>
+      .edge { stroke: #3a463c; stroke-opacity: 0.16; stroke-width: 1; stroke-linejoin: round; }
+      .soft { stroke: #3a463c; stroke-opacity: 0.08; stroke-width: 1; stroke-linejoin: round; }
+      .glass { fill: #bfe7ea; opacity: 0.72; }
+      .shade { fill: #c7ac78; }
+    </style>
+  </defs>
+
+  <g filter="url(#contact)">
+    <polygon class="soft" points="70,238 283,137 496,238 284,331" fill="#e7d0a2"/>
+    <polygon class="soft" points="284,331 496,238 496,253 284,346" fill="#c8ae7c"/>
+    <polygon class="soft" points="70,238 284,331 284,346 70,253" fill="#b89d6c"/>
+    <polygon points="110,237 282,155 452,236 283,314" fill="#34493c" opacity="0.055"/>
+
+    <polygon class="edge" points="86,176 244,99 244,202 86,279" fill="#dfc591"/>
+    <polygon class="edge" points="244,99 366,157 366,260 244,202" fill="#f0d9ab"/>
+    <polygon class="edge" points="86,176 208,234 366,157 244,99" fill="#fff0c8"/>
+    <polygon class="soft" points="108,177 244,112 342,158 207,225" fill="#f8e6bd" opacity="0.58"/>
+    <polygon class="shade" points="244,203 366,260 366,272 244,215"/>
+    <polygon class="shade" points="86,279 244,202 244,215 86,292"/>
+
+    <polygon class="edge" points="202,133 358,57 462,107 305,184" fill="#8fc2d3"/>
+    <polygon class="edge" points="305,184 462,107 462,132 305,210" fill="#669eb3"/>
+    <polygon class="edge" points="202,133 305,184 305,210 202,158" fill="#4e8298"/>
+    <polygon class="soft" points="223,131 357,66 441,107 306,174" fill="#c9eef0" opacity="0.36"/>
+    <polygon class="soft" points="213,149 305,195 305,203 213,158" fill="#385f70" opacity="0.16"/>
+    <polygon class="soft" points="316,186 455,117 455,126 316,197" fill="#385f70" opacity="0.15"/>
+
+    <polygon class="edge" points="90,166 196,115 235,134 129,186" fill="#78c7ca"/>
+    <polygon class="edge" points="129,186 235,134 235,159 129,212" fill="#5fa9b1"/>
+    <polygon class="edge" points="90,166 129,186 129,212 90,192" fill="#46858c"/>
+    <polygon class="soft" points="103,168 196,123 222,136 130,181" fill="#d7f4ef" opacity="0.4"/>
+
+    <polygon class="edge" points="331,175 448,119 485,137 368,195" fill="#78c7ca"/>
+    <polygon class="edge" points="368,195 485,137 485,162 368,220" fill="#5fa9b1"/>
+    <polygon class="edge" points="331,175 368,195 368,220 331,201" fill="#46858c"/>
+    <polygon class="soft" points="344,176 448,127 472,139 369,190" fill="#d7f4ef" opacity="0.4"/>
+
+    <polygon class="edge" points="167,205 282,151 398,205 283,262" fill="#f5ddab"/>
+    <polygon class="edge" points="283,262 398,205 398,222 283,279" fill="#d0b179"/>
+    <polygon class="edge" points="167,205 283,262 283,279 167,222" fill="#b99b68"/>
+    <polygon class="soft" points="190,204 282,161 374,204 283,249" fill="#fff1c8" opacity="0.62"/>
+
+    <polygon class="edge" points="176,187 282,136 389,187 283,240" fill="#f4dba4"/>
+    <polygon class="edge" points="283,240 389,187 389,203 283,256" fill="#d1af74"/>
+    <polygon class="edge" points="176,187 283,240 283,256 176,203" fill="#bd9b65"/>
+
+    <polygon class="edge" points="201,185 283,146 366,185 283,226" fill="#a7d8d8"/>
+    <polygon points="213,185 283,152 354,185 283,220" fill="#d8f2ef" opacity="0.42"/>
+    <polygon points="230,186 283,160 337,186 283,212" fill="#f8e8ca" opacity="0.18"/>
+
+    <g opacity="0.88">
+      <polygon class="edge glass" points="113,216 139,204 139,232 113,244"/>
+      <polygon class="edge glass" points="145,201 171,189 171,217 145,229"/>
+      <polygon class="edge glass" points="177,186 203,174 203,202 177,214"/>
+      <polygon class="edge glass" points="359,198 385,186 385,214 359,226"/>
+      <polygon class="edge glass" points="391,183 417,171 417,199 391,211"/>
+      <polygon class="edge glass" points="423,168 449,156 449,184 423,196"/>
+    </g>
+
+    <g opacity="0.92">
+      <polygon points="213,218 236,207 236,236 213,247" fill="#f9efce"/>
+      <polygon points="242,204 265,193 265,222 242,233" fill="#f9efce"/>
+      <polygon points="271,190 294,179 294,208 271,219" fill="#f9efce"/>
+      <polygon points="300,190 323,201 323,230 300,219" fill="#e8cfa1"/>
+      <polygon points="329,204 352,215 352,244 329,233" fill="#e8cfa1"/>
+    </g>
+
+    <g opacity="0.62">
+      <polygon points="220,90 357,23 379,34 242,101" fill="#e8f7f4"/>
+      <polygon points="256,107 393,40 415,51 278,118" fill="#e8f7f4"/>
+      <polygon points="292,124 429,57 451,68 314,135" fill="#e8f7f4"/>
+      <polygon points="213,143 305,188 305,195 213,151" fill="#315a68"/>
+      <polygon points="305,188 452,116 452,124 305,197" fill="#315a68"/>
+    </g>
+
+    <polygon class="edge" points="179,255 228,232 256,245 207,269" fill="#fff0c8"/>
+    <polygon class="edge" points="207,269 256,245 256,254 207,278" fill="#dec18a"/>
+    <polygon points="181,262 207,274 207,281 181,269" fill="#c3a36f" opacity="0.72"/>
+    <polygon class="edge" points="306,245 355,222 383,235 334,259" fill="#fff0c8"/>
+    <polygon class="edge" points="334,259 383,235 383,244 334,268" fill="#dec18a"/>
+    <polygon points="308,252 334,264 334,271 308,259" fill="#c3a36f" opacity="0.72"/>
+
+    <polygon class="soft" points="132,235 174,215 204,229 162,250" fill="#f7e4b6" opacity="0.48"/>
+    <polygon class="soft" points="356,228 400,207 430,221 386,243" fill="#f7e4b6" opacity="0.46"/>
+    <polygon class="soft" points="228,272 283,246 338,272 283,298" fill="#fff5d4" opacity="0.35"/>
+  </g>
+</svg>

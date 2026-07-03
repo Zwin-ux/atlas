@@ -1,0 +1,126 @@
+{
+  "ok": true,
+  "update": "postalpha-0.24e-second-district-promotion-readiness-aggregator",
+  "district": "anaheim-candidate",
+  "readyForPlayablePromotion": false,
+  "evidenceStates": {
+    "sourceVerifier": "passed",
+    "visualPacket": "passed",
+    "productProof": "passed",
+    "splitGuard": "passed"
+  },
+  "promotionPacket": {
+    "promotionReady": false,
+    "nextRequiredGate": "desktop_mobile_product_loop_screenshots",
+    "satisfied": [
+      "candidate_contract",
+      "place_anchors_with_source_notes",
+      "curated_district_pack",
+      "bounded_scene_compiler_proof"
+    ],
+    "missing": [
+      "desktop_mobile_product_loop_screenshots",
+      "lumen_visual_acceptance",
+      "mira_readiness_acceptance",
+      "forge_split_guard"
+    ]
+  },
+  "coverage": {
+    "playableCountyCount": 1,
+    "playableCountySlugs": [
+      "riverside-ca"
+    ],
+    "providerNormalizedCountyCount": 0,
+    "publicQualityCountyCount": 0
+  },
+  "aggregate": {
+    "packetKind": "secondDistrictReadinessAggregate",
+    "version": "e24.0",
+    "readyForPlayablePromotion": false,
+    "candidateSlug": "anaheim-candidate",
+    "countySlug": "orange-ca",
+    "districtSlug": "anaheim-candidate",
+    "promotionReadyFromPacket": false,
+    "blockerGroups": {
+      "data": [],
+      "visual": [
+        "visual_packet_not_promotion_ready",
+        "visual_packet_not_public_playable",
+        "lumen_acceptance_missing"
+      ],
+      "product": [
+        "product_proof_not_promotion_ready",
+        "product_proof_not_public_playable",
+        "product_proof_mira_acceptance_missing",
+        "mira_acceptance_missing"
+      ],
+      "release": [
+        "forge_split_guard_acceptance_missing",
+        "promotion_packet_not_ready"
+      ]
+    },
+    "sourceToSceneTrace": {
+      "candidatePack": {
+        "present": true,
+        "gateSatisfied": true
+      },
+      "anchorPack": {
+        "present": true,
+        "gateSatisfied": true
+      },
+      "curatedPack": {
+        "present": true,
+        "gateSatisfied": true
+      },
+      "draftCompilerProof": {
+        "present": true,
+        "gateSatisfied": true
+      },
+      "visualPacket": {
+        "status": "passed",
+        "packetPath": "C:\\Users\\mzwin\\AppData\\Local\\Temp\\atlas-postalpha-023e-hidden-venue-authorship-public\\visual-packet",
+        "outcome": "HIDDEN_DRAFT_ONLY",
+        "promotionReady": false,
+        "publicPlayable": false,
+        "failureCount": 0
+      },
+      "productProof": {
+        "status": "passed",
+        "proofPath": "C:\\Users\\mzwin\\Documents\\Atlas-alpha-path-b-rc\\artifacts\\second-district-readiness\\latest\\anaheim-candidate\\product-proof.json",
+        "proofStatus": "passed",
+        "promotionReady": false,
+        "publicPlayable": false,
+        "miraAcceptance": false,
+        "scenarioCount": 5,
+        "failureCount": 0
+      },
+      "splitGuard": {
+        "status": "passed",
+        "mode": "engine-beta-data",
+        "blockerCount": 0,
+        "unknownCount": 0
+      }
+    },
+    "noFakePlayability": {
+      "countyRemainsShell": true,
+      "zeroPlayableDistricts": true,
+      "zeroPublicPlaces": true,
+      "districtNotPlayable": true,
+      "draftSceneNotPlayable": true,
+      "noActorsPinsOrSelectedPlace": true,
+      "providerPromotion": false,
+      "publicQuality": false
+    },
+    "releaseCutline": {
+      "mayExposeInPublicSwitcher": false,
+      "mayCompilePublicScene": false,
+      "mayClaimProviderNormalized": false,
+      "requiredOwnersBeforePublic": [
+        "Lumen",
+        "Mira",
+        "Forge",
+        "Axiom"
+      ]
+    }
+  }
+}

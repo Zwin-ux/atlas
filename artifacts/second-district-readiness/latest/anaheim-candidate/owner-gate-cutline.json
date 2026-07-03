@@ -1,0 +1,63 @@
+{
+  "ok": true,
+  "update": "postalpha-0.25e-owner-gate-closure-public-promotion-cutline",
+  "district": "anaheim-candidate",
+  "outcome": "BLOCK_PROMOTION",
+  "readyForPlayablePromotion": false,
+  "nextSlice": "Public Engine Beta Quality Or Focused Hidden Source-Art Blocker",
+  "ownerGates": {
+    "lumen": {
+      "owner": "lumen",
+      "status": "blocked",
+      "reason": "visual_packet_not_promotion_ready"
+    },
+    "mira": {
+      "owner": "mira",
+      "status": "blocked",
+      "reason": "product_proof_not_promotion_ready"
+    },
+    "forge": {
+      "owner": "forge",
+      "status": "blocked",
+      "reason": "forge_split_guard_acceptance_missing"
+    },
+    "axiom": {
+      "owner": "axiom",
+      "status": "blocked",
+      "reason": "Readiness aggregate is not promotion-ready."
+    }
+  },
+  "blockerGroups": {
+    "data": [],
+    "visual": [
+      "visual_packet_not_promotion_ready",
+      "visual_packet_not_public_playable",
+      "lumen_acceptance_missing"
+    ],
+    "product": [
+      "product_proof_not_promotion_ready",
+      "product_proof_not_public_playable",
+      "product_proof_mira_acceptance_missing",
+      "mira_acceptance_missing"
+    ],
+    "release": [
+      "forge_split_guard_acceptance_missing",
+      "promotion_packet_not_ready"
+    ]
+  },
+  "cutlineBlockers": [
+    "visual:visual_packet_not_promotion_ready",
+    "visual:visual_packet_not_public_playable",
+    "visual:lumen_acceptance_missing",
+    "product:product_proof_not_promotion_ready",
+    "product:product_proof_not_public_playable",
+    "product:product_proof_mira_acceptance_missing",
+    "product:mira_acceptance_missing",
+    "release:forge_split_guard_acceptance_missing",
+    "release:promotion_packet_not_ready",
+    "owner:lumen:blocked:visual_packet_not_promotion_ready",
+    "owner:mira:blocked:product_proof_not_promotion_ready",
+    "owner:forge:blocked:forge_split_guard_acceptance_missing",
+    "owner:axiom:blocked:Readiness aggregate is not promotion-ready."
+  ]
+}

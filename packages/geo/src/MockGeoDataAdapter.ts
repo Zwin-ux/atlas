@@ -9,6 +9,7 @@ import type {
   RouteHint,
   RouteInput,
 } from "./GeoDataAdapter.js";
+import { createProviderUsagePolicy } from "./ProviderUsagePolicy.js";
 import { summarizeAggregateFilter } from "./SignalExtractor.js";
 
 const EASTVALE = {
@@ -29,6 +30,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
       source: "mock",
       attribution: "Atlas mock data",
       ttlSeconds: 300,
+      usagePolicy: createProviderUsagePolicy("mock"),
     };
   }
 
@@ -45,6 +47,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
         source: "mock",
         attribution: "Atlas mock data",
         ttlSeconds: 300,
+        usagePolicy: createProviderUsagePolicy("mock"),
       },
       {
         placeId: "mock-retail-strip-002",
@@ -57,6 +60,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
         source: "mock",
         attribution: "Atlas mock data",
         ttlSeconds: 300,
+        usagePolicy: createProviderUsagePolicy("mock"),
       },
       {
         placeId: "mock-community-park-003",
@@ -69,6 +73,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
         source: "mock",
         attribution: "Atlas mock data",
         ttlSeconds: 300,
+        usagePolicy: createProviderUsagePolicy("mock"),
       },
       {
         placeId: "mock-gym-004",
@@ -81,6 +86,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
         source: "mock",
         attribution: "Atlas mock data",
         ttlSeconds: 300,
+        usagePolicy: createProviderUsagePolicy("mock"),
       },
       {
         placeId: "mock-civic-005",
@@ -93,6 +99,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
         source: "mock",
         attribution: "Atlas mock data",
         ttlSeconds: 300,
+        usagePolicy: createProviderUsagePolicy("mock"),
       },
     ];
   }
@@ -109,6 +116,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
         source: "mock",
         attribution: "Atlas mock data",
         ttlSeconds: 300,
+        usagePolicy: createProviderUsagePolicy("mock"),
       });
     }
 
@@ -120,6 +128,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
         source: "mock",
         attribution: "Atlas mock data",
         ttlSeconds: 300,
+        usagePolicy: createProviderUsagePolicy("mock"),
       });
     }
 
@@ -137,6 +146,7 @@ export class MockGeoDataAdapter implements GeoDataAdapter {
         source: "mock",
         attribution: "Atlas mock data",
         ttlSeconds: 300,
+        usagePolicy: createProviderUsagePolicy("mock"),
       },
     ];
   }

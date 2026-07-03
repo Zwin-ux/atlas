@@ -8,7 +8,10 @@ import {
   type CityWorldScene,
 } from "@atlas/core/voxel";
 import atlasManifestJson from "../../packages/assets/city-world/atlas.manifest.json";
+import rowhomeFlatParapetUrl from "../../packages/assets/city-world/textures/building-house-rowhome-flat_parapet.v1.svg";
+import stripStoreThreeBayUrl from "../../packages/assets/city-world/textures/building-store-strip-three_bay.v1.svg";
 import favoriteStickerPinUrl from "../../packages/assets/city-world/textures/pin-sticker-favorite.svg";
+import roadCornerTwoLaneUrl from "../../packages/assets/city-world/textures/road-corner-two_lane.v1.svg";
 
 export type CityWorldTextureMap = Partial<Record<string, Texture>>;
 
@@ -39,7 +42,12 @@ export type CityWorldAtlasResolver = {
 
 const CITY_WORLD_ATLAS_MANIFEST = atlasManifestJson as CityWorldAtlasManifest;
 const warnedSceneIds = new Set<string>();
-const FAVORITE_STICKER_TEXTURE_KEY = "pin.sticker.favorite";
+const TEXTURE_SOURCES = {
+  "building.house.rowhome.flat_parapet.v1": rowhomeFlatParapetUrl,
+  "building.store.strip.three_bay.v1": stripStoreThreeBayUrl,
+  "pin.sticker.favorite": favoriteStickerPinUrl,
+  "road.corner.two_lane.v1": roadCornerTwoLaneUrl,
+} as const;
 
 const FALLBACK_PALETTES: Record<CityWorldAtlasFallbackKind, CityWorldAtlasPalette> = {
   terrain: createFallbackPalette("fallback.terrain", "#92c977", "#5b8b52", "#d8f0b2"),
@@ -93,14 +101,19 @@ export function createCityWorldAtlasResolver(scene: CityWorldScene, textures: Ci
 }
 
 export async function loadCityWorldAtlasTextures(): Promise<CityWorldTextureMap> {
-  const texture = await Assets.load<Texture>({
-    alias: FAVORITE_STICKER_TEXTURE_KEY,
-    src: favoriteStickerPinUrl,
-  });
+  const loaded = await Promise.all(
+    Object.entries(TEXTURE_SOURCES).map(async ([alias, src]) => {
+      try {
+        const texture = await Assets.load<Texture>({ alias, src });
+        return [alias, texture] as const;
+      } catch (error) {
+        console.warn(`Atlas city-world texture ${alias} failed to load. Primitive fallback remains active.`, error);
+        return undefined;
+      }
+    }),
+  );
 
-  return {
-    [FAVORITE_STICKER_TEXTURE_KEY]: texture,
-  };
+  return Object.fromEntries(loaded.filter((entry): entry is readonly [string, Texture] => Boolean(entry))) as CityWorldTextureMap;
 }
 
 function resolvePalette(paletteKey: string | undefined, fallback: CityWorldAtlasFallbackKind): CityWorldAtlasPalette {

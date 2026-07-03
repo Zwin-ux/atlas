@@ -6,20 +6,862 @@ Alpha Path B is accepted. Atlas is now in Engine Beta, not Paid Beta. Hosted
 Clawd contracts and Stripe planning remain parked until the voxel county engine
 is visually credible and the human explicitly reopens persistence or money.
 
+Public Alpha is deployed and proven at
+`https://atlas-backend-production-e6fc.up.railway.app`. Treat 0.21A as the
+handoff lock: Riverside/Eastvale is the only public playable district,
+California shell coverage is honest, Scout/Campaign remain session-only Alpha
+previews, and Anaheim/Ontario stay hidden/non-public.
+
+The real consumer-app route is now recorded in
+`docs/ATLAS_REAL_CONSUMER_APP_ROADMAP.md`. July 4 release work must prioritize a
+credible public Alpha / Engine Beta proof over full paid/backend/national scope:
+`0.23E` is deployed and publicly proven. `0.24E` and `0.25E` are complete
+locally: the second-district readiness aggregator reports all current evidence
+inputs, and the owner-gate cutline blocks Anaheim promotion with named
+owner-gate blockers.
+Continue the Engine Beta spine through consumer entry quality, engine quality,
+second playable district, consumer save layer, and Hosted Clawd Beta.
+
+Current quest:
+
+`0.38E Engine Quality Axis Review / Next Target Selection` is locally green.
+
+Goal:
+
+Stop serial visual churn by choosing the next engine target from measured
+evidence. 0.38E adds `scripts/select-engine-quality-axis.mjs`, records the
+selector artifact, and updates the release ladder without changing renderer,
+UI, server routes, MCP tools, DB, provider, or public county exposure.
+
+0.38E local result:
+
+- Added `scripts/select-engine-quality-axis.mjs`.
+- Added selector artifact:
+  `artifacts/engine-quality-axis/postalpha-0.38e-next-target-selection.json`.
+- Selected `0.39E Public Object Identity / Civic-Service Read Pass`.
+- Selected axis: `public_object_identity`.
+- Selector reasons:
+  - `homeClonePressure` remains `0.2`.
+  - `weakestObjectFamily` is `civic_landmark`.
+  - `weakestCivicVenueStressCell` is `eastvale-core-civic-landmark`.
+- Blocked axes:
+  - terrain/world-edge: current terrain, empty-board, and chunk-edge floors are
+    green.
+  - mobile entry density: playable mobile LOD budget and readability are green.
+  - hidden second-district readiness: Anaheim still has 9 promotion blockers.
+  - commerce repeat: blocked unless a human names one exact Plaza Row blocker.
+
+Next move:
+
+Run `0.39E Public Object Identity / Civic-Service Read Pass`. Target the public
+Riverside civic/service object read, especially Eastvale Core and service/gym
+readability. Do not continue commerce, terrain, mobile density, hidden Anaheim,
+DB, provider, or paid/persistence work unless a new blocker changes the axis.
+
+Completed local slice:
+
+`0.33E DB Scene Packet Persistence Plan` is locally green and remains
+planning-only. It defines future scene packet DB schema, TTL behavior, review
+gates, data boundaries, and rollback path without implementing DB persistence.
+No package/env drift, migrations, DB clients, server DB reads/writes, Hosted
+Clawd, live providers, paid scope, or public Anaheim/Ontario exposure is
+allowed from that gate.
+
+Completed local slice:
+
+`0.32E Runtime Scene Packet Memory Adapter` is locally green. It wires the
+scene packet contract into server runtime memory, attaches `_meta.scenePacket`
+metadata for playable tools, returns status-only packet metadata for shell and
+unsupported counties, and exposes a safe diagnostic route without DB
+persistence.
+
+Completed local slice:
+
+`0.31E Server Scene Packet Cache Contract` is locally green. It defines
+deterministic packet keys, runtime-only cache policies, readiness-specific
+packet boundaries, blocked future generation modes, and safety checks that
+0.32E now consumes.
+
+Completed local slice:
+
+`0.30E Dynamic Window Refresh / Pan-Safe Scene Streaming` is locally green. It
+makes the window-aware renderer safe under pan and zoom: the active scene
+window is derived from the current camera center, kept bounded by preset-sized
+frames, and refreshed only when pan leaves the buffered active frame.
+
+Completed local slice:
+
+`0.29E Window-Aware Renderer Consumption` is locally green. It moved
+`CityWorldRenderer` onto `sceneWindow.visibleCommands` and blocked direct
+full-scene command-buffer drawing in the renderer.
+
+Completed local slice:
+
+`0.28E Tile Chunk / Scene Window Compiler` is locally green. It added the core
+chunk index and camera-specific scene-window compiler that 0.29E now consumes.
+
+Completed local slice:
+
+`0.24E Second-District Promotion Readiness Aggregator` is locally green. Latest
+artifact:
+
+`artifacts/second-district-readiness/latest/anaheim-candidate`.
+
+Current 0.24E result:
+- `readyForPlayablePromotion: false`.
+- Evidence states: source verifier passed, visual packet passed, product proof
+  passed, split guard passed.
+- Data blockers: none.
+- Visual blockers: not promotion-ready, not public-playable, Lumen acceptance
+  missing.
+- Product blockers: not promotion-ready, not public-playable, Mira acceptance
+  missing.
+- Release blockers: Forge acceptance missing and promotion packet not ready.
+
+0.25E execution rule:
+
+`0.25E Owner Gate Closure / Public Promotion Cutline` is locally green. Latest
+artifact:
+
+`artifacts/second-district-readiness/latest/anaheim-candidate/owner-gate-cutline.json`.
+
+Current 0.25E result:
+- Outcome: `BLOCK_PROMOTION`.
+- Lumen gate: blocked by `visual_packet_not_promotion_ready`.
+- Mira gate: blocked by `product_proof_not_promotion_ready`.
+- Forge gate: blocked by `forge_split_guard_acceptance_missing`.
+- Axiom gate: blocked because the readiness aggregate is not promotion-ready.
+
+No controlled Anaheim public playable spike until the cutline changes from
+`BLOCK_PROMOTION` to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. Do not flip metadata or
+expose Anaheim publicly to make the schedule look better.
+
+Completed deployed slice:
+
+`0.23E Hidden Venue Authorship Pass` is deployed on Railway and publicly proven.
+Anaheim now has hidden no-label proof for Convention Center and ARTIC / Angel
+Stadium area, but the visual packet outcome remains `HIDDEN_DRAFT_ONLY`,
+`promotionReady: false`, and `publicPlayable: false`.
+
+Public proof roots:
+- Coverage:
+  `C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-023e-hidden-venue-authorship-public\coverage`.
+- Hidden Anaheim no-label draft:
+  `C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-023e-hidden-venue-authorship-public\anaheim-draft-no-label`.
+- Visual packet:
+  `C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-023e-hidden-venue-authorship-public\visual-packet`.
+
+Accepted baseline:
+
+`0.22E Public Product Entry Compression` is the public Alpha baseline. Keep the
+three-second model intact: play Riverside now, browse California shells, lookup
+places without saving, and keep Scout/Campaign session-only.
+
+Forge has added `docs/ATLAS_ENGINE_BACKEND_OPERATING_BRIEF.md` as the current
+Axiom organization brief for treating Atlas as a county-to-scene engine. Use it
+when choosing between visual, backend, and product proof slices: every engine
+slice should name the engine axis, typed contract, metric, verifier,
+screenshot/product proof, public claim that stays blocked, and forbidden files.
+The recommended Forge-forward ladder is 0.13E mobile occlusion budget, 0.14E
+source-to-cell assignment contract, 0.15E scene budget preflight, 0.16E object
+face grammar/no-label proof, and 0.17E provider promotion preflight.
+
 Recommended priority chain:
-1. Engine Beta cleanup: remove emitted cars, walkers, parked cars, clouds,
-   streetlights, benches, signs, and fountain from the production city scene.
-2. Rowhome-only production renderer intake spike using
-   `docs/brain/THREE_ASSET_PRODUCTION_INTAKE_SPEC.md` if available in the
-   active visual branch; reject after two anchor/scale attempts if pasted-on.
-3. Camera/framing pass: reduce empty green board on desktop while preserving
-   `390x844` mobile usability.
-4. Residential module quality pass: reduce repeated generic houses with a small
-   controlled module set before expanding stores or civic modules.
-5. E8.7 app review/public QA polish only if the deployed app drifts.
-6. E9.3 persistence implementation only after Engine Beta is visually credible
+The External Voxel Reference Adapter is now the accepted way to use
+`https://github.com/kunifujiwara/VoxCity`,
+`https://github.com/s-macke/voxelspace`, and
+`https://github.com/s-du/Pixels2Voxels`: reference only, no vendoring, no
+Python/Open3D/terrain-renderer dependency, no live Earth Engine/provider
+ingestion, no public Anaheim/Ontario promotion, and no image-to-voxel runtime
+gimmick. Use `docs/EXTERNAL_VOXEL_REFERENCE_ADAPTER.md` plus
+`node scripts\verify-external-voxel-reference-adapter.mjs` before applying
+their concepts. The useful pressure is: VoxCity-style source/grid/voxel-layer
+discipline, VoxelSpace-style terrain height/color diagnostics, and
+Pixels2Voxels-style offline channel/contrast art QA.
+
+The GameBlocks Atlas Adapter is now the accepted way to use
+`https://github.com/xt4d/GameBlocks`: reference only, no vendoring, no
+Three/Rapier dependency, no actor/vehicle/combat systems, and no product UI
+drift. Use `docs/GAMEBLOCKS_ATLAS_ADAPTER.md` plus
+`node scripts\verify-gameblocks-atlas-adapter.mjs` before applying any reference
+concepts. Pre-Alpha 0.9E is now complete locally: Atlas owns the runtime
+`WorldBasis` / `TerrainSampler` contract in `@atlas/core/voxel`, and diagnostics
+plus the Pixi renderer consume those helpers instead of private duplicate math.
+
+Pre-Alpha 0.10E Terrain / World-Edge Measured Correction is complete locally as
+a public Riverside terrain metric pass. It adds viewport-level
+`chunkEdgeReadabilityScore` and moves the public terrain axis:
+`terrainMassingCoverageRatio: 0.796`, `emptyBoardRatio: 0.151`,
+`firstViewportCompositionScore: 0.754`, and
+`chunkEdgeReadabilityFloorScore: 0.668`.
+
+Pre-Alpha 0.11E Public Object Authorship is complete locally. It uses existing
+`CityWorldScene` object-family grammar to strengthen Eastvale Core, residential
+homes, rowhomes, strip-store/commerce, apartments, and service/gym blocks while
+keeping terrain floors green. The object verifier reports
+`terrainMassingCoverageRatio: 0.796`, `emptyBoardRatio: 0.151`,
+`firstViewportCompositionScore: 0.754`, `homeClonePressure: 0.2`,
+`homeVariantCount: 12`, desktop object families `4`, mobile object families
+`5`, and residential-detail object families `1`.
+
+Pre-Alpha 0.12E Derived Terrain Map Engine Proof is complete locally. Atlas now
+derives height/color maps and mobile occlusion/readability reports directly
+from `CityWorldScene` in `@atlas/core`. This adapts the useful VoxelSpace idea
+without adopting a terrain-only renderer. The current verifier reports public
+Riverside `heightRange: 3.05`, `nonFlatCellRatio: 0.83`,
+`occupiedCellRatio: 0.437`, `colorKeyCount: 26`, and `waterEdgeCutRatio:
+0.608`; Orange shell has zero object occupancy; Anaheim/Ontario hidden drafts
+remain non-playable and provider-free.
+
+Pre-Alpha 0.13E Mobile LOD / Occlusion Budget Enforcement is complete locally.
+Atlas now has named mobile budgets in `@atlas/core`:
+`playable_mobile`, `residential_detail_probe`, `shell_mobile_empty_state`, and
+`hidden_draft_mobile_probe`. The mobile occlusion verifier now reports budget
+profile, pass/fail, grouped blockers, counts, and metrics. Riverside normal
+mobile passes `playable_mobile` with `mobileOcclusionRiskScore: 0.245`,
+`mobileReadabilityScore: 0.755`, `traySafeBandPressureRatio: 0.276`,
+`interactiveMarkerPressureRatio: 0.313`, and `verticalStackPressureRatio:
+0.075`. Residential detail is treated as a dense proof crop, Orange shell stays
+empty, and Anaheim/Ontario hidden drafts stay non-playable.
+
+Pre-Alpha 0.14E `Face Orientation / Source-Art Contrast Gate` is complete
+locally as a diagnostic gate, not a visual-art claim. `CityWorldScene`
+diagnostics now measure face orientation, roof/body separation, facade
+contrast, object signature coverage, weakest public object family, hidden
+anchor contrast, and weakest hidden anchor. Current metrics: Riverside
+`faceOrientationCoverageRatio: 1.0`, `roofSideSeparationRatio: 1.0`,
+`facadeContrastCoverageRatio: 1.0`, `objectSignatureCoverageRatio: 1.0`,
+`weakestObjectFamily: civic_landmark`; Anaheim hidden draft
+`hiddenAnchorContrastScore: 0.851`, `weakestHiddenAnchor: angel-stadium`.
+
+Pre-Alpha 0.15E `Civic / Venue Object-Kit Contract` is complete locally as a
+reusable object-kit contract, not a location-specific polish pass. Diagnostics
+now score two stress cells with the same silhouette, hierarchy, mobile, and
+no-label readiness contract: public `eastvale-core-civic-landmark` and hidden
+`angel-stadium-venue-anchor`. Current metrics: Eastvale Core
+`objectKitScore: 0.955`; Angel Stadium `objectKitScore: 0.970`; Ontario remains
+a hidden control with no civic/venue stress-cell classification.
+
+Pre-Alpha 0.16E `Public Civic Landmark Authorship Pass` is complete locally as
+a renderer implementation slice. `CityWorldRenderer` now applies a reusable
+public civic landmark object-kit pass: base hierarchy, roof hierarchy, facade
+rhythm, and an Eastvale Core stress-cell signature. The focused verifier is
+`node scripts\verify-public-civic-landmark-authorship.mjs --json-only`.
+
+Pre-Alpha 0.17E `Scout Drop Alpha Loop Boundary` is complete locally as a
+product/tool contract slice. `preview_scout_drop` and
+`preview_campaign_engine` now return typed `alphaBoundary` data that makes the
+loop explicit: session-only Alpha, no saves, no action execution, no XP, Hosted
+Clawd required for saved state, and a clear next tool. The focused verifier is
+`node scripts\verify-scout-campaign-alpha-loop.mjs --json-only`; MCP and
+submission verifiers now assert the same boundary.
+
+Default next quest:
+0.21A Alpha Handoff and Post-Alpha Slice Decision. The Railway deploy and public
+Alpha proof are green at `https://atlas-backend-production-e6fc.up.railway.app`.
+Public preview, MCP, submission, and Engine Beta coverage screenshots passed.
+Before starting new build work, package the public Alpha handoff: URL, local and
+public verifier results, screenshot roots, parked scope, and the next slice.
+
+Next build slice after handoff should be chosen by the weakest remaining public
+Alpha blocker: `Public Product Entry Compression` if mobile still feels dense,
+or `Hidden Venue Authorship Pass` if Axiom wants to return to second-district
+readiness. Do not run a broad art pass without a named metric and screenshot
+proof.
+
+Do not run another broad art pass unless it names the metric it intends to move
+and includes screenshot proof. Do not import GameBlocks, Three, Rapier, actor
+systems, vehicles, provider geometry, public Anaheim/Ontario promotion, or
+dashboard UI.
+
+Pre-Alpha 0.8E No-Label Anchor Recognition remains complete locally as a
+hidden-draft gate, not a public promotion. Anaheim remains non-public and
+non-playable, but the two target anchors now have a verified visual packet:
+`Anaheim Convention Center` and `ARTIC / Angel Stadium area`. The packet outcome
+is `HIDDEN_DRAFT_ONLY`, with `promotionReady: false` and `publicPlayable:
+false`.
+
+Pre-Alpha 0.6F Engine Diagnostics / Theory Harness is active locally. It adds
+`analyzeCityWorldScene` as a core diagnostics API, `scripts/debug-city-world-engine.mjs`
+as the repeatable report command, and a dev-only Pixi overlay behind
+`?atlasDebug=engine`. This becomes the decision gate before more terrain or
+object art work. The first diagnostic run had zero hard blockers and reported
+Riverside terrain massing coverage around 33.4%, empty-board ratio around
+33.5%, first-viewport composition floor around 57.2%, building/lot contact at
+100%, lot/road contact around 80.5%, home clone pressure around 20%, and
+`terrain_massing` as the weakest playable axis. Future
+visual-engine slices must name the metric they intend to move. Verify with
+`node scripts\debug-city-world-engine.mjs --json-only`, core/type/build, the
+0.1E-0.6E verifier stack, strict `engine-beta-data`, and normal plus
+`atlasDebug=engine` browser proof. Block if the report hard-fails fake
+playability, provider leakage, public hidden drafts, cars/walkers, decorative
+props, or debug overlay leakage.
+
+Pre-Alpha 0.6E Terrain Chunk Massing / World-Edge Composition is superseded by
+the 0.6F diagnostics gate before more terrain tuning. It adds `terrainChunkMassing` to `CityWorldScene` visual grammar and
+uses renderer under-tile side faces, rim lines, shadows, and strata to make
+Eastvale Core, Neighborhood Blocks, park basin edges, waterfront cuts, and the
+outer world edge read as larger terrain chunks. Verify with
+`node scripts/verify-terrain-chunk-massing-grammar.mjs`, the full 0.1E-0.5E
+verifier stack, core/type/build, strict `engine-beta-data`, and Engine Beta
+coverage screenshots. Pass only if desktop, `390x844` mobile, and
+residential-detail screenshots show a visible first-3-second terrain massing
+improvement. Block if this still reads as subtle strokes, noisy stripes, or
+requires props/labels/panels to feel better.
+
+Pre-Alpha 0.5E Terrain Elevation / Chunk Edge Language is local. The public
+Riverside/Eastvale scene now has a shallow voxel-depth layer on top of 0.4E
+terrain/parcel composition: `CityWorldScene` visual grammar carries
+`terrainElevation`, `parcelElevation`, and `chunkEdge`; public Riverside gets
+raised parcel shelves, civic plinth shelves, commercial slab fields, park basin
+shelves, water-edge cuts, raised home shelves, commercial slab lips, apartment
+court lips, civic plinth stacks, waterfront bank cuts, world edges,
+parcel-cluster edges, waterfront bank edges, and park-basin edges. Shell
+counties stay visually honest with `shell_flat`, and hidden Anaheim/Ontario
+drafts use hidden-draft shelves and boundaries without public promotion. Verify
+with `node scripts/verify-terrain-elevation-chunk-grammar.mjs`, the 0.4E
+terrain/parcel verifier, the 0.3E object-authorship verifier, the 0.2E
+roads/roofs verifier, core/type/build, strict `engine-beta-data`, and Engine
+Beta coverage screenshots. Pass only if desktop, `390x844` mobile, and
+residential-detail screenshots show clearer chunk/parcel depth without noisy
+stripes, props, labels-as-crutches, or mobile regression. If this still reads
+too subtle, the next visual-engine move must be larger than another small
+surface-stroke pass. Default next gate: Pre-Alpha 0.6E Terrain Chunk Massing /
+World-Edge Composition, unless Axiom chooses a no-label object/anchor
+recognition pass. Acceptance must be first-3-second screenshot improvement,
+not only typed grammar/verifier green.
+
+Pre-Alpha 0.4E Terrain / Parcel World Composition is local. The public
+Riverside/Eastvale scene now has an integrated compiler and renderer pass for
+terrain and parcel composition on top of 0.2E roads/roofs and 0.3E object
+authorship. `CityWorldScene` visual grammar carries `terrainComposition` and
+`parcelComposition`; public Riverside gets neighborhood yard fabric, civic
+focus fields, commercial apron fields, park basins, waterfront strata, home
+yard grids, civic plinths, apartment courts, and commercial aprons. Shell
+counties keep shell-boundary terrain only, and hidden Anaheim/Ontario drafts
+keep hidden-draft field/anchor-pad composition without public exposure. Verify
+with `node scripts/verify-terrain-parcel-composition.mjs`, the 0.3E object
+authorship verifier, the 0.2E roads/roofs verifier, the 0.1E provider-boundary
+verifier set, core/type/build, strict `engine-beta-data`, and Engine Beta
+coverage screenshots. Pass only if desktop, `390x844` mobile, and
+residential-detail screenshots show a calmer, more authored map base without
+cars, humans, decorative props, panels, labels-as-crutches, or mobile
+regression. If this still reads too empty, the next visual-engine move should
+be a broader 0.5E composition/object-kit system or a true no-label anchor
+recognition pass, not another tiny road micro-polish pass.
+
+Pre-Alpha 0.3E Object Authorship is local. The public Riverside/Eastvale scene
+now has an integrated compiler and renderer object-authorship pass on top of
+0.2E roads/roofs. `CityWorldScene` visual grammar carries `objectFamily`,
+`clusterRole`, and `noLabelPriority`; the compiler assigns public Riverside
+families for civic, residential, commerce, service, and lowrise buildings while
+hidden Anaheim/Ontario draft anchors get internal venue/transit/lowrise
+no-label priority without public exposure. The renderer consumes those profiles
+for stronger Eastvale Core civic hierarchy, sprite-backed rowhome/strip-store
+base grounding, residential window/entry rhythm, and more readable
+gym/apartment/service forms. Verify it with
+`node scripts/verify-object-authorship-scene-grammar.mjs`, the 0.2E
+roads/roofs verifier, the 0.1E provider-boundary verifier set, core/type/build,
+strict `engine-beta-data`, and Engine Beta coverage screenshots. Screenshot
+root:
+`C:\Users\mzwin\AppData\Local\Temp\atlas-prealpha-03e-object-authorship-coverage`.
+Pass only if desktop, `390x844` mobile, and residential-detail screenshots show
+better object-family read without clutter or mobile regression. If this still
+feels generic, the next visual-engine move should be `0.4E No-Label Anchor
+Recognition` for candidate-district anchors or a broader object-kit/material
+system, not more tiny Riverside sanding.
+
+Pre-Alpha 0.2E Roads & Roofs / Scene Compiler is local. The public
+Riverside/Eastvale scene now has both compiler-level visual grammar and a
+renderer material pass. `CityWorldScene` objects carry typed terrain, road, lot,
+building material, roof, and contact profiles; the renderer adds restrained
+asphalt wear, curb lift, road-joint blockwork, lot edge grounding, and SoCal
+roof course/parapet/eave material. Use
+`node scripts/verify-roads-roofs-scene-grammar.mjs` with the 0.1E provider
+boundary verifiers as the update gate. Screenshots live under
+`C:\Users\mzwin\AppData\Local\Temp\atlas-prealpha-02e-roads-roofs-local`.
+Ship this only if Mira/Axiom agree the added material reads authored rather
+than noisy on desktop, `390x844` mobile, and residential-detail views. The next
+visual-engine slice should not be more Riverside sanding unless it fixes the
+remaining broad green-board/object-authorship blocker or generalizes to the
+second-district promotion bar.
+
+Pre-Alpha 0.1E Provider Boundary Update is the architecture floor for 0.2E.
+Use `docs/architecture/ENGINEERING_OVERVIEW.md`,
+`docs/architecture/PROVIDER_BOUNDARIES.md`,
+`docs/architecture/GOOGLE_USAGE_POLICY.md`,
+`docs/updates/ATLAS_RELEASE_LADDER.md`, and
+`artifacts/current-update.json` as the update contract. The concrete checks are
+`node scripts/verify-no-google-in-renderer.mjs`, `node
+scripts/verify-provider-boundaries.mjs`, and `node
+scripts/verify-tool-result-shape.mjs`. This update keeps Google/provider lookup
+behind `@atlas/geo` and prevents provider results from becoming voxel geometry
+or readiness proof.
+
+Mira E15.6 Golden Prompt Product Proof is local. Use
+`node scripts/verify-chatgpt-entry-surface.mjs --district anaheim-candidate --json-out <temp-or-artifact>\anaheim-product-proof.json`
+to generate the machine-readable product proof. It covers direct Riverside
+play, Orange shell browsing, unknown county recovery, lookup without
+saves/readiness claims, and a negative Anaheim-playability prompt. The proof
+sets `proofStatus: "passed"` but keeps `promotionReady: false`,
+`publicPlayable: false`, and `miraAcceptance: false` until human/product review
+and the visual/release gates exist. Feed the JSON into
+`scripts/verify-second-district-readiness.mjs --product-proof <path>` when
+checking second-district readiness; the expected current result is still
+`readyForPlayablePromotion: false`.
+
+Forge E15.4 Readiness Artifact Writer is local. Use
+`node scripts/export-second-district-readiness-artifact.mjs --district anaheim-candidate --out <artifact-root> --json-only`
+or the Ontario equivalent to write review-ready JSON files:
+`readiness-aggregate.json`, `promotion-packet.json`,
+`source-to-scene-trace.json`, and `release-status.json`. The export is
+read-only, records Railway identity from Axiom's handoff, and does not mutate
+Railway, git, server routes, UI, persistence, or paid scope.
+
+Latest Axiom export:
+`artifacts/second-district-readiness/latest/anaheim-candidate`. Current result:
+data and bounded compiler proof are present, split guard passes, and
+`readyForPlayablePromotion` remains `false` because visual packet, product
+proof, Lumen acceptance, Mira acceptance, and Forge acceptance are still
+missing.
+
+Use `docs/AXIOM_ENGINE_REFERENCE_STACK.md` as Axiom's GM reference packet. The
+third-party ChatGPT app skill is useful as a checklist for app/tool/widget
+quality, but it is not installed as an Atlas dependency. Lumen should use the
+voxel/isometric references in that packet to push hidden draft grammar toward
+crisp face separation, no-label anchor recognition, stronger road/lot grounding,
+and restrained SoCal material choices.
+
+Use `docs/AXIOM_BIG4_ARTIFACT_DISPATCH.md` for the E15 expanded artifact cycle.
+The next work is larger than gate notes: Forge owns readiness aggregation,
+Lumen owns hidden draft voxel grammar, Mira owns ChatGPT entry language proof,
+and Axiom owns integration verification through
+`scripts/verify-big4-artifact-packets.mjs`.
+
+Axiom wakeups now run against `C:\Users\mzwin\Documents\Atlas-alpha-path-b-rc`
+and must read the real Forge/Lumen/Mira threads before making a captain call.
+Use `docs/AXIOM_BIG4_WAKEUP_PROTOCOL.md` and
+`scripts/verify-big4-wakeup-protocol.mjs` to keep the light/full-power
+automations from drifting back to stale summaries or local role clones.
+If the Codex app does not expose thread read/send tools, Axiom must record that
+as a blocker, refresh only local integration artifacts, and leave worker
+assignments unsent rather than fabricating worker reports.
+
+Mira E15.3 remains the entry-surface language foundation. The public entry rail
+says: Play Riverside, Browse CA shells, Lookup temp. Keep this as the product
+language source of truth: Riverside/Eastvale is playable now, shell counties
+are browse-only, lookup is not saved and not coverage proof, and public tools
+must not leak compiler, GEOID, packet, verifier, persistence, XP, evidence,
+automation, or paid claims.
+
+Lumen E15.2 Hidden Draft Voxel Grammar System + Two-Anchor Native Pass is
+local, and E15.5 No-Label Crop Packet is local. Anaheim hidden draft grammar now has stronger native convention hall,
+ARTIC transit hub, and stadium-area massing plus renderer-level grammar
+families for large venue halls, transit hubs, stadium bowls, mixed-use edges,
+commercial edges, airport/logistics edges, civic cores, and residential
+variety. `scripts/verify-second-district-draft-scene.mjs` reports
+`grammarFamilies` and still marks visual readiness as screenshot-review-only:
+no public promotion can proceed until no-label desktop, `390x844` mobile, and
+detail screenshots prove two anchors read before labels. Use
+`docs/SECOND_DISTRICT_VOXEL_GRAMMAR_PACKET.md` as Lumen's current packet: it
+records the grammar decisions, E15.2 screenshot evidence paths, E15.5 no-label
+packet paths, and the blunt `VISUAL_READINESS_FALSE` verdict. The canonical
+E15.5 packet is
+`C:\Users\mzwin\AppData\Local\Temp\atlas-e155-anaheim-no-label-packet`; it
+validates mechanically, but the crop read fails. Convention Center is only a
+partial no-label read, and ARTIC / Angel Stadium still reads as a generic
+venue cluster on mobile/detail. Keep Anaheim hidden and `promotionReady: false`.
+
+Forge E15.1 Candidate Readiness Aggregator is local. Use
+`node scripts/verify-second-district-readiness.mjs --district anaheim-candidate --json-only`
+or the Ontario equivalent for the one-command backend/readiness readout. The
+command reports data, visual, product, and release blockers plus a
+source-to-scene trace; missing visual packet, product proof, or split acceptance
+keeps `readyForPlayablePromotion: false`.
+
+Next Big 4 artifact cycle:
+Lumen E15.2 is the current visual-engine artifact. Use it to produce hidden
+draft screenshots and visual packets, not to public-promote Anaheim or Ontario.
+Forge E14.1/E15.1 promotion and readiness packets remain the public-promotion
+handoff. Mira E15.6 supplies product proof without granting promotion
+readiness. Axiom integrates only clean, verified artifacts.
+
+Current Axiom/Forge data artifact:
+E13.4 Ontario Source-Noted Anchor Pack is local. Ontario now has a
+candidate-only contract and a source-noted, non-renderable anchor pack covering
+city identity, inland residential variety, Ontario Mills, Ontario International
+Airport, civic center core, and downtown service core. It remains
+non-playable, non-renderable, scene-ineligible, and L1 shell only. The next
+Forge data artifact should be an Ontario draft-only curated pack only if it
+maps back to these source anchors without public-place claims; no hidden scene,
+UI, or public claim should be added by metadata flip.
+
+Current Lumen promotion artifact:
+Use `docs/SECOND_DISTRICT_VISUAL_ACCEPTANCE_BAR.md` before any Anaheim or
+Ontario public promotion review. The first-pair anchors must read before labels
+on desktop, `390x844` mobile, and detail camera: Anaheim Convention Center plus
+ARTIC for Anaheim; airport/logistics edge plus commerce/civic core for Ontario.
+If a candidate still depends on labels after one bounded visual pass, keep it
+hidden draft or stop the visual tunnel.
+Use `atlasNoLabels=1` with `scripts/verify-anaheim-draft-scene.mjs
+--no-label-crops` when producing Anaheim proof packets. This suppresses map
+labels before crops are captured; do not crop labeled screenshots and call them
+no-label evidence.
+Use `scripts/verify-second-district-visual-packet.mjs` to enforce screenshot
+packet completeness and structured Lumen/Mira review fields before any
+promotion packet can be treated as ready. This verifier does not judge pixels;
+it prevents missing desktop/mobile/detail/no-label evidence and missing
+visual-verdict fields from being approved by vibes.
+Use `docs/SECOND_DISTRICT_VISUAL_PACKET_TEMPLATE.md` and the verifier's
+`--print-template` mode to create conservative `visual-review.json` files that
+default to hidden-draft-only until no-label anchor recognition is proven.
+Use `scripts/prepare-second-district-visual-packet.mjs` to normalize screenshots
+from draft, Riverside baseline, shell-state, and no-label crop roots into the
+required packet filenames before running the verifier.
+Use `scripts/verify-second-district-draft-scene.mjs` before screenshot packet
+assembly. It verifies Anaheim/Ontario hidden draft scenes remain `L1` and
+non-playable while exposing the object/road grammar markers reviewers should
+judge in screenshots.
+
+Current Forge/Axiom second-district lane:
+Use `docs/SECOND_DISTRICT_PROMOTION_GATE.md` as the promotion cutline before
+any Anaheim or Ontario public switcher exposure. E13.1 adds
+`scripts/verify-california-district-pipeline.mjs`, a generalized verifier that
+reports Anaheim and Ontario candidate state, satisfied/missing gates,
+Riverside-only playable coverage, and failures for fake playable claims. This
+is the productive expansion path: source notes, curated anchors,
+provider-readiness boundaries, compiler proof, screenshots, Mira/Lumen
+acceptance, and Forge split guard before public playability. Do not add UI
+expansion, public Anaheim switcher state, playable claims, DB/persistence,
+Hosted Clawd, package/lock/env drift, provider promotion, reports, exports,
+automation, or paid scope.
+
+Mira public product-surface lane:
+E13.10 turns the compact public product-path rail under the county switcher
+into real actions: Play restores Riverside, Browse opens an Orange shell proof
+state, and Lookup asks ChatGPT for lookup-only Eastvale places without saving
+or implying county coverage. Keep the surface map-native and direct: users
+should understand that Riverside is playable now, California shells are
+browse-only, and lookup places are not saved or playable-county evidence. Do
+not turn this into a dashboard, county directory, fake switcher expansion,
+public Anaheim state, or paid/persistence feature.
+
+Current Axiom/Lumen residential material artifact:
+E12.21 Riverside Residential Material Palette Pass is local. The public
+Riverside residential kit now uses a quieter SoCal-inspired palette and adds
+subtle stucco/trim/sill/eave material bands to primitive cottages, ranch homes,
+and rowhomes. Keep only if desktop, mobile, and residential-detail screenshots
+show less default-color plastic read without adding noise or hurting the
+product loop. If the pass reads busy on mobile, narrow renderer details rather
+than reintroducing props, cars, humans, or labels.
+
+Current Axiom/Lumen landmark artifact:
+E12.20 Eastvale Core Landmark Identity is local. The public Riverside
+`building-civic` now receives a targeted structural identity pass: stronger
+glass entry, civic entry frame, roof lantern, wing bay rhythm, and subtle front
+geometry. Keep only if screenshots show Eastvale Core reads more authored
+without cluttering the selected marker/tray or mobile view.
+
+Current Axiom/Lumen public visual artifact:
+E12.19 Riverside Public Visual Trust - Civic/Parcel Grounding is local. The
+production renderer now adds stronger Eastvale Core lot composition and subtler
+residential parcel seams so the public Riverside map reads less like floating
+buildings on a flat board. This is the right visual direction only if desktop,
+mobile, and residential-detail screenshots improve or hold the product read.
+If screenshots show clutter or mobile tray interference, revert or narrow the
+renderer patch instead of adding props or panels.
+
+Current Axiom/Forge/Mira public-tool artifacts:
+E12.17 Public Lookup Readiness Copy and E12.18 County Tool Copy De-jargon are
+local. `lookup_world_places` now says lookup-only, normalized Atlas categories,
+not saved, and not county-playability evidence. `select_county` and
+`render_voxel_county` now avoid internal release/compiler language and explain
+Riverside/Eastvale as the playable county world, shell counties as coverage
+status only, and the recovery path back to Riverside/Eastvale. Keep the
+seven-tool list stable and keep provider promotion, scene eligibility, and
+public-quality claims hard false unless a later data readiness gate explicitly
+promotes a county.
+
+Current Axiom/Lumen visual cutline:
+E12.16 Lumen Convention Center Native Recognizability Cutline is local and
+verified. The duplicate ARTIC follow-up was stopped and reverted after Axiom's
+correction; the accepted E12.15 ARTIC native state remains intact. Lumen then
+made one bounded Convention Center native-geometry attempt: stronger long
+hall/campus slab, wider curtain-wall frontage, hall side-face and contact,
+roof-field breaks, skylight strips, mullion rhythm, and forecourt grounding.
+The result is better, but still does not clear the public-quality no-label bar:
+the label and shell card remain too important, especially on mobile. Do not
+promote Anaheim and do not start another hidden Anaheim art pass. Shift the next
+Lumen-owned work back to visible Riverside/public product-loop trust unless the
+human explicitly reopens a tighter venue-authoring lane with a new bar. No
+props, public UI, provider claims, persistence, paid scope, or automation.
+
+Mira research cutline:
+Use `docs/ANAHEIM_VENUE_OBJECT_GRAMMAR_RESEARCH.md` before E12.15
+implementation. The first target pair should be Anaheim Convention Center plus
+ARTIC because they have the strongest real architectural silhouettes:
+Convention Center as a long glass convention hall/campus and ARTIC as a
+parabolic transit hall with diagrid/ETFE language. Angel Stadium and Platinum
+Triangle remain secondary until those two read before labels.
+
+Mira product-surface artifact:
+E12.16 Anaheim Hidden Draft Mobile Comprehension Tightening is implemented
+locally. The hidden Anaheim shell/draft tray is denser on mobile, and
+`scripts/verify-anaheim-draft-scene.mjs` now proves the recovery CTA, boundary
+copy, and source note remain visible in the first `390x844` viewport. This
+improves the hidden draft state without adding public Anaheim playability, fake
+tools, backend changes, or renderer changes. The next Mira-owned artifact
+should shift back to visible public product quality unless a new shell/draft
+mobile regression appears.
+
+Parallel Forge backend/product lane:
+E12.15 Product Backend Boundary DTO Guard separates public coverage, hidden
+draft evidence, and future Hosted Clawd DTOs in core. Public playable tools may
+appear only when `coverageTier === L2_CURATED_DISTRICT` and
+`playableDistrictCount > 0`; shell counties, unsupported counties, and Anaheim
+draft evidence must expose empty playable-tool lists. Mira can tighten shell
+and draft UI comprehension against this contract without opening persistence.
+
+Mira/backend taste cutline:
+Use `docs/ATLAS_PRODUCT_BACKEND_UML_SPEC.md` and
+`docs/ATLAS_BACKEND_PRODUCT_TASTE_RESEARCH.md` to keep backend truth, widget
+state, hidden draft evidence, and future persistence separate. The next backend
+or UI work should improve typed boundaries or map-native shell comprehension,
+not add databases or paid state.
+
+Backend/service operating map:
+Use `docs/ATLAS_BACKEND_SERVICE_MAP.md` as the current service map for Railway,
+server routes, MCP tools, world contracts, provider boundaries, and backend
+verification. E12.16 adds `scripts/verify-world-lookup-boundary.mjs`, which
+proves REST `/api/world/lookup` and MCP `lookup_world_places` keep normalized
+categories, source notes, runtime cache metadata, repeat-call cache behavior,
+no raw provider place fields, and no county-readiness promotion. It now also
+adds typed `providerReadiness` metadata to lookup responses: lookup-only status,
+sources, mode, cache key/TTL, normalized category status/confidence, and hard
+false promotion flags for coverage, scene eligibility, and public quality. The
+next Forge-owned backend artifact should be E12.17 Provider Promotion Gate
+Inputs: define the source, confidence, failure, and QA evidence fields that
+would be required before any future county can move from read-only provider
+lookup toward `L3_PROVIDER_NORMALIZED`. No DB, Hosted Clawd, persistence,
+Stripe, XP/evidence, OAuth, automation, reports, exports, package/lock/env
+drift, or public Anaheim promotion.
+
+1. Treat Engine Beta 2A as the deployed visual/function baseline. Public
+   verification passed on Railway, and E10.1 now adds the first California
+   coverage contract without reopening paid, persistence, or visual-lab scope.
+   E10.1-E10.6 are now deployed to Railway production as deployment
+   `40fa1630-a819-4929-b20f-70d27ebbb6a3`.
+2. Use `docs/USA_PUBLIC_RELEASE_ENGINE_PLAN.md` as the public-release scale
+   contract: Eastvale is the proof cell, California is the next coverage layer,
+   and USA release requires county readiness tiers rather than a giant canvas or
+   fake full coverage.
+3. E10.3 now gives shell counties their own widget surface. Indexed L1 counties
+   such as `orange-ca` render a coverage shell and explicit readiness boundary
+   instead of silently falling back to the Riverside playable tray.
+4. E10.4 now verifies both shell and unsupported county widget states:
+   `orange-ca` renders as `L1_COUNTY_SHELL`, while `made-up-ca` renders as
+   `L0_UNSUPPORTED`, and neither path exposes place, sticker, or note tools.
+5. E10.5 now adds one recovery action from shell/unsupported coverage states
+   back to `Open Riverside/Eastvale playable Alpha`.
+6. E10.6 now adds `scripts/verify-engine-beta-coverage.mjs` as the focused
+   release gate for California coverage: 58 counties, Riverside L2, Orange L1,
+   unknown L0, preview/MCP/submission, Riverside product loop, shell widget,
+   unsupported widget, and recovery action.
+7. Public deploy verification is green. `scripts/verify-engine-beta-coverage.mjs`
+   passed against `https://atlas-backend-production-e6fc.up.railway.app` with
+   public screenshots for Riverside playable, Orange shell, and unsupported
+   states.
+8. E10.6.1 fixed Mira's mobile recovery blocker. The shell verifier now asserts
+   the recovery action is visible in the first `390x844` viewport, and public
+   Orange/unsupported mobile screenshots show `Open Riverside/Eastvale playable
+   Alpha` without hunting.
+9. E10.7 adds a compact county switcher and coverage directory. Public users
+   can move between Riverside playable, Orange shell, and unsupported state
+   inside the map surface. Public matrix verifies the switcher on desktop and
+   `390x844` mobile.
+10. E10.8 polishes the first-run county choice surface without expanding scope:
+   the fallback county now reads as `Unknown / L0`, and the switcher carries a
+   tiny coverage truth line: `CA coverage: 1 playable, 57 indexed shells`.
+   The county-switcher verifier now protects that first-read copy.
+11. Engine Beta 2B tightens road/lot/terrain contact grammar in the production
+   renderer. Roads now have clearer contact/side-face layers, lots have subtle
+   lower lips and grounding shadows, and grass tiles are quieter so buildings
+   and roads carry the first read. This is renderer-only: no props, cars,
+   humans, labels, water expansion, or new product panels.
+12. Engine Beta 2C strengthens Eastvale Core as the first selected landmark.
+   The civic building now has clearer roof tiers, entry block, columns, side
+   windows, and steps in the production renderer. This is a bounded landmark
+   readability pass, not a new place, prop, UI, or product state.
+13. E10.9 makes the Census source verifier repeatable. The county source gate
+   now reports cached vs downloaded source files, supports offline verification,
+   and fails clearly when the cache is missing. Raw Census files stay temp-only
+   unless explicitly approved as checked fixtures; no fake counties or provider-
+   readiness claims.
+14. E11.1 road module geometry is deployed. The renderer now draws
+   road slabs, edge bevels, crosswalk pavers, and inferred isometric junction
+   plates from the existing road segments. Railway deployment
+   `59a5eecc-8b8a-45f1-a920-c62626f8de26` passed the public Engine Beta
+   coverage matrix.
+15. E11.2 residential variety is deployed as Railway deployment
+   `3a8de436-9da0-45bf-80a2-f3bf7e916500`. The production renderer now gives
+   existing cottage, ranch, and rowhome families clearer front-gable, low-ranch,
+   porch/stoop, window, eave, and unit-rhythm details without adding props or
+   product scope. Public Engine Beta coverage matrix passed after deploy.
+16. E11.3 camera and visual density is deployed as Railway deployment
+   `461b8adf-59e3-4e95-bae2-00d536464259`. The city-world scene now has
+   `desktop`, `mobile`, and `residential_detail` camera presets; the production
+   desktop camera is tighter, and the Engine Beta verifier captures
+   residential-detail QA screenshots without adding a user-facing camera mode.
+   Public `node scripts\verify-engine-beta-coverage.mjs` passed against
+   `https://atlas-backend-production-e6fc.up.railway.app`.
+17. E11.4 terrain and parcel density is deployed as Railway deployment
+   `ff24270d-5e9f-4689-83db-140b991ab581`. Grass grid noise is quieter, lots
+   have stronger contact, and home/commercial/apartment pads read more
+   grounded. Public `node scripts\verify-engine-beta-coverage.mjs` passed
+   against `https://atlas-backend-production-e6fc.up.railway.app`.
+18. E11.5 landmark/parcel read and product-surface tightening are deployed as
+   Railway deployment `e083338f-b916-4d22-872b-897fe3426c59`. The public app now
+   has shorter Shell/L0 coverage-tray copy, stronger Eastvale Core grounding,
+   clearer Neighborhood Blocks lot boundaries, and less flat green around the
+   playable core. Public `node scripts\verify-engine-beta-coverage.mjs` passed
+   against `https://atlas-backend-production-e6fc.up.railway.app`.
+19. Forge parallel E11.6 data-readiness prep is active: Anaheim in Orange
+   County and Ontario in San Bernardino County are candidate-only district
+   contracts. They are Census-anchored and non-playable. They must stay at
+   `L1_COUNTY_SHELL` with zero places until a curated district pack, source
+   notes, compiler proof, desktop/mobile product-loop screenshots, Lumen visual
+   acceptance, Mira readiness proof, and Forge split guard all pass.
+20. E11.7 residential object art upgrade is deployed as Railway deployment
+   `61c04438-1cdd-455e-b444-7137b08d56b5`. Primitive
+   cottage, ranch, and lowrise apartment drawing now has stronger
+   foundation/contact, roof massing, porch/stoop, window, entry, and face-depth
+   grammar; the existing rowhome SVG source has subtler roof/base material
+   facets. Public `node scripts\verify-engine-beta-coverage.mjs` passed after
+   deploy.
+21. E11.8 commerce/landmark object polish is deployed as Railway deployment
+   `19dd4f59-ca7a-4321-b681-945713f88680`. It improves the existing Plaza Row
+   strip-store asset, Gym, Apartments, and Eastvale Core object details. Public
+   `node scripts\verify-engine-beta-coverage.mjs` passed against
+   `https://atlas-backend-production-e6fc.up.railway.app` with Riverside
+   desktop/mobile, residential-detail, Orange shell, unsupported, and
+   county-switcher screenshots. No new places, props, cars, humans, product
+   panels, paid scope, persistence, XP/evidence, OAuth, reports, exports, or
+   automation were added.
+22. E11.9 selected-landmark marker/Clawd stacking cleanup is deployed as Railway
+   deployment `5cf3aca4-ac5c-46e3-8836-fe1abb0f3ce9`. Clawd now reads in front
+   of Eastvale Core, marker/pin affordances remain visible, and public
+   `node scripts\verify-engine-beta-coverage.mjs` passed against production.
+   No new UI, props, product state, backend scope, or broad renderer rewrite was
+   added.
+23. E12.1 California District Candidate Pack is deployed as Railway deployment
+   `2ee2403a-630f-4328-9716-943ecdaec588`. Anaheim in Orange County is the
+   priority-1 second-playable-district candidate; Ontario in San Bernardino
+   County is the priority-2 follow-up. Both remain `playableNow: false`, stay
+   at `L1_COUNTY_SHELL`, and require curated district packs, source notes,
+   compiler proof, desktop/mobile screenshots, Lumen visual acceptance, Mira
+   readiness acceptance, and Forge split guard before any L2 promotion. Public
+   `node scripts\verify-engine-beta-coverage.mjs` passed against
+   `https://atlas-backend-production-e6fc.up.railway.app`.
+24. E12.2 Anaheim Curated District Candidate Pack Contract is deployed as
+   Railway deployment `76094157-a95b-4486-b104-9b622ab1f098`. The Anaheim
+   fixture lives at `data/district_candidate_packs/anaheim-candidate.json` and
+   validates through `parseDistrictCandidatePack`. It is a readiness contract
+   only: all anchors are `renderableNow: false`, Anaheim remains
+   `playableNow: false`, and Riverside remains the only public playable county.
+   Public `node scripts\verify-engine-beta-coverage.mjs` passed against
+   `https://atlas-backend-production-e6fc.up.railway.app`.
+25. E12.3 Anaheim Source-Noted Place Anchor Pack should be next if E12.2
+   deploys. Add the first real source-noted place anchors for Anaheim, still
+   non-renderable and non-playable, then prove they are sufficient for a bounded
+   compiler spike.
+26. E12.3 Anaheim Source-Noted Place Anchor Pack is deployed as Railway
+   deployment `f6cb4114-cd6e-4f14-97d8-01bf749ad858`. The Anaheim anchor fixture
+   lives at `data/district_place_anchor_packs/anaheim-anchors.json` and
+   validates through `parseDistrictPlaceAnchorPack`. It names Anaheim city
+   identity, Platinum Triangle, Anaheim Convention Center, ARTIC, Angel Stadium,
+   and Downtown Anaheim Community Center as source-noted anchors, but all remain
+   `providerNormalized: false`, `renderableNow: false`, and `sceneEligible:
+   false`. Public `node scripts\verify-engine-beta-coverage.mjs` passed against
+   `https://atlas-backend-production-e6fc.up.railway.app`.
+27. E12.4 Anaheim Bounded Scene Compiler Spike should be next if E12.3 deploys.
+   Build a compiler proof that can consume non-renderable anchors into a bounded
+   draft scene behind a non-public gate, then screenshot it before any public
+   county switcher or playable claim.
+28. E12.4 Anaheim Bounded Scene Compiler Spike is deployed as Railway
+   deployment `17f4fe23-8330-4685-92e8-e022fe157ca4`. The hidden compiler
+   function `compileDistrictPlaceAnchorDraftCityWorldScene` consumes the
+   Anaheim anchor pack and returns a bounded `CityWorldScene` draft with
+   `coverageTier: L1_COUNTY_SHELL`, `playable: false`, no actors, no pins, and
+   no selected-place state. Public `node scripts\verify-engine-beta-coverage.mjs`
+   passed against `https://atlas-backend-production-e6fc.up.railway.app`.
+29. E12.5 Anaheim Draft Screenshot Harness should be next: capture the
+   non-public draft scene through deterministic desktop/mobile/residential-detail
+   proof without exposing it as a public playable county.
+30. E12.5 Anaheim Draft Screenshot Harness is deployed as Railway deployment
+   `744f4821-eedd-4649-9df2-526b737a4ba8`. It adds
+   `scripts/verify-anaheim-draft-scene.mjs`, proves the hidden Anaheim draft as
+   `L1_COUNTY_SHELL` with zero playable districts and zero public places, and
+   captures desktop, mobile, and residential-detail screenshots without public
+   Anaheim UI.
+31. E12.6 Anaheim Draft Composition Pass should be next: keep the draft
+   non-public, but make the hidden scene distinguish mixed-use, convention,
+   transit, stadium, and downtown anchors better before any public playable
+   claim.
+32. E12.6 Anaheim Draft Composition Pass is deployed as Railway deployment
+   `400dde38-5f75-4c2e-ac2c-31408854669c`. It keeps Anaheim non-public and
+   improves the hidden draft with a mixed-use cluster and more varied primitive
+   building families, while public Engine Beta coverage and the Anaheim draft
+   harness both pass against production.
+33. E12.7 Anaheim Anchor-Specific Object Grammar should be next if the team
+   keeps pushing the second-district lane: still non-public, improve convention
+   center, ARTIC, stadium, and downtown shapes so the draft stops leaning on
+   repeated storefront/civic primitives. Do not expose Anaheim as playable.
+34. E12.7 Anaheim Anchor-Specific Object Grammar is deployed as Railway
+   deployment `08e51f37-1db1-4f66-89ad-a5be2ec7e758`. It keeps Anaheim
+   non-public and replaces repeated civic/storefront draft blocks with
+   anchor-specific compiler profiles for the convention center, ARTIC, Angel
+   Stadium, Downtown Community Center, and Platinum Triangle. Public Engine Beta
+   coverage and the hidden Anaheim draft harness both pass against production.
+35. E12.8 Draft Venue/Transit Primitive Detail Support is deployed as Railway
+   deployment `5d057007-96d6-4e71-a85f-81b7bcfeb28c`. It adds draft-ID-gated
+   renderer detail for hidden convention, transit, stadium, and downtown
+   objects, tightens civic support masses, and makes the Anaheim draft harness
+   assert the requested coverage-shell camera preset. Public Engine Beta
+   coverage and the hidden Anaheim draft harness both pass against production.
+36. E12.9 Anaheim Draft Promotion Readiness Verifier is implemented locally.
+   It adds `scripts/verify-anaheim-promotion-readiness.mjs`, which passes only
+   when the no-fake-playability boundary holds. Before E12.10, its expected
+   output was `promotionReady: false`, Riverside as the only public playable
+   county, two satisfied gates, five missing promotion gates, and zero boundary
+   failures.
+37. E12.10 Anaheim Curated District Pack Contract is deployed as Railway
+   deployment `fd563d83-dde2-4431-b917-89a5ce0a61c7`. It adds a typed
+   draft-only curated pack for the six Anaheim anchors and updates the
+   promotion-readiness verifier so the curated-pack gate is satisfied while
+   Anaheim remains `promotionReady: false`.
+38. E12.11 Anaheim Visual Triage Pass is deployed as Railway deployment
+   `d2c6eb14-6a1b-41ca-abf4-674e39c21caa`. It calms the hidden Anaheim palette,
+   improves draft labels and facade/material marks, and removes the worst
+   internal evidence-copy wording while keeping Anaheim non-public and
+   `promotionReady: false`. Public Engine Beta coverage and the hidden Anaheim
+   draft harness both pass against production.
+39. E12.12 SoCal Voxel Material System is deployed as Railway deployment
+   `92dc0aae-b1ea-41f1-a8ad-4f979bd3f3bf`. It adds draft-only material rules
+   for Anaheim terrain, roads, lots, and buildings: warmer pads, darker asphalt
+   side faces, tan curbs, roof/facade material marks, and stronger foundation
+   contact. Anaheim remains non-public and `promotionReady: false`; public
+   Engine Beta coverage and the hidden Anaheim draft harness both pass against
+   production.
+40. E12.13 Anaheim Venue Silhouette Pass should follow E12.12 if screenshots
+   still show primitive-placeholder weakness. Improve the hidden draft
+   Convention Center, ARTIC, Stadium, and Platinum Triangle object silhouettes
+   through compiler/renderer geometry only. No public Anaheim UI, cars, humans,
+   decorative props, fake playable state, provider claims, persistence, paid
+   scope, or automation.
+41. E8.7 app review/public QA polish only if the deployed app drifts.
+42. E9.3 persistence implementation only after Engine Beta is visually credible
    and `HUMAN_APPROVAL_BEFORE_PERSISTENCE` is explicitly reopened.
-7. E9.4 Stripe implementation only after persistence exists and
+43. E9.4 Stripe implementation only after persistence exists and
    `HUMAN_APPROVAL_BEFORE_MONEY` is approved.
 
 Parallel execution posture:
@@ -33,6 +875,12 @@ Integration support:
 Use `docs/INTEGRATION_QA_PLAYBOOK.md` as the captain checklist for worker
 handoffs, merge gates, local/public verification, browser QA, and rejection
 rules.
+
+Big 4 artifact operating model:
+Use `docs/BIG4_ARTIFACT_OPERATING_MODEL.md` as the current worker contract.
+Mira, Lumen, and Forge should build bounded artifacts in their owned lanes
+before sending gate-only reports. Axiom integrates and deploys only after
+artifact verification is attached.
 
 Production evolution posture:
 Use `docs/PRODUCTION_EVOLUTION_GATES.md` for every substantial slice. Each quest
@@ -564,6 +1412,53 @@ Implemented routes:
 - `GET /api/world/us/states/CA/counties`
 - `GET /api/world/counties/riverside-ca`
 - `GET /api/world/counties/riverside-ca/districts/eastvale-city-slice`
+
+### Quest E10.1: California County Coverage Contract
+
+Make California coverage explicit before broader provider ingestion.
+
+Acceptance:
+
+- Coverage tiers exist for `L0_UNSUPPORTED`, `L1_COUNTY_SHELL`,
+  `L2_CURATED_DISTRICT`, `L3_PROVIDER_NORMALIZED`, and `L4_PUBLIC_QUALITY`.
+  Done.
+- Census-derived California county index includes all 58 counties. Done.
+- Riverside County uses GEOID `06065` and is marked `L2_CURATED_DISTRICT`.
+  Done.
+- Eastvale district identity keeps GEOID `0621230`. Done.
+- Los Angeles and Orange are indexed as `L1_COUNTY_SHELL` with zero playable
+  districts. Done.
+- Unknown counties return explicit `L0_UNSUPPORTED` coverage instead of fake
+  Riverside data. Done.
+- `select_county` and `render_voxel_county` return a scene only for
+  `riverside-ca`; shell counties return `countyCoverageSummary` and no
+  `_meta.scene`. Done.
+- `lookup_world_places` remains provider-backed lookup and is not treated as
+  county readiness. Done.
+- Strict `engine-beta-data` split guard passes with no Hosted Clawd, package,
+  lockfile, env, visual-lab, Stripe, XP, evidence, OAuth, automation, report, or
+  export drift. Done.
+
+### Quest E10.2: Generic County Shell Compiler Contract
+
+Create a safe shell scene contract for indexed counties that are not playable
+yet.
+
+Acceptance:
+
+- `compileCountyShellCityWorldScene` returns a bounded `CityWorldScene` with
+  coverage metadata and deterministic desktop/mobile cameras. Done.
+- Shell scenes contain terrain only and no fake places, buildings, lots, roads,
+  pins, actors, or local activity. Done.
+- `select_county` and `render_voxel_county` attach shell scenes as
+  `_meta.coverageShellScene` for L1 counties. Done.
+- Shell county tool responses still omit `_meta.scene`, preserving the boundary
+  that only playable county scenes use that payload. Done.
+- MCP verification proves `orange-ca` has shell metadata, no fake scene, no fake
+  places, and no actors. Done.
+- No widget UI change, provider ingestion, persistence, Hosted Clawd, Stripe,
+  XP, evidence, OAuth, automation, report, export, or visual-lab work enters
+  this slice. Done.
 
 ### Quest E9.3: Hosted Clawd Persistence Foundation
 

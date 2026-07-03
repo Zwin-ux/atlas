@@ -62,7 +62,18 @@ body {
   display: block;
 }
 
+.city-world-coverage-map-fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(29, 42, 37, 0.05) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(29, 42, 37, 0.04) 1px, transparent 1px),
+    linear-gradient(180deg, #acd989, #82c47d);
+  background-size: 28px 28px, 28px 28px, auto;
+}
+
 .city-world-location,
+.city-world-county-switcher,
 .city-world-zoom,
 .city-world-stickers,
 .city-world-tray {
@@ -98,6 +109,136 @@ body {
   font-size: 17px;
   line-height: 1.05;
   overflow-wrap: anywhere;
+}
+
+.city-world-county-switcher {
+  top: calc(max(14px, env(safe-area-inset-top)) + 68px);
+  left: max(14px, env(safe-area-inset-left));
+  display: grid;
+  gap: 2px;
+  max-width: min(420px, calc(100vw - 96px));
+}
+
+.city-world-county-switcher-options {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.city-world-county-switcher-options::-webkit-scrollbar {
+  display: none;
+}
+
+.city-world-county-switcher button {
+  display: grid;
+  min-width: 88px;
+  min-height: 35px;
+  padding: 6px 8px;
+  border: 1px solid rgba(35, 50, 44, 0.18);
+  border-radius: 7px;
+  background: rgba(255, 248, 233, 0.66);
+  color: var(--city-ink);
+  box-shadow: 0 8px 20px rgba(35, 50, 44, 0.12);
+  cursor: pointer;
+  text-align: left;
+  backdrop-filter: blur(10px);
+}
+
+.city-world-county-switcher button:hover,
+.city-world-county-switcher button.is-active {
+  background: rgba(255, 242, 166, 0.92);
+  transform: translateY(-1px);
+}
+
+.city-world-county-switcher button:focus-visible {
+  outline: 3px solid rgba(255, 225, 108, 0.78);
+  outline-offset: 2px;
+}
+
+.city-world-county-switcher span {
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.city-world-county-switcher strong {
+  margin-top: 2px;
+  color: rgba(29, 42, 37, 0.62);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.city-world-county-switcher p {
+  margin: 0;
+  padding: 3px 7px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid rgba(35, 50, 44, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 253, 239, 0.72);
+  box-shadow: 0 6px 16px rgba(35, 50, 44, 0.1);
+  color: rgba(29, 42, 37, 0.64);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.1;
+  backdrop-filter: blur(10px);
+}
+
+.city-world-product-path {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  max-width: min(420px, calc(100vw - 96px));
+  overflow-x: auto;
+  padding-bottom: 1px;
+  scrollbar-width: none;
+}
+
+.city-world-product-path::-webkit-scrollbar {
+  display: none;
+}
+
+.city-world-product-path button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px 6px;
+  border: 1px solid rgba(35, 50, 44, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 253, 239, 0.64);
+  color: var(--city-ink);
+  box-shadow: 0 6px 16px rgba(35, 50, 44, 0.1);
+  cursor: pointer;
+  text-align: left;
+  backdrop-filter: blur(10px);
+}
+
+.city-world-product-path button:hover,
+.city-world-product-path button:focus-visible {
+  background: rgba(255, 242, 166, 0.92);
+}
+
+.city-world-product-path b {
+  color: rgba(29, 42, 37, 0.9);
+  font-size: 10.5px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.city-world-product-path em {
+  color: rgba(29, 42, 37, 0.58);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1;
 }
 
 .city-world-zoom {
@@ -317,6 +458,23 @@ body {
   line-height: 1.2;
 }
 
+.city-world-coverage-shell .city-world-location {
+  border-left-color: #45655a;
+}
+
+.city-world-coverage-tray {
+  border-top-color: #45655a;
+}
+
+.city-world-coverage-tray .city-world-place-pulse {
+  background: rgba(208, 223, 194, 0.62);
+}
+
+.city-world-coverage-source {
+  color: rgba(29, 42, 37, 0.64);
+  font-size: 11px;
+}
+
 .city-world-note {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 58px;
@@ -343,6 +501,30 @@ body {
   text-transform: uppercase;
 }
 
+.city-world-recovery-action {
+  min-height: 36px;
+  border: 1px solid rgba(35, 50, 44, 0.24);
+  border-radius: 7px;
+  background: rgba(255, 218, 99, 0.96);
+  color: var(--city-ink);
+  box-shadow: 0 8px 18px rgba(35, 50, 44, 0.12);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.city-world-recovery-action:hover {
+  background: #fff2a6;
+  transform: translateY(-1px);
+}
+
+.city-world-recovery-action:focus-visible {
+  outline: 3px solid rgba(255, 225, 108, 0.78);
+  outline-offset: 2px;
+}
+
 .city-world-latest-note {
   min-width: 0;
   padding: 7px 9px;
@@ -364,6 +546,33 @@ body {
 
   .city-world-location strong {
     font-size: 14px;
+  }
+
+  .city-world-county-switcher {
+    top: calc(max(10px, env(safe-area-inset-top)) + 62px);
+    left: 10px;
+    max-width: calc(100vw - 86px);
+  }
+
+  .city-world-county-switcher button {
+    min-width: 78px;
+    min-height: 32px;
+    padding: 5px 7px;
+  }
+
+  .city-world-product-path {
+    max-width: calc(100vw - 86px);
+    gap: 2px;
+  }
+
+  .city-world-product-path button {
+    min-width: 0;
+    padding: 4px 5px;
+  }
+
+  .city-world-product-path b,
+  .city-world-product-path em {
+    font-size: 9px;
   }
 
   .city-world-zoom button,
@@ -401,6 +610,41 @@ body {
     padding: 10px;
   }
 
+  .city-world-coverage-tray {
+    gap: 4px;
+    max-height: min(236px, calc(100dvh - 116px));
+    padding: 7px;
+  }
+
+  .city-world-coverage-tray .city-world-tray-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .city-world-coverage-tray .city-world-place-type {
+    font-size: 9px;
+  }
+
+  .city-world-coverage-tray .city-world-place-pulse {
+    min-height: 18px;
+    padding: 1px 6px;
+    font-size: 9px;
+  }
+
+  .city-world-coverage-tray .city-world-tray-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .city-world-coverage-tray .city-world-tray-meta span {
+    min-height: 20px;
+    padding: 2px 4px;
+    text-align: center;
+    line-height: 1.05;
+  }
+
   .city-world-tray-head {
     grid-template-columns: minmax(0, 1fr);
     gap: 6px;
@@ -418,9 +662,31 @@ body {
     font-size: 17px;
   }
 
+  .city-world-coverage-tray strong {
+    font-size: 16px;
+  }
+
   .city-world-session-boundary {
     min-height: 24px;
     padding: 5px 7px;
+  }
+
+  .city-world-coverage-tray .city-world-session-boundary {
+    min-height: 18px;
+    padding: 3px 6px;
+    font-size: 9px;
+    line-height: 1.1;
+  }
+
+  .city-world-coverage-tray .city-world-recovery-action {
+    min-height: 30px;
+    font-size: 10.5px;
+  }
+
+  .city-world-coverage-source {
+    padding: 3px 6px;
+    font-size: 9px;
+    line-height: 1.1;
   }
 
   .city-world-note {

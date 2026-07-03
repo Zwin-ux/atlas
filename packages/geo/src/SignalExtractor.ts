@@ -6,6 +6,7 @@ import type {
   ResolvedLocation,
 } from "./GeoDataAdapter.js";
 import { normalizeProviderPlaceCategory } from "./PlaceCategoryNormalizer.js";
+import { createProviderUsagePolicy } from "./ProviderUsagePolicy.js";
 
 const GOOGLE_ATTRIBUTION = "Google Maps Platform";
 const DEFAULT_TTL_SECONDS = 60 * 60 * 24;
@@ -61,6 +62,7 @@ export function extractResolvedLocation(query: string, result: GoogleGeocodeResu
     source: "google",
     attribution: GOOGLE_ATTRIBUTION,
     ttlSeconds: DEFAULT_TTL_SECONDS,
+    usagePolicy: createProviderUsagePolicy("google"),
   };
 }
 
@@ -80,6 +82,7 @@ export function extractNearbyPlaceSignals(places: GooglePlace[]): NearbyPlaceSig
         source: "google",
         attribution: GOOGLE_ATTRIBUTION,
         ttlSeconds: DEFAULT_TTL_SECONDS,
+        usagePolicy: createProviderUsagePolicy("google"),
       };
     });
 }
@@ -99,6 +102,7 @@ export function extractAggregateSignals(
       source: "google",
       attribution: GOOGLE_ATTRIBUTION,
       ttlSeconds: DEFAULT_TTL_SECONDS,
+      usagePolicy: createProviderUsagePolicy("google"),
     });
   }
 
@@ -110,6 +114,7 @@ export function extractAggregateSignals(
       source: "google",
       attribution: GOOGLE_ATTRIBUTION,
       ttlSeconds: DEFAULT_TTL_SECONDS,
+      usagePolicy: createProviderUsagePolicy("google"),
     });
   }
 

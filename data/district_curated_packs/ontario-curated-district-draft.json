@@ -1,0 +1,257 @@
+{
+  "packId": "ontario-curated-district-draft-pack",
+  "candidatePackId": "ontario-candidate-pack",
+  "anchorPackId": "ontario-source-noted-place-anchors",
+  "version": "0.1-engine-beta-draft-only",
+  "stateCode": "CA",
+  "countySlug": "san-bernardino-ca",
+  "countyGeoid": "06071",
+  "districtSlug": "ontario-candidate",
+  "districtGeoid": "0653896",
+  "promotionStatus": "draft_only",
+  "currentCoverageTier": "L1_COUNTY_SHELL",
+  "targetCoverageTier": "L2_CURATED_DISTRICT",
+  "playableNow": false,
+  "publicNow": false,
+  "sourceNotes": [
+    {
+      "id": "census-2024-place-gazetteer-ca",
+      "source": "census",
+      "label": "2024 Census California place gazetteer",
+      "attribution": "U.S. Census Bureau Gazetteer Files, 2024",
+      "url": "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_gaz_place_06.txt",
+      "lastChecked": "2026-07-02",
+      "verifies": [
+        "Ontario city place identity",
+        "Ontario place GEOID 0653896"
+      ]
+    },
+    {
+      "id": "ontario-visit-official",
+      "source": "local-open-data",
+      "label": "City of Ontario Visit Ontario page",
+      "attribution": "City of Ontario, California",
+      "url": "https://www.ontarioca.gov/visit-ontario",
+      "lastChecked": "2026-07-02",
+      "verifies": [
+        "Ontario Mills public shopping destination role",
+        "Ontario International Airport public transportation identity",
+        "Downtown Ontario cultural and entertainment district role"
+      ]
+    },
+    {
+      "id": "ontario-civic-center-official",
+      "source": "local-open-data",
+      "label": "City of Ontario Civic Center Campus Expansion page",
+      "attribution": "City of Ontario, California",
+      "url": "https://www.ontarioca.gov/government/public-works/design-construction/civic-center-campus-expansion",
+      "lastChecked": "2026-07-02",
+      "verifies": [
+        "Downtown civic center campus public-building role",
+        "Downtown high-density housing dining retail services public-space and civic-facility stressor"
+      ]
+    },
+    {
+      "id": "ontario-airport-official",
+      "source": "local-open-data",
+      "label": "Ontario International Airport official website",
+      "attribution": "Ontario International Airport Authority",
+      "url": "https://www.flyontario.com/",
+      "lastChecked": "2026-07-02",
+      "verifies": [
+        "Ontario International Airport transportation role",
+        "Airport terminal parking and road-access stressor"
+      ]
+    },
+    {
+      "id": "atlas-engine-beta-candidate-brief",
+      "source": "curated",
+      "label": "Atlas Engine Beta candidate design brief",
+      "attribution": "Atlas local engine planning notes",
+      "lastChecked": "2026-07-02",
+      "verifies": [
+        "Inland logistics suburb stressor",
+        "Residential service and road-lot grammar requirements before playable promotion"
+      ]
+    }
+  ],
+  "curatedAnchors": [
+    {
+      "id": "ontario-district-identity",
+      "sourceAnchorId": "ontario-city-identity",
+      "label": "Ontario city identity",
+      "category": "unknown",
+      "role": "district_identity",
+      "sceneRole": "district bounds and naming anchor",
+      "sourceNoteIds": [
+        "census-2024-place-gazetteer-ca"
+      ],
+      "renderPolicy": "blocked_until_coordinates",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "district bounds review",
+        "camera framing proof",
+        "Riverside rollback preserved"
+      ],
+      "sceneStressors": [
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "ontario-inland-residential-cluster",
+      "sourceAnchorId": "ontario-inland-residential-variety",
+      "label": "Ontario inland residential variety",
+      "category": "home_area",
+      "role": "mixed_use_area",
+      "sceneRole": "inland residential kit and block-scale density stress test",
+      "sourceNoteIds": [
+        "atlas-engine-beta-candidate-brief"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "residential kit screenshot pass",
+        "mobile density pass"
+      ],
+      "sceneStressors": [
+        "residential_variety",
+        "road_lot_contact",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "ontario-mills-commerce-anchor",
+      "sourceAnchorId": "ontario-mills-commercial-anchor",
+      "label": "Ontario Mills commercial anchor",
+      "category": "shop",
+      "role": "destination_landmark",
+      "sceneRole": "large retail footprint and parking-apron grammar test",
+      "sourceNoteIds": [
+        "ontario-visit-official"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "commerce object visual acceptance",
+        "parking apron without cars proof"
+      ],
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "road_lot_contact",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "ontario-airport-transit-anchor",
+      "sourceAnchorId": "ontario-international-airport",
+      "label": "Ontario International Airport",
+      "category": "transit",
+      "role": "transit_anchor",
+      "sceneRole": "airport terminal road edge and parking/lot stress test",
+      "sourceNoteIds": [
+        "ontario-visit-official",
+        "ontario-airport-official"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "airport/transit object visual acceptance",
+        "mobile crop proof"
+      ],
+      "sceneStressors": [
+        "road_lot_contact",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "ontario-civic-center-anchor",
+      "sourceAnchorId": "ontario-civic-center-core",
+      "label": "Ontario civic center core",
+      "category": "civic",
+      "role": "civic_anchor",
+      "sceneRole": "civic campus object and public-service block test",
+      "sourceNoteIds": [
+        "ontario-civic-center-official"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "civic object visual acceptance",
+        "desktop and mobile product-loop screenshots"
+      ],
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "road_lot_contact",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "ontario-downtown-service-cluster",
+      "sourceAnchorId": "ontario-downtown-service-core",
+      "label": "Ontario downtown service core",
+      "category": "service",
+      "role": "mixed_use_area",
+      "sceneRole": "downtown service retail office and civic edge stress test",
+      "sourceNoteIds": [
+        "ontario-civic-center-official",
+        "atlas-engine-beta-candidate-brief"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "service-block visual acceptance",
+        "desktop and mobile product-loop screenshots"
+      ],
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "road_lot_contact",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ]
+    }
+  ],
+  "requiredBeforeL2": [
+    "curated_district_pack",
+    "place_anchors_with_source_notes",
+    "bounded_scene_compiler_proof",
+    "desktop_mobile_product_loop_screenshots",
+    "lumen_visual_acceptance",
+    "mira_readiness_acceptance",
+    "forge_split_guard"
+  ],
+  "promotionBlockers": [
+    "coordinates_or_bounds_missing",
+    "provider_category_confidence_missing",
+    "public_product_loop_screenshots_missing",
+    "visual_acceptance_missing",
+    "product_readiness_missing",
+    "split_guard_missing"
+  ],
+  "objectKitRequirements": [
+    "Ontario Mills must read as a large commerce footprint without fake stores or public place claims",
+    "Ontario International Airport needs transit/terminal grammar before public screenshots",
+    "civic and downtown service anchors must stay grounded in block and lot grammar",
+    "residential/service areas must prove inland scale without cars, humans, or decorative clutter"
+  ],
+  "screenshotRequirements": [
+    "desktop 1280x720 Ontario draft after hidden tool injection",
+    "mobile 390x844 Ontario draft with recovery CTA visible",
+    "detail camera focused on airport/commerce/civic anchor composition",
+    "Lumen visual audit distinguishing P0 blockers from P1 backlog",
+    "Mira product audit confirming no fake playable controls"
+  ],
+  "rejectRules": [
+    "Do not make Ontario selectable as playable from this draft pack.",
+    "Do not expose public places before coordinates or bounds and product-loop screenshots pass.",
+    "Do not claim Google/provider-normalized categories from these source notes.",
+    "Do not add cars, humans, decorative props, dashboard panels, persistence, paid scope, XP, evidence, OAuth, automation, reports, or exports.",
+    "Do not promote San Bernardino County above L1 shell until the full L2 gate passes."
+  ]
+}

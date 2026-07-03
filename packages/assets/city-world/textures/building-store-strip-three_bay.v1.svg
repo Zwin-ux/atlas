@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="470" height="320" viewBox="0 0 470 320" role="img" aria-label="Atlas three bay strip store voxel asset">
+  <defs>
+    <filter id="contact" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#34504a" flood-opacity="0.18"/>
+    </filter>
+    <style>
+      .edge { stroke: rgba(42, 64, 62, 0.13); stroke-width: 1; stroke-linejoin: round; }
+      .soft { stroke: rgba(42, 64, 62, 0.08); stroke-width: 1; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <g filter="url(#contact)">
+    <polygon class="soft" points="88,222 231,153 374,222 232,291" fill="#f2e1b8"/>
+    <polygon class="soft" points="232,291 374,222 374,235 232,304" fill="#d9c18a"/>
+    <polygon class="soft" points="88,222 232,291 232,304 88,235" fill="#c5aa72"/>
+    <polygon points="112,225 232,168 349,224 231,281" fill="rgba(75, 88, 64, 0.055)"/>
+
+    <polygon class="edge" points="98,158 245,87 245,176 98,248" fill="#d4bc82"/>
+    <polygon class="edge" points="245,87 356,140 356,229 245,176" fill="#ead39a"/>
+    <polygon class="edge" points="98,158 209,211 356,140 245,87" fill="#fff0c4"/>
+    <polygon class="soft" points="129,159 213,119 247,135 164,176" fill="#f5dfaa" opacity="0.58"/>
+    <polygon class="soft" points="229,110 307,72 337,87 260,125" fill="#f7e8b8" opacity="0.5"/>
+    <polygon class="soft" points="118,169 209,125 238,139 148,184" fill="#fff7d6" opacity="0.34"/>
+    <polygon class="soft" points="248,91 330,51 356,64 274,104" fill="#fff7d6" opacity="0.28"/>
+    <polygon points="249,177 356,140 356,151 249,189" fill="rgba(113, 88, 48, 0.12)"/>
+
+    <polygon class="edge" points="88,140 163,104 205,124 130,161" fill="#78d0bd"/>
+    <polygon class="edge" points="130,161 205,124 205,151 130,188" fill="#56b5a8"/>
+    <polygon class="edge" points="88,140 130,161 130,188 88,166" fill="#3d948d"/>
+    <polygon class="soft" points="96,144 162,112 193,126 128,159" fill="#b5efe0" opacity="0.42"/>
+    <polygon points="106,159 134,146 134,164 106,177" fill="#2d7e7a" opacity="0.45"/>
+
+    <polygon class="edge" points="163,104 244,65 288,86 206,126" fill="#ff9e82"/>
+    <polygon class="edge" points="206,126 288,86 288,116 206,156" fill="#e37967"/>
+    <polygon class="edge" points="163,104 206,126 206,156 163,134" fill="#c46156"/>
+    <polygon class="soft" points="175,105 244,72 276,87 207,121" fill="#ffd0bc" opacity="0.38"/>
+    <polygon points="185,123 213,110 213,128 185,142" fill="#934a42" opacity="0.4"/>
+
+    <polygon class="edge" points="244,65 329,24 376,47 289,89" fill="#f7d56e"/>
+    <polygon class="edge" points="289,89 376,47 376,74 289,117" fill="#d6b24c"/>
+    <polygon class="edge" points="244,65 289,89 289,117 244,93" fill="#b89238"/>
+    <polygon class="soft" points="256,64 329,29 362,45 290,80" fill="#ffeaa2" opacity="0.42"/>
+    <polygon points="267,84 297,70 297,88 267,103" fill="#856626" opacity="0.35"/>
+
+    <polygon class="edge" points="122,187 181,159 181,174 122,203" fill="#b29457"/>
+    <polygon class="edge" points="202,148 266,117 266,133 202,165" fill="#b29457"/>
+    <polygon class="edge" points="291,105 345,79 345,95 291,122" fill="#b29457"/>
+    <polygon points="123,203 181,174 181,181 123,210" fill="#7f6330" opacity="0.42"/>
+    <polygon points="202,165 266,133 266,140 202,172" fill="#7f6330" opacity="0.38"/>
+    <polygon points="291,122 345,95 345,102 291,129" fill="#7f6330" opacity="0.36"/>
+    <polygon points="132,196 177,174 177,181 132,203" fill="rgba(86, 59, 36, 0.2)"/>
+    <polygon points="211,157 263,132 263,139 211,165" fill="rgba(86, 59, 36, 0.18)"/>
+    <polygon points="299,114 342,93 342,100 299,122" fill="rgba(86, 59, 36, 0.18)"/>
+
+    <polygon class="edge" points="111,204 170,176 170,193 111,222" fill="#78d0bd"/>
+    <polygon points="111,222 170,193 170,203 111,232" fill="#2f7772" opacity="0.7"/>
+    <polygon class="edge" points="198,163 260,133 260,151 198,182" fill="#ff9e82"/>
+    <polygon points="198,182 260,151 260,162 198,193" fill="#914940" opacity="0.72"/>
+    <polygon class="edge" points="289,121 344,95 344,112 289,139" fill="#f7d56e"/>
+    <polygon points="289,139 344,112 344,122 289,150" fill="#806629" opacity="0.68"/>
+
+    <polygon class="edge" points="116,222 145,208 145,237 116,251" fill="#d9f4f3"/>
+    <polygon points="119,225 143,213 143,221 119,233" fill="#aee4e3" opacity="0.65"/>
+    <polygon class="edge" points="148,207 168,197 168,229 148,239" fill="#875b39"/>
+    <polygon points="152,210 164,204 164,227 152,233" fill="#a26f45"/>
+    <polygon class="edge" points="204,184 237,168 237,200 204,216" fill="#d9f4f3"/>
+    <polygon points="207,187 235,173 235,181 207,195" fill="#aee4e3" opacity="0.62"/>
+    <polygon class="edge" points="242,166 263,156 263,191 242,201" fill="#875b39"/>
+    <polygon points="246,169 259,163 259,189 246,195" fill="#a26f45"/>
+    <polygon class="edge" points="292,148 321,134 321,164 292,178" fill="#d9f4f3"/>
+    <polygon points="295,151 319,139 319,147 295,159" fill="#aee4e3" opacity="0.62"/>
+    <polygon class="edge" points="326,132 345,123 345,155 326,164" fill="#875b39"/>
+    <polygon points="330,135 342,129 342,153 330,158" fill="#a26f45"/>
+
+    <polygon points="123,232 169,210 193,222 147,244" fill="#fff0cc"/>
+    <polygon points="147,244 193,222 193,230 147,253" fill="#e4cc94"/>
+    <polygon points="124,239 147,250 147,256 124,245" fill="#cdb27c" opacity="0.72"/>
+    <polygon points="202,193 264,163 291,176 229,207" fill="#fff0cc"/>
+    <polygon points="229,207 291,176 291,185 229,216" fill="#e4cc94"/>
+    <polygon points="203,200 229,212 229,219 203,207" fill="#cdb27c" opacity="0.68"/>
+    <polygon points="291,151 347,124 371,135 315,163" fill="#fff0cc"/>
+    <polygon points="315,163 371,135 371,144 315,172" fill="#e4cc94"/>
+    <polygon points="292,158 315,168 315,175 292,165" fill="#cdb27c" opacity="0.65"/>
+
+    <polygon class="soft" points="356,145 381,157 381,212 356,200" fill="#d3bc86"/>
+    <polygon points="356,163 381,175 381,187 356,175" fill="#aa9260" opacity="0.55"/>
+    <polygon points="356,194 381,206 381,218 356,206" fill="#aa9260" opacity="0.45"/>
+
+    <polygon points="205,126 210,128 210,205 205,203" fill="rgba(91,75,51,0.18)"/>
+    <polygon points="288,87 293,90 293,166 288,164" fill="rgba(91,75,51,0.18)"/>
+    <polygon points="356,141 363,144 363,225 356,222" fill="rgba(91,75,51,0.12)"/>
+    <polygon class="soft" points="171,205 205,189 229,201 195,218" fill="#f8edcf" opacity="0.36"/>
+    <polygon class="soft" points="263,161 292,147 316,158 287,173" fill="#f8edcf" opacity="0.34"/>
+  </g>
+</svg>

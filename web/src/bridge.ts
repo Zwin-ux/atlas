@@ -21,6 +21,7 @@ type PendingRequest = {
 };
 
 const SET_GLOBALS_EVENT_TYPE = "openai:set_globals";
+const TEST_TOOL_RESULT_EVENT_TYPE = "atlas:test-tool-result";
 let rpcId = 0;
 let isListening = false;
 let bridgeInitialized = false;
@@ -81,6 +82,27 @@ function ensureBridgeListener(): void {
     },
     { passive: true },
   );
+
+  window.addEventListener(
+    TEST_TOOL_RESULT_EVENT_TYPE,
+    (event) => {
+      const detail = (event as CustomEvent<ToolResult<unknown>>).detail;
+      const debugWindow = window as Window & {
+        __atlasTestToolResultCount?: number;
+        __atlasLastTestToolResultType?: string;
+      };
+      debugWindow.__atlasTestToolResultCount = (debugWindow.__atlasTestToolResultCount ?? 0) + 1;
+      debugWindow.__atlasLastTestToolResultType =
+        detail && typeof detail === "object" && detail.structuredContent && typeof detail.structuredContent === "object"
+          ? String((detail.structuredContent as { type?: unknown }).type ?? "")
+          : "";
+      for (const subscriber of toolResultSubscribers) {
+        subscriber(detail ?? null);
+      }
+    },
+    { passive: true },
+  );
+  (window as Window & { __atlasToolResultBridgeReady?: boolean }).__atlasToolResultBridgeReady = true;
 }
 
 export function rpcRequest<T = unknown>(method: string, params: unknown, timeoutMs = 2000): Promise<T> {
@@ -132,8 +154,10 @@ export function subscribeToolResult<T>(onResult: (result: ToolResult<T>) => void
   ensureBridgeListener();
   const subscriber = (result: ToolResult<unknown>) => onResult(result as ToolResult<T>);
   toolResultSubscribers.add(subscriber);
+  (window as Window & { __atlasToolResultSubscriberCount?: number }).__atlasToolResultSubscriberCount = toolResultSubscribers.size;
   return () => {
     toolResultSubscribers.delete(subscriber);
+    (window as Window & { __atlasToolResultSubscriberCount?: number }).__atlasToolResultSubscriberCount = toolResultSubscribers.size;
   };
 }
 

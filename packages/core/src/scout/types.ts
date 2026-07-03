@@ -32,6 +32,16 @@ export type ScoutRouteStop = {
   reason: string;
 };
 
+export type AlphaPreviewBoundary = {
+  mode: "session_only_alpha";
+  savesState: false;
+  executesActions: false;
+  grantsXp: false;
+  requiresHostedClawdForSave: true;
+  nextTool: "preview_campaign_engine" | "get_upgrade_options";
+  userActionLabel: string;
+};
+
 export type ScoutPreviewState = {
   type: "scoutPreview";
   id: string;
@@ -48,6 +58,7 @@ export type ScoutPreviewState = {
   nextActions: string[];
   upgradePrompt: string;
   limitations: string[];
+  alphaBoundary: AlphaPreviewBoundary;
   scene: VoxelScene;
 };
 
@@ -91,5 +102,6 @@ export type CampaignPreviewState = {
   routePriorities: CampaignRoutePriority[];
   assetPlaceholders: CampaignAssetPlaceholder[];
   guardrails: string[];
+  alphaBoundary: AlphaPreviewBoundary;
   scene: VoxelScene;
 };

@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-07-03T17:57:16.521Z",
+  "branch": "codex/engine-beta-cleanup",
+  "gitStatusCount": 123,
+  "splitGuard": {
+    "ok": true,
+    "mode": "working-tree",
+    "rcMode": "engine-beta-data",
+    "fileCount": 149,
+    "blockerCount": 0,
+    "unknownCount": 0
+  },
+  "railway": {
+    "inspected": false,
+    "status": "not-inspected-in-exporter",
+    "project": "atlas-chatgpt-app",
+    "environment": "production",
+    "service": "atlas-backend",
+    "source": "Axiom read-only status handoff"
+  },
+  "mutation": {
+    "staged": false,
+    "committed": false,
+    "deployed": false,
+    "railwayMutated": false
+  }
+}

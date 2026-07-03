@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   compileCityWorldScene,
   type CityWorldScene,
@@ -17,6 +17,7 @@ export type CityWorldViewProps = {
   notes?: VoxelNote[];
   stickerMode?: VoxelStickerKind;
   noteDraft?: string;
+  countySwitcher?: ReactNode;
   onSelectPlace: (placeId: string) => void;
   onSelectStickerMode: (kind: VoxelStickerKind) => void;
   onPlaceSticker: (placeId: string, kind: VoxelStickerKind) => void;
@@ -34,6 +35,7 @@ export function CityWorldView({
   notes = [],
   stickerMode = "favorite",
   noteDraft = "",
+  countySwitcher,
   onSelectPlace,
   onSelectStickerMode,
   onPlaceSticker,
@@ -62,6 +64,8 @@ export function CityWorldView({
   const latestPlaceNote = placeNotes[placeNotes.length - 1];
   const activePlacePulse = activePlace ? `${Math.round(activePlace.activity * 100)}% active` : "Pick a place";
   const latestNoteBody = latestPlaceNote?.body ?? "";
+  const cameraPresetId = readRequestedCameraPreset(cityScene);
+  const debugMode = readRequestedDebugMode();
 
   useEffect(() => {
     const openaiWindow = window as Window & {
@@ -90,13 +94,16 @@ export function CityWorldView({
       data-qa-note-count={noteCount}
       data-qa-latest-note={latestNoteBody}
       data-qa-session-boundary="session-only"
+      data-qa-camera-preset={cameraPresetId ?? ""}
     >
-      <CityWorldRenderer ref={rendererRef} scene={cityScene} selectedPlaceId={activePlace?.id} onSelectPlace={onSelectPlace} />
+      <CityWorldRenderer ref={rendererRef} scene={cityScene} selectedPlaceId={activePlace?.id} cameraPresetId={cameraPresetId} debugMode={debugMode} onSelectPlace={onSelectPlace} />
 
       <div className="city-world-location" aria-label="Current city map" data-qa="current-city-map">
         <span>{cityScene.region.county}</span>
         <strong>{cityScene.region.district.replace(" City Slice", "")}</strong>
       </div>
+
+      {countySwitcher}
 
       <div className="city-world-zoom" aria-label="Map zoom controls" data-qa="map-zoom-controls">
         <button type="button" aria-label="Zoom in" data-qa="zoom-in-button" onClick={() => rendererRef.current?.zoomIn()}>
@@ -197,6 +204,17 @@ export function CityWorldView({
       </section>
     </main>
   );
+}
+
+function readRequestedCameraPreset(scene: CityWorldScene): CityWorldScene["cameraPresets"][number]["id"] | undefined {
+  if (typeof window === "undefined") return undefined;
+  const requested = new URLSearchParams(window.location.search).get("atlasCamera");
+  return scene.cameraPresets.some((preset) => preset.id === requested) ? (requested as CityWorldScene["cameraPresets"][number]["id"]) : undefined;
+}
+
+function readRequestedDebugMode(): "engine" | undefined {
+  if (typeof window === "undefined") return undefined;
+  return new URLSearchParams(window.location.search).get("atlasDebug") === "engine" ? "engine" : undefined;
 }
 
 function ZoomInIcon() {

@@ -1,15 +1,19 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
 import {
+  compileCountyShellCityWorldScene,
   createVoxelNote,
   createVoxelSticker,
   riversideDemoVoxelScene,
+  type CityWorldScene,
   type VoxelNote,
   type VoxelScene,
   type VoxelSticker,
   type VoxelStickerKind,
 } from "@atlas/core/voxel";
 import { updateModelContext, useToolResult, useWidgetState } from "./bridge";
+import { CountyCoverageView } from "./CountyCoverageView";
+import { CountySwitcher, type CountySwitchSlug } from "./CountySwitcher";
 import { CityWorldView } from "./CityWorldView";
 import type { WidgetState } from "./types";
 
@@ -28,6 +32,35 @@ type VoxelSceneStructuredContent = {
   flow: VoxelScene["flow"];
 };
 
+export type CountyCoverageStructuredContent = {
+  type: "countyCoverageSummary";
+  countySlug: string;
+  countyLabel?: string;
+  supported: boolean;
+  coverageTier: "L0_UNSUPPORTED" | "L1_COUNTY_SHELL" | "L2_CURATED_DISTRICT" | "L3_PROVIDER_NORMALIZED" | "L4_PUBLIC_QUALITY";
+  coverageLabel: string;
+  message: string;
+  stateCode?: string;
+  geoid?: string;
+  playableDistrictCount: number;
+  placeCount: number;
+  districts: Array<{
+    label: string;
+    districtSlug: string;
+    playable: boolean;
+    geoid?: string;
+    coverageTier?: string;
+  }>;
+  sourceNotes: Array<{
+    source: string;
+    label: string;
+    attribution: string;
+    ttlSeconds: number;
+  }>;
+  limitations: string[];
+  suggestedNextCountySlug: string;
+};
+
 type CampaignPreviewStructuredContent = Omit<CampaignPreviewState, "scene"> & {
   sceneId: string;
   flow: VoxelScene["flow"];
@@ -40,7 +73,75 @@ type ToolStructuredContent =
   | ScoutPreviewStructuredContent
   | VoxelScene
   | VoxelSceneStructuredContent
+  | CountyCoverageStructuredContent
   | null;
+
+const coverageSourceNote = {
+  source: "census",
+  label: "2024 Census county gazetteer",
+  attribution: "U.S. Census Bureau Gazetteer Files, 2024 county national file",
+  ttlSeconds: 60 * 60 * 24 * 365,
+};
+
+const orangeCoverageSummary: CountyCoverageStructuredContent = {
+  type: "countyCoverageSummary",
+  countySlug: "orange-ca",
+  countyLabel: "Orange County",
+  supported: true,
+  coverageTier: "L1_COUNTY_SHELL",
+  coverageLabel: "County shell",
+  message: "Orange County is indexed from Census county identity data, but Atlas has not built a playable local scene for it yet.",
+  stateCode: "CA",
+  geoid: "06059",
+  playableDistrictCount: 0,
+  placeCount: 0,
+  districts: [],
+  sourceNotes: [coverageSourceNote],
+  limitations: [
+    "County shells are identity coverage only until a curated playable district exists.",
+    "Atlas does not claim live local data, saved state, XP, evidence, outreach, or automation from coverage shells.",
+  ],
+  suggestedNextCountySlug: "riverside-ca",
+};
+
+const unsupportedCoverageSummary: CountyCoverageStructuredContent = {
+  type: "countyCoverageSummary",
+  countySlug: "made-up-ca",
+  supported: false,
+  coverageTier: "L0_UNSUPPORTED",
+  coverageLabel: "Unsupported",
+  message:
+    "Atlas does not have an indexed or curated county contract for this slug yet. Use Riverside County for the playable Engine Beta slice.",
+  playableDistrictCount: 0,
+  placeCount: 0,
+  districts: [],
+  sourceNotes: [
+    {
+      source: "curated",
+      label: "Atlas curated Alpha world data",
+      attribution: "Atlas curated demo data",
+      ttlSeconds: 60 * 60 * 24,
+    },
+  ],
+  limitations: [
+    "Atlas only renders a playable scene for Riverside County in this Engine Beta slice.",
+    "Unsupported counties do not use Riverside data as a stand-in.",
+  ],
+  suggestedNextCountySlug: "riverside-ca",
+};
+
+const orangeShellScene = compileCountyShellCityWorldScene({
+  countySlug: orangeCoverageSummary.countySlug,
+  countyName: orangeCoverageSummary.countyLabel ?? "Orange County",
+  stateCode: "CA",
+  coverage: {
+    countySlug: orangeCoverageSummary.countySlug,
+    coverageTier: orangeCoverageSummary.coverageTier,
+    coverageLabel: orangeCoverageSummary.coverageLabel,
+    coverageMessage: orangeCoverageSummary.message,
+    playable: false,
+  },
+});
 
 const defaultPlace = riversideDemoVoxelScene.world?.places[0];
 
@@ -188,13 +289,60 @@ function isVoxelSceneStructuredContent(value: unknown): value is VoxelSceneStruc
   );
 }
 
+function isCountyCoverageStructuredContent(value: unknown): value is CountyCoverageStructuredContent {
+  return Boolean(
+    isRecord(value) &&
+      value.type === "countyCoverageSummary" &&
+      hasString(value, "countySlug") &&
+      typeof value.supported === "boolean" &&
+      hasString(value, "coverageTier") &&
+      hasString(value, "coverageLabel") &&
+      hasString(value, "message") &&
+      typeof value.playableDistrictCount === "number" &&
+      typeof value.placeCount === "number" &&
+      Array.isArray(value.districts) &&
+      Array.isArray(value.limitations),
+  );
+}
+
+function isCityWorldScene(value: unknown): value is CityWorldScene {
+  return Boolean(
+    isRecord(value) &&
+      value.type === "cityWorldScene" &&
+      hasString(value, "id") &&
+      isRecord(value.region) &&
+      Array.isArray(value.cameraPresets) &&
+      Array.isArray(value.terrainTiles) &&
+      Array.isArray(value.roadSegments) &&
+      Array.isArray(value.lots) &&
+      Array.isArray(value.buildings) &&
+      Array.isArray(value.props) &&
+      Array.isArray(value.places) &&
+      Array.isArray(value.pins) &&
+      Array.isArray(value.actors) &&
+      isRecord(value.hudDefaults),
+  );
+}
+
 export function App() {
   const result = useToolResult<ToolStructuredContent>(null);
+  const [localCountySlug, setLocalCountySlug] = useState<CountySwitchSlug | null>(null);
   const structuredContent = result?.structuredContent;
   const meta = result?._meta;
   const metaCampaignPreview = isCampaignPreview(meta?.campaignPreview) ? meta.campaignPreview : null;
   const metaScoutPreview = isScoutPreview(meta?.scoutPreview) ? meta.scoutPreview : null;
   const metaScene = isVoxelScene(meta?.scene) ? meta.scene : null;
+  const coverageSummary = isCountyCoverageStructuredContent(structuredContent) ? structuredContent : null;
+  const coverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
+  const forcedPlayableCounty = localCountySlug === "riverside-ca";
+  const localCoverageState = localCountySlug === "orange-ca"
+    ? { coverage: orangeCoverageSummary, shellScene: orangeShellScene }
+    : localCountySlug === "made-up-ca"
+      ? { coverage: unsupportedCoverageSummary, shellScene: null }
+      : null;
+  const activeCoverageSummary = forcedPlayableCounty ? null : localCoverageState?.coverage ?? coverageSummary;
+  const activeCoverageShellScene = forcedPlayableCounty ? null : localCoverageState?.shellScene ?? coverageShellScene;
+  const activeCountySlug = localCountySlug ?? switchSlugFromCoverage(coverageSummary);
   const campaignPreviewSummary = isCampaignPreviewStructuredContent(structuredContent) ? structuredContent : null;
   const scoutPreviewSummary = isScoutPreviewStructuredContent(structuredContent) ? structuredContent : null;
   const sceneSummary = isVoxelSceneStructuredContent(structuredContent) ? structuredContent : null;
@@ -223,6 +371,29 @@ export function App() {
   const notes = activeSceneMatches ? widgetState.notes ?? [] : [];
   const stickerMode = activeSceneMatches ? widgetState.stickerMode ?? "favorite" : "favorite";
   const noteDraft = activeSceneMatches ? widgetState.noteDraft ?? "" : "";
+
+  const selectCountyFromSwitcher = (countySlug: CountySwitchSlug) => {
+    setLocalCountySlug(countySlug);
+    if (countySlug === "riverside-ca") {
+      const firstPlace = riversideDemoVoxelScene.world?.places[0];
+      setWidgetState((current) => ({
+        ...current,
+        activeSceneId: riversideDemoVoxelScene.id,
+        selectedDistrictId: riversideDemoVoxelScene.world?.selectedDistrictId,
+        selectedPlaceId: firstPlace?.id,
+        selectedNodeId: firstPlace?.nodeId ?? riversideDemoVoxelScene.selectedNodeId,
+        activeStepId: "county",
+        noteDraft: "",
+      }));
+    }
+    void updateModelContext(`Atlas county switcher selected ${countyLabelForSwitch(countySlug)}.`);
+  };
+
+  const countySwitcher = <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} />;
+
+  if (activeCoverageSummary) {
+    return <CountyCoverageView coverage={activeCoverageSummary} shellScene={activeCoverageShellScene} countySwitcher={countySwitcher} />;
+  }
 
   const selectDistrict = (districtId: string) => {
     const district = scene.world?.districts.find((item) => item.id === districtId);
@@ -294,6 +465,7 @@ export function App() {
       notes={notes}
       stickerMode={stickerMode}
       noteDraft={noteDraft}
+      countySwitcher={countySwitcher}
       onSelectPlace={selectPlace}
       onSelectStickerMode={(kind) => setWidgetState((current) => ({ ...current, stickerMode: kind }))}
       onPlaceSticker={placeSticker}
@@ -309,6 +481,24 @@ function uniqueSticker(sticker: VoxelSticker, count: number): VoxelSticker {
 
 function uniqueNote(note: VoxelNote, count: number): VoxelNote {
   return { ...note, id: `${note.id}-${count}` };
+}
+
+function switchSlugFromCoverage(coverage: CountyCoverageStructuredContent | null): CountySwitchSlug {
+  if (!coverage) return "riverside-ca";
+  if (coverage.countySlug === "orange-ca") return "orange-ca";
+  if (coverage.coverageTier === "L0_UNSUPPORTED") return "made-up-ca";
+  return "riverside-ca";
+}
+
+function countyLabelForSwitch(countySlug: CountySwitchSlug): string {
+  switch (countySlug) {
+    case "riverside-ca":
+      return "Riverside playable Alpha";
+    case "orange-ca":
+      return "Orange indexed shell";
+    case "made-up-ca":
+      return "unsupported county state";
+  }
 }
 
 function stickerLabel(kind: VoxelStickerKind): string {

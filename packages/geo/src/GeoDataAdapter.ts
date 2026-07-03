@@ -2,6 +2,15 @@ export type GeoAdapterMode = "mock" | "google";
 
 export type GeoSource = "mock" | "google";
 
+export type ProviderUsagePolicy = {
+  mayRenderOnAtlasMap: boolean;
+  mayCache: boolean;
+  mayUseForReadiness: boolean;
+  reason: string;
+  sourceConfidence: "mock_verified" | "provider_mapped";
+  expiresAt?: string;
+};
+
 export type Coordinates = {
   latitude: number;
   longitude: number;
@@ -22,6 +31,7 @@ export type ResolvedLocation = {
   source: GeoSource;
   attribution: string;
   ttlSeconds: number;
+  usagePolicy: ProviderUsagePolicy;
 };
 
 export type NearbySearchInput = {
@@ -48,6 +58,7 @@ export type NearbyPlaceSignal = {
   source: GeoSource;
   attribution: string;
   ttlSeconds: number;
+  usagePolicy: ProviderUsagePolicy;
 };
 
 export type PlacesAggregateInput = {
@@ -83,6 +94,7 @@ export type PlaceAggregateSignal = {
   source: GeoSource;
   attribution: string;
   ttlSeconds: number;
+  usagePolicy: ProviderUsagePolicy;
 };
 
 export type RouteInput = {
@@ -99,6 +111,7 @@ export type RouteHint = {
   source: GeoSource;
   attribution: string;
   ttlSeconds: number;
+  usagePolicy: ProviderUsagePolicy;
 };
 
 export interface GeoDataAdapter {

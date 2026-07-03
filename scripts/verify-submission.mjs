@@ -77,6 +77,18 @@ function textContent(result) {
     .join("\n");
 }
 
+function assertScenePacketMeta(result, expectedReadiness, toolName) {
+  const scenePacket = result?._meta?.scenePacket;
+  assert(scenePacket && typeof scenePacket === "object", `${toolName} must return safe _meta.scenePacket metadata.`);
+  assert(scenePacket.readiness === expectedReadiness, `${toolName} scenePacket readiness must be ${expectedReadiness}.`);
+  assert(scenePacket.policy?.canPersist === false, `${toolName} scenePacket must not allow persistence.`);
+  assert(scenePacket.policy?.providerGeometryAllowed === false, `${toolName} scenePacket must not allow provider geometry.`);
+  assert(scenePacket.policy?.liveProviderAllowed === false, `${toolName} scenePacket must not allow live providers.`);
+  assert(scenePacket.safety?.passed === true, `${toolName} scenePacket safety must pass.`);
+  assert(!result.structuredContent?.scenePacket, `${toolName} must not expose scenePacket in structuredContent.`);
+  return scenePacket;
+}
+
 const submission = parseSubmission();
 const client = new Client({ name: "atlas-submission-verifier", version: "0.1.0" });
 const transport = new StreamableHTTPClientTransport(mcpUrl);
@@ -112,6 +124,8 @@ try {
     selectCountyResult._meta?.scene?.nodes?.some((node) => node.id === "eastvale"),
     "select_county must compile Eastvale from the curated county pack.",
   );
+  const selectCountyPacket = assertScenePacketMeta(selectCountyResult, "public_playable", "select_county");
+  assert(selectCountyPacket.packet?.containsScene === true, "select_county scenePacket must describe a scene-bearing packet.");
 
   const countyQuestionResult = await client.callTool({
     name: "ask_county_question",
@@ -153,6 +167,8 @@ try {
   const county = structuredContent(countyResult, "render_voxel_county");
   assert(county.type === "voxelSceneSummary", "render_voxel_county returned wrong type.");
   assert(countyResult._meta?.scene?.world?.places?.length > 0, "render_voxel_county must keep full scene in _meta.scene.");
+  const renderPacket = assertScenePacketMeta(countyResult, "public_playable", "render_voxel_county");
+  assert(renderPacket.packet?.containsScene === true, "render_voxel_county scenePacket must describe a scene-bearing packet.");
 
   const lookup = structuredContent(
     await client.callTool({ name: "lookup_world_places", arguments: { query: "Eastvale, CA", radiusMeters: lookupRadiusMeters } }),
@@ -189,6 +205,10 @@ try {
   const scoutText = textContent(scoutResult);
   assert(scout.type === "scoutPreview", "preview_scout_drop returned wrong type.");
   assert(/temporary|Alpha/i.test(scoutText), "Scout Drop content must mention temporary/Alpha limits.");
+  assert(scout.alphaBoundary?.mode === "session_only_alpha", "Scout Drop must expose session-only Alpha boundary.");
+  assert(scout.alphaBoundary?.savesState === false, "Scout Drop must not claim saved state.");
+  assert(scout.alphaBoundary?.executesActions === false, "Scout Drop must not claim action execution.");
+  assert(scout.alphaBoundary?.nextTool === "preview_campaign_engine", "Scout Drop should point to campaign preview next.");
 
   const campaignResult = await client.callTool({
     name: "preview_campaign_engine",
@@ -204,6 +224,10 @@ try {
   const campaignText = textContent(campaignResult);
   assert(campaign.type === "campaignPreview", "preview_campaign_engine returned wrong type.");
   assert(campaign.guardrails.some((guardrail) => /manual|no posts|no DMs|no ad spend/i.test(guardrail)), "Campaign guardrails must stay manual.");
+  assert(campaign.alphaBoundary?.mode === "session_only_alpha", "Campaign preview must expose session-only Alpha boundary.");
+  assert(campaign.alphaBoundary?.savesState === false, "Campaign preview must not claim saved state.");
+  assert(campaign.alphaBoundary?.executesActions === false, "Campaign preview must not execute actions.");
+  assert(campaign.alphaBoundary?.nextTool === "get_upgrade_options", "Campaign preview should point to Hosted Clawd options next.");
   assert(/manual|no posting|no messaging|ad spend|persistence/i.test(campaignText), "Campaign content must not imply execution.");
 
   const upgrade = structuredContent(

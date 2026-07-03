@@ -1,0 +1,267 @@
+{
+  "packId": "anaheim-source-noted-place-anchors",
+  "candidatePackId": "anaheim-candidate-pack",
+  "version": "0.1-engine-beta-anchor-pack",
+  "stateCode": "CA",
+  "countySlug": "orange-ca",
+  "countyGeoid": "06059",
+  "districtSlug": "anaheim-candidate",
+  "districtGeoid": "0602000",
+  "anchorStatus": "source_noted_nonrenderable",
+  "playableNow": false,
+  "renderableNow": false,
+  "sourceNotes": [
+    {
+      "id": "census-2024-place-gazetteer-ca",
+      "source": "census",
+      "label": "2024 Census California place gazetteer",
+      "attribution": "U.S. Census Bureau Gazetteer Files, 2024",
+      "url": "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_gaz_place_06.txt",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Anaheim city place identity",
+        "Anaheim place GEOID 0602000"
+      ]
+    },
+    {
+      "id": "anaheim-platinum-triangle-official",
+      "source": "local-open-data",
+      "label": "City of Anaheim Platinum Triangle page",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/1072/Platinum-Triangle",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Platinum Triangle surrounds major venues",
+        "Mixed-use residential retail restaurant and office development stressor"
+      ]
+    },
+    {
+      "id": "anaheim-convention-center-official",
+      "source": "local-open-data",
+      "label": "City of Anaheim Convention Center page",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/1117/Anaheim-Convention-Center",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Anaheim Convention Center civic and destination landmark role"
+      ]
+    },
+    {
+      "id": "anaheim-convention-sports-entertainment-official",
+      "source": "local-open-data",
+      "label": "City of Anaheim Convention, Sports & Entertainment page",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/2595/Convention-Sports-Entertainment",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Angel Stadium address and entertainment role",
+        "ARTIC address and transit role"
+      ]
+    },
+    {
+      "id": "anaheim-artic-fact-sheet",
+      "source": "local-open-data",
+      "label": "City of Anaheim ARTIC fact sheet",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/DocumentCenter/View/23803/ARTIC-fact-sheet-fall-2020?bidId=",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "ARTIC transportation center role and address"
+      ]
+    },
+    {
+      "id": "anaheim-downtown-community-center-official",
+      "source": "local-open-data",
+      "label": "City of Anaheim Downtown Community Center page",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/1018/Downtown-Anaheim-Community-Center",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Downtown Anaheim Community Center civic/community role and address"
+      ]
+    }
+  ],
+  "placeAnchors": [
+    {
+      "id": "anaheim-city-identity",
+      "label": "Anaheim city identity",
+      "category": "unknown",
+      "anchorRole": "district_identity",
+      "sourceNoteIds": [
+        "census-2024-place-gazetteer-ca"
+      ],
+      "sourceFact": "Census place identity anchor for Anaheim city, GEOID 0602000.",
+      "providerNormalized": false,
+      "renderableNow": false,
+      "sceneEligible": false,
+      "sceneStressors": [
+        "mobile_camera_density"
+      ],
+      "requiredBeforeRenderable": [
+        "place_source_review",
+        "coordinates_or_bounds",
+        "compiler_position",
+        "desktop_mobile_product_loop_screenshots",
+        "forge_split_guard"
+      ]
+    },
+    {
+      "id": "platinum-triangle-area",
+      "label": "Platinum Triangle mixed-use area",
+      "category": "home_area",
+      "anchorRole": "area_anchor",
+      "sourceNoteIds": [
+        "anaheim-platinum-triangle-official"
+      ],
+      "sourceFact": "Official Anaheim planning page identifies Platinum Triangle as a mixed-use area with residential, retail, restaurant and office development.",
+      "providerNormalized": false,
+      "renderableNow": false,
+      "sceneEligible": false,
+      "sceneStressors": [
+        "residential_variety",
+        "commerce_landmark_read",
+        "road_lot_contact",
+        "mobile_camera_density"
+      ],
+      "requiredBeforeRenderable": [
+        "place_source_review",
+        "coordinates_or_bounds",
+        "category_confidence",
+        "compiler_position",
+        "desktop_mobile_product_loop_screenshots",
+        "lumen_visual_acceptance",
+        "mira_readiness_acceptance",
+        "forge_split_guard"
+      ]
+    },
+    {
+      "id": "anaheim-convention-center",
+      "label": "Anaheim Convention Center",
+      "category": "civic",
+      "anchorRole": "place_anchor",
+      "sourceNoteIds": [
+        "anaheim-convention-center-official",
+        "anaheim-convention-sports-entertainment-official"
+      ],
+      "sourceFact": "Official Anaheim pages describe the convention center as a major city-owned venue in The Anaheim Resort.",
+      "providerNormalized": false,
+      "renderableNow": false,
+      "sceneEligible": false,
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ],
+      "requiredBeforeRenderable": [
+        "place_source_review",
+        "coordinates_or_bounds",
+        "category_confidence",
+        "compiler_position",
+        "desktop_mobile_product_loop_screenshots",
+        "lumen_visual_acceptance",
+        "mira_readiness_acceptance",
+        "forge_split_guard"
+      ]
+    },
+    {
+      "id": "artic-transit-center",
+      "label": "ARTIC transit center",
+      "category": "transit",
+      "anchorRole": "place_anchor",
+      "sourceNoteIds": [
+        "anaheim-artic-fact-sheet",
+        "anaheim-convention-sports-entertainment-official"
+      ],
+      "sourceFact": "City source notes identify ARTIC as a transportation center for trains, buses, shuttles, taxis and bikes.",
+      "providerNormalized": false,
+      "renderableNow": false,
+      "sceneEligible": false,
+      "sceneStressors": [
+        "road_lot_contact",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ],
+      "requiredBeforeRenderable": [
+        "place_source_review",
+        "coordinates_or_bounds",
+        "category_confidence",
+        "compiler_position",
+        "desktop_mobile_product_loop_screenshots",
+        "lumen_visual_acceptance",
+        "mira_readiness_acceptance",
+        "forge_split_guard"
+      ]
+    },
+    {
+      "id": "angel-stadium",
+      "label": "Angel Stadium of Anaheim",
+      "category": "entertainment",
+      "anchorRole": "place_anchor",
+      "sourceNoteIds": [
+        "anaheim-convention-sports-entertainment-official"
+      ],
+      "sourceFact": "Official Anaheim page lists Angel Stadium as a major sports and event venue at 2000 Gene Autry Way.",
+      "providerNormalized": false,
+      "renderableNow": false,
+      "sceneEligible": false,
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ],
+      "requiredBeforeRenderable": [
+        "place_source_review",
+        "coordinates_or_bounds",
+        "category_confidence",
+        "compiler_position",
+        "desktop_mobile_product_loop_screenshots",
+        "lumen_visual_acceptance",
+        "mira_readiness_acceptance",
+        "forge_split_guard"
+      ]
+    },
+    {
+      "id": "downtown-anaheim-community-center",
+      "label": "Downtown Anaheim Community Center",
+      "category": "civic",
+      "anchorRole": "place_anchor",
+      "sourceNoteIds": [
+        "anaheim-downtown-community-center-official"
+      ],
+      "sourceFact": "Official Anaheim page identifies the Downtown Anaheim Community Center as a community facility at 250 E. Center Street.",
+      "providerNormalized": false,
+      "renderableNow": false,
+      "sceneEligible": false,
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "road_lot_contact",
+        "mobile_camera_density"
+      ],
+      "requiredBeforeRenderable": [
+        "place_source_review",
+        "coordinates_or_bounds",
+        "category_confidence",
+        "compiler_position",
+        "desktop_mobile_product_loop_screenshots",
+        "lumen_visual_acceptance",
+        "mira_readiness_acceptance",
+        "forge_split_guard"
+      ]
+    }
+  ],
+  "requiredBeforePlayable": [
+    "curated_district_pack",
+    "place_anchors_with_source_notes",
+    "bounded_scene_compiler_proof",
+    "desktop_mobile_product_loop_screenshots",
+    "lumen_visual_acceptance",
+    "mira_readiness_acceptance",
+    "forge_split_guard"
+  ],
+  "rejectRules": [
+    "Do not render these anchors until coordinates or bounds are reviewed.",
+    "Do not claim provider-normalized category confidence from these source notes.",
+    "Do not expose Anaheim as a playable county or district from this pack.",
+    "Do not add cars, humans, decorative props, dashboard panels, persistence, paid scope, XP, evidence, OAuth, automation, reports, or exports."
+  ]
+}

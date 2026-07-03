@@ -1,0 +1,137 @@
+{
+  "ok": false,
+  "update": "postalpha-0.38e-engine-quality-axis-review-next-target-selection",
+  "currentUpdate": {
+    "id": "postalpha-0.38e-engine-quality-axis-review-next-target-selection",
+    "status": "local_green"
+  },
+  "recommendedNextQuest": "0.39E Public Object Identity / Civic-Service Read Pass",
+  "selectedAxis": "public_object_identity",
+  "selectedReason": "home clone pressure remains at or above review floor; weakest public object family is civic_landmark",
+  "candidateScores": {
+    "public_object_identity": {
+      "score": 87,
+      "blocked": false,
+      "reasons": [
+        "home clone pressure remains at or above review floor",
+        "weakest public object family is civic_landmark"
+      ],
+      "nextQuest": "0.39E Public Object Identity / Civic-Service Read Pass"
+    },
+    "public_terrain_world_edge": {
+      "score": 31,
+      "blocked": true,
+      "reasons": [
+        "terrain, empty-board, and chunk-edge floors are currently green"
+      ],
+      "nextQuest": "0.39E Terrain / World-Edge Correction"
+    },
+    "mobile_entry_density": {
+      "score": 28,
+      "blocked": true,
+      "reasons": [
+        "playable mobile budget and readability floors are currently green"
+      ],
+      "nextQuest": "0.39E Mobile Entry Density Correction"
+    },
+    "hidden_second_district_readiness": {
+      "score": 52,
+      "blocked": true,
+      "reasons": [
+        "Anaheim still has 9 promotion blockers",
+        "weakest hidden anchor is angel-stadium"
+      ],
+      "readinessBlockerCount": 9,
+      "nextQuest": "0.39E Hidden Second-District Readiness Closure"
+    },
+    "commerce_repeat": {
+      "score": 0,
+      "blocked": true,
+      "reasons": [
+        "blocked unless a human names one exact Plaza Row blocker after 0.37E focused proof"
+      ],
+      "nextQuest": "0.39E Commerce Strip Follow-up"
+    }
+  },
+  "blockedAxes": {
+    "public_terrain_world_edge": [
+      "terrain, empty-board, and chunk-edge floors are currently green"
+    ],
+    "mobile_entry_density": [
+      "playable mobile budget and readability floors are currently green"
+    ],
+    "hidden_second_district_readiness": [
+      "Anaheim still has 9 promotion blockers",
+      "weakest hidden anchor is angel-stadium"
+    ],
+    "commerce_repeat": [
+      "blocked unless a human names one exact Plaza Row blocker after 0.37E focused proof"
+    ]
+  },
+  "requiredEvidence": [
+    "core tests, typecheck, and starter build",
+    "strict engine-beta-data split guard with 0 blockers and 0 unknowns",
+    "provider and tool-shape guards",
+    "public Riverside desktop/mobile product-loop screenshots",
+    "focused screenshot for the target object family",
+    "object-authorship and public object-kit verifiers"
+  ],
+  "antiScope": [
+    "no renderer geometry in 0.38E",
+    "no public UI change",
+    "no MCP tool-list change",
+    "no server route change",
+    "no DB implementation",
+    "no provider geometry",
+    "no public Anaheim/Ontario promotion",
+    "no Hosted Clawd, Stripe, XP, evidence, OAuth, automation, reports, or exports",
+    "no cars, humans, props, panels, glows, or labels-as-crutches"
+  ],
+  "evidence": {
+    "diagnostics": {
+      "terrainMassingCoverageRatio": 0.899,
+      "emptyBoardRatio": 0.056,
+      "firstViewportCompositionScore": 0.775,
+      "chunkEdgeReadabilityFloorScore": 0.761,
+      "homeClonePressure": 0.2,
+      "weakestObjectFamily": "civic_landmark",
+      "weakestCivicVenueStressCell": "eastvale-core-civic-landmark",
+      "nextWeakestAxis": "terrain_massing"
+    },
+    "objectKit": {
+      "prefabCoverageRatio": 1,
+      "paletteCohesionRatio": 1,
+      "clonePressureRatio": 0.133
+    },
+    "mobile": {
+      "budgetProfileId": "playable_mobile",
+      "budgetPassed": true,
+      "mobileOcclusionRiskScore": 0.248,
+      "mobileReadabilityScore": 0.752
+    },
+    "commerceDetail": {
+      "cameraPresetId": null,
+      "plazaRowBayCount": 7,
+      "plazaRowSignMountCount": 5,
+      "commerceWindowCommandVisibilityRatio": 0.059,
+      "commerceWindowPublicClutterCommandCount": null
+    },
+    "screenshotEvidence": {
+      "coverageRoot": "C:\\Users\\mzwin\\AppData\\Local\\Temp\\atlas-postalpha-037e-plaza-row-focused-capture-local\\coverage",
+      "commerceDetailRoot": "C:\\Users\\mzwin\\AppData\\Local\\Temp\\atlas-postalpha-037e-plaza-row-focused-capture-local\\commerce-detail",
+      "coverageRootExists": true,
+      "commerceDetailRootExists": true,
+      "commerceDetailDesktopExists": true,
+      "commerceDetailMobileExists": true
+    },
+    "anaheimReadiness": {
+      "readyForPlayablePromotion": false,
+      "blockerCount": 9
+    }
+  },
+  "blockerCount": 1,
+  "blockers": [
+    "0.38E selector requires current-update id postalpha-0.37e-plaza-row-focused-capture-commerce-read-proof; got postalpha-0.38e-engine-quality-axis-review-next-target-selection."
+  ],
+  "warnings": []
+}

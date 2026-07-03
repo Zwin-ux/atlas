@@ -16,6 +16,22 @@ describe("CampaignPreviewService", () => {
     expect(campaignPreview.days).toHaveLength(7);
     expect(campaignPreview.assetPlaceholders.map((asset) => asset.format)).toContain("qr_flyer");
     expect(campaignPreview.guardrails.join(" ")).toMatch(/no posts, DMs, paid ads/i);
+    expect(scoutPreview.alphaBoundary).toMatchObject({
+      mode: "session_only_alpha",
+      savesState: false,
+      executesActions: false,
+      grantsXp: false,
+      requiresHostedClawdForSave: true,
+      nextTool: "preview_campaign_engine",
+    });
+    expect(campaignPreview.alphaBoundary).toMatchObject({
+      mode: "session_only_alpha",
+      savesState: false,
+      executesActions: false,
+      grantsXp: false,
+      requiresHostedClawdForSave: true,
+      nextTool: "get_upgrade_options",
+    });
     expect(campaignPreview.scene.panel.type).toBe("campaign_preview");
     expect(campaignPreview.scene.flow.at(-1)?.status).toBe("active");
   });

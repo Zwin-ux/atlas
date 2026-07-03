@@ -1,5 +1,622 @@
 # Decisions
 
+## Decision 072: 0.39E should target public object identity, not commerce repeat
+
+Post-Alpha 0.38E selects `0.39E Public Object Identity / Civic-Service Read
+Pass` as the next code slice. The selector scores public object identity above
+terrain, mobile entry density, hidden second-district readiness, and commerce
+repeat.
+
+Reason: 0.37E made Plaza Row reviewable and green. Terrain and mobile budgets
+are also green. Anaheim hidden-district readiness still has 9 promotion
+blockers. The most valuable visible public engine weakness is now object
+identity: home clone pressure remains at `0.2`, the weakest public object family
+is `civic_landmark`, and the weakest stress cell is
+`eastvale-core-civic-landmark`.
+
+Rejected alternatives:
+- Another commerce pass without a human-named Plaza Row blocker.
+- Terrain/world-edge work while terrain, empty-board, and chunk-edge floors are
+  green.
+- Mobile entry-density work while the playable mobile budget passes.
+- Public Anaheim/Ontario work while owner-gate and promotion blockers remain.
+- DB/provider/persistence work before the explicit gate reopens.
+
+## Decision 071: Commerce proof needs a focused camera, not broader art scope
+
+Post-Alpha 0.37E adds a deterministic `commerce_detail` camera and focused
+Plaza Row verifier after 0.36E proved the commerce geometry contract. The
+commerce prefab also gets one bounded geometry increase: seven storefront bays,
+five sign-mount blocks, deeper apron and glass recesses, heavier parapet, and
+bay-level storefront thresholds in the renderer.
+
+Reason: the standard Riverside screenshots keep Plaza Row near the frame edge,
+so the team could not honestly judge whether the commerce geometry improved.
+The better engine move is a repeatable proof camera plus one targeted geometry
+step, not a broad pass over every object family.
+
+Rejected alternatives:
+- Adding a public selected-place query parameter just to make proof screenshots
+  prettier.
+- Broad object-family polish before the commerce target is reviewable.
+- Cars, humans, props, labels, glows, panels, or dashboard UI as visual
+  compensation.
+- Public Anaheim/Ontario exposure, provider geometry, DB persistence, or MCP
+  tool changes.
+
+## Decision 070: Commerce strips need typed prefab geometry, not ad hoc renderer constants
+
+Post-Alpha 0.36E adds a typed `CityWorldCommerceStripPrefabGeometry` contract
+inside object-kit metadata and assigns a focused Plaza Row profile. The renderer
+now consumes `commerceGeometry` for bay count, sign mount count, apron depth,
+glass recess depth, parapet weight, and focused frontage depth.
+
+Reason: 0.35E proved object-kit metadata can reach the renderer. The next
+engine-quality move was to make the weakest public prefab family,
+`commerce_strip`, carry its own structural prefab geometry instead of hiding
+generic constants in the renderer or broadening the art pass to every building
+family.
+
+Rejected alternatives:
+- A broad renderer polish pass across all object families.
+- More labels, panels, glows, cars, humans, or decorative props to make Plaza
+  Row feel busier.
+- Public Anaheim/Ontario exposure to show a different commerce scene.
+- Provider geometry or DB-backed generation as a shortcut for object quality.
+
+## Decision 069: Renderer must consume object-kit metadata before broad art passes
+
+Post-Alpha 0.35E makes `CityWorldRenderer` consume
+`CityWorldBuilding.objectKit` for the `commerce_strip` prefab family. The
+commerce strip read now comes from a focused renderer helper shared by
+sprite-backed and primitive paths, instead of another broad visual pass or
+older facade-style checks alone.
+
+Reason: 0.34E identified `commerce_strip` as the weakest public prefab family.
+The right next engine move was to prove object-kit metadata affects rendering
+directly. That gives future object-family work a stable path: compiler assigns
+object-kit identity, renderer consumes it, verifier proves the path, browser
+screenshots prove product safety.
+
+Rejected alternatives:
+- Polishing every object family at once.
+- Adding cars, humans, props, labels, panels, glows, or dashboard UI to make
+  commerce areas feel busier.
+- Treating provider lookup, DB cache state, or Anaheim/Ontario candidate data
+  as a shortcut to public visual quality.
+- Reopening persistence or paid scope before explicit approval.
+
+## Decision 068: Public object-kit metadata comes before more broad art or DB work
+
+Post-Alpha 0.34E returns to engine quality after the 0.33E persistence plan.
+Public Riverside/Eastvale buildings now carry an internal object-kit contract:
+prefab family, palette roles, clone-group key, signature tags, roof/body
+separation score, and civic landmark signature score. The focused verifier
+checks prefab coverage, palette cohesion, clone pressure, terrain/contact
+floors, provider/DB boundary safety, and hidden-candidate safety.
+
+Reason: Atlas needs a reusable voxel object kit before it can scale into more
+counties or reopen persistence. More screenshots without prefab/palette metrics
+would keep hiding the same clone and palette drift problems. DB persistence
+also remains too risky until the human explicitly approves implementation.
+
+Rejected alternatives:
+- Implementing DB persistence from the 0.33E plan without approval.
+- Running another broad renderer polish pass without object-kit metrics.
+- Adding decorative props, cars, humans, panels, or labels to hide weak object
+  identity.
+- Exposing Anaheim/Ontario publicly through object-kit or cache metadata.
+- Treating provider lookup as object geometry or readiness.
+
+## Decision 067: Scene packet DB persistence requires schema review before code
+
+Post-Alpha 0.33E defines the database persistence plan for scene packets, but
+does not implement persistence. The approved work is a machine-readable schema
+artifact, a human-readable plan, and a verifier that blocks DB dependencies,
+env drift, migrations, and server DB runtime code.
+
+Reason: 0.32E proved runtime scene packet memory. The next risk is not writing
+rows; it is accidentally turning cache convenience into durable product state
+without schema, rollback, provider-boundary, and product-review discipline.
+The persistence plan keeps the rollout order explicit:
+`runtime_memory -> db_read_through -> db_write_through`, with
+`runtime_memory` as the rollback mode.
+
+Rejected alternatives:
+- Adding `DATABASE_URL` or a DB client before human approval.
+- Creating migrations before schema review.
+- Storing shell counties as fake scene payloads.
+- Storing raw Google/provider payloads, user data, Stripe, OAuth, XP, evidence,
+  or automation data in scene packet tables.
+- Exposing Anaheim/Ontario publicly through persisted packets.
+
+## Decision 066: Runtime scene packet memory is per-process and diagnostic-only
+
+Post-Alpha 0.32E adds a server runtime memory adapter for scene packets, but it
+does not create persistence. Public Riverside/Eastvale playable scenes can be
+cached in process by the deterministic 0.31E key and returned with safe
+metadata in `_meta.scenePacket`; the full scene remains only in `_meta.scene`.
+Shell and unsupported counties receive packet status metadata only and must not
+receive scene payloads. The diagnostic route
+`/api/engine/scene-packets/status` is read-only and returns summaries only.
+
+Reason: Atlas needs a real server-side bridge toward instant scene generation,
+but DB persistence, live providers, and background generation require a
+separate schema/migration/rollback gate. Runtime memory proves keying, TTL,
+cache hits, expiry, eviction, and safety metadata without creating durable
+state or a paid/backend commitment.
+
+Rejected alternatives:
+- Writing scene packets to a database before schema and rollback review.
+- Letting provider lookup produce scene geometry or coverage readiness.
+- Returning packet metadata in `structuredContent`.
+- Caching shell counties as fake playable scenes.
+- Exposing Anaheim/Ontario publicly through the cache layer.
+
+## Decision 065: Scene packet cache contract precedes DB and live providers
+
+Atlas may move toward server-offloaded scene packets, but the first backend
+step is a typed cache/generation contract in `@atlas/core`, not a database or
+live Google/provider integration. Scene packets need deterministic keys, TTL
+policy, source/readiness notes, and packet payload boundaries before any
+runtime adapter stores them. Public Riverside/Eastvale can use runtime-memory
+scene packets; shell counties remain metadata-only; hidden Anaheim/Ontario
+drafts remain non-public; provider-normalized and background-generation modes
+must stay blocked until explicit DB/provider gates reopen. DB persistence,
+Hosted Clawd, live provider geometry, package/env drift, Stripe, XP, evidence,
+OAuth, automation, reports, and exports remain parked.
+
+## Decision 064: Pan-safe scene windows are required before server scene caches
+
+Post-Alpha 0.30E adds current-camera scene-window refresh to the renderer. The
+renderer derives a bounded world frame from the current screen center, expands
+it by a small tile margin, and refreshes only when pan or zoom leaves the active
+buffered frame.
+
+Reason: the server/offload direction is correct, but only after the client has
+a stable streaming boundary. Atlas should eventually store normalized location
+metadata, source/readiness notes, cached scene packets, and background
+generation results server-side. The widget should consume bounded
+`CityWorldScene` windows instantly instead of generating a whole county on
+demand or reading provider geometry.
+
+Rejected alternatives:
+- Raw screen-corner windows for normal rendering, because desktop can collapse
+  small scenes back into full-scene drawing.
+- Live synchronous provider generation in the widget.
+- Treating panning as a reason to abandon scene windows.
+- Adding DB persistence, Hosted Clawd, or public Anaheim UI before the engine
+  window boundary is stable.
+
+## Decision 063: Renderer consumes bounded scene windows before scaling districts
+
+Post-Alpha 0.29E moves `CityWorldRenderer` onto
+`compileCityWorldSceneWindow`. The renderer now chooses the active desktop,
+mobile, or residential-detail camera window and draws from
+`sceneWindow.visibleCommands` instead of building the full-scene render command
+buffer directly.
+
+Reason: the next California/USA engine problem is not another decorative map
+pass. Atlas needs the renderer path to respect the same bounded scene-window
+contract that diagnostics and verifiers use. This keeps larger counties,
+hidden second-district drafts, and future object-kit work measurable before
+Pixi drawing.
+
+Rejected alternatives:
+- Continuing to draw from the full scene while only diagnostics use windows.
+- Treating scene windows as docs/verifier-only machinery.
+- Exposing Anaheim publicly to test renderer scaling.
+- Adding provider geometry, a new renderer runtime, or public UI copy to hide
+  the engine boundary problem.
+
+## Decision 062: Scene windows are the scaling boundary for county rendering
+
+Post-Alpha 0.28E adds a `CityWorldScene` chunk index and camera-specific scene
+window compiler on top of render commands. Future larger county/district work
+should prove what the active desktop, mobile, or detail camera needs before it
+asks Pixi to draw the whole scene.
+
+Reason: Atlas cannot scale toward California or USA coverage by expanding one
+monolithic renderer pass. The engine needs a bounded, testable window contract:
+what terrain, roads, lots, buildings, markers, actors, and labels are visible
+for the current camera, and which chunks own those commands.
+
+Rejected alternatives:
+- Rendering every compiled scene command for every camera.
+- Using viewport screenshots alone as proof that a larger county scene is safe.
+- Adding public Anaheim/Ontario UI to test scene windowing.
+- Introducing provider geometry, Three.js, GameBlocks, or another runtime to
+  solve what should be an Atlas `CityWorldScene` boundary.
+
+## Decision 059: Render commands are the engine boundary before Pixi drawing
+
+Post-Alpha 0.27E adds a typed render command buffer and layer budget evaluator
+between `CityWorldScene` and `CityWorldRenderer`. The Pixi renderer remains the
+draw implementation, but future terrain, object-kit, chunking, and second
+district work must be measurable as layer commands before it becomes renderer
+polish.
+
+Reason: Atlas needs to scale from one proof cell to county/district scenes
+without hiding engine risk inside one monolithic draw function. Layer budgets
+let the team block cars, walkers, decorative prop clutter, debug overlays,
+fake shell objects, and hidden-draft public leakage with code, not taste notes.
+
+Rejected alternatives:
+- Continuing to add object or terrain details directly inside Pixi without a
+  command/budget layer.
+- Replacing Pixi with Three.js, GameBlocks, VoxelSpace, or another runtime.
+- Using screenshots alone as proof that a scene is structurally safe.
+- Exposing Anaheim/Ontario publicly to test the command pipeline.
+
+## Decision 058: Hidden venue proof is not public district promotion
+
+Post-Alpha 0.23E gives Anaheim a stronger hidden venue authorship proof:
+Convention Center, ARTIC, and Angel Stadium are now separate civic/venue stress
+cells, and the visual packet can pass as `HIDDEN_DRAFT_ONLY`. This does not
+promote Anaheim. Public playability still requires a promotion readiness
+aggregator, product proof, visual acceptance, split/provider safety, and Axiom
+release approval.
+
+Reason: stronger no-label recognition is necessary for the second district, but
+it is not sufficient. Atlas would damage user trust if a hidden draft became a
+public switcher state before the ChatGPT app surface, MCP behavior, recovery
+states, provider boundary, and release packet all agree.
+
+Rejected alternatives:
+- Flipping Anaheim from shell/draft to playable from visual metrics alone.
+- Using hidden draft screenshots as public promotion evidence.
+- Exposing Anaheim/Ontario in the public switcher before the readiness
+  aggregator says the gate is complete.
+- Adding labels, cars, humans, props, panels, glows, provider geometry, or paid
+  scope to compensate for unfinished district quality.
+
+## Decision 057: Real Consumer App path ships before paid platform scope
+
+Atlas is now framed as a Real Consumer App first: a ChatGPT app where users can
+open a location, explore a high-quality voxel county world, ask local questions,
+drop Clawd, and run session-only Scout/Campaign previews. Hosted Clawd,
+persistence, Stripe, XP, evidence, reports, exports, and automation remain
+later paid-beta scope until the engine and public app feel credible.
+
+Reason: the user wants the full Atlas product, but the July 4 cutline cannot be
+the full national paid platform without either faking coverage or shipping a
+weak app. The release path is therefore: public Alpha proof, consumer entry
+quality, engine quality, second playable district, consumer save layer, then
+Hosted Clawd Beta.
+
+Rejected alternatives:
+- Claiming every county is playable before district readiness gates exist.
+- Reopening paid/persistence before the map engine and product loop earn trust.
+- Letting hidden Anaheim/Ontario compiler work block the public Alpha release
+  if it cannot be stabilized quickly.
+- Turning Atlas into a dashboard instead of a map-first ChatGPT app.
+
+## Decision 056: Scout and campaign previews must expose session-only boundaries
+
+Pre-Alpha 0.17E adds a typed `alphaBoundary` to Scout Drop and Campaign Preview
+results. The boundary states that Alpha previews are session-only, do not save
+state, do not execute actions, do not grant XP, and require Hosted Clawd before
+anything can be saved or tracked. Scout Drop points to `preview_campaign_engine`
+as the next free action. Campaign Preview points to `get_upgrade_options` for
+the future saved workflow.
+
+Reason: the public Alpha loop is not just a map screenshot. A normal ChatGPT
+user has to understand what Clawd can do now and what is still blocked. The
+boundary belongs in typed tool output and verifiers, not only in explanatory
+copy, so app review and future workers cannot accidentally imply persistence,
+automation, evidence, or paid execution.
+
+Rejected alternatives:
+- Relying on prose-only limitations in tool text.
+- Creating new paid or saved tools before Hosted Clawd is reopened.
+- Letting campaign preview imply posting, DMs, ad spend, evidence submission,
+  XP, reports, exports, or durable storage.
+
+## Decision 055: Public civic landmarks need renderer authorship, not labels
+
+Pre-Alpha 0.16E moves the civic landmark lane from diagnostics into the Pixi
+renderer. The public Riverside civic landmark pass adds reusable base
+hierarchy, roof hierarchy, facade rhythm, and an Eastvale Core stress-cell
+signature. The goal is to make the public map read as an authored county scene
+before asking users to care about hidden second-district draft anchors.
+
+Reason: Eastvale Core is the visible proof-cell landmark. If it only reads
+because the label, marker, or tray explains it, the engine is still leaning on
+UI as a crutch. The renderer pass must improve object identity while keeping the
+same product loop, county states, provider boundary, and no-prop discipline.
+
+Rejected alternatives:
+- Promoting Anaheim or Ontario before public Riverside landmark quality is
+  credible.
+- Adding signs, labels, cars, humans, panels, glows, or UI copy to compensate
+  for weak landmark form.
+- Replacing the Pixi renderer or importing external voxel/game runtimes.
+
+## Decision 054: Specific places are object-kit stress cells, not destination polish
+
+Pre-Alpha 0.15E treats Eastvale Core and Angel Stadium as reusable civic/venue
+object-kit stress cells. Eastvale Core represents the public `civic_landmark`
+case inside the live Riverside loop. Angel Stadium represents a hidden
+`venue_anchor` case for future second-district readiness. Neither target may
+justify bespoke destination polish unless the work also improves a reusable
+contract: silhouette, hierarchy, mobile readiness, and no-label readiness.
+
+Reason: Atlas is a USA-scale county-to-scene engine. Improving one place only
+matters when the improvement generalizes to the object kit that future counties
+will reuse. Public Riverside remains the visible product bottleneck, so the
+next authorship implementation should target Eastvale Core first unless a
+metric or screenshot gate proves hidden Anaheim is the better engine blocker.
+
+Rejected alternatives:
+- Eastvale-only renderer sanding without a reusable object-kit contract.
+- Angel Stadium source art that does not improve venue-anchor grammar.
+- Public Anaheim/Ontario promotion from hidden draft metrics.
+- Using labels, panels, cars, humans, props, or provider geometry to compensate
+  for weak object identity.
+
+## Decision 053: Mobile LOD budgets are enforceable core contracts
+
+Pre-Alpha 0.13E promotes mobile occlusion from measurement to enforcement.
+`@atlas/core` now defines named budgets for playable mobile, residential detail
+proof crops, shell empty states, and hidden draft probes. The mobile occlusion
+verifier consumes those budgets instead of carrying loose per-target thresholds.
+
+Reason: Atlas is a ChatGPT app, so the normal `390x844` map surface has to stay
+readable as the voxel world gets denser. Visual work can be richer, but it must
+not crowd the county switcher, selected-place tray, pins, notes, or recovery
+states. Residential-detail crops are allowed to be dense only because they are
+explicitly classified as proof crops, not the public mobile path.
+
+Rejected alternatives:
+- Keeping threshold logic only in verifier scripts.
+- Letting renderer or UI code decide mobile readability budgets.
+- Adding a public debug overlay or exposing LOD/metric labels in the widget.
+- Treating shell counties or hidden drafts as playable because they compile.
+- Reopening provider geometry, paid scope, persistence, or public Anaheim/Ontario
+  promotion while enforcing this engine gate.
+
+## Decision 052: Derived terrain maps are Atlas-owned engine contracts
+
+Pre-Alpha 0.12E adapts the useful VoxelSpace-style height/color-map idea into
+`@atlas/core` as `deriveCityWorldTerrainMap` and
+`deriveCityWorldMobileOcclusion`. These reports are derived from compiled
+`CityWorldScene`, not external provider geometry, image assets, or a new
+runtime renderer. They are diagnostics and verifier inputs for the existing
+Pixi map-first app.
+
+Reason: Atlas needs measured engine pressure without drifting into a terrain
+demo. Height/color arrays, water-edge signal, object occupancy, and mobile
+occlusion budgets give Axiom, Lumen, Forge, and Mira a shared way to judge
+terrain composition and mobile readability while preserving the public product
+model: play Riverside/Eastvale, browse shells, and lookup places without saved
+coverage claims.
+
+Rejected alternatives:
+- Vendoring VoxelSpace, VoxCity, Pixels2Voxels, Open3D, Three, or another
+  terrain/rendering runtime.
+- Letting provider lookup or source imagery become public geometry.
+- Replacing the Pixi `CityWorldRenderer` with a height-map renderer.
+- Treating derived maps as public UI or a dashboard.
+- Promoting Anaheim/Ontario because hidden draft maps compile.
+
+## Decision 051: External voxel references are research adapters
+
+VoxCity, VoxelSpace, and Pixels2Voxels may inform Atlas engine discipline, but
+they are not approved runtime dependencies. VoxCity should pressure Atlas
+toward stronger grid geometry, source coverage policy, footprint-to-cell
+assignment, voxel layer separation, surface metadata, and material/window
+grammar. VoxelSpace should pressure terrain height/color diagnostics,
+occlusion thinking, and distance LOD. Pixels2Voxels should pressure offline
+source-art contrast/channel inspection.
+
+Reason: Atlas needs a reusable ChatGPT voxel county engine, not a Python GIS
+pipeline, Open3D viewer, terrain-only renderer, or image-to-voxel toy inside
+the public app. Every useful idea must be adapted into Atlas-owned
+`@atlas/core`, `@atlas/geo`, `CityWorldScene`, diagnostics, verifiers, and Pixi
+renderer contracts.
+
+Rejected alternatives:
+- Vendoring VoxCity, VoxelSpace, or Pixels2Voxels.
+- Adding Python, Open3D, Three, Rapier, Earth Engine, or terrain-renderer
+  runtime dependencies from this research.
+- Letting provider/source imagery become public voxel geometry or readiness
+  proof.
+- Using image/channel visualization as production object art.
+- Promoting Anaheim/Ontario because an external reference has a stronger data
+  pipeline.
+
+## Decision 041: Public object authorship follows the 0.10E terrain pass
+
+Pre-Alpha 0.11E moves from terrain/world-edge correction to public Riverside
+object authorship. The measured 0.10E terrain floors are now high enough to
+stop another terrain pass for the moment; the visible first-read weakness is
+object identity: Eastvale Core, residential homes, rowhomes, strip-store,
+apartments, and service/gym still need stronger authored silhouettes and
+category cues.
+
+Reason: Atlas should not keep chasing the same terrain axis after it clears the
+diagnostic gate. The default ChatGPT app view is now better served by making
+the existing public objects read as a coherent voxel county kit while preserving
+the current terrain, provider, shell, and hidden-draft boundaries.
+
+Rejected alternatives:
+- Continuing chunk-edge tuning before object identity gets a measured pass.
+- Moving to hidden Anaheim/Ontario art before the public Riverside proof cell
+  has stronger authored objects.
+- Adding labels, panels, glows, cars, humans, signs, or decorative props to
+  explain weak buildings.
+- Adding a parallel object schema instead of using existing `CityWorldScene`
+  object-family grammar.
+- Allowing provider lookup, public candidate metadata, or paid/persistence
+  scope to influence renderer geometry.
+
+## Decision 040: Terrain corrections must move chunk-edge readability
+
+Pre-Alpha 0.10E adds viewport-level `chunkEdgeReadabilityScore` to City World
+diagnostics. Terrain work is no longer accepted on "looks better" alone: it
+must move terrain massing coverage, empty-board ratio, first viewport
+composition, and chunk-edge readability while preserving product behavior.
+
+Reason: 0.9E centralized coordinate and sampling math, so terrain quality can
+now be judged by the same engine contract the renderer consumes. Atlas needs
+visible terrain shelves and world-edge structure, not another subjective
+surface-stroke pass.
+
+Rejected alternatives:
+- Adding decorative props, labels, panels, cars, humans, or glows to hide flat
+  terrain.
+- Adding new terrain profile names before exhausting the existing massing and
+  edge grammar.
+- Improving hidden Anaheim draft art while the public Riverside terrain axis is
+  still the weakest visible app metric.
+- Treating screenshot taste as sufficient when diagnostics do not move.
+
+## Decision 039: Atlas owns WorldBasis and TerrainSampler runtime contracts
+
+Pre-Alpha 0.9E adds `CityWorldBasis` and `CityWorldTerrainSampler` under
+`@atlas/core/voxel`. Board-space projection, tile diamond geometry, viewport
+frames, frame intersection, terrain sampling, empty-board counts, terrain
+massing counts, and road/lot/building contact helpers are now core contracts
+instead of private renderer or diagnostics formulas.
+
+Reason: Atlas needs a reusable voxel county engine. Future visual work should
+move measured engine axes, not hand-tune scattered coordinate math. GameBlocks
+is useful as a reference vocabulary, but Atlas must own the runtime contract.
+
+Rejected alternatives:
+- Vendoring GameBlocks or adding Three/Rapier/runtime dependency drift.
+- Letting the Pixi renderer keep raw projection and diamond formulas.
+- Letting diagnostics maintain separate viewport, terrain, or contact math.
+- Treating 0.9E as a screenshot-quality claim instead of infrastructure for
+  better measured slices.
+- Using provider/Google data to create map geometry or county readiness.
+
+## Decision 038: Terrain chunk massing is a stronger layer than chunk-edge strokes
+
+Pre-Alpha 0.6E adds `terrainChunkMassing` to `CityWorldScene` visual grammar.
+The compiler now identifies outer world-edge mass, civic plinth mass,
+residential shelf mass, commercial slab mass, park basin cut mass, waterfront
+bank cut mass, shell boundary mass, and hidden draft mass.
+
+Reason: 0.5E proved terrain elevation and chunk-edge language, but it remained
+too subtle. Atlas needs terrain shelves and world edges to read structurally in
+the first three seconds of the screenshot.
+
+Rejected alternatives:
+- Treating 0.5E as final terrain depth.
+- Adding more small strokes without larger side faces and mass silhouettes.
+- Adding cars, humans, labels, panels, or decorative props to make weak terrain
+  look busier.
+- Exposing Anaheim/Ontario public states because hidden draft terrain has
+  richer internal massing.
+
+## Decision 037: Terrain elevation and chunk edges are scene grammar
+
+Pre-Alpha 0.5E adds `terrainElevation`, `parcelElevation`, and `chunkEdge` to
+`CityWorldScene` visual grammar. Terrain now distinguishes flat fields, raised
+parcel shelves, civic plinth shelves, commercial slab fields, park basin
+shelves, water-edge cuts, shell-flat terrain, hidden-draft shelves, and bounded
+chunk-edge roles. Lots now distinguish thin pad lips, raised home shelves,
+commercial slab lips, civic plinth stacks, apartment court lips, park basin
+lips, waterfront bank cuts, and hidden anchor shelves.
+
+Reason: 0.4E improved surface composition, but the world still needed physical
+depth. Atlas should read as a voxel county board with shallow terrain thickness,
+raised parcel shelves, and cut banks, not painted patterns on a flat grid.
+
+Rejected alternatives:
+- Adding more surface strokes without a typed compiler contract.
+- Adding cars, humans, signs, glows, or labels to make flat terrain feel busy.
+- Letting hidden Anaheim/Ontario draft chunk grammar imply public playability.
+
+## Decision 036: Terrain and parcels use compiler-owned composition grammar
+
+Pre-Alpha 0.4E adds `terrainComposition` and `parcelComposition` to
+`CityWorldScene` visual grammar. Terrain now distinguishes quiet fields,
+neighborhood yard fabric, civic focus fields, commercial apron fields, park
+basins, waterfront strata, shell boundaries, and hidden draft fields. Lots now
+distinguish home yard grids, commercial aprons, civic landmark plinths,
+apartment courts, park basins, waterfront banks, and hidden draft anchor pads.
+
+Reason: Atlas needs the map base to feel authored before more districts are
+promoted. Buildings, roads, and labels cannot carry the entire first read; the
+county surface itself must communicate parcel structure, civic focus, and
+ground contact.
+
+Rejected alternatives:
+- Adding cars, humans, benches, signs, glows, panels, or labels to make empty
+  areas feel busy.
+- Letting the renderer guess terrain composition from provider or Google
+  payloads.
+- Exposing Anaheim/Ontario public states because hidden draft terrain has more
+  complete internal grammar.
+
+## Decision 035: Object authorship is compiler-owned scene grammar
+
+Pre-Alpha 0.3E adds object-authorship metadata to `CityWorldScene` visual
+grammar. Buildings now expose `objectFamily`, `clusterRole`, and
+`noLabelPriority` so the compiler, renderer, tests, and visual packet verifiers
+can agree on what a building is meant to read as before labels help.
+
+Reason: Atlas needs a reusable voxel county engine, not hand-tuned blocks per
+district. Riverside civic, residential, commerce, service, and apartment forms
+must share the same engine language that future Anaheim/Ontario hidden drafts
+use for venue and transit anchors.
+
+Rejected alternatives:
+- Making no-label recognition a public UI label or product claim.
+- Letting provider lookup or Google payloads decide map geometry or readiness.
+- Hiding generic object art with cars, humans, decorative props, panels, glows,
+  or more labels.
+- Treating Anaheim/Ontario hidden draft anchors as public/playable because they
+  have internal no-label priority.
+
+## Decision 034: Roads and roofs use compiler-owned visual grammar
+
+Pre-Alpha 0.2E makes road, lot, terrain, building material, roof material, and
+contact-shadow language part of `CityWorldScene` metadata. The renderer can
+improve physical road slabs, roof courses, parcel pads, and foundations from
+those profiles, but it must not infer provider readiness or invent product state.
+
+Reason: Atlas needs a reusable voxel county engine, not one-off renderer
+patches. Future Riverside, Anaheim, Ontario, and USA county slices should share
+style vocabulary such as `embedded_asphalt_slab`, `flat_parapet_cap`, and
+`parcel_pad_shadow`.
+
+Rejected alternatives:
+- Driving map geometry directly from provider lookup results.
+- Hiding weak building/road grammar with cars, humans, decorative props, labels,
+  dashboards, or glows.
+- Keeping visual style only as undocumented renderer magic.
+
+## Decision 033: Axiom wakeups must read real worker threads
+
+Axiom light/full-power wakeups run from
+`C:\Users\mzwin\Documents\Atlas-alpha-path-b-rc` and must read the real Forge,
+Lumen, and Mira threads in small chunks before summarizing worker state or
+dispatching work. The repo verifies this with
+`scripts/verify-big4-wakeup-protocol.mjs`.
+
+Reason: manager memory and stale summaries are not enough for the Big 4 model.
+Finished artifacts must be read from the real owner threads before Axiom makes
+release or next-slice decisions.
+
+Rejected alternatives:
+- Creating local Mira/Forge/Lumen clones in Axiom's thread.
+- Mutating Railway or GitHub as a communication shortcut before a local status
+  artifact proves the shape.
+- Letting light wakeups run from the old mixed Atlas tree.
+
+## Decision 032: Second-district promotion requires aggregate readiness
+
+Anaheim and Ontario cannot become public or playable from candidate metadata,
+hidden draft scenes, source notes, visual screenshots, or split guard output in
+isolation. Promotion discussion must use the Forge readiness aggregate produced
+by `scripts/verify-second-district-readiness.mjs`, which combines data,
+source-to-scene trace, visual packet status, product proof status, and release
+split guard state. Missing visual, product, or release acceptance keeps
+`readyForPlayablePromotion: false`.
+
 ## Decision 001: Mock-first
 
 Build against curated Riverside data and MockGeoDataAdapter before real Google APIs.
@@ -104,3 +721,419 @@ tighten building/road/camera quality, and prove the map-first product loop with
 desktop and mobile screenshots. Hosted Clawd persistence, Stripe, XP, evidence,
 OAuth, automation, reports, and exports remain parked until Engine Beta is
 visually credible and the human explicitly reopens those gates.
+
+## Decision 026: Production object intake is fallback-first
+
+Engine Beta can promote vetted object-kit assets from the standalone lab into
+the production city-world renderer, but only through atlas manifest metadata,
+resolver-loaded bundled textures, and primitive fallback. The renderer may draw
+sprite-backed buildings when the texture resolves cleanly, while every asset
+must fail back to the existing map object. The first accepted production intake
+path is building-focused: rowhome and strip-store assets can render in the
+production map. The road-corner asset remains registered but is not drawn in
+runtime because repeated road-cap placement reads as pasted-on clutter; future
+road work should solve this as road-module geometry, not decorative sprite
+stamping.
+
+## Decision 027: Anaheim is the first second-district candidate
+
+The first non-Riverside playable-district candidate is Anaheim in Orange
+County, with Ontario in San Bernardino County as the follow-up candidate.
+Both remain non-playable `L1_COUNTY_SHELL` metadata until they have curated
+district packs, source notes, bounded scene compiler proof, desktop/mobile
+product-loop screenshots, Lumen visual acceptance, Mira readiness acceptance,
+and Forge split guard. Candidate metadata is not a playable claim and is not a
+provider-normalized or public-quality coverage claim.
+
+## Decision 028: District candidate packs are separate from playable county packs
+
+Anaheim candidate preparation uses a dedicated `DistrictCandidatePack` contract
+instead of the old Riverside county-pack schema. Candidate packs may describe
+source notes, anchor requirements, scene stressors, acceptance criteria, and
+reject rules, but they must remain `candidate_only`, `playableNow: false`, and
+`renderableNow: false` until source-noted place anchors and bounded compiler
+proof exist. This prevents a data-readiness artifact from becoming a fake
+playable county by metadata flip.
+
+## Decision 029: Anaheim place anchors are source-noted but non-renderable
+
+Anaheim's first place-anchor artifact may name real local anchors only when
+each one has an explicit source note, but the anchors do not become scene
+objects yet. Every E12.3 anchor remains `providerNormalized: false`,
+`renderableNow: false`, and `sceneEligible: false` until coordinates or bounds,
+category confidence, compiler placement, desktop/mobile screenshots, and the
+Big 4 release gates pass.
+
+## Decision 037: Anaheim draft scenes are non-public compiler evidence
+
+E12.4 may compile Anaheim's source-noted anchors into a bounded draft
+`CityWorldScene`, but that scene is compiler evidence only. It stays
+`L1_COUNTY_SHELL`, `playable: false`, outside the public county switcher, and
+outside the MCP playable scene path until screenshot review, product readiness,
+visual acceptance, and release split gates explicitly promote it. A draft scene
+cannot create fake places, public-quality claims, provider-normalized claims,
+session tools, actors, pins, or selected-place state.
+
+## Decision 027: USA release scales through coverage tiers
+
+Atlas public release should grow from Eastvale to California to the USA through
+explicit county readiness tiers, not by rendering a giant national canvas or
+pretending every county has equal data quality. Eastvale/Riverside remains the
+proof cell. California is the next coverage layer. The USA engine must support
+normalized country/state/county/district/place identity, bounded
+`CityWorldScene` compilation, honest unsupported-county responses, source and
+confidence notes, and fallback-first object rendering. Provider data stays
+behind backend adapters and never becomes a renderer contract.
+
+## Decision 028: California shells are identity coverage, not playable scenes
+
+E10.1 promotes California county identity to a checked world contract using the
+Census 2024 county gazetteer. Riverside County is the only playable county in
+this slice because it has the curated Eastvale scene. Other California counties
+are `L1_COUNTY_SHELL`: Atlas can name and locate them, but it must not compile
+fake local scenes, fake place data, or Riverside stand-ins for them. ChatGPT
+tools may return `countyCoverageSummary` for shell counties, while full
+`_meta.scene` payloads remain limited to `riverside-ca` until another curated
+district is approved.
+
+## Decision 029: Shell scenes are separate from playable scenes
+
+E10.2 adds `_meta.coverageShellScene` as the safe scene contract for indexed
+but non-playable counties. It is a `CityWorldScene` shell with coverage
+metadata and terrain/camera defaults only. It deliberately has no places,
+buildings, roads, lots, pins, actors, saved state, or local claims. The
+existing `_meta.scene` key remains reserved for playable `VoxelScene` payloads
+such as Riverside/Eastvale, so the widget and ChatGPT tools can distinguish a
+real playable map from an honest county shell.
+
+## Decision 030: Shell counties get a separate widget surface
+
+E10.3 renders `countyCoverageSummary` results through a dedicated coverage
+shell UI instead of falling back to the playable Riverside tray. The shell view
+may show `_meta.coverageShellScene`, coverage tier, source notes, and
+readiness limitations, but it must not show selected-place tools, sticker
+tools, note input, fake places, saved state, XP, evidence, live coverage, or
+automation claims. This keeps California-scale coverage visible while
+preserving the boundary that only Riverside/Eastvale is playable in the current
+Engine Beta slice.
+
+## Decision 031: Unsupported counties use refusal state, not a map stand-in
+
+E10.4 confirms that `L0_UNSUPPORTED` counties share the coverage-status UI
+family but do not receive a `coverageShellScene` canvas. Atlas should only show
+a shell map when the county is indexed as identity coverage. Unknown counties
+must say they are unsupported, show zero playable districts and zero places,
+and point users back to the playable Riverside/Eastvale slice without borrowing
+Riverside visuals or implying future saved/live coverage.
+
+## Decision 032: Recovery from coverage states points to the proof slice
+
+E10.5 makes the coverage UI actionable without turning shell counties into the
+product. Indexed shell counties and unsupported counties get one recovery
+action: open Riverside/Eastvale playable Alpha. Atlas should not add disabled
+dashboards, fake place lists, or broad county navigation to compensate for
+coverage gaps. The fastest honest path is always: show the coverage tier,
+explain the boundary, and give the user a route back to the current playable
+county world.
+
+## Decision 033: Census identity verification gates county-scale claims
+
+E10.8 adds a source verifier for the California county index. Census gazetteer
+identity data is allowed to prove county names, GEOIDs, representative
+centroids, and the Eastvale place GEOID anchor, but it does not make a county
+playable, provider-normalized, or public-quality. Future state or county index
+expansion should pass the same kind of source verification before Atlas makes
+coverage claims, and provider/place readiness must remain a separate adapter
+and QA gate.
+
+## Decision 034: Census source files stay temp-cached by default
+
+E10.9 keeps raw Census gazetteer downloads out of the repo by default. The
+county source verifier may download or reuse the 2024 Census county/place
+gazetteers in a temp cache, and release logs must show whether each source was
+downloaded or cached. Offline verification is allowed only when that cache is
+already present; missing-cache failures should be explicit blockers, not silent
+network fallbacks. Checked raw fixtures require a separate Axiom approval
+because source identity verification is a release gate, not a broad data
+ingestion lane.
+
+## Decision 035: District candidates are not playable coverage
+
+E11.6 introduces candidate-only district metadata for future California
+expansion. Anaheim and Ontario can be named as Census-anchored district
+candidates, but they remain non-playable `L1_COUNTY_SHELL` metadata with zero
+places until a curated district pack, source notes, compiler proof, product
+loop screenshots, and release-readiness review exist. Candidate metadata may
+describe readiness gaps; it must not create fake scenes, fake local places,
+provider-normalized claims, or public-quality claims.
+
+## Decision 036: Big 4 work is artifact-first
+
+Mira, Lumen, and Forge are not approval-only workers during Engine Beta. Each
+captain owns bounded build artifacts in their lane before giving final gates:
+Lumen owns visual-engine code, Mira owns product-surface code and verifier
+quality, and Forge owns data/backend contracts and release safety scripts.
+Axiom remains the integration GM and final release authority. Gate-only reports
+are valid only after an artifact exists or when Axiom explicitly asks for a
+final release verdict.
+
+## Decision 037: Anaheim official venue names require a promotion gate
+
+Anaheim draft anchors may use official source notes and internal labels while
+the scene is hidden, non-playable, and non-public. Public promotion requires a
+separate naming/app-review decision for official venue labels such as Anaheim
+Convention Center, ARTIC, Angel Stadium, and Downtown Anaheim Community Center.
+Source notes, procedural silhouettes, and one source-art venue asset are not
+enough to claim public-quality coverage.
+
+## Decision 038: Playable tools derive from backend coverage boundary
+
+Selected-place tray, sticker tools, note input, Scout Drop, and campaign preview
+are public playable affordances. They may appear only when the public coverage
+DTO has `coverageTier === "L2_CURATED_DISTRICT"` and
+`playableDistrictCount > 0`. Shell counties, unsupported counties, and hidden
+draft evidence must expose separate DTO kinds and an empty playable-tool list.
+Future Hosted Clawd state remains a separate explicit DTO until persistence is
+approved.
+
+## Decision 039: Provider lookup is not provider readiness
+
+Google Maps-backed `lookup_world_places` may resolve places and return
+normalized read-only Atlas categories, but it does not promote a county or
+district to `L3_PROVIDER_NORMALIZED`, scene-eligible, public-quality, or
+playable. Provider-derived readiness needs its own typed contract with source
+notes, cache TTL, confidence/status, category normalization, and raw-payload
+leak checks. Until that contract exists and passes verification, provider data
+stays a lookup surface behind `GeoDataAdapter`, not a scene compiler input.
+
+## Decision 040: Provider readiness metadata is lookup-only by default
+
+E12.16 adds `providerReadiness` to world lookup responses so Atlas can describe
+provider lookup quality without promoting coverage. The contract may expose
+sources, adapter mode, cache key/TTL, normalized category status, normalized
+category confidence, and limitations, but `coveragePromotion`, `sceneEligible`,
+and `publicQuality` must remain false unless a separate promotion slice defines
+and verifies stronger evidence. Provider readiness metadata is not persistence,
+not a scene compiler input, not public-quality proof, and not a playable county
+claim.
+
+## Decision 041: Native voxel grammar outranks pasted source art
+
+Source SVG or PNG assets are useful as inspectable art artifacts and reference
+targets, but they are not automatically the production runtime answer. If a
+large venue asset reads pasted-on, floats against the lot system, depends on a
+label, or fails mobile after two anchor/scale attempts, the renderer should
+fall back to native voxel geometry with primitive metadata rather than forcing
+the asset. Public promotion requires the runtime scene to read as a coherent
+voxel county world before labels, not merely to possess source-art files.
+
+## Decision 042: Public residential palette should be regional and restrained
+
+Riverside/Eastvale common homes should use a warm SoCal-inspired material ramp:
+stucco creams, muted terracotta, clay, sage, taupe, and restrained teal/blue
+accents. Loud primary roof colors may appear in hidden drafts or experiments,
+but they should not drive the public proof cell because they make repeated
+houses read like generic default blocks. Future residential art should add
+quality through roof massing, eaves, foundation/contact, window rhythm, and
+face separation rather than brighter colors, props, labels, cars, or humans.
+
+## Decision 043: Second districts require a promotion gate packet
+
+Anaheim or Ontario may not appear as a public playable switcher option until a
+promotion gate packet exists and passes. The packet must include candidate
+identity, source-noted anchors, a draft-only curated pack, provider-readiness
+hard-false promotion boundaries, bounded compiler proof, desktop/mobile
+screenshot proof, Mira readiness acceptance, Lumen visual acceptance, and Forge
+split guard. Candidate metadata, hidden draft scenes, lookup results, source
+art, and local renderer polish are not sufficient public playability evidence
+by themselves.
+
+## Decision 044: Riverside-only polish is no longer the main lane
+
+Riverside/Eastvale remains the playable regression anchor and quality reference,
+but it should not consume full artifact cycles for tiny visual deltas. Future
+Riverside work must either generalize the renderer/object kit, fix a real
+mobile or product-comprehension bug, or directly support second-district proof.
+The main expansion lane is now the candidate-to-playable pipeline for a second
+California district, with strict no-fake-playability gates before any public UI.
+
+## Decision 045: External references are checklists, not dependencies
+
+The `chatgpt-app-skill` GitHub repository is useful as a ChatGPT app quality
+checklist, especially for tool language, response layering, widget/mobile proof,
+golden prompts, and submission readiness. Atlas will not install or vendor it
+automatically. The same rule applies to voxel/isometric GitHub references: use
+them to sharpen engine standards such as face separation, tile grammar,
+batchable modules, and no-label object recognition, but do not add runtime
+dependencies without a separate implementation decision and verification plan.
+
+## Decision 046: Provider usage policy belongs in `@atlas/geo`
+
+The Axiom handoff pack proposed a standalone `shared/contracts` and
+`server/src/geo` provider stack, but the RC already has `@atlas/geo` as the
+adapter boundary and `@atlas/core` as the readiness/world contract boundary.
+Pre-Alpha 0.1E therefore adapts the provider policy into `packages/geo/src`
+instead of creating a disconnected parallel service. Google lookup signals must
+carry usage policy flags that default to non-renderable, non-cacheable, and
+non-readiness. Mock lookup may remain cacheable for local smoke checks, but it
+is still not scene eligibility or playable coverage. Future server `GeoGateway`
+work should wrap this package rather than bypass it.
+
+## Decision 047: Engine progress requires diagnostics, not screenshot vibes
+
+Pre-Alpha 0.6F makes `CityWorldScene` diagnostics the proof floor for future
+voxel-engine work. Screenshots still matter, but no visual slice may claim
+progress unless it names and moves an engine metric such as terrain massing,
+empty-board ratio, object-family coverage, road/lot/building contact, clone
+pressure, first-viewport composition, no-label readiness, fallback safety, or
+provider isolation. The debug overlay is development-only behind
+`atlasDebug=engine`; it must never become public product UI. Hard blockers
+remain fake playability, provider payloads in scene data, public hidden-draft
+exposure, cars/walkers, decorative clutter, and debug leakage into normal
+ChatGPT app states.
+
+## Decision 048: Terrain metric lifts must come from structural massing
+
+Pre-Alpha 0.7E raises Riverside terrain and viewport metrics by expanding
+structural terrain grammar and renderer shelf treatment, not by adding props,
+labels, or fake object density. Future terrain slices must preserve that rule:
+metrics may improve through chunk fields, shelves, strata, edge faces, camera
+framing, or object-kit structure, but not through cars, humans, filler props,
+panels, provider geometry, or public hidden-draft promotion.
+
+## Decision 049: GameBlocks is an adapter reference, not an engine dependency
+
+The `xt4d/GameBlocks` repository may inform Atlas engine discipline for
+`WorldBasis`, planar math, terrain sampling, board bounds, diagnostics, and
+camera-framing proof. Atlas will not vendor it, install it, or import its
+Three/Rapier/gameplay systems into runtime. Any useful pattern must be adapted
+into Atlas-owned `@atlas/core`, `CityWorldScene`, diagnostics, or Pixi renderer
+contracts with a focused verifier. Actor motion, vehicles, combat, generic HUDs,
+and persistent local game settings remain out of scope for Atlas Engine Beta.
+
+## Decision 050: Hidden no-label recognition is not public playability
+
+Pre-Alpha 0.8E lets Anaheim pass a hidden no-label recognition packet for
+Anaheim Convention Center and ARTIC / Angel Stadium area, but the only allowed
+outcome is `HIDDEN_DRAFT_ONLY`. A hidden draft packet may prove object-family
+separation and screenshot readiness for internal review; it may not create a
+public switcher state, playable claim, selected-place tray, pins, actors,
+session tools, provider-readiness claim, or county promotion. Anaheim remains
+blocked from public promotion until source-object art, product proof, visual
+review, data readiness, and release gates all pass together.
+
+## Decision 051: Atlas is a county-to-scene engine, not a generic game engine
+
+Atlas should use engine-building references as discipline, not as runtime
+identity. The core engine is the source-to-scene pipeline: identity/source data,
+provider policy, candidate readiness contracts, scene compiler, basis/sampling
+diagnostics, Pixi renderer, Apps SDK tool output, and release guard. Future
+engine slices must name the axis, typed contract, metric, verifier,
+screenshot/product proof, blocked public claim, and forbidden files. Atlas will
+not solve engine gaps by adding generic game systems, public debug UI, cars,
+humans, decorative props, provider geometry, or dashboard surfaces.
+
+## Decision 052: Object-art work must name the weakest face/anchor metric
+
+Pre-Alpha 0.14E makes face orientation and source-art contrast part of the
+engine diagnostics layer. Future object-art work cannot claim progress from a
+general taste pass alone; it must name the metric it is moving and target the
+weakest reported object family or hidden anchor. The current public target is
+`civic_landmark` / Eastvale Core, and the current hidden Anaheim target is
+`angel-stadium`. Anaheim and Ontario remain hidden/non-playable until source
+art, product proof, visual review, data readiness, and release gates pass
+together.
+
+## Decision 053: Public Alpha proof outranks new feature work after 0.17E
+
+Pre-Alpha 0.17E made the Scout Drop and Campaign Preview loop explicit enough
+for Alpha: session-only, no saves, no action execution, no XP, Hosted Clawd
+required before saved state, and clear next-tool flow. After the 0.18A local RC
+freeze passes, Axiom must deploy and prove the public app before starting more
+engine, art, data, or product-surface slices. Public proof must preserve the
+seven-tool list, Riverside/Eastvale as the only playable district, California
+shell honesty, Orange/L0 recovery, provider isolation, and the no paid /
+persistence / automation boundary.
+
+## Decision 054: Railway public Alpha is the post-0.20A baseline
+
+0.19A/0.20A deployed the current Alpha RC to Railway and passed public preview,
+MCP, submission, and Engine Beta coverage proof at
+`https://atlas-backend-production-e6fc.up.railway.app`. This public deployment
+is the baseline for post-Alpha work. New slices must either improve a named
+public product blocker or advance hidden second-district readiness without
+changing public playability claims. Riverside/Eastvale remains the only public
+playable district; Anaheim/Ontario remain hidden/non-public; paid,
+persistence, Hosted Clawd, XP, evidence, OAuth, automation, reports, and exports
+remain parked until explicitly reopened.
+
+## Decision 055: Post-Alpha work follows the Engine Beta spine
+
+After the 0.21A Alpha Handoff Lock, Atlas moves into Engine Beta rather than
+Paid Beta. Public slices must improve the ChatGPT app first-read or the voxel
+county engine; hidden slices may advance Anaheim/Ontario readiness only through
+source, visual, product, split, and provider gates. Anaheim and Ontario may not
+become public switcher states, playable districts, or provider-readiness claims
+from metadata flips. Hosted Clawd, DB persistence, Stripe, XP, evidence, OAuth,
+automation, reports, exports, and broad provider-backed coverage stay parked
+until explicitly reopened.
+
+## Decision 056: Missing worker-thread tools do not create fake worker state
+
+Axiom must read and message the real Forge, Lumen, and Mira threads when the
+Codex thread bridge is available. If those tools are absent in a wakeup, Axiom
+may continue only with verified local integration artifacts and must report the
+thread bridge as a blocker. It must not spawn local role clones, summarize stale
+memory as current worker state, or treat a local sentinel/export as Forge,
+Lumen, or Mira acceptance. Worker assignments remain unsent until the real
+thread bridge is available.
+
+## Decision 057: Hidden Anaheim venue proof is evidence, not promotion
+
+0.23E is deployed and publicly proven, but Anaheim remains hidden and
+non-playable. The hidden no-label packet may count as second-district readiness
+evidence for Anaheim Convention Center and ARTIC / Angel Stadium area; it does
+not create a public switcher state, playable county, selected-place tray, pins,
+actors, session tools, provider-readiness claim, or public route. Public
+promotion requires the 0.24E readiness aggregator plus explicit visual,
+product, data, split, provider, and Axiom release gates. Until then,
+Riverside/Eastvale remains the only public playable district.
+
+## Decision 058: 0.24E readiness evidence can pass while promotion stays blocked
+
+The second-district readiness aggregator separates evidence validity from
+promotion approval. A visual packet or ChatGPT product proof can pass as
+boundary evidence while still reporting `promotionReady: false` and
+`publicPlayable: false`. That state is not a failed proof; it is a deliberate
+blocker against fake playability. Anaheim may move forward only when the
+aggregator reports no data, visual, product, or release blockers and Axiom
+accepts the final public UI release cutline.
+
+## Decision 059: 0.25E has only promote or block outcomes
+
+The owner-gate closure slice cannot become another ambiguous planning loop.
+0.25E either closes Lumen, Mira, Forge, and Axiom gates with evidence and
+authorizes a controlled 0.26E Anaheim public playable spike, or it records the
+remaining blockers and keeps Anaheim hidden while work returns to public Engine
+Beta quality. Anaheim cannot become public through metadata flips, hidden draft
+screenshots alone, provider lookup, or schedule pressure.
+
+## Decision 060: 0.25E blocks Anaheim public promotion
+
+The executed 0.25E owner-gate cutline outcome is `BLOCK_PROMOTION`. Anaheim has
+valid source, hidden draft, visual packet, product boundary, and split evidence,
+but it is not promotion-ready, public-playable, or owner-accepted. The next
+work must not be a public Anaheim spike. Atlas should either improve the public
+Riverside/Eastvale Engine Beta experience or run one focused hidden source-art
+blocker before asking for another promotion review.
+
+## Decision 061: Atlas loop automation is L2 assisted, not unattended
+
+Atlas may use the loop-engineering pattern as local operating discipline:
+`LOOP.md`, `STATE.md`, constraints, budget, run log, readiness verifier, and
+scheduled Codex wakeups. It will not vendor `cobusgreyling/loop-engineering` or
+add package/runtime dependencies for this. The loop must read real Forge,
+Lumen, and Mira threads when thread tools are available; missing thread bridge
+access is a blocker, not permission to invent worker acceptance. Deploys,
+public second-district release, package/env changes, money, persistence, and
+Hosted Clawd remain human-gated.

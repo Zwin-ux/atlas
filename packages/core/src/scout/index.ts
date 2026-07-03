@@ -6,6 +6,7 @@ export type {
   CampaignDayPlan,
   CampaignPreviewState,
   CampaignRoutePriority,
+  AlphaPreviewBoundary,
   ScoutDropInput,
   ScoutPreviewState,
   ScoutRisk,

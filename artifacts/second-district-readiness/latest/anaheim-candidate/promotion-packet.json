@@ -1,0 +1,99 @@
+{
+  "ok": true,
+  "district": "anaheim-candidate",
+  "coverage": {
+    "playableCountyCount": 1,
+    "playableCountySlugs": [
+      "riverside-ca"
+    ],
+    "providerNormalizedCountyCount": 0,
+    "publicQualityCountyCount": 0
+  },
+  "files": {
+    "candidatePack": "data/district_candidate_packs/anaheim-candidate.json",
+    "anchorPack": "data/district_place_anchor_packs/anaheim-anchors.json",
+    "curatedPack": "data/district_curated_packs/anaheim-curated-district-draft.json"
+  },
+  "packet": {
+    "packetKind": "districtPromotionPacket",
+    "version": "e13.10",
+    "districtSlug": "anaheim-candidate",
+    "countySlug": "orange-ca",
+    "currentCoverageTier": "L1_COUNTY_SHELL",
+    "targetCoverageTier": "L2_CURATED_DISTRICT",
+    "playableNow": false,
+    "publicSwitcherEligible": false,
+    "promotionReady": false,
+    "nextRequiredGate": "desktop_mobile_product_loop_screenshots",
+    "gateSummary": {
+      "satisfied": [
+        "candidate_contract",
+        "place_anchors_with_source_notes",
+        "curated_district_pack",
+        "bounded_scene_compiler_proof"
+      ],
+      "missing": [
+        "desktop_mobile_product_loop_screenshots",
+        "lumen_visual_acceptance",
+        "mira_readiness_acceptance",
+        "forge_split_guard"
+      ]
+    },
+    "evidence": {
+      "candidateContract": true,
+      "sourceNotedAnchors": true,
+      "draftOnlyCuratedPack": true,
+      "boundedSceneCompilerProof": true,
+      "desktopMobileScreenshots": false,
+      "lumenAcceptance": false,
+      "miraAcceptance": false,
+      "forgeSplitGuard": false
+    },
+    "reviewPlaceholders": {
+      "requiredScreenshotPacketPath": "artifacts/second-district/anaheim-candidate/visual-packet",
+      "lumenAcceptance": {
+        "owner": "Lumen",
+        "status": "missing",
+        "required": true
+      },
+      "miraAcceptance": {
+        "owner": "Mira",
+        "status": "missing",
+        "required": true
+      },
+      "forgeSplitGuard": {
+        "owner": "Forge",
+        "status": "missing",
+        "required": true
+      }
+    },
+    "noFakePlayability": {
+      "countyRemainsShell": true,
+      "zeroPlayableDistricts": true,
+      "zeroPublicPlaces": true,
+      "districtNotPlayable": true,
+      "draftSceneNotPlayable": true,
+      "noActorsPinsOrSelectedPlace": true,
+      "providerPromotion": false,
+      "publicQuality": false
+    },
+    "releaseCutline": {
+      "mayExposeInPublicSwitcher": false,
+      "mayCompilePublicScene": false,
+      "mayClaimProviderNormalized": false,
+      "requiredOwnersBeforePublic": [
+        "Lumen",
+        "Mira",
+        "Forge",
+        "Axiom"
+      ]
+    },
+    "blockerSummary": [
+      "Missing promotion gate: desktop_mobile_product_loop_screenshots.",
+      "Missing promotion gate: lumen_visual_acceptance.",
+      "Missing promotion gate: mira_readiness_acceptance.",
+      "Missing promotion gate: forge_split_guard."
+    ]
+  },
+  "boundaryFailures": []
+}

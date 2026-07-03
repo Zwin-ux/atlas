@@ -53,6 +53,33 @@ describe("CityWorld atlas manifest", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("declares the Engine Beta object intake module keys", () => {
+    const manifestRecord = manifest as {
+      sprites: Record<string, unknown>;
+      palettes: Record<string, unknown>;
+    };
+
+    expect(Object.keys(manifestRecord.sprites)).toEqual(
+      expect.arrayContaining([
+        "building.house.cottage.front_gable.v1",
+        "building.house.ranch.low_gable.v1",
+        "building.house.rowhome.flat_parapet.v1",
+        "building.apartment.lowrise.stepped.v1",
+        "building.store.strip.three_bay.v1",
+        "road.corner.two_lane.v1",
+      ]),
+    );
+    expect(Object.keys(manifestRecord.palettes)).toEqual(
+      expect.arrayContaining([
+        "building.house.cottage.v1",
+        "building.house.ranch.v1",
+        "building.house.rowhome.flat_parapet.v1",
+        "building.apartment.lowrise.stepped.v1",
+        "building.store.strip.three_bay.v1",
+      ]),
+    );
+  });
+
   it("reports missing scene keys instead of throwing", () => {
     const city = compileCityWorldScene(riversideDemoVoxelScene);
     const brokenManifest = {

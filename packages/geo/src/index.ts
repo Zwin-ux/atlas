@@ -5,6 +5,7 @@ import { MockGeoDataAdapter } from "./MockGeoDataAdapter.js";
 export type * from "./GeoDataAdapter.js";
 export { normalizeProviderPlaceCategory } from "./PlaceCategoryNormalizer.js";
 export type { AtlasPlaceCategory } from "./PlaceCategoryNormalizer.js";
+export { createProviderUsagePolicy } from "./ProviderUsagePolicy.js";
 export { GoogleMapsAdapter, GoogleMapsApiError, GoogleMapsConfigurationError } from "./GoogleMapsAdapter.js";
 export { MockGeoDataAdapter } from "./MockGeoDataAdapter.js";
 

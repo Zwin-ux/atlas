@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Atlas update manifest",
+  "type": "object",
+  "required": ["id", "name", "status", "playerPromise", "engineeringPromise", "gates"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "status": { "type": "string", "enum": ["active", "parked", "complete"] },
+    "playerPromise": { "type": "string" },
+    "engineeringPromise": { "type": "string" },
+    "forbiddenScope": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "required"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "required": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

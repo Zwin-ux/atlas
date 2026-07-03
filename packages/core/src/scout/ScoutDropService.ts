@@ -63,6 +63,15 @@ export class ScoutDropService {
         budgetNote ? `Budget note is treated as planning context only: ${budgetNote}.` : "Budget is not spent or optimized in Alpha.",
         radiusNote ? `Service radius note is treated as planning context only: ${radiusNote}.` : "Service radius is not routed with live traffic in Alpha.",
       ],
+      alphaBoundary: {
+        mode: "session_only_alpha",
+        savesState: false,
+        executesActions: false,
+        grantsXp: false,
+        requiresHostedClawdForSave: true,
+        nextTool: "preview_campaign_engine",
+        userActionLabel: "Preview the manual campaign plan",
+      },
       scene: buildScoutScene(selectedNode.id, summary, bestOffer, route, signals, risks, channels, nextActions),
     };
   }

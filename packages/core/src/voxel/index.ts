@@ -1,7 +1,15 @@
 export * from "./types.js";
 export * from "./cityWorldTypes.js";
+export * from "./cityWorldBasis.js";
+export * from "./cityWorldTerrainSampler.js";
+export * from "./cityWorldDerivedTerrainMap.js";
+export * from "./cityWorldObjectKit.js";
+export * from "./cityWorldRenderCommands.js";
+export * from "./cityWorldSceneWindow.js";
+export * from "./cityWorldDiagnostics.js";
 export * from "./cityWorldAtlas.js";
-export { compileCityWorldScene } from "./cityWorldCompiler.js";
+export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistrictPlaceAnchorDraftCityWorldScene } from "./cityWorldCompiler.js";
+export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./cityWorldCompiler.js";
 export { compileVoxelSceneFromCountyPack } from "./VoxelSceneCompiler.js";
 export type { CompileVoxelSceneOptions } from "./VoxelSceneCompiler.js";
 export * from "./mapSession.js";

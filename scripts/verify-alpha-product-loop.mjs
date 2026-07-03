@@ -16,6 +16,8 @@ function parseArgs(argv) {
     previewUrl: process.env.ATLAS_PREVIEW_URL ?? DEFAULT_PREVIEW_URL,
     screenshotDir: process.env.ATLAS_PRODUCT_LOOP_SCREENSHOT_DIR ?? "",
     chromePath: process.env.CHROME_PATH ?? "",
+    cameraPreset: "",
+    proofOnly: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -32,12 +34,23 @@ function parseArgs(argv) {
       }
     } else if (value === "--chrome-path") {
       args.chromePath = argv[++index];
+    } else if (value === "--camera-preset") {
+      args.cameraPreset = argv[++index];
+    } else if (value === "--proof-only") {
+      args.proofOnly = true;
     } else {
       throw new Error(`Unknown argument: ${value}`);
     }
   }
 
   return args;
+}
+
+function withCameraPreset(url, cameraPreset) {
+  if (!cameraPreset) return url;
+  const nextUrl = new URL(url);
+  nextUrl.searchParams.set("atlasCamera", cameraPreset);
+  return nextUrl.toString();
 }
 
 function sanitizeUrl(value) {
@@ -293,7 +306,7 @@ async function captureScreenshot(client, screenshotDir, label) {
   return path;
 }
 
-async function runViewport({ previewUrl, viewport, screenshotDir, chrome }) {
+async function runViewport({ previewUrl, viewport, screenshotDir, chrome, cameraPreset, proofOnly }) {
   const client = new CdpClient(chrome.target.webSocketDebuggerUrl);
   await client.connect();
 
@@ -308,12 +321,29 @@ async function runViewport({ previewUrl, viewport, screenshotDir, chrome }) {
       mobile: viewport.width <= 480,
     });
 
-    await client.send("Page.navigate", { url: previewUrl });
+    await client.send("Page.navigate", { url: withCameraPreset(previewUrl, cameraPreset) });
     await waitFor(client, `document.readyState === "complete"`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='alpha-city-world']"))`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='selected-place-tray']"))`, 10_000);
 
     const initial = await readState(client);
+    if (proofOnly) {
+      await delay(500);
+      const errors = readBrowserErrors(client);
+      const screenshotPath = await captureScreenshot(client, screenshotDir, viewport.label);
+      assertCameraProofResult(viewport.label, initial, errors, cameraPreset);
+
+      return {
+        label: viewport.label,
+        viewport: { width: viewport.width, height: viewport.height },
+        ok: true,
+        proofOnly: true,
+        state: initial,
+        consoleErrors: errors,
+        screenshotPath,
+      };
+    }
+
     await clickSelector(client, "[data-qa='zoom-in-button']");
     await clickSelector(client, "[data-qa='zoom-out-button']");
     await dragCanvas(client);
@@ -374,6 +404,7 @@ async function readState(client) {
         noteCount: Number(shell.getAttribute("data-qa-note-count") || 0),
         latestNote: shell.getAttribute("data-qa-latest-note") || "",
         boundary: shell.getAttribute("data-qa-session-boundary"),
+        cameraPreset: shell.getAttribute("data-qa-camera-preset") || "",
         boundaryText: document.querySelector("[data-qa='session-only-boundary']")?.textContent?.trim() || "",
         selectedPlaceLabel: document.querySelector("[data-qa='selected-place-label']")?.textContent?.trim() || "",
         trayVisible: Boolean(document.querySelector("[data-qa='selected-place-tray']")),
@@ -384,6 +415,21 @@ async function readState(client) {
       };
     })()`,
   );
+}
+
+function assertCameraProofResult(label, state, errors, expectedCameraPreset) {
+  const failures = [];
+  if (!state.trayVisible) failures.push("selected place tray is not visible");
+  if (state.canvasCount !== 1) failures.push(`expected one canvas, got ${state.canvasCount}`);
+  if (state.horizontalOverflow) failures.push("horizontal overflow detected");
+  if (state.boundary !== "session-only") failures.push("session boundary data hook is wrong");
+  if (!state.boundaryText.includes("Pins and notes stay in this chat.")) failures.push("session-only boundary copy is missing");
+  if (expectedCameraPreset && state.cameraPreset !== expectedCameraPreset) failures.push(`camera preset ${state.cameraPreset || "(none)"}`);
+  if (errors.length > 0) failures.push(`console errors: ${errors.join(" | ")}`);
+
+  if (failures.length > 0) {
+    throw new Error(`${label} camera proof failed: ${failures.join("; ")}`);
+  }
 }
 
 function assertViewportResult(label, initial, finalState, errors) {
@@ -468,7 +514,16 @@ try {
   for (const viewport of DEFAULT_VIEWPORTS) {
     const target = await createTarget(chrome.port);
     chrome.target = target;
-    results.push(await runViewport({ previewUrl: args.previewUrl, viewport, screenshotDir: args.screenshotDir, chrome }));
+    results.push(
+      await runViewport({
+        previewUrl: args.previewUrl,
+        viewport,
+        screenshotDir: args.screenshotDir,
+        chrome,
+        cameraPreset: args.cameraPreset,
+        proofOnly: args.proofOnly,
+      }),
+    );
   }
 } finally {
   if (chrome) await closeChrome(chrome);

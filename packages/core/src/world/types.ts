@@ -2,6 +2,13 @@ export type UsWorldScope = "country" | "state" | "county" | "district" | "place"
 
 export type WorldSourceKind = "mock" | "curated" | "google" | "census" | "osm" | "local-open-data";
 
+export type CountyCoverageTier =
+  | "L0_UNSUPPORTED"
+  | "L1_COUNTY_SHELL"
+  | "L2_CURATED_DISTRICT"
+  | "L3_PROVIDER_NORMALIZED"
+  | "L4_PUBLIC_QUALITY";
+
 export type WorldPlaceCategory =
   | "home_area"
   | "food_drink"
@@ -42,15 +49,31 @@ export type UsStateSummary = UsWorldIdentity & {
   scope: "state";
   stateCode: string;
   supportedCountyCount: number;
+  indexedCountyCount: number;
+  playableCountyCount: number;
+};
+
+export type CountyCoverageTierCount = {
+  coverageTier: CountyCoverageTier;
+  coverageLabel: string;
+  countyCount: number;
 };
 
 export type UsCountySummary = UsWorldIdentity & {
   scope: "county";
   stateCode: string;
   countySlug: string;
+  geoid?: string;
   supported: boolean;
+  coverageTier: CountyCoverageTier;
+  coverageLabel: string;
+  coverageMessage: string;
   playableDistrictCount: number;
   placeCount: number;
+  centroid?: {
+    latitude: number;
+    longitude: number;
+  };
 };
 
 export type UsDistrictSummary = UsWorldIdentity & {
@@ -58,7 +81,10 @@ export type UsDistrictSummary = UsWorldIdentity & {
   stateCode: string;
   countySlug: string;
   districtSlug: string;
+  geoid?: string;
   playable: boolean;
+  coverageTier?: CountyCoverageTier;
+  readiness?: DistrictCandidateReadiness;
   placeCount: number;
 };
 
@@ -108,10 +134,47 @@ export type WorldLookupPlaceSummary = {
   sourceNotes: WorldSourceNote[];
 };
 
+export type ProviderLookupReadiness = {
+  status: "lookup_only";
+  sources: WorldSourceKind[];
+  mode: "mock" | "google";
+  cache: {
+    key: string;
+    ttlSeconds: number;
+  };
+  normalizedCategoryStatus: "bounded_atlas_categories" | "contains_unknown_category";
+  normalizedCategoryConfidence: "mock_verified" | "provider_mapped";
+  coveragePromotion: false;
+  sceneEligible: false;
+  publicQuality: false;
+  limitations: string[];
+};
+
 export type UsCountryResponse = {
   type: "usWorldCountry";
   country: UsWorldIdentity & { scope: "country" };
   states: UsStateSummary[];
+  cache: WorldCachePolicy;
+};
+
+export type UsCoverageDirectoryResponse = {
+  type: "usWorldCoverageDirectory";
+  country: UsWorldIdentity & { scope: "country" };
+  states: UsStateSummary[];
+  totals: {
+    stateCount: number;
+    indexedCountyCount: number;
+    supportedCountyCount: number;
+    playableCountyCount: number;
+    shellCountyCount: number;
+    providerNormalizedCountyCount: number;
+    publicQualityCountyCount: number;
+    indexedUnsupportedCountyCount: number;
+  };
+  tiers: CountyCoverageTierCount[];
+  playableCounties: UsCountySummary[];
+  suggestedNextCountySlug: string;
+  limitations: string[];
   cache: WorldCachePolicy;
 };
 
@@ -136,6 +199,62 @@ export type UsDistrictWorldResponse = {
   cache: WorldCachePolicy;
 };
 
+export type UsUnsupportedWorldResponse = {
+  type: "usWorldUnsupported";
+  countySlug: string;
+  supported: false;
+  coverageTier: "L0_UNSUPPORTED";
+  message: string;
+  suggestedNextCountySlug: string;
+  cache: WorldCachePolicy;
+};
+
+export type CountyCoverageDistrictIndexEntry = {
+  geoid?: string;
+  districtSlug: string;
+  label: string;
+  playable: boolean;
+  coverageTier: CountyCoverageTier;
+  readiness?: DistrictCandidateReadiness;
+};
+
+export type DistrictCandidateReadiness = {
+  status: "candidate_only" | "curated_playable";
+  sourceBasis: "census_identity";
+  promotionBlocked: boolean;
+  requiredBeforePlayable: DistrictPlayableGate[];
+  knownGaps: DistrictCandidateGap[];
+};
+
+export type DistrictPlayableGate =
+  | "candidate_contract"
+  | "curated_district_pack"
+  | "place_anchors_with_source_notes"
+  | "bounded_scene_compiler_proof"
+  | "desktop_mobile_product_loop_screenshots"
+  | "lumen_visual_acceptance"
+  | "mira_readiness_acceptance"
+  | "forge_split_guard";
+
+export type DistrictCandidateGap =
+  | "no_curated_places"
+  | "no_local_scene"
+  | "no_provider_normalized_categories"
+  | "not_public_quality";
+
+export type NationalCountyIndexEntry = {
+  geoid: string;
+  stateCode: string;
+  name: string;
+  countySlug: string;
+  coverageTier: CountyCoverageTier;
+  centroid?: {
+    latitude: number;
+    longitude: number;
+  };
+  districts?: CountyCoverageDistrictIndexEntry[];
+};
+
 export type WorldPlaceLookupResponse = {
   type: "worldPlaceLookup";
   query: string;
@@ -144,6 +263,7 @@ export type WorldPlaceLookupResponse = {
   resolvedLocation: WorldLookupResolvedLocation;
   places: WorldLookupPlaceSummary[];
   cache: WorldCachePolicy;
+  providerReadiness: ProviderLookupReadiness;
   runtime?: {
     cacheHit: boolean;
     cachedAt: string;

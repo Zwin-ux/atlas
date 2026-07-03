@@ -1,0 +1,264 @@
+{
+  "packId": "anaheim-curated-district-draft-pack",
+  "candidatePackId": "anaheim-candidate-pack",
+  "anchorPackId": "anaheim-source-noted-place-anchors",
+  "version": "0.1-engine-beta-draft-only",
+  "stateCode": "CA",
+  "countySlug": "orange-ca",
+  "countyGeoid": "06059",
+  "districtSlug": "anaheim-candidate",
+  "districtGeoid": "0602000",
+  "promotionStatus": "draft_only",
+  "currentCoverageTier": "L1_COUNTY_SHELL",
+  "targetCoverageTier": "L2_CURATED_DISTRICT",
+  "playableNow": false,
+  "publicNow": false,
+  "sourceNotes": [
+    {
+      "id": "census-2024-place-gazetteer-ca",
+      "source": "census",
+      "label": "2024 Census California place gazetteer",
+      "attribution": "U.S. Census Bureau Gazetteer Files, 2024",
+      "url": "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_gaz_place_06.txt",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Anaheim city place identity",
+        "Anaheim place GEOID 0602000"
+      ]
+    },
+    {
+      "id": "anaheim-platinum-triangle-official",
+      "source": "local-open-data",
+      "label": "City of Anaheim Platinum Triangle page",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/1072/Platinum-Triangle",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Mixed-use residential retail restaurant and office development stressor"
+      ]
+    },
+    {
+      "id": "anaheim-convention-center-official",
+      "source": "local-open-data",
+      "label": "City of Anaheim Convention Center page",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/1117/Anaheim-Convention-Center",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Anaheim Convention Center civic and destination landmark role"
+      ]
+    },
+    {
+      "id": "anaheim-convention-sports-entertainment-official",
+      "source": "local-open-data",
+      "label": "City of Anaheim Convention, Sports & Entertainment page",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/2595/Convention-Sports-Entertainment",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Angel Stadium address and entertainment role",
+        "ARTIC address and transit role"
+      ]
+    },
+    {
+      "id": "anaheim-artic-fact-sheet",
+      "source": "local-open-data",
+      "label": "City of Anaheim ARTIC fact sheet",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/DocumentCenter/View/23803/ARTIC-fact-sheet-fall-2020?bidId=",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "ARTIC transportation center role and address"
+      ]
+    },
+    {
+      "id": "anaheim-downtown-community-center-official",
+      "source": "local-open-data",
+      "label": "City of Anaheim Downtown Community Center page",
+      "attribution": "City of Anaheim official website",
+      "url": "https://www.anaheim.net/1018/Downtown-Anaheim-Community-Center",
+      "lastChecked": "2026-07-01",
+      "verifies": [
+        "Downtown Anaheim Community Center civic/community role and address"
+      ]
+    }
+  ],
+  "curatedAnchors": [
+    {
+      "id": "anaheim-district-identity",
+      "sourceAnchorId": "anaheim-city-identity",
+      "label": "Anaheim city identity",
+      "category": "unknown",
+      "role": "district_identity",
+      "sceneRole": "district bounds and naming anchor",
+      "sourceNoteIds": [
+        "census-2024-place-gazetteer-ca"
+      ],
+      "renderPolicy": "blocked_until_coordinates",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "district bounds review",
+        "camera framing proof",
+        "Riverside rollback preserved"
+      ],
+      "sceneStressors": [
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "platinum-triangle-mixed-use-cluster",
+      "sourceAnchorId": "platinum-triangle-area",
+      "label": "Platinum Triangle mixed-use cluster",
+      "category": "home_area",
+      "role": "mixed_use_area",
+      "sceneRole": "residential rowhome and lowrise stress test",
+      "sourceNoteIds": [
+        "anaheim-platinum-triangle-official"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "residential kit screenshot pass",
+        "mobile density pass"
+      ],
+      "sceneStressors": [
+        "residential_variety",
+        "commerce_landmark_read",
+        "road_lot_contact",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "anaheim-convention-center-landmark",
+      "sourceAnchorId": "anaheim-convention-center",
+      "label": "Anaheim Convention Center",
+      "category": "civic",
+      "role": "destination_landmark",
+      "sceneRole": "large civic venue massing and apron test",
+      "sourceNoteIds": [
+        "anaheim-convention-center-official",
+        "anaheim-convention-sports-entertainment-official"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "venue object visual acceptance",
+        "no car or prop compensation"
+      ],
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "artic-transit-terminal",
+      "sourceAnchorId": "artic-transit-center",
+      "label": "ARTIC transit center",
+      "category": "transit",
+      "role": "transit_anchor",
+      "sceneRole": "transit terminal object and road edge test",
+      "sourceNoteIds": [
+        "anaheim-artic-fact-sheet",
+        "anaheim-convention-sports-entertainment-official"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "transit object visual acceptance",
+        "road lot contact proof"
+      ],
+      "sceneStressors": [
+        "road_lot_contact",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "angel-stadium-venue",
+      "sourceAnchorId": "angel-stadium",
+      "label": "Angel Stadium of Anaheim",
+      "category": "entertainment",
+      "role": "venue_anchor",
+      "sceneRole": "large venue bowl and event apron test",
+      "sourceNoteIds": [
+        "anaheim-convention-sports-entertainment-official"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "venue object visual acceptance",
+        "mobile crop proof"
+      ],
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "parking_apron_without_cars",
+        "mobile_camera_density"
+      ]
+    },
+    {
+      "id": "downtown-community-civic-anchor",
+      "sourceAnchorId": "downtown-anaheim-community-center",
+      "label": "Downtown Anaheim Community Center",
+      "category": "civic",
+      "role": "civic_anchor",
+      "sceneRole": "small civic object and parcel-contact test",
+      "sourceNoteIds": [
+        "anaheim-downtown-community-center-official"
+      ],
+      "renderPolicy": "draft_only",
+      "publicPlaceClaim": false,
+      "requiredBeforePublic": [
+        "coordinates or bounds",
+        "selected place tray copy review",
+        "desktop and mobile product-loop screenshots"
+      ],
+      "sceneStressors": [
+        "commerce_landmark_read",
+        "road_lot_contact",
+        "mobile_camera_density"
+      ]
+    }
+  ],
+  "requiredBeforeL2": [
+    "curated_district_pack",
+    "place_anchors_with_source_notes",
+    "bounded_scene_compiler_proof",
+    "desktop_mobile_product_loop_screenshots",
+    "lumen_visual_acceptance",
+    "mira_readiness_acceptance",
+    "forge_split_guard"
+  ],
+  "promotionBlockers": [
+    "coordinates_or_bounds_missing",
+    "provider_category_confidence_missing",
+    "public_product_loop_screenshots_missing",
+    "visual_acceptance_missing",
+    "product_readiness_missing",
+    "split_guard_missing"
+  ],
+  "objectKitRequirements": [
+    "mixed-use residential cluster must use the controlled residential kit, not clone houses",
+    "convention and stadium anchors need venue-scale object grammar before public screenshots",
+    "ARTIC must read as transit architecture without cars, humans, or decorative clutter",
+    "road and lot contact must ground every anchor without adding filler props"
+  ],
+  "screenshotRequirements": [
+    "desktop 1280x720 Anaheim draft after hidden tool injection",
+    "mobile 390x844 Anaheim draft with recovery CTA visible",
+    "residential-detail camera focused on Platinum Triangle",
+    "Lumen visual audit distinguishing P0 blockers from P1 backlog",
+    "Mira product audit confirming no fake playable controls"
+  ],
+  "rejectRules": [
+    "Do not make Anaheim selectable as playable from this draft pack.",
+    "Do not expose public places before coordinates or bounds and product-loop screenshots pass.",
+    "Do not claim Google/provider-normalized categories from these source notes.",
+    "Do not add cars, humans, decorative props, dashboard panels, persistence, paid scope, XP, evidence, OAuth, automation, reports, or exports.",
+    "Do not promote Orange County above L1 shell until the full L2 gate passes."
+  ]
+}

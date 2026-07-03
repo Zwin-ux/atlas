@@ -18,20 +18,33 @@ import {
 import {
   CountyPackService,
   CountyQuestionService,
+  compileCountyShellCityWorldScene,
   compileVoxelSceneFromCountyPack,
   createNationalWorldService,
+  type UsCountyWorldResponse,
+  type UsUnsupportedWorldResponse,
+  type CityWorldScene,
   type WorldLookupPlaceInput,
   type WorldPlaceLookupResponse,
+  type WorldSourceKind,
+  type WorldSourceNote,
 } from "@atlas/core";
 import { riversideDemoVoxelScene } from "@atlas/core/voxel";
 import { createGeoDataAdapter, isGoogleMapsConfigured, readGeoAdapterConfig } from "@atlas/geo";
 import { z } from "zod";
+import {
+  createScenePacketMemoryAdapter,
+  SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
+  type ScenePacketMemorySummary,
+} from "./scenePacketMemoryAdapter.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-v1.html";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = resolve(__dirname, "../..");
 const MAX_WORLD_LOOKUP_CACHE_ENTRIES = 100;
+const MAX_SCENE_PACKET_MEMORY_ENTRIES = 32;
+const PLAYABLE_ENGINE_BETA_COUNTY_SLUG = "riverside-ca";
 
 loadLocalEnv();
 
@@ -41,6 +54,9 @@ const MCP_PATH = process.env.MCP_PATH ?? "/mcp";
 const countyPackService = new CountyPackService(resolve(ROOT_DIR, "data", "county_packs"));
 const countyQuestionService = new CountyQuestionService(countyPackService);
 const worldService = createNationalWorldService([riversideDemoVoxelScene]);
+const scenePacketMemory = createScenePacketMemoryAdapter<ScoutPreviewState["scene"]>({
+  maxEntries: MAX_SCENE_PACKET_MEMORY_ENTRIES,
+});
 
 type WorldLookupCacheEntry = {
   response: WorldPlaceLookupResponse;
@@ -73,6 +89,35 @@ type VoxelSceneStructuredContent = {
   noteCount: number;
   routeNodeIds: string[];
   flow: ScoutPreviewState["scene"]["flow"];
+};
+
+type CountyCoverageStructuredContent = {
+  type: "countyCoverageSummary";
+  countySlug: string;
+  countyLabel?: string;
+  supported: boolean;
+  coverageTier: "L0_UNSUPPORTED" | "L1_COUNTY_SHELL" | "L2_CURATED_DISTRICT" | "L3_PROVIDER_NORMALIZED" | "L4_PUBLIC_QUALITY";
+  coverageLabel: string;
+  message: string;
+  stateCode?: string;
+  geoid?: string;
+  playableDistrictCount: number;
+  placeCount: number;
+  districts: Array<{
+    label: string;
+    districtSlug: string;
+    playable: boolean;
+    geoid?: string;
+    coverageTier?: string;
+  }>;
+  sourceNotes: Array<{
+    source: string;
+    label: string;
+    attribution: string;
+    ttlSeconds: number;
+  }>;
+  limitations: string[];
+  suggestedNextCountySlug: string;
 };
 
 const voxelPointSchema = z.object({
@@ -268,6 +313,16 @@ const campaignAssetPlaceholderSchema = z.object({
   copyIntent: z.string(),
 });
 
+const alphaPreviewBoundarySchema = z.object({
+  mode: z.literal("session_only_alpha"),
+  savesState: z.literal(false),
+  executesActions: z.literal(false),
+  grantsXp: z.literal(false),
+  requiresHostedClawdForSave: z.literal(true),
+  nextTool: z.enum(["preview_campaign_engine", "get_upgrade_options"]),
+  userActionLabel: z.string(),
+});
+
 const campaignPreviewPanelSchema = z.object({
   type: z.literal("campaign_preview"),
   title: z.string(),
@@ -346,6 +401,82 @@ const voxelSceneSummaryOutputSchema = {
   flow: z.array(flowStepSchema),
 };
 
+const countyCoverageTierSchema = z.enum([
+  "L0_UNSUPPORTED",
+  "L1_COUNTY_SHELL",
+  "L2_CURATED_DISTRICT",
+  "L3_PROVIDER_NORMALIZED",
+  "L4_PUBLIC_QUALITY",
+]);
+
+const countyCoverageSummaryOutputSchema = {
+  type: z.literal("countyCoverageSummary"),
+  countySlug: z.string(),
+  countyLabel: z.string().optional(),
+  supported: z.boolean(),
+  coverageTier: countyCoverageTierSchema,
+  coverageLabel: z.string(),
+  message: z.string(),
+  stateCode: z.string().optional(),
+  geoid: z.string().optional(),
+  playableDistrictCount: z.number(),
+  placeCount: z.number(),
+  districts: z.array(
+    z.object({
+      label: z.string(),
+      districtSlug: z.string(),
+      playable: z.boolean(),
+      geoid: z.string().optional(),
+      coverageTier: countyCoverageTierSchema.optional(),
+    }),
+  ),
+  sourceNotes: z.array(
+    z.object({
+      source: z.string(),
+      label: z.string(),
+      attribution: z.string(),
+      ttlSeconds: z.number(),
+    }),
+  ),
+  limitations: z.array(z.string()),
+  suggestedNextCountySlug: z.string(),
+};
+
+const countySelectionOutputSchema = {
+  type: z.enum(["voxelSceneSummary", "countyCoverageSummary"]),
+  sceneId: z.string().optional(),
+  county: z
+    .object({
+      name: z.string(),
+      state: z.string(),
+      slug: z.string(),
+    })
+    .optional(),
+  selectedNodeId: z.string().optional(),
+  selectedDistrictId: z.string().optional(),
+  activeScale: z.string().optional(),
+  nodeCount: z.number().optional(),
+  districtCount: z.number().optional(),
+  countySlug: z.string().optional(),
+  countyLabel: z.string().optional(),
+  supported: z.boolean().optional(),
+  coverageTier: countyCoverageTierSchema.optional(),
+  coverageLabel: z.string().optional(),
+  message: z.string().optional(),
+  stateCode: z.string().optional(),
+  geoid: z.string().optional(),
+  playableDistrictCount: z.number().optional(),
+  placeCount: z.number(),
+  stickerCount: z.number().optional(),
+  noteCount: z.number().optional(),
+  routeNodeIds: z.array(z.string()).optional(),
+  flow: z.array(flowStepSchema).optional(),
+  districts: countyCoverageSummaryOutputSchema.districts.optional(),
+  sourceNotes: countyCoverageSummaryOutputSchema.sourceNotes.optional(),
+  limitations: z.array(z.string()).optional(),
+  suggestedNextCountySlug: z.string().optional(),
+};
+
 const scoutPreviewOutputSchema = {
   type: z.literal("scoutPreview"),
   id: z.string(),
@@ -384,6 +515,7 @@ const scoutPreviewOutputSchema = {
   nextActions: z.array(z.string()),
   upgradePrompt: z.string(),
   limitations: z.array(z.string()),
+  alphaBoundary: alphaPreviewBoundarySchema,
   sceneId: z.string(),
   flow: z.array(flowStepSchema),
 };
@@ -401,6 +533,7 @@ const campaignPreviewOutputSchema = {
   routePriorities: z.array(campaignRoutePrioritySchema),
   assetPlaceholders: z.array(campaignAssetPlaceholderSchema),
   guardrails: z.array(z.string()),
+  alphaBoundary: alphaPreviewBoundarySchema,
   sceneId: z.string(),
   flow: z.array(flowStepSchema),
 };
@@ -480,6 +613,21 @@ const worldPlaceLookupOutputSchema = {
     ttlSeconds: z.number(),
     sourceNotes: z.array(worldSourceNoteSchema),
   }),
+  providerReadiness: z.object({
+    status: z.literal("lookup_only"),
+    sources: z.array(z.enum(["mock", "curated", "google", "census", "osm", "local-open-data"])),
+    mode: z.enum(["mock", "google"]),
+    cache: z.object({
+      key: z.string(),
+      ttlSeconds: z.number(),
+    }),
+    normalizedCategoryStatus: z.enum(["bounded_atlas_categories", "contains_unknown_category"]),
+    normalizedCategoryConfidence: z.enum(["mock_verified", "provider_mapped"]),
+    coveragePromotion: z.literal(false),
+    sceneEligible: z.literal(false),
+    publicQuality: z.literal(false),
+    limitations: z.array(z.string()),
+  }),
   runtime: z
     .object({
       cacheHit: z.boolean(),
@@ -550,9 +698,140 @@ function voxelSceneStructuredContent(scene: ScoutPreviewState["scene"]): VoxelSc
   };
 }
 
-function compileCountyScene(countySlug = "riverside-ca", selectedNodeId?: string): ScoutPreviewState["scene"] {
+function countyCoverageStructuredContent(
+  response: UsCountyWorldResponse | UsUnsupportedWorldResponse,
+): CountyCoverageStructuredContent {
+  if (response.type === "usWorldUnsupported") {
+    return {
+      type: "countyCoverageSummary",
+      countySlug: response.countySlug,
+      supported: false,
+      coverageTier: response.coverageTier,
+      coverageLabel: "Unsupported",
+      message: response.message,
+      playableDistrictCount: 0,
+      placeCount: 0,
+      districts: [],
+      sourceNotes: response.cache.sourceNotes,
+      limitations: [
+        "Atlas only has a playable map for Riverside/Eastvale right now.",
+        "Unsupported counties do not use Riverside data as a stand-in.",
+      ],
+      suggestedNextCountySlug: response.suggestedNextCountySlug,
+    };
+  }
+
+  return {
+    type: "countyCoverageSummary",
+    countySlug: response.county.countySlug,
+    countyLabel: response.county.label,
+    supported: response.county.supported,
+    coverageTier: response.county.coverageTier,
+    coverageLabel: response.county.coverageLabel,
+    message: response.county.coverageMessage,
+    stateCode: response.county.stateCode,
+    ...(response.county.geoid ? { geoid: response.county.geoid } : {}),
+    playableDistrictCount: response.county.playableDistrictCount,
+    placeCount: response.county.placeCount,
+    districts: response.districts.map((district) => ({
+      label: district.label,
+      districtSlug: district.districtSlug,
+      playable: district.playable,
+      ...(district.geoid ? { geoid: district.geoid } : {}),
+      ...(district.coverageTier ? { coverageTier: district.coverageTier } : {}),
+    })),
+    sourceNotes: response.cache.sourceNotes,
+    limitations: [
+      "County shells are browse-only until a curated playable district exists.",
+      "Atlas does not invent local places, saves, XP, evidence, outreach, or automation for shells.",
+    ],
+    suggestedNextCountySlug: PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
+  };
+}
+
+function countyCoverageForSlug(countySlug: string): CountyCoverageStructuredContent {
+  try {
+    return countyCoverageStructuredContent(worldService.getCounty(countySlug));
+  } catch {
+    return countyCoverageStructuredContent(worldService.getUnsupportedCounty(countySlug));
+  }
+}
+
+function coverageShellSceneForSummary(coverage: CountyCoverageStructuredContent): CityWorldScene | undefined {
+  if (coverage.coverageTier !== "L1_COUNTY_SHELL" || !coverage.stateCode) {
+    return undefined;
+  }
+  return compileCountyShellCityWorldScene({
+    countySlug: coverage.countySlug,
+    countyName: coverage.countyLabel ?? coverage.countySlug,
+    stateCode: coverage.stateCode,
+    coverage: {
+      countySlug: coverage.countySlug,
+      coverageTier: coverage.coverageTier,
+      coverageLabel: coverage.coverageLabel,
+      coverageMessage: coverage.message,
+      playable: false,
+    },
+  });
+}
+
+function isPlayableEngineBetaCounty(countySlug: string | undefined): boolean {
+  return (countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG) === PLAYABLE_ENGINE_BETA_COUNTY_SLUG;
+}
+
+function compileCountyScene(countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG, selectedNodeId?: string): ScoutPreviewState["scene"] {
+  if (countySlug !== PLAYABLE_ENGINE_BETA_COUNTY_SLUG) {
+    throw new Error(`Atlas Engine Beta only renders a playable scene for ${PLAYABLE_ENGINE_BETA_COUNTY_SLUG}.`);
+  }
   const pack = countyPackService.loadCountyPack(countySlug);
   return compileVoxelSceneFromCountyPack(pack, { selectedNodeId });
+}
+
+function getOrCreatePlayableScenePacket(
+  countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
+  selectedNodeId = "eastvale",
+): { scene: ScoutPreviewState["scene"]; scenePacket: ScenePacketMemorySummary } {
+  const packet = scenePacketMemory.getOrCreatePlayableScenePacket({
+    stateCode: "CA",
+    countySlug,
+    districtSlug: "eastvale",
+    selectedNodeId,
+    cameraPresetId: "mcp-default",
+    sceneSchemaVersion: "voxel-scene-v1",
+    createScene: () => compileCountyScene(countySlug, selectedNodeId),
+    sceneIdForPayload: (scene) => scene.id,
+  });
+
+  if (!packet.payload) {
+    throw new Error(`Scene packet cache did not return a playable scene for ${countySlug}.`);
+  }
+
+  return {
+    scene: packet.payload,
+    scenePacket: packet.summary,
+  };
+}
+
+function scenePacketStatusForCoverage(coverage: CountyCoverageStructuredContent): ScenePacketMemorySummary {
+  return scenePacketMemory.describeCoverageStatus({
+    stateCode: coverage.stateCode ?? "CA",
+    countySlug: coverage.countySlug,
+    coverageTier: coverage.coverageTier,
+    sourceNotes: coverage.sourceNotes.map(toWorldSourceNote),
+  });
+}
+
+function toWorldSourceNote(note: CountyCoverageStructuredContent["sourceNotes"][number]): WorldSourceNote {
+  return {
+    source: isWorldSourceKind(note.source) ? note.source : "curated",
+    label: note.label,
+    attribution: note.attribution,
+    ttlSeconds: note.ttlSeconds,
+  };
+}
+
+function isWorldSourceKind(value: string): value is WorldSourceKind {
+  return value === "mock" || value === "curated" || value === "google" || value === "census" || value === "osm" || value === "local-open-data";
 }
 
 function upgradeOptionsStructuredContent(trigger?: string) {
@@ -678,6 +957,11 @@ function geoStatusPayload(): unknown {
 }
 
 function handleWorldRoute(url: URL, res: ServerResponse): boolean {
+  if (url.pathname === "/api/world/us/coverage") {
+    jsonResponse(res, 200, worldService.listCoverageDirectory());
+    return true;
+  }
+
   if (url.pathname === "/api/world/us/states") {
     jsonResponse(res, 200, worldService.listCountry());
     return true;
@@ -704,7 +988,11 @@ function handleWorldRoute(url: URL, res: ServerResponse): boolean {
     try {
       jsonResponse(res, 200, worldService.getCounty(countySlug));
     } catch (error) {
-      jsonResponse(res, 404, { ok: false, error: error instanceof Error ? error.message : "Unknown county." });
+      jsonResponse(res, 404, {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unknown county.",
+        coverage: worldService.getUnsupportedCounty(countySlug),
+      });
     }
     return true;
   }
@@ -924,7 +1212,7 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Use select_county to open the Riverside/Eastvale Atlas demo slice. Use render_voxel_county when the user asks to refresh or focus the voxel scene. Use ask_county_question for closed-world questions answered from the curated Riverside Alpha pack. Use lookup_world_places for real nearby place/category lookup. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for Hosted Clawd limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution in Alpha.",
+        "Use select_county to open Riverside/Eastvale, the playable Atlas map right now. Use render_voxel_county when the user asks to refresh or focus that map. Shell counties are browse-only and must not invent places or tools. Use ask_county_question for closed-world questions answered from the curated Riverside/Eastvale Alpha pack. Use lookup_world_places for lookup-only nearby places; lookup results are not saved and are not coverage proof. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for Hosted Clawd limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution in Alpha.",
     },
   );
 
@@ -980,12 +1268,13 @@ function createAtlasServer(): McpServer {
     async ({ query, radiusMeters }) => {
       const lookup = await performWorldLookup(query, radiusMeters ?? 3500);
       const categories = [...new Set(lookup.places.map((place) => place.category))].sort();
+      const categoryText = categories.length > 0 ? categories.join(", ") : "none";
       return {
         structuredContent: lookup,
         content: [
           {
             type: "text" as const,
-            text: `Found ${lookup.places.length} nearby places around ${lookup.resolvedLocation.label}. Categories: ${categories.join(", ")}. Results are normalized into Atlas categories and are not saved.`,
+            text: `Found ${lookup.places.length} lookup-only places around ${lookup.resolvedLocation.label}. Categories: ${categoryText}. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a playable county map.`,
           },
         ],
       };
@@ -998,11 +1287,11 @@ function createAtlasServer(): McpServer {
     {
       title: "Select county",
       description:
-        "Select the Riverside County Alpha demo and return the compiled Eastvale VoxelScene for the ChatGPT widget. Uses curated Atlas county data only.",
+        "Select a California county coverage contract. Riverside returns the playable Eastvale scene; shell counties return honest coverage state only.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County slug. Alpha supports riverside-ca."),
+        countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca and shells indexed California counties."),
       },
-      outputSchema: voxelSceneSummaryOutputSchema,
+      outputSchema: countySelectionOutputSchema,
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
@@ -1016,16 +1305,36 @@ function createAtlasServer(): McpServer {
       },
     },
     async ({ countySlug }) => {
-      const scene = compileCountyScene(countySlug ?? "riverside-ca", "eastvale");
+      if (!isPlayableEngineBetaCounty(countySlug)) {
+        const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
+        const coverageShellScene = coverageShellSceneForSummary(coverage);
+        const scenePacket = scenePacketStatusForCoverage(coverage);
+        return {
+          structuredContent: coverage,
+          _meta: {
+            scenePacket,
+            ...(coverageShellScene ? { coverageShellScene } : {}),
+          },
+          content: [
+            {
+              type: "text" as const,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties.`,
+            },
+          ],
+        };
+      }
+
+      const { scene, scenePacket } = getOrCreatePlayableScenePacket(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG, "eastvale");
       return {
         structuredContent: voxelSceneStructuredContent(scene),
         _meta: {
           scene,
+          scenePacket,
         },
         content: [
           {
             type: "text" as const,
-            text: `Selected ${scene.county.name}. Eastvale is highlighted from the curated Atlas county pack.`,
+            text: `Selected ${scene.county.name}. Eastvale is the playable district in this county. Use the map for places, pins, and session-only notes.`,
           },
         ],
       };
@@ -1060,12 +1369,15 @@ function createAtlasServer(): McpServer {
     },
     async ({ question, countySlug, businessType }) => {
       const answer = countyQuestionService.answer({ question, countySlug, businessType });
+      const answerPrefix = answer.supported
+        ? "Curated Riverside/Eastvale answer."
+        : "Atlas can only answer curated Riverside/Eastvale county questions right now.";
       return {
         structuredContent: answer,
         content: [
           {
             type: "text" as const,
-            text: `${answer.answer}\n\nLimits: ${answer.limitations.join(" ")}`,
+            text: `${answerPrefix} ${answer.answer}\n\nLimits: ${answer.limitations.join(" ")} No saves, XP, evidence, or automation are created by this answer.`,
           },
         ],
       };
@@ -1077,12 +1389,12 @@ function createAtlasServer(): McpServer {
     "render_voxel_county",
     {
       title: "Render voxel county",
-      description: "Render the Riverside County voxel city map for the Atlas Alpha demo.",
+      description: "Render the Riverside County voxel city map, or return honest coverage state for non-playable counties.",
       inputSchema: {
         countySlug: z.string().optional(),
         selectedNodeId: z.string().optional(),
       },
-      outputSchema: voxelSceneSummaryOutputSchema,
+      outputSchema: countySelectionOutputSchema,
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
@@ -1096,16 +1408,39 @@ function createAtlasServer(): McpServer {
       },
     },
     async ({ countySlug, selectedNodeId }) => {
-      const scene = compileCountyScene(countySlug ?? "riverside-ca", selectedNodeId ?? "eastvale");
+      if (!isPlayableEngineBetaCounty(countySlug)) {
+        const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
+        const coverageShellScene = coverageShellSceneForSummary(coverage);
+        const scenePacket = scenePacketStatusForCoverage(coverage);
+        return {
+          structuredContent: coverage,
+          _meta: {
+            scenePacket,
+            ...(coverageShellScene ? { coverageShellScene } : {}),
+          },
+          content: [
+            {
+              type: "text" as const,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is browse-only in Atlas right now. Atlas only draws a local world after a curated playable district exists. Open Riverside/Eastvale for the playable map.`,
+            },
+          ],
+        };
+      }
+
+      const { scene, scenePacket } = getOrCreatePlayableScenePacket(
+        countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
+        selectedNodeId ?? "eastvale",
+      );
       return {
         structuredContent: voxelSceneStructuredContent(scene),
         _meta: {
           scene,
+          scenePacket,
         },
         content: [
           {
             type: "text" as const,
-            text: `Showing ${countySlug ?? scene.county.slug} voxel city map.`,
+            text: `Showing the Riverside/Eastvale playable map. Pins and notes stay in this chat.`,
           },
         ],
       };
@@ -1162,7 +1497,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `${preview.summary} Best offer: ${preview.bestOffer}. This is a temporary Alpha preview and is not saved.`,
+            text: `${preview.summary} Best offer: ${preview.bestOffer}. This is a session-only Alpha preview; it does not save, post, message, spend, grant XP, or execute outreach. Next: ${preview.alphaBoundary.userActionLabel}.`,
           },
         ],
       };
@@ -1225,7 +1560,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `${campaignPreview.summary} This is a manual preview only; no posting, messaging, ad spend, or persistence is performed.`,
+            text: `${campaignPreview.summary} This is a session-only manual preview; no posting, messaging, ad spend, persistence, evidence, or XP is performed. Next: ${campaignPreview.alphaBoundary.userActionLabel}.`,
           },
         ],
       };
@@ -1339,6 +1674,15 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/api/world/lookup" && req.method === "GET") {
     await handleWorldLookup(url, res);
+    return;
+  }
+
+  if (url.pathname === "/api/engine/scene-packets/status" && req.method === "GET") {
+    jsonResponse(res, 200, {
+      ok: true,
+      update: SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
+      cache: scenePacketMemory.status(),
+    });
     return;
   }
 
