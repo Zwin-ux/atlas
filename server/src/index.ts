@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { brotliCompressSync, gzipSync, constants as zlibConstants } from "node:zlib";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -876,7 +877,15 @@ function upgradeOptionsStructuredContent(trigger?: string) {
   };
 }
 
+// The built widget inlines the whole ~1MB JS/CSS bundle into a single HTML
+// document (self-contained for the ChatGPT widget sandbox, which forbids
+// sibling chunk fetches). The bundle is immutable for the life of the process,
+// so read + build it exactly once.
+let builtWidgetCache: string | null = null;
+
 function readBuiltWidget(): string {
+  if (builtWidgetCache !== null) return builtWidgetCache;
+
   const jsPath = resolve(WEB_DIST, "component.js");
   const cssPath = resolve(WEB_DIST, "component.css");
 
@@ -887,7 +896,7 @@ function readBuiltWidget(): string {
   const js = readFileSync(jsPath, "utf8");
   const css = readFileSync(cssPath, "utf8");
 
-  return `<!doctype html>
+  builtWidgetCache = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -900,6 +909,62 @@ function readBuiltWidget(): string {
     <script type="module">${js}</script>
   </body>
 </html>`;
+  return builtWidgetCache;
+}
+
+// Pre-compressed variants of the preview HTML. The inlined bundle is highly
+// compressible (~1MB -> ~250KB brotli), and it never changes at runtime, so we
+// pay the (high-quality) compression cost once and serve the buffer directly.
+type WidgetPayload = { html: string; brotli: Buffer; gzip: Buffer };
+let widgetPayloadCache: WidgetPayload | null = null;
+
+function getWidgetPayload(): WidgetPayload {
+  if (widgetPayloadCache !== null) return widgetPayloadCache;
+  const html = readBuiltWidget();
+  const buffer = Buffer.from(html, "utf8");
+  widgetPayloadCache = {
+    html,
+    brotli: brotliCompressSync(buffer, {
+      params: {
+        [zlibConstants.BROTLI_PARAM_QUALITY]: 11,
+        [zlibConstants.BROTLI_PARAM_SIZE_HINT]: buffer.length,
+      },
+    }),
+    gzip: gzipSync(buffer, { level: 9 }),
+  };
+  return widgetPayloadCache;
+}
+
+function negotiatePreviewEncoding(req: IncomingMessage): "br" | "gzip" | null {
+  const accept = String(req.headers["accept-encoding"] ?? "").toLowerCase();
+  if (accept.includes("br")) return "br";
+  if (accept.includes("gzip")) return "gzip";
+  return null;
+}
+
+function sendPreviewResponse(req: IncomingMessage, res: ServerResponse): void {
+  const payload = getWidgetPayload();
+  const encoding = negotiatePreviewEncoding(req);
+  const headers: Record<string, string> = {
+    "content-type": "text/html; charset=utf-8",
+    vary: "Accept-Encoding",
+  };
+
+  if (encoding === "br") {
+    headers["content-encoding"] = "br";
+    res.writeHead(200, headers);
+    res.end(payload.brotli);
+    return;
+  }
+  if (encoding === "gzip") {
+    headers["content-encoding"] = "gzip";
+    res.writeHead(200, headers);
+    res.end(payload.gzip);
+    return;
+  }
+
+  res.writeHead(200, headers);
+  res.end(payload.html);
 }
 
 function textResponse(res: ServerResponse, status: number, body: string): void {
@@ -1722,7 +1787,7 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/preview" && req.method === "GET") {
     try {
-      htmlResponse(res, 200, readBuiltWidget());
+      sendPreviewResponse(req, res);
     } catch (error) {
       textResponse(res, 500, error instanceof Error ? error.message : "Preview failed");
     }

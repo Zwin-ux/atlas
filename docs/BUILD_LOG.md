@@ -1,5 +1,90 @@
 # Build Log
 
+## Entry 191
+
+Quest:
+Preview-bundle performance — the ChatGPT iframe first-load cost (roadmap P1).
+
+Root cause:
+The `/preview` widget HTML inlines the whole ~1MB JS/CSS bundle (self-contained
+for the ChatGPT widget sandbox, which forbids sibling-chunk fetches, so
+code-splitting is not viable there). The Node server served it with NO
+`Content-Encoding` — verified on the live Railway service, ~1,010,079 bytes went
+over the wire uncompressed, and Railway's proxy did not compress either. That is
+the single biggest first-load cost, worst on mobile data.
+
+What changed:
+- `server/src/index.ts` — added gzip/brotli negotiation for `/preview` using
+  Node's built-in `node:zlib` (NO new dependency). The inlined bundle is
+  immutable for the process lifetime, so both the widget HTML and its brotli/
+  gzip buffers are built ONCE and cached (`getWidgetPayload`); this also removes
+  the per-request `readFileSync` of the ~1MB bundle. Response sets
+  `Content-Encoding` + `Vary: Accept-Encoding`; clients that send no
+  `Accept-Encoding` still get the identical uncompressed HTML.
+- NEW `scripts/verify-web-bundle-budget.mjs` — CI budget guard: fails if
+  `component.js` raw size > 1.15MB or the preview brotli size > 320KB, so bundle
+  growth (a stray heavy import) can't silently regress first-load.
+
+Before -> after (measured against the local server on the rebuilt 0.51E bundle):
+- `/preview` on the wire: 1,010,079 bytes -> **242,251 bytes brotli (-76%)**,
+  292,951 bytes gzip. Identity fallback unchanged. Brotli decompresses
+  byte-perfect to the 1,010,020-byte HTML (doctype/root/module-script/title all
+  intact).
+- Per-request work: was `readFileSync(~1MB)` + string build every hit; now a
+  cached buffer send.
+
+Verification:
+- Server typechecks + builds clean (0 errors); ran locally, probed `/preview`
+  with br/gzip/identity — headers + sizes + byte-perfect decompression confirmed;
+  `/health` and MCP `initialize` unaffected.
+- `verify-web-bundle-budget` ok (raw 970KB < 1.15MB; brotli 242KB < 320KB, 76%).
+- verify-no-google-in-renderer, verify-provider-boundaries, verify-tool-result-shape,
+  verify-alpha-rc-split all green; city-world diagnostic still ok (riverside clone
+  0.074, variants 24). Change is isolated to `server/src` (provider side) — no
+  `web/src` / `packages/core` / render-path impact.
+
+Roadmap:
+- Marks the on-the-wire half of "Performance -> Shrink the preview bundle" +
+  "bundle-size budget in CI" in `docs/ATLAS_CHATGPT_APP_QUALITY_ROADMAP.md`.
+  Still open: raw parse/execute reduction (lazy Pixi is blocked by the inline
+  sandbox model) and cold-start/TTFB measurement.
+
+Note: ships with the next deploy (server rebuild). Live `/preview` stays
+uncompressed until 0.51E + this change are deployed (`railway up`).
+
+## Entry 190
+
+Quest:
+0.51E production deploy + ChatGPT-app quality roadmap.
+
+What changed:
+- Verified the live Railway backend (`atlas-chatgpt-app / production /
+  atlas-backend`, https://atlas-backend-production-e6fc.up.railway.app): healthy.
+  `/health` -> {"ok":true,"version":"0.1.0"}; `/preview` serves the map app;
+  `/mcp` initialize -> 200 with the full tool surface (select_county,
+  render_voxel_county, ask_county_question, light_county).
+- Confirmed the provider architecture from the live service variables: the SERVER
+  consumes Google Places via `@atlas/geo` (`GEO_DATA_ADAPTER` + `GOOGLE_MAPS_API_KEY`
+  / language / region), while the render path (`web/src`, `packages/core`) imports
+  zero geo — provider boundary intact, so 0.51E is fully compatible with the
+  Google-Places backend.
+- Staged the 0.51E deploy: core/web/geo/server all typecheck clean (0 errors).
+  Railway build = `pnpm build:starter`, health-gated on `/health`.
+- NEW `docs/ATLAS_CHATGPT_APP_QUALITY_ROADMAP.md` — prioritized (P0/P1/P2) roadmap
+  to a best-in-class ChatGPT app: coverage depth (second playable county),
+  render/art continuation, preview-bundle performance, MCP tool-surface quality,
+  reliability/observability, Google Places pipeline hardening, submission polish,
+  security, QA/a11y.
+
+Blocked / pending owner action:
+- Production deploy (`railway up`) held by the auto-mode guard as a production
+  mutation — awaiting owner go-ahead. The live deploy still runs the pre-0.51E
+  build (version 0.1.0); 0.51E is verified in the working tree but NOT yet live.
+
+Verification:
+- Live endpoint probes (health/preview/mcp) all pass.
+- `tsc --noEmit` on core, web, geo, server = 0 errors.
+
 ## Entry 189
 
 Quest:
