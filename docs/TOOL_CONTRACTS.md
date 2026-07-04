@@ -88,6 +88,7 @@ Output:
 Apps SDK shape:
 - `structuredContent` contains normalized Atlas data only.
 - Does not expose raw provider fields such as Google `primaryType`, `types`, or `placeId`.
+- Place summary ids are Atlas-owned `lookup-*` ids, not Google/provider ids.
 - Marked `openWorldHint: true` because it can call Google Maps Platform.
 - Does not save places, compile a live city scene, or modify external systems.
 - Uses a bounded in-memory server cache for successful lookups; this is not user persistence.

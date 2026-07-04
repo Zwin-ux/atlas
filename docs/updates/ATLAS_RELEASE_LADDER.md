@@ -6,59 +6,59 @@ proof packet.
 
 ## Current Update
 
-### Post-Alpha 0.38E - Engine Quality Axis Review / Next Target Selection
+### Post-Alpha 0.45E - Owner Gate Cutline / Next Axis Selection
 
-Player-facing promise: Atlas stops repeating commerce polish and chooses the
-next public engine-quality target from measured evidence.
+Player-facing promise: Atlas turns hidden Anaheim evidence into a clear owner
+review decision without exposing Anaheim publicly.
 
-Engineering promise: `scripts/select-engine-quality-axis.mjs` reads the 0.37E
-manifest, structural diagnostics, object-kit metrics, mobile LOD budget,
-screenshot evidence, and Anaheim readiness blockers, then emits one next quest
-with blocked alternatives.
+Engineering promise: The selector reads the 0.44E visual packet, product proof,
+readiness aggregate, and owner cutline, then chooses one next axis with blocked
+alternatives.
 
 Spec:
-Use `scripts/select-engine-quality-axis.mjs`,
-`artifacts/current-update.json`, and
-`artifacts/engine-quality-axis/postalpha-0.38e-next-target-selection.json` as
-the 0.38E gate.
+Use `scripts/select-second-district-owner-gate-next-axis.mjs` and
+`artifacts/second-district-readiness/latest/anaheim-candidate/postalpha-0.45e-owner-gate-next-axis.json`
+as the 0.45E gate.
 
 Status:
-Local green. Selector recommends `0.39E Public Object Identity / Civic-Service
-Read Pass`. DB persistence remains planning-only from 0.33E and is not approved
-for implementation.
+Local green. The selector chose `owner_gate_review`, decision
+`REQUEST_OWNER_REVIEW`, and recommended `0.46E Owner Gate Review Packet`.
+Controlled public Anaheim remains blocked.
+
+## Active Product Submission Track
+
+Human-directed (2026-07-03). The live track is the product/app-quality path to a submittable
+ChatGPT app — see `docs/PRODUCT_SPEC_AND_GATES.md` (gates G1–G7). Slices: `0.46P` in-widget result
+surface (done + proven), `0.47P` widget polish, `0.48P` design ultra-pass (Fable supermove),
+`0.49P` reliability sweep, `0.50P` submission packet. The owner-gate updates below are parked and
+kept honest (`artifacts/current-update.json` stays `0.45E`; Anaheim/Ontario stay hidden).
 
 ## Next Updates
 
-### Post-Alpha 0.39E - Public Object Identity / Civic-Service Read Pass
+### Post-Alpha 0.46E - Owner Gate Review Packet
 
-Implement the selected public object-identity target. Focus on Eastvale Core
-civic landmark and service/gym readability. Use object-kit metadata and
-renderer/compiler grammar to make the public map read less generic without
-cars, humans, props, labels, panels, or public Anaheim/Ontario exposure.
+Package exact Lumen, Mira, Forge, and Axiom review asks against the repo-local
+0.44E hidden proof. This is an owner review packet, not public Anaheim
+implementation.
 
-### Post-Alpha 0.40E - Provider Normalization Preflight
-
-Define the smallest source-normalization gate that lets provider lookup enrich
-source context without creating geometry, readiness, or playable claims.
-
-### Post-Alpha 0.41E - Controlled Anaheim Public Playable Spike
+### Post-Alpha 0.47E - Controlled Anaheim Public Playable Spike
 
 Only run if the owner-gate cutline reports `APPROVE_CONTROLLED_PUBLIC_SPIKE`.
 Anaheim is the default candidate; Ontario remains a hidden control. Keep the
 seven-tool MCP surface stable and do not expose a public Anaheim switcher state
 until desktop, mobile, visual, product, split, and provider gates pass.
 
-### Post-Alpha 0.42E - Public Entry And County State Compression
+### Post-Alpha 0.48E - Public Entry And County State Compression
 
 Compress the public map/switcher/tray entry surface if mobile or app-review
 screenshots show the Alpha loop still reads too dense.
 
-### Post-Alpha 0.43E - Shell Honesty Update
+### Post-Alpha 0.49E - Shell Honesty Update
 
 Make shells, hidden drafts, unsupported states, and playable counties impossible
 to confuse.
 
-### Post-Alpha 0.44E - Riverside Quality Correction
+### Post-Alpha 0.50E - Riverside Quality Correction
 
 Only run if the 0.7E/0.8E diagnostics or screenshot packet names a new measured
 Riverside blocker.

@@ -1494,8 +1494,23 @@ function drawLot(layer: Container, lot: CityWorldLot) {
   const draftLot = isDraftLot(lot);
   const color = draftLot ? DRAFT_LOT_COLORS[lot.kind] : LOT_COLORS[lot.kind];
   const lotAlpha = draftLot ? (lot.kind === "home" ? 0.58 : 0.6) : lot.kind === "waterfront" ? 0.34 : lot.kind === "home" ? 0.5 : 0.52;
-  const contactAlpha = draftLot ? (lot.kind === "park" ? 0.1 : 0.18) : lot.kind === "park" ? 0.08 : lot.kind === "home" ? 0.14 : 0.13;
-  const contact = polygon(diamondPoints({ x: point.x, y: point.y + 6 }, width * 1.04, height * 1.08), 0x23342e, contactAlpha, 0x23342e, 0);
+  const lotContactProfile = lot.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
+  const contactAlpha = draftLot
+    ? lot.kind === "park"
+      ? 0.1
+      : 0.18
+    : lotContactProfile === "landmark_base_shadow"
+      ? 0.17
+      : lotContactProfile === "soft_ground_shadow"
+        ? 0.09
+        : lot.kind === "home"
+          ? 0.14
+          : 0.13;
+  const contactSpread = lotContactProfile === "landmark_base_shadow" ? 1.1 : lotContactProfile === "soft_ground_shadow" ? 1.12 : 1.04;
+  const contact = polygon(diamondPoints({ x: point.x, y: point.y + 6 }, width * contactSpread, height * (contactSpread + 0.04)), 0x23342e, contactAlpha, 0x23342e, 0);
+  if (!draftLot && lotContactProfile === "landmark_base_shadow") {
+    layer.addChild(polygon(diamondPoints({ x: point.x, y: point.y + 8 }, width * 0.86, height * 0.8), 0x1d2a24, 0.09, 0x1d2a24, 0));
+  }
   const lotGraphic = polygon(diamondPoints(point, width, height), color, lotAlpha, draftLot ? 0x7f6d4e : 0x28473f, draftLot ? 0.14 : lot.kind === "home" ? 0.1 : 0.18);
   const lowerLip = new Graphics()
     .moveTo(point.x - width * 0.5, point.y)
@@ -1980,6 +1995,8 @@ function drawBuilding(layer: Container, building: CityWorldBuilding, selected: b
   if (geometry.asset.mode === "sprite") {
     drawSpriteObjectAuthorshipBase(layer, geometry, building);
     if (isObjectKitCommerceStrip(building)) drawObjectKitCommerceStripRead(layer, geometry, building);
+    if (isObjectKitCivicLandmark(building)) drawObjectKitCivicLandmarkRead(layer, geometry, building);
+    if (isObjectKitServiceGym(building)) drawObjectKitServiceGymRead(layer, geometry, building);
     drawSpriteBuilding(layer, geometry, building, selected, hovered);
     return;
   }
@@ -1993,6 +2010,8 @@ function drawBuilding(layer: Container, building: CityWorldBuilding, selected: b
   if (building.kind === "civic") drawCivicDetails(layer, geometry, building);
   drawObjectAuthorshipDetails(layer, geometry, building);
   if (isObjectKitCommerceStrip(building)) drawObjectKitCommerceStripRead(layer, geometry, building);
+  if (isObjectKitCivicLandmark(building)) drawObjectKitCivicLandmarkRead(layer, geometry, building);
+  if (isObjectKitServiceGym(building)) drawObjectKitServiceGymRead(layer, geometry, building);
   if (building.id.startsWith("draft-building-")) drawDraftAnchorDetails(layer, geometry, building);
 }
 
@@ -2024,6 +2043,14 @@ function isDraftBuilding(building: CityWorldBuilding) {
 
 function isObjectKitCommerceStrip(building: CityWorldBuilding) {
   return building.objectKit?.prefabFamily === "commerce_strip";
+}
+
+function isObjectKitCivicLandmark(building: CityWorldBuilding) {
+  return building.objectKit?.prefabFamily === "civic_landmark";
+}
+
+function isObjectKitServiceGym(building: CityWorldBuilding) {
+  return building.objectKit?.prefabFamily === "service_gym";
 }
 
 function objectVariant(id: string, modulo: number) {
@@ -2058,6 +2085,7 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
 function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { top, bottom, footprintWidth, footprintDepth, roofColor, bodyColor, highlightColor, trimColor } = geometry;
   const style = building.facadeStyle ?? building.kind;
+  const contactProfile = building.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
 
   const contact = polygon(
     diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.38 }, footprintWidth * 0.78, footprintDepth * 0.18),
@@ -2070,7 +2098,13 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
     .moveTo(bottom.x - footprintWidth * 0.38, bottom.y + footprintDepth * 0.32)
     .lineTo(bottom.x - footprintWidth * 0.06, bottom.y + footprintDepth * 0.47)
     .lineTo(bottom.x + footprintWidth * 0.38, bottom.y + footprintDepth * 0.28)
-    .stroke({ color: 0x2d423b, alpha: 0.2, width: 3, cap: "round", join: "round" });
+    .stroke({
+      color: 0x2d423b,
+      alpha: contactProfile === "landmark_base_shadow" ? 0.28 : contactProfile === "soft_ground_shadow" ? 0.13 : 0.2,
+      width: contactProfile === "landmark_base_shadow" ? 3.6 : 3,
+      cap: "round",
+      join: "round",
+    });
   layer.addChild(baseShadow, contact);
 
   if (style === "rowhome") {
@@ -2600,6 +2634,138 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
   );
 }
 
+function drawObjectKitCivicLandmarkRead(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  if (!isObjectKitCivicLandmark(building)) return;
+  const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor } = geometry;
+  const civicGeometry = building.objectKit?.civicGeometry;
+  const plinthTierCount = civicGeometry?.plinthTierCount ?? 2;
+  const entryBayCount = civicGeometry?.entryBayCount ?? 4;
+  const facadePierCount = civicGeometry?.facadePierCount ?? 5;
+  const glassBandCount = civicGeometry?.glassBandCount ?? 2;
+  const roofCapWeight = civicGeometry?.roofCapWeight ?? 0.84;
+  const canopyDepth = civicGeometry?.civicCanopyDepth ?? 0.24;
+  const isEastvaleCore = civicGeometry?.focusTarget === "eastvale_core";
+
+  const plinthTiers = new Graphics();
+  for (let tier = 0; tier < plinthTierCount; tier += 1) {
+    const tierScale = 0.9 - tier * 0.11;
+    const tierY = bottom.y + footprintDepth * (0.43 + tier * 0.06);
+    plinthTiers
+      .poly(diamondPoints({ x: bottom.x, y: tierY }, footprintWidth * tierScale, footprintDepth * (0.2 - tier * 0.025)), true)
+      .fill({ color: tier === 0 ? 0xd6bb86 : 0xead0a1, alpha: isEastvaleCore ? 0.22 + tier * 0.06 : 0.16 + tier * 0.04 })
+      .stroke({ color: 0x756947, alpha: isEastvaleCore ? 0.14 : 0.09, width: 0.9 });
+  }
+
+  const civicEntryBays = new Graphics();
+  for (let bay = 0; bay < entryBayCount; bay += 1) {
+    const offset = (bay / Math.max(1, entryBayCount - 1) - 0.5) * footprintWidth * 0.66;
+    const isCenter = bay === Math.floor(entryBayCount / 2);
+    civicEntryBays
+      .roundRect(top.x + offset - footprintWidth * 0.034, bottom.y - footprintDepth * 0.3, footprintWidth * 0.068, isCenter ? 24 : 17, 1.8)
+      .fill({ color: isCenter ? 0xd4eff3 : highlightColor, alpha: isCenter ? 0.52 : 0.34 })
+      .roundRect(top.x + offset - footprintWidth * 0.04, bottom.y - footprintDepth * 0.31, footprintWidth * 0.08, isCenter ? 25.5 : 18.5, 1.8)
+      .stroke({ color: trimColor, alpha: isCenter ? 0.16 : 0.09, width: 0.8 });
+  }
+
+  const facadePiers = new Graphics();
+  for (let pier = 0; pier < facadePierCount; pier += 1) {
+    const offset = (pier / Math.max(1, facadePierCount - 1) - 0.5) * footprintWidth * 0.76;
+    facadePiers
+      .moveTo(top.x + offset, bottom.y - footprintDepth * 0.42)
+      .lineTo(top.x + offset + footprintWidth * 0.025, bottom.y + footprintDepth * 0.02);
+  }
+  facadePiers.stroke({ color: shadeColor(trimColor, -18), alpha: isEastvaleCore ? 0.24 : 0.14, width: isEastvaleCore ? 1.2 : 0.9, cap: "round", join: "round" });
+
+  const glassBands = new Graphics();
+  for (let band = 0; band < glassBandCount; band += 1) {
+    const y = bottom.y - footprintDepth * (0.16 + band * 0.11);
+    glassBands
+      .moveTo(top.x - footprintWidth * 0.34, y)
+      .lineTo(top.x - footprintWidth * 0.08, y + footprintDepth * 0.07)
+      .lineTo(top.x + footprintWidth * 0.16, y)
+      .lineTo(top.x + footprintWidth * 0.36, y + footprintDepth * 0.07);
+  }
+  glassBands.stroke({ color: 0xc9edf2, alpha: isEastvaleCore ? 0.34 : 0.22, width: 1.6, cap: "round", join: "round" });
+
+  const canopy = polygon(
+    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.08 }, footprintWidth * 0.34, footprintDepth * canopyDepth),
+    0xc4e4e9,
+    isEastvaleCore ? 0.38 : 0.26,
+    trimColor,
+    0.1,
+  );
+  const roofCap = polygon(
+    diamondPoints({ x: top.x + footprintWidth * 0.01, y: top.y - footprintDepth * (0.45 + roofCapWeight * 0.04) }, footprintWidth * (0.38 + roofCapWeight * 0.08), footprintDepth * 0.16),
+    shadeColor(roofColor, 38),
+    isEastvaleCore ? 0.46 : 0.32,
+    trimColor,
+    0.13,
+  );
+
+  layer.addChild(plinthTiers, civicEntryBays, facadePiers, glassBands, canopy, roofCap);
+}
+
+function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  if (!isObjectKitServiceGym(building)) return;
+  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor, highlightColor, trimColor } = geometry;
+  const serviceGeometry = building.objectKit?.serviceGeometry;
+  const serviceBayCount = serviceGeometry?.serviceBayCount ?? 3;
+  const sawtoothCount = serviceGeometry?.sawtoothCount ?? 3;
+  const entryRecessDepth = serviceGeometry?.entryRecessDepth ?? 0.22;
+  const utilityApronDepth = serviceGeometry?.utilityApronDepth ?? 0.26;
+  const roofMonitorWeight = serviceGeometry?.roofMonitorWeight ?? 0.82;
+  const isEastvaleGym = serviceGeometry?.focusTarget === "eastvale_gym";
+
+  const serviceApron = polygon(
+    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * (0.4 + utilityApronDepth * 0.06) }, footprintWidth * 0.86, footprintDepth * utilityApronDepth),
+    0xd8bf90,
+    isEastvaleGym ? 0.4 : 0.28,
+    0x756947,
+    isEastvaleGym ? 0.18 : 0.1,
+  );
+  const foundationLine = new Graphics()
+    .moveTo(bottom.x - footprintWidth * 0.42, bottom.y + footprintDepth * 0.31)
+    .lineTo(bottom.x - footprintWidth * 0.08, bottom.y + footprintDepth * 0.48)
+    .lineTo(bottom.x + footprintWidth * 0.42, bottom.y + footprintDepth * 0.28)
+    .moveTo(bottom.x + footprintWidth * 0.42, bottom.y + footprintDepth * 0.31)
+    .lineTo(bottom.x + footprintWidth * 0.08, bottom.y + footprintDepth * 0.49)
+    .lineTo(bottom.x - footprintWidth * 0.4, bottom.y + footprintDepth * 0.29);
+  foundationLine.stroke({ color: 0x24352f, alpha: isEastvaleGym ? 0.28 : 0.18, width: isEastvaleGym ? 3 : 2.2, cap: "round", join: "round" });
+
+  const roofMonitors = new Graphics();
+  for (let tooth = 0; tooth < sawtoothCount; tooth += 1) {
+    const offset = (tooth / Math.max(1, sawtoothCount - 1) - 0.5) * footprintWidth * 0.74;
+    roofMonitors
+      .moveTo(top.x + offset - footprintWidth * 0.045, top.y - footprintDepth * 0.23)
+      .lineTo(top.x + offset + footprintWidth * 0.045, top.y - footprintDepth * 0.1)
+      .lineTo(top.x + offset + footprintWidth * 0.12, top.y - footprintDepth * 0.2);
+  }
+  roofMonitors.stroke({ color: shadeColor(roofColor, -46), alpha: 0.38 + roofMonitorWeight * 0.08, width: 1.7 + roofMonitorWeight * 0.65, cap: "round", join: "round" });
+
+  const serviceBays = new Graphics();
+  const bayWidth = footprintWidth * 0.09;
+  for (let bay = 0; bay < serviceBayCount; bay += 1) {
+    const offset = (bay / Math.max(1, serviceBayCount - 1) - 0.5) * footprintWidth * 0.62;
+    const isEntry = bay === 0;
+    serviceBays
+      .roundRect(top.x + offset - bayWidth * 0.5, bottom.y - footprintDepth * 0.22, bayWidth, isEntry ? 15 : 10, 1.8)
+      .fill({ color: isEntry ? highlightColor : shadeColor(bodyColor, -16), alpha: isEntry ? 0.5 : 0.27 })
+      .roundRect(top.x + offset - bayWidth * 0.56, bottom.y - footprintDepth * (0.23 + entryRecessDepth * 0.03), bayWidth * 1.12, isEntry ? 16.5 : 11.5, 1.8)
+      .stroke({ color: trimColor, alpha: isEntry ? 0.18 : 0.09, width: 0.8 });
+  }
+
+  const utilitySideRibs = new Graphics()
+    .moveTo(top.x - footprintWidth * 0.46, top.y + footprintDepth * 0.04)
+    .lineTo(bottom.x - footprintWidth * 0.42, bottom.y + footprintDepth * 0.1)
+    .lineTo(bottom.x - footprintWidth * 0.24, bottom.y + footprintDepth * 0.18)
+    .moveTo(top.x + footprintWidth * 0.46, top.y + footprintDepth * 0.04)
+    .lineTo(bottom.x + footprintWidth * 0.42, bottom.y + footprintDepth * 0.1)
+    .lineTo(bottom.x + footprintWidth * 0.24, bottom.y + footprintDepth * 0.18);
+  utilitySideRibs.stroke({ color: shadeColor(trimColor, -22), alpha: isEastvaleGym ? 0.22 : 0.14, width: 1.15, cap: "round", join: "round" });
+
+  layer.addChild(serviceApron, foundationLine, roofMonitors, serviceBays, utilitySideRibs);
+}
+
 function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeometry) {
   const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor } = geometry;
   const baseTerrace = polygon(
@@ -2705,9 +2871,7 @@ function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, bui
   const padColor = draftBuilding ? (building.kind === "civic" ? 0xe6cf9f : 0xe7c999) : style === "strip_store" || building.kind === "shop" || building.kind === "civic" ? 0xe7d0a2 : shadeColor(bodyColor, 18);
   const edgeColor = style === "rowhome" || style === "strip_store" ? shadeColor(trimColor, -14) : shadeColor(roofColor, -48);
 
-  const contact = new Graphics()
-    .ellipse(bottom.x, bottom.y + footprintDepth * 0.38, padWidth * 0.5, padDepth * 0.58)
-    .fill({ color: 0x23342e, alpha: draftBuilding ? 0.22 : selected ? 0.26 : hovered ? 0.22 : 0.17 });
+  const contactGraphics = buildingContactShadow(geometry, building, selected, hovered, padWidth, padDepth, draftBuilding);
   const pad = polygon(diamondPoints(padCenter, padWidth, padDepth), padColor, draftBuilding ? 0.58 : spriteBacked ? 0.46 : 0.48, 0x6f7f55, selected || hovered ? 0.34 : draftBuilding ? 0.2 : 0.16);
   const lowerLip = new Graphics()
     .moveTo(padCenter.x - padWidth * 0.5, padCenter.y)
@@ -2720,8 +2884,65 @@ function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, bui
     .fill({ color: shadeColor(padColor, draftBuilding ? -38 : -34), alpha: draftBuilding ? 0.42 : spriteBacked ? 0.42 : 0.32 })
     .stroke({ color: edgeColor, alpha: 0.16, width: 1 });
 
-  layer.addChild(contact, pad, lowerLip);
+  layer.addChild(...contactGraphics, pad, lowerLip);
   if (draftBuilding) drawDraftFoundationMaterial(layer, padCenter, padWidth, padDepth, padColor);
+}
+
+function buildingContactShadow(
+  geometry: BuildingGeometry,
+  building: CityWorldBuilding,
+  selected: boolean,
+  hovered: boolean,
+  padWidth: number,
+  padDepth: number,
+  draftBuilding: boolean,
+): Graphics[] {
+  const { bottom, footprintDepth } = geometry;
+  const profile = building.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
+  const activeBoost = selected ? 0.09 : hovered ? 0.05 : 0;
+  const draftBoost = draftBuilding ? 0.04 : 0;
+  const centerY = bottom.y + footprintDepth * 0.38;
+
+  if (profile === "landmark_base_shadow") {
+    const penumbra = new Graphics()
+      .ellipse(bottom.x, centerY + 2, padWidth * 0.68, padDepth * 0.74)
+      .fill({ color: 0x1d2a24, alpha: 0.1 + activeBoost * 0.4 + draftBoost * 0.5 });
+    const core = new Graphics()
+      .ellipse(bottom.x, centerY, padWidth * 0.5, padDepth * 0.56)
+      .fill({ color: 0x23342e, alpha: 0.24 + activeBoost + draftBoost });
+    const plinthSeam = new Graphics()
+      .moveTo(bottom.x - padWidth * 0.46, centerY + padDepth * 0.08)
+      .lineTo(bottom.x, centerY + padDepth * 0.4)
+      .lineTo(bottom.x + padWidth * 0.46, centerY + padDepth * 0.08);
+    plinthSeam.stroke({ color: 0x1d2a24, alpha: 0.2, width: 1.7, cap: "round", join: "round" });
+    return [penumbra, core, plinthSeam];
+  }
+
+  if (profile === "soft_ground_shadow") {
+    const soft = new Graphics()
+      .ellipse(bottom.x, centerY + 1, padWidth * 0.6, padDepth * 0.66)
+      .fill({ color: 0x23342e, alpha: 0.11 + activeBoost + draftBoost });
+    return [soft];
+  }
+
+  if (profile === "curb_shadow") {
+    const curb = new Graphics()
+      .ellipse(bottom.x, centerY + 2, padWidth * 0.52, padDepth * 0.42)
+      .fill({ color: 0x23342e, alpha: 0.2 + activeBoost + draftBoost });
+    return [curb];
+  }
+
+  const padSkirt = polygon(
+    diamondPoints({ x: bottom.x, y: centerY + 1.5 }, padWidth * 1.08, padDepth * 0.96),
+    0x23342e,
+    0.055 + activeBoost * 0.3 + draftBoost * 0.5,
+    0x23342e,
+    0,
+  );
+  const core = new Graphics()
+    .ellipse(bottom.x, centerY, padWidth * 0.5, padDepth * 0.58)
+    .fill({ color: 0x23342e, alpha: 0.17 + activeBoost + draftBoost });
+  return [padSkirt, core];
 }
 
 function drawDraftFoundationMaterial(layer: Container, center: ProjectedPoint, width: number, height: number, color: number) {
@@ -2754,8 +2975,85 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const right = polygon(rightSide, sideRight, 0.98, outline, activeStrokeAlpha);
   layer.addChild(left, right);
   drawWallDepthLines(layer, geometry, building);
+  drawAuthoredWallMaterial(layer, geometry, building);
 
   drawRoof(layer, geometry, building, selected, hovered);
+}
+
+function drawAuthoredWallMaterial(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const profile = building.visualGrammar?.materialProfile;
+  if (!profile) return;
+  const { top, bottom, footprintWidth, footprintDepth, bodyColor } = geometry;
+  const halfWidth = footprintWidth / 2;
+  const wallY = (t: number) => top.y + (bottom.y - top.y) * t;
+
+  const wallBand = (t: number, color: number, alpha: number, width: number, reach = 1): Graphics => {
+    const band = new Graphics()
+      .moveTo(top.x - halfWidth * reach, wallY(t) + (footprintDepth / 2) * (1 - reach))
+      .lineTo(top.x, wallY(t) + footprintDepth / 2)
+      .lineTo(top.x + halfWidth * reach, wallY(t) + (footprintDepth / 2) * (1 - reach));
+    band.stroke({ color, alpha, width, cap: "round", join: "round" });
+    return band;
+  };
+
+  if (profile === "socal_stucco_warm") {
+    layer.addChild(wallBand(0.88, shadeColor(bodyColor, -30), 0.22, 1.5), wallBand(0.28, shadeColor(bodyColor, 26), 0.13, 1));
+    return;
+  }
+
+  if (profile === "socal_stucco_light") {
+    layer.addChild(wallBand(0.6, shadeColor(bodyColor, 30), 0.15, 1), wallBand(0.88, shadeColor(bodyColor, -24), 0.17, 1.3));
+    return;
+  }
+
+  if (profile === "socal_cool_stucco") {
+    const rightWash = new Graphics()
+      .poly(
+        [
+          top.x,
+          wallY(0.16) + footprintDepth / 2,
+          top.x + halfWidth,
+          wallY(0.16),
+          top.x + halfWidth,
+          wallY(0.94),
+          top.x,
+          wallY(0.94) + footprintDepth / 2,
+        ],
+        true,
+      )
+      .fill({ color: 0x5f7d86, alpha: 0.08 });
+    layer.addChild(rightWash, wallBand(0.88, shadeColor(bodyColor, -32), 0.19, 1.4));
+    return;
+  }
+
+  if (profile === "socal_storefront") {
+    layer.addChild(
+      wallBand(0.52, 0xbfe2ea, 0.36, 4.2, 0.86),
+      wallBand(0.9, shadeColor(bodyColor, -44), 0.28, 2.1),
+    );
+    return;
+  }
+
+  if (profile === "socal_lowrise") {
+    layer.addChild(
+      wallBand(0.34, shadeColor(bodyColor, -26), 0.15, 1),
+      wallBand(0.6, shadeColor(bodyColor, -26), 0.15, 1),
+      wallBand(0.9, shadeColor(bodyColor, -34), 0.19, 1.3),
+    );
+    return;
+  }
+
+  if (profile === "civic_glass_stucco") {
+    const fins = new Graphics();
+    for (let fin = -1; fin <= 1; fin += 1) {
+      const u = fin * 0.34;
+      const x = top.x + u * halfWidth;
+      const lift = (1 - Math.abs(u)) * (footprintDepth / 2);
+      fins.moveTo(x, wallY(0.2) + lift).lineTo(x, wallY(0.92) + lift);
+    }
+    fins.stroke({ color: 0xcfeaf2, alpha: 0.26, width: 1.5, cap: "round" });
+    layer.addChild(fins, wallBand(0.92, shadeColor(bodyColor, -38), 0.24, 1.8));
+  }
 }
 
 function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
@@ -2795,6 +3093,75 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   lines.stroke({ color: shadeColor(roofColor, -44), alpha: 0.38, width: 1.5, cap: "round", join: "round" });
   layer.addChild(lines);
   drawRoofMaterial(layer, geometry, building);
+  drawAuthoredRoofProfile(layer, geometry, building);
+}
+
+function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const profile = building.visualGrammar?.roofProfile;
+  if (!profile) return;
+  const { top, footprintWidth, footprintDepth, roofColor } = geometry;
+
+  if (profile === "terracotta_barrel_tile" || profile === "cool_clay_tile" || profile === "sage_tile") {
+    const tileTint = profile === "terracotta_barrel_tile" ? 0xc4764e : profile === "cool_clay_tile" ? 0x7f9aa8 : 0x8ba372;
+    const tint = polygon(diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86), tileTint, profile === "sage_tile" ? 0.12 : 0.1, tileTint, 0);
+    const ridgeStart = { x: top.x - footprintWidth * 0.24, y: top.y - footprintDepth * 0.13 };
+    const ridgeEnd = { x: top.x + footprintWidth * 0.24, y: top.y + footprintDepth * 0.13 };
+    const barrelCaps = new Graphics();
+    const capCount = profile === "terracotta_barrel_tile" ? 5 : 4;
+    for (let cap = 0; cap < capCount; cap += 1) {
+      const t = capCount > 1 ? cap / (capCount - 1) : 0.5;
+      const x = ridgeStart.x + (ridgeEnd.x - ridgeStart.x) * t;
+      const y = ridgeStart.y + (ridgeEnd.y - ridgeStart.y) * t;
+      barrelCaps.moveTo(x, y - 1.8).lineTo(x, y + 1.8);
+    }
+    barrelCaps.stroke({
+      color: shadeColor(roofColor, profile === "cool_clay_tile" ? 34 : 28),
+      alpha: profile === "terracotta_barrel_tile" ? 0.42 : 0.32,
+      width: profile === "terracotta_barrel_tile" ? 1.7 : 1.3,
+      cap: "round",
+    });
+    layer.addChild(tint, barrelCaps);
+    return;
+  }
+
+  if (profile === "flat_parapet_cap") {
+    const capRing = new Graphics()
+      .poly(diamondPoints(top, footprintWidth * 0.92, footprintDepth * 0.84), true)
+      .stroke({ color: shadeColor(roofColor, 34), alpha: 0.4, width: 2, cap: "round", join: "round" });
+    const gravelFlecks = new Graphics()
+      .circle(top.x - footprintWidth * 0.16, top.y + footprintDepth * 0.04, 1.1)
+      .circle(top.x + footprintWidth * 0.06, top.y - footprintDepth * 0.1, 1)
+      .circle(top.x + footprintWidth * 0.2, top.y + footprintDepth * 0.08, 1.1)
+      .fill({ color: shadeColor(roofColor, 22), alpha: 0.3 });
+    layer.addChild(capRing, gravelFlecks);
+    return;
+  }
+
+  if (profile === "blue_metal_utility") {
+    const seams = new Graphics();
+    for (let seam = -2; seam <= 2; seam += 1) {
+      const offset = seam * footprintWidth * 0.13;
+      seams
+        .moveTo(top.x + offset - footprintWidth * 0.09, top.y - footprintDepth * 0.2)
+        .lineTo(top.x + offset + footprintWidth * 0.09, top.y + footprintDepth * 0.2);
+    }
+    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.3, width: 1.1, cap: "round" });
+    const sheen = new Graphics()
+      .moveTo(top.x - footprintWidth * 0.3, top.y - footprintDepth * 0.06)
+      .lineTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.14);
+    sheen.stroke({ color: shadeColor(roofColor, 42), alpha: 0.26, width: 1.7, cap: "round" });
+    layer.addChild(seams, sheen);
+    return;
+  }
+
+  if (profile === "civic_glass_cap") {
+    const glassField = polygon(diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.06 }, footprintWidth * 0.5, footprintDepth * 0.34), 0xbfe4ee, 0.22, 0x4e8298, 0.14);
+    const specular = new Graphics()
+      .moveTo(top.x - footprintWidth * 0.16, top.y - footprintDepth * 0.14)
+      .lineTo(top.x + footprintWidth * 0.1, top.y + footprintDepth * 0.02);
+    specular.stroke({ color: 0xeafaff, alpha: 0.4, width: 1.5, cap: "round" });
+    layer.addChild(glassField, specular);
+  }
 }
 
 function drawRoofMaterial(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {

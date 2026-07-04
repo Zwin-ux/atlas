@@ -591,7 +591,6 @@ const worldPlaceLookupOutputSchema = {
       longitude: z.number(),
     }),
     formattedAddress: z.string().optional(),
-    placeId: z.string().optional(),
   }),
   places: z.array(
     z.object({
@@ -626,6 +625,14 @@ const worldPlaceLookupOutputSchema = {
     coveragePromotion: z.literal(false),
     sceneEligible: z.literal(false),
     publicQuality: z.literal(false),
+    sceneGeometry: z.literal(false),
+    rawProviderPayloadExposed: z.literal(false),
+    structuredContentPolicy: z.literal("atlas_normalized_only"),
+    fieldMaskPolicy: z.object({
+      mode: z.literal("allowlist"),
+      wildcardAllowed: z.literal(false),
+      allowedFieldCount: z.number(),
+    }),
     limitations: z.array(z.string()),
   }),
   runtime: z
@@ -1092,11 +1099,10 @@ async function performWorldLookup(query: string, radiusMeters: number): Promise<
       label: resolvedLocation.label,
       coordinates: resolvedLocation.coordinates,
       ...(resolvedLocation.formattedAddress ? { formattedAddress: resolvedLocation.formattedAddress } : {}),
-      ...(resolvedLocation.placeId ? { placeId: resolvedLocation.placeId } : {}),
     },
     places: places.map(
-      (place): WorldLookupPlaceInput => ({
-        placeId: place.placeId,
+      (place, index): WorldLookupPlaceInput => ({
+        atlasLookupId: atlasLookupPlaceId(place.category, place.label, index),
         label: place.label,
         category: place.category,
         ...(place.coordinates ? { coordinates: place.coordinates } : {}),
@@ -1110,6 +1116,20 @@ async function performWorldLookup(query: string, radiusMeters: number): Promise<
   const expiresAtMs = Date.now() + response.cache.ttlSeconds * 1000;
   setWorldLookupCache(cacheKey, response, expiresAtMs);
   return withLookupRuntime(response, false, expiresAtMs);
+}
+
+function atlasLookupPlaceId(category: string, label: string, index: number): string {
+  const safeCategory = slugifyLookupToken(category || "unknown");
+  const safeLabel = slugifyLookupToken(label || `place-${index + 1}`).slice(0, 36);
+  return `lookup-${safeCategory}-${index + 1}-${safeLabel}`;
+}
+
+function slugifyLookupToken(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "unknown";
 }
 
 function worldLookupCacheKey(query: string, radiusMeters: number, mode: "mock" | "google"): string {

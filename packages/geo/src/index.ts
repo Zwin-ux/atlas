@@ -6,6 +6,17 @@ export type * from "./GeoDataAdapter.js";
 export { normalizeProviderPlaceCategory } from "./PlaceCategoryNormalizer.js";
 export type { AtlasPlaceCategory } from "./PlaceCategoryNormalizer.js";
 export { createProviderUsagePolicy } from "./ProviderUsagePolicy.js";
+export {
+  ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK,
+  ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK_HEADER,
+  ATLAS_PROVIDER_NORMALIZATION_PREFLIGHT_POLICY,
+  PROVIDER_STRUCTURED_CONTENT_FORBIDDEN_FIELDS,
+  assertGoogleNearbyFieldMaskAllowed,
+} from "./ProviderNormalization.js";
+export type {
+  GoogleNearbySearchFieldMask,
+  ProviderNormalizationPreflightPolicy,
+} from "./ProviderNormalization.js";
 export { GoogleMapsAdapter, GoogleMapsApiError, GoogleMapsConfigurationError } from "./GoogleMapsAdapter.js";
 export { MockGeoDataAdapter } from "./MockGeoDataAdapter.js";
 

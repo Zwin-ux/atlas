@@ -1,0 +1,234 @@
+{
+  "ok": true,
+  "update": "postalpha-0.43e-engine-quality-axis-review-next-target-selection",
+  "inputUpdate": "postalpha-0.42e-provider-lookup-runtime-boundary-proof",
+  "selectedAxis": "hidden_second_district_readiness",
+  "recommendedNextQuest": "0.44E Hidden Second-District Visual/Product Proof Packet",
+  "selectedReason": [
+    "public Riverside object, terrain, mobile, commerce, and provider runtime gates are green enough to stop local churn",
+    "Anaheim has source, anchor, curated pack, and hidden draft compiler foundations",
+    "promotion remains blocked with 11 blocker(s), so the next useful work is hidden visual/product proof, not public exposure",
+    "next required gate is desktop_mobile_product_loop_screenshots"
+  ],
+  "candidateScores": {
+    "public_object_identity_continue": {
+      "score": 22,
+      "blocked": true,
+      "reasons": [
+        "0.39E public civic/service object identity verifier is green",
+        "clone pressure and landmark floors pass",
+        "no named post-0.39E civic/service blocker exists"
+      ],
+      "recommendedNextQuest": "0.44E Public Object Identity Follow-up"
+    },
+    "public_terrain_world_edge": {
+      "score": 24,
+      "blocked": true,
+      "reasons": [
+        "terrain massing, empty-board, first-viewport, and chunk-edge floors are green"
+      ],
+      "recommendedNextQuest": "0.44E Terrain / World-Edge Correction"
+    },
+    "mobile_entry_density": {
+      "score": 22,
+      "blocked": true,
+      "reasons": [
+        "playable mobile LOD budget and mobile readability floor are green"
+      ],
+      "recommendedNextQuest": "0.44E Mobile Entry Density Correction"
+    },
+    "hidden_second_district_readiness": {
+      "score": 86,
+      "blocked": false,
+      "reasons": [
+        "public Riverside object, terrain, mobile, commerce, and provider runtime gates are green enough to stop local churn",
+        "Anaheim has source, anchor, curated pack, and hidden draft compiler foundations",
+        "promotion remains blocked with 11 blocker(s), so the next useful work is hidden visual/product proof, not public exposure",
+        "next required gate is desktop_mobile_product_loop_screenshots"
+      ],
+      "recommendedNextQuest": "0.44E Hidden Second-District Visual/Product Proof Packet"
+    },
+    "provider_normalization_preflight": {
+      "score": 20,
+      "blocked": true,
+      "reasons": [
+        "0.41E provider preflight and 0.42E runtime boundary proof are green",
+        "no named provider leak or runtime boundary blocker remains"
+      ],
+      "recommendedNextQuest": "0.44E Provider Boundary Correction"
+    },
+    "commerce_repeat": {
+      "score": 0,
+      "blocked": true,
+      "reasons": [
+        "blocked unless a human names one exact Plaza Row blocker after 0.37E/0.39E",
+        "Plaza Row focused verifier is green"
+      ],
+      "recommendedNextQuest": "0.44E Commerce Repeat"
+    },
+    "public_product_entry_compression": {
+      "score": 24,
+      "blocked": true,
+      "reasons": [
+        "mobile/product budget is green and no named product-entry comprehension blocker exists"
+      ],
+      "recommendedNextQuest": "0.44E Public Product Entry Compression"
+    }
+  },
+  "blockedAxes": {
+    "public_object_identity_continue": [
+      "0.39E public civic/service object identity verifier is green",
+      "clone pressure and landmark floors pass",
+      "no named post-0.39E civic/service blocker exists"
+    ],
+    "public_terrain_world_edge": [
+      "terrain massing, empty-board, first-viewport, and chunk-edge floors are green"
+    ],
+    "mobile_entry_density": [
+      "playable mobile LOD budget and mobile readability floor are green"
+    ],
+    "provider_normalization_preflight": [
+      "0.41E provider preflight and 0.42E runtime boundary proof are green",
+      "no named provider leak or runtime boundary blocker remains"
+    ],
+    "commerce_repeat": [
+      "blocked unless a human names one exact Plaza Row blocker after 0.37E/0.39E",
+      "Plaza Row focused verifier is green"
+    ],
+    "public_product_entry_compression": [
+      "mobile/product budget is green and no named product-entry comprehension blocker exists"
+    ]
+  },
+  "requiredEvidence": [
+    "node --check scripts/select-engine-quality-axis.mjs",
+    "node scripts/select-engine-quality-axis.mjs --json-only",
+    "node scripts/select-engine-quality-axis.mjs --out artifacts/engine-quality-axis --json-only",
+    "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only",
+    "hidden Anaheim desktop/mobile/product-loop screenshots",
+    "hidden visual packet with publicPlayable false and promotionReady false until gates pass",
+    "Mira product proof that public Riverside, Orange shell, and Unknown L0 remain understandable",
+    "Forge split/provider proof with no public Anaheim/Ontario exposure"
+  ],
+  "antiScope": [
+    "no implementation work in 0.43E",
+    "no renderer geometry changes",
+    "no public UI redesign",
+    "no MCP tool-list change",
+    "no server route change",
+    "no DB implementation, migration, or persistence",
+    "no provider-created geometry or live provider-to-scene normalization",
+    "no public Anaheim/Ontario switcher, route, or playable claim",
+    "no Hosted Clawd, Stripe, OAuth, XP, evidence, automation, reports, or exports",
+    "no cars, humans, props, panels, glows, or label crutches"
+  ],
+  "currentMetrics": {
+    "currentUpdateId": "postalpha-0.43e-engine-quality-axis-review-next-target-selection",
+    "currentUpdateStatus": "local_green",
+    "priorSelectorAxis": "provider_normalization_preflight",
+    "priorSelectorRecommendation": "0.41E Provider Normalization Preflight / Lookup-to-Scene Boundary Contract",
+    "providerRuntimeProof": {
+      "status": "local_green",
+      "restCacheMissThenHit": true,
+      "mcpLookupCacheHit": true,
+      "orangeAfterLookup": "L1_COUNTY_SHELL",
+      "playableCountyCount": 1,
+      "providerNormalizedCountyCount": 0,
+      "publicQualityCountyCount": 0
+    },
+    "publicObjectIdentity": {
+      "civicObjectKitScore": 0.955,
+      "civicNoLabelReadinessScore": 1,
+      "civicMobileReadinessScore": 1,
+      "clonePressureRatio": 0.133,
+      "weakestPrefabFamily": "commerce_strip",
+      "eastvaleCoreFocusTarget": "eastvale_core",
+      "eastvaleGymFocusTarget": "eastvale_gym"
+    },
+    "terrain": {
+      "terrainMassingCoverageRatio": 0.899,
+      "emptyBoardRatio": 0.056,
+      "firstViewportCompositionScore": 0.775,
+      "chunkEdgeReadabilityFloorScore": 0.761,
+      "nextWeakestAxis": "terrain_massing"
+    },
+    "mobile": {
+      "playableBudgetPassed": true,
+      "playableReadabilityScore": 0.752,
+      "playableOcclusionRiskScore": 0.248,
+      "residentialDetailBudgetPassed": true,
+      "residentialDetailReadabilityScore": 0.486
+    },
+    "commerce": {
+      "plazaRowBayCount": 7,
+      "plazaRowSignMountCount": 5,
+      "commerceWindowCommandVisibilityRatio": 0.059,
+      "publicClutterCommandCount": 0
+    },
+    "hiddenSecondDistrict": {
+      "readyForPlayablePromotion": false,
+      "evidenceStates": {
+        "sourceVerifier": "passed",
+        "visualPacket": "missing",
+        "productProof": "missing",
+        "splitGuard": "passed"
+      },
+      "nextRequiredGate": "desktop_mobile_product_loop_screenshots",
+      "blockerCount": 11,
+      "blockerGroups": {
+        "data": [],
+        "visual": [
+          "visual_packet_missing_or_failed",
+          "visual_packet_not_promotion_ready",
+          "visual_packet_not_public_playable",
+          "lumen_acceptance_missing"
+        ],
+        "product": [
+          "product_proof_missing_or_failed",
+          "product_proof_not_promotion_ready",
+          "product_proof_not_public_playable",
+          "product_proof_mira_acceptance_missing",
+          "mira_acceptance_missing"
+        ],
+        "release": [
+          "forge_split_guard_acceptance_missing",
+          "promotion_packet_not_ready"
+        ]
+      },
+      "sourceGateSatisfied": true,
+      "anchorGateSatisfied": true,
+      "curatedPackGateSatisfied": true,
+      "draftCompilerGateSatisfied": true,
+      "visualPacketStatus": "missing",
+      "productProofStatus": "missing",
+      "noFakePlayability": {
+        "countyRemainsShell": true,
+        "zeroPlayableDistricts": true,
+        "zeroPublicPlaces": true,
+        "districtNotPlayable": true,
+        "draftSceneNotPlayable": true,
+        "noActorsPinsOrSelectedPlace": true,
+        "providerPromotion": false,
+        "publicQuality": false
+      }
+    },
+    "provider": {
+      "boundaryOk": true,
+      "toolShapeOk": true
+    }
+  },
+  "evidence": {
+    "diagnosticsOk": true,
+    "publicObjectIdentityOk": true,
+    "objectKitOk": true,
+    "mobileOcclusionOk": true,
+    "plazaRowOk": true,
+    "secondDistrictReadinessOk": true,
+    "providerBoundaryOk": true,
+    "toolResultShapeOk": true,
+    "providerRuntimeProofLocalGreen": true
+  },
+  "warnings": [],
+  "blockerCount": 0,
+  "blockers": []
+}

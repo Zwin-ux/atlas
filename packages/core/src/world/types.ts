@@ -105,11 +105,10 @@ export type WorldLookupResolvedLocation = {
     longitude: number;
   };
   formattedAddress?: string;
-  placeId?: string;
 };
 
 export type WorldLookupPlaceInput = {
-  placeId: string;
+  atlasLookupId: string;
   label: string;
   category: string;
   coordinates?: {
@@ -147,6 +146,14 @@ export type ProviderLookupReadiness = {
   coveragePromotion: false;
   sceneEligible: false;
   publicQuality: false;
+  sceneGeometry: false;
+  rawProviderPayloadExposed: false;
+  structuredContentPolicy: "atlas_normalized_only";
+  fieldMaskPolicy: {
+    mode: "allowlist";
+    wildcardAllowed: false;
+    allowedFieldCount: number;
+  };
   limitations: string[];
 };
 

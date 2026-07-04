@@ -2,6 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 
 const requiredFiles = [
   "packages/geo/src/GeoDataAdapter.ts",
+  "packages/geo/src/ProviderNormalization.ts",
   "packages/geo/src/ProviderUsagePolicy.ts",
   "packages/geo/src/SignalExtractor.ts",
   "packages/geo/src/GoogleMapsAdapter.ts",
@@ -10,6 +11,7 @@ const requiredFiles = [
   "server/src/index.ts",
   "scripts/verify-no-google-in-renderer.mjs",
   "scripts/verify-tool-result-shape.mjs",
+  "scripts/verify-provider-normalization-preflight.mjs",
 ];
 
 const blockers = [];
@@ -36,6 +38,12 @@ assertIncludes(policy, "mayCache: true", "Mock provider policy should remain cac
 assertIncludes(policy, "sourceConfidence: \"provider_mapped\"", "Google provider policy must carry provider-mapped confidence.");
 assertIncludes(policy, "sourceConfidence: \"mock_verified\"", "Mock provider policy must carry mock-verified confidence.");
 
+const normalization = read("packages/geo/src/ProviderNormalization.ts");
+assertIncludes(normalization, "ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK", "Provider normalization must define a Google field-mask allowlist.");
+assertIncludes(normalization, "wildcardAllowed: false", "Provider normalization must forbid wildcard field masks.");
+assertIncludes(normalization, "providerLookupMayCreateSceneGeometry: false", "Provider normalization must block provider-created scene geometry.");
+assertIncludes(normalization, "providerLookupMayPromoteReadiness: false", "Provider normalization must block provider readiness promotion.");
+
 const extractor = read("packages/geo/src/SignalExtractor.ts");
 const googlePolicyUses = count(extractor, "createProviderUsagePolicy(\"google\")");
 if (googlePolicyUses < 3) {
@@ -48,7 +56,7 @@ if (count(mockAdapter, "createProviderUsagePolicy(\"mock\")") < 4) {
 }
 
 const worldService = read("packages/core/src/world/NationalWorldService.ts");
-for (const token of ["coveragePromotion: false", "sceneEligible: false", "publicQuality: false"]) {
+for (const token of ["coveragePromotion: false", "sceneEligible: false", "publicQuality: false", "sceneGeometry: false", "rawProviderPayloadExposed: false"]) {
   assertIncludes(worldService, token, `World provider readiness must preserve ${token}.`);
 }
 

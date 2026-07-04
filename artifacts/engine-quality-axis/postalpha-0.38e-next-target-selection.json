@@ -1,8 +1,8 @@
 {
-  "ok": false,
+  "ok": true,
   "update": "postalpha-0.38e-engine-quality-axis-review-next-target-selection",
   "currentUpdate": {
-    "id": "postalpha-0.38e-engine-quality-axis-review-next-target-selection",
+    "id": "postalpha-0.38f-app-drift-source-of-truth-reconciliation",
     "status": "local_green"
   },
   "recommendedNextQuest": "0.39E Public Object Identity / Civic-Service Read Pass",
@@ -129,9 +129,7 @@
       "blockerCount": 9
     }
   },
-  "blockerCount": 1,
-  "blockers": [
-    "0.38E selector requires current-update id postalpha-0.37e-plaza-row-focused-capture-commerce-read-proof; got postalpha-0.38e-engine-quality-axis-review-next-target-selection."
-  ],
+  "blockerCount": 0,
+  "blockers": [],
   "warnings": []
 }

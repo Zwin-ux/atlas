@@ -1,8 +1,8 @@
 {
   "proofKind": "chatgptEntrySurfaceProof",
   "version": "e15.6",
-  "mcpUrl": "https://atlas-backend-production-e6fc.up.railway.app/mcp",
-  "checkedAt": "2026-07-03T17:56:53.932Z",
+  "mcpUrl": "http://127.0.0.1:8787/mcp",
+  "checkedAt": "2026-07-03T21:31:15.815Z",
   "districtSlug": "anaheim-candidate",
   "proofStatus": "passed",
   "promotionReady": false,
@@ -77,16 +77,15 @@
         "radiusMeters": 4187
       },
       "status": "passed",
-      "userFacingText": "Found 20 lookup-only places around Eastvale, CA, USA. Categories: fitness, food_drink, landmark, park, school, shop. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a playable county map.",
+      "userFacingText": "Found 5 lookup-only places around Eastvale, CA. Categories: civic, fitness, park, service, shop. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a playable county map.",
       "structuredSummary": {
         "type": "worldPlaceLookup",
-        "placeCount": 20,
+        "placeCount": 5,
         "categories": [
+          "civic",
           "fitness",
-          "food_drink",
-          "landmark",
           "park",
-          "school",
+          "service",
           "shop"
         ],
         "cacheHit": false
@@ -117,7 +116,7 @@
     "renderVoxelCountyPlayable": "Showing the Riverside/Eastvale playable map. Pins and notes stay in this chat.",
     "renderVoxelCountyShell": "Orange County is indexed from Census county identity data, but Atlas has not built a playable local scene for it yet. Orange County is browse-only in Atlas right now. Atlas only draws a local world after a curated playable district exists. Open Riverside/Eastvale for the playable map.",
     "askCountyQuestion": "Curated Riverside/Eastvale answer. For mobile detailing, the curated Riverside pack supports Eastvale because the strongest nodes cluster around homes, errands, and short routes. Top signals are Residential Demand, High Willingness to Pay, Partnership Target, QR Flyer Opportunity, Fast Route Access. Treat these as Alpha planning signals, not live demand or ROI proof.\n\nLimits: Prototype data only. Replace/augment with sourced data before public claims. Closed-world answer from curated Atlas Alpha data only. No saved state, XP, evidence, outreach, or live market guarantee. No saves, XP, evidence, or automation are created by this answer.",
-    "lookupWorldPlaces": "Found 20 lookup-only places around Eastvale, CA, USA. Categories: fitness, food_drink, landmark, park, school, shop. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a playable county map.",
+    "lookupWorldPlaces": "Found 5 lookup-only places around Eastvale, CA. Categories: civic, fitness, park, service, shop. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a playable county map.",
     "selectCountyUnsupported": "Atlas does not have an indexed or curated county contract for this slug yet. Use Riverside County for the playable Engine Beta slice. This county is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties."
   },
   "structuredSummary": {
@@ -148,13 +147,12 @@
     },
     "lookupWorldPlaces": {
       "type": "worldPlaceLookup",
-      "placeCount": 20,
+      "placeCount": 5,
       "categories": [
+        "civic",
         "fitness",
-        "food_drink",
-        "landmark",
         "park",
-        "school",
+        "service",
         "shop"
       ],
       "cacheHit": false

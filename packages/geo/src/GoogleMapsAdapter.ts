@@ -17,6 +17,10 @@ import {
   type GoogleGeocodeResult,
   type GooglePlace,
 } from "./SignalExtractor.js";
+import {
+  ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK_HEADER,
+  assertGoogleNearbyFieldMaskAllowed,
+} from "./ProviderNormalization.js";
 
 type GoogleGeocodeResponse = {
   status?: string;
@@ -127,14 +131,14 @@ export class GoogleMapsAdapter implements GeoDataAdapter {
         },
       },
     });
+    assertGoogleNearbyFieldMaskAllowed(ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK_HEADER);
 
     const payload = await this.fetchJson<GoogleNearbyResponse>(this.placesEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": this.apiKey,
-        "X-Goog-FieldMask":
-          "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.types",
+        "X-Goog-FieldMask": ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK_HEADER,
       },
       body: JSON.stringify(body),
     });

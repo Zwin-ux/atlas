@@ -661,6 +661,7 @@ function createRoadSegments(): CityWorldRoadSegment[] {
     { id: "road-park-loop-a", kind: "driveway", from: { x: 14, y: 18, z: 0 }, to: { x: 21, y: 18, z: 0 }, width: 0.7 },
     { id: "road-park-loop-b", kind: "driveway", from: { x: 21, y: 18, z: 0 }, to: { x: 20, y: 23, z: 0 }, width: 0.7 },
     { id: "road-plaza-cut", kind: "driveway", from: { x: 26, y: 16, z: 0 }, to: { x: 34, y: 16, z: 0 }, width: 0.85 },
+    { id: "road-south-lane", kind: "driveway", from: { x: 23.4, y: 23.8, z: 0 }, to: { x: 27.6, y: 23.8, z: 0 }, width: 0.65 },
     { id: "cross-eastvale-core", kind: "crosswalk", from: { x: 20, y: 13, z: 0 }, to: { x: 23, y: 13, z: 0 }, width: 0.45 },
     { id: "cross-plaza", kind: "crosswalk", from: { x: 31, y: 13, z: 0 }, to: { x: 31, y: 16, z: 0 }, width: 0.45 },
   ];
@@ -743,7 +744,27 @@ function createLots(): CityWorldLot[] {
     { id: "lot-apartments", kind: "apartments", label: "Apartment courts", position: { x: 32, y: 21.8, z: 0 }, width: 6.4, depth: 4.6, placeId: "place-eastvale-apartments" },
     { id: "lot-park", kind: "park", label: "Community park", position: { x: 18, y: 20, z: 0 }, width: 7.5, depth: 6.4, placeId: "place-community-park" },
     { id: "lot-water", kind: "waterfront", label: "Water edge", position: { x: 37, y: 24, z: 0 }, width: 6, depth: 6 },
+    { id: "lot-corner-market", kind: "shop", label: "Corner market", position: { x: 15.6, y: 11.6, z: 0 }, width: 2.3, depth: 1.7, placeId: "place-neighborhood-blocks" },
+    { id: "lot-plaza-lofts", kind: "apartments", label: "Plaza lofts", position: { x: 26.8, y: 10.2, z: 0 }, width: 2.9, depth: 2.1, placeId: "place-plaza-row" },
   ];
+
+  const southCourtLots: Array<{ id: string; x: number; y: number }> = [
+    { id: "lot-home-south-0-0", x: 23.9, y: 22.9 },
+    { id: "lot-home-south-0-1", x: 26.55, y: 22.9 },
+    { id: "lot-home-south-1-0", x: 24.05, y: 24.85 },
+    { id: "lot-home-south-1-1", x: 26.7, y: 24.8 },
+  ];
+  for (const southLot of southCourtLots) {
+    lots.push({
+      id: southLot.id,
+      kind: "home",
+      label: "Home lot",
+      position: { x: southLot.x, y: southLot.y, z: 0 },
+      width: 1.7,
+      depth: 1.45,
+      placeId: "place-neighborhood-blocks",
+    });
+  }
 
   for (let row = 0; row < 4; row += 1) {
     for (let col = 0; col < 5; col += 1) {
@@ -854,8 +875,44 @@ function createBuildings(): CityWorldBuilding[] {
     createResidentialBuilding("building-ranch-north-a", "Ranch home", 24.6, 6.8, 2.0, 1.14, 1.06, "#f6e7cf", "#a76f4e", "ranch", "hip"),
     createResidentialBuilding("building-cottage-north-b", "Cottage", 17.4, 9.1, 1.34, 1.1, 1.16, "#e8c9aa", "#8f7568", "cottage", "gable"),
     createResidentialBuilding("building-cottage-north-c", "Cottage", 24.2, 9.5, 1.42, 1.1, 1.2, "#f2dfc4", "#b86f4c", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-south-a", "Cottage", 23.9, 22.85, 1.36, 1.1, 1.26, "#f0dcbe", "#8a6a52", "cottage", "gable"),
+    createResidentialBuilding("building-ranch-south-a", "Ranch home", 26.55, 22.9, 1.98, 1.16, 1.04, "#ecd2b0", "#5f7f8e", "ranch", "hip"),
+    createResidentialBuilding("building-cottage-south-b", "Cottage", 24.05, 24.85, 1.4, 1.12, 1.22, "#eed4b4", "#7d955f", "cottage", "gable"),
+    createResidentialBuilding("building-ranch-south-b", "Ranch home", 26.7, 24.8, 2.02, 1.14, 1.0, "#f4e2c6", "#5d7f8a", "ranch", "hip"),
   ];
   buildings.push(...residentialModules);
+
+  buildings.push({
+    id: "building-corner-market",
+    kind: "shop",
+    label: "Corner market",
+    position: { x: 15.6, y: 11.45, z: 0 },
+    width: 2.0,
+    depth: 1.15,
+    height: 1.12,
+    bodyColor: "#eed7b2",
+    roofColor: "#437085",
+    placeId: "place-neighborhood-blocks",
+    roofShape: "flat",
+    facadeStyle: "storefront",
+    detailLevel: "high",
+  });
+
+  buildings.push({
+    id: "building-plaza-lofts",
+    kind: "apartment",
+    label: "Plaza lofts",
+    position: { x: 26.8, y: 10.2, z: 0 },
+    width: 2.2,
+    depth: 1.6,
+    height: 2.5,
+    bodyColor: "#e3cfae",
+    roofColor: "#587a8e",
+    placeId: "place-plaza-row",
+    roofShape: "flat",
+    facadeStyle: "lowrise",
+    detailLevel: "high",
+  });
 
   buildings.push({
     id: "building-plaza-strip",
@@ -930,6 +987,8 @@ function createProps(): CityWorldProp[] {
     { x: 36, y: 21.5, z: 0 },
     { x: 9, y: 5, z: 0 },
     { x: 12, y: 5, z: 0 },
+    { x: 22.8, y: 22.1, z: 0 },
+    { x: 27.9, y: 25.4, z: 0 },
   ];
 
   treePoints.forEach((position, index) => {
@@ -1161,7 +1220,8 @@ function inResidentialMassingField(position: CityWorldPoint) {
     (position.x >= 2 && position.x <= 22 && position.y >= 2 && position.y <= 17) ||
     (position.x >= 14 && position.x <= 31 && position.y >= 3 && position.y <= 15) ||
     (position.x >= 6 && position.x <= 26 && position.y >= 11 && position.y <= 20) ||
-    (position.x >= 9 && position.x <= 18 && position.y >= 18 && position.y <= 24)
+    (position.x >= 9 && position.x <= 18 && position.y >= 18 && position.y <= 24) ||
+    (position.x >= 22 && position.x <= 29 && position.y >= 21 && position.y <= 26)
   );
 }
 
@@ -1195,6 +1255,8 @@ function isResidentialShelfEdge(position: CityWorldPoint) {
     ((position.y === 11 || position.y === 20) && position.x >= 6 && position.x <= 26) ||
     ((position.x === 9 || position.x === 18) && position.y >= 18 && position.y <= 24) ||
     ((position.y === 18 || position.y === 24) && position.x >= 9 && position.x <= 18) ||
+    ((position.x === 22 || position.x === 29) && position.y >= 21 && position.y <= 26) ||
+    ((position.y === 21 || position.y === 26) && position.x >= 22 && position.x <= 29) ||
     (position.x === 11 && position.y >= 3 && position.y <= 17) ||
     (position.y === 9 && position.x >= 3 && position.x <= 22) ||
     (position.x === 21 && position.y >= 4 && position.y <= 15) ||
@@ -1333,7 +1395,7 @@ function buildingNoLabelPriority(
   return "none";
 }
 
-function withRoadMetadata(road: CityWorldRoadSegment): CityWorldRoadSegment {
+export function withRoadMetadata(road: CityWorldRoadSegment): CityWorldRoadSegment {
   return {
     ...road,
     spriteKey: `road.${road.kind}.${road.width > 1.8 ? "wide" : "standard"}`,
@@ -1343,7 +1405,7 @@ function withRoadMetadata(road: CityWorldRoadSegment): CityWorldRoadSegment {
   };
 }
 
-function withLotMetadata(lot: CityWorldLot): CityWorldLot {
+export function withLotMetadata(lot: CityWorldLot): CityWorldLot {
   return {
     ...lot,
     spriteKey: `lot.${lot.kind}.${lot.width > 4 ? "large" : "small"}`,
@@ -1353,7 +1415,7 @@ function withLotMetadata(lot: CityWorldLot): CityWorldLot {
   };
 }
 
-function withBuildingMetadata(building: CityWorldBuilding): CityWorldBuilding {
+export function withBuildingMetadata(building: CityWorldBuilding): CityWorldBuilding {
   const variant = hashId(building.id);
   const roofShape =
     building.roofShape ??
@@ -1412,7 +1474,7 @@ function resolveBuildingPaletteKey(building: CityWorldBuilding, facadeStyle: Cit
   return `building.${building.kind}.${variant % 6}`;
 }
 
-function withPropMetadata(prop: CityWorldProp): CityWorldProp {
+export function withPropMetadata(prop: CityWorldProp): CityWorldProp {
   return {
     ...prop,
     spriteKey: `prop.${prop.kind}.${prop.variant}`,

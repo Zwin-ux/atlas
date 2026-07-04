@@ -167,6 +167,25 @@ export type CityWorldCommerceStripPrefabGeometry = {
   focusTarget?: "plaza_row";
 };
 
+export type CityWorldCivicLandmarkPrefabGeometry = {
+  plinthTierCount: number;
+  entryBayCount: number;
+  facadePierCount: number;
+  glassBandCount: number;
+  roofCapWeight: number;
+  civicCanopyDepth: number;
+  focusTarget?: "eastvale_core";
+};
+
+export type CityWorldServiceGymPrefabGeometry = {
+  serviceBayCount: number;
+  sawtoothCount: number;
+  entryRecessDepth: number;
+  utilityApronDepth: number;
+  roofMonitorWeight: number;
+  focusTarget?: "eastvale_gym";
+};
+
 export type CityWorldObjectKitMetadata = {
   prefabFamily: CityWorldObjectKitPrefabFamily;
   paletteRoles: CityWorldObjectKitPaletteRole[];
@@ -175,6 +194,8 @@ export type CityWorldObjectKitMetadata = {
   roofBodySeparationScore: number;
   landmarkSignatureScore?: number;
   commerceGeometry?: CityWorldCommerceStripPrefabGeometry;
+  civicGeometry?: CityWorldCivicLandmarkPrefabGeometry;
+  serviceGeometry?: CityWorldServiceGymPrefabGeometry;
 };
 
 export type CityWorldVisualGrammar = {

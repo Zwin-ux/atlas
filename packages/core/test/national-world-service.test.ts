@@ -305,11 +305,10 @@ describe("NationalWorldService", () => {
         label: "Eastvale, CA",
         coordinates: { latitude: 33.9525, longitude: -117.5848 },
         formattedAddress: "Eastvale, CA, USA",
-        placeId: "mock-eastvale-ca",
       },
       places: [
         {
-          placeId: "mock-park",
+          atlasLookupId: "lookup-park-1-community-park",
           label: "Community Park",
           category: "park",
           coordinates: { latitude: 33.9485, longitude: -117.5864 },
@@ -319,7 +318,7 @@ describe("NationalWorldService", () => {
           ttlSeconds: 300,
         },
         {
-          placeId: "mock-unknown",
+          atlasLookupId: "lookup-unknown-2-unmapped-provider-place",
           label: "Unmapped provider place",
           category: "provider_specific_type",
           source: "mock",
@@ -330,6 +329,11 @@ describe("NationalWorldService", () => {
     });
 
     expect(lookup.type).toBe("worldPlaceLookup");
+    expect("placeId" in lookup.resolvedLocation).toBe(false);
+    expect(lookup.places.map((place) => place.id)).toEqual([
+      "lookup-park-1-community-park",
+      "lookup-unknown-2-unmapped-provider-place",
+    ]);
     expect(lookup.places.map((place) => place.category)).toEqual(["park", "unknown"]);
     expect(lookup.cache).toMatchObject({ key: "lookup:eastvale-ca:3500:mock", ttlSeconds: 300 });
     expect(lookup.cache.sourceNotes[0]).toMatchObject({ source: "mock", attribution: "Atlas mock data" });
@@ -344,7 +348,16 @@ describe("NationalWorldService", () => {
       coveragePromotion: false,
       sceneEligible: false,
       publicQuality: false,
+      sceneGeometry: false,
+      rawProviderPayloadExposed: false,
+      structuredContentPolicy: "atlas_normalized_only",
+      fieldMaskPolicy: {
+        mode: "allowlist",
+        wildcardAllowed: false,
+        allowedFieldCount: 0,
+      },
     });
     expect(lookup.providerReadiness.limitations.join(" ")).toContain("does not promote county coverage");
+    expect(lookup.providerReadiness.limitations.join(" ")).toContain("Provider identifiers");
   });
 });

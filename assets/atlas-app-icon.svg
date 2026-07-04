@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Atlas app icon</title>
+  <desc id="desc">A minimal voxel map mark for Atlas, built from flat isometric map tiles.</desc>
+  <rect x="28" y="28" width="456" height="456" rx="88" fill="#0b1117"/>
+  <rect x="28" y="28" width="456" height="456" rx="88" fill="none" stroke="#eef4e8" stroke-width="12"/>
+
+  <path d="M256 102 398 184 256 266 114 184Z" fill="#a7d78b"/>
+  <path d="M114 184 256 266 256 356 114 274Z" fill="#2f745f"/>
+  <path d="M398 184 256 266 256 356 398 274Z" fill="#1f5866"/>
+  <path d="M114 274 256 356 398 274 398 326 256 408 114 326Z" fill="#12323b"/>
+
+  <path d="M170 182 256 232 342 182" fill="none" stroke="#0b1117" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M210 134 302 292" fill="none" stroke="#0b1117" stroke-width="12" stroke-linecap="round"/>
+  <path d="M302 134 210 292" fill="none" stroke="#0b1117" stroke-width="12" stroke-linecap="round"/>
+
+  <path d="M184 198 256 156 328 198 256 240Z" fill="#dfe9da"/>
+  <path d="M256 156 328 198 328 242 256 284Z" fill="#7fb6aa"/>
+  <path d="M184 198 256 240 256 284 184 242Z" fill="#5c997f"/>
+  <path d="M256 174 310 205 256 236 202 205Z" fill="#f2c45c"/>
+  <path d="M256 174 256 236" fill="none" stroke="#0b1117" stroke-width="10" stroke-linecap="round"/>
+  <path d="M229 205 283 205" fill="none" stroke="#0b1117" stroke-width="10" stroke-linecap="round"/>
+
+  <path d="M164 315 256 368 348 315" fill="none" stroke="#eef4e8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  <path d="M148 350 256 412 364 350" fill="none" stroke="#5bd0c2" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

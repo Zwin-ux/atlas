@@ -1,5 +1,24 @@
 # Next Quests
 
+## Next quest rule
+
+The next quest is not chosen by vibes. It must come from
+`artifacts/current-update.json`, this file, the latest selector output, or a new
+verifier/selector result created during the current slice. If the human says
+"continue," continue only the named next quest. If that quest conflicts with
+permanent gates, stop and report the conflict.
+
+## Active product track (human-directed 2026-07-03)
+
+The live track is the product/app-quality path to a **submittable ChatGPT app**, specified in
+`docs/PRODUCT_SPEC_AND_GATES.md` (gates G1–G7). Named product slices: `0.46P` in-widget scout/
+campaign result surface (done + proven), `0.47P` widget polish, `0.48P` design ultra-pass (Fable
+supermove), `0.49P` reliability sweep, `0.50P` submission packet.
+
+The owner-gate / second-district ceremony below is **parked** but kept honest: `0.46E Owner Gate
+Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`
+stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only on human request.
+
 ## Current phase
 
 Alpha Path B is accepted. Atlas is now in Engine Beta, not Paid Beta. Hosted
@@ -24,39 +43,54 @@ second playable district, consumer save layer, and Hosted Clawd Beta.
 
 Current quest:
 
-`0.38E Engine Quality Axis Review / Next Target Selection` is locally green.
+`0.45E Owner Gate Cutline / Next Axis Selection` is locally green.
 
 Goal:
 
-Stop serial visual churn by choosing the next engine target from measured
-evidence. 0.38E adds `scripts/select-engine-quality-axis.mjs`, records the
-selector artifact, and updates the release ladder without changing renderer,
-UI, server routes, MCP tools, DB, provider, or public county exposure.
+Select the next second-district axis from the 0.44E hidden proof packet without
+starting a public Anaheim spike.
 
-0.38E local result:
+0.45E local result:
 
-- Added `scripts/select-engine-quality-axis.mjs`.
-- Added selector artifact:
-  `artifacts/engine-quality-axis/postalpha-0.38e-next-target-selection.json`.
-- Selected `0.39E Public Object Identity / Civic-Service Read Pass`.
-- Selected axis: `public_object_identity`.
-- Selector reasons:
-  - `homeClonePressure` remains `0.2`.
-  - `weakestObjectFamily` is `civic_landmark`.
-  - `weakestCivicVenueStressCell` is `eastvale-core-civic-landmark`.
-- Blocked axes:
-  - terrain/world-edge: current terrain, empty-board, and chunk-edge floors are
-    green.
-  - mobile entry density: playable mobile LOD budget and readability are green.
-  - hidden second-district readiness: Anaheim still has 9 promotion blockers.
-  - commerce repeat: blocked unless a human names one exact Plaza Row blocker.
+- Added `scripts/select-second-district-owner-gate-next-axis.mjs`.
+- The selector reads the 0.44E readiness aggregate, owner cutline, visual
+  review, and product proof.
+- Selected axis: `owner_gate_review`.
+- Decision: `REQUEST_OWNER_REVIEW`.
+- Recommended next quest: `0.46E Owner Gate Review Packet`.
+- Blocked controlled public Anaheim spike because readiness is not promotion
+  ready and owner cutline remains `BLOCK_PROMOTION`.
 
 Next move:
 
-Run `0.39E Public Object Identity / Civic-Service Read Pass`. Target the public
-Riverside civic/service object read, especially Eastvale Core and service/gym
-readability. Do not continue commerce, terrain, mobile density, hidden Anaheim,
-DB, provider, or paid/persistence work unless a new blocker changes the axis.
+Run `0.46E Owner Gate Review Packet`. It should package the exact Lumen, Mira,
+Forge, and Axiom review asks against the repo-local hidden proof. It must not
+implement public Anaheim. It must not start another hidden art pass unless an
+owner names one exact blocker.
+
+Canonical next quest:
+`0.46E Owner Gate Review Packet`.
+
+0.45E selector artifact:
+
+`artifacts/second-district-readiness/latest/anaheim-candidate/postalpha-0.45e-owner-gate-next-axis.json`
+
+0.44E proof artifacts:
+
+- `artifacts/second-district-visual-packets/postalpha-0.44e-anaheim-hidden-proof`
+- `artifacts/second-district-readiness/latest/anaheim-candidate/readiness-aggregate.json`
+- `artifacts/second-district-readiness/latest/anaheim-candidate/owner-gate-cutline.json`
+
+0.43E selector artifact:
+
+`artifacts/engine-quality-axis/postalpha-0.43e-next-target-selection.json`
+
+Completed local slice:
+
+`0.38F App Drift / Source-of-Truth Reconciliation` is locally green. It repaired
+the 0.38E selector artifact, aligned AGENTS/README/NEXT_QUESTS/current-update,
+added `scripts/verify-atlas-source-of-truth-drift.mjs`, and confirmed the
+active public MCP tool surface remains the seven Alpha tools.
 
 Completed local slice:
 

@@ -121,6 +121,8 @@ export {
   compileCityWorldScene,
   compileCountyShellCityWorldScene,
   compileDistrictPlaceAnchorDraftCityWorldScene,
+  generateParametricCityWorldScene,
+  exampleParametricDistrictSpec,
   analyzeCityWorldScene,
   analyzeCityWorldObjectKit,
   assignCityWorldObjectKit,
@@ -160,6 +162,13 @@ export type {
   VoxelMapSession,
 } from "./voxel/mapSession.js";
 export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./voxel/cityWorldCompiler.js";
+export type {
+  CityWorldParametricSpec,
+  CityWorldParametricResult,
+  CityWorldZoneSpec,
+  CityWorldZoneKind,
+  CityWorldRoadSeed,
+} from "./voxel/cityWorldParametricGenerator.js";
 export type {
   CampaignAssetPlaceholder,
   CampaignChannel,

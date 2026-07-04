@@ -58,6 +58,8 @@ const ENGINE_BETA_RENDERER_PREFIXES = [
 ];
 
 const ENGINE_BETA_DATA_FILES = new Set([
+  "AGENTS.md",
+  "README.md",
   "LOOP.md",
   "STATE.md",
   "loop-budget.md",
@@ -100,6 +102,7 @@ const ENGINE_BETA_DATA_FILES = new Set([
   "scripts/verify-external-voxel-reference-adapter.mjs",
   "scripts/verify-no-google-in-renderer.mjs",
   "scripts/verify-provider-boundaries.mjs",
+  "scripts/verify-provider-normalization-preflight.mjs",
   "scripts/verify-tool-result-shape.mjs",
   "scripts/verify-scout-campaign-alpha-loop.mjs",
   "scripts/verify-worldbasis-terrain-sampler.mjs",
@@ -112,7 +115,10 @@ const ENGINE_BETA_DATA_FILES = new Set([
   "scripts/verify-object-kit-renderer-consumption.mjs",
   "scripts/verify-commerce-strip-prefab-geometry.mjs",
   "scripts/verify-plaza-row-focused-capture.mjs",
+  "scripts/verify-public-object-identity-civic-service.mjs",
   "scripts/select-engine-quality-axis.mjs",
+  "scripts/select-second-district-owner-gate-next-axis.mjs",
+  "scripts/verify-atlas-source-of-truth-drift.mjs",
   "scripts/verify-render-command-layer-budget.mjs",
   "scripts/verify-scene-window-compiler.mjs",
   "scripts/verify-window-aware-renderer.mjs",
@@ -150,6 +156,7 @@ const PROVIDER_BOUNDARY_FILES = new Set([
   "docs/BUILD_LOG.md",
   "docs/DECISIONS.md",
   "docs/NEXT_QUESTS.md",
+  "docs/TOOL_CONTRACTS.md",
   "docs/architecture/ENGINEERING_OVERVIEW.md",
   "docs/architecture/GOOGLE_USAGE_POLICY.md",
   "docs/architecture/PROVIDER_BOUNDARIES.md",
@@ -159,11 +166,13 @@ const PROVIDER_BOUNDARY_FILES = new Set([
   "scripts/verify-alpha-rc-split.mjs",
   "scripts/verify-no-google-in-renderer.mjs",
   "scripts/verify-provider-boundaries.mjs",
+  "scripts/verify-provider-normalization-preflight.mjs",
   "scripts/verify-tool-result-shape.mjs",
 ]);
 
 const PROVIDER_BOUNDARY_PREFIXES = [
   "packages/geo/src/",
+  "packages/geo/test/",
 ];
 
 const EXACT_RULES = [

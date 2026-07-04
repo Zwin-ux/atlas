@@ -1,0 +1,46 @@
+{
+  "districtSlug": "anaheim",
+  "outcome": "HIDDEN_DRAFT_ONLY",
+  "promotionReady": false,
+  "publicPlayable": false,
+  "targetAnchors": [
+    "Anaheim Convention Center",
+    "ARTIC / Angel Stadium area"
+  ],
+  "firstThreeSecondRead": {
+    "desktop": "Hidden Anaheim reads as a venue/campus draft with a long glass convention-center spine and a separate stadium/transit cluster. It is inspectable evidence, not public product.",
+    "mobile": "Mobile keeps the Anaheim draft boundary and Riverside recovery action visible. The two no-label anchors remain readable as broad venue forms, but the shell tray still makes this a proof view rather than a playable map.",
+    "detail": "The detail camera improves object identity: the convention-center hall reads as a glass campus, while the stadium/ARTIC area separates into a bowl-like venue mass plus adjacent transit/glass language."
+  },
+  "noLabelRecognition": [
+    {
+      "anchor": "Anaheim Convention Center",
+      "desktop": "PASS",
+      "mobile": "PASS",
+      "detail": "PASS",
+      "reason": "The long low glass halls, repeated translucent roof planes, campus footprint, and plaza/road contact distinguish it from generic lowrise blocks before labels."
+    },
+    {
+      "anchor": "ARTIC / Angel Stadium area",
+      "desktop": "PASS",
+      "mobile": "PASS",
+      "detail": "PASS",
+      "reason": "The round stadium bowl and nearby glass/transit mass read as a venue/transit pair instead of one generic blue-roof cluster. It is still hidden-draft quality, not public promotion."
+    }
+  ],
+  "fillerFlags": {
+    "labelDependentIdentity": false,
+    "sameSizeColoredBoxes": false,
+    "pastedOnSlabOrSprite": false,
+    "flatGreenBoardReliance": false,
+    "uiGlowPanelCompensation": false,
+    "fakePlayableShellRisk": false
+  },
+  "p0Blockers": [],
+  "p1Backlog": [
+    "Owner gates are still missing; this packet does not authorize public switcher exposure.",
+    "The hidden shell tray still consumes enough mobile viewport that public playability would need a separate product presentation.",
+    "Venue forms are recognizable, but material specificity and local landmark fidelity remain below public-quality bar."
+  ],
+  "smallestNextSlice": "Run owner-gate recheck from this repo-local packet. Do not start a public Anaheim spike unless the cutline changes to APPROVE_CONTROLLED_PUBLIC_SPIKE."
+}

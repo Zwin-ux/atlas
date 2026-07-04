@@ -181,7 +181,7 @@ export class NationalWorldService {
       sourceNotes,
     };
     const places = input.places.map((place) => ({
-      id: place.placeId,
+      id: place.atlasLookupId,
       label: place.label,
       category: normalizeWorldPlaceCategory(place.category),
       ...(place.coordinates ? { coordinates: place.coordinates } : {}),
@@ -495,10 +495,19 @@ function providerLookupReadiness(
     coveragePromotion: false,
     sceneEligible: false,
     publicQuality: false,
+    sceneGeometry: false,
+    rawProviderPayloadExposed: false,
+    structuredContentPolicy: "atlas_normalized_only",
+    fieldMaskPolicy: {
+      mode: "allowlist",
+      wildcardAllowed: false,
+      allowedFieldCount: mode === "google" ? 6 : 0,
+    },
     limitations: [
       "Provider lookup is read-only place discovery.",
       "Provider lookup does not promote county coverage readiness.",
       "Provider lookup is not scene compiler input until a separate promotion contract passes.",
+      "Provider identifiers and raw fields stay out of model-visible structuredContent.",
     ],
   };
 }

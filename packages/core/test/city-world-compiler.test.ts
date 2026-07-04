@@ -456,6 +456,17 @@ describe("CityWorld compiler", () => {
       clusterRole: "anchor",
       noLabelPriority: "supporting",
     });
+    expect(civic?.objectKit).toMatchObject({
+      prefabFamily: "civic_landmark",
+      civicGeometry: {
+        plinthTierCount: 3,
+        entryBayCount: 5,
+        facadePierCount: 6,
+        glassBandCount: 3,
+        focusTarget: "eastvale_core",
+      },
+    });
+    expect(civic?.objectKit?.signatureTags).toEqual(expect.arrayContaining(["eastvale-core-focus", "tiered-civic-plinth", "civic-entry-rhythm"]));
     expect(rowhome?.visualGrammar).toMatchObject({ objectFamily: "residential_kit", clusterRole: "edge" });
     expect(stripStore?.visualGrammar).toMatchObject({ objectFamily: "commerce_strip", clusterRole: "edge" });
     expect(stripStore?.objectKit).toMatchObject({
@@ -468,6 +479,15 @@ describe("CityWorld compiler", () => {
     });
     expect(stripStore?.objectKit?.signatureTags).toEqual(expect.arrayContaining(["deep-storefront-apron", "continuous-parapet"]));
     expect(gym?.visualGrammar).toMatchObject({ objectFamily: "service_block", clusterRole: "support" });
+    expect(gym?.objectKit).toMatchObject({
+      prefabFamily: "service_gym",
+      serviceGeometry: {
+        serviceBayCount: 4,
+        sawtoothCount: 5,
+        focusTarget: "eastvale_gym",
+      },
+    });
+    expect(gym?.objectKit?.signatureTags).toEqual(expect.arrayContaining(["eastvale-gym-focus", "sawtooth-service-roof", "recessed-service-entry"]));
     expect(apartments?.visualGrammar).toMatchObject({ objectFamily: "lowrise_cluster", clusterRole: "support" });
     expect(city.buildings.every((building) => building.visualGrammar?.objectFamily)).toBe(true);
   });

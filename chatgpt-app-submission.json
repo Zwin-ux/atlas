@@ -4,7 +4,7 @@
   "app_info": {
     "display_name": "Atlas",
     "subtitle": "Explore a voxel city map",
-    "description": "Atlas opens directly into a playable voxel city map for Riverside/Eastvale. Users can inspect map places, drop session-only stickers and notes in the widget, look up nearby real-world places as normalized Atlas categories, run temporary Scout Drop previews, generate a manual 7-day campaign preview, and review free Alpha limits versus planned Hosted Clawd persistence. Live lookup returns normalized nearby place summaries only. Alpha previews do not save state, save provider data, grant XP, start checkout, post, message, buy ads, scrape, or perform live campaign execution.",
+    "description": "Atlas opens inside ChatGPT as a playable voxel city map for Riverside/Eastvale. Users can inspect the county world, drop session-only stickers and notes in the widget, ask closed-world location questions, look up nearby real-world places as normalized Atlas categories, run temporary Scout Drop previews, and generate a manual 7-day campaign preview. Atlas Alpha is session-only: do not save state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is planned, not live.",
     "category": "BUSINESS"
   },
   "tools": {
@@ -99,7 +99,7 @@
       "user_prompt": "Open Atlas for Riverside County and show Eastvale.",
       "file_attachment_urls": null,
       "tools_triggered": "select_county",
-      "expected_output": "Selects Riverside County and renders a compiled Eastvale-focused voxel scene from the curated county pack.",
+      "expected_output": "Selects Riverside County and renders a compiled Eastvale-focused voxel scene from the curated county pack. Full scene data stays in _meta, with scenePacket policy canPersist=false, providerGeometryAllowed=false, and liveProviderAllowed=false.",
       "expected_output_url": null
     },
     {
@@ -107,7 +107,7 @@
       "user_prompt": "Refresh the Atlas board for Riverside County and keep focus on Eastvale.",
       "file_attachment_urls": null,
       "tools_triggered": "render_voxel_county",
-      "expected_output": "Renders the Riverside voxel board with a concise scene summary and Eastvale-focused state.",
+      "expected_output": "Renders the Riverside voxel board with a concise scene summary and Eastvale-focused state. Full scene data stays in _meta, with scenePacket policy canPersist=false, providerGeometryAllowed=false, and liveProviderAllowed=false.",
       "expected_output_url": null
     },
     {
@@ -170,10 +170,10 @@
     },
     {
       "description": "Do not trigger for payments or account creation.",
-      "user_prompt": "Charge my card and activate Hosted Clawd right now.",
+      "user_prompt": "Start checkout, charge my card, and take payment for Hosted Clawd right now.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not create an account or start checkout because Hosted Clawd and Stripe are not available in Alpha.",
+      "expected_output": "The app should not create an account, take payment, or start checkout because Hosted Clawd and Stripe are not available in Alpha.",
       "expected_output_url": null
     },
     {

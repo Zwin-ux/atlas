@@ -4,6 +4,8 @@ import {
   compileCountyShellCityWorldScene,
   createVoxelNote,
   createVoxelSticker,
+  exampleParametricDistrictSpec,
+  generateParametricCityWorldScene,
   riversideDemoVoxelScene,
   type CityWorldScene,
   type VoxelNote,
@@ -11,7 +13,7 @@ import {
   type VoxelSticker,
   type VoxelStickerKind,
 } from "@atlas/core/voxel";
-import { updateModelContext, useToolResult, useWidgetState } from "./bridge";
+import { sendUserMessage, updateModelContext, useToolResult, useWidgetState } from "./bridge";
 import { CountyCoverageView } from "./CountyCoverageView";
 import { CountySwitcher, type CountySwitchSlug } from "./CountySwitcher";
 import { CityWorldView } from "./CityWorldView";
@@ -327,6 +329,7 @@ function isCityWorldScene(value: unknown): value is CityWorldScene {
 export function App() {
   const result = useToolResult<ToolStructuredContent>(null);
   const [localCountySlug, setLocalCountySlug] = useState<CountySwitchSlug | null>(null);
+  const [generatedScene, setGeneratedScene] = useState<CityWorldScene | null>(null);
   const structuredContent = result?.structuredContent;
   const meta = result?._meta;
   const metaCampaignPreview = isCampaignPreview(meta?.campaignPreview) ? meta.campaignPreview : null;
@@ -373,6 +376,7 @@ export function App() {
   const noteDraft = activeSceneMatches ? widgetState.noteDraft ?? "" : "";
 
   const selectCountyFromSwitcher = (countySlug: CountySwitchSlug) => {
+    setGeneratedScene(null);
     setLocalCountySlug(countySlug);
     if (countySlug === "riverside-ca") {
       const firstPlace = riversideDemoVoxelScene.world?.places[0];
@@ -389,9 +393,41 @@ export function App() {
     void updateModelContext(`Atlas county switcher selected ${countyLabelForSwitch(countySlug)}.`);
   };
 
-  const countySwitcher = <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} />;
+  const openGeneratedPreview = () => {
+    const generatedResult = generateParametricCityWorldScene(exampleParametricDistrictSpec());
+    setGeneratedScene(generatedResult.scene);
+    void updateModelContext(
+      "Atlas opened a generated synthetic district preview. It is not a real place, not real coverage, and session-only.",
+    );
+  };
 
-  if (activeCoverageSummary) {
+  const exitGeneratedPreview = () => {
+    const firstPlace = riversideDemoVoxelScene.world?.places[0];
+    setGeneratedScene(null);
+    setLocalCountySlug("riverside-ca");
+    setWidgetState((current) => ({
+      ...current,
+      activeSceneId: riversideDemoVoxelScene.id,
+      selectedDistrictId: riversideDemoVoxelScene.world?.selectedDistrictId,
+      selectedPlaceId: firstPlace?.id,
+      selectedNodeId: firstPlace?.nodeId ?? riversideDemoVoxelScene.selectedNodeId,
+      activeStepId: "county",
+      noteDraft: "",
+    }));
+    void updateModelContext("Atlas exited the generated synthetic preview and returned to Riverside/Eastvale.");
+  };
+
+  const countySwitcher = (
+    <>
+      <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} />
+      <button type="button" className="city-world-generate-district" data-qa="generate-district-button" onClick={openGeneratedPreview}>
+        <strong>Generate district</strong>
+        <span>engine preview</span>
+      </button>
+    </>
+  );
+
+  if (!generatedScene && activeCoverageSummary) {
     return <CountyCoverageView coverage={activeCoverageSummary} shellScene={activeCoverageShellScene} countySwitcher={countySwitcher} />;
   }
 
@@ -456,6 +492,17 @@ export function App() {
     });
   };
 
+  const advancePreview = () => {
+    if (campaignPreview) {
+      void sendUserMessage("What are the Hosted Clawd hosting options?");
+      return;
+    }
+
+    if (scoutPreview) {
+      void sendUserMessage("Preview the 7-day campaign for this Scout Drop.");
+    }
+  };
+
   return (
     <CityWorldView
       scene={scene}
@@ -465,7 +512,12 @@ export function App() {
       notes={notes}
       stickerMode={stickerMode}
       noteDraft={noteDraft}
+      scoutPreview={scoutPreview}
+      campaignPreview={campaignPreview}
+      {...(campaignPreview || scoutPreview ? { onAdvancePreview: advancePreview } : {})}
       countySwitcher={countySwitcher}
+      generatedScene={generatedScene}
+      onExitGeneratedPreview={exitGeneratedPreview}
       onSelectPlace={selectPlace}
       onSelectStickerMode={(kind) => setWidgetState((current) => ({ ...current, stickerMode: kind }))}
       onPlaceSticker={placeSticker}

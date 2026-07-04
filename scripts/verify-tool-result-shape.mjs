@@ -34,6 +34,21 @@ if (!/structuredContent:\s*lookup/.test(server)) {
   blockers.push("lookup_world_places must return normalized lookup structuredContent.");
 }
 
+const lookupOutputSchema = sliceBetween(server, "const worldPlaceLookupOutputSchema", "const countyQuestionAnswerOutputSchema");
+for (const forbidden of ["placeId:", "primaryType:", "types:", "photos:", "phone:", "website:", "rating:", "reviews:", "priceLevel:", "openingHours:"]) {
+  if (lookupOutputSchema.includes(forbidden)) {
+    blockers.push(`lookup_world_places output schema must not expose raw provider field ${forbidden}`);
+  }
+}
+
+if (!lookupOutputSchema.includes("structuredContentPolicy: z.literal(\"atlas_normalized_only\")")) {
+  blockers.push("lookup_world_places output schema must state Atlas-normalized structuredContent policy.");
+}
+
+if (!server.includes("atlasLookupPlaceId")) {
+  blockers.push("lookup_world_places must create Atlas-owned lookup ids instead of provider ids.");
+}
+
 for (const token of ["lookup-only", "not saved", "not coverage proof", "does not unlock a playable county map"]) {
   if (!server.includes(token)) {
     blockers.push(`lookup_world_places content copy missing "${token}".`);

@@ -2,36 +2,78 @@
 
 Build with strong product taste, not generic SaaS defaults.
 
-Do not generate a generic SaaS homepage. Do not use the common AI fallback of a hero headline, subcopy, dual CTAs, floating mockup, and feature-card grid. Treat that pattern as a design failure for this project.
+Do not generate a generic SaaS homepage. Do not use the common AI fallback of a hero headline, subcopy, dual CTAs, floating mockup, and feature-card grid. Treat that pattern as a design failure for Atlas.
 
-## Product
+## Current Product Law
 
-Atlas is a ChatGPT app that turns counties into voxel worlds.
+Atlas is a ChatGPT App and voxel county-to-scene engine. Users open Atlas inside ChatGPT, explore a county-scale voxel world, ask location questions, drop Clawd, preview Scout/Campaign flows, and keep session-only notes.
 
-Users explore with Clawd Companion for free. Paid users host Clawd Daemon to save campaigns, business memory, quests, evidence, XP, and progress.
+Current phase is Engine Beta, not Paid Beta.
 
-Product sentence: Drop Clawd anywhere. Turn the location into a campaign.
+Alpha Path B is accepted. Riverside/Eastvale is the only public playable district. Anaheim/Ontario remain hidden and non-public until owner-gate approval explicitly allows controlled public promotion.
 
-Core loop: Explore county -> Ask data -> Drop Clawd -> Scout location -> Generate campaign -> Create quests -> Submit evidence -> Level up Clawd.
+Hosted Clawd, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened by the human.
 
-Every feature must support that loop.
+Current local-green slice is `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly.
 
-## Engineering Law
+Default next slice after 0.45E is `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
 
-Do not build a giant product in one patch. Build one shippable slice at a time.
+Do not continue commerce, terrain, mobile, Anaheim, DB, paid, or persistence work unless a new verifier or selector names a real blocker that changes the axis. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted data, or playable county claims.
 
-The route is:
+## Named-Slice Rule
 
-1. Mock-first.
-2. Typed data contracts.
-3. Service-layer first.
-4. Renderer only consumes `VoxelScene`.
-5. Google Maps adapter stays behind `GeoDataAdapter`.
-6. Apps SDK tools return `structuredContent`.
-7. Widget renders state from the MCP server.
-8. Free tools support exploration.
-9. Paid tools require Hosted Clawd.
-10. No spam automation.
+Work must happen as named, gated slices. Every slice needs:
+
+- player-facing promise
+- engineering promise
+- axis
+- contract
+- metric or verifier
+- proof
+- anti-scope
+- logs
+- stop condition
+
+If the human says "continue," continue only the named next quest. If the next quest conflicts with permanent gates, stop and report the conflict.
+
+The next quest is chosen from:
+
+1. `artifacts/current-update.json`
+2. `docs/NEXT_QUESTS.md`
+3. latest selector output
+4. a new verifier or selector result created during the current slice
+
+## Architecture Law
+
+- Mock-first.
+- Typed data contracts.
+- Service-layer first.
+- Renderer consumes compiled `VoxelScene` / `CityWorldScene` only.
+- Google Maps and provider data stay behind `GeoDataAdapter` and provider policy.
+- Provider lookup is not coverage readiness and must not create scene geometry.
+- Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays.
+- Use curated county and district packs first. Do not hallucinate live data.
+- Do not introduce unnecessary dependencies.
+- Do not overengineer.
+
+## ChatGPT App Rules
+
+- Keep MCP tool surface stable.
+- Current public tools are: `select_county`, `ask_county_question`, `render_voxel_county`, `lookup_world_places`, `preview_scout_drop`, `preview_campaign_engine`, `get_upgrade_options`.
+- Do not add new MCP tools casually.
+- Keep `structuredContent` concise.
+- Put large widget-only or renderer-only scene data in `_meta`.
+- Keep server tools, structured data, and iframe UI responsibilities separate.
+- Use `window.openai` as an optional ChatGPT extension layer, not as the baseline app contract.
+- Version widget resource URIs when markup or bundle contracts change.
+
+## Engine And Visual Grammar
+
+- No labels, props, cars, humans, panels, glows, or decorative clutter to hide weak art.
+- Improve identity through silhouettes, geometry, massing, roof/facade rhythm, contact shadows, object-kit metadata, and renderer/compiler grammar.
+- Map-first remains the product surface. No dashboard shell.
+- Desktop and mobile both matter; 390x844 mobile proof is required when the product surface changes.
+- Public Riverside quality beats hidden district polish unless a selector or owner gate changes the axis.
 
 ## Required Reading Before Product Patches
 
@@ -40,98 +82,44 @@ The route is:
 - `docs/PHASE_PLAN.md`
 - `docs/TOOL_CONTRACTS.md`
 - `docs/NEXT_QUESTS.md`
+- `artifacts/current-update.json`
 
 State the current quest, likely files, and anti-scope before substantial edits.
-
-## Anti-Scope Until Explicitly Asked
-
-- Real Google Maps API calls in Alpha
-- Three.js world
-- Live county ingestion
-- Stripe
-- OAuth
-- Automated posting or DMs
-- Full e2e testing stack
-- Every county
-- Every business type
-- Broad production infrastructure
-
-## Apps SDK Rules
-
-- Use the MCP Apps bridge first: JSON-RPC over postMessage.
-- Keep server tools, structured data, and iframe UI responsibilities separate.
-- Keep business data authoritative on the server or backend.
-- Keep UI state local to the widget, and use `ui/update-model-context` only when the model needs to see the UI state.
-- Use `window.openai` as an optional ChatGPT extension layer, not as the baseline app contract.
-- Keep `structuredContent` concise. Put large widget-only details in `_meta`.
-- Include accurate tool annotations.
-- Version widget resource URIs when markup or bundle contracts change.
-
-## Product And Design
-
-- Avoid SaaS slop: overused gradients, random glowing cards, too many badges, too many floating panels, vague buzzwords, and generic landing-page layouts.
-- Prefer simple, distinctive, intentional interfaces with strong hierarchy and clean spacing.
-- Use retro-futurist, arcade, OS-like, pixel-informed, tactical, or culturally sharp aesthetics when they fit, but keep them usable.
-- Make interfaces feel like real products, not template exports.
-- Respect the difference between a cool visual and a good interface.
-- Visual direction for Atlas: voxel county board, dark interface panels, bright readable map, original Clawd scout identity, no generic mascot clone.
-
-## UI Work
-
-- Think through layout, spacing, type scale, interaction states, density, and responsiveness.
-- Desktop and mobile both matter.
-- Reduce clutter. Cut unnecessary sections, duplicate labels, repeated cards, and weak decoration.
-- Preserve strong silhouettes, strong logo usage, and readable screens.
-- Make screens feel premium through restraint, hierarchy, rhythm, and alignment.
-- Prefer clearer navigation and fewer competing focal points.
-
-## Implementation
-
-- Do not overengineer.
-- Reuse patterns, centralize tokens, and keep components modular.
-- Maintain clean file structure and predictable naming.
-- Respect the existing stack unless there is a strong reason to change it.
-- Do not introduce unnecessary dependencies.
-- Write production-leaning code that is easy to iterate.
-- Use curated county data packs first. Do not hallucinate live data.
-
-## Safety
-
-- Atlas plans campaigns. It does not auto-post, auto-DM, scrape private individuals, target sensitive traits, or guarantee ROI.
-- Keep local marketing outputs public and business-oriented.
-- Ask users to verify city rules before flyers, outreach, or regulated local actions.
-- Do not copy OpenAI, Codex, or third-party pet assets. Use original Atlas and Clawd assets.
-
-## Copy
-
-- Remove AI-sounding phrasing, corporate filler, and hype language.
-- Use direct, human, concise copy.
-- Avoid words like "seamless", "empower", "leveraging", and "revolutionary".
-- Copy should sound confident, specific, and culturally aware.
 
 ## Required After Every Patch
 
 - Update `docs/BUILD_LOG.md`.
 - Update `docs/NEXT_QUESTS.md`.
 - Update `docs/DECISIONS.md` if a durable architecture or product choice was made.
-- Run one focused verification command.
+- Update `artifacts/current-update.json` for named update slices.
+- Run the relevant Engine Beta ladder verifiers, not just one arbitrary command.
 - Return files changed, what works, what was skipped, and the next quest.
 
 ## Testing Rule
 
-Avoid testing hell.
+Avoid testing hell, but do not skip the relevant gate.
 
-Alpha automated tests only protect:
+For Engine Beta source-of-truth and code slices, default to:
 
-- usage limits
-- ownership or access control
-- XP and evidence idempotency
-- county pack parsing
-- map state schema validity
+- core tests when core contracts changed
+- starter typecheck/build when server or web contracts changed
+- focused verifier for the slice
+- provider boundary guard
+- tool-result shape guard
+- strict `engine-beta-data` split guard
 
-No broad e2e suite in Alpha.
+Browser screenshot proof is required only when renderer or UI output changes.
+
+## Safety
+
+Atlas plans campaigns. It does not auto-post, auto-DM, scrape private individuals, target sensitive traits, guarantee ROI, silently persist state, or imply paid access before Hosted Clawd is explicitly reopened.
+
+Keep local marketing outputs public and business-oriented. Ask users to verify local rules before flyers, outreach, or regulated local actions.
+
+## Copy
+
+Remove AI-sounding phrasing, corporate filler, and hype language. Use direct, human, concise copy. Avoid words like "seamless", "empower", "leveraging", and "revolutionary".
 
 ## gstack
 
-Use `/browse` from gstack for web browsing.
-Never use `mcp__claude-in-chrome__*` tools.
+Use `/browse` from gstack for web browsing. Never use `mcp__claude-in-chrome__*` tools.

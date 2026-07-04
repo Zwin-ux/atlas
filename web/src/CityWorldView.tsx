@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
 import {
   compileCityWorldScene,
   type CityWorldScene,
@@ -8,15 +9,21 @@ import {
   type VoxelStickerKind,
 } from "@atlas/core/voxel";
 import { CityWorldRenderer, type CityWorldRendererHandle } from "./CityWorldRenderer";
+import { PreviewPanel } from "./PreviewPanel";
 
 export type CityWorldViewProps = {
   scene: VoxelScene;
+  generatedScene?: CityWorldScene | null;
   selectedDistrictId?: string | undefined;
   selectedPlaceId?: string | undefined;
   stickers?: VoxelSticker[];
   notes?: VoxelNote[];
   stickerMode?: VoxelStickerKind;
   noteDraft?: string;
+  scoutPreview?: ScoutPreviewState | null;
+  campaignPreview?: CampaignPreviewState | null;
+  onAdvancePreview?: () => void;
+  onExitGeneratedPreview?: () => void;
   countySwitcher?: ReactNode;
   onSelectPlace: (placeId: string) => void;
   onSelectStickerMode: (kind: VoxelStickerKind) => void;
@@ -29,12 +36,17 @@ const STICKER_ORDER: VoxelStickerKind[] = ["favorite", "home", "shop", "park", "
 
 export function CityWorldView({
   scene,
+  generatedScene = null,
   selectedDistrictId,
   selectedPlaceId,
   stickers = [],
   notes = [],
   stickerMode = "favorite",
   noteDraft = "",
+  scoutPreview = null,
+  campaignPreview = null,
+  onAdvancePreview,
+  onExitGeneratedPreview,
   countySwitcher,
   onSelectPlace,
   onSelectStickerMode,
@@ -42,16 +54,20 @@ export function CityWorldView({
   onNoteDraftChange,
   onSaveNote,
 }: CityWorldViewProps) {
+  const isGeneratedMode = Boolean(generatedScene);
+  const hasPreview = !isGeneratedMode && Boolean(scoutPreview || campaignPreview);
   const rendererRef = useRef<CityWorldRendererHandle | null>(null);
   const cityScene = useMemo<CityWorldScene>(
-    () =>
-      compileCityWorldScene(scene, {
+    () => {
+      if (generatedScene) return generatedScene;
+      return compileCityWorldScene(scene, {
         selectedDistrictId,
         selectedPlaceId,
         stickers,
         notes,
-      }),
-    [notes, scene, selectedDistrictId, selectedPlaceId, stickers],
+      });
+    },
+    [generatedScene, notes, scene, selectedDistrictId, selectedPlaceId, stickers],
   );
   const activePlaceId = selectedPlaceId ?? cityScene.hudDefaults.selectedPlaceId;
   const activePlace = cityScene.places.find((place) => place.id === activePlaceId) ?? cityScene.places[0];
@@ -95,15 +111,35 @@ export function CityWorldView({
       data-qa-latest-note={latestNoteBody}
       data-qa-session-boundary="session-only"
       data-qa-camera-preset={cameraPresetId ?? ""}
+      data-qa-generated={isGeneratedMode ? "true" : undefined}
     >
-      <CityWorldRenderer ref={rendererRef} scene={cityScene} selectedPlaceId={activePlace?.id} cameraPresetId={cameraPresetId} debugMode={debugMode} onSelectPlace={onSelectPlace} />
+      <CityWorldRenderer
+        ref={rendererRef}
+        scene={cityScene}
+        selectedPlaceId={activePlace?.id}
+        cameraPresetId={cameraPresetId}
+        debugMode={debugMode}
+        onSelectPlace={isGeneratedMode ? () => undefined : onSelectPlace}
+      />
 
-      <div className="city-world-location" aria-label="Current city map" data-qa="current-city-map">
-        <span>{cityScene.region.county}</span>
-        <strong>{cityScene.region.district.replace(" City Slice", "")}</strong>
-      </div>
+      {isGeneratedMode ? (
+        <div className="city-world-generated-boundary" data-qa="generated-boundary">
+          <div>
+            <span>GENERATED PREVIEW</span>
+            <strong>Synthetic district built by the Atlas engine. Not a real place, not real coverage. Session-only.</strong>
+          </div>
+          <button type="button" data-qa="exit-generated" onClick={onExitGeneratedPreview}>
+            Exit preview
+          </button>
+        </div>
+      ) : (
+        <div className="city-world-location" aria-label="Current city map" data-qa="current-city-map">
+          <span>{cityScene.region.county}</span>
+          <strong>{cityScene.region.district.replace(" City Slice", "")}</strong>
+        </div>
+      )}
 
-      {countySwitcher}
+      {isGeneratedMode ? null : countySwitcher}
 
       <div className="city-world-zoom" aria-label="Map zoom controls" data-qa="map-zoom-controls">
         <button type="button" aria-label="Zoom in" data-qa="zoom-in-button" onClick={() => rendererRef.current?.zoomIn()}>
@@ -117,6 +153,7 @@ export function CityWorldView({
         </button>
       </div>
 
+      {!hasPreview && !isGeneratedMode ? (
       <div className="city-world-stickers" aria-label="Sticker tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
         {STICKER_ORDER.map((kind) => (
           <button
@@ -143,7 +180,11 @@ export function CityWorldView({
           <span>Pin</span>
         </button>
       </div>
+      ) : null}
 
+      {hasPreview ? (
+        <PreviewPanel scoutPreview={scoutPreview} campaignPreview={campaignPreview} {...(onAdvancePreview ? { onAdvance: onAdvancePreview } : {})} />
+      ) : !isGeneratedMode ? (
       <section
         className="city-world-tray"
         aria-label="Selected place"
@@ -202,6 +243,7 @@ export function CityWorldView({
           </div>
         ) : null}
       </section>
+      ) : null}
     </main>
   );
 }

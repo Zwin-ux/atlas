@@ -103,10 +103,12 @@ The official Apps SDK examples repo is cloned under `.reference/openai-apps-sdk-
 
 ## Current Quest
 
-See `docs/NEXT_QUESTS.md`.
+Current implementation direction is defined by `docs/NEXT_QUESTS.md` and
+`artifacts/current-update.json`. README is an app overview, not the active
+quest authority.
 
-Quest E6 is complete. Quest E6.6 shifts the visible product toward a map-first city world.
-The active ChatGPT county entrypoint is now `select_county` for the Riverside/Eastvale demo slice:
+The active ChatGPT county entrypoint is `select_county` for the
+Riverside/Eastvale playable slice:
 
 - `select_county`
 - `ask_county_question`

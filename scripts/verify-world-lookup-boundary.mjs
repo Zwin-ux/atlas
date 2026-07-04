@@ -60,15 +60,25 @@ function assertNormalizedLookup(lookup, label) {
   assert(lookup.providerReadiness.coveragePromotion === false, `${label} provider readiness must block coverage promotion.`);
   assert(lookup.providerReadiness.sceneEligible === false, `${label} provider readiness must block scene eligibility.`);
   assert(lookup.providerReadiness.publicQuality === false, `${label} provider readiness must block public-quality claims.`);
+  assert(lookup.providerReadiness.sceneGeometry === false, `${label} provider readiness must block scene geometry.`);
+  assert(lookup.providerReadiness.rawProviderPayloadExposed === false, `${label} provider readiness must block raw provider payload exposure.`);
+  assert(
+    lookup.providerReadiness.structuredContentPolicy === "atlas_normalized_only",
+    `${label} provider readiness must require Atlas-normalized structuredContent.`,
+  );
+  assert(lookup.providerReadiness.fieldMaskPolicy?.mode === "allowlist", `${label} provider readiness must expose field-mask allowlist mode.`);
+  assert(lookup.providerReadiness.fieldMaskPolicy?.wildcardAllowed === false, `${label} provider readiness must forbid wildcard field masks.`);
   assert(
     Array.isArray(lookup.providerReadiness.limitations) && lookup.providerReadiness.limitations.length > 0,
     `${label} provider readiness must expose limitations.`,
   );
+  assert(!("placeId" in (lookup.resolvedLocation ?? {})), `${label} leaked provider placeId in resolvedLocation.`);
   assert(typeof lookup.runtime?.cacheHit === "boolean", `${label} must expose runtime.cacheHit.`);
   assert(lookup.runtime?.cachedAt && lookup.runtime?.expiresAt, `${label} must expose runtime cache timestamps.`);
 
   for (const place of lookup.places) {
     assert(typeof place.id === "string" && place.id.length > 0, `${label} place missing normalized id.`);
+    assert(place.id.startsWith("lookup-"), `${label} place id must be Atlas-owned lookup id, got ${place.id}.`);
     assert(typeof place.label === "string" && place.label.length > 0, `${label} place missing label.`);
     assert(typeof place.category === "string" && place.category.length > 0, `${label} place missing normalized category.`);
     assert(Array.isArray(place.sourceNotes) && place.sourceNotes.length > 0, `${label} place missing source notes.`);

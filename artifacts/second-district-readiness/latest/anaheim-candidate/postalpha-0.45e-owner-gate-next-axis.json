@@ -1,0 +1,176 @@
+{
+  "ok": true,
+  "update": "postalpha-0.45e-owner-gate-cutline-next-axis-selection",
+  "district": "anaheim-candidate",
+  "selectedAxis": "owner_gate_review",
+  "recommendedNextQuest": "0.46E Owner Gate Review Packet",
+  "decision": "REQUEST_OWNER_REVIEW",
+  "reasons": [
+    "0.44E visual and product proof passed as hidden evidence.",
+    "Public promotion is still blocked because visual/product/release owner gates are not accepted.",
+    "No-label anchors pass in the hidden packet, so the next useful move is owner review, not more hidden art."
+  ],
+  "candidateScores": {
+    "owner_gate_review": {
+      "score": 94,
+      "reason": "Best next move when hidden proof is valid but owner acceptances are missing."
+    },
+    "controlled_public_second_district_spike": {
+      "score": 0,
+      "reason": "Blocked until cutline is APPROVE_CONTROLLED_PUBLIC_SPIKE."
+    },
+    "focused_hidden_second_district_fix": {
+      "score": 50,
+      "reason": "Only useful if proof has one exact hidden blocker to fix before owner review."
+    },
+    "public_engine_beta_quality": {
+      "score": 35,
+      "reason": "Fallback if hidden second-district proof cannot move promotion work."
+    },
+    "repeat_hidden_art_tunnel": {
+      "score": 0,
+      "reason": "Blocked unless owner review names one exact hidden visual blocker."
+    },
+    "release_mechanics_only": {
+      "score": 35,
+      "reason": "Split guard is already passing; release mechanics alone do not solve owner acceptance."
+    }
+  },
+  "blockedAxes": [
+    {
+      "axis": "controlled_public_second_district_spike",
+      "reason": "Cutline is not APPROVE_CONTROLLED_PUBLIC_SPIKE and promotion readiness is false.",
+      "blockers": [
+        "visual_packet_not_promotion_ready",
+        "visual_packet_not_public_playable",
+        "lumen_acceptance_missing",
+        "product_proof_not_promotion_ready",
+        "product_proof_not_public_playable",
+        "product_proof_mira_acceptance_missing",
+        "mira_acceptance_missing",
+        "forge_split_guard_acceptance_missing",
+        "promotion_packet_not_ready",
+        "owner_cutline:BLOCK_PROMOTION"
+      ]
+    },
+    {
+      "axis": "metadata_flip_promotion",
+      "reason": "Provider lookup, metadata, or hidden proof cannot create public playability.",
+      "blockers": [
+        "forbidden_scope",
+        "no_fake_playability_gate"
+      ]
+    },
+    {
+      "axis": "more_hidden_art_without_owner_review",
+      "reason": "Hidden proof is already present; do not continue visual tunnel without an owner-named blocker.",
+      "blockers": [
+        "no_exact_new_visual_blocker"
+      ]
+    }
+  ],
+  "requiredEvidence": [
+    "Lumen explicit accept/reject on hidden visual packet.",
+    "Mira explicit accept/reject on product proof and mobile boundary.",
+    "Forge explicit accept/reject on split/provider/release safety.",
+    "Axiom final cutline after owner responses."
+  ],
+  "antiScope": [
+    "public Anaheim/Ontario exposure",
+    "public playable second district unless owner cutline is APPROVE_CONTROLLED_PUBLIC_SPIKE",
+    "provider-created geometry",
+    "database persistence",
+    "migrations",
+    "new MCP tools",
+    "paid, Stripe, OAuth, Hosted Clawd, XP, evidence, automation, reports, or exports",
+    "renderer or public UI changes inside 0.45E",
+    "cars, humans, decorative props, panels, glows, or label crutches"
+  ],
+  "evidence": {
+    "sourceVerifier": "passed",
+    "visualPacket": "passed",
+    "productProof": "passed",
+    "splitGuard": "passed",
+    "visualOutcome": "HIDDEN_DRAFT_ONLY",
+    "visualPromotionReady": false,
+    "visualPublicPlayable": false,
+    "productPromotionReady": false,
+    "productPublicPlayable": false,
+    "productMiraAcceptance": false,
+    "readyForPlayablePromotion": false,
+    "ownerCutlineOutcome": "BLOCK_PROMOTION",
+    "splitGuardBlockerCount": 0,
+    "splitGuardUnknownCount": 0
+  },
+  "blockerGroups": {
+    "data": [],
+    "visual": [
+      "visual_packet_not_promotion_ready",
+      "visual_packet_not_public_playable",
+      "lumen_acceptance_missing"
+    ],
+    "product": [
+      "product_proof_not_promotion_ready",
+      "product_proof_not_public_playable",
+      "product_proof_mira_acceptance_missing",
+      "mira_acceptance_missing"
+    ],
+    "release": [
+      "forge_split_guard_acceptance_missing",
+      "promotion_packet_not_ready"
+    ]
+  },
+  "noFakePlayability": {
+    "countyRemainsShell": true,
+    "zeroPlayableDistricts": true,
+    "zeroPublicPlaces": true,
+    "districtNotPlayable": true,
+    "draftSceneNotPlayable": true,
+    "noActorsPinsOrSelectedPlace": true,
+    "providerPromotion": false,
+    "publicQuality": false
+  },
+  "releaseCutline": {
+    "mayExposeInPublicSwitcher": false,
+    "mayCompilePublicScene": false,
+    "mayClaimProviderNormalized": false,
+    "requiredOwnersBeforePublic": [
+      "Lumen",
+      "Mira",
+      "Forge",
+      "Axiom"
+    ]
+  },
+  "ownerGates": {
+    "lumen": {
+      "owner": "lumen",
+      "status": "blocked",
+      "reason": "visual_packet_not_promotion_ready"
+    },
+    "mira": {
+      "owner": "mira",
+      "status": "blocked",
+      "reason": "product_proof_not_promotion_ready"
+    },
+    "forge": {
+      "owner": "forge",
+      "status": "blocked",
+      "reason": "forge_split_guard_acceptance_missing"
+    },
+    "axiom": {
+      "owner": "axiom",
+      "status": "blocked",
+      "reason": "Readiness aggregate is not promotion-ready."
+    }
+  },
+  "artifactPaths": {
+    "readiness": "C:\\Users\\mzwin\\Documents\\Atlas-alpha-path-b-rc\\artifacts\\second-district-readiness\\latest\\anaheim-candidate\\readiness-aggregate.json",
+    "cutline": "C:\\Users\\mzwin\\Documents\\Atlas-alpha-path-b-rc\\artifacts\\second-district-readiness\\latest\\anaheim-candidate\\owner-gate-cutline.json",
+    "visualReview": "C:\\Users\\mzwin\\Documents\\Atlas-alpha-path-b-rc\\artifacts\\second-district-visual-packets\\postalpha-0.44e-anaheim-hidden-proof\\visual-review.json",
+    "productProof": "C:\\Users\\mzwin\\Documents\\Atlas-alpha-path-b-rc\\artifacts\\second-district-readiness\\latest\\anaheim-candidate\\product-proof.json"
+  },
+  "warnings": [
+    "Hidden no-label visual proof is strong enough for owner review, but not for automatic public promotion."
+  ],
+  "hardBlockers": []
+}

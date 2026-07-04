@@ -1,5 +1,179 @@
 # Build Log
 
+## Entry 186
+
+Quest:
+Product-submission track (human-directed pivot off the owner-gate ladder). Source of
+truth: `docs/PRODUCT_SPEC_AND_GATES.md` (G1–G7 submission gates). Owner-gate ladder
+parked at 0.45E; source-of-truth drift checker stays green.
+
+What changed:
+- 0.46P In-Widget Scout & Campaign Result Surface: the widget now renders the scout/
+  campaign intelligence (route, signals, risks, channels, 7-day plan, assets) inside the
+  map as a bounded, map-first panel instead of discarding it and re-rendering only the
+  map. New `web/src/PreviewPanel.tsx`; wired via `web/src/CityWorldView.tsx` +
+  `web/src/App.tsx` (previews were computed then dropped at the last line).
+- 0.47P Widget polish: in-widget flow CTAs (Preview campaign / hosting options) via
+  `sendUserMessage`, mobile-density pass, `qr_flyer`→"QR flyer" label fix, advance-button.
+- Graphics-engine (Fable pass, both levers). Lever-1: `CityWorldRenderer` now honors
+  authored `visualGrammar` the compiler computed but the renderer dropped — `contactProfile`
+  drives building/lot contact shadows (landmark penumbra / soft ground / curb / parcel skirt),
+  `drawAuthoredRoofProfile` reads `roofProfile` (barrel/clay/parapet/metal/glass caps),
+  `drawAuthoredWallMaterial` reads `materialProfile` (stucco/storefront/bands/civic fins);
+  plus mid-scene density (south home court + lots/road, corner market, plaza lofts, park props).
+  Riverside firstViewportCompositionScore 0.775→0.85, homeClonePressure 0.20→0.158, floors held,
+  0 warnings/blockers. Lever-2: `packages/core/src/voxel/cityWorldParametricGenerator.ts` (NEW) —
+  a provider-free spec (size + height grid + road seeds + land-use zones) → fully enriched
+  `CityWorldScene` via the shared, now-exported enrichment decorators; proven by
+  `scripts/verify-parametric-generator.mjs`. NOT wired into the public MCP product (validated
+  seam only; wiring would need server tool-contract changes, out of scope). Files:
+  `cityWorldCompiler.ts`, `cityWorldParametricGenerator.ts`, `voxel/index.ts`, `core/src/index.ts`,
+  `web/src/CityWorldRenderer.tsx`.
+- Radix UI: scout/campaign result panel refactored onto `radix-ui` primitives (replaces
+  hand-rolled chips). `web/src/PreviewPanel.tsx` + `web/src/styles.css`.
+- G6 submission packet: `chatgpt-app-submission.json` (static assertions pass),
+  `assets/atlas-app-icon.svg`, `docs/legal/PRIVACY.md` + `TERMS.md`,
+  `docs/SUBMISSION_CHECKLIST.md`.
+- Scope/gates remade: `docs/PRODUCT_SPEC_AND_GATES.md`; `docs/DECISIONS.md` (Decision 075);
+  product-track sections in `docs/NEXT_QUESTS.md` and `docs/updates/ATLAS_RELEASE_LADDER.md`.
+
+Verification:
+- `node scripts/verify-atlas-source-of-truth-drift.mjs --json-only` (green, 0 blockers)
+- `corepack pnpm --dir packages/core build` (core tsc green)
+- `node_modules/.bin/tsc --noEmit -p web/tsconfig.json` (green)
+- `node scripts/build-web.mjs` (green)
+- `node scripts/verify-scout-campaign-panel.mjs --screenshots …` (4/4: panel present on
+  desktop + 390×844, session-boundary copy, single canvas, no overflow, zero console errors)
+- `node scripts/verify-alpha-product-loop.mjs --proof-only --screenshots …` (post-lever-1
+  Riverside map renders clean; grounding/contact improvement confirmed visually)
+- Manifest static assertions PASS (independent node check: schema, display_name, the three
+  required description phrases, exactly the 7 tools, payment negative case)
+
+Not done / next:
+- Radix UI refactor: rebuild + re-prove after it lands.
+- G4 reliability: run `verify:mcp` + `verify:submission` against the deployed MCP server.
+- G6 human/network follow-ups: host legal URLs, confirm current OpenAI Apps directory
+  requirements, run live `verify-submission`, provide a PNG icon if required.
+- 0.48P Public Generated-District Preview: the parametric generator is now a real PUBLIC
+  code path — widget-only, no new MCP tool, no server/tool-contract change, no provider data.
+  The widget's "Generate district" control runs `generateParametricCityWorldScene(
+  exampleParametricDistrictSpec())` and renders the synthetic `CityWorldScene` directly, under
+  an unmistakable honesty banner ("GENERATED PREVIEW — Synthetic district built by the Atlas
+  engine. Not a real place, not real coverage. Session-only.") with an Exit-to-Riverside
+  control; place-collection + preview UI suppressed in generated mode. Generic zone labels
+  (Civic core / Commercial row / Apartment court / Neighborhood) reinforce that it is synthetic,
+  not a real place. Files: `web/src/App.tsx`, `web/src/CityWorldView.tsx`, `web/src/styles.css`;
+  gate `scripts/verify-generated-district-widget.mjs`. Verified: gate PASS on desktop 1280×720
+  and mobile 390×844 (honest banner asserted, collection UI suppressed, single canvas, no
+  overflow, zero console errors); generated district renders as a coherent voxel town.
+  Remaining/optional future work: a model-driven MCP path would need a new tool + contract
+  change (out of scope here); tighten generator homeClonePressure (0.25) below the 0.24 public
+  cap before any promotion to public-quality coverage.
+
+## Entry 185
+
+Quest:
+Post-Alpha 0.39E Public Object Identity / Civic-Service Read Pass.
+
+What changed:
+Added typed object-kit prefab geometry for the public Riverside civic landmark
+and service/gym stress cells, then made `CityWorldRenderer` consume that
+metadata. Eastvale Core now carries plinth, entry-bay, facade-pier, glass-band,
+and roof-cap geometry. The Gym/service block now carries service-bay,
+sawtooth-roof, recessed-entry, utility-apron, and roof-monitor geometry.
+
+Files changed:
+- `AGENTS.md`
+- `packages/core/src/voxel/cityWorldTypes.ts`
+- `packages/core/src/voxel/cityWorldObjectKit.ts`
+- `packages/core/test/city-world-compiler.test.ts`
+- `web/src/CityWorldRenderer.tsx`
+- `scripts/verify-public-object-identity-civic-service.mjs`
+- `scripts/verify-atlas-source-of-truth-drift.mjs`
+- `scripts/verify-alpha-rc-split.mjs`
+- `artifacts/current-update.json`
+- `docs/BUILD_LOG.md`
+- `docs/DECISIONS.md`
+- `docs/NEXT_QUESTS.md`
+- `docs/updates/ATLAS_RELEASE_LADDER.md`
+- `docs/updates/postalpha-0.39e-public-object-identity-civic-service-read-pass.md`
+
+Verification:
+- `node --check scripts\verify-public-object-identity-civic-service.mjs`
+- `pnpm --dir packages/core test -- city-world-compiler`
+- `pnpm typecheck:starter`
+- `pnpm build:starter`
+- `node scripts\verify-public-object-identity-civic-service.mjs --json-only`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-public-object-kit-prefab-palette.mjs --json-only`
+- `node scripts\verify-no-google-in-renderer.mjs --json-only`
+- `node scripts\verify-provider-boundaries.mjs --json-only`
+- `node scripts\verify-tool-result-shape.mjs --json-only`
+- `node scripts\verify-scene-packet-db-persistence-plan.mjs --json-only`
+- `node scripts\verify-scene-packet-memory-adapter.mjs --json-only`
+- `ATLAS_BASE_URL=http://127.0.0.1:8787 ATLAS_ENGINE_BETA_COVERAGE_SCREENSHOTS=C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-039e-civic-service-local\coverage node scripts\verify-engine-beta-coverage.mjs`
+- `node scripts\verify-alpha-product-loop.mjs --url http://127.0.0.1:8787/preview?atlasNoLabels=1 --screenshots C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-039e-civic-service-local\no-label --proof-only`
+- `node scripts\verify-alpha-product-loop.mjs --url http://127.0.0.1:8787/preview?atlasNoLabels=1 --camera-preset residential_detail --screenshots C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-039e-civic-service-local\no-label-residential-detail --proof-only`
+
+Screenshot roots:
+- `C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-039e-civic-service-local\coverage`
+- `C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-039e-civic-service-local\no-label`
+- `C:\Users\mzwin\AppData\Local\Temp\atlas-postalpha-039e-civic-service-local\no-label-residential-detail`
+
+Skipped:
+No commerce pass, terrain pass, mobile-density pass, Anaheim/Ontario public
+promotion, DB implementation, provider geometry, MCP tool change, public UI
+redesign, Hosted Clawd, Stripe, OAuth, XP, evidence, automation, reports,
+exports, cars, humans, props, panels, glows, or label crutches.
+
+Next:
+Run `0.40E Engine Quality Axis Review / Next Target Selection`. Do not
+continue civic/service unless a verifier or human screenshot review names one
+exact blocker.
+
+## Entry 184
+
+Quest:
+Post-Alpha 0.38F App Drift / Source-of-Truth Reconciliation.
+
+What changed:
+Repaired source-of-truth drift after 0.38E. The 0.38E selector artifact now
+reports `ok: true`, AGENTS/README/NEXT_QUESTS/current-update/release ladder now
+agree on Engine Beta state, and the next valid implementation slice is still
+`0.39E Public Object Identity / Civic-Service Read Pass`.
+
+Files changed:
+- `AGENTS.md`
+- `README.md`
+- `artifacts/current-update.json`
+- `artifacts/engine-quality-axis/postalpha-0.38e-next-target-selection.json`
+- `docs/BUILD_LOG.md`
+- `docs/DECISIONS.md`
+- `docs/NEXT_QUESTS.md`
+- `docs/updates/ATLAS_RELEASE_LADDER.md`
+- `docs/updates/postalpha-0.38f-app-drift-source-of-truth-reconciliation.md`
+- `scripts/select-engine-quality-axis.mjs`
+- `scripts/verify-alpha-rc-split.mjs`
+- `scripts/verify-atlas-source-of-truth-drift.mjs`
+
+Verification:
+- `node --check scripts\select-engine-quality-axis.mjs`
+- `node --check scripts\verify-atlas-source-of-truth-drift.mjs`
+- `node scripts\select-engine-quality-axis.mjs --json-only`
+- `node scripts\select-engine-quality-axis.mjs --out artifacts\engine-quality-axis --json-only`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- Engine Beta guard stack listed in the final handoff.
+
+Skipped:
+No renderer geometry, compiler geometry, public UI, server route, MCP tool-list,
+DB implementation, provider geometry, public Anaheim/Ontario promotion, Hosted
+Clawd, Stripe, OAuth, XP, evidence, automation, reports, exports, cars, humans,
+props, panels, glows, or label crutches.
+
+Next:
+Run `0.39E Public Object Identity / Civic-Service Read Pass`. Target Eastvale
+Core civic landmark and service/gym readability.
+
 ## Entry 183
 
 Quest:
@@ -6971,3 +7145,275 @@ No runtime product behavior, renderer behavior, MCP tool list, public
 Anaheim/Ontario exposure, Railway mutation, staging, commit, deploy,
 package/env drift, persistence, Hosted Clawd, Stripe, XP, evidence, OAuth,
 automation product feature, reports, or exports.
+
+## Entry 073
+
+Quest:
+0.40E Engine Quality Axis Review / Next Target Selection.
+
+What changed:
+Reworked `scripts/select-engine-quality-axis.mjs` into the current 0.40E
+selector. The selector now runs the current 0.39E evidence stack, scores seven
+candidate axes, blocks green or parked lanes, and writes
+`artifacts/engine-quality-axis/postalpha-0.40e-next-target-selection.json`.
+Updated the current update manifest, source-of-truth drift verifier, release
+ladder, decisions, and next-quest docs to the selector result.
+
+Selector result:
+- Selected axis: `provider_normalization_preflight`.
+- Recommended next quest:
+  `0.41E Provider Normalization Preflight / Lookup-to-Scene Boundary Contract`.
+- Blocked public object identity continuation because the 0.39E civic/service
+  verifier is green and no named blocker exists.
+- Blocked terrain/world-edge because terrain massing, empty-board,
+  first-viewport, and chunk-edge floors are green.
+- Blocked mobile entry density because the playable mobile budget and
+  readability floors are green.
+- Blocked hidden second-district readiness because Anaheim remains
+  non-promotion-ready with 11 blockers.
+- Blocked commerce repeat unless a human names one exact Plaza Row blocker.
+
+Skipped:
+No 0.41E implementation, renderer geometry, UI redesign, MCP tool-list change,
+server route change, DB implementation, provider geometry, live provider
+normalization, public Anaheim/Ontario promotion, Hosted Clawd, Stripe, OAuth,
+XP, evidence, automation, reports, exports, cars, humans, props, panels, glows,
+or label crutches.
+
+Verification:
+- `node --check scripts\select-engine-quality-axis.mjs` passed.
+- `node --check scripts\verify-atlas-source-of-truth-drift.mjs` passed.
+- `node scripts\select-engine-quality-axis.mjs --json-only` passed with
+  `selectedAxis: provider_normalization_preflight`.
+- `node scripts\select-engine-quality-axis.mjs --out artifacts\engine-quality-axis --json-only`
+  passed and wrote the 0.40E selector artifact.
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only` passed with
+  0 blockers.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed with 20 files, 0 blockers, and 0 unknowns.
+
+## Entry 074
+
+Quest:
+0.41E Provider Normalization Preflight / Lookup-to-Scene Boundary Contract.
+
+What changed:
+Added a typed provider-normalization preflight contract in `@atlas/geo`,
+centralized the Google Nearby Search field-mask allowlist, and made the Google
+adapter consume that allowlist. Removed model-visible provider IDs from
+`lookup_world_places`: `resolvedLocation.placeId` is no longer in the output
+schema, and place summaries now use Atlas-owned `lookup-*` ids. Extended
+provider readiness with hard-false geometry, readiness, public-quality, and raw
+payload flags. Added `scripts/verify-provider-normalization-preflight.mjs` and
+tightened existing provider/tool lookup guards.
+
+Why:
+The 0.40E selector picked provider normalization preflight because public
+object, terrain, mobile, commerce, and product-entry gates were green enough.
+The risk was provider lookup quietly becoming scene geometry, coverage
+readiness, or public playability. 0.41E keeps lookup useful but bounded.
+
+Skipped:
+No provider-created geometry, public Anaheim/Ontario exposure, DB persistence,
+migrations, new MCP tools, paid/Stripe/OAuth/Hosted Clawd, renderer/UI change,
+coverage-readiness promotion, or CityWorldScene geometry from provider lookup.
+
+Verification:
+- `node --check scripts\verify-provider-normalization-preflight.mjs` passed.
+- `node scripts\verify-provider-normalization-preflight.mjs --json-only`
+  passed with 47 checks and 0 blockers.
+- `pnpm --dir packages/core test -- national-world-service` passed, 19 files /
+  85 tests.
+- `pnpm --dir packages/geo build` passed.
+- `node scripts\verify-provider-boundaries.mjs --json-only` passed.
+- `node scripts\verify-tool-result-shape.mjs --json-only` passed.
+
+## Entry 075
+
+Quest:
+0.42E Provider Lookup Runtime Boundary Proof preparation.
+
+What changed:
+Prepared the next runtime-proof slice without increasing scope. Added
+`artifacts/provider-runtime-boundary/postalpha-0.42e-runtime-proof-plan.json`
+and `docs/updates/postalpha-0.42e-provider-lookup-runtime-boundary-proof.md`.
+Updated `docs/NEXT_QUESTS.md` and the release ladder to point 0.42E at the
+existing runtime verifier, `scripts/verify-world-lookup-boundary.mjs`.
+
+Scope decision:
+Do not increase scope. 0.42E should start the local server and prove the 0.41E
+provider boundary through REST and MCP calls. It should not add live provider
+normalization, provider-created geometry, DB persistence, renderer/UI work,
+public Anaheim/Ontario, new MCP tools, or paid scope.
+
+Skipped:
+No 0.42E execution, server start, runtime proof, provider call, DB, migration,
+renderer/UI change, new MCP tool, public Anaheim/Ontario exposure, Hosted
+Clawd, Stripe, OAuth, XP, evidence, automation, reports, or exports.
+
+## Entry 076
+
+Quest:
+0.42E Provider Lookup Runtime Boundary Proof.
+
+What changed:
+Executed the prepared 0.42E runtime boundary proof against a local server at
+`http://127.0.0.1:8787`. No runtime code changes were needed. The proof
+confirmed REST and MCP lookup paths return sanitized Atlas-normalized
+`structuredContent`, use Atlas-owned `lookup-*` ids, keep provider readiness in
+`lookup_only`, and do not promote coverage or create scene geometry.
+
+Runtime result:
+- REST `/api/world/lookup` returned 5 mock places, first call cache miss and
+  second call cache hit.
+- MCP `lookup_world_places` passed the same boundary and proved cached repeat
+  behavior.
+- Orange remained `L1_COUNTY_SHELL` after lookup.
+- Coverage remained 1 playable county, 0 provider-normalized counties, and 0
+  public-quality counties.
+- The seven Alpha MCP tools stayed unchanged.
+
+Skipped:
+No provider-created geometry, public Anaheim/Ontario exposure, DB persistence,
+migrations, new MCP tools, paid/Stripe/OAuth/Hosted Clawd, renderer/UI change,
+coverage-readiness promotion, or CityWorldScene geometry from provider lookup.
+
+Verification:
+- `pnpm build:starter` passed.
+- `pnpm verify:preview:http` passed.
+- `node scripts\verify-world-lookup-boundary.mjs` passed.
+- `node scripts\verify-provider-normalization-preflight.mjs --json-only`
+  passed.
+- `node scripts\verify-provider-boundaries.mjs --json-only` passed.
+- `node scripts\verify-tool-result-shape.mjs --json-only` passed.
+- `pnpm verify:mcp` passed.
+- `pnpm verify:submission` passed.
+- `node scripts\verify-no-google-in-renderer.mjs --json-only` passed.
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only` passed.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed with 37 files, 0 blockers, and 0 unknowns.
+
+## Entry 077
+
+Quest:
+0.43E Engine Quality Axis Review / Next Target Selection.
+
+What changed:
+Updated `scripts/select-engine-quality-axis.mjs` from the old 0.40E selector
+to the current 0.43E selector. It now accepts 0.42E as input, reads the 0.42E
+provider runtime proof, runs the current diagnostics/verifiers, scores the next
+engine axes, writes `artifacts/engine-quality-axis/postalpha-0.43e-next-target-selection.json`,
+and records one recommended next quest.
+
+Selector result:
+- Selected axis: `hidden_second_district_readiness`.
+- Recommended next quest: `0.44E Hidden Second-District Visual/Product Proof Packet`.
+- Blocked repeat public object, terrain, mobile, provider, commerce, and public
+  entry work because current verifiers are green and there is no named blocker.
+- Kept Anaheim/Ontario non-public and non-playable.
+
+Skipped:
+No renderer geometry, public UI redesign, MCP tool-list change, server route
+change, DB implementation, migration, persistence, provider-created geometry,
+live provider-to-scene normalization, public Anaheim/Ontario exposure, Hosted
+Clawd, Stripe, OAuth, XP, evidence, automation, reports, exports, cars, humans,
+props, panels, glows, or label crutches.
+
+Verification:
+- `node --check scripts\select-engine-quality-axis.mjs` passed.
+- `node scripts\select-engine-quality-axis.mjs --json-only` passed.
+- `node scripts\select-engine-quality-axis.mjs --out artifacts\engine-quality-axis --json-only`
+  passed and wrote the 0.43E selector artifact.
+
+## Entry 078
+
+Quest:
+0.44E Hidden Second-District Visual/Product Proof Packet.
+
+What changed:
+Regenerated the hidden Anaheim proof chain against the local server at
+`http://127.0.0.1:8787` and moved the visual evidence out of temp-only state.
+The repo-local visual packet now lives at
+`artifacts/second-district-visual-packets/postalpha-0.44e-anaheim-hidden-proof`.
+The product proof was regenerated at
+`artifacts/second-district-readiness/latest/anaheim-candidate/product-proof.json`,
+and the readiness aggregate now points to the repo-local visual/product proof
+paths.
+
+Result:
+- Public Riverside coverage remained playable.
+- Orange shell and Unknown/L0 recovery remained honest.
+- Hidden Anaheim no-label screenshots were captured for desktop, mobile,
+  detail, and two anchor crops.
+- The visual packet outcome is still `HIDDEN_DRAFT_ONLY`.
+- The readiness aggregate remains `readyForPlayablePromotion: false`.
+- The owner cutline remains `BLOCK_PROMOTION`.
+
+Skipped:
+No public Anaheim/Ontario exposure, public playable second district, renderer
+or public UI change, provider-created geometry, DB persistence, migrations, new
+MCP tools, paid/Stripe/OAuth/Hosted Clawd, XP, evidence, automation, reports,
+exports, cars, humans, props, panels, glows, or label crutches.
+
+Verification:
+- `pnpm build:starter` passed.
+- `ATLAS_BASE_URL=http://127.0.0.1:8787 ATLAS_ENGINE_BETA_COVERAGE_SCREENSHOTS=<temp> node scripts\verify-engine-beta-coverage.mjs`
+  passed.
+- `node scripts\verify-anaheim-draft-scene.mjs --url http://127.0.0.1:8787/preview?atlasNoLabels=1 --screenshots <temp> --no-label-crops`
+  passed.
+- `node scripts\verify-chatgpt-entry-surface.mjs --mcp-url http://127.0.0.1:8787/mcp --json-out artifacts\second-district-readiness\latest\anaheim-candidate\product-proof.json --district anaheim-candidate`
+  passed.
+- `node scripts\verify-second-district-visual-packet.mjs --district anaheim --screenshots artifacts\second-district-visual-packets\postalpha-0.44e-anaheim-hidden-proof --json-only`
+  passed.
+- `node scripts\verify-second-district-draft-scene.mjs --anchor-pack data\district_place_anchor_packs\anaheim-anchors.json --json-only`
+  passed.
+- `node scripts\export-second-district-readiness-artifact.mjs --district anaheim-candidate --out artifacts\second-district-readiness\latest --visual-packet artifacts\second-district-visual-packets\postalpha-0.44e-anaheim-hidden-proof --product-proof artifacts\second-district-readiness\latest\anaheim-candidate\product-proof.json --json-only`
+  passed.
+- `node scripts\verify-second-district-owner-gate-cutline.mjs --readiness artifacts\second-district-readiness\latest\anaheim-candidate\readiness-aggregate.json --out artifacts\second-district-readiness\latest\anaheim-candidate\owner-gate-cutline.json --json-only`
+  passed.
+- `pnpm verify:preview:http` passed.
+- `node scripts\verify-provider-boundaries.mjs --json-only` passed.
+- `node scripts\verify-tool-result-shape.mjs --json-only` passed.
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only` passed.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed with 55 files, 0 blockers, and 0 unknowns.
+- Focused `git diff --check` passed with Windows LF-to-CRLF warnings only.
+
+## Entry 079
+
+Quest:
+0.45E Owner Gate Cutline / Next Axis Selection.
+
+What changed:
+Added `scripts/select-second-district-owner-gate-next-axis.mjs`, a decision
+selector over the 0.44E hidden Anaheim proof packet. It reads the readiness
+aggregate, owner cutline, visual review, and product proof, then selects the
+next axis without changing product behavior.
+
+Selector result:
+- Selected axis: `owner_gate_review`.
+- Decision: `REQUEST_OWNER_REVIEW`.
+- Recommended next quest: `0.46E Owner Gate Review Packet`.
+- Controlled public Anaheim spike score: `0`.
+- Blocked public Anaheim because readiness is not promotion-ready and the
+  cutline is still `BLOCK_PROMOTION`.
+
+Skipped:
+No public Anaheim/Ontario exposure, public playable second district, renderer
+or public UI change, provider-created geometry, DB persistence, migrations, new
+MCP tools, paid/Stripe/OAuth/Hosted Clawd, XP, evidence, automation, reports,
+exports, cars, humans, props, panels, glows, or label crutches.
+
+Verification:
+- `node --check scripts\select-second-district-owner-gate-next-axis.mjs`
+  passed.
+- `node scripts\select-second-district-owner-gate-next-axis.mjs --json-only`
+  passed.
+- `node scripts\select-second-district-owner-gate-next-axis.mjs --write-default --json-only`
+  passed and wrote the 0.45E selector artifact.
+- `node scripts\verify-second-district-owner-gate-cutline.mjs --readiness artifacts\second-district-readiness\latest\anaheim-candidate\readiness-aggregate.json --json-only`
+  passed and kept `BLOCK_PROMOTION`.
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only` passed.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed with 58 files, 0 blockers, and 0 unknowns.
+- Focused `git diff --check` passed with Windows LF-to-CRLF warnings only.

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { normalizeProviderPlaceCategory } from "../src/PlaceCategoryNormalizer.js";
+import {
+  ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK_HEADER,
+  assertGoogleNearbyFieldMaskAllowed,
+  normalizeProviderPlaceCategory,
+} from "../src/index.js";
 import { MockGeoDataAdapter } from "../src/MockGeoDataAdapter.js";
 
 describe("normalizeProviderPlaceCategory", () => {
@@ -25,5 +29,12 @@ describe("normalizeProviderPlaceCategory", () => {
     });
 
     expect(places.map((place) => place.category)).toEqual(expect.arrayContaining(["service", "shop", "park", "fitness", "civic"]));
+  });
+
+  it("keeps Google nearby field masks on a small Atlas allowlist", () => {
+    expect(() => assertGoogleNearbyFieldMaskAllowed(ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK_HEADER)).not.toThrow();
+    expect(ATLAS_GOOGLE_NEARBY_SEARCH_FIELD_MASK_HEADER).not.toContain("*");
+    expect(() => assertGoogleNearbyFieldMaskAllowed("places.id,places.rating")).toThrow(/non-Atlas fields/);
+    expect(() => assertGoogleNearbyFieldMaskAllowed("*")).toThrow(/wildcard/);
   });
 });

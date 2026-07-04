@@ -88,7 +88,11 @@ export function assignCityWorldObjectKit(building: CityWorldBuilding): CityWorld
     metadata.commerceGeometry = commerceStripPrefabGeometry(building);
   }
   if (prefabFamily === "civic_landmark") {
+    metadata.civicGeometry = civicLandmarkPrefabGeometry(building);
     metadata.landmarkSignatureScore = civicLandmarkSignatureScore(building, signatureTags);
+  }
+  if (prefabFamily === "service_gym") {
+    metadata.serviceGeometry = serviceGymPrefabGeometry(building);
   }
   return metadata;
 }
@@ -201,6 +205,12 @@ function signatureTagsForBuilding(building: CityWorldBuilding, prefabFamily: Cit
   if (building.width >= 3 || building.depth >= 2) tags.add("broad-footprint");
   if (building.height >= 2.4) tags.add("tall-silhouette");
   if (prefabFamily === "civic_landmark") tags.add("landmark-base");
+  if (building.id === "building-civic") {
+    tags.add("eastvale-core-focus");
+    tags.add("tiered-civic-plinth");
+    tags.add("civic-entry-rhythm");
+    tags.add("roof-cap-hierarchy");
+  }
   if (prefabFamily === "residential_rowhome") tags.add("party-wall-rhythm");
   if (prefabFamily === "commerce_strip") tags.add("storefront-bay-rhythm");
   if (building.id === "building-plaza-strip") {
@@ -210,6 +220,12 @@ function signatureTagsForBuilding(building: CityWorldBuilding, prefabFamily: Cit
   }
   if (prefabFamily === "lowrise_apartment") tags.add("stacked-window-rhythm");
   if (prefabFamily === "service_gym") tags.add("service-entry-depth");
+  if (building.id === "building-gym") {
+    tags.add("eastvale-gym-focus");
+    tags.add("sawtooth-service-roof");
+    tags.add("recessed-service-entry");
+    tags.add("utility-apron-depth");
+  }
   return [...tags];
 }
 
@@ -222,6 +238,31 @@ function commerceStripPrefabGeometry(building: CityWorldBuilding): NonNullable<C
     glassRecessDepth: isPlazaRow ? 0.42 : 0.24,
     parapetWeight: isPlazaRow ? 1.18 : 0.72,
     ...(isPlazaRow ? { focusTarget: "plaza_row" as const } : {}),
+  };
+}
+
+function civicLandmarkPrefabGeometry(building: CityWorldBuilding): NonNullable<CityWorldObjectKitMetadata["civicGeometry"]> {
+  const isEastvaleCore = building.id === "building-civic";
+  return {
+    plinthTierCount: isEastvaleCore ? 3 : 2,
+    entryBayCount: isEastvaleCore ? 5 : Math.max(3, Math.round(building.width)),
+    facadePierCount: isEastvaleCore ? 6 : Math.max(4, Math.round(building.width + 1)),
+    glassBandCount: isEastvaleCore ? 3 : 2,
+    roofCapWeight: isEastvaleCore ? 1.24 : 0.84,
+    civicCanopyDepth: isEastvaleCore ? 0.34 : 0.24,
+    ...(isEastvaleCore ? { focusTarget: "eastvale_core" as const } : {}),
+  };
+}
+
+function serviceGymPrefabGeometry(building: CityWorldBuilding): NonNullable<CityWorldObjectKitMetadata["serviceGeometry"]> {
+  const isEastvaleGym = building.id === "building-gym";
+  return {
+    serviceBayCount: isEastvaleGym ? 4 : Math.max(3, Math.round(building.width)),
+    sawtoothCount: isEastvaleGym ? 5 : 3,
+    entryRecessDepth: isEastvaleGym ? 0.34 : 0.22,
+    utilityApronDepth: isEastvaleGym ? 0.42 : 0.26,
+    roofMonitorWeight: isEastvaleGym ? 1.18 : 0.82,
+    ...(isEastvaleGym ? { focusTarget: "eastvale_gym" as const } : {}),
   };
 }
 

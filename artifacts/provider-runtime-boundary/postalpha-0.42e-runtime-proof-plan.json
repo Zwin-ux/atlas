@@ -1,0 +1,101 @@
+{
+  "update": "postalpha-0.42e-provider-lookup-runtime-boundary-proof",
+  "status": "local_green",
+  "scopeDecision": "do_not_increase_scope",
+  "reason": "0.42E should prove the 0.41E provider boundary at runtime before any live provider normalization, UI, DB, or readiness work.",
+  "goal": "Prove through local REST and MCP calls that lookup_world_places returns sanitized Atlas-normalized structuredContent, does not change county readiness, and does not create scene geometry or scene packets.",
+  "baseUpdate": "postalpha-0.41e-provider-normalization-preflight-lookup-to-scene-boundary-contract",
+  "primaryVerifier": "scripts/verify-world-lookup-boundary.mjs",
+  "runtimeEvidence": {
+    "localServerUrl": "http://127.0.0.1:8787",
+    "previewHttp": {
+      "ok": true,
+      "previewUrl": "http://127.0.0.1:8787/preview"
+    },
+    "restLookup": {
+      "mode": "mock",
+      "placeCount": 5,
+      "firstCacheHit": false,
+      "secondCacheHit": true,
+      "cacheKey": "lookup:eastvale-ca:3390:mock",
+      "providerReadiness": {
+        "status": "lookup_only",
+        "coveragePromotion": false,
+        "sceneEligible": false,
+        "sceneGeometry": false,
+        "publicQuality": false,
+        "rawProviderPayloadExposed": false,
+        "structuredContentPolicy": "atlas_normalized_only"
+      }
+    },
+    "mcpLookup": {
+      "ok": true,
+      "firstLookupSanitized": true,
+      "secondLookupCacheHit": true,
+      "shellCountyAfterLookup": "L1_COUNTY_SHELL"
+    },
+    "coverageAfterLookup": {
+      "playableCountyCount": 1,
+      "providerNormalizedCountyCount": 0,
+      "publicQualityCountyCount": 0,
+      "playableCountySlug": "riverside-ca"
+    },
+    "guards": {
+      "providerNormalizationPreflight": true,
+      "providerBoundaries": true,
+      "toolResultShape": true,
+      "noGoogleInRenderer": true,
+      "sourceOfTruthDrift": true,
+      "mcpFlow": true,
+      "submission": true,
+      "strictSplitGuard": {
+        "ok": true,
+        "blockerCount": 0,
+        "unknown": 0
+      }
+    }
+  },
+  "commands": [
+    "pnpm build:starter",
+    "Start local server on 127.0.0.1:8787 with pnpm start or pnpm dev",
+    "ATLAS_BASE_URL=http://127.0.0.1:8787 node scripts/verify-world-lookup-boundary.mjs",
+    "node scripts/verify-provider-normalization-preflight.mjs --json-only",
+    "node scripts/verify-provider-boundaries.mjs --json-only",
+    "node scripts/verify-tool-result-shape.mjs --json-only",
+    "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only"
+  ],
+  "runtimeAssertions": [
+    "REST /api/world/lookup returns worldPlaceLookup with Atlas-owned lookup-* ids only",
+    "MCP lookup_world_places returns the same sanitized structuredContent shape",
+    "resolvedLocation has no placeId in structuredContent",
+    "places have no placeId, primaryType, raw types, photos, phone, website, rating, reviews, priceLevel, or openingHours",
+    "providerReadiness.coveragePromotion is false",
+    "providerReadiness.sceneEligible is false",
+    "providerReadiness.sceneGeometry is false",
+    "providerReadiness.publicQuality is false",
+    "providerReadiness.rawProviderPayloadExposed is false",
+    "Orange remains L1 shell after lookup",
+    "coverage totals remain one playable county, zero provider-normalized counties, zero public-quality counties",
+    "second REST/MCP lookup proves runtime cache hit without persistence claims"
+  ],
+  "requiredEvidence": [
+    "local server URL",
+    "REST lookup result summary",
+    "MCP lookup result summary",
+    "before/after coverage totals",
+    "cache miss then cache hit proof",
+    "strict split guard with 0 blockers and 0 unknowns"
+  ],
+  "antiScope": [
+    "no provider-created geometry",
+    "no public Anaheim/Ontario exposure",
+    "no DB persistence",
+    "no migrations",
+    "no new MCP tools",
+    "no paid, Stripe, OAuth, or Hosted Clawd",
+    "no renderer or UI changes",
+    "no coverage-readiness promotion from lookup",
+    "no CityWorldScene geometry from provider lookup"
+  ],
+  "stopCondition": "Stop after runtime proof is green and update the 0.42E evidence packet. Do not start live provider normalization or persistence."
+}

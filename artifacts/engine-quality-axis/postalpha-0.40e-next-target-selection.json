@@ -1,0 +1,217 @@
+{
+  "ok": true,
+  "update": "postalpha-0.40e-engine-quality-axis-review-next-target-selection",
+  "inputUpdate": "postalpha-0.39e-public-object-identity-civic-service-read-pass",
+  "selectedAxis": "provider_normalization_preflight",
+  "recommendedNextQuest": "0.41E Provider Normalization Preflight / Lookup-to-Scene Boundary Contract",
+  "selectedReason": [
+    "public object, terrain, mobile, and commerce gates are green enough to stop visual churn",
+    "provider and tool-shape boundary guards are green",
+    "next public-scale risk is lookup/provider normalization preflight without geometry or readiness claims"
+  ],
+  "candidateScores": {
+    "public_object_identity_continue": {
+      "score": 24,
+      "blocked": true,
+      "reasons": [
+        "0.39E public civic/service object identity verifier is green",
+        "clone pressure and landmark floors pass",
+        "no named post-0.39E civic/service blocker exists"
+      ],
+      "recommendedNextQuest": "0.41E Public Object Identity Follow-up"
+    },
+    "public_terrain_world_edge": {
+      "score": 28,
+      "blocked": true,
+      "reasons": [
+        "terrain massing, empty-board, first-viewport, and chunk-edge floors are green"
+      ],
+      "recommendedNextQuest": "0.41E Terrain / World-Edge Correction"
+    },
+    "mobile_entry_density": {
+      "score": 24,
+      "blocked": true,
+      "reasons": [
+        "playable mobile LOD budget and mobile readability floor are green"
+      ],
+      "recommendedNextQuest": "0.41E Mobile Entry Density Correction"
+    },
+    "hidden_second_district_readiness": {
+      "score": 48,
+      "blocked": true,
+      "reasons": [
+        "Anaheim promotion remains false with 11 blocker(s)",
+        "next required gate is desktop_mobile_product_loop_screenshots",
+        "hidden district cannot outrank public Engine Beta until visual/product/release gates exist"
+      ],
+      "recommendedNextQuest": "0.41E Hidden Second-District Promotion Gate"
+    },
+    "provider_normalization_preflight": {
+      "score": 74,
+      "blocked": false,
+      "reasons": [
+        "public object, terrain, mobile, and commerce gates are green enough to stop visual churn",
+        "provider and tool-shape boundary guards are green",
+        "next public-scale risk is lookup/provider normalization preflight without geometry or readiness claims"
+      ],
+      "recommendedNextQuest": "0.41E Provider Normalization Preflight / Lookup-to-Scene Boundary Contract"
+    },
+    "commerce_repeat": {
+      "score": 0,
+      "blocked": true,
+      "reasons": [
+        "blocked unless a human names one exact Plaza Row blocker after 0.37E/0.39E",
+        "Plaza Row focused verifier is green"
+      ],
+      "recommendedNextQuest": "0.41E Commerce Repeat"
+    },
+    "public_product_entry_compression": {
+      "score": 26,
+      "blocked": true,
+      "reasons": [
+        "coverage/no-label screenshot roots exist and mobile/product budget is green",
+        "no named product-entry comprehension blocker exists"
+      ],
+      "recommendedNextQuest": "0.41E Public Product Entry Compression"
+    }
+  },
+  "blockedAxes": {
+    "public_object_identity_continue": [
+      "0.39E public civic/service object identity verifier is green",
+      "clone pressure and landmark floors pass",
+      "no named post-0.39E civic/service blocker exists"
+    ],
+    "public_terrain_world_edge": [
+      "terrain massing, empty-board, first-viewport, and chunk-edge floors are green"
+    ],
+    "mobile_entry_density": [
+      "playable mobile LOD budget and mobile readability floor are green"
+    ],
+    "hidden_second_district_readiness": [
+      "Anaheim promotion remains false with 11 blocker(s)",
+      "next required gate is desktop_mobile_product_loop_screenshots",
+      "hidden district cannot outrank public Engine Beta until visual/product/release gates exist"
+    ],
+    "commerce_repeat": [
+      "blocked unless a human names one exact Plaza Row blocker after 0.37E/0.39E",
+      "Plaza Row focused verifier is green"
+    ],
+    "public_product_entry_compression": [
+      "coverage/no-label screenshot roots exist and mobile/product budget is green",
+      "no named product-entry comprehension blocker exists"
+    ]
+  },
+  "requiredEvidence": [
+    "node --check scripts/select-engine-quality-axis.mjs",
+    "node scripts/select-engine-quality-axis.mjs --json-only",
+    "node scripts/select-engine-quality-axis.mjs --out artifacts/engine-quality-axis --json-only",
+    "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only",
+    "provider policy contract reviewed before any live provider normalization",
+    "proof that lookup cannot create geometry, readiness, or public playable claims",
+    "tool-shape proof that structuredContent stays concise and scenes stay in _meta"
+  ],
+  "antiScope": [
+    "no implementation work in 0.40E",
+    "no renderer geometry changes",
+    "no public UI redesign",
+    "no MCP tool-list change",
+    "no server route change",
+    "no DB implementation",
+    "no provider geometry or live provider normalization",
+    "no public Anaheim/Ontario promotion",
+    "no Hosted Clawd, Stripe, OAuth, XP, evidence, automation, reports, or exports",
+    "no cars, humans, props, panels, glows, or label crutches"
+  ],
+  "currentMetrics": {
+    "currentUpdateId": "postalpha-0.40e-engine-quality-axis-review-next-target-selection",
+    "currentUpdateStatus": "local_green",
+    "priorSelectorAxis": "public_object_identity",
+    "priorSelectorRecommendation": "0.39E Public Object Identity / Civic-Service Read Pass",
+    "publicObjectIdentity": {
+      "civicObjectKitScore": 0.955,
+      "civicNoLabelReadinessScore": 1,
+      "civicMobileReadinessScore": 1,
+      "clonePressureRatio": 0.133,
+      "weakestPrefabFamily": "commerce_strip",
+      "eastvaleCoreFocusTarget": "eastvale_core",
+      "eastvaleGymFocusTarget": "eastvale_gym"
+    },
+    "terrain": {
+      "terrainMassingCoverageRatio": 0.899,
+      "emptyBoardRatio": 0.056,
+      "firstViewportCompositionScore": 0.775,
+      "chunkEdgeReadabilityFloorScore": 0.761,
+      "nextWeakestAxis": "terrain_massing"
+    },
+    "mobile": {
+      "playableBudgetPassed": true,
+      "playableReadabilityScore": 0.752,
+      "playableOcclusionRiskScore": 0.248,
+      "residentialDetailBudgetPassed": true,
+      "residentialDetailReadabilityScore": 0.486
+    },
+    "commerce": {
+      "plazaRowBayCount": 7,
+      "plazaRowSignMountCount": 5,
+      "commerceWindowCommandVisibilityRatio": 0.059,
+      "publicClutterCommandCount": 0
+    },
+    "hiddenSecondDistrict": {
+      "readyForPlayablePromotion": false,
+      "evidenceStates": {
+        "sourceVerifier": "passed",
+        "visualPacket": "missing",
+        "productProof": "missing",
+        "splitGuard": "passed"
+      },
+      "nextRequiredGate": "desktop_mobile_product_loop_screenshots",
+      "blockerCount": 11,
+      "blockerGroups": {
+        "data": [],
+        "visual": [
+          "visual_packet_missing_or_failed",
+          "visual_packet_not_promotion_ready",
+          "visual_packet_not_public_playable",
+          "lumen_acceptance_missing"
+        ],
+        "product": [
+          "product_proof_missing_or_failed",
+          "product_proof_not_promotion_ready",
+          "product_proof_not_public_playable",
+          "product_proof_mira_acceptance_missing",
+          "mira_acceptance_missing"
+        ],
+        "release": [
+          "forge_split_guard_acceptance_missing",
+          "promotion_packet_not_ready"
+        ]
+      }
+    },
+    "provider": {
+      "boundaryOk": true,
+      "toolShapeOk": true
+    },
+    "screenshots": {
+      "coverageRoot": "C:\\Users\\mzwin\\AppData\\Local\\Temp\\atlas-postalpha-039e-civic-service-local\\coverage",
+      "noLabelRoot": "C:\\Users\\mzwin\\AppData\\Local\\Temp\\atlas-postalpha-039e-civic-service-local\\no-label",
+      "noLabelResidentialDetailRoot": "C:\\Users\\mzwin\\AppData\\Local\\Temp\\atlas-postalpha-039e-civic-service-local\\no-label-residential-detail",
+      "coverageRootExists": true,
+      "noLabelRootExists": true,
+      "noLabelResidentialDetailRootExists": true
+    }
+  },
+  "evidence": {
+    "diagnosticsOk": true,
+    "publicObjectIdentityOk": true,
+    "objectKitOk": true,
+    "mobileOcclusionOk": true,
+    "plazaRowOk": true,
+    "secondDistrictReadinessOk": true,
+    "providerBoundaryOk": true,
+    "toolResultShapeOk": true
+  },
+  "warnings": [],
+  "blockerCount": 0,
+  "blockers": []
+}

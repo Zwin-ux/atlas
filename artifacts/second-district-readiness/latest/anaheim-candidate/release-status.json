@@ -1,12 +1,12 @@
 {
-  "checkedAt": "2026-07-03T17:57:16.521Z",
+  "checkedAt": "2026-07-03T21:34:26.151Z",
   "branch": "codex/engine-beta-cleanup",
-  "gitStatusCount": 123,
+  "gitStatusCount": 41,
   "splitGuard": {
     "ok": true,
     "mode": "working-tree",
     "rcMode": "engine-beta-data",
-    "fileCount": 149,
+    "fileCount": 51,
     "blockerCount": 0,
     "unknownCount": 0
   },

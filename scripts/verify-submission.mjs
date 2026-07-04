@@ -185,6 +185,17 @@ try {
     lookup.places.every((place) => !("primaryType" in place) && !("types" in place) && !("placeId" in place)),
     "lookup_world_places leaked raw provider fields.",
   );
+  assert(!("placeId" in (lookup.resolvedLocation ?? {})), "lookup_world_places leaked provider placeId in resolvedLocation.");
+  assert(
+    lookup.places.every((place) => typeof place.id === "string" && place.id.startsWith("lookup-")),
+    "lookup_world_places must expose Atlas-owned lookup ids, not provider ids.",
+  );
+  assert(lookup.providerReadiness?.sceneGeometry === false, "lookup_world_places must block provider-created scene geometry.");
+  assert(lookup.providerReadiness?.rawProviderPayloadExposed === false, "lookup_world_places must block raw provider payload exposure.");
+  assert(
+    lookup.providerReadiness?.structuredContentPolicy === "atlas_normalized_only",
+    "lookup_world_places must keep structuredContent Atlas-normalized only.",
+  );
 
   const cachedLookup = structuredContent(
     await client.callTool({ name: "lookup_world_places", arguments: { query: "Eastvale, CA", radiusMeters: lookupRadiusMeters } }),

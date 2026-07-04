@@ -1,5 +1,64 @@
 # Decisions
 
+## Decision 075: Pivot to the product-submission track; owner-gate ceremony parked
+
+Post-Alpha work moves onto a product/app-quality track aimed at a **submittable ChatGPT app**,
+specified in `docs/PRODUCT_SPEC_AND_GATES.md`. The owner-gate / second-district promotion
+ceremony (0.44E–0.47E) is **parked**: it stays honest (`artifacts/current-update.json` remains
+`0.45E`, the source-of-truth drift checker stays green, Anaheim/Ontario stay hidden and
+non-public), but it is no longer the active track.
+
+Reason: the 0.24E→0.46E stretch was decision machinery circling one blocked question ("promote
+hidden Anaheim?"). The human redirected to shipping a fully high-quality, submittable app. The
+new gates (G1–G7) gate a real ChatGPT submission — build/typecheck, MCP contract stability,
+widget quality on desktop + 390×844 mobile, reliability across the 7 tools, honesty/safety,
+submission manifest + icon + privacy, and deployed+verified — instead of re-asking whether to
+promote a hidden district. Named product slices: `0.46P` in-widget result surface (done),
+`0.47P` widget polish, `0.48P` design ultra-pass (Fable supermove), `0.49P` reliability sweep,
+`0.50P` submission packet. Build capacity: Codex (GPT-5.5) for bulk, one reserved Fable pass for
+the design ultra-pass, Opus for orchestration.
+
+Rejected alternatives:
+- Advancing the owner-gate ladder to 0.46E — more decision ceremony, no product movement.
+- Repointing `current-update.json` / the drift checker to the product track — breaks the guard
+  for no gain; the parked ladder is honestly still at 0.45E.
+- Paid / DB / Hosted Clawd work — parked until the engine is submitted and credible.
+
+## Decision 074: Public civic/service identity needs typed prefab geometry
+
+Post-Alpha 0.39E adds typed object-kit geometry for public civic landmarks and
+service/gym buildings, then makes the renderer consume that metadata directly.
+Eastvale Core and the Gym/service block are the current public stress cells,
+but the contract is reusable: civic landmarks carry plinth, entry, facade,
+glass, canopy, and roof-cap grammar; service/gym buildings carry service-bay,
+sawtooth-roof, recessed-entry, utility-apron, and roof-monitor grammar.
+
+Reason: 0.38E/0.38F selected public object identity as the next visible engine
+axis. Another commerce, terrain, mobile, hidden-district, DB, provider, or UI
+pass would have ignored the selector. The better engine move was to make the
+weak public object identities measurable and renderer-consumable without adding
+labels, panels, cars, humans, props, or public Anaheim/Ontario scope.
+
+Rejected alternatives:
+- A broad renderer polish pass across every object family.
+- Another commerce pass without a human-named Plaza Row blocker.
+- Terrain or mobile work while current diagnostic floors are green.
+- Hidden Anaheim/Ontario promotion before owner-gate blockers clear.
+- Provider geometry, DB persistence, paid scope, or new MCP tools as shortcuts.
+
+## Decision 073: 0.38F reconciles source of truth before 0.39E
+
+Post-Alpha 0.38F is a source-of-truth repair slice, not a feature slice. It
+locks the repo back to one current doctrine: Engine Beta is active, Riverside
+/ Eastvale is the only public playable district, Anaheim/Ontario remain hidden,
+and paid/persistence/provider lanes stay parked until explicitly reopened.
+
+The next implementation slice remains `0.39E Public Object Identity /
+Civic-Service Read Pass`. Do not continue commerce unless a human names one
+exact Plaza Row blocker. Do not continue terrain/mobile unless a verifier shows
+a regression. Do not expose Anaheim/Ontario or start DB/persistence work from
+this repair.
+
 ## Decision 072: 0.39E should target public object identity, not commerce repeat
 
 Post-Alpha 0.38E selects `0.39E Public Object Identity / Civic-Service Read
@@ -1137,3 +1196,66 @@ Lumen, and Mira threads when thread tools are available; missing thread bridge
 access is a blocker, not permission to invent worker acceptance. Deploys,
 public second-district release, package/env changes, money, persistence, and
 Hosted Clawd remain human-gated.
+
+## Decision 062: 0.40E selects provider normalization preflight before more art
+
+The 0.40E selector blocks another civic/service, terrain, mobile, commerce, or
+public entry pass because the current verifiers are green and no exact
+human-named blocker exists. Hidden Anaheim/Ontario readiness also remains
+blocked because Anaheim is not promotion-ready and still has visual, product,
+and release blockers. The next Engine Beta slice is therefore
+`0.41E Provider Normalization Preflight / Lookup-to-Scene Boundary Contract`.
+That slice may define typed lookup-to-scene boundaries and verifier gates, but
+it may not turn provider lookup into scene geometry, coverage readiness, public
+playable claims, persistence, paid scope, or new MCP tools.
+
+## Decision 063: Provider lookup is source context, not scene input
+
+0.41E makes provider normalization a hard boundary. Google/mock lookup results
+may normalize place categories and source notes, but model-visible
+`structuredContent` must use Atlas-owned lookup IDs and must not expose Google
+`placeId`, `primaryType`, raw `types`, photos, phone, website, rating, reviews,
+price level, opening hours, or raw provider payloads. Provider readiness remains
+`lookup_only` with `coveragePromotion`, `sceneEligible`, `sceneGeometry`, and
+`publicQuality` all false. Any future provider-normalized scene work needs a
+separate gate; lookup alone cannot promote Anaheim/Ontario, any California
+shell county, or a district into public playability.
+
+## Decision 064: Runtime lookup proof does not widen provider scope
+
+0.42E proves the 0.41E provider boundary through local REST and MCP runtime
+calls. `lookup_world_places` may return Atlas-normalized lookup-only place
+summaries and runtime cache metadata, but it still cannot create
+`CityWorldScene` geometry, scene packets, county readiness, public-quality
+claims, public Anaheim/Ontario exposure, DB persistence, new MCP tools, or paid
+scope. Live provider normalization and any provider-to-scene pipeline remain
+separate future gates.
+
+## Decision 065: 0.43E selects hidden proof, not public promotion
+
+The 0.43E selector blocks repeat public Riverside object, terrain, mobile,
+commerce, provider, and product-entry work because the current verifiers are
+green and no exact human-named blocker exists. The next Engine Beta axis is
+`hidden_second_district_readiness`, but only as hidden Anaheim visual/product
+proof. Anaheim and Ontario remain non-public and non-playable; public exposure
+still requires visual, product, release, provider, and Axiom gates.
+
+## Decision 066: 0.44E hidden proof is repo-local evidence, not promotion
+
+0.44E converts hidden Anaheim visual/product proof from temp-path evidence into
+a repo-local packet:
+`artifacts/second-district-visual-packets/postalpha-0.44e-anaheim-hidden-proof`.
+The visual packet, product proof, source-to-scene trace, readiness aggregate,
+and split status pass as evidence. That does not authorize public playability:
+the readiness aggregate remains `readyForPlayablePromotion: false`, the owner
+cutline remains `BLOCK_PROMOTION`, and Anaheim/Ontario stay hidden,
+non-public, and non-playable until explicit owner gates change the cutline.
+
+## Decision 067: 0.45E requests owner review, not another hidden art loop
+
+0.45E reads the 0.44E hidden proof packet and selects `owner_gate_review` with
+decision `REQUEST_OWNER_REVIEW`. The controlled public Anaheim spike remains
+blocked because promotion readiness is false and the owner cutline is still
+`BLOCK_PROMOTION`. Since the visual and product proof are already present,
+Atlas should not continue hidden art work without an owner-named blocker. The
+next step is a 0.46E owner review packet for Lumen, Mira, Forge, and Axiom.
