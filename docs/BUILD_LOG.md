@@ -7581,3 +7581,27 @@ Verification:
 - Manual `/browse` proof at localhost:8787/preview: desktop 1280x832 and mobile
   390x844, light AND dark — zero horizontal overflow, zero JS errors, hover != active.
 - Net -1160 lines (styles.css 2882 -> ~1200 after legacy excision).
+
+## Entry 081
+
+Quest:
+Product use-case + submission positioning (feeds `0.50P`, gate G6). Doc + copy only.
+
+What changed:
+Added `docs/ATLAS_CHATGPT_USE_CASE.md` — the office-hours-rigor case for Atlas as a
+ChatGPT app (why-ChatGPT wedge, three personas, killer demo, free->paid arc, honest
+weaknesses, submission-ready copy). Owner decision (2026-07-04): position BROAD across
+all three personas with the mobile-detailing scout as the flagship concrete example.
+Replaced the placeholder `app_info` in `chatgpt-app-submission.json`: subtitle
+"Explore a voxel city map" -> "Explore your county as a voxel city and scout it with an
+AI agent"; description rewritten use-case-forward while keeping the honesty statements
+and the `verify-submission.mjs`-required literals ("voxel city map", "session-only",
+"do not save state").
+
+Skipped:
+No tool/schema changes, no new deps, no deploy, no persistence/paid/provider changes.
+
+Verification:
+- `node -e JSON.parse(chatgpt-app-submission.json)` valid.
+- `node scripts/verify-submission.mjs` passed (7-tool surface, live sweep, honesty
+  literals intact).

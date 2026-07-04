@@ -3,8 +3,8 @@
   "schema_version": 1,
   "app_info": {
     "display_name": "Atlas",
-    "subtitle": "Explore a voxel city map",
-    "description": "Atlas opens inside ChatGPT as a playable voxel city map for Riverside/Eastvale. Users can inspect the county world, drop session-only stickers and notes in the widget, ask closed-world location questions, look up nearby real-world places as normalized Atlas categories, run temporary Scout Drop previews, and generate a manual 7-day campaign preview. Atlas Alpha is session-only: do not save state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is planned, not live.",
+    "subtitle": "Explore your county as a voxel city and scout it with an AI agent",
+    "description": "Atlas opens your county inside ChatGPT as an explorable voxel city map. Browse the streets, ask closed-world local questions, and drop Clawd — an AI companion — onto a place to scout opportunity signals, risks, and a route, then generate a manual 7-day campaign preview. Whether you're sizing up a local business, exploring your town, or researching a market, it all happens in the chat and is session-only: do not save state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Riverside/Eastvale is the playable Alpha; other California counties show honest coverage status. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is planned, not live.",
     "category": "BUSINESS"
   },
   "tools": {
