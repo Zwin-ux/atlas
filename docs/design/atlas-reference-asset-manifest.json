@@ -1,0 +1,154 @@
+{
+  "version": "g4-reference-asset-intake",
+  "status": "reference-and-lab-source-only",
+  "runtimePolicy": {
+    "productionRendererTouched": false,
+    "generatedImagesAreRuntimeAssets": false,
+    "providerFactsAllowed": false,
+    "copyThirdPartyArt": false
+  },
+  "referenceImages": [
+    {
+      "key": "atlas.voxel.map_tile_marker_kit",
+      "path": "assets/reference/atlas-voxel-map-tile-marker-kit.png",
+      "width": 1448,
+      "height": 1086,
+      "role": "module-system art direction",
+      "allowedUse": [
+        "study object framing",
+        "study tile-kit consistency",
+        "study palette and material separation",
+        "study overlay separation"
+      ],
+      "bannedUse": [
+        "copy buildings",
+        "copy marker icons",
+        "copy labels or text",
+        "use as runtime background"
+      ]
+    },
+    {
+      "key": "atlas.voxel.town_north_star",
+      "path": "assets/reference/atlas-voxel-town-north-star.png",
+      "width": 1254,
+      "height": 1254,
+      "role": "map material and contact-shadow art direction",
+      "allowedUse": [
+        "study terrain thickness",
+        "study roof and facade variety",
+        "study road and lot contact",
+        "study lighting discipline"
+      ],
+      "bannedUse": [
+        "copy cars or people",
+        "copy signs or labels",
+        "use as runtime background",
+        "treat visible facts as Atlas data"
+      ]
+    },
+    {
+      "key": "atlas.reference.infographic_dark",
+      "path": "assets/reference/a_dark_sleek_infographic_design_document_image.png",
+      "width": 1216,
+      "height": 1294,
+      "role": "layout/reference archive",
+      "allowedUse": ["compare document hierarchy only"],
+      "bannedUse": ["runtime UI", "map art source", "product copy source"]
+    },
+    {
+      "key": "atlas.reference.concept_ui_poster",
+      "path": "assets/reference/a_wide_colorful_concept_art_ui_mockup_poster_fo.png",
+      "width": 1536,
+      "height": 1024,
+      "role": "concept pressure archive",
+      "allowedUse": ["compare broad art ambition only"],
+      "bannedUse": ["runtime UI", "map art source", "product copy source"]
+    },
+    {
+      "key": "atlas.explore_hud.imagegen.v1",
+      "path": "docs/design/atlas-explore-hud-imagegen-v1.png",
+      "width": 1672,
+      "height": 941,
+      "role": "old HUD silhouette reference",
+      "allowedUse": ["compare Explore HUD hierarchy only"],
+      "bannedUse": ["copy fake facts", "copy addresses", "copy business labels"]
+    },
+    {
+      "key": "atlas.explore_hud.imagegen.v2",
+      "path": "docs/design/atlas-explore-hud-imagegen-v2.png",
+      "width": 1672,
+      "height": 941,
+      "role": "accepted HUD silhouette reference",
+      "allowedUse": ["compare Explore HUD hierarchy and control rhythm only"],
+      "bannedUse": ["copy fake facts", "copy addresses", "copy business labels"]
+    }
+  ],
+  "labAssets": [
+    {
+      "key": "building.house.rowhome.flat_parapet.v1",
+      "path": "experiments/voxel-pastel-lab/assets/building-house-rowhome-flat_parapet.v1.svg",
+      "frame": { "width": 420, "height": 300 },
+      "footprintTiles": { "width": 2.46, "depth": 1.08 },
+      "status": "accepted_lab_source",
+      "productionPolicy": "rowhome-only production proof can use this asset through manifest and primitive fallback"
+    },
+    {
+      "key": "building.store.strip.three_bay.v1",
+      "path": "experiments/voxel-pastel-lab/assets/building-store-strip-three_bay.v1.svg",
+      "frame": { "width": 470, "height": 320 },
+      "footprintTiles": { "width": 2.94, "depth": 1.28 },
+      "status": "accepted_lab_source",
+      "productionPolicy": "park until rowhome/contact grammar are accepted"
+    },
+    {
+      "key": "road.corner.two_lane.v1",
+      "path": "experiments/voxel-pastel-lab/assets/road-corner-two_lane.v1.svg",
+      "frame": { "width": 330, "height": 250 },
+      "footprintTiles": { "width": 2.2, "depth": 2.2 },
+      "status": "accepted_lab_source",
+      "productionPolicy": "park until road/lot/terrain contact grammar is accepted"
+    }
+  ],
+  "promptArtifacts": [
+    {
+      "key": "ground-module-atlas",
+      "path": "docs/design/fable-prompts/ground-module-atlas.txt",
+      "role": "generation prompt for ground modules"
+    },
+    {
+      "key": "rowhome-production-candidate",
+      "path": "docs/design/fable-prompts/rowhome-production-candidate.txt",
+      "role": "generation prompt for rowhome candidate"
+    },
+    {
+      "key": "eastvale-no-hud-map-target",
+      "path": "docs/design/fable-prompts/eastvale-no-hud-map-target.txt",
+      "role": "no-HUD art direction only"
+    }
+  ],
+  "sourceSpecs": [
+    "docs/design/ATLAS_GRAPHICS_PRODUCTION_PLAN.md",
+    "docs/brain/ROAD_LOT_TERRAIN_CONTACT_GRAMMAR_SPEC.md",
+    "docs/brain/SPRITE_ATLAS_READINESS.md",
+    "docs/brain/THREE_ASSET_FIT_ANCHOR_MATERIAL_SPEC.md",
+    "docs/brain/THREE_ASSET_PRODUCTION_INTAKE_SPEC.md",
+    "docs/brain/VOXEL_VISUAL_BAR.md",
+    "docs/brain/VOXEL_VISUAL_VOCABULARY.md",
+    "experiments/voxel-pastel-lab/OBJECT_KIT_SPEC.md",
+    "experiments/voxel-pastel-lab/HOUSE_ENGINE_QUESTIONS.md",
+    "experiments/voxel-pastel-lab/REFERENCE_NOTES.md",
+    "experiments/voxel-pastel-lab/REFERENCE_BAR_DECISION.md",
+    "experiments/voxel-pastel-lab/ACTUAL_ASSET_AUTHORING_HANDOFF.md"
+  ],
+  "nextLane": {
+    "recommended": "road-lot-terrain-contact-grammar",
+    "why": "shared contact grammar improves the view before broader asset expansion",
+    "parked": [
+      "strip-store production intake",
+      "road-corner production intake",
+      "civic/community-center intake",
+      "trees/cars/humans/props",
+      "static generated map backgrounds"
+    ]
+  }
+}

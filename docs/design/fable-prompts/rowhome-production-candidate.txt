@@ -1,0 +1,20 @@
+Create one transparent 2:1 isometric voxel sprite:
+building.house.rowhome.flat_parapet.v1.
+
+Frame:
+420x300. No tile background, no labels, no people, no cars, no trees, no UI
+effects.
+
+Object:
+Three joined rowhome units with slight variation, flat parapet with visible top
+lip and side thickness, recessed doors, stoops, grouped windows with sill depth,
+side-face party-wall seams, restrained contact shadow inside the footprint.
+
+Projection:
+Orthographic 2:1 isometric. Warm California daylight. Crisp readable silhouette.
+Anchor should visually land at front/bottom center. It must read on a 390x844
+mobile crop and must not look like a sticker pasted on a board.
+
+Negative constraints:
+No photorealism, no perspective camera, no floating base, no heavy outlines, no
+fake signage, no generic low-poly block, no copied game asset.

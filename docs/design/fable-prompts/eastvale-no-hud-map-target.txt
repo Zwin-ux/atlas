@@ -1,0 +1,22 @@
+Create a map-only Atlas Eastvale visual target, 1280x720, no HUD, no panels,
+no labels, no readable text.
+
+Scene:
+Full-screen 2:1 isometric voxel county slice with dense parcel rhythm:
+embedded roads, curb cuts, sidewalks, residential clusters, one civic/community
+building, strip-store plaza, park, water edge, freeway corridor, tree clusters
+as scale cues, warm daylight, strong contact shadows, readable block-built
+silhouettes.
+
+Camera:
+Orthographic 2:1 isometric. The map should fill the frame edge to edge. Similar
+density and crop to a tactical map game. No empty green plane. No cinematic blur.
+
+Goal:
+This is the screenshot north star for density, lighting, and material grammar.
+It is not a production background.
+
+Negative constraints:
+No photoreal satellite imagery, no generic dashboard, no marketing hero page,
+no fake factual copy, no 3D perspective camera, no dark cyberpunk palette, no
+cluttered labels, no copied game UI.

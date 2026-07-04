@@ -1,0 +1,20 @@
+Create a transparent PNG sprite sheet for Atlas city-world ground contact. Size
+1024x256. 2:1 isometric voxel projection, orthographic camera, warm California
+daylight, crisp material faces, subtle ambient occlusion, no HUD, no labels, no
+cars, no people, no trees, no signs, no UI glow.
+
+Keep exactly five frames:
+- road.module.straight at x0 y0 w336 h172
+- road.module.cross at x352 y0 w284 h224
+- terrain.module.shoreline at x656 y0 w192 h60
+- terrain.module.raised_edge at x656 y68 w176 h60
+- terrain.module.parcel_shadow at x848 y0 w156 h88
+
+Roads must feel embedded with curb bevels, quiet lane marks, and contact depth.
+Shoreline must be block-stepped, not a thin blue line. Parcel shadow must be a
+subtle grounding shape, not dirt, grime, or a decorative blob.
+
+Negative constraints:
+No photoreal aerial map, no smooth low-poly render, no perspective camera, no
+generic SimCity UI, no dashboard, no landing page, no SaaS cards, no humans,
+no cars, no fake brands, no readable text, no copied game assets.
