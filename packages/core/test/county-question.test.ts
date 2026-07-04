@@ -39,6 +39,42 @@ describe("CountyQuestionService", () => {
     expect(answer.facts.some((fact) => fact.value.includes("85 curated mobile detailing score"))).toBe(true);
   });
 
+  it("refuses out-of-world factual asks the curated pack cannot hold", () => {
+    const outOfWorld = [
+      "What is the phone number for the Eastvale gym?",
+      "How much does mobile detailing cost in Eastvale?",
+      "What is the population of Eastvale?",
+      "Is the plaza open right now?",
+      "What are the gym hours?",
+      "What is the address of the plaza?",
+      "What is the weather in Eastvale?",
+      "List every business in Eastvale",
+    ];
+
+    for (const question of outOfWorld) {
+      const answer = service.answer({ countySlug: "riverside-ca", question });
+      expect(answer.supported).toBe(false);
+      expect(answer.topic).toBe("unsupported");
+      expect(answer.answer).toContain("no live or real-world data");
+      expect(answer.limitations.join(" ")).toContain("Closed-world");
+    }
+  });
+
+  it("still answers supported curated questions after the honesty guard", () => {
+    const signals = service.answer({
+      countySlug: "riverside-ca",
+      question: "Which curated signals support mobile detailing?",
+      businessType: "mobile detailing",
+    });
+    const firstSlice = service.answer({ countySlug: "riverside-ca", question: "Why is Eastvale the first slice?" });
+    const sourceLimits = service.answer({ countySlug: "riverside-ca", question: "What are your data sources and confidence?" });
+
+    expect(signals.supported).toBe(true);
+    expect(signals.topic).toBe("business_signals");
+    expect(firstSlice.topic).toBe("eastvale_first_slice");
+    expect(sourceLimits.topic).toBe("source_limits");
+  });
+
   it("narrows unsupported counties and business claims", () => {
     const unsupportedCounty = service.answer({
       countySlug: "orange-ca",

@@ -67,6 +67,15 @@ export class CountyQuestionService {
       return unsupportedBusinessAnswer(pack, question, input.businessType ?? question);
     }
 
+    // Closed-world honesty guard: the curated pack has no live or real-world
+    // data. Questions that ask for facts it cannot hold (hours, contact/PII,
+    // prices, demographics, weather, crime, exhaustive listings) must be
+    // refused, not deflected into a generic "supported" summary that reads as
+    // if Atlas answered them.
+    if (!question || isOutOfWorldQuestion(question)) {
+      return outOfWorldAnswer(pack, question);
+    }
+
     if (isSourceQuestion(question)) {
       return sourceLimitsAnswer(pack, question);
     }
@@ -157,6 +166,26 @@ function sourceLimitsAnswer(pack: CountyPack, question: string): CountyQuestionA
       ...pack.confidenceNotes.map((note) => ({ label: "Confidence note", value: note })),
     ],
     suggestedNextTool: "lookup_world_places",
+  });
+}
+
+function outOfWorldAnswer(pack: CountyPack, question: string): CountyQuestionAnswer {
+  return unsupportedAnswer({
+    countySlug: pack.slug,
+    question: question || "(empty question)",
+    answer:
+      "Atlas Alpha answers only from the curated Riverside/Eastvale pack. It has no live or real-world data, so it cannot give business hours, phone numbers, addresses, prices, demographics, weather, crime figures, or exhaustive business listings. Ask instead about the curated nodes, routes, business signal lanes, why Eastvale is the first slice, or the pack's sources and limits.",
+    facts: [
+      {
+        label: "What Atlas can answer",
+        value:
+          "Curated map nodes and routes, mobile detailing / cleaning / local event signal lanes, why Eastvale is first, and source/confidence limits.",
+      },
+      { label: "Alpha boundary", value: pack.summary },
+    ],
+    sourceNotes: pack.sources,
+    limitations: alphaLimitations(pack),
+    suggestedNextTool: "select_county",
   });
 }
 
@@ -266,6 +295,20 @@ function isFirstSliceQuestion(question: string): boolean {
 
 function isSourceQuestion(question: string): boolean {
   return /\b(source|confidence|live|current|data|provider|google)\b/i.test(question);
+}
+
+// Facts a closed-world curated pack genuinely cannot hold. Kept specific so it
+// never swallows supported asks (curated signals, routes, why-Eastvale, source
+// limits) — those have no contact/price/stat/real-time/enumeration wording.
+function isOutOfWorldQuestion(question: string): boolean {
+  const lower = question.toLowerCase();
+  const factLookup =
+    /\b(phone|telephone|email|e-mail|address|street|zip\s?code|postal|contact|call them|website|url|coordinates|lat\b|latitude|longitude)\b/.test(lower) ||
+    /\b(price|prices|pricing|cost|costs|how much|cheap(est)?|rate card|quote|fee|fees)\b/.test(lower) ||
+    /\b(population|demographic|demographics|median income|household income|crime|crime rate|school rating|census count|how many (people|residents))\b/.test(lower) ||
+    /\b(weather|forecast|temperature|right now|open now|open right now|currently open|open today|is .{0,25}\bopen\b|hours|closing time|closes|when (do|does) .* (open|close))\b/.test(lower) ||
+    /\b(list (all|every|each)|every (business|shop|store|place|restaurant|company)|all (the )?(businesses|shops|stores|restaurants|companies)|how many (businesses|shops|stores|restaurants))\b/.test(lower);
+  return factLookup;
 }
 
 function unique(values: string[]): string[] {

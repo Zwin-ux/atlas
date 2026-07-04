@@ -1,5 +1,38 @@
 # Build Log
 
+## Entry 192
+
+Quest:
+`ask_county_question` closed-world honesty guard (roadmap P0 trust surface).
+
+Root cause:
+`CountyQuestionService.answer()` fell through to a generic `county_summary`
+answer with `supported: true` for ANY unmatched question — including clearly
+out-of-world factual asks the curated Riverside/Eastvale pack cannot hold. A
+question like "what's the gym's phone number / hours / prices / the population"
+got a supported-looking summary, reading as if Atlas had answered it.
+
+What changed (surgical, core-only):
+- `packages/core/src/county/CountyQuestionService.ts` — added
+  `isOutOfWorldQuestion()` (contact/PII, prices, demographics, weather,
+  real-time hours/"open now", exhaustive listings) + `outOfWorldAnswer()`, and a
+  guard in `answer()` that refuses empty or out-of-world questions
+  (`supported:false`, `topic:"unsupported"`, "no live or real-world data")
+  instead of deflecting into a supported summary. Kept the regex specific so it
+  never swallows supported asks (curated signals, routes, why-Eastvale, source
+  limits). No public type / output-schema change.
+- `packages/core/test/county-question.test.ts` — added refusal coverage
+  (phone/cost/population/open-now/hours/address/weather/"list every business")
+  and a guard-doesn't-over-refuse test.
+
+Verification:
+- Probe (10 refusals + 6 supported paths): all correct.
+- Full core vitest 87/87 pass; `verify-tool-result-shape` green; server
+  typechecks clean (0 errors). Deterministic function (no LLM) — no injection
+  surface.
+
+Note: ships with the next deploy (server calls the rebuilt core at runtime).
+
 ## Entry 191
 
 Quest:
