@@ -1,5 +1,75 @@
 # Build Log
 
+## Entry 188
+
+Quest:
+0.49P Fable product-submission reliability sweep and Railway rollout.
+
+What changed:
+- Accepted the Fable product-submission lane for public Engine Beta scope after
+  human approval. The synthetic generated-district preview is allowed only as an
+  honest engine preview: not a real place, not real coverage, session-only.
+- Pushed `codex/engine-beta-cleanup` to the private GitHub checkpoint repo.
+- Deployed the verified branch to Railway service `atlas-backend` in production.
+- No Railway env changes, DB, persistence, Hosted Clawd, Stripe, OAuth, XP,
+  evidence, automation, reports, exports, or new MCP tools were added.
+
+Local verification before deploy:
+- `pnpm --dir packages/core test` passed: 19 files, 85 tests.
+- `pnpm typecheck:starter` passed.
+- `pnpm build:starter` passed.
+- `pnpm verify:preview:http` passed.
+- `pnpm verify:mcp` passed with the seven existing tools.
+- `pnpm verify:submission` passed.
+- `node scripts/verify-atlas-source-of-truth-drift.mjs --json-only` passed.
+- `node scripts/verify-provider-boundaries.mjs --json-only` passed.
+- `node scripts/verify-tool-result-shape.mjs --json-only` passed.
+- `node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed with a clean working tree.
+- `node scripts/verify-generated-district-widget.mjs --url http://127.0.0.1:8787/preview --json-only`
+  passed.
+- `node scripts/verify-scout-campaign-panel.mjs --url http://127.0.0.1:8787/preview --json-only`
+  passed.
+- `node scripts/verify-engine-beta-coverage.mjs --json-only` passed.
+- `node scripts/verify-parametric-generator.mjs --json-only` passed with
+  `HIGH_HOME_CLONE_PRESSURE` warning.
+
+Public verification after deploy:
+- Public URL: `https://atlas-backend-production-e6fc.up.railway.app`.
+- `/health` returned 200.
+- `ATLAS_PREVIEW_URL=https://atlas-backend-production-e6fc.up.railway.app/preview pnpm verify:preview:http`
+  passed.
+- `ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp pnpm verify:mcp`
+  passed with the seven existing tools.
+- `ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp pnpm verify:submission`
+  passed.
+- `ATLAS_PREVIEW_URL=https://atlas-backend-production-e6fc.up.railway.app/preview node scripts/verify-generated-district-widget.mjs --screenshots C:\Users\mzwin\AppData\Local\Temp\atlas-fable-public-generated-district-railway --json-only`
+  passed.
+- `node scripts/verify-scout-campaign-panel.mjs --url https://atlas-backend-production-e6fc.up.railway.app/preview --json-only`
+  passed.
+- `ATLAS_BASE_URL=https://atlas-backend-production-e6fc.up.railway.app node scripts/verify-engine-beta-coverage.mjs --json-only`
+  passed.
+
+Screenshot roots:
+- Public generated district:
+  `C:\Users\mzwin\AppData\Local\Temp\atlas-fable-public-generated-district-railway`
+- Public Scout/Campaign screenshots from rollout run:
+  `C:\Users\mzwin\AppData\Local\Temp\atlas-fable-public-scout-campaign-panel`
+- Local Engine Beta coverage packet:
+  `C:\Users\mzwin\AppData\Local\Temp\atlas-fable-takeover-engine-beta-coverage`
+
+Known weakness:
+- The art is still not final. Generated-district verifier reports
+  `HIGH_HOME_CLONE_PRESSURE`; human visual rating remains roughly 6.5/10.
+  Next engine-art work should target generated/public object variety and
+  no-label category identity rather than more release plumbing.
+
+Next:
+- `0.50P Submission Asset/Directory Finalization`: hosted privacy/terms URLs,
+  PNG icon export if required by the Apps directory, and final directory packet.
+- After submission chores, run `0.51E Generated District Object Variety /
+  Clone-Pressure Reduction` as the next art-quality slice.
+
 ## Entry 187
 
 Quest:

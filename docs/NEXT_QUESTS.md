@@ -27,11 +27,17 @@ Fable takeover status:
   `codex/fable-product-submission-experiment`.
 - Local cleanup made the preview HTTP smoke and strict Engine Beta split guard
   understand the new in-widget preview/submission artifacts.
-- Next product-track move is a reliability/deploy decision, not another feature:
-  run the full `0.49P` reliability sweep against the public generated-district,
-  Scout/Campaign panel, seven MCP tools, submission manifest, and Engine Beta
-  coverage. Do not deploy until the human accepts the public synthetic preview
-  as product scope.
+- `0.49P` reliability sweep and Railway rollout are complete. Public proof is
+  green for `/preview`, `/mcp`, submission, generated-district preview,
+  Scout/Campaign panel, and Engine Beta coverage.
+- Next product-track move: `0.50P Submission Asset/Directory Finalization`.
+  Host privacy/terms, produce any required PNG icon assets, and assemble the
+  final Apps directory packet. Do not add new tools, DB, persistence, paid
+  scope, OAuth, XP, evidence, automation, reports, or exports.
+- Next art-quality move after submission chores: `0.51E Generated District
+  Object Variety / Clone-Pressure Reduction`. The public generated district is
+  useful and honest, but still visually around 6.5/10 and has
+  `HIGH_HOME_CLONE_PRESSURE`.
 
 Alpha Path B is accepted. Atlas is now in Engine Beta, not Paid Beta. Hosted
 Clawd contracts and Stripe planning remain parked until the voxel county engine

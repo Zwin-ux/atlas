@@ -1,5 +1,37 @@
 # Decisions
 
+## Decision 077: Public synthetic generated-district preview is accepted for Engine Beta, with limits
+
+The human accepted the Fable product-submission lane and allowed continuation
+despite the art still reading around 6.5/10. Atlas now permits a public
+synthetic generated-district preview in Engine Beta, but only as an honest
+engine preview.
+
+Allowed:
+- Widget-only generated district preview.
+- Clear banner: synthetic, not a real place, not real coverage, session-only.
+- No new MCP tools.
+- No provider-created geometry.
+- No coverage or readiness promotion from generated scenes.
+
+Still blocked:
+- Anaheim/Ontario public promotion.
+- Real provider-to-scene geometry.
+- DB persistence, Hosted Clawd implementation, Stripe, OAuth, XP, evidence,
+  automation, reports, or exports.
+- Claiming generated output is public-quality coverage.
+
+Reason:
+The generated preview demonstrates the Atlas engine better than another
+decision packet. Public verifiers prove it is labeled honestly, does not expose
+collection tools in generated mode, keeps one nonblank canvas, and has no
+horizontal overflow. The weakness is visual quality, not product honesty.
+
+Next consequence:
+0.50P should finish submission assets and directory readiness. The next engine
+art slice should reduce generated-scene clone pressure and improve object
+category identity.
+
 ## Decision 076: Fable product-submission lane is locally verified, not automatically deploy-approved
 
 The Fable product-submission lane is accepted as a local experiment under
