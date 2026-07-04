@@ -76,7 +76,7 @@ const allHardBlockers = [
 ];
 const result = {
   ok: allHardBlockers.length === 0,
-  update: "prealpha-0.6f-engine-diagnostics",
+  update: "postalpha-0.51e-engine-diagnostics",
   generatedAt: new Date().toISOString(),
   scenarios: {
     riversidePlayable: sceneReports[0],

@@ -126,6 +126,8 @@ export {
   analyzeCityWorldScene,
   analyzeCityWorldObjectKit,
   assignCityWorldObjectKit,
+  CITY_WORLD_BUILDING_PALETTES,
+  resolveEffectiveBuildingColors,
   cityWorldBuildingTouchesLot,
   cityWorldDiamondPoints,
   cityWorldExpandViewportFrame,

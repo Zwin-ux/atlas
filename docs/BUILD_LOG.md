@@ -1,5 +1,73 @@
 # Build Log
 
+## Entry 189
+
+Quest:
+0.51E voxel-art mega-pass — honest color identity + generative residential variety.
+
+Root cause fixed:
+The renderer (`createBuildingGeometry`) resolves body/roof through the shared
+MANIFEST palette, so authored per-building colors are only a fallback and the
+manifest palette wins on screen. But the diagnostics keyed `homeVariantKey` /
+objectKit clone-group on the raw scene-DATA color (which varied), so the metric
+measured data the player never sees: it reported riverside homeClonePressure
+0.158 while the effective on-screen clone pressure was ~0.58.
+
+What changed:
+- NEW `packages/core/src/voxel/cityWorldPaletteRegistry.ts` — a core mirror of
+  every `building.*` manifest palette + `resolveEffectiveBuildingColors()` that
+  reproduces the renderer's resolution (manifest palette wins; draft buildings
+  keep authored color). Exported from the voxel + core barrels.
+- NEW `cityWorldSilhouetteBucket()` in `cityWorldBasis.ts` — half-tile footprint
+  + story-count bucket, so sub-tile jitter no longer masquerades as variety.
+- `cityWorldDiagnostics.ts` / `cityWorldObjectKit.ts` — `homeVariantKey`,
+  `cloneGroupKey`, and roof/body separation now key on the EFFECTIVE palette +
+  silhouette bucket. Diagnostics `update` bumped
+  `prealpha-0.6f-engine-diagnostics` -> `postalpha-0.51e-engine-diagnostics`
+  (swept debug script + core test pin).
+- `atlas.manifest.json` + registry — added muted SoCal palette-variant ramps:
+  cottage v2/v3/v4, ranch v2/v3, rowhome v2, lowrise v2/v3, store v2/v3, gym
+  sawtooth v1/v2. All roof/body separations >= 0.42.
+- `cityWorldCompiler.ts` `resolveBuildingPaletteKey` — hash-assigns a palette
+  variant per building (identity comes from the palette system, keeping the
+  0.34e cohesion contract). Expanded riverside residential 19 -> 27 homes with
+  cross-gable/garage-wing/two-story/wide silhouettes; tall/wide variants placed
+  OUTSIDE the residential_detail frame to keep the mobile-occlusion tray gate
+  green. Added a 4th distinct home (cottage) to the Ontario draft anchor.
+- `CityWorldRenderer.tsx` — sprite-mode buildings now honor their variant via
+  `sprite.tint` (previously never used); a gentle wash toward the resolved body
+  color. No new draw calls / layers.
+- `cityWorldParametricGenerator.ts` — replaced fixed home/shop/apartment/gym
+  specs with dimension-jittered spec POOLS (+/-15% w/d/h, roof mix, 2-3 palette
+  variants each).
+- `verify-public-object-kit-prefab-palette.mjs` — added a registry<->manifest
+  byte-consistency check so the effective-palette mirror cannot silently drift.
+
+Before -> after (named metrics):
+- riverside homeClonePressure: 0.158 reported (dishonest) -> 0.58 honest
+  baseline after hardening the metric -> 0.074 after the fix. Target <= 0.16 MET.
+- riverside homeVariantCount: 16 -> 24 (>= 24). objectKit clonePressureRatio
+  0.074 (<= 0.2); paletteCohesionRatio 1.0 and roofBodySeparationRatio 1.0 (not
+  regressed); firstViewportCompositionScore 0.85 held.
+- Ontario draft homeClonePressure: 0.333 -> 0.250 (target <= 0.25 MET).
+- Generated commerce/lowrise within-family clone pressure: 1.0 -> 0.5 (<= 0.5).
+
+Constraints honored:
+No props/cars/humans/signage/glows; no terrain repaint; no new deps; no new SVG
+pipeline; no `LOUD_DEFAULT_COLORS` token; Plaza Row + hidden-draft playability
+untouched; per-building draw-call/layer count flat.
+
+Verification:
+- `node scripts/debug-city-world-engine.mjs --json-only` — ok, 0 hard blockers,
+  0 warnings on riverside.
+- Green: verify-public-object-kit-prefab-palette, verify-object-authorship-scene-grammar,
+  verify-render-command-layer-budget, verify-parametric-generator,
+  verify-face-orientation-source-contrast, verify-civic-venue-object-kit-contract,
+  verify-object-kit-renderer-consumption.
+- Full core vitest 85/85 pass; web `tsc --noEmit` 0 errors.
+- verify-engine-beta-coverage NOT run here (needs a live server + pnpm — human
+  browser/screenshot pass).
+
 ## Entry 188
 
 Quest:

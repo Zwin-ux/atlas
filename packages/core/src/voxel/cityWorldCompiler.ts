@@ -455,6 +455,7 @@ const DRAFT_ANCHOR_BUILDING_SPECS: Record<string, DraftBuildingSpec[]> = {
     { suffix: "rowhome-street", offset: { x: -2.25, y: -0.55 }, kind: "home", width: 3.75, depth: 1.08, height: 1.45, facadeStyle: "rowhome", roofShape: "flat", detailLevel: "high" },
     { suffix: "ranch-court-west", offset: { x: 0.75, y: -0.72 }, kind: "home", width: 2.15, depth: 1.45, height: 1.05, facadeStyle: "ranch", roofShape: "hip", detailLevel: "medium" },
     { suffix: "ranch-court-east", offset: { x: 2.35, y: 0.65 }, kind: "home", width: 2.05, depth: 1.38, height: 0.96, facadeStyle: "ranch", roofShape: "gable", detailLevel: "medium" },
+    { suffix: "cottage-court", offset: { x: -1.05, y: 0.72 }, kind: "home", width: 1.4, depth: 1.15, height: 1.28, facadeStyle: "cottage", roofShape: "gable", detailLevel: "medium" },
     { suffix: "lowrise-edge", offset: { x: -0.35, y: 1.55 }, kind: "apartment", width: 2.65, depth: 1.72, height: 1.88, facadeStyle: "lowrise", roofShape: "flat", detailLevel: "high" },
   ],
   "ontario-mills-commercial-anchor": [
@@ -859,26 +860,49 @@ function createBuildings(): CityWorldBuilding[] {
     },
   ];
 
+  // Residential archetype space (0.51E): identity is carried by (facade x roof
+  // x silhouette-bucket x hash-assigned palette variant), NOT by the raw
+  // authored color the renderer discards. The width/depth/height spread crosses
+  // half-tile silhouette buckets (compact one-story, two-story massing, wide
+  // footprint) so the homes read as distinct at map zoom. Positions sit on the
+  // existing home-lot grids (west/north/south) for lot contact. bodyColor and
+  // roofColor here are muted placeholders only; the effective on-screen color
+  // resolves through the assigned palette variant.
+  // In-frame homes (residential_detail camera, x8.8-18.6 / y4.75-13.85) are
+  // kept COMPACT one-story so the mobile-occlusion tray gate stays green; the
+  // taller/wider silhouette variants live on the far-west, far-north, and south
+  // lots OUTSIDE that tight frame. Every home still lands on an existing
+  // home-lot grid cell for lot contact.
   const residentialModules: CityWorldBuilding[] = [
-    createResidentialBuilding("building-cottage-west-a", "Cottage", 6.2, 6.6, 1.35, 1.1, 1.22, "#f2dfc4", "#b86f4c", "cottage", "gable"),
-    createResidentialBuilding("building-cottage-west-b", "Cottage", 8.8, 7.0, 1.45, 1.15, 1.18, "#ead4b6", "#5f8fa0", "cottage", "gable"),
-    createResidentialBuilding("building-ranch-west-a", "Ranch home", 11.5, 6.9, 1.95, 1.15, 1.08, "#e8c9aa", "#7f9b6e", "ranch", "hip"),
-    createResidentialBuilding("building-cottage-west-c", "Cottage", 14.4, 7.1, 1.32, 1.12, 1.24, "#f6e7cf", "#b99358", "cottage", "gable"),
-    createResidentialBuilding("building-ranch-west-b", "Ranch home", 6.4, 9.3, 1.85, 1.1, 1.02, "#ead4b6", "#a76f4e", "ranch", "hip"),
-    createResidentialBuilding("building-cottage-west-d", "Cottage", 9.4, 9.7, 1.28, 1.08, 1.2, "#f0d6bd", "#8f7568", "cottage", "gable"),
-    createResidentialBuilding("building-rowhome-west-a", "Rowhomes", 12.8, 9.7, 3.25, 1.25, 1.55, "#f2dfc2", "#607d84", "rowhome", "flat", "building.house.rowhome.flat_parapet.v1"),
-    createResidentialBuilding("building-cottage-west-e", "Cottage", 7.2, 12.2, 1.38, 1.08, 1.18, "#f6e7cf", "#b86f4c", "cottage", "gable"),
-    createResidentialBuilding("building-ranch-west-c", "Ranch home", 10.2, 12.4, 2.05, 1.18, 1.05, "#e8c9aa", "#7f9b6e", "ranch", "hip"),
-    createResidentialBuilding("building-cottage-west-f", "Cottage", 13.6, 12.5, 1.38, 1.12, 1.28, "#f2dfc4", "#5f8fa0", "cottage", "gable"),
-    createResidentialBuilding("building-cottage-north-a", "Cottage", 17.0, 6.3, 1.32, 1.08, 1.12, "#ead4b6", "#b99358", "cottage", "gable"),
-    createResidentialBuilding("building-rowhome-north-a", "Rowhomes", 20.4, 6.5, 3.1, 1.2, 1.5, "#f2dfc2", "#6f9ca7", "rowhome", "flat", "building.house.rowhome.flat_parapet.v1"),
-    createResidentialBuilding("building-ranch-north-a", "Ranch home", 24.6, 6.8, 2.0, 1.14, 1.06, "#f6e7cf", "#a76f4e", "ranch", "hip"),
-    createResidentialBuilding("building-cottage-north-b", "Cottage", 17.4, 9.1, 1.34, 1.1, 1.16, "#e8c9aa", "#8f7568", "cottage", "gable"),
-    createResidentialBuilding("building-cottage-north-c", "Cottage", 24.2, 9.5, 1.42, 1.1, 1.2, "#f2dfc4", "#b86f4c", "cottage", "gable"),
-    createResidentialBuilding("building-cottage-south-a", "Cottage", 23.9, 22.85, 1.36, 1.1, 1.26, "#f0dcbe", "#8a6a52", "cottage", "gable"),
+    // --- Compact one-story homes INSIDE the residential_detail frame ---
+    createResidentialBuilding("building-cottage-west-a", "Cottage", 10.4, 6.5, 1.35, 1.1, 1.22, "#f2dfc4", "#b86f4c", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-west-c", "Cottage", 12.6, 6.5, 1.32, 1.12, 1.24, "#f6e7cf", "#b99358", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-west-f", "Cottage", 14.8, 6.5, 1.38, 1.12, 1.28, "#f2dfc4", "#5f8fa0", "cottage", "hip"),
+    createResidentialBuilding("building-cottage-north-a", "Cottage", 10.4, 8.5, 1.32, 1.08, 1.12, "#ead4b6", "#b99358", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-north-d", "Cottage", 16.0, 5.5, 1.36, 1.12, 1.16, "#f0d6bd", "#8a6a52", "cottage", "gable"),
+    createResidentialBuilding("building-ranch-west-a", "Ranch home", 17.9, 5.5, 1.95, 1.15, 1.08, "#e8c9aa", "#7f9b6e", "ranch", "hip"),
+    // --- Taller / wider silhouette variants OUTSIDE the tight frame ---
+    createResidentialBuilding("building-cottage-west-b", "Cottage", 6.0, 6.5, 1.45, 1.15, 1.75, "#ead4b6", "#5f8fa0", "cottage", "hip"),
+    createResidentialBuilding("building-cottage-west-d", "Cottage", 8.2, 6.5, 1.8, 1.3, 1.35, "#f0d6bd", "#8f7568", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-west-e", "Cottage", 6.0, 8.5, 1.38, 1.08, 1.72, "#f6e7cf", "#b86f4c", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-west-g", "Cottage", 8.2, 8.5, 1.82, 1.28, 1.3, "#ead4b6", "#8a6a52", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-west-h", "Cottage", 6.0, 10.5, 1.34, 1.1, 1.68, "#f0dcbe", "#b99358", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-west-i", "Cottage", 8.2, 10.5, 1.86, 1.34, 1.32, "#eed4b4", "#7d955f", "cottage", "hip"),
+    createResidentialBuilding("building-ranch-west-b", "Ranch home", 6.0, 12.5, 2.42, 1.48, 1.1, "#ead4b6", "#a76f4e", "ranch", "hip"),
+    createResidentialBuilding("building-ranch-west-c", "Ranch home", 8.2, 12.5, 2.05, 1.18, 1.62, "#e8c9aa", "#7f9b6e", "ranch", "hip"),
+    createResidentialBuilding("building-cottage-north-b", "Cottage", 19.8, 5.5, 1.78, 1.32, 1.34, "#e8c9aa", "#8f7568", "cottage", "gable"),
+    createResidentialBuilding("building-cottage-north-c", "Cottage", 21.7, 5.5, 1.42, 1.1, 1.78, "#f2dfc4", "#b86f4c", "cottage", "hip"),
+    createResidentialBuilding("building-cottage-north-e", "Cottage", 23.6, 5.5, 1.88, 1.3, 1.7, "#eed4b4", "#7d955f", "cottage", "gable"),
+    createResidentialBuilding("building-ranch-west-d", "Ranch home", 19.8, 7.3, 1.98, 1.16, 1.05, "#ecd2b0", "#5f7f8e", "ranch", "gable"),
+    createResidentialBuilding("building-ranch-west-e", "Ranch home", 21.7, 7.3, 2.44, 1.46, 1.58, "#f4e2c6", "#5d7f8a", "ranch", "gable"),
+    createResidentialBuilding("building-rowhome-west-a", "Rowhomes", 23.6, 7.3, 3.25, 1.25, 1.55, "#f2dfc2", "#607d84", "rowhome", "flat", "building.house.rowhome.flat_parapet.v1"),
+    createResidentialBuilding("building-ranch-north-b", "Ranch home", 19.8, 9.1, 2.02, 1.2, 1.58, "#e8c9aa", "#5f7f8e", "ranch", "gable"),
+    createResidentialBuilding("building-rowhome-north-a", "Rowhomes", 21.7, 9.1, 3.1, 1.2, 1.5, "#f2dfc2", "#6f9ca7", "rowhome", "flat", "building.house.rowhome.flat_parapet.v1"),
+    createResidentialBuilding("building-ranch-south-c", "Ranch home", 23.6, 9.1, 2.06, 1.2, 1.06, "#ecd2b0", "#7f9b6e", "ranch", "gable"),
+    createResidentialBuilding("building-cottage-south-a", "Cottage", 23.9, 22.85, 1.36, 1.1, 1.72, "#f0dcbe", "#8a6a52", "cottage", "gable"),
     createResidentialBuilding("building-ranch-south-a", "Ranch home", 26.55, 22.9, 1.98, 1.16, 1.04, "#ecd2b0", "#5f7f8e", "ranch", "hip"),
-    createResidentialBuilding("building-cottage-south-b", "Cottage", 24.05, 24.85, 1.4, 1.12, 1.22, "#eed4b4", "#7d955f", "cottage", "gable"),
-    createResidentialBuilding("building-ranch-south-b", "Ranch home", 26.7, 24.8, 2.02, 1.14, 1.0, "#f4e2c6", "#5d7f8a", "ranch", "hip"),
+    createResidentialBuilding("building-cottage-south-b", "Cottage", 24.05, 24.85, 1.84, 1.3, 1.26, "#eed4b4", "#7d955f", "cottage", "gable"),
+    createResidentialBuilding("building-ranch-south-b", "Ranch home", 26.7, 24.8, 2.44, 1.46, 1.1, "#f4e2c6", "#5d7f8a", "ranch", "hip"),
   ];
   buildings.push(...residentialModules);
 
@@ -961,7 +985,10 @@ function createResidentialBuilding(
     roofColor,
     placeId: "place-neighborhood-blocks",
     ...(spriteKey ? { spriteKey } : {}),
-    paletteKey: spriteKey ?? `building.house.${facadeStyle}.v1`,
+    // paletteKey intentionally left unset: withBuildingMetadata hash-assigns an
+    // authored palette-variant ramp so residential identity comes from the
+    // palette system (survives the renderer's manifest resolution) rather than
+    // from the raw authored color the renderer discards for non-draft buildings.
     roofShape,
     facadeStyle,
     detailLevel: facadeStyle === "rowhome" ? "high" : "medium",
@@ -1467,10 +1494,32 @@ function resolveBuildingSpriteKey(building: CityWorldBuilding, roofShape: CityWo
   return `building.${building.kind}.${roofShape}.${variant % 4}`;
 }
 
+// Number of authored palette-variant ramps available per family in the atlas
+// manifest. Identity is assigned from the palette system (hash -> variant) so
+// it survives the renderer's manifest-palette resolution — the 0.34e cohesion
+// contract stays intact because every ramp is an authored muted SoCal palette,
+// not a raw per-building color override.
+const BUILDING_PALETTE_VARIANT_COUNTS = {
+  cottage: 4,
+  ranch: 3,
+  rowhome: 2,
+  lowrise: 3,
+  strip_store: 3,
+  gym: 2,
+} as const;
+
+function paletteVariantSuffix(variant: number, count: number): string {
+  return `v${(variant % count) + 1}`;
+}
+
 function resolveBuildingPaletteKey(building: CityWorldBuilding, facadeStyle: CityWorldBuilding["facadeStyle"], variant: number): string {
+  if (building.kind === "home" && facadeStyle === "cottage") return `building.house.cottage.${paletteVariantSuffix(variant, BUILDING_PALETTE_VARIANT_COUNTS.cottage)}`;
+  if (building.kind === "home" && facadeStyle === "ranch") return `building.house.ranch.${paletteVariantSuffix(variant, BUILDING_PALETTE_VARIANT_COUNTS.ranch)}`;
+  if (building.kind === "home" && facadeStyle === "rowhome") return `building.house.rowhome.flat_parapet.${paletteVariantSuffix(variant, BUILDING_PALETTE_VARIANT_COUNTS.rowhome)}`;
   if (building.kind === "home" && facadeStyle) return `building.house.${facadeStyle}.v1`;
-  if (building.kind === "shop" && facadeStyle === "strip_store") return "building.store.strip.three_bay.v1";
-  if (building.kind === "apartment" && facadeStyle === "lowrise") return "building.apartment.lowrise.stepped.v1";
+  if (building.kind === "shop" && facadeStyle === "strip_store") return `building.store.strip.three_bay.${paletteVariantSuffix(variant, BUILDING_PALETTE_VARIANT_COUNTS.strip_store)}`;
+  if (building.kind === "apartment" && facadeStyle === "lowrise") return `building.apartment.lowrise.stepped.${paletteVariantSuffix(variant, BUILDING_PALETTE_VARIANT_COUNTS.lowrise)}`;
+  if (building.kind === "gym") return `building.gym.sawtooth.${paletteVariantSuffix(variant, BUILDING_PALETTE_VARIANT_COUNTS.gym)}`;
   return `building.${building.kind}.${variant % 6}`;
 }
 

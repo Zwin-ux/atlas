@@ -2225,6 +2225,11 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
   sprite.anchor.set(asset.anchor.x, asset.anchor.y);
   sprite.scale.set(asset.scale);
   sprite.position.set(Math.round(bottom.x), Math.round(bottom.y + footprintDepth * 0.5));
+  // Honor the building's assigned palette-variant ramp on screen: gently wash
+  // the textured sprite toward its resolved body color so sprite-mode buildings
+  // (rowhomes, strip stores) read the same variant identity the diagnostics key
+  // on. Kept subtle (mixed toward white) so authored SVG art is preserved.
+  sprite.tint = mixColor(0xffffff, geometry.bodyColor, 0.3);
   sprite.label = `sprite-${building.id}`;
   layer.addChild(sprite);
 

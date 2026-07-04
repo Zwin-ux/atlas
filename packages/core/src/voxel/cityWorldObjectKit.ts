@@ -6,6 +6,8 @@ import type {
   CityWorldScene,
 } from "./cityWorldTypes.js";
 import { analyzeCityWorldScene } from "./cityWorldDiagnostics.js";
+import { cityWorldSilhouetteBucket } from "./cityWorldBasis.js";
+import { resolveEffectiveBuildingColors } from "./cityWorldPaletteRegistry.js";
 
 export type CityWorldObjectKitFamilyMetric = {
   prefabFamily: CityWorldObjectKitPrefabFamily;
@@ -75,7 +77,8 @@ export function assignCityWorldObjectKit(building: CityWorldBuilding): CityWorld
     "foundation",
     ...(prefabFamily === "commerce_strip" || prefabFamily === "service_gym" || prefabFamily === "civic_landmark" ? ["glass" as const] : []),
   ]);
-  const roofBodySeparationScore = colorSeparationScore(building.bodyColor, building.roofColor);
+  const effectiveColors = resolveEffectiveBuildingColors(building);
+  const roofBodySeparationScore = colorSeparationScore(effectiveColors.bodyColor, effectiveColors.roofColor);
   const signatureTags = signatureTagsForBuilding(building, prefabFamily);
   const metadata: CityWorldObjectKitMetadata = {
     prefabFamily,
@@ -267,14 +270,18 @@ function serviceGymPrefabGeometry(building: CityWorldBuilding): NonNullable<City
 }
 
 function cloneGroupKeyForBuilding(building: CityWorldBuilding, prefabFamily: CityWorldObjectKitPrefabFamily): string {
-  const footprint = `${Math.round(building.width * 10) / 10}x${Math.round(building.depth * 10) / 10}`;
+  // Clone groups key on what actually renders: the EFFECTIVE palette
+  // (manifest resolution, not the authored scene-data color the renderer
+  // discards for non-drafts) and the silhouette class (half-tile footprint +
+  // story count, not sub-tile jitter that never reads at map zoom).
+  const effective = resolveEffectiveBuildingColors(building);
   return [
     prefabFamily,
     building.facadeStyle ?? "none",
     building.roofShape ?? "none",
-    footprint,
-    building.bodyColor.toLowerCase(),
-    building.roofColor.toLowerCase(),
+    cityWorldSilhouetteBucket(building.width, building.depth, building.height),
+    effective.bodyColor,
+    effective.roofColor,
     building.paletteKey ?? "none",
   ].join(":");
 }

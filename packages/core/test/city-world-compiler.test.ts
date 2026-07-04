@@ -323,7 +323,7 @@ describe("CityWorld compiler", () => {
     const report = analyzeCityWorldScene(city, "playable");
 
     expect(report.type).toBe("cityWorldEngineDiagnostics");
-    expect(report.update).toBe("prealpha-0.6f-engine-diagnostics");
+    expect(report.update).toBe("postalpha-0.51e-engine-diagnostics");
     expect(report.hardBlockers).toEqual([]);
     expect(report.metrics.terrainMassingCoverageRatio).toBeGreaterThanOrEqual(0.88);
     expect(report.metrics.terrainAuthoredCoverageRatio).toBeGreaterThan(0.2);

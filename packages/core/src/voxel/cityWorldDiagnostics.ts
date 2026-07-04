@@ -3,7 +3,8 @@ import type {
   CityWorldPoint,
   CityWorldScene,
 } from "./cityWorldTypes.js";
-import { cityWorldClamp, cityWorldPointDistance, cityWorldSegmentLength } from "./cityWorldBasis.js";
+import { cityWorldClamp, cityWorldPointDistance, cityWorldSegmentLength, cityWorldSilhouetteBucket } from "./cityWorldBasis.js";
+import { resolveEffectiveBuildingColors } from "./cityWorldPaletteRegistry.js";
 import {
   cityWorldBuildingTouchesLot,
   cityWorldLotTouchesRoad,
@@ -33,7 +34,7 @@ export type CityWorldEngineDiagnosticIssue = {
 
 export type CityWorldEngineDiagnosticReport = {
   type: "cityWorldEngineDiagnostics";
-  update: "prealpha-0.6f-engine-diagnostics";
+  update: "postalpha-0.51e-engine-diagnostics";
   sceneId: string;
   scenario: CityWorldEngineDiagnosticScenario;
   coverageTier: NonNullable<CityWorldScene["coverage"]>["coverageTier"] | "NONE";
@@ -209,7 +210,7 @@ export function analyzeCityWorldScene(
 
   return {
     type: "cityWorldEngineDiagnostics",
-    update: "prealpha-0.6f-engine-diagnostics",
+    update: "postalpha-0.51e-engine-diagnostics",
     sceneId: scene.id,
     scenario,
     coverageTier: scene.coverage?.coverageTier ?? "NONE",
@@ -728,13 +729,19 @@ function sortViewportMetrics(record: Record<string, CityWorldViewportComposition
 }
 
 function homeVariantKey(building: CityWorldBuilding): string {
+  // Key on what the player actually sees:
+  // - the EFFECTIVE rendered palette (spriteKey/paletteKey -> manifest
+  //   resolution), not the authored scene-data color the renderer discards
+  //   for non-draft buildings; and
+  // - the silhouette class (half-tile footprint + story count), not 0.1-tile
+  //   dimension jitter that does not read at map zoom.
+  const effective = resolveEffectiveBuildingColors(building);
   return [
     building.facadeStyle ?? "none",
     building.roofShape ?? "none",
-    building.width.toFixed(1),
-    building.depth.toFixed(1),
-    building.height.toFixed(1),
-    building.roofColor.toLowerCase(),
+    cityWorldSilhouetteBucket(building.width, building.depth, building.height),
+    effective.bodyColor,
+    effective.roofColor,
   ].join("|");
 }
 

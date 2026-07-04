@@ -124,10 +124,33 @@ async function evaluateMetrics() {
       compileDistrictPlaceAnchorDraftCityWorldScene,
       parseDistrictPlaceAnchorPack,
       riversideDemoVoxelScene,
+      CITY_WORLD_BUILDING_PALETTES,
     } = await import("../packages/core/dist/index.js");
     const scene = compileCityWorldScene(riversideDemoVoxelScene);
     const objectKit = analyzeCityWorldObjectKit(scene);
     const diagnostics = analyzeCityWorldScene(scene, "playable");
+
+    // Honest-metric guarantee (0.51E): the core effective-palette registry must
+    // mirror the atlas manifest byte-for-byte for every building.* palette, or
+    // clone/variant diagnostics would key on colors the renderer never draws.
+    const manifest = JSON.parse(readFileSync(join(root, "packages/assets/city-world/atlas.manifest.json"), "utf8"));
+    const manifestBuildingPalettes = Object.entries(manifest.palettes ?? {}).filter(([key]) => key.startsWith("building."));
+    for (const [key, palette] of manifestBuildingPalettes) {
+      const registryColors = CITY_WORLD_BUILDING_PALETTES?.[key];
+      if (!registryColors) {
+        localBlockers.push(`Effective-palette registry is missing manifest building palette ${key}.`);
+        continue;
+      }
+      for (const channel of ["base", "roof", "shade", "highlight", "trim"]) {
+        const manifestValue = palette.colors?.[channel];
+        if (manifestValue !== undefined && registryColors[channel]?.toLowerCase() !== manifestValue.toLowerCase()) {
+          localBlockers.push(`Effective-palette registry ${key}.${channel} (${registryColors[channel]}) diverges from manifest (${manifestValue}).`);
+        }
+      }
+    }
+    for (const key of Object.keys(CITY_WORLD_BUILDING_PALETTES ?? {})) {
+      if (!manifest.palettes?.[key]) localBlockers.push(`Effective-palette registry has stale key ${key} absent from the manifest.`);
+    }
 
     requireMetricAtLeast(localBlockers, objectKit.metrics.prefabCoverageRatio, 1, "prefabCoverageRatio");
     requireMetricAtLeast(localBlockers, objectKit.metrics.paletteCohesionRatio, 0.9, "paletteCohesionRatio");

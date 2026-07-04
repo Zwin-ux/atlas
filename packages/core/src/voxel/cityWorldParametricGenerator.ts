@@ -453,25 +453,75 @@ type ZoneBuildingSpec = {
   roofShape: NonNullable<CityWorldBuilding["roofShape"]>;
 };
 
+/**
+ * A dimension-jittered spec POOL. Each generated building draws from a pool of
+ * archetype templates and applies a deterministic ±15% jitter to width/depth/
+ * height, so buildings within a family cross half-tile silhouette buckets
+ * instead of being byte-identical clones. Roof shape is mixed per archetype.
+ * Body/roof colors are muted placeholders only — the effective on-screen color
+ * resolves through the hash-assigned palette variant in withBuildingMetadata.
+ */
+type ZoneBuildingTemplate = Omit<ZoneBuildingSpec, "bodyColor" | "roofColor"> & {
+  bodyColors: string[];
+  roofColors: string[];
+};
+
+const RESIDENTIAL_TEMPLATE_POOL: Array<{ weight: number; template: ZoneBuildingTemplate }> = [
+  { weight: 0.4, template: { kind: "home", width: 1.35, depth: 1.1, height: 1.22, facadeStyle: "cottage", roofShape: "gable", bodyColors: ["#f2dfc4", "#ead4b6", "#f6e7cf"], roofColors: ["#b86f4c", "#8a6a52", "#b99358"] } },
+  { weight: 0.4, template: { kind: "home", width: 1.42, depth: 1.14, height: 1.72, facadeStyle: "cottage", roofShape: "hip", bodyColors: ["#f0dcc4", "#ecdcc0"], roofColors: ["#6f8fa8", "#7d9a86"] } },
+  { weight: 0.75, template: { kind: "home", width: 1.95, depth: 1.15, height: 1.06, facadeStyle: "ranch", roofShape: "hip", bodyColors: ["#e8c9aa", "#ecd2b0"], roofColors: ["#7f9b6e", "#5f7f8e", "#a76f4e"] } },
+  { weight: 0.75, template: { kind: "home", width: 2.4, depth: 1.45, height: 1.12, facadeStyle: "ranch", roofShape: "gable", bodyColors: ["#ecd6b6", "#e8cfad"], roofColors: ["#a9704f", "#5f7f8e"] } },
+  { weight: 1, template: { kind: "home", width: 3.1, depth: 1.2, height: 1.5, facadeStyle: "rowhome", roofShape: "flat", bodyColors: ["#f2dfc2", "#eed9c0"], roofColors: ["#607d84", "#6f9ca7"] } },
+];
+
+const COMMERCIAL_TEMPLATE_POOL: ZoneBuildingTemplate[] = [
+  { kind: "shop", width: 3.0, depth: 1.7, height: 1.4, facadeStyle: "strip_store", roofShape: "flat", bodyColors: ["#efd8b6", "#eedcc4"], roofColors: ["#3f8b8c", "#6f9a86"] },
+  { kind: "shop", width: 3.6, depth: 1.5, height: 1.1, facadeStyle: "strip_store", roofShape: "flat", bodyColors: ["#efdcc0", "#f2dfc2"], roofColors: ["#c48a5a", "#82a4c4"] },
+  { kind: "shop", width: 2.6, depth: 1.95, height: 1.6, facadeStyle: "strip_store", roofShape: "hip", bodyColors: ["#eedcc4", "#efd8b6"], roofColors: ["#6f9a86", "#c48a5a"] },
+];
+
+const APARTMENT_TEMPLATE_POOL: ZoneBuildingTemplate[] = [
+  { kind: "apartment", width: 2.4, depth: 1.9, height: 2.8, facadeStyle: "lowrise", roofShape: "flat", bodyColors: ["#ead7bb", "#e3cfae"], roofColors: ["#6d8f6f", "#587a8e"] },
+  { kind: "apartment", width: 3.0, depth: 1.7, height: 2.2, facadeStyle: "lowrise", roofShape: "flat", bodyColors: ["#e7c9a8", "#e3d0b4"], roofColors: ["#416f82", "#8a6f95"] },
+];
+
+const GYM_TEMPLATE_POOL: ZoneBuildingTemplate[] = [
+  { kind: "gym", width: 4.0, depth: 2.6, height: 2.0, facadeStyle: "fitness", roofShape: "sawtooth", bodyColors: ["#d7e7ef", "#d3e2ea"], roofColors: ["#a76f4e", "#5f8fa6"] },
+];
+
+function applyDimensionJitter(template: ZoneBuildingTemplate, rng: () => number): ZoneBuildingSpec {
+  const jitter = (value: number) => Math.round(value * (1 + (rng() - 0.5) * 0.3) * 100) / 100;
+  return {
+    kind: template.kind,
+    width: jitter(template.width),
+    depth: jitter(template.depth),
+    height: jitter(template.height),
+    bodyColor: pick(rng, template.bodyColors),
+    roofColor: pick(rng, template.roofColors),
+    facadeStyle: template.facadeStyle,
+    roofShape: template.roofShape,
+  };
+}
+
 function buildingSpecForZone(kind: CityWorldZoneKind, rng: () => number): ZoneBuildingSpec | null {
   if (kind === "residential") {
-    const roll = rng();
-    if (roll < 0.4) {
-      return { kind: "home", width: 1.35, depth: 1.1, height: 1.22, bodyColor: pick(rng, ["#f2dfc4", "#ead4b6", "#f6e7cf"]), roofColor: pick(rng, ["#b86f4c", "#8a6a52", "#b99358"]), facadeStyle: "cottage", roofShape: "gable" };
+    const totalWeight = RESIDENTIAL_TEMPLATE_POOL.reduce((sum, entry) => sum + entry.weight, 0);
+    let roll = rng() * totalWeight;
+    for (const entry of RESIDENTIAL_TEMPLATE_POOL) {
+      roll -= entry.weight;
+      if (roll <= 0) return applyDimensionJitter(entry.template, rng);
     }
-    if (roll < 0.75) {
-      return { kind: "home", width: 1.95, depth: 1.15, height: 1.06, bodyColor: pick(rng, ["#e8c9aa", "#ecd2b0"]), roofColor: pick(rng, ["#7f9b6e", "#5f7f8e", "#a76f4e"]), facadeStyle: "ranch", roofShape: "hip" };
-    }
-    return { kind: "home", width: 3.1, depth: 1.2, height: 1.5, bodyColor: "#f2dfc2", roofColor: pick(rng, ["#607d84", "#6f9ca7"]), facadeStyle: "rowhome", roofShape: "flat" };
+    const last = RESIDENTIAL_TEMPLATE_POOL[RESIDENTIAL_TEMPLATE_POOL.length - 1];
+    return last ? applyDimensionJitter(last.template, rng) : null;
   }
   if (kind === "commercial") {
-    return { kind: "shop", width: 3.0, depth: 1.7, height: 1.4, bodyColor: "#efd8b6", roofColor: "#3f8b8c", facadeStyle: "strip_store", roofShape: "flat" };
+    return applyDimensionJitter(pick(rng, COMMERCIAL_TEMPLATE_POOL), rng);
   }
   if (kind === "apartments") {
-    return { kind: "apartment", width: 2.4, depth: 1.9, height: 2.8, bodyColor: pick(rng, ["#ead7bb", "#e3cfae", "#e7c9a8"]), roofColor: pick(rng, ["#6d8f6f", "#587a8e", "#416f82"]), facadeStyle: "lowrise", roofShape: "flat" };
+    return applyDimensionJitter(pick(rng, APARTMENT_TEMPLATE_POOL), rng);
   }
   if (kind === "gym") {
-    return { kind: "gym", width: 4.0, depth: 2.6, height: 2.0, bodyColor: "#d7e7ef", roofColor: "#a76f4e", facadeStyle: "fitness", roofShape: "sawtooth" };
+    return applyDimensionJitter(pick(rng, GYM_TEMPLATE_POOL), rng);
   }
   if (kind === "civic") {
     return { kind: "civic", width: 3.4, depth: 2.5, height: 2.8, bodyColor: "#f3dfbd", roofColor: "#5d8fa8", facadeStyle: "civic", roofShape: "tower" };

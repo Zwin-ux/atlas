@@ -7,6 +7,7 @@ export * from "./cityWorldObjectKit.js";
 export * from "./cityWorldRenderCommands.js";
 export * from "./cityWorldSceneWindow.js";
 export * from "./cityWorldDiagnostics.js";
+export * from "./cityWorldPaletteRegistry.js";
 export * from "./cityWorldAtlas.js";
 export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistrictPlaceAnchorDraftCityWorldScene, withBuildingMetadata, withLotMetadata, withRoadMetadata, withPropMetadata } from "./cityWorldCompiler.js";
 export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./cityWorldCompiler.js";

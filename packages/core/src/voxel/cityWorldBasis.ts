@@ -151,3 +151,15 @@ function screenPointToCityWorldGround(point: CityWorldProjectedPoint, camera: Ci
 function roundFrameValue(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
+
+/**
+ * Silhouette bucket for clone/variant identity. At map zoom, sub-quarter-tile
+ * dimension jitter does not read as a different building: what reads is the
+ * silhouette class — footprint at half-tile granularity plus story count.
+ * Keying variant metrics on this bucket (instead of 0.1-tile dimensions)
+ * stops micro-jitter from masquerading as authored variety.
+ */
+export function cityWorldSilhouetteBucket(width: number, depth: number, height: number): string {
+  const halfTile = (value: number) => (Math.round(value * 2) / 2).toFixed(1);
+  return `${halfTile(width)}x${halfTile(depth)}x${Math.max(1, Math.round(height))}`;
+}
