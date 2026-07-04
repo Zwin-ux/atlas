@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
+import { Application, Container, Filter, GlProgram, Graphics, Sprite, Text } from "pixi.js";
 import {
   CITY_WORLD_TILE_BASIS,
   cityWorldDiamondPoints,
@@ -68,7 +68,7 @@ type AnimatedTarget = {
 };
 
 type LayerMap = Record<
-  "terrainLayer" | "roadLayer" | "lotLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
+  "terrainLayer" | "roadLayer" | "lotLayer" | "padLayer" | "shadowLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
   Container
 >;
 
@@ -99,43 +99,145 @@ const TILE_DEPTH = CITY_WORLD_TILE_BASIS.tileDepth;
 const STREAMING_WINDOW_MARGIN_TILES = 3;
 const STREAMING_REFRESH_MARGIN_TILES = 0.75;
 
+// ---- Unified sun model ----------------------------------------------------
+// One fixed key light for the whole scene: sun sits to the screen upper-left
+// at roughly 40 degrees elevation. Every face in the world shades from the
+// same source: tops are brightest (warm), lower-left faces catch the sun,
+// lower-right faces fall into cool shade, and cast shadows skew to the
+// lower-right along the sun->ground vector.
+const SUN_WARM_TINT = 0xffe2ae;
+const SUN_COOL_TINT = 0x46658a;
+const CAST_SHADOW_COLOR = 0x27404b;
+const CAST_SHADOW_ALPHA = 0.5;
+// Screen-space ground offset of a cast shadow per pixel of object height.
+const CAST_SHADOW_VECTOR = { x: 0.92, y: 0.21 };
+const BACKGROUND_COLOR = 0xa6b87c;
+
 const TERRAIN_COLORS = {
-  grass: 0x92c977,
-  park: 0x65b765,
-  plaza: 0xd8c79d,
-  water: 0x69bfd0,
-  sidewalk: 0xaed39b,
+  grass: 0xa3b877,
+  park: 0x83aa64,
+  plaza: 0xd6c49a,
+  water: 0x5fadc4,
+  sidewalk: 0xc2c7a0,
 } satisfies Record<CityWorldTerrainTile["kind"], number>;
 
 const DRAFT_TERRAIN_COLORS = {
-  grass: 0x9bc982,
-  park: 0x74b76d,
-  plaza: 0xdcc89b,
-  water: 0x70b9c5,
-  sidewalk: 0xc9bf91,
+  grass: 0xa9b981,
+  park: 0x8cab6e,
+  plaza: 0xd8c599,
+  water: 0x67aabc,
+  sidewalk: 0xc6bd92,
 } satisfies Record<CityWorldTerrainTile["kind"], number>;
 
 const LOT_COLORS = {
-  home: 0xcbe7a2,
-  shop: 0xe8d4a8,
-  park: 0x72c56b,
-  gym: 0xb8d3df,
-  apartments: 0xd9c5a8,
-  civic: 0xe5d6b4,
-  waterfront: 0x8fd5df,
+  home: 0xbdcd90,
+  shop: 0xe0cba2,
+  park: 0x84ad68,
+  gym: 0xb4cbd4,
+  apartments: 0xd4c1a4,
+  civic: 0xdfd0ae,
+  waterfront: 0x93ccd4,
 } satisfies Record<CityWorldLot["kind"], number>;
 
 const DRAFT_LOT_COLORS = {
-  home: 0xd3d49b,
-  shop: 0xe2c491,
-  park: 0x82bc6d,
-  gym: 0xd3d1b5,
-  apartments: 0xd7c1a1,
-  civic: 0xe4d0a8,
-  waterfront: 0x96ccd0,
+  home: 0xc6c791,
+  shop: 0xdcc08e,
+  park: 0x8bad6c,
+  gym: 0xcccaae,
+  apartments: 0xd2bd9d,
+  civic: 0xdecca4,
+  waterfront: 0x97c6ca,
 } satisfies Record<CityWorldLot["kind"], number>;
 
-const PARKED_CAR_COLORS = [0xd94c42, 0x3c7fb5, 0x5ca96a, 0xf1d36d, 0xb45c8c];
+const PARKED_CAR_COLORS = [0xc65a4e, 0x4a7ba4, 0x63a06e, 0xdcc57a, 0xa96687];
+
+// ---- Whole-canvas golden-hour grade ---------------------------------------
+// One post pass over the Pixi stage: gentle contrast S-curve, warm-highlight /
+// cool-shadow split tone, soft vignette, warm atmospheric edge haze, and a
+// 1-bit dither to kill gradient banding. Physically motivated (sunlight +
+// atmosphere), not a glow effect.
+const GRADE_VERTEX_SHADER = `
+in vec2 aPosition;
+out vec2 vTextureCoord;
+out vec2 vFrameCoord;
+
+uniform vec4 uInputSize;
+uniform vec4 uOutputFrame;
+uniform vec4 uOutputTexture;
+
+vec4 filterVertexPosition( void )
+{
+    vec2 position = aPosition * uOutputFrame.zw + uOutputFrame.xy;
+    position.x = position.x * (2.0 / uOutputTexture.x) - 1.0;
+    position.y = position.y * (2.0 * uOutputTexture.z / uOutputTexture.y) - uOutputTexture.z;
+    return vec4(position, 0.0, 1.0);
+}
+
+vec2 filterTextureCoord( void )
+{
+    return aPosition * (uOutputFrame.zw * uInputSize.zw);
+}
+
+void main(void)
+{
+    gl_Position = filterVertexPosition();
+    vTextureCoord = filterTextureCoord();
+    vFrameCoord = aPosition;
+}
+`;
+
+const GRADE_FRAGMENT_SHADER = `
+in vec2 vTextureCoord;
+in vec2 vFrameCoord;
+out vec4 finalColor;
+
+uniform sampler2D uTexture;
+
+void main(void)
+{
+    vec4 source = texture(uTexture, vTextureCoord);
+    vec3 c = source.rgb;
+
+    // Gentle S-curve for form contrast.
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.26);
+
+    // Slight saturation trim keeps the palette calm.
+    float luma = dot(c, vec3(0.299, 0.587, 0.114));
+    c = mix(vec3(luma), c, 0.9);
+
+    // Golden-hour split tone: warm sunlit highlights, cool shadows.
+    vec3 warm = vec3(1.055, 1.005, 0.915);
+    vec3 cool = vec3(0.925, 0.975, 1.065);
+    c *= mix(cool, warm, smoothstep(0.16, 0.86, luma));
+
+    // Soft vignette pulls focus to the district.
+    vec2 p = vFrameCoord - 0.5;
+    float radius = dot(p, p);
+    float vignette = mix(0.86, 1.0, smoothstep(0.62, 0.12, radius));
+    c *= vignette;
+
+    // Light atmospheric haze toward a warm sky tone at the frame edges.
+    float haze = smoothstep(0.24, 0.62, radius);
+    c = mix(c, vec3(0.955, 0.93, 0.83), haze * 0.11);
+
+    // Fine dither hides banding in the large ground gradients.
+    float noise = fract(sin(dot(vFrameCoord, vec2(12.9898, 78.233))) * 43758.5453);
+    c += (noise - 0.5) * (1.6 / 255.0);
+
+    finalColor = vec4(c, source.a);
+}
+`;
+
+function createAtlasGradeFilter(): Filter {
+  return new Filter({
+    glProgram: GlProgram.from({
+      vertex: GRADE_VERTEX_SHADER,
+      fragment: GRADE_FRAGMENT_SHADER,
+      name: "atlas-golden-hour-grade",
+    }),
+    resources: {},
+  });
+}
 
 export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRendererProps>(function CityWorldRenderer(
   { scene, selectedPlaceId, cameraPresetId, debugMode, onSelectPlace },
@@ -200,7 +302,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       await app.init({
         autoDensity: true,
         antialias: true,
-        background: 0xa8d982,
+        background: BACKGROUND_COLOR,
         preference: "webgl",
         resolution: Math.min(window.devicePixelRatio || 1, 2),
         resizeTo: mountElement,
@@ -213,10 +315,25 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
 
       app.canvas.className = "city-world-canvas";
       mountElement.appendChild(app.canvas);
+      // Backdrop lives inside the stage so the post grade (vignette/haze)
+      // covers the open ground beyond the streamed tile window too.
+      const backdrop = new Graphics();
+      const paintBackdrop = () => {
+        backdrop.clear().rect(0, 0, app.screen.width + 2, app.screen.height + 2).fill({ color: BACKGROUND_COLOR });
+      };
+      paintBackdrop();
+      app.renderer.on("resize", paintBackdrop);
+      app.stage.addChild(backdrop);
       const world = new Container();
       world.sortableChildren = true;
       worldRef.current = world;
       app.stage.addChild(world);
+      try {
+        app.stage.filters = [createAtlasGradeFilter()];
+        app.stage.filterArea = app.screen;
+      } catch (error) {
+        console.warn("Atlas golden-hour grade filter unavailable. Continuing without post grade.", error);
+      }
       app.ticker.add((ticker) => animateTargets(animatedRef.current, ticker.deltaTime));
       setReady(true);
     }
@@ -455,7 +572,7 @@ function drawScene(
   for (const lot of orderedSceneItems(renderCommands, "lot", scene.lots)) drawLot(layers.lotLayer, lot);
 
   const buildings = orderedSceneItems(renderCommands, "building", scene.buildings);
-  for (const building of buildings) drawBuilding(layers.buildingLayer, building, building.placeId === selectedPlaceId, building.placeId === hoverPlaceId, atlas);
+  for (const building of buildings) drawBuilding(layers, building, building.placeId === selectedPlaceId, building.placeId === hoverPlaceId, atlas);
 
   const props = orderedSceneItems(renderCommands, "prop", scene.props);
   for (const prop of props) drawProp(layers.propLayer, prop, animated, atlas);
@@ -610,6 +727,8 @@ function createLayers(): LayerMap {
     terrainLayer: namedLayer("terrainLayer"),
     roadLayer: namedLayer("roadLayer"),
     lotLayer: namedLayer("lotLayer"),
+    padLayer: namedLayer("padLayer"),
+    shadowLayer: namedLayer("shadowLayer"),
     buildingLayer: namedLayer("buildingLayer"),
     propLayer: namedLayer("propLayer"),
     actorLayer: namedLayer("actorLayer"),
@@ -629,19 +748,38 @@ function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
   const point = project(tile.position);
   const draftTile = isDraftTile(tile.id);
   const baseColor = draftTile ? DRAFT_TERRAIN_COLORS[tile.kind] : TERRAIN_COLORS[tile.kind];
-  const variation = (tile.variant - 2) * (tile.kind === "water" ? 5 : tile.kind === "grass" ? 2.5 : 4);
-  const color = shadeColor(baseColor, variation);
-  const alpha = draftTile ? (tile.kind === "grass" ? 0.56 + tile.variant * 0.008 : 0.82) : tile.kind === "water" ? 0.95 : tile.kind === "grass" ? 0.5 + tile.variant * 0.01 : 0.84;
+  // Deterministic tonal variation: two low-frequency waves plus a whisper of
+  // per-tile hash so the ground reads as planted terrain, not a flat board —
+  // and not a checkerboard. Calm range only.
+  const lowFrequencyTone =
+    Math.sin(tile.position.x * 0.16 + tile.position.y * 0.23) * 3.4 +
+    Math.sin(tile.position.x * 0.055 - tile.position.y * 0.083) * 3.0;
+  const toneHash = ((tile.position.x * 73856093) ^ (tile.position.y * 19349663) ^ (tile.variant * 83492791)) >>> 0;
+  const hashTone = ((toneHash % 5) - 2) * 0.8;
+  const toneScale = tile.kind === "water" ? 0.7 : tile.kind === "grass" ? 1.25 : 0.6;
+  const variation = (tile.variant - 2) * (tile.kind === "water" ? 2.4 : tile.kind === "grass" ? 1.2 : 1.8) + (lowFrequencyTone + hashTone) * toneScale;
+  // Ground sits a half-step below the sunlit rooftops so built forms read
+  // bright against the terrain instead of blending into it.
+  const color = mixColor(scaleColor(shadeColor(baseColor, variation), 0.98), SUN_WARM_TINT, 0.07);
+  const alpha = draftTile ? (tile.kind === "grass" ? 0.84 : 0.92) : tile.kind === "water" ? 0.97 : tile.kind === "grass" ? 0.92 : 0.94;
   const strokeAlpha = draftTile ? (tile.kind === "grass" ? 0.018 : 0.1) : tile.kind === "grass" ? 0.026 : tile.kind === "water" ? 0.18 : 0.12;
-  const graphic = polygon(diamondPoints(point, TILE_WIDTH + 1, TILE_HEIGHT + 1), color, alpha, tile.kind === "water" ? 0x3a8ea1 : draftTile ? 0x7a8a58 : 0x5b8b52, strokeAlpha);
+  const graphic = polygon(diamondPoints(point, TILE_WIDTH + 1, TILE_HEIGHT + 1), color, alpha, tile.kind === "water" ? 0x3a8ea1 : draftTile ? 0x7a8a58 : 0x6d824f, strokeAlpha);
   drawTerrainChunkMassing(layer, tile, point, color);
   drawTerrainElevationEdges(layer, tile, point, color);
 
-  if (tile.kind === "water" && tile.variant % 2 === 0) {
+  if (tile.kind === "water") {
+    // Gentle depth gradient + sheen: lighter toward the sun edge, darker below.
     graphic
-      .moveTo(point.x - 11, point.y - 1)
-      .lineTo(point.x + 13, point.y - 1)
-      .stroke({ color: 0xe9fbff, alpha: 0.24, width: 1.2, cap: "round" });
+      .poly([point.x - TILE_WIDTH * 0.5, point.y, point.x, point.y - TILE_HEIGHT * 0.5, point.x + TILE_WIDTH * 0.16, point.y - TILE_HEIGHT * 0.34, point.x - TILE_WIDTH * 0.28, point.y + TILE_HEIGHT * 0.1], true)
+      .fill({ color: 0xa9dcE6, alpha: 0.16 })
+      .poly([point.x + TILE_WIDTH * 0.5, point.y, point.x, point.y + TILE_HEIGHT * 0.5, point.x - TILE_WIDTH * 0.14, point.y + TILE_HEIGHT * 0.36, point.x + TILE_WIDTH * 0.26, point.y - TILE_HEIGHT * 0.08], true)
+      .fill({ color: 0x2a6d84, alpha: 0.14 });
+    if (tile.variant % 2 === 0) {
+      graphic
+        .moveTo(point.x - 11, point.y - 1)
+        .lineTo(point.x + 13, point.y - 1)
+        .stroke({ color: 0xe9fbff, alpha: 0.2, width: 1.1, cap: "round" });
+    }
   } else if (tile.kind === "park" && tile.variant % 3 === 0) {
     graphic.circle(point.x - 5, point.y - 1, 1.8).fill({ color: 0xd8f0b2, alpha: 0.32 });
   } else if (tile.kind === "plaza" && tile.variant % 2 === 0) {
@@ -676,20 +814,24 @@ function drawTerrainChunkMassing(layer: Container, tile: CityWorldTerrainTile, p
     0x1d2a22,
     0,
   );
+  // Sun-consistent massing faces: lower-left face lit, lower-right in shade.
+  const massLit = sunlitColor(config.rightColor, "sun");
+  const massShade = sunlitColor(config.leftColor, "shade");
+  const massAlpha = Math.min(config.faceAlpha * 1.9, 0.5);
   const leftFace = new Graphics()
     .moveTo(point.x - width * 0.5, point.y)
     .lineTo(point.x, point.y + height * 0.5)
     .lineTo(point.x, point.y + height * 0.5 + depth)
     .lineTo(point.x - width * 0.5, point.y + depth)
     .closePath()
-    .fill({ color: config.leftColor, alpha: config.faceAlpha });
+    .fill({ color: massLit, alpha: massAlpha * 0.82 });
   const rightFace = new Graphics()
     .moveTo(point.x, point.y + height * 0.5)
     .lineTo(point.x + width * 0.5, point.y)
     .lineTo(point.x + width * 0.5, point.y + depth)
     .lineTo(point.x, point.y + height * 0.5 + depth)
     .closePath()
-    .fill({ color: config.rightColor, alpha: config.faceAlpha * 0.92 });
+    .fill({ color: massShade, alpha: massAlpha });
   const underside = new Graphics()
     .moveTo(point.x - width * 0.5, point.y + depth)
     .lineTo(point.x, point.y + height * 0.5 + depth)
@@ -853,8 +995,8 @@ function drawTerrainElevationEdges(layer: Container, tile: CityWorldTerrainTile,
   const cut = elevation === "water_edge_cut";
   const basin = elevation === "park_basin_shelf";
   const depth = elevation === "civic_plinth_shelf" ? 7 : cut ? 8 : basin ? 4 : 5;
-  const sideColor = cut ? 0x6297a1 : basin ? shadeColor(color, -22) : shadeColor(color, -34);
-  const faceAlpha = cut ? 0.18 : elevation === "civic_plinth_shelf" ? 0.2 : 0.14;
+  const sideColor = cut ? sunlitColor(0x6297a1, "shade") : sunlitColor(shadeColor(color, basin ? -8 : -12), "shade");
+  const faceAlpha = cut ? 0.4 : elevation === "civic_plinth_shelf" ? 0.42 : 0.3;
 
   if (raised || cut || (basin && hash % 2 === 0)) {
     const frontFace = new Graphics()
@@ -886,11 +1028,11 @@ function isDraftTile(id: string) {
 function drawGrassFacet(graphic: Graphics, tile: CityWorldTerrainTile, point: ProjectedPoint) {
   const hash = (tile.position.x * 19 + tile.position.y * 23 + tile.variant * 11) % 29;
 
-  if (hash === 0 || hash === 9) {
-    const patch = hash === 0 ? shadeColor(TERRAIN_COLORS.grass, 16) : shadeColor(TERRAIN_COLORS.grass, -10);
+  if (hash === 0 || hash === 9 || hash === 21) {
+    const patch = hash === 0 ? shadeColor(TERRAIN_COLORS.grass, 14) : hash === 9 ? shadeColor(TERRAIN_COLORS.grass, -12) : mixColor(TERRAIN_COLORS.grass, 0xcabf7e, 0.5);
     graphic
       .poly([point.x - 12, point.y - 2, point.x - 2, point.y - 7, point.x + 10, point.y - 1, point.x, point.y + 5], true)
-      .fill({ color: patch, alpha: 0.035 });
+      .fill({ color: patch, alpha: 0.1 });
   }
 
   if (hash === 3 || hash === 17) {
@@ -898,7 +1040,13 @@ function drawGrassFacet(graphic: Graphics, tile: CityWorldTerrainTile, point: Pr
       .moveTo(point.x - 13, point.y + 1)
       .lineTo(point.x - 2, point.y + 6)
       .lineTo(point.x + 12, point.y)
-      .stroke({ color: 0xd9edaf, alpha: 0.055, width: 1, cap: "round", join: "round" });
+      .stroke({ color: 0xd9edaf, alpha: 0.09, width: 1, cap: "round", join: "round" });
+  }
+
+  if (hash === 6 || hash === 25) {
+    graphic
+      .poly([point.x + 4, point.y - 4, point.x + 13, point.y - 1, point.x + 6, point.y + 3, point.x - 1, point.y], true)
+      .fill({ color: shadeColor(TERRAIN_COLORS.grass, -18), alpha: 0.08 });
   }
 }
 
@@ -976,16 +1124,18 @@ function drawTerrainElevationChunkFace(graphic: Graphics, tile: CityWorldTerrain
   if (!elevation || (elevation === "flat_field" && chunkEdge === "none") || elevation === "shell_flat") return;
 
   const depth = terrainElevationDepth(elevation, chunkEdge);
-  const leftShade = shadeColor(color, elevation === "water_edge_cut" ? -38 : -30);
-  const rightShade = shadeColor(color, elevation === "park_basin_shelf" ? -18 : -24);
+  // Elevation risers obey the scene sun: the lower-left face is lit, the
+  // lower-right face is in shade, so terrain steps read as real height.
+  const leftShade = sunlitColor(shadeColor(color, elevation === "water_edge_cut" ? -16 : -8), "sun");
+  const rightShade = sunlitColor(color, "shade");
   const faceAlpha =
     elevation === "hidden_draft_shelf"
-      ? 0.13
+      ? 0.3
       : elevation === "water_edge_cut"
-        ? 0.22
+        ? 0.5
         : elevation === "civic_plinth_shelf"
-          ? 0.18
-          : 0.14;
+          ? 0.46
+          : 0.38;
 
   if (depth > 0) {
     graphic
@@ -1002,7 +1152,7 @@ function drawTerrainElevationChunkFace(graphic: Graphics, tile: CityWorldTerrain
         ],
         true,
       )
-      .fill({ color: leftShade, alpha: faceAlpha });
+      .fill({ color: leftShade, alpha: faceAlpha * 0.8 });
     graphic
       .poly(
         [
@@ -1017,7 +1167,7 @@ function drawTerrainElevationChunkFace(graphic: Graphics, tile: CityWorldTerrain
         ],
         true,
       )
-      .fill({ color: rightShade, alpha: faceAlpha * 0.92 });
+      .fill({ color: rightShade, alpha: faceAlpha });
   }
 
   if (chunkEdge !== "none") {
@@ -1663,21 +1813,21 @@ function drawParcelElevationShelf(layer: Container, point: ProjectedPoint, width
               : elevation === "park_basin_lip"
                 ? 3
                 : 4.5;
-  const alpha = draftLot ? 0.2 : elevation === "civic_plinth_stack" ? 0.22 : 0.16;
+  const alpha = draftLot ? 0.34 : elevation === "civic_plinth_stack" ? 0.42 : 0.32;
   const leftFace = new Graphics()
     .moveTo(point.x - width * 0.5, point.y)
     .lineTo(point.x, point.y + height * 0.5)
     .lineTo(point.x, point.y + height * 0.5 + depth)
     .lineTo(point.x - width * 0.5, point.y + depth)
     .closePath()
-    .fill({ color: shadeColor(color, -34), alpha });
+    .fill({ color: sunlitColor(shadeColor(color, -8), "sun"), alpha: alpha * 0.8 });
   const rightFace = new Graphics()
     .moveTo(point.x, point.y + height * 0.5)
     .lineTo(point.x + width * 0.5, point.y)
     .lineTo(point.x + width * 0.5, point.y + depth)
     .lineTo(point.x, point.y + height * 0.5 + depth)
     .closePath()
-    .fill({ color: shadeColor(color, -24), alpha: alpha * 0.9 });
+    .fill({ color: sunlitColor(color, "shade"), alpha });
   const shelfRim = new Graphics()
     .moveTo(point.x - width * 0.5, point.y + depth * 0.55)
     .lineTo(point.x, point.y + height * 0.5 + depth * 0.75)
@@ -1988,9 +2138,13 @@ function drawCivicLotComposition(layer: Container, point: ProjectedPoint, width:
   layer.addChild(plinthShadow, civicGreen, civicCourt, paverGrid, civicSteps, sideBlockwork);
 }
 
-function drawBuilding(layer: Container, building: CityWorldBuilding, selected: boolean, hovered: boolean, atlas: CityWorldAtlasResolver) {
+function drawBuilding(layers: LayerMap, building: CityWorldBuilding, selected: boolean, hovered: boolean, atlas: CityWorldAtlasResolver) {
+  const layer = layers.buildingLayer;
   const geometry = createBuildingGeometry(building, selected, hovered, atlas);
-  drawBuildingFootprint(layer, geometry, building, selected, hovered);
+  // Foundation pads are ground decals: they live in a shared layer below every
+  // cast shadow so shadows land ON pads instead of being washed out by them.
+  drawBuildingFootprint(layers.padLayer, geometry, building, selected, hovered);
+  drawBuildingCastShadow(layers.shadowLayer, building);
 
   if (geometry.asset.mode === "sprite") {
     drawSpriteObjectAuthorshipBase(layer, geometry, building);
@@ -2860,6 +3014,38 @@ function drawHiddenDraftAnchorAuthorship(layer: Container, geometry: BuildingGeo
   layer.addChild(anchorHalo, roofRead, silhouetteRibs);
 }
 
+// Directional cast shadow: the building silhouette swept along the sun->ground
+// vector (sun upper-left, so shadows skew to the lower-right). Drawn in a
+// dedicated layer under all buildings so shadows land on ground and lots.
+function drawBuildingCastShadow(layer: Container, building: CityWorldBuilding) {
+  const bottom = project(building.position);
+  const heightPx = Math.min(building.height * TILE_DEPTH, 96) + 16;
+  if (heightPx <= 18) return;
+  const width = building.width * TILE_WIDTH * 0.96;
+  const depth = building.depth * TILE_HEIGHT * 0.92;
+  // Anchor a touch toward the shadow side so the sweep emerges past the
+  // building's foundation pad instead of hiding underneath it.
+  const anchorX = bottom.x + 5;
+  const anchorY = bottom.y + depth * 0.08;
+  const left = { x: anchorX - width * 0.5, y: anchorY };
+  const top = { x: anchorX, y: anchorY - depth * 0.5 };
+  const right = { x: anchorX + width * 0.5, y: anchorY };
+  const base = { x: anchorX, y: anchorY + depth * 0.5 };
+
+  const sweep = (reach: number, alpha: number) => {
+    const vx = CAST_SHADOW_VECTOR.x * heightPx * reach;
+    const vy = CAST_SHADOW_VECTOR.y * heightPx * reach;
+    return new Graphics()
+      .poly(
+        [top.x, top.y, left.x, left.y, base.x, base.y, base.x + vx, base.y + vy, right.x + vx, right.y + vy, top.x + vx, top.y + vy],
+        true,
+      )
+      .fill({ color: CAST_SHADOW_COLOR, alpha });
+  };
+
+  layer.addChild(sweep(1, CAST_SHADOW_ALPHA), sweep(0.5, 0.12));
+}
+
 function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
   const { bottom, footprintWidth, footprintDepth, bodyColor, roofColor, trimColor } = geometry;
   const spriteBacked = geometry.asset.mode === "sprite";
@@ -2905,11 +3091,11 @@ function buildingContactShadow(
 
   if (profile === "landmark_base_shadow") {
     const penumbra = new Graphics()
-      .ellipse(bottom.x, centerY + 2, padWidth * 0.68, padDepth * 0.74)
-      .fill({ color: 0x1d2a24, alpha: 0.1 + activeBoost * 0.4 + draftBoost * 0.5 });
+      .ellipse(bottom.x, centerY + 2, padWidth * 0.64, padDepth * 0.68)
+      .fill({ color: 0x1d2a24, alpha: 0.07 + activeBoost * 0.4 + draftBoost * 0.5 });
     const core = new Graphics()
-      .ellipse(bottom.x, centerY, padWidth * 0.5, padDepth * 0.56)
-      .fill({ color: 0x23342e, alpha: 0.24 + activeBoost + draftBoost });
+      .ellipse(bottom.x, centerY, padWidth * 0.44, padDepth * 0.5)
+      .fill({ color: 0x23342e, alpha: 0.18 + activeBoost + draftBoost });
     const plinthSeam = new Graphics()
       .moveTo(bottom.x - padWidth * 0.46, centerY + padDepth * 0.08)
       .lineTo(bottom.x, centerY + padDepth * 0.4)
@@ -2933,15 +3119,15 @@ function buildingContactShadow(
   }
 
   const padSkirt = polygon(
-    diamondPoints({ x: bottom.x, y: centerY + 1.5 }, padWidth * 1.08, padDepth * 0.96),
+    diamondPoints({ x: bottom.x, y: centerY + 1.5 }, padWidth * 1.06, padDepth * 0.92),
     0x23342e,
-    0.055 + activeBoost * 0.3 + draftBoost * 0.5,
+    0.05 + activeBoost * 0.3 + draftBoost * 0.5,
     0x23342e,
     0,
   );
   const core = new Graphics()
-    .ellipse(bottom.x, centerY, padWidth * 0.5, padDepth * 0.58)
-    .fill({ color: 0x23342e, alpha: 0.17 + activeBoost + draftBoost });
+    .ellipse(bottom.x, centerY, padWidth * 0.44, padDepth * 0.5)
+    .fill({ color: 0x23342e, alpha: 0.13 + activeBoost + draftBoost });
   return [padSkirt, core];
 }
 
@@ -2959,9 +3145,11 @@ function drawDraftFoundationMaterial(layer: Container, center: ProjectedPoint, w
 }
 
 function drawBuildingShell(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
-  const { bottom, top, footprintWidth, footprintDepth, bodyColor, roofColor, outline, activeStrokeAlpha } = geometry;
-  const sideLeft = shadeColor(bodyColor, building.facadeStyle ? -26 : -20);
-  const sideRight = shadeColor(bodyColor, building.facadeStyle ? -42 : -36);
+  const { bottom, top, footprintWidth, footprintDepth, bodyColor, outline, activeStrokeAlpha } = geometry;
+  // Unified sun: lower-left wall faces the sun, lower-right wall falls into
+  // cool shade. Same factors for every building in the scene.
+  const sideLeft = sunlitColor(bodyColor, "sun");
+  const sideRight = sunlitColor(bodyColor, "shade");
   const topLeft = { x: top.x - footprintWidth / 2, y: top.y };
   const topRight = { x: top.x + footprintWidth / 2, y: top.y };
   const topFront = { x: top.x, y: top.y + footprintDepth / 2 };
@@ -2971,13 +3159,53 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const leftSide = [topLeft.x, topLeft.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomLeft.x, bottomLeft.y];
   const rightSide = [topRight.x, topRight.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomRight.x, bottomRight.y];
 
-  const left = polygon(leftSide, sideLeft, 0.98, outline, activeStrokeAlpha);
-  const right = polygon(rightSide, sideRight, 0.98, outline, activeStrokeAlpha);
+  const left = polygon(leftSide, sideLeft, 0.99, outline, activeStrokeAlpha);
+  const right = polygon(rightSide, sideRight, 0.99, outline, activeStrokeAlpha);
   layer.addChild(left, right);
+  drawBuildingShellLighting(layer, geometry);
   drawWallDepthLines(layer, geometry, building);
   drawAuthoredWallMaterial(layer, geometry, building);
 
   drawRoof(layer, geometry, building, selected, hovered);
+}
+
+// Ambient occlusion + rim light for the box shell: dark gradient bands where
+// the walls meet the ground, a darkened seam on the front corner, and a warm
+// rim on the sun-facing top edge.
+function drawBuildingShellLighting(layer: Container, geometry: BuildingGeometry) {
+  const { bottom, top, footprintWidth, footprintDepth, height } = geometry;
+  const halfW = footprintWidth / 2;
+  const halfD = footprintDepth / 2;
+  const topFront = { x: top.x, y: top.y + halfD };
+  const bottomLeft = { x: bottom.x - halfW, y: bottom.y };
+  const bottomRight = { x: bottom.x + halfW, y: bottom.y };
+  const bottomFront = { x: bottom.x, y: bottom.y + halfD };
+
+  const aoBand = (lift: number, alpha: number) =>
+    new Graphics()
+      .poly(
+        [
+          bottomLeft.x, bottomLeft.y - lift,
+          bottomFront.x, bottomFront.y - lift,
+          bottomRight.x, bottomRight.y - lift,
+          bottomRight.x, bottomRight.y,
+          bottomFront.x, bottomFront.y,
+          bottomLeft.x, bottomLeft.y,
+        ],
+        true,
+      )
+      .fill({ color: 0x18262e, alpha });
+  const aoTall = Math.max(4, Math.min(height * 0.22, 12));
+  layer.addChild(aoBand(aoTall, 0.13), aoBand(aoTall * 0.5, 0.15));
+
+  const cornerSeam = new Graphics().moveTo(topFront.x, topFront.y).lineTo(bottomFront.x, bottomFront.y);
+  cornerSeam.stroke({ color: 0x18262e, alpha: 0.2, width: 1.2, cap: "round" });
+
+  const rim = new Graphics().moveTo(top.x - halfW, top.y).lineTo(topFront.x, topFront.y);
+  rim.stroke({ color: 0xfff0cd, alpha: 0.5, width: 1.4, cap: "round" });
+  const shadeEdge = new Graphics().moveTo(topFront.x, topFront.y).lineTo(top.x + halfW, top.y);
+  shadeEdge.stroke({ color: 0x1c2f3a, alpha: 0.26, width: 1.2, cap: "round" });
+  layer.addChild(cornerSeam, rim, shadeEdge);
 }
 
 function drawAuthoredWallMaterial(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -3059,8 +3287,23 @@ function drawAuthoredWallMaterial(layer: Container, geometry: BuildingGeometry, 
 function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
   const { top, footprintWidth, footprintDepth, roofColor, outline, activeStrokeAlpha } = geometry;
   const roofShape = building.roofShape ?? "flat";
-  const roof = polygon(diamondPoints(top, footprintWidth, footprintDepth), roofColor, 0.98, outline, hovered || selected ? 0.92 : activeStrokeAlpha);
+  // Roofs are the brightest surfaces in the scene: lit from above by the sun.
+  const roof = polygon(diamondPoints(top, footprintWidth, footprintDepth), sunlitColor(roofColor, "top"), 0.99, outline, hovered || selected ? 0.92 : activeStrokeAlpha);
   layer.addChild(roof);
+
+  // Sun-facing upper-left roof edge catches a warm rim; the lower-right edge
+  // falls away into shade — consistent with the wall shading below.
+  const halfW = footprintWidth / 2;
+  const halfD = footprintDepth / 2;
+  const roofRim = new Graphics()
+    .moveTo(top.x - halfW, top.y)
+    .lineTo(top.x, top.y - halfD);
+  roofRim.stroke({ color: 0xfff3d2, alpha: 0.55, width: 1.5, cap: "round", join: "round" });
+  const roofFall = new Graphics()
+    .moveTo(top.x, top.y - halfD)
+    .lineTo(top.x + halfW, top.y);
+  roofFall.stroke({ color: shadeColor(roofColor, -52), alpha: 0.4, width: 1.3, cap: "round", join: "round" });
+  layer.addChild(roofRim, roofFall);
 
   const lines = new Graphics();
   if (roofShape === "gable") {
@@ -4562,9 +4805,13 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
 
   if (prop.kind === "tree" || prop.kind === "bush") {
     const foliage = prop.variant % 2 === 0 ? baseColor : shadeColor(baseColor, 12);
+    // Directional cast shadow skewed along the scene sun vector (lower-right).
+    const shadowReach = prop.kind === "bush" ? 9 : 17;
     const tree = new Graphics()
-      .ellipse(point.x, point.y - 2, prop.kind === "bush" ? 9 : 12, 4)
-      .fill({ color: 0x23342e, alpha: 0.16 });
+      .ellipse(point.x + shadowReach, point.y - 1 + shadowReach * 0.24, prop.kind === "bush" ? 11 : 16, prop.kind === "bush" ? 3.8 : 5)
+      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.34 })
+      .ellipse(point.x + shadowReach * 0.4, point.y - 1.5, prop.kind === "bush" ? 7 : 10, 3.2)
+      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.18 });
     if (prop.kind === "tree") {
       tree
         .rect(point.x - 2.4, point.y - 16, 4.8, 14)
@@ -4573,16 +4820,20 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
         .circle(point.x + 5, point.y - 22, 9)
         .circle(point.x, point.y - 29, 10)
         .fill({ color: foliage, alpha: 0.96 })
-        .circle(point.x + 2, point.y - 31, 4)
-        .fill({ color: highlight, alpha: 0.38 });
+        .circle(point.x + 6, point.y - 20, 6.5)
+        .fill({ color: sunlitColor(foliage, "shade"), alpha: 0.4 })
+        .circle(point.x - 4, point.y - 30, 4.4)
+        .fill({ color: mixColor(highlight, SUN_WARM_TINT, 0.4), alpha: 0.44 });
     } else {
       tree
         .circle(point.x - 5, point.y - 10, 6)
         .circle(point.x + 2, point.y - 13, 8)
         .circle(point.x + 8, point.y - 9, 5)
         .fill({ color: foliage, alpha: 0.92 })
-        .circle(point.x + 1, point.y - 15, 3)
-        .fill({ color: highlight, alpha: 0.24 });
+        .circle(point.x + 7, point.y - 9, 4)
+        .fill({ color: sunlitColor(foliage, "shade"), alpha: 0.34 })
+        .circle(point.x - 3, point.y - 14, 3)
+        .fill({ color: mixColor(highlight, SUN_WARM_TINT, 0.4), alpha: 0.3 });
     }
     tree.stroke({ color: 0x26332c, alpha: 0.26, width: 1 });
     layer.addChild(tree);
@@ -4956,6 +5207,30 @@ function shadeColor(color: number, amount: number): number {
   const g = clamp(((color >> 8) & 255) + amount, 0, 255);
   const b = clamp((color & 255) + amount, 0, 255);
   return (r << 16) + (g << 8) + b;
+}
+
+function scaleColor(color: number, factor: number): number {
+  const r = clamp(Math.round(((color >> 16) & 255) * factor), 0, 255);
+  const g = clamp(Math.round(((color >> 8) & 255) * factor), 0, 255);
+  const b = clamp(Math.round((color & 255) * factor), 0, 255);
+  return (r << 16) + (g << 8) + b;
+}
+
+function mixColor(colorA: number, colorB: number, t: number): number {
+  const ratio = clamp(t, 0, 1);
+  const r = Math.round(((colorA >> 16) & 255) * (1 - ratio) + ((colorB >> 16) & 255) * ratio);
+  const g = Math.round(((colorA >> 8) & 255) * (1 - ratio) + ((colorB >> 8) & 255) * ratio);
+  const b = Math.round((colorA & 255) * (1 - ratio) + (colorB & 255) * ratio);
+  return (r << 16) + (g << 8) + b;
+}
+
+type SunFace = "top" | "sun" | "shade";
+
+// Single source of truth for how any surface responds to the scene sun.
+function sunlitColor(color: number, face: SunFace): number {
+  if (face === "top") return mixColor(scaleColor(color, 1.07), SUN_WARM_TINT, 0.1);
+  if (face === "sun") return mixColor(scaleColor(color, 1.0), SUN_WARM_TINT, 0.1);
+  return mixColor(scaleColor(color, 0.44), SUN_COOL_TINT, 0.3);
 }
 
 function stickerGlyph(kind: CityWorldPin["kind"]): string {

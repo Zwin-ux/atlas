@@ -21,6 +21,18 @@ stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only o
 
 ## Current phase
 
+Fable takeover status:
+- The Fable product-submission lane is now locally controlled by Axiom/Codex,
+  with Claude stopped and the Fable commit preserved as
+  `codex/fable-product-submission-experiment`.
+- Local cleanup made the preview HTTP smoke and strict Engine Beta split guard
+  understand the new in-widget preview/submission artifacts.
+- Next product-track move is a reliability/deploy decision, not another feature:
+  run the full `0.49P` reliability sweep against the public generated-district,
+  Scout/Campaign panel, seven MCP tools, submission manifest, and Engine Beta
+  coverage. Do not deploy until the human accepts the public synthetic preview
+  as product scope.
+
 Alpha Path B is accepted. Atlas is now in Engine Beta, not Paid Beta. Hosted
 Clawd contracts and Stripe planning remain parked until the voxel county engine
 is visually credible and the human explicitly reopens persistence or money.

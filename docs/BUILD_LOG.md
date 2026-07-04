@@ -1,5 +1,43 @@
 # Build Log
 
+## Entry 187
+
+Quest:
+Fable product-submission takeover / verification cleanup.
+
+What changed:
+- Stopped the live Claude process so the worktree has one active owner.
+- Preserved the current Fable commit with local branch marker
+  `codex/fable-product-submission-experiment`.
+- Updated `scripts/verify-preview-http.mjs` so the shallow HTTP smoke no longer
+  rejects the accepted in-widget Scout/Campaign preview panel solely because it
+  contains `Campaign preview` copy. The verifier still rejects old
+  `Scout Drop report` and `dashboard shell` copy, and now requires the
+  session-only panel contract when campaign preview text is present.
+- Updated `scripts/verify-alpha-rc-split.mjs` so the product-submission
+  checklist and preview HTTP verifier are allowed in the Engine Beta selected
+  RC envelope.
+
+Verification:
+- `pnpm verify:preview:http` passed.
+- `node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed with 0 blockers and 0 unknowns.
+- `node scripts/verify-atlas-source-of-truth-drift.mjs --json-only` passed.
+- `node scripts/verify-provider-boundaries.mjs --json-only` passed.
+- `node scripts/verify-tool-result-shape.mjs --json-only` passed.
+- `node scripts/verify-generated-district-widget.mjs --url http://127.0.0.1:8787/preview --json-only`
+  passed.
+- `node scripts/verify-scout-campaign-panel.mjs --url http://127.0.0.1:8787/preview --json-only`
+  passed.
+
+Not done / next:
+- This does not deploy or push the Fable lane.
+- The product cutline is still explicit: the public synthetic generated-district
+  preview is useful and locally verified, but it is a product-scope expansion
+  from the 0.45E owner-gate source of truth. Before deploy, run the full
+  reliability sweep and make a human deploy decision on that public generated
+  preview.
+
 ## Entry 186
 
 Quest:

@@ -1,5 +1,30 @@
 # Decisions
 
+## Decision 076: Fable product-submission lane is locally verified, not automatically deploy-approved
+
+The Fable product-submission lane is accepted as a local experiment under
+Axiom/Codex control: the live Claude process was stopped, the Fable commit was
+preserved as `codex/fable-product-submission-experiment`, and the verifier
+cleanup now recognizes the in-widget Scout/Campaign preview panel and
+submission checklist as part of the product-submission envelope.
+
+Reason: the lane adds real product value, including in-widget preview results,
+submission assets/docs, and a provider-free generated-district proof. It also
+expands product scope by exposing a public synthetic generated-district preview
+and adding `radix-ui`, so it must not be treated as automatic deploy approval.
+
+Accepted guardrails:
+- Generated district remains synthetic, session-only, and not real coverage.
+- No new MCP tools are added.
+- Anaheim/Ontario remain hidden and non-public.
+- Provider lookup still cannot create readiness or map geometry.
+- Paid, DB persistence, Hosted Clawd, OAuth, XP, evidence, automation, reports,
+  and exports remain parked.
+
+Next decision before deploy:
+Run the 0.49P reliability sweep and decide explicitly whether the public
+synthetic generated-district preview is accepted product scope.
+
 ## Decision 075: Pivot to the product-submission track; owner-gate ceremony parked
 
 Post-Alpha work moves onto a product/app-quality track aimed at a **submittable ChatGPT app**,

@@ -50,11 +50,11 @@ const TEXTURE_SOURCES = {
 } as const;
 
 const FALLBACK_PALETTES: Record<CityWorldAtlasFallbackKind, CityWorldAtlasPalette> = {
-  terrain: createFallbackPalette("fallback.terrain", "#92c977", "#5b8b52", "#d8f0b2"),
+  terrain: createFallbackPalette("fallback.terrain", "#a3b877", "#6d824f", "#dde5b4"),
   road: createFallbackPalette("fallback.road", "#646f69", "#46534e", "#f8e8a6"),
-  lot: createFallbackPalette("fallback.lot", "#cbe7a2", "#9bc37e", "#fff4d8"),
+  lot: createFallbackPalette("fallback.lot", "#bdcd90", "#97a874", "#fff4d8"),
   building: createFallbackPalette("fallback.building", "#f2dfc2", "#cdb18c", "#fff4d8"),
-  prop: createFallbackPalette("fallback.prop", "#397f45", "#26332c", "#d8f0b2"),
+  prop: createFallbackPalette("fallback.prop", "#3d7a49", "#26332c", "#dde5b4"),
   actor: createFallbackPalette("fallback.actor", "#426f9f", "#26332c", "#f7f0df"),
   marker: createFallbackPalette("fallback.marker", "#ffcf56", "#26332c", "#fff3ba"),
 };
