@@ -5,6 +5,16 @@ Atlas uses a loop-engineering pattern adapted from
 verifier, and scheduled Codex wakeups. This repo does not vendor that project and
 does not add its npm packages. Atlas owns the loop.
 
+## Repository Harness (post-2026-07-04 reorg)
+
+One canonical working tree: `C:/Users/mzwin/Documents/Atlas` on
+**`fable/0.51e-voxel-art`**. The old multi-worktree sprawl is retired. **Local is
+the working boss; GitHub (`Zwin-ux/atlas-alpha-engine-beta-checkpoint`) is backup
+and big-update handoff.** All prior lines of work are preserved as branches and
+pushed to origin (see the branch map in `STATE.md`). Do not recreate sibling
+worktree folders for parallel branches — check out branches in place, or push to
+origin and let a cloud/Codex session pick them up.
+
 ## Active Loops
 
 ## Real Crew Threads

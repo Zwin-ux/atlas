@@ -1,57 +1,65 @@
 # Atlas Loop State
 
-Last run: 2026-07-03 Axiom loop adaptation
+Last run: 2026-07-04 — repository reharness (worktree consolidation) + Fable super-move loaded
 Loop level: L2 assisted
 Kill switch: active only if `loop-constraints.md` says `pause: true`
 
+## Repository Harness (post-2026-07-04 reorg)
+
+Atlas now lives in **one canonical working tree**: `C:/Users/mzwin/Documents/Atlas`,
+checked out on **`fable/0.51e-voxel-art`** (the quality line: 0.48P design pass +
+0.51E voxel-art). The old 5-worktree / 6-folder sprawl is gone. **Local is the
+working boss; GitHub (`Zwin-ux/atlas-alpha-engine-beta-checkpoint`) is backup /
+big-update handoff.** Every line of work below is preserved as a branch and pushed
+to origin — nothing was discarded.
+
+### Branch map (all on origin)
+
+- **`fable/0.51e-voxel-art`** ✅ CANONICAL — checked out here. 0.48P design + 0.51E
+  voxel-art. Render-command / viewport pipeline.
+- `fable/0.48p-design-ultra-pass` — the design ultra-pass checkpoint (ancestor).
+- `codex/e6-apps-sdk-readiness` — PARKED. Divergent line: leaner **module-atlas
+  renderer** + **Hosted Clawd backend** + spec kit. Checkpoint `97b6bbc`.
+- `codex/g5-road-lot-terrain-contact` — PARKED. G5/G6 **contact-grammar** proof,
+  branched off base without the Fable work. `c2cd8c2`.
+- `codex/g4-reference-asset-intake` — reference/spec-kit source (ported onto canonical).
+- `codex/g3-world-identity-hardening`, `codex/f2-clean-product-code-rc`,
+  `codex/alpha-path-b-rc`, `codex/fable-product-submission-experiment`,
+  `codex/engine-beta-cleanup` — parked checkpoints of earlier codex slices.
+- Tag `checkpoint/alpha-engine-beta-2026-07-03` on origin.
+
 ## High Priority
 
-1. Finish 0.26E Public Engine Beta Quality Pass proof.
-   - Status: local compiler/diagnostic work is green.
-   - Current measured lift:
-     - `terrainMassingCoverageRatio`: `0.796` -> `0.899`
-     - `emptyBoardRatio`: `0.151` -> `0.056`
-     - `firstViewportCompositionScore`: `0.754` -> `0.775`
-     - `mobileChunkEdgeReadabilityScore`: `0.668` -> `0.783`
-   - Next action: run full local verification and decide whether to deploy.
+1. **Next Fable super-move: "The Diorama Engine" pass.**
+   - Spec: `docs/design/fable-prompts/DIORAMA_ENGINE_SUPERPASS.md`.
+   - Goal: collapse the three divergent renderer lines into ONE canonical engine
+     AND solve the ground contact-grammar, hitting the north-star visual bar.
+   - Inputs in-tree: `docs/brain/ROAD_LOT_TERRAIN_CONTACT_GRAMMAR_SPEC.md`,
+     `docs/brain/VOXEL_VISUAL_BAR.md`, `assets/reference/atlas-voxel-town-north-star.png`.
+   - Runs on a dedicated branch off canonical (e.g. `fable/0.52e-diorama-engine`).
+   - Status: prompt loaded; **not yet run**. Verify Fable output (screenshots +
+     diagnostics) before trusting.
 
-2. Keep Anaheim hidden.
-   - Current cutline: `BLOCK_PROMOTION`.
-   - Source:
-     `artifacts/second-district-readiness/latest/anaheim-candidate/owner-gate-cutline.json`.
-   - Next action: do not public-spike unless the cutline changes to
+2. **0.51E voxel-art is in-tree but NOT deployed.**
+   - Live URL still serves the pre-0.51E build.
+   - Next action: deploy is a hard human gate — do not ship without explicit approval.
+
+3. **Keep Anaheim/Ontario hidden.**
+   - Cutline `BLOCK_PROMOTION`. Do not public-spike unless it changes to
      `APPROVE_CONTROLLED_PUBLIC_SPIKE`.
-
-3. Prepare the next measured Engine Beta slice.
-   - If 0.26E deploys: choose the next public metric from diagnostics.
-   - If 0.26E blocks visually: tighten public terrain/world-edge evidence.
-   - If public metrics hold: move to a hidden second-district readiness artifact.
 
 ## Watch List
 
 - Mobile `390x844` product comprehension.
-- Scout/Campaign Alpha copy: session-only, no saves, no XP/evidence, no action
-  execution.
-- Provider boundaries: lookup can inform context but cannot create map geometry
-  or readiness.
+- Provider boundaries: lookup can inform context but cannot create map geometry.
 - Dirty tree size: strict split guard must stay `0 blockers / 0 unknowns`.
 - Public URL baseline: `https://atlas-backend-production-e6fc.up.railway.app/preview`.
 
-## Triage Inbox
-
-- Decide whether 0.26E should deploy now or wait for browser screenshot proof.
-- Thread bridge was available in the latest Axiom read; future automations must
-  still retry small thread reads before claiming Forge, Lumen, or Mira state.
-- Keep `node scripts/verify-atlas-loop-readiness.mjs --json-only` green before
-  trusting scheduled wakeups.
-
 ## Done Recently
 
-- 0.21A public Alpha handoff lock.
-- 0.22E public product entry compression.
-- 0.23E hidden Anaheim venue authorship proof.
-- 0.24E second-district readiness aggregator.
-- 0.25E owner-gate cutline: Anaheim promotion blocked.
-- 0.26E public terrain/world-edge metric lift, local green.
-- Atlas loop-engineering contract adapted locally with L2-assisted run rules,
-  real-thread routing, budget, constraints, and readiness verifier.
+- 2026-07-04 **Repository reharness**: consolidated 1 repo + 5 worktrees → single
+  canonical tree on `fable/0.51e-voxel-art`; checkpointed all loose work; pushed
+  all 10 branches + tag to origin; reclaimed ~5 duplicate node_modules.
+- 2026-07-04 Ported voxel visual spec kit + north-star reference onto canonical line.
+- 0.48P Fable design ultra-pass ("Instrument" direction) — proven.
+- 0.51E voxel-art variety pass — local green, in-tree.
