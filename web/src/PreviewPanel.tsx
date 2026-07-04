@@ -38,7 +38,7 @@ function ScoutPanel({ preview, onAdvance }: { preview: ScoutPreviewState; onAdva
       data-qa-signal-count={preview.signals.length}
     >
       <header className="city-world-preview-head">
-        <span className="city-world-preview-kicker">Scout drop - {preview.businessType}</span>
+        <span className="city-world-preview-kicker">Scout drop · {preview.businessType}</span>
         <strong data-qa="preview-title">{preview.summary}</strong>
       </header>
 
@@ -123,7 +123,7 @@ function CampaignPanel({ preview, onAdvance }: { preview: CampaignPreviewState; 
       data-qa-day-count={preview.days.length}
     >
       <header className="city-world-preview-head">
-        <span className="city-world-preview-kicker">7-day campaign - {preview.businessType}</span>
+        <span className="city-world-preview-kicker">7-day campaign · {preview.businessType}</span>
         <strong data-qa="preview-title">{preview.summary}</strong>
       </header>
 
@@ -163,7 +163,7 @@ function CampaignPanel({ preview, onAdvance }: { preview: CampaignPreviewState; 
                   <li key={asset.id}>
                     <strong>{asset.label}</strong>
                     <span>
-                      {formatLabel(asset.format)} - {asset.copyIntent}
+                      {formatLabel(asset.format)} · {asset.copyIntent}
                     </span>
                   </li>
                 ))}

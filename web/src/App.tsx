@@ -281,16 +281,6 @@ function isVoxelScene(value: unknown): value is VoxelScene {
   );
 }
 
-function isVoxelSceneStructuredContent(value: unknown): value is VoxelSceneStructuredContent {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      (value as { type?: unknown }).type === "voxelSceneSummary" &&
-      typeof (value as { sceneId?: unknown }).sceneId === "string" &&
-      typeof (value as { selectedNodeId?: unknown }).selectedNodeId === "string",
-  );
-}
-
 function isCountyCoverageStructuredContent(value: unknown): value is CountyCoverageStructuredContent {
   return Boolean(
     isRecord(value) &&
@@ -348,7 +338,6 @@ export function App() {
   const activeCountySlug = localCountySlug ?? switchSlugFromCoverage(coverageSummary);
   const campaignPreviewSummary = isCampaignPreviewStructuredContent(structuredContent) ? structuredContent : null;
   const scoutPreviewSummary = isScoutPreviewStructuredContent(structuredContent) ? structuredContent : null;
-  const sceneSummary = isVoxelSceneStructuredContent(structuredContent) ? structuredContent : null;
   const structuredCampaignPreview = isCampaignPreview(structuredContent) ? structuredContent : null;
   const structuredScoutPreview = isScoutPreview(structuredContent) ? structuredContent : null;
   const campaignPreview =
@@ -360,7 +349,7 @@ export function App() {
     metaScoutPreview ??
     (scoutPreviewSummary && metaScene ? ({ ...scoutPreviewSummary, scene: metaScene } as ScoutPreviewState) : null);
   const toolScene = isVoxelScene(structuredContent) ? structuredContent : null;
-  const scene = toolScene ?? campaignPreview?.scene ?? scoutPreview?.scene ?? metaScene ?? (sceneSummary ? riversideDemoVoxelScene : riversideDemoVoxelScene);
+  const scene = toolScene ?? campaignPreview?.scene ?? scoutPreview?.scene ?? metaScene ?? riversideDemoVoxelScene;
   const [widgetState, setWidgetState] = useWidgetState<WidgetState>(defaultWidgetState);
 
   const activeSceneMatches = widgetState.activeSceneId === scene.id;
@@ -421,8 +410,8 @@ export function App() {
     <>
       <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} />
       <button type="button" className="city-world-generate-district" data-qa="generate-district-button" onClick={openGeneratedPreview}>
-        <strong>Generate district</strong>
-        <span>engine preview</span>
+        <strong>Turn to a new district</strong>
+        <span>generated · session-only</span>
       </button>
     </>
   );

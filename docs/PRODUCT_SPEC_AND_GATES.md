@@ -72,7 +72,7 @@ Named, gated slices. `P` = product/app track (distinct from the parked `E` owner
 |-------|----------------------|----------------|--------|
 | **0.46P In-Widget Result Surface** | Dropping Clawd shows the scout/campaign result *in the app*, not just a chat bubble | G3 (partial) | ✅ done + proven |
 | **0.47P Widget Polish** | Clickable flow (Preview campaign / hosting options), tidy mobile, clean labels | G3 | 🔄 in progress (Codex) |
-| **0.48P Design Ultra-Pass (Fable supermove)** | The app looks and feels genuinely native and beautiful — weightless, Metro-clean, anti-slop | G3 | ⏳ reserved (Fable) |
+| **0.48P Design Ultra-Pass (Fable supermove)** | The app looks and feels genuinely native and beautiful — weightless, Metro-clean, anti-slop | G3 | ✅ done + proven (branch `fable/0.48p-design-ultra-pass`; see `docs/0.48P_DESIGN_ULTRA_PASS.md`, BUILD_LOG Entry 080) |
 | **0.49P Reliability Sweep** | Every tool works, every time, desktop + mobile | G2, G4 | ⏳ |
 | **0.50P Submission Packet** | The app is packaged and accepted: manifest, icon, privacy, deploy | G5, G6, G7 | ⏳ |
 

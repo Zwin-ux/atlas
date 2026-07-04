@@ -7522,6 +7522,62 @@ Verification:
 - `node scripts\verify-second-district-owner-gate-cutline.mjs --readiness artifacts\second-district-readiness\latest\anaheim-candidate\readiness-aggregate.json --json-only`
   passed and kept `BLOCK_PROMOTION`.
 - `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only` passed.
+- `node scripts\verify-second-district-owner-gate-cutline.mjs --readiness artifacts\second-district-readiness\latest\anaheim-candidate\readiness-aggregate.json --json-only`
+  passed and kept `BLOCK_PROMOTION`.
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only` passed.
 - `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
   passed with 58 files, 0 blockers, and 0 unknowns.
 - Focused `git diff --check` passed with Windows LF-to-CRLF warnings only.
+
+## Entry 080
+
+Quest:
+0.48P Design Ultra-Pass (Fable supermove). Product/app-quality track slice that
+clears gate G3 (widget quality). Branch `fable/0.48p-design-ultra-pass`.
+
+What changed (web/src/ only — the shipped ChatGPT widget):
+Executed the "Instrument" direction from `docs/0.48P_DESIGN_ULTRA_PASS.md` (Fable
+audit + `/plan-design-review`, design score 8.5 -> ~9.5). Rebuilt `styles.css` on a
+three-tier token system (primitives -> semantics -> existing --city-*/--atlas-*
+aliases); every rgba/hex literal moved onto tokens; the two opacity-ladder
+pseudo-palettes and ~10 ad-hoc yellows eliminated. Two-layer grammar: chrome is now
+achromatic ChatGPT-native hairline plates, color lives only in the map. Retired the
+yellow accent from chrome (owner-approved) -> solid-ink primary actions. De-pilled
+everything (999px kept only on dots/scrollbar thumb); collapsed to two elevation
+tokens; added the motion set (90/140/200ms, one ease-out, transform/opacity only,
+hover = tint not lift, hover != selected) with a prefers-reduced-motion guard;
+system font stack (Inter dropped) with integer 11/12/13/14 scale and 'tnum'. Deleted
+the ~1470-line unreachable legacy voxel/pixi CSS block (VoxelSceneView /
+PixiVoxelSceneView proven orphaned). Extracted `web/src/MapChrome.tsx` (shared
+zoom/center controls + URL-param readers) consumed by CityWorldView and
+CountyCoverageView. Replaced the ASCII sticker glyphs (H S P * ! ?) with inline
+stroke-SVG glyphs. Wrapped the left rail in one flex column, deleting the four
+calc(safe + Npx) magic offsets. Wired dark theme from `window.openai.theme` +
+globals-change -> `data-theme`. County switcher is now one hairline plate with plain
+rows (active = ink fill) so no left-rail text floats bare over the map.
+
+Copy:
+"Generate district" -> "Turn to a new district" / "generated · session-only";
+county-switcher "L0" -> "Not indexed"; PreviewPanel kicker/asset separators
+" - " -> " · ". Honesty copy preserved verbatim ("Session preview. Nothing is saved,
+sent, or scheduled."; "Pins and notes stay in this chat."). All 103 data-qa /
+city-world-* hooks preserved (bundle-audited); Play/Browse product-path nodes hidden
+(display:none), not removed.
+
+Skipped:
+No new npm deps, no package/lock/env changes, no deploy, no renderer voxel-art
+rewrite (that is 0.51E), no MCP tool changes, no Anaheim/owner-gate or artifacts/
+edits, no persistence/paid/OAuth/XP/evidence/automation, no provider geometry, no
+props/cars/humans/glows/label crutches.
+
+Verification:
+- `pnpm typecheck:starter` passed (green baseline before and after).
+- `pnpm build:web` and `pnpm build:starter` passed.
+- `pnpm test:core` passed 85/85.
+- G3 browser verifiers passed `ok:true` with zero console errors:
+  verify-alpha-product-loop, verify-scout-campaign-panel, verify-shell-county-widget,
+  verify-county-switcher, verify-generated-district-widget, verify:preview:http.
+- `verify:submission` passed (7-tool surface + honesty copy intact).
+- Manual `/browse` proof at localhost:8787/preview: desktop 1280x832 and mobile
+  390x844, light AND dark — zero horizontal overflow, zero JS errors, hover != active.
+- Net -1160 lines (styles.css 2882 -> ~1200 after legacy excision).

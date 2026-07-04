@@ -23,6 +23,7 @@ export type WidgetState = {
 declare global {
   interface Window {
     openai?: {
+      theme?: string;
       widgetState?: unknown;
       setWidgetState?: (state: unknown) => void;
       requestDisplayMode?: (payload: { mode: "inline" | "pip" | "fullscreen" }) => Promise<unknown>;

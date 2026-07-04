@@ -9,6 +9,7 @@ import {
   type VoxelStickerKind,
 } from "@atlas/core/voxel";
 import { CityWorldRenderer, type CityWorldRendererHandle } from "./CityWorldRenderer";
+import { MapChrome, readRequestedCameraPreset, readRequestedDebugMode } from "./MapChrome";
 import { PreviewPanel } from "./PreviewPanel";
 
 export type CityWorldViewProps = {
@@ -103,7 +104,7 @@ export function CityWorldView({
 
   return (
     <main
-      className="city-world-shell"
+      className={hasPreview ? "city-world-shell has-preview" : "city-world-shell"}
       data-qa="alpha-city-world"
       data-qa-selected-place={activePlace?.id ?? ""}
       data-qa-pin-count={stickerCount}
@@ -133,25 +134,16 @@ export function CityWorldView({
           </button>
         </div>
       ) : (
-        <div className="city-world-location" aria-label="Current city map" data-qa="current-city-map">
-          <span>{cityScene.region.county}</span>
-          <strong>{cityScene.region.district.replace(" City Slice", "")}</strong>
+        <div className="city-world-left-rail">
+          <div className="city-world-location" aria-label="Current city map" data-qa="current-city-map">
+            <span>{cityScene.region.county}</span>
+            <strong>{cityScene.region.district.replace(" City Slice", "")}</strong>
+          </div>
+          {countySwitcher}
         </div>
       )}
 
-      {isGeneratedMode ? null : countySwitcher}
-
-      <div className="city-world-zoom" aria-label="Map zoom controls" data-qa="map-zoom-controls">
-        <button type="button" aria-label="Zoom in" data-qa="zoom-in-button" onClick={() => rendererRef.current?.zoomIn()}>
-          <ZoomInIcon />
-        </button>
-        <button type="button" aria-label="Center map" data-qa="center-map-button" onClick={() => rendererRef.current?.center()}>
-          <CenterIcon />
-        </button>
-        <button type="button" aria-label="Zoom out" data-qa="zoom-out-button" onClick={() => rendererRef.current?.zoomOut()}>
-          <ZoomOutIcon />
-        </button>
-      </div>
+      <MapChrome rendererRef={rendererRef} />
 
       {!hasPreview && !isGeneratedMode ? (
       <div className="city-world-stickers" aria-label="Sticker tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
@@ -165,7 +157,9 @@ export function CityWorldView({
             className={kind === stickerMode ? "is-active" : ""}
             onClick={() => onSelectStickerMode(kind)}
           >
-            <span aria-hidden="true">{stickerGlyph(kind)}</span>
+            <span aria-hidden="true">
+              <StickerGlyph kind={kind} />
+            </span>
           </button>
         ))}
         <button
@@ -238,49 +232,13 @@ export function CityWorldView({
         {placePins.length > 0 ? (
           <div className="city-world-pin-row" aria-label="Pins on selected place" data-qa="selected-place-pins">
             {placePins.slice(-4).map((pin) => (
-              <span key={pin.id}>{pin.kind === "note" ? "N" : stickerGlyph(pin.kind)}</span>
+              <span key={pin.id}>{pin.kind === "note" ? "N" : <StickerGlyph kind={pin.kind} />}</span>
             ))}
           </div>
         ) : null}
       </section>
       ) : null}
     </main>
-  );
-}
-
-function readRequestedCameraPreset(scene: CityWorldScene): CityWorldScene["cameraPresets"][number]["id"] | undefined {
-  if (typeof window === "undefined") return undefined;
-  const requested = new URLSearchParams(window.location.search).get("atlasCamera");
-  return scene.cameraPresets.some((preset) => preset.id === requested) ? (requested as CityWorldScene["cameraPresets"][number]["id"]) : undefined;
-}
-
-function readRequestedDebugMode(): "engine" | undefined {
-  if (typeof window === "undefined") return undefined;
-  return new URLSearchParams(window.location.search).get("atlasDebug") === "engine" ? "engine" : undefined;
-}
-
-function ZoomInIcon() {
-  return (
-    <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M10 4v12M4 10h12" />
-    </svg>
-  );
-}
-
-function ZoomOutIcon() {
-  return (
-    <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M4 10h12" />
-    </svg>
-  );
-}
-
-function CenterIcon() {
-  return (
-    <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M10 3v3M10 14v3M3 10h3M14 10h3" />
-      <circle cx="10" cy="10" r="3.5" />
-    </svg>
   );
 }
 
@@ -293,16 +251,53 @@ function PinIcon() {
   );
 }
 
-function stickerGlyph(kind: VoxelStickerKind): string {
-  const glyphs: Record<VoxelStickerKind, string> = {
-    home: "H",
-    shop: "S",
-    park: "P",
-    favorite: "*",
-    idea: "!",
-    question: "?",
-  };
-  return glyphs[kind];
+/**
+ * Six stroke-SVG sticker glyphs in the city-world-icon language:
+ * house, heart, tag, tree, bolt, question.
+ */
+function StickerGlyph({ kind }: { kind: VoxelStickerKind }) {
+  switch (kind) {
+    case "home":
+      return (
+        <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M4 9.5 10 4.5l6 5" />
+          <path d="M5.8 8.4v7.1h8.4V8.4" />
+        </svg>
+      );
+    case "favorite":
+      return (
+        <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M10 15.6S4.6 12 4.6 8.5C4.6 6.6 6 5.1 7.8 5.1c.9 0 1.7.4 2.2 1.1.5-.7 1.3-1.1 2.2-1.1 1.8 0 3.2 1.5 3.2 3.4 0 3.5-5.4 7.1-5.4 7.1Z" />
+        </svg>
+      );
+    case "shop":
+      return (
+        <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M4.5 4.5h5.2l5.8 5.8-5.2 5.2-5.8-5.8V4.5Z" />
+          <circle cx="7.7" cy="7.7" r="1.1" />
+        </svg>
+      );
+    case "park":
+      return (
+        <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M10 3.8 5.6 9.8h1.9L4.8 13.4h10.4L12.5 9.8h1.9L10 3.8Z" />
+          <path d="M10 13.4v2.8" />
+        </svg>
+      );
+    case "idea":
+      return (
+        <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M11.2 3.6 5.6 11h3.6l-1 5.4L13.9 9h-3.5l.8-5.4Z" />
+        </svg>
+      );
+    case "question":
+      return (
+        <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M7.3 7.3c.2-1.6 1.3-2.7 2.8-2.7 1.6 0 2.8 1.1 2.8 2.6 0 2-2.7 2.2-2.7 4.2" />
+          <path d="M10.2 14.5v.3" />
+        </svg>
+      );
+  }
 }
 
 function stickerLabel(kind: VoxelStickerKind): string {

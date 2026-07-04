@@ -13,7 +13,8 @@ permanent gates, stop and report the conflict.
 The live track is the product/app-quality path to a **submittable ChatGPT app**, specified in
 `docs/PRODUCT_SPEC_AND_GATES.md` (gates G1–G7). Named product slices: `0.46P` in-widget scout/
 campaign result surface (done + proven), `0.47P` widget polish, `0.48P` design ultra-pass (Fable
-supermove), `0.49P` reliability sweep, `0.50P` submission packet.
+supermove) **done + proven on branch `fable/0.48p-design-ultra-pass` (BUILD_LOG Entry 080)**, `0.49P`
+reliability sweep, `0.50P` submission packet.
 
 The owner-gate / second-district ceremony below is **parked** but kept honest: `0.46E Owner Gate
 Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`

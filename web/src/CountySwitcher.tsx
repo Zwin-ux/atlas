@@ -11,7 +11,7 @@ type CountySwitchOption = {
 const COUNTY_SWITCH_OPTIONS: CountySwitchOption[] = [
   { slug: "riverside-ca", label: "Riverside", status: "Playable" },
   { slug: "orange-ca", label: "Orange", status: "Shell" },
-  { slug: "made-up-ca", label: "Unknown", status: "L0" },
+  { slug: "made-up-ca", label: "Unknown", status: "Not indexed" },
 ];
 
 const PRODUCT_PATH_STEPS: Array<{
