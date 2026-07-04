@@ -53,9 +53,22 @@ the diagnostic are terrain massing and commerce/civic silhouettes.
 - ☐ **P1 — Commerce + civic object-kit polish.** Apply the same honest-palette +
   silhouette-variety treatment to strip/commerce and civic/venue families that
   0.51E gave homes (commerce within-family clone is 0.5 generated; push lower).
-- ☐ **P1 — Mobile readability.** Keep the `residential_detail` / mobile occlusion
-  tray gates green as scenes get denser; validate first-viewport composition on
-  small screens.
+- ☐ **P1 — Mobile readability + first-paint framing.** Keep the
+  `residential_detail` / mobile occlusion tray gates green as scenes get denser.
+  **Finding (0.51E design-review pass, via gstack browse on live prod):** the
+  390x844 first paint reads sparse — the built district sits high/off while the
+  lower third is empty terrain. Two root causes, neither fixable by a camera
+  tweak (verified: every recentre/zoom that pulls buildings in fails the
+  `playable_mobile` budget, mostly on `traySafeBandPressureRatio`):
+  1. The tray-safe-band budget **deliberately** reserves the bottom third for the
+     landmark tray panel, so empty lower terrain is by design.
+  2. A metric-vs-render mismatch: the diagnostic's viewport-frame model counts
+     ~22 buildings in the mobile frame while the real render shows far fewer —
+     the same honest-metric gap class 0.51E fixed for color, now for framing.
+  Real levers (both owner-level design decisions, not a tweak): (a) collapse the
+  landmark tray on first paint so the reserved band frees a tighter camera; or
+  (b) correct the viewport-frame model to match the real render and re-tune the
+  mobile budget honestly. Desktop first paint is strong.
 - ☐ **P2 — Time-of-day / ambient variety** (sunset, overcast) as a low-cost way
   to make repeat sessions feel alive — parameters only, no new prop pipeline.
 - ☐ **P2 — Landmark hero moments** for playable-county anchors (a recognizable
