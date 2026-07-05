@@ -31,17 +31,18 @@ to origin — nothing was discarded.
 ## High Priority
 
 0. **IN FLIGHT: "The Hero Silhouette" pass (0.53E) — `fable/0.53e-hero-silhouette`.**
-   - Spec + **COMPLETION PLAN**: `docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md`
-     (read the ⚡ COMPLETION PLAN at top — it's the efficient one-run finish plan).
-   - **Done so far (3 shell primitives, pushed, 89 tests green):** parapet caps,
-     storefront base, tiered anchor massing. Rating ~7.4/10.
-   - **Remaining (batched, one clean worktree run):** A residential variety
-     (sprite path — the big visible gap), B roof/material finish, C make the
-     anchor read as a landmark, D roof light finish, E verify+mobile+/10. Target ≥8.
+   - **▶ TO LAUNCH FABLE:** `docs/design/fable-prompts/FABLE_LAUNCH_0.53E.md`
+     (copy-paste launch: model, worktree setup, prompt, state, verify, done).
+   - Spec + COMPLETION PLAN: `docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md`.
+   - **Done so far (4 items, pushed @ `d18374f`, 89 tests green):** parapet caps,
+     storefront base, tiered anchor massing, item A residential variety (partial:
+     mirror + jitter + tint spread). Rating ~7.5/10.
+   - **Remaining (one clean Fable run):** A-finish (home roof accent + stoop),
+     B roof/material, C anchor-as-landmark, D roof light, E verify+mobile+/10. →≥8.
    - **Execution fix:** run in an isolated `git worktree` — a concurrent process
-     on the main tree killed the dev server 3× and `git reset` the branch once.
-     One agent, one worktree.
-   - Ships as a post-launch update; production stays on `main` (live).
+     on the main tree killed the dev server repeatedly and `git reset` the branch
+     once. One agent, one worktree.
+   - Ships as a post-launch update; production stays on `main` (live + current).
 
 1. **"The Diorama Engine" pass: RUN (2026-07-04, `fable/0.52e-diorama-engine`).**
    - Spec: `docs/design/fable-prompts/DIORAMA_ENGINE_SUPERPASS.md`. Result:
