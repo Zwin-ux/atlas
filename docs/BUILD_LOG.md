@@ -7870,3 +7870,69 @@ grade/contrast tuning pass with design sign-off, not more ground work.
 
 Skipped:
 No new deps, assets, props, or modules; no persistence/Stripe/OAuth/XP; no deploy.
+
+## Entry 083
+
+**0.53E "Hero Silhouette" — finish run (items A-finish → E), 2026-07-05, Fable.**
+Branch `fable/0.53e-hero-silhouette`, commits `9bf1a94..8bbaa5e` + docs. Executed
+in the isolated worktree per the launch doc; the stray agent holding :8787 was
+killed first. All work renderer-side in `web/src/CityWorldRenderer.tsx`, driven
+by the existing typed grammar — zero compiler/type/dep changes.
+
+- **A-finish — residential accents (`9bf1a94`).** `drawHomeRoofAccent`: every
+  gable/hip home gets a hash-keyed ridge line; a third get a chimney fleck, a
+  third a dormer (skipped on cottages, which have an authored one), a third stay
+  quiet. `drawHomeStoop`: warm entry pad + walk stub, mirrored per home. Wired
+  into BOTH sprite and shell paths — audit found only rowhomes/strip stores have
+  sprite art, so all pitched homes render via `drawHomeDetails` (shell).
+- **B — roof material separation (`e0a8b46`).** Clay tile = stronger tint +
+  eave-parallel courses (warm, coursed). Metal = cool panel field + crisper
+  standing seams + long specular (smooth, cool). Civic glass = wider glazed
+  field + mullion cross + bright specular. Flat parapet = recessed membrane
+  deck INSIDE the parapet line replacing the old bright cap ring (one surface,
+  not two decals).
+- **C — Eastvale Core landmark (`762450c`).** Root cause of the flat hero read:
+  FIVE legacy civic functions each floated a pale cap/lantern/crown/shoulder
+  decal over the same roof plane and averaged into fog. New
+  `hasHeroTieredCrown` gate (typed off `civicGeometry.focusTarget`) stands them
+  down when the tiered crown owns the roof. Crown is now two-step, front-offset,
+  sized to the open window between the label band and the roofline, with
+  saturated caps. Entry gains plinth apron + lit canopy slab + posts. The big
+  "milky box" west of the entry was diagnosed as the 0.52E civic plinth TERRAIN
+  massing (intentional contact grammar) — left intact.
+- **D — roof light finish (`8bbaa5e`).** `sunlitColor("top")` 1.18→1.22 with
+  warmer tint; every roof plane gains a whisper directional split (warm sun
+  half / cool fall half) + stronger sun rim and shade fall. Roof slice only —
+  NOT the 0.54E whole-canvas grade.
+
+Execution note for future passes: `pnpm dev` inlines `web/dist/component.js`
+into the preview HTML ONCE at process start (`builtWidgetCache`). Every visual
+iteration requires `build:web` AND a server restart — a reload is not enough.
+Screenshot A/B pixel-diffing caught this (item A initially "rendered" as a
+no-op because the served bundle was stale).
+
+Verification (all green):
+- `pnpm typecheck:starter`, `pnpm build:web`, `pnpm test:core` (89/89).
+- `verify-alpha-product-loop.mjs` → `ok: true` desktop 1280x720 + mobile
+  390x844, zero console errors, no horizontal overflow.
+- `verify-alpha-rc-split.mjs` → 0 blockers / 0 unknowns. `git diff --check` clean.
+- Screenshots (light+dark, desktop+mobile) in `artifacts/0.53e-hero/`
+  (`final-*.png`), plus per-item before/afters. Shells untouched/honest.
+- Payload: `component.js` 957.5kb raw (+5.1kb vs pass start — vector code only).
+
+Honest visual delta and self-rating vs `atlas-voxel-town-north-star.png`:
+Residential no longer reads cloned (mirror+jitter+tint from the first half of
+the pass, now finished with per-home roof accents + stoops); commerce/civic
+roofs are material-typed at a glance; Eastvale Core finally reads as a stepped
+landmark instead of a fogged box; roofs sit in the same key light as the walls.
+**Desktop 8/10. Mobile 7.9/10.** Named plateau on mobile: the place marker +
+label band sit ON the hero's crown zone (marker system anchors to the ground
+point), and at 390px the home accents drop below legibility — both are
+marker/UI-layer constraints, not building-draw constraints. Next funded moves:
+(1) the 0.54E design-gated grade/contrast pass (the golden-hour wash is now the
+single biggest gap to the north star), (2) a label/marker layout pass that
+lifts labels off landmark crowns.
+
+Skipped (invariants held): no props, no new deps/assets, no 3D/PBR, no compiler
+or type changes, no deploy, Anaheim/Ontario hidden, shells honest, palette
+registry + diagnostics + ~95 draw fns + 0.52E contact grammar intact.
