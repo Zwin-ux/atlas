@@ -31,12 +31,20 @@ Gates from `docs/PRODUCT_SPEC_AND_GATES.md` (G1–G7 = submittable ChatGPT app).
 | **G4** Reliability | All 7 tools drive end-to-end | ✅ GREEN | `verify-mcp-flow.mjs` ok:true |
 | **G5** Honesty & safety | Session-only, no persistence/paid, provider boundary, shells honest | ✅ GREEN | `verify-submission.mjs`; split guard 0/0; shells verified honest |
 | **G6** Submission manifest | Manifest + **app icon** + **privacy/legal URLs** | 🟢 CODE DONE 🟡 sign-off | manifest now has icon + privacy_policy_url + terms_of_service_url; live `/privacy` + `/terms` routes serve (200); **remaining: human legal sign-off on drafted text + swap placeholder icon for final art** |
-| **G7** Deployed & verified | Live on Railway serving THIS build; public verifiers green vs prod | ❌ RED | prod `/preview` 200 but serves **old build**; `main` release line cut at integrated HEAD but not deployed |
+| **G7** Deployed & verified | Live on Railway serving THIS build; public verifiers green vs prod | ✅ GREEN | deployed 2026-07-05 to `production`/`atlas-backend`; prod `/preview` serves the current 0.52E engine, all 7 MCP tools respond, `/privacy` + `/terms` live (200), no console errors |
 
-**Read (updated 2026-07-05):** Release line `main` is cut at the integrated HEAD
-(`5d37c7e` = engine + API + G6 assets). Gates G1–G5 green; G6 code done (only
-legal sign-off + final icon remain); **G7 deploy is the sole remaining blocker —
-a human gate.** One `deploy to Railway` fires 5 green gates into a live app.
+**Read (updated 2026-07-05 — SHIPPED):** Atlas is **deployed and current** on
+`https://atlas-backend-production-e6fc.up.railway.app`. Gates **G1–G5 + G7 GREEN**;
+only **G6 legal sign-off** (read the live `/privacy` + `/terms`) and the final
+directory-form submission remain before App Store submission. Release line `main`
++ `fable/0.52e-diorama-engine` restored to `a10558b`; safety tag `ship/g6-533582d`.
+
+> ⚠️ **Deploy incident (2026-07-05):** a concurrent process on this working tree
+> ran a stray `git reset --hard 20470a4` and force-pushed the remote back, which
+> silently dropped the G6 code and caused two deploys to build stale source
+> (no `/privacy` route). Root-caused via reflog, recovered to `533582d`, tagged,
+> rebuilt, redeployed clean. **Do not run a second agent against this same
+> working tree** — it will fight this one. Use a git worktree or separate clone.
 
 ## 3. Critical path to "submitted ChatGPT app"
 
@@ -72,14 +80,15 @@ engineering between here and submission — the app is functionally done.
    - **App icon:** manifest points at the placeholder
      (`assets/generated/placeholders/png/atlas-icon.png`). Ship placeholder for
      Alpha, or drop in final art? (Placeholder is fine to submit and swap later.)
-3. **Deploy gate (G7) — THE remaining blocker.** Approve deploying `main` to
-   Railway. Single highest-leverage action: turns 5 green gates into a live,
-   current app + makes the `/privacy` `/terms` URLs resolve on the real domain.
-   Irreversible-ish; no rollback ceremony documented, so I confirm once more
-   before pushing. **Say "deploy to Railway" and I execute.**
-4. **Engine polish depth.** 0.53E "Hero Silhouette" Fable prompt is loaded and
-   NOT on the critical path — ship first, 0.53E lands as an update. Your call:
-   ship-then-polish (recommended) or one more pass first.
+3. ~~**Deploy gate (G7).**~~ ✅ DONE 2026-07-05 — deployed to Railway production,
+   verified live (engine + 7 tools + legal pages).
+4. **Submit to the ChatGPT App Store.** The only steps left: (a) your 30-second
+   read/sign-off of the live `/privacy` + `/terms`, (b) swap the placeholder icon
+   if you want final art, (c) fill the directory submission form using
+   `chatgpt-app-submission.json`. All human/directory steps — the app itself is
+   done and live.
+5. **Engine polish (parallel).** 0.53E "Hero Silhouette" Fable pass is loaded and
+   branched (`fable/0.53e-hero-silhouette`); ships as a post-launch update.
 
 ## 5. What I can execute now (no human gate)
 
