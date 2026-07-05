@@ -7964,3 +7964,36 @@ wash lives in STACKED TRANSLUCENT DECALS across the ~95 draw functions (0.53E
 item C proved 5 generations of roof decals on one building; walls have the
 same disease). That systemic fix is the next pass: 0.55E Decal Discipline
 (`docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md`).
+
+## Entry 085
+
+**0.55E "Decal Discipline" — per-surface decal ownership, 2026-07-05, Fable.**
+Branch `fable/0.55e-decal-discipline` (`2a1815f` civic, `d8011c1`
+residential+commerce). Spec: `docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md`.
+The systemic fix for the milky wash the 0.54E grade could only dent: the same
+building surface was receiving translucent decals from up to SEVEN generations
+of draw functions (civic facade: ~38 pale bars, 3 canopies, ~9 base pads).
+
+Ownership model landed (retire duplicate PALE FILLS, keep dark strokes):
+- **Civic:** object-kit read owns facade rhythm + entry canopy + plinth;
+  drawCivicDetails stands down its plinth pad, canopy, and alpha-0.95 column
+  bars on kit landmarks (non-kit civic keeps the full legacy read);
+  facadeBeats, wingRhythm, pilasters, baseTerrace, duplicate canopies,
+  plinth-edge strokes, and the Eastvale entryAxis pad are retired; the roof
+  hierarchy cap/inset/shoulders now respect the hero crown (a decal item C
+  missed).
+- **Residential:** kit-rhythm threshold pad, side block, and white wall-rib
+  fills retired (HomeDetails porches + drawHomeStoop own entries;
+  material-band sills + style windows own windows; sideWing owns the side
+  mass); public silhouette retires its duplicate porch + windowRhythm bars.
+- **Commerce:** authored-rhythm white/cyan bay bars retired (kit read owns
+  storefront bays); sprite strip stores no longer double their apron.
+
+Verification: typecheck + build:web green; test:core 89/89; product-loop
+ok:true desktop+mobile, zero console errors; rc-split 0/0; mcp-flow ok:true;
+git diff --check clean. Evidence: `artifacts/0.55e-decal/` (civic-after vs
+0.53E itemC-before shows the wall wash gone; homes/plaza clips intact).
+Net -92 lines of draw code; all ~95 draw fns survive with real jobs.
+
+Remaining queued (spec doc): 0.56E label/marker layout (lift labels off
+landmark crowns), 0.57E generated-district parity (service-engine bar).
