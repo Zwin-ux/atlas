@@ -2390,13 +2390,29 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
 
   const sprite = new Sprite(asset.texture);
   sprite.anchor.set(asset.anchor.x, asset.anchor.y);
-  sprite.scale.set(asset.scale);
+  // 0.53E Hero Silhouette (item A) — deterministic per-home variety kills the
+  // clone read without new art: hash-based horizontal mirror + gentle scale
+  // jitter break the "one model repeated" row, all keyed on the building id so
+  // it is stable across frames. Homes only; commerce sprites stay uniform.
+  const home = building.kind === "home";
+  const variant = objectVariant(building.id, 97);
+  const flip = home && variant % 2 === 0 ? -1 : 1;
+  const jitter = home ? 0.95 + (variant % 11) / 100 : 1; // 0.95–1.05
+  sprite.scale.set(asset.scale * jitter * flip, asset.scale * jitter);
   sprite.position.set(Math.round(bottom.x), Math.round(bottom.y + footprintDepth * 0.5));
   // Honor the building's assigned palette-variant ramp on screen: gently wash
   // the textured sprite toward its resolved body color so sprite-mode buildings
   // (rowhomes, strip stores) read the same variant identity the diagnostics key
   // on. Kept subtle (mixed toward white) so authored SVG art is preserved.
-  sprite.tint = mixColor(0xffffff, geometry.bodyColor, 0.3);
+  // For homes, spread the wash factor + a whisper of warm/cool per house so no
+  // two neighbours read identical — still the resolved palette, never raw color.
+  let homeTint = geometry.bodyColor;
+  if (home) {
+    const warmCool = (variant % 3) - 1;
+    if (warmCool > 0) homeTint = mixColor(homeTint, SUN_WARM_TINT, 0.07);
+    else if (warmCool < 0) homeTint = mixColor(homeTint, SUN_COOL_TINT, 0.06);
+  }
+  sprite.tint = mixColor(0xffffff, homeTint, home ? 0.24 + (variant % 7) * 0.026 : 0.3);
   sprite.label = `sprite-${building.id}`;
   layer.addChild(sprite);
 
