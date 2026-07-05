@@ -3507,8 +3507,47 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   }
   lines.stroke({ color: shadeColor(roofColor, -44), alpha: 0.38, width: 1.5, cap: "round", join: "round" });
   layer.addChild(lines);
+  drawParapetCap(layer, geometry, building, roofShape);
   drawRoofMaterial(layer, geometry, building);
   drawAuthoredRoofProfile(layer, geometry, building);
+}
+
+// 0.53E Hero Silhouette — a raised parapet wall around a flat roof edge. This is
+// the single biggest "box -> building" cue: the roof stops reading as a flush
+// lid and starts reading as a real rooftop bounded by a low wall. Only flat-
+// roofed commercial / civic / lowrise families get it (pitched roofs don't have
+// parapets). Obeys the unified sun: front-left face lit, front-right in shade.
+function drawParapetCap(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, roofShape: CityWorldBuilding["roofShape"]) {
+  if (roofShape !== "flat" && roofShape !== "sawtooth") return;
+  const family = building.visualGrammar?.objectFamily;
+  const eligible =
+    family === "commerce_strip" || family === "civic_landmark" || family === "lowrise_cluster" ||
+    family === "service_block" || family === "venue_anchor" || family === "transit_anchor";
+  if (!eligible) return;
+
+  const { top, footprintWidth, footprintDepth, roofColor } = geometry;
+  const halfW = footprintWidth / 2;
+  const halfD = footprintDepth / 2;
+  const lift = Math.max(3.2, Math.min(footprintWidth * 0.05, 6.5));
+  // Perimeter diamond corners of the roof top.
+  const left = { x: top.x - halfW, y: top.y };
+  const front = { x: top.x, y: top.y + halfD };
+  const right = { x: top.x + halfW, y: top.y };
+
+  // Two lit-vs-shade parapet wall faces standing up from the front edges.
+  const litFace = new Graphics()
+    .poly([left.x, left.y, front.x, front.y, front.x, front.y - lift, left.x, left.y - lift], true)
+    .fill({ color: sunlitColor(shadeColor(roofColor, -6), "sun"), alpha: 0.9 });
+  const shadeFace = new Graphics()
+    .poly([front.x, front.y, right.x, right.y, right.x, right.y - lift, front.x, front.y - lift], true)
+    .fill({ color: sunlitColor(shadeColor(roofColor, -6), "shade"), alpha: 0.92 });
+  // Bright coping line along the top of the parapet + a warm sunlit front corner.
+  const coping = new Graphics()
+    .moveTo(left.x, left.y - lift)
+    .lineTo(front.x, front.y - lift)
+    .lineTo(right.x, right.y - lift);
+  coping.stroke({ color: mixColor(shadeColor(roofColor, 40), SUN_WARM_TINT, 0.18), alpha: 0.85, width: 1.4, cap: "round", join: "round" });
+  layer.addChild(litFace, shadeFace, coping);
 }
 
 function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
