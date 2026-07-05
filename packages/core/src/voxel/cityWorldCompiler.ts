@@ -2,17 +2,22 @@ import type {
   CityWorldActor,
   CityWorldBuilding,
   CityWorldBounds,
+  CityWorldGroundTone,
   CityWorldLot,
+  CityWorldLotContactGrammar,
   CityWorldPin,
   CityWorldPlace,
   CityWorldPoint,
   CityWorldProp,
+  CityWorldRoadContactGrammar,
   CityWorldRoadSegment,
   CityWorldScene,
   CityWorldSessionState,
   CityWorldCoverage,
+  CityWorldTerrainContactGrammar,
   CityWorldTerrainKind,
   CityWorldTerrainTile,
+  CityWorldTileEdge,
   CityWorldVisualGrammar,
 } from "./cityWorldTypes.js";
 import type { DistrictPlaceAnchor, DistrictPlaceAnchorPack } from "../world/index.js";
@@ -44,6 +49,7 @@ export function compileCityWorldScene(scene: VoxelScene, session: CityWorldSessi
   const selectedPlaceId = session.selectedPlaceId ?? places[0]?.id ?? "";
   const stickers = [...(world.stickers ?? []), ...(session.stickers ?? [])];
   const notes = [...(world.notes ?? []), ...(session.notes ?? [])];
+  const roadSegments = createRoadSegments();
 
   return {
     type: "cityWorldScene",
@@ -88,8 +94,8 @@ export function compileCityWorldScene(scene: VoxelScene, session: CityWorldSessi
       },
     ],
     terrainTiles: createTerrainTiles(),
-    roadSegments: createRoadSegments(),
-    lots: createLots(),
+    roadSegments,
+    lots: createLots(roadSegments),
     buildings: createBuildings(),
     props: createProps(),
     places,
@@ -178,6 +184,7 @@ export function compileDistrictPlaceAnchorDraftCityWorldScene(input: DistrictPla
   const anchors = anchorPack.placeAnchors.filter((anchor) => anchor.anchorRole !== "district_identity");
   const profile = createDraftDistrictProfile(anchorPack);
   const anchorPositions = createDraftAnchorPositions(anchors, profile);
+  const draftRoadSegments = createDraftDistrictRoadSegments(profile);
 
   return {
     type: "cityWorldScene",
@@ -222,8 +229,8 @@ export function compileDistrictPlaceAnchorDraftCityWorldScene(input: DistrictPla
       },
     ],
     terrainTiles: createDraftDistrictTerrainTiles(profile),
-    roadSegments: createDraftDistrictRoadSegments(profile),
-    lots: createDraftDistrictLots(anchors, anchorPositions),
+    roadSegments: draftRoadSegments,
+    lots: createDraftDistrictLots(anchors, anchorPositions, draftRoadSegments),
     buildings: createDraftDistrictBuildings(anchors, anchorPositions),
     props: [],
     places: createDraftDistrictPlaces(anchors, anchorPositions, anchorPack.districtSlug),
@@ -375,27 +382,30 @@ function createDraftDistrictTerrainTiles(profile: DraftDistrictProfile): CityWor
     }
   }
 
-  return tiles;
+  return withCityWorldTerrainContactMetadata(tiles, "draft");
 }
 
 function createDraftDistrictRoadSegments(profile: DraftDistrictProfile): CityWorldRoadSegment[] {
   return profile.roadSegments.map(withRoadMetadata);
 }
 
-function createDraftDistrictLots(anchors: DistrictPlaceAnchor[], positions: Map<string, CityWorldPoint>): CityWorldLot[] {
+function createDraftDistrictLots(anchors: DistrictPlaceAnchor[], positions: Map<string, CityWorldPoint>, roads: CityWorldRoadSegment[]): CityWorldLot[] {
   return anchors.map((anchor) => {
     const position = positions.get(anchor.id) ?? { x: 10, y: 10, z: 0 };
     const kind = draftLotKind(anchor.category);
     const footprint = draftLotFootprint(anchor);
-    return withLotMetadata({
-      id: `draft-lot-${anchor.id}`,
-      kind,
-      label: anchor.label,
-      position,
-      width: footprint.width,
-      depth: footprint.depth,
-      placeId: `draft-place-${anchor.id}`,
-    });
+    return withLotMetadata(
+      {
+        id: `draft-lot-${anchor.id}`,
+        kind,
+        label: anchor.label,
+        position,
+        width: footprint.width,
+        depth: footprint.depth,
+        placeId: `draft-place-${anchor.id}`,
+      },
+      roads,
+    );
   });
 }
 
@@ -623,7 +633,7 @@ function createTerrainTiles(): CityWorldTerrainTile[] {
     }
   }
 
-  return tiles;
+  return withCityWorldTerrainContactMetadata(tiles, "public");
 }
 
 function createShellTerrainTiles(): CityWorldTerrainTile[] {
@@ -649,7 +659,7 @@ function createShellTerrainTiles(): CityWorldTerrainTile[] {
     }
   }
 
-  return tiles;
+  return withCityWorldTerrainContactMetadata(tiles, "shell");
 }
 
 function createRoadSegments(): CityWorldRoadSegment[] {
@@ -737,7 +747,7 @@ function draftBuildingHeight(category: WorldPlaceCategory): number {
   return 1.6;
 }
 
-function createLots(): CityWorldLot[] {
+function createLots(roads: CityWorldRoadSegment[]): CityWorldLot[] {
   const lots: CityWorldLot[] = [
     { id: "lot-civic", kind: "civic", label: "Civic green", position: { x: 21, y: 10.5, z: 0 }, width: 5.6, depth: 4.2, placeId: "place-eastvale-core" },
     { id: "lot-plaza", kind: "shop", label: "Plaza row", position: { x: 28, y: 12.6, z: 0 }, width: 7.6, depth: 4.4, placeId: "place-plaza-row" },
@@ -795,7 +805,7 @@ function createLots(): CityWorldLot[] {
     }
   }
 
-  return lots.map(withLotMetadata);
+  return lots.map((lot) => withLotMetadata(lot, roads));
 }
 
 function createBuildings(): CityWorldBuilding[] {

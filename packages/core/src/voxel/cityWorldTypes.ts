@@ -127,6 +127,45 @@ export type CityWorldRoofMaterialProfile =
 
 export type CityWorldContactProfile = "soft_ground_shadow" | "parcel_pad_shadow" | "curb_shadow" | "landmark_base_shadow";
 
+// ---- Unified ground contact grammar (0.52E Diorama Engine) -----------------
+// Contact treatment is authored by the COMPILER as typed metadata and consumed
+// uniformly by the renderer. Draw-time `kind` branching and id-prefix sniffing
+// ("draft-", "shell-") are legacy fallbacks that live only in the resolver
+// functions, never in draw code.
+
+export type CityWorldTileEdge = "north" | "east" | "south" | "west";
+
+export type CityWorldGroundTone = "public" | "draft" | "shell";
+
+export type CityWorldRoadContactProfile = "embedded" | "apron" | "painted";
+
+export type CityWorldRoadLaneMarking = "avenue_dash" | "street_dash" | "apron_dash" | "none";
+
+export type CityWorldRoadContactGrammar = {
+  profile: CityWorldRoadContactProfile;
+  tone: CityWorldGroundTone;
+  laneMarking: CityWorldRoadLaneMarking;
+};
+
+export type CityWorldLotContactProfile = "foundation" | "apron" | "green" | "shore";
+
+export type CityWorldLotContactGrammar = {
+  profile: CityWorldLotContactProfile;
+  tone: CityWorldGroundTone;
+  /** Which lot edge carries the curb-cut / walk join toward the serving road. */
+  curbCutEdge?: CityWorldTileEdge;
+};
+
+export type CityWorldTerrainContactGrammar = {
+  tone: CityWorldGroundTone;
+  /** Tile sits at a material boundary and casts a soft contact drop. */
+  contactShadow: boolean;
+  /** Edges where the tile kind changes (parcel/plaza/park seams). */
+  edgeSides?: CityWorldTileEdge[];
+  /** Edges that border water (bank/strand treatment). */
+  waterEdgeSides?: CityWorldTileEdge[];
+};
+
 export type CityWorldObjectFamily =
   | "residential_kit"
   | "commerce_strip"
@@ -214,6 +253,9 @@ export type CityWorldVisualGrammar = {
   clusterRole?: CityWorldClusterRole;
   noLabelPriority?: CityWorldNoLabelPriority;
   contactProfile: CityWorldContactProfile;
+  roadContact?: CityWorldRoadContactGrammar;
+  lotContact?: CityWorldLotContactGrammar;
+  terrainContact?: CityWorldTerrainContactGrammar;
 };
 
 export type CityWorldRegion = {
