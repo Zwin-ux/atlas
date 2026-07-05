@@ -30,14 +30,18 @@ to origin — nothing was discarded.
 
 ## High Priority
 
-0. **NEXT Fable super-move LOADED: "The Hero Silhouette" pass (0.53E).**
-   - Spec: `docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md`.
-   - Branch off `fable/0.52e-diorama-engine` → `fable/0.53e-hero-silhouette`.
-   - Goal: buildings read as authored architecture (silhouette variety +
-     material legibility + finished light model), pushing north-star ~7 → ≥8.
-     Ground is solved; this makes the *subject* worthy. Strictly inside
-     invariants (no props/deps/3D/deploy; palette-cohesion + 0.52E contact
-     grammar intact). Status: prompt loaded, **not yet run.**
+0. **IN FLIGHT: "The Hero Silhouette" pass (0.53E) — `fable/0.53e-hero-silhouette`.**
+   - Spec + **COMPLETION PLAN**: `docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md`
+     (read the ⚡ COMPLETION PLAN at top — it's the efficient one-run finish plan).
+   - **Done so far (3 shell primitives, pushed, 89 tests green):** parapet caps,
+     storefront base, tiered anchor massing. Rating ~7.4/10.
+   - **Remaining (batched, one clean worktree run):** A residential variety
+     (sprite path — the big visible gap), B roof/material finish, C make the
+     anchor read as a landmark, D roof light finish, E verify+mobile+/10. Target ≥8.
+   - **Execution fix:** run in an isolated `git worktree` — a concurrent process
+     on the main tree killed the dev server 3× and `git reset` the branch once.
+     One agent, one worktree.
+   - Ships as a post-launch update; production stays on `main` (live).
 
 1. **"The Diorama Engine" pass: RUN (2026-07-04, `fable/0.52e-diorama-engine`).**
    - Spec: `docs/design/fable-prompts/DIORAMA_ENGINE_SUPERPASS.md`. Result:
