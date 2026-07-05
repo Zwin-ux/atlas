@@ -188,6 +188,7 @@ const PROVIDER_BOUNDARY_PREFIXES = [
 const HOSTED_CLAWD_SCAFFOLD_FILES = new Set([
   "artifacts/current-update.json",
   "AGENTS.md",
+  "docs/ATLAS_FULL_STACK_PRODUCT_SPEC.md",
   "docs/BETA_HOSTED_CLAWD_SPEC.md",
   "docs/HOSTED_CLAWD_PRD.md",
   "docs/BUILD_LOG.md",

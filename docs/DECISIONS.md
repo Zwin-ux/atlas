@@ -1,5 +1,30 @@
 # Decisions
 
+## Decision 082: Full product completion means live reviewability before persistence and billing
+
+The full-stack completion map is now recorded in
+`docs/ATLAS_FULL_STACK_PRODUCT_SPEC.md`.
+
+Decision:
+Atlas should not leap directly from the local 0.58J setup console into DB or
+Stripe implementation. The next big leap is:
+1. `0.58K Human Visual Gate / Deploy Readiness Decision`.
+2. Canonical deploy and live verification.
+3. Submission packet finalization.
+4. `0.59H Hosted Clawd Storage/Auth Decision Packet`.
+5. First persistence foundation.
+6. Stripe billing only after persistence and ownership tests are boring.
+
+Reason:
+The product's current risk is not imagination or feature count. It is trust:
+live reviewability, honest Alpha boundaries, owner-safe saved state, and
+webhook-backed paid access.
+
+Still blocked:
+- DB migrations, auth/OAuth, persisted writes, Stripe/money, public paid claims,
+  evidence, XP, reports, exports, automation, and public Anaheim/Ontario until
+  their named gates open.
+
 ## Decision 081: Port Superior grey setup console into Hosted Clawd as UI-only setup
 
 0.58J ports the Superior grey setup console / setup rail grammar into the Atlas

@@ -98,6 +98,13 @@ on human visual approval.
 Next quest:
 `0.58K Human Visual Gate / Deploy Readiness Decision`.
 
+CTO full-stack expansion:
+`docs/ATLAS_FULL_STACK_PRODUCT_SPEC.md` now defines the broader completion map:
+live reviewability first, then storage/auth decision, then first Hosted Clawd
+persistence, then Stripe billing only after persistence is boring. This document
+does not reopen persistence, money, evidence, XP, reports, exports, automation,
+or public Anaheim/Ontario.
+
 ## Branch-local Fable pass (2026-07-05, `fable/0.58e-prop-cleanup`)
 
 Current quest:

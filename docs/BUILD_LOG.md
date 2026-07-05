@@ -1,5 +1,29 @@
 # Build Log
 
+## Entry 197
+
+Quest:
+CTO full-stack product spec expansion.
+
+What changed:
+- Added `docs/ATLAS_FULL_STACK_PRODUCT_SPEC.md` as the full-product completion
+  map across app candidate, Hosted Clawd persistence, auth, billing, evidence,
+  XP, reports, operations, QA, and release sequencing.
+- Registered the new spec with the Hosted Clawd selected-RC split guard so it is
+  treated as intended product source-of-truth scope, not unknown drift.
+- Kept `0.58K Human Visual Gate / Deploy Readiness Decision` as the immediate
+  next quest.
+- Kept persistence, auth/OAuth, DB, Stripe/money, public paid claims, evidence,
+  XP, reports, exports, automation, and public Anaheim/Ontario closed.
+
+Decision:
+The next big leap is live reviewability first, then explicit storage/auth
+decision, then first persistence. Billing follows persistence.
+
+Verification:
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only`
+
 ## Entry 196
 
 Quest:
