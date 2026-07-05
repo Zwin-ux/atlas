@@ -30,12 +30,13 @@ Gates from `docs/PRODUCT_SPEC_AND_GATES.md` (G1–G7 = submittable ChatGPT app).
 | **G3** Widget quality | Map + panels render desktop + 390×844, no overflow/console errors | ✅ GREEN | `verify-alpha-product-loop.mjs` ok:true (desktop+mobile) |
 | **G4** Reliability | All 7 tools drive end-to-end | ✅ GREEN | `verify-mcp-flow.mjs` ok:true |
 | **G5** Honesty & safety | Session-only, no persistence/paid, provider boundary, shells honest | ✅ GREEN | `verify-submission.mjs`; split guard 0/0; shells verified honest |
-| **G6** Submission manifest | Manifest + **app icon** + **privacy/legal URLs** | 🟡 PARTIAL | manifest + 7 test cases done; **icon, privacy URL, terms URL MISSING from `app_info`** |
-| **G7** Deployed & verified | Live on Railway serving THIS build; public verifiers green vs prod | ❌ RED | prod `/preview` 200 but serves **old build**; this branch never deployed |
+| **G6** Submission manifest | Manifest + **app icon** + **privacy/legal URLs** | 🟢 CODE DONE 🟡 sign-off | manifest now has icon + privacy_policy_url + terms_of_service_url; live `/privacy` + `/terms` routes serve (200); **remaining: human legal sign-off on drafted text + swap placeholder icon for final art** |
+| **G7** Deployed & verified | Live on Railway serving THIS build; public verifiers green vs prod | ❌ RED | prod `/preview` 200 but serves **old build**; `main` release line cut at integrated HEAD but not deployed |
 
-**Read:** 5 of 7 gates are green today. Only G6 (two missing directory assets)
-and G7 (deploy) block submission — and both are gated on human decisions, not
-engineering.
+**Read (updated 2026-07-05):** Release line `main` is cut at the integrated HEAD
+(`5d37c7e` = engine + API + G6 assets). Gates G1–G5 green; G6 code done (only
+legal sign-off + final icon remain); **G7 deploy is the sole remaining blocker —
+a human gate.** One `deploy to Railway` fires 5 green gates into a live app.
 
 ## 3. Critical path to "submitted ChatGPT app"
 
@@ -62,26 +63,23 @@ engineering between here and submission — the app is functionally done.
 
 ## 4. Decisions I need from you (blocked-on-human)
 
-1. **Merge gate.** Approve merging `fable/0.52e-diorama-engine` → a release line.
-   Today there is no `main`/release branch; every pass just stacks. Say "cut a
-   release line and merge" and I'll do it (conflict-checked, reversible).
-2. **G6 directory assets.**
-   - **App icon:** a placeholder exists (`assets/generated/placeholders/png/atlas-icon.png`).
-     Ship placeholder for now, or commission a real one? (I can wire the
-     placeholder into the manifest immediately.)
-   - **Privacy policy + Terms URLs:** ChatGPT directory requires real hosted
-     URLs. These need a hosted page and a legal call — the one thing that can't
-     be faked. Decide where they live (a static page on the Railway app is
-     simplest).
-3. **Deploy gate (G7).** Approve deploying the release build to Railway. This is
-   the single highest-leverage action — it turns 5 green gates into a live,
-   current app. Irreversible-ish; no rollback ceremony documented, so I'll
-   confirm once more before pushing.
-4. **Engine polish depth.** How much further to push the engine before/after
-   ship? The 0.53E "Hero Silhouette" Fable prompt is written and loaded
-   (`docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md`). It is NOT on the
-   critical path — ship can happen first and 0.53E lands as an update. Your call:
-   ship-then-polish, or one more polish pass first.
+1. ~~**Merge gate.**~~ ✅ DONE 2026-07-05 — `main` release line cut at the
+   integrated HEAD and pushed to origin.
+2. **G6 sign-off (2 items left).**
+   - **Legal text:** `/privacy` + `/terms` are live and drafted honest (session-
+     only, no persistence, no data sales). They need your read + sign-off — I
+     draft, I don't provide legal advice.
+   - **App icon:** manifest points at the placeholder
+     (`assets/generated/placeholders/png/atlas-icon.png`). Ship placeholder for
+     Alpha, or drop in final art? (Placeholder is fine to submit and swap later.)
+3. **Deploy gate (G7) — THE remaining blocker.** Approve deploying `main` to
+   Railway. Single highest-leverage action: turns 5 green gates into a live,
+   current app + makes the `/privacy` `/terms` URLs resolve on the real domain.
+   Irreversible-ish; no rollback ceremony documented, so I confirm once more
+   before pushing. **Say "deploy to Railway" and I execute.**
+4. **Engine polish depth.** 0.53E "Hero Silhouette" Fable prompt is loaded and
+   NOT on the critical path — ship first, 0.53E lands as an update. Your call:
+   ship-then-polish (recommended) or one more pass first.
 
 ## 5. What I can execute now (no human gate)
 
