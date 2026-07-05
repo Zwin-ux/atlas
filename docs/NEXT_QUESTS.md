@@ -20,6 +20,18 @@ The owner-gate / second-district ceremony below is **parked** but kept honest: `
 Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`
 stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only on human request.
 
+## Engine track note (2026-07-04, `fable/0.52e-diorama-engine`)
+
+The 0.52E Diorama Engine super-pass ran (BUILD_LOG Entry 082). Atlas has ONE
+engine base: canonical render-command pipeline with a compiler-authored typed
+ground contact grammar. `codex/e6-apps-sdk-readiness` (module-atlas renderer) and
+`codex/g5-road-lot-terrain-contact` are formally superseded as engine bases —
+history only, do not reopen. The next visual-engine decision (per the 2B spec's
+"next decision" clause + the Entry 082 plateau finding): a **grade/contrast tuning
+pass with design sign-off** — the golden-hour wash, not the ground, now caps the
+north-star score. Human review of `artifacts/0.52e-diorama/` screenshots gates any
+merge/deploy of this branch.
+
 ## Current phase
 
 Fable takeover status:

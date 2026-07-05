@@ -7791,3 +7791,82 @@ Verification:
 - `node -e JSON.parse(chatgpt-app-submission.json)` valid.
 - `node scripts/verify-submission.mjs` passed (7-tool surface, live sweep, honesty
   literals intact).
+
+## Entry 082
+
+Quest:
+0.52E "Diorama Engine" Fable super-pass — unify the ground contact system into ONE
+compiler-authored typed grammar and refine the road/lot/terrain contact toward the
+north-star bar. Branch `fable/0.52e-diorama-engine`.
+
+Engine decision (ratified):
+Build on canonical (`fable/0.51e-voxel-art`, render-command / viewport pipeline).
+The `codex/e6-apps-sdk-readiness` module-atlas renderer is FORMALLY SUPERSEDED as an
+engine base: its LOC win comes from collapsing the ~80 per-family draw functions and
+deleting the palette registry / effective-color diagnostics / render-command budget
+system — exactly the 0.51E honesty and variety guarantees this project cannot trade
+for brevity. `codex/g5-road-lot-terrain-contact` is also SUPERSEDED as a base; its
+one durable idea — typed contact metadata authored on scene data — is now ported
+onto canonical (below). Both branches stay on origin as history only. Do not reopen
+either as an engine foundation.
+
+What changed:
+- `packages/core/src/voxel/cityWorldTypes.ts`: typed ground contact grammar —
+  `CityWorldRoadContactGrammar` (embedded/apron/painted + laneMarking + tone),
+  `CityWorldLotContactGrammar` (foundation/apron/green/shore + curbCutEdge + tone),
+  `CityWorldTerrainContactGrammar` (tone + contactShadow + edgeSides/waterEdgeSides),
+  all optional fields on `CityWorldVisualGrammar`.
+- `packages/core/src/voxel/cityWorldCompiler.ts`: the compiler is now the single
+  source of truth for contact treatment. `withCityWorldTerrainContactMetadata()`
+  computes neighbor-aware material seams (seam ownership by material priority, so
+  every joint is authored exactly once), land-side water bank strands, and slab
+  contact shadows; `withRoadMetadata(road, tone)` and `withLotMetadata(lot, roads,
+  tone)` author profiles, lane markings, and a curb-cut edge facing the nearest
+  serving road (7-tile honesty cap — far lots do not fake driveways). Ground tone
+  (public/draft/shell) is authored per entity.
+- `packages/core/src/voxel/cityWorldParametricGenerator.ts`: generated scenes run
+  the same decorators (terrain contact + road-aware curb cuts), keeping the
+  parametric seam on the one grammar.
+- `web/src/CityWorldRenderer.tsx`: draw code consumes the typed metadata uniformly.
+  All draw-time id-prefix sniffing (`isDraftTile`/`isDraftRoad`/`isDraftLot`) is
+  deleted; kind-branching for contact treatment replaced by contact profiles.
+  Legacy fallback derivation lives ONLY in the three resolver functions. New
+  primitives: terrain material seams (inset grooves + sunlit lips, draw-order
+  safe), water bank strand + wet line, lot curb-cut apron + walk join. Tuning:
+  crisper/smaller intersection joint modules, quiet mowed-field weave in outer
+  grass so the map edge is not an empty board.
+- `packages/core/src/voxel/cityWorldDiagnostics.ts`: authored-contact coverage is
+  honesty-gated — `authoredTerrain/Road/LotContactRatio`, `lotCurbCutCoverageRatio`
+  metrics + contact-axis warnings for playable and hidden-draft scenes.
+- `packages/core/test/city-world-compiler.test.ts`: +2 tests (full typed-grammar
+  coverage incl. seam ownership + bank sides; draft/shell tone honesty + legacy
+  decorator default contract). 89 core tests green.
+
+0.51E survivors (verified intact): palette registry, effective-color diagnostics,
+object-kit silhouette variety, all ~80 building draw functions, render-command
+pipeline, golden-hour grade.
+
+Verification:
+- `pnpm typecheck:starter`, `pnpm build:web`, `pnpm test:core` (89) all green.
+- `node scripts/verify-alpha-product-loop.mjs` → `ok: true` on desktop 1280x720 and
+  mobile 390x844 (place select, sticker drop, note save, no horizontal overflow,
+  zero console errors).
+- Before/after screenshots (light+dark, 4 states) in `artifacts/0.52e-diorama/`.
+  Shells stay honest (Orange bounded quiet shell, unsupported flat intentional).
+- Payload: `component.js` 952.4kb raw (unchanged vs before), gzip ~281KB.
+- `git diff --check` clean.
+
+Honest visual delta and self-rating:
+Ground now reads more authored at map zoom: water shoreline carries a real bank
+strand, plaza/park slab boundaries carry seam+lip steps, lots carry curb-cut mouths
+toward their streets, intersections are tighter, and the outer fields read tended
+instead of empty. Self-rating vs `atlas-voxel-town-north-star.png`: **6.5/10**
+(before: ~6). Plateau reasons (outside this pass's sanctioned scope): the
+whole-canvas golden-hour grade + haze washes contrast hard (a 0.48P design
+decision), the north star's density comes from props/vehicles/vegetation that are
+hard-forbidden, and the building-layer authorship halos read as ghosting at detail
+zoom (0.51E building treatment, not ground). Next funded move should be a
+grade/contrast tuning pass with design sign-off, not more ground work.
+
+Skipped:
+No new deps, assets, props, or modules; no persistence/Stripe/OAuth/XP; no deploy.

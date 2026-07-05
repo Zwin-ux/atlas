@@ -196,8 +196,8 @@ function resolveLotContact(lot: CityWorldLot): CityWorldLotContactGrammar {
 // Tone tables keep shell counties honest (near-silent ground detail) and
 // hidden drafts muted, while the public county carries the full treatment.
 const TERRAIN_SEAM_TONE_STYLE: Record<CityWorldGroundTone, { seamAlpha: number; lipAlpha: number; strandAlpha: number; wetAlpha: number }> = {
-  public: { seamAlpha: 0.2, lipAlpha: 0.13, strandAlpha: 0.3, wetAlpha: 0.22 },
-  draft: { seamAlpha: 0.12, lipAlpha: 0.08, strandAlpha: 0.18, wetAlpha: 0.12 },
+  public: { seamAlpha: 0.3, lipAlpha: 0.2, strandAlpha: 0.42, wetAlpha: 0.3 },
+  draft: { seamAlpha: 0.14, lipAlpha: 0.09, strandAlpha: 0.2, wetAlpha: 0.14 },
   shell: { seamAlpha: 0.05, lipAlpha: 0, strandAlpha: 0, wetAlpha: 0 },
 };
 
@@ -1195,7 +1195,11 @@ function drawTerrainParcelComposition(graphic: Graphics, tile: CityWorldTerrainT
   const seamColor = civic || commercial ? 0xf5e9c9 : park ? 0xeaf1bb : draft ? 0xf2dfb4 : 0xe6efbd;
   const shadowColor = civic || commercial ? 0x7c765f : 0x587f4d;
 
-  if (quiet && hash % 11 !== 0) return;
+  // Quiet outer fields still need a whisper of mowed-field weave so the map
+  // edge reads as tended ground instead of an empty board — one facet per
+  // ~4 tiles, at half the alpha of the fabric fields.
+  if (quiet && hash % 4 !== 0) return;
+  const quietScale = quiet ? 0.55 : 1;
 
   if (hash % 3 === 0) {
     graphic
@@ -1212,15 +1216,15 @@ function drawTerrainParcelComposition(graphic: Graphics, tile: CityWorldTerrainT
         ],
         true,
       )
-      .fill({ color: parcelColor, alpha: civic ? 0.105 : commercial ? 0.09 : draft ? 0.07 : 0.075 });
+      .fill({ color: parcelColor, alpha: (civic ? 0.105 : commercial ? 0.09 : draft ? 0.07 : 0.075) * quietScale });
   }
 
-  if (hash === 5 || hash === 13 || hash === 22) {
+  if (hash === 5 || hash === 13 || hash === 22 || (quiet && hash % 8 === 4)) {
     graphic
       .moveTo(point.x - TILE_WIDTH * 0.42, point.y + TILE_HEIGHT * 0.04)
       .lineTo(point.x - TILE_WIDTH * 0.1, point.y + TILE_HEIGHT * 0.2)
       .lineTo(point.x + TILE_WIDTH * 0.24, point.y + TILE_HEIGHT * 0.04)
-      .stroke({ color: seamColor, alpha: civic || commercial ? 0.18 : 0.12, width: 1, cap: "round", join: "round" });
+      .stroke({ color: seamColor, alpha: (civic || commercial ? 0.18 : 0.12) * quietScale, width: 1, cap: "round", join: "round" });
   }
 
   if ((civic || commercial) && (hash === 2 || hash === 18)) {
@@ -1651,12 +1655,12 @@ function drawRoadJointModule(layer: Container, joint: RoadJoint) {
   const major = joint.roads.some((road) => road.kind === "avenue");
   const drivewayOnly = contacts.every((contact) => contact.profile === "apron");
   const draftJoint = contacts.some((contact) => contact.tone === "draft");
-  const radius = maxWidth * (major ? 17 : 15) + (directions.size >= 3 ? 9 : 5);
-  const width = drivewayOnly ? radius * 1.65 : radius * 2.05;
-  const height = drivewayOnly ? radius * 0.9 : radius * 1.08;
-  const shadow = polygon(diamondPoints({ x: point.x, y: point.y + 6 }, width * 1.08, height * 1.12), 0x263a34, drivewayOnly ? 0.12 : draftJoint ? 0.21 : 0.18, 0x263a34, 0);
-  const curb = polygon(diamondPoints({ x: point.x, y: point.y + 2 }, width, height), drivewayOnly ? 0xc1ae88 : draftJoint ? 0xd5bf88 : 0xd6c996, drivewayOnly ? 0.58 : draftJoint ? 0.78 : 0.74, 0x6d684f, 0.12);
-  const bed = polygon(diamondPoints(point, width * 0.8, height * 0.7), drivewayOnly ? 0x858b7e : draftJoint ? 0x59635c : 0x5d6862, drivewayOnly ? 0.74 : 0.92, 0x3f4b46, 0.06);
+  const radius = maxWidth * (major ? 15 : 13.5) + (directions.size >= 3 ? 7 : 4);
+  const width = drivewayOnly ? radius * 1.6 : radius * 1.9;
+  const height = drivewayOnly ? radius * 0.88 : radius * 1.02;
+  const shadow = polygon(diamondPoints({ x: point.x, y: point.y + 5 }, width * 1.05, height * 1.08), 0x263a34, drivewayOnly ? 0.1 : draftJoint ? 0.18 : 0.15, 0x263a34, 0);
+  const curb = polygon(diamondPoints({ x: point.x, y: point.y + 2 }, width, height), drivewayOnly ? 0xc1ae88 : draftJoint ? 0xd5bf88 : 0xd6c996, drivewayOnly ? 0.62 : draftJoint ? 0.8 : 0.8, 0x6d684f, 0.18);
+  const bed = polygon(diamondPoints(point, width * 0.8, height * 0.7), drivewayOnly ? 0x858b7e : draftJoint ? 0x59635c : 0x5d6862, drivewayOnly ? 0.78 : 0.96, 0x3f4b46, 0.1);
   const surface = polygon(diamondPoints({ x: point.x, y: point.y - 1 }, width * 0.58, height * 0.46), drivewayOnly ? 0x969b8b : draftJoint ? 0x71796f : 0x6b7670, drivewayOnly ? 0.34 : draftJoint ? 0.42 : 0.46, 0xffffff, 0);
   layer.addChild(shadow, curb, bed, surface);
   drawRoadJointBlockwork(layer, point, width, height, drivewayOnly, draftJoint);
@@ -2025,9 +2029,9 @@ function drawLotCurbCut(layer: Container, lotContact: CityWorldLotContactGrammar
   const apron = polygon(
     diamondPoints(edgePoint, apronWidth, apronHeight),
     LOT_CURB_CUT_STYLE.apron,
-    draft ? 0.14 : green ? 0.18 : quiet ? 0.22 : 0.3,
+    draft ? 0.16 : green ? 0.22 : quiet ? 0.3 : 0.4,
     LOT_CURB_CUT_STYLE.groove,
-    draft ? 0.06 : 0.12,
+    draft ? 0.08 : 0.16,
   );
   layer.addChild(apron);
 
@@ -2035,7 +2039,7 @@ function drawLotCurbCut(layer: Container, lotContact: CityWorldLotContactGrammar
     const walk = new Graphics()
       .moveTo(point.x, point.y + height * 0.06)
       .lineTo(edgePoint.x, edgePoint.y);
-    walk.stroke({ color: LOT_CURB_CUT_STYLE.walk, alpha: draft ? 0.12 : quiet ? 0.2 : 0.26, width: quiet ? 1.6 : 2.4, cap: "round" });
+    walk.stroke({ color: LOT_CURB_CUT_STYLE.walk, alpha: draft ? 0.14 : quiet ? 0.28 : 0.34, width: quiet ? 1.8 : 2.6, cap: "round" });
     layer.addChild(walk);
   }
 }

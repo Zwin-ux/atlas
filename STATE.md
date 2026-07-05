@@ -30,15 +30,22 @@ to origin — nothing was discarded.
 
 ## High Priority
 
-1. **Next Fable super-move: "The Diorama Engine" pass.**
-   - Spec: `docs/design/fable-prompts/DIORAMA_ENGINE_SUPERPASS.md`.
-   - Goal: collapse the three divergent renderer lines into ONE canonical engine
-     AND solve the ground contact-grammar, hitting the north-star visual bar.
-   - Inputs in-tree: `docs/brain/ROAD_LOT_TERRAIN_CONTACT_GRAMMAR_SPEC.md`,
-     `docs/brain/VOXEL_VISUAL_BAR.md`, `assets/reference/atlas-voxel-town-north-star.png`.
-   - Runs on a dedicated branch off canonical (e.g. `fable/0.52e-diorama-engine`).
-   - Status: prompt loaded; **not yet run**. Verify Fable output (screenshots +
-     diagnostics) before trusting.
+1. **"The Diorama Engine" pass: RUN (2026-07-04, `fable/0.52e-diorama-engine`).**
+   - Spec: `docs/design/fable-prompts/DIORAMA_ENGINE_SUPERPASS.md`. Result:
+     BUILD_LOG Entry 082.
+   - Engine ratified on canonical (render-command pipeline); `codex/e6` module-atlas
+     and `codex/g5` contact proof are FORMALLY SUPERSEDED as engine bases (history
+     only — do not reopen).
+   - Ground contact system unified: compiler-authored typed road/lot/terrain
+     contact grammar, renderer consumes it uniformly (no draw-time id/kind
+     sniffing). Curb cuts, terrain seams, water bank strands landed.
+   - Verified: typecheck/build/test (89) green, product-loop verifier `ok: true`,
+     before/after screenshots in `artifacts/0.52e-diorama/`. Self-rating vs
+     north-star: 6.5/10 — plateau is grade/washout + forbidden-prop density, not
+     ground. Next funded engine move: grade/contrast tuning pass with design
+     sign-off.
+   - **Human review gate:** inspect screenshots before merging to canonical or
+     deploying.
 
 2. **0.51E voxel-art is in-tree but NOT deployed.**
    - Live URL still serves the pre-0.51E build.
