@@ -1,55 +1,54 @@
 {
-  "id": "postalpha-0.58i-integration-canonicalization-release-decision",
-  "name": "Post-Alpha 0.58I - Integration Canonicalization / Release Decision Packet",
+  "id": "postalpha-0.58j-hosted-clawd-setup-ui-port",
+  "name": "Post-Alpha 0.58J - Hosted Clawd Setup UI Port",
   "status": "local_green",
-  "playerPromise": "Atlas keeps the sharper Fable map and the Hosted Clawd rental tray together in one coherent local branch while Alpha remains visibly session-only.",
-  "engineeringPromise": "The integrated branch records Hosted Clawd scaffold plus Fable 0.53E-0.58E visual chain as a canonical candidate, with explicit split guard and human visual gate before deploy.",
-  "inputUpdate": "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup",
-  "selectedAxis": "integration_canonicalization",
-  "recommendedNextQuest": "0.58J Human Visual Gate / Deploy Readiness Decision",
-  "decision": "HUMAN_VISUAL_GATE_FIRST",
+  "playerPromise": "Hosted Clawd now reads like arming one business Clawd from a grey setup console on the map, not opening a signup form or pricing page.",
+  "engineeringPromise": "The tray ports Superior's grey setup-console grammar using existing Hosted Clawd context only: no new tool, no new server state, no persistence, no checkout.",
+  "inputUpdate": "postalpha-0.58i-integration-canonicalization-release-decision",
+  "selectedAxis": "hosted_clawd_setup_ui",
+  "recommendedNextQuest": "0.58K Human Visual Gate / Deploy Readiness Decision",
+  "decision": "SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED",
   "metricResult": {
-    "integrationCanonicalization": {
+    "hostedClawdSetupUi": {
       "branch": "codex/integrate-hosted-clawd-fable-058e",
-      "mergeCommit": "9b8a5fb",
-      "hostedClawdCommit": "7804ed0",
-      "fableCleanupCommit": "0c4c350",
-      "publicToolCount": 7,
-      "newMcpTools": 0,
-      "splitMode": "hosted-clawd-fable-integration",
-      "conflictsResolved": [
-        "docs/BUILD_LOG.md",
-        "docs/DECISIONS.md"
+      "baseCommit": "920cf8a",
+      "sourceInfluence": "Superior setup rail, short stamped states, one active target, readiness lights",
+      "visualSource": "Superior grey setup console",
+      "component": "web/src/HostedClawdTray.tsx",
+      "styles": "web/src/styles.css",
+      "setupRailQa": "hosted-clawd-setup-rail",
+      "setupConsoleQa": "hosted-clawd-setup-rail",
+      "steps": [
+        "Wake",
+        "Target",
+        "Scout",
+        "Campaign",
+        "Gate",
+        "Proof"
       ],
-      "suitableCanonicalCandidate": true,
-      "humanVisualGateRequired": true,
-      "deployRecommendation": "HUMAN_VISUAL_GATE_FIRST",
-      "localPreviewUrl": "http://127.0.0.1:8787/preview",
-      "desktopProof": "C:/Users/mzwin/AppData/Local/Temp/atlas-integration-desktop.png",
-      "mobileProof": "C:/Users/mzwin/AppData/Local/Temp/atlas-integration-mobile.png"
-    },
-    "hostedClawdScaffold": {
+      "contextOnly": true,
+      "newContextFields": 0,
       "publicToolCount": 7,
       "newMcpTools": 0,
       "persistenceDefault": false,
       "moneyDefault": false,
       "publicClaimDefault": false,
-      "dbMigrations": 0,
-      "liveStripeCalls": 0,
-      "authProviders": 0,
-      "publicPricingClaims": 0,
-      "widgetEntry": "map-first Hosted Clawd tray",
-      "firstSaveTarget": "business profile plus Scout Drop and campaign preview after future approval"
+      "humanVisualGateRequired": true,
+      "deployRecommendation": "HUMAN_VISUAL_GATE_FIRST",
+      "fableDesignQa": "PASS_WITH_NON_BLOCKING_NITS",
+      "desktopScreenshot": "C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-desktop.png",
+      "mobileScreenshot": "C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-mobile.png"
     },
     "scope": {
+      "uiSurfaceChanges": true,
+      "rendererGeometryChanges": false,
       "newMcpTools": 0,
       "dbMigrations": 0,
-      "rendererGeometryChanges": true,
-      "publicAnaheimPromotion": false,
-      "providerGeometry": false,
       "liveCheckout": false,
       "persistedWrites": false,
-      "artifactsAdded": true
+      "publicAnaheimPromotion": false,
+      "providerGeometry": false,
+      "artifactsAdded": false
     }
   },
   "verification": {
@@ -57,17 +56,14 @@
     "coreTests": "pnpm test:core",
     "buildWeb": "pnpm build:web",
     "hostedClawdGuard": "node scripts/verify-hosted-clawd-scaffold.mjs",
-    "fablePropCleanupGuard": "node scripts/verify-fable-prop-cleanup.mjs",
     "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
     "integrationSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only",
-    "providerBoundary": "node scripts/verify-provider-boundaries.mjs --json-only",
-    "toolResultShape": "node scripts/verify-tool-result-shape.mjs --json-only",
     "previewHttp": "pnpm verify:preview:http",
     "mcpFlow": "pnpm verify:mcp",
-    "desktopBrowserProof": "gstack browse desktop 1280x800 with Hosted Clawd tray open",
-    "mobileBrowserProof": "gstack browse mobile 390x844 with Hosted Clawd tray open"
+    "desktopBrowserProof": "C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-desktop.png; 1280x800; setupConsole=grey; active=Target; duplicateStepList=false; scrollWidth=1280; no console errors",
+    "mobileBrowserProof": "C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-mobile.png; 390x844; setupConsole=grey; active=Target; duplicateStepList=false; scrollWidth=390; no console errors"
   },
-  "nextCodeStep": "0.58J Human Visual Gate / Deploy Readiness Decision",
+  "nextCodeStep": "0.58K Human Visual Gate / Deploy Readiness Decision",
   "forbiddenScope": [
     "deploying before human visual/deploy approval",
     "live Stripe Checkout, Billing Portal, webhook, product, price, or customer mutation",
@@ -78,7 +74,7 @@
     "XP, evidence, weekly reports, exports, automation, auto-posting, DMs, ads, or scraping",
     "public Anaheim/Ontario exposure",
     "provider-created geometry or readiness promotion",
-    "generic SaaS pricing page or dashboard shell"
+    "generic SaaS pricing page, dashboard shell, or long setup wizard"
   ],
   "gates": [
     {
@@ -87,8 +83,8 @@
       "required": true
     },
     {
-      "id": "integration-split-gate",
-      "label": "Combined branch must pass strict hosted-clawd-fable-integration split guard",
+      "id": "setup-ui-gate",
+      "label": "Hosted Clawd setup rail must stay compact, map-first, and context-only",
       "required": true
     },
     {

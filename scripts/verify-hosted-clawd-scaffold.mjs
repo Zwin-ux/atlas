@@ -63,6 +63,7 @@ const app = read("web/src/App.tsx");
 const cityWorldView = read("web/src/CityWorldView.tsx");
 const styles = read("web/src/styles.css");
 const packageJson = parseJson("package.json");
+const currentUpdate = parseJson("artifacts/current-update.json");
 
 const actualTools = [...server.matchAll(/registerAppTool\(\s*server,\s*"([^"]+)"/g)].map((match) => match[1]).sort();
 if (JSON.stringify(actualTools) !== JSON.stringify(expectedTools)) {
@@ -103,8 +104,31 @@ assertIncludes(server, "hostedClawd: hostedClawdContextForScout", "Scout metadat
 assertIncludes(server, "hostedClawd: hostedClawdContextForCampaign", "Campaign metadata must expose widget-only Hosted Clawd context.");
 assertIncludes(server, "hostedClawdContextSchema", "Upgrade tool output schema must validate Hosted Clawd context.");
 assertIncludes(tray, 'data-qa="hosted-clawd-tray"', "Hosted Clawd tray needs a stable QA hook.");
+assertIncludes(tray, 'data-qa="hosted-clawd-setup-rail"', "Hosted Clawd setup UI needs a stable setup rail hook.");
+assertIncludes(tray, 'data-qa-setup-console="grey"', "Hosted Clawd setup UI must preserve the grey setup console QA marker.");
+assertIncludes(tray, "city-world-hosted-clawd-windowbar", "Hosted Clawd setup UI must include the grey setup window bar.");
+assertIncludes(tray, "city-world-hosted-clawd-stage-buttons", "Hosted Clawd setup UI must include compact stage slabs.");
+assertIncludes(tray, "city-world-hosted-clawd-recovery", "Hosted Clawd setup UI must include the recovery/status card.");
+assertIncludes(tray, "setupStepsForContext", "Hosted Clawd setup UI must derive setup steps from the existing context.");
+assertIncludes(tray, "activeSetupStepId", "Hosted Clawd setup UI must compute the active setup step from readiness.");
+assertIncludes(tray, "closedGateCount > 0 ? \"Locked\" : \"Ready\"", "Hosted Clawd setup UI must show the gate as locked while approvals are closed.");
+assertNotIncludes(tray, "city-world-hosted-clawd-step-list", "Hosted Clawd setup UI must not render a duplicate wizard-like step list.");
 assertIncludes(cityWorldView, "Host Clawd", "Map tray must expose the Hosted Clawd entry point.");
 assertIncludes(styles, ".city-world-hosted-clawd", "Hosted Clawd tray styles are missing.");
+assertIncludes(styles, ".city-world-hosted-clawd-setup", "Hosted Clawd setup rail styles are missing.");
+assertIncludes(styles, "--hosted-setup-shell", "Hosted Clawd setup UI must define grey setup console tokens.");
+assertIncludes(styles, ".city-world-hosted-clawd-stage-button", "Hosted Clawd setup stage slab styles are missing.");
+assertIncludes(styles, ".city-world-hosted-clawd-recovery", "Hosted Clawd recovery card styles are missing.");
+assertNotIncludes(styles, ".city-world-hosted-clawd-step-list", "Hosted Clawd setup styles must not keep dead duplicate step-list CSS.");
+if (/\.city-world-hosted-clawd\s*\{[^}]*backdrop-filter/s.test(styles)) {
+  blockers.push("Hosted Clawd setup shell must not pay for an invisible backdrop filter.");
+}
+
+const setupSteps = currentUpdate?.metricResult?.hostedClawdSetupUi?.steps;
+const expectedSetupSteps = ["Wake", "Target", "Scout", "Campaign", "Gate", "Proof"];
+if (JSON.stringify(setupSteps) !== JSON.stringify(expectedSetupSteps)) {
+  blockers.push(`0.58J setup artifact steps drifted. Expected ${expectedSetupSteps.join(", ")}, got ${Array.isArray(setupSteps) ? setupSteps.join(", ") : "missing"}.`);
+}
 
 const sourceForForbiddenCalls = `${server}\n${service}\n${types}`;
 for (const pattern of [
@@ -164,6 +188,12 @@ function assertIncludes(source, token, message) {
   }
 }
 
+function assertNotIncludes(source, token, message) {
+  if (source.includes(token)) {
+    blockers.push(message);
+  }
+}
+
 function hasDependency(packageJsonValue, name) {
   return Boolean(packageJsonValue?.dependencies?.[name] || packageJsonValue?.devDependencies?.[name]);
 }
@@ -193,4 +223,3 @@ function exists(file) {
     return false;
   }
 }
-

@@ -1,5 +1,39 @@
 # Decisions
 
+## Decision 081: Port Superior grey setup console into Hosted Clawd as UI-only setup
+
+0.58J ports the Superior grey setup console / setup rail grammar into the Atlas
+Hosted Clawd tray on `codex/integrate-hosted-clawd-fable-058e`. The input update
+is `0.58I Integration Canonicalization / Release Decision Packet` at base commit
+`920cf8a`.
+
+Decision:
+Accept the setup console port as local-green with decision
+`SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED` and selected axis
+`hosted_clawd_setup_ui`.
+
+Reason:
+The Hosted Clawd tray needed a sharper setup grammar to sit beside the Fable
+map without reading like a generic SaaS upgrade card. That product surface can
+improve before deploy, but it must not quietly become a persistence, checkout,
+auth, or server-state implementation.
+
+Allowed now:
+- Superior grey setup console / setup rail UI grammar in the Hosted Clawd tray.
+- Desktop and 390x844 mobile visual review in the next gate.
+- Existing seven-tool MCP surface and existing widget context only.
+
+Still blocked:
+- New MCP tools or new context fields.
+- Server state, DB, auth/OAuth, persistence, Stripe/money, public pricing, or
+  saved-state claims.
+- Deploy without `0.58K Human Visual Gate / Deploy Readiness Decision`.
+- Public Anaheim/Ontario promotion.
+
+Next:
+Run `0.58K Human Visual Gate / Deploy Readiness Decision`. `0.59H Hosted Clawd
+Storage/Auth Decision Packet` remains behind that visual/deploy gate.
+
 ## Decision 080: Integrated Hosted Clawd plus Fable branch needs a human visual gate before deploy
 
 Branch `codex/integrate-hosted-clawd-fable-058e` is accepted as the local
@@ -8,9 +42,10 @@ Fable 0.53E-0.58E visual chain and has a strict
 `hosted-clawd-fable-integration` split mode.
 
 Decision:
-Do not deploy automatically. The next gate is `0.58J Human Visual Gate / Deploy
-Readiness Decision`. `0.59H Hosted Clawd Storage/Auth Decision Packet` remains
-behind that visual/deploy gate.
+Do not deploy automatically. This decision originally created the visual/deploy
+gate. 0.58J has since run as a UI-only setup console port; the current next
+gate is `0.58K Human Visual Gate / Deploy Readiness Decision`. `0.59H Hosted
+Clawd Storage/Auth Decision Packet` remains behind that visual/deploy gate.
 
 Reason:
 The branch is technically green, but it changes both the product upgrade path

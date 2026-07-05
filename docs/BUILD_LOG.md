@@ -1,5 +1,55 @@
 # Build Log
 
+## Entry 196
+
+Quest:
+`0.58J Hosted Clawd Setup UI Port`.
+
+What changed:
+- Ported the Superior grey setup console / setup rail grammar into the Atlas
+  Hosted Clawd tray on branch `codex/integrate-hosted-clawd-fable-058e`.
+- Kept `0.58I Integration Canonicalization / Release Decision Packet` at base
+  commit `920cf8a` as the input update.
+- Recorded the current local-green decision as
+  `SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED` with selected axis
+  `hosted_clawd_setup_ui`.
+
+Decision:
+0.58J is UI-only and context-only. It does not open persistence, auth/OAuth,
+DB, Stripe/money, server state, new context fields, public pricing/saved-state
+claims, deploy, or new MCP tools.
+
+Skipped:
+No deploy, no DB/auth/OAuth/Stripe/persistence, no server state, no public
+pricing or saved-state claims, no XP/evidence/reports/exports, no provider
+geometry, no public Anaheim/Ontario, and no MCP tool changes.
+No deploy, no DB/auth/Stripe/persistence.
+
+Verification:
+- `pnpm typecheck`
+- `pnpm test:core`
+- `pnpm build:web`
+- `node scripts\verify-hosted-clawd-scaffold.mjs`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only`
+- `node scripts\verify-provider-boundaries.mjs --json-only`
+- `node scripts\verify-tool-result-shape.mjs --json-only`
+- `pnpm verify:preview:http`
+- `pnpm verify:mcp`
+- gstack browse proof:
+  `C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-desktop.png`
+  and `C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-mobile.png`.
+
+Browser proof:
+Desktop `1280x800` and mobile `390x844` both show the grey setup console with
+Target active, no duplicate step list, no horizontal overflow, sticky footer
+visible, and no console errors.
+
+Fable QA:
+Claude/Fable returned `PASS` for handing this to `0.58K Human Visual Gate /
+Deploy Readiness Decision`, with only non-blocking nits. `0.59H Hosted Clawd
+Storage/Auth Decision Packet` remains behind that visual/deploy gate.
+
 ## Entry 195
 
 Quest:

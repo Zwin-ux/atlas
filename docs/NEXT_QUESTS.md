@@ -19,7 +19,8 @@ reliability sweep, `0.50P` submission packet.
 The owner-gate / second-district ceremony below is **parked** but kept honest: `0.46E Owner Gate
 Review Packet` remains the recorded next quest for that parked ladder, its selector artifacts
 remain anchored at `0.45E`, and Anaheim/Ontario stay hidden and non-public. The active manifest
-is now the 0.58I integration packet. Re-open the owner-gate ladder only on human request.
+is now the 0.58J Hosted Clawd setup UI packet, using 0.58I at base commit `920cf8a`
+as its input update. Re-open the owner-gate ladder only on human request.
 
 ## Engine track note (2026-07-04, `fable/0.52e-diorama-engine`)
 
@@ -33,57 +34,69 @@ pass with design sign-off** — the golden-hour wash, not the ground, now caps t
 north-star score. Human review of `artifacts/0.52e-diorama/` screenshots gates any
 merge/deploy of this branch.
 
-## Current local-green integration slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+## Current local-green setup UI slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
 
 Current quest:
-`0.58I Integration Canonicalization / Release Decision Packet`.
+`0.58J Hosted Clawd Setup UI Port`.
 
 Player-facing promise:
-Atlas keeps the sharper Fable map and the Hosted Clawd rental tray together in
-one coherent local branch while Alpha remains visibly session-only.
+Atlas keeps the sharper Fable map and makes the Hosted Clawd tray feel like a
+purpose-built setup console instead of a generic upgrade card, while Alpha
+remains visibly session-only.
 
 Engineering promise:
-Record the integrated Hosted Clawd scaffold plus Fable 0.53E-0.58E visual chain
-as a canonical candidate, with explicit split guard and a human visual gate
-before deploy.
+Port the Superior grey setup console / setup rail grammar into the Atlas Hosted
+Clawd tray without changing MCP contracts, context fields, server state, or any
+persisted/money/auth boundary.
+
+Input update:
+`0.58I Integration Canonicalization / Release Decision Packet` at base commit
+`920cf8a`.
+
+Decision:
+`SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED`.
+
+Selected axis:
+`hosted_clawd_setup_ui`.
 
 Contract:
 - Branch `codex/integrate-hosted-clawd-fable-058e` is the local canonical
   candidate, not automatically deployed.
 - Public MCP tool surface remains the seven Alpha tools.
-- Hosted Clawd persistence, money, auth, public claims, reports, evidence, XP,
-  exports, and automation remain closed.
-- The Fable visual chain is explicit integration scope, not hidden inside the
-  Hosted Clawd scaffold.
+- Hosted Clawd setup UI may change, but no new context fields, server state, or
+  public tool contracts may appear.
+- Hosted Clawd persistence, money, auth/OAuth, DB, public pricing/saved-state
+  claims, reports, evidence, XP, exports, and automation remain closed.
+- The Fable visual chain stays explicit integration input, not hidden inside the
+  setup UI port.
 - Anaheim/Ontario remain hidden and non-public.
 
 Metric / verifier:
-- `pnpm typecheck`
-- `pnpm test:core`
-- `pnpm build:web`
+- Focused UI proof for the Hosted Clawd tray on desktop and 390x844 mobile.
 - `node scripts\verify-hosted-clawd-scaffold.mjs`
-- `node scripts\verify-fable-prop-cleanup.mjs`
 - `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
 - `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only`
-- `pnpm verify:preview:http`
-- `pnpm verify:mcp`
 
 Proof:
-Desktop and 390x844 mobile proof exist at
-`C:\Users\mzwin\AppData\Local\Temp\atlas-integration-desktop.png` and
-`C:\Users\mzwin\AppData\Local\Temp\atlas-integration-mobile.png`.
+0.58J is local-green as a UI/context slice. The next gate must inspect the
+integrated desktop and 390x844 mobile proof before deploy.
 
 Anti-scope:
-No deploy, DB, auth, Stripe, persistence, OAuth, XP, evidence, reports, exports,
-automation, provider geometry, public Anaheim/Ontario, dashboard shell, generic
-SaaS page, or new public MCP tool.
+No deploy, DB, auth, OAuth, Stripe/money, persistence, server state, new context
+fields, XP, evidence, reports, exports, automation, provider geometry, public
+Anaheim/Ontario, dashboard shell, generic SaaS page, public pricing/saved-state
+claim, or new public MCP tool.
+
+Gate shorthand:
+No deploy, DB, auth, Stripe, persistence.
 
 Stop condition:
-Stop after the source-of-truth docs and verifiers agree that this branch is a
-local canonical candidate with deploy blocked on human visual approval.
+Stop after the Superior grey setup console grammar is ported, docs and verifiers
+keep every Hosted Clawd implementation gate closed, and deploy remains blocked
+on human visual approval.
 
 Next quest:
-`0.58J Human Visual Gate / Deploy Readiness Decision`.
+`0.58K Human Visual Gate / Deploy Readiness Decision`.
 
 ## Branch-local Fable pass (2026-07-05, `fable/0.58e-prop-cleanup`)
 
@@ -157,7 +170,7 @@ Verifier:
 Split mode:
 `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-scaffold --json-only`.
 
-Next Hosted Clawd implementation slice after the 0.58J visual/deploy gate:
+Next Hosted Clawd implementation slice after the 0.58K visual/deploy gate:
 `0.59H Hosted Clawd Storage/Auth Decision Packet`. It should choose the storage
 provider, migration strategy, auth/account ownership model, idempotency tests,
 and first persisted object. Do not implement DB or Stripe until those choices

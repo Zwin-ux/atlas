@@ -4,15 +4,24 @@ Status: **ACTIVE product track** (human-directed, 2026-07-03). This is the live 
 The owner-gate / second-district promotion ceremony (0.44E-0.47E) is **parked**:
 its selector artifacts stay anchored at `0.45E`, the source-of-truth drift
 checker stays green, and Anaheim/Ontario stay hidden and non-public. The active
-manifest is now the 0.58I integration packet. We are shipping a fully
-high-quality, submittable ChatGPT app.
+manifest is now the 0.58J Hosted Clawd setup UI packet, using 0.58I at base
+commit `920cf8a` as its input update. We are shipping a fully high-quality,
+submittable ChatGPT app.
 
 Current integration note (2026-07-05):
 `codex/integrate-hosted-clawd-fable-058e` is the local canonical candidate that
-combines the Fable visual chain with a gated Hosted Clawd rental scaffold. It is
-not deployed. Paid persistence, auth, Stripe, public pricing claims, XP,
-evidence, reports, exports, and new MCP tools remain closed. The next gate is
-human visual/deploy review, not implementation of persistence.
+combines the Fable visual chain with a gated Hosted Clawd rental scaffold.
+
+Current setup UI note (2026-07-05):
+`0.58J Hosted Clawd Setup UI Port`.
+
+0.58J ports the Superior grey setup console / setup rail grammar into that
+tray as a UI-only, context-only change. It is not deployed. Paid persistence,
+auth/OAuth, DB, Stripe, public pricing or saved-state claims, server state, new
+context fields, XP, evidence, reports, exports, and new MCP tools remain
+closed. The next gate is `0.58K Human Visual Gate / Deploy Readiness Decision`,
+not implementation of persistence.
+No persistence, money, auth, or public paid claims.
 
 Why this exists: the previous stretch (0.24E→0.46E) was decision machinery circling one blocked
 question ("promote hidden Anaheim?"). This spec replaces that with product-quality gates that
@@ -117,7 +126,7 @@ server, and browser proofs. Fable is spent once, on the working UI, where qualit
   checker stays green. Re-open only if a human calls for a controlled public second-district spike.
 - **Paid / backend.** Hosted Clawd is reopened only as a gated scaffold. Stripe/checkout, DB
   persistence, OAuth, XP, evidence, automation, reports, exports, and public saved-state claims
-  stay parked until 0.58J approves the integrated branch and a later 0.59H storage/auth decision
+  stay parked until 0.58K approves the integrated branch and a later 0.59H storage/auth decision
   names the implementation contract.
 - **Provider-created geometry, live provider→scene normalization, renderer/UI redesign.**
 

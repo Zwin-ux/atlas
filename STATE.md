@@ -1,14 +1,17 @@
 # Atlas Loop State
 
-Last run: 2026-07-05 - 0.58I integration canonicalization packet
+Last run: 2026-07-05 - 0.58J Hosted Clawd setup UI port
 Loop level: L2 assisted
 Kill switch: active only if `loop-constraints.md` says `pause: true`
 
 ## Current Repository Harness
 
 Local canonical candidate:
-`C:/Users/mzwin/Documents/Atlas` on `codex/integrate-hosted-clawd-fable-058e`
-at merge commit `9b8a5fb`.
+`C:/Users/mzwin/Documents/Atlas` on `codex/integrate-hosted-clawd-fable-058e`.
+
+Input update:
+`0.58I Integration Canonicalization / Release Decision Packet` at base commit
+`920cf8a`.
 
 This branch combines:
 - `7804ed0` - gated Hosted Clawd rental scaffold.
@@ -20,19 +23,28 @@ Extra local worktree:
 
 Deploy status:
 Not deployed and not pushed by default. The next gate is
-`0.58J Human Visual Gate / Deploy Readiness Decision`.
+`0.58K Human Visual Gate / Deploy Readiness Decision`.
 
 ## Current Slice
 
-`0.58I Integration Canonicalization / Release Decision Packet` is local green.
+`0.58J Hosted Clawd Setup UI Port` is local green.
 
 Decision:
-`HUMAN_VISUAL_GATE_FIRST`.
+`SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED`.
+
+Selected axis:
+`hosted_clawd_setup_ui`.
+
+Scope:
+Ports the Superior grey setup console / setup rail grammar into the Atlas
+Hosted Clawd tray. This is UI-only and context-only: no new MCP tools, no new
+context fields, no server state, no persistence, no auth/OAuth, no DB, no
+Stripe/money, no public pricing/saved-state claims, and no deploy.
 
 Next quest:
-`0.58J Human Visual Gate / Deploy Readiness Decision`.
+`0.58K Human Visual Gate / Deploy Readiness Decision`.
 
-After 0.58J, Hosted Clawd implementation can proceed only as
+After 0.58K, Hosted Clawd implementation can proceed only as
 `0.59H Hosted Clawd Storage/Auth Decision Packet`; no DB/auth/Stripe/persistence
 implementation starts before that decision.
 
@@ -59,16 +71,22 @@ implementation starts before that decision.
 ## Watch List
 
 - Mobile `390x844` product comprehension.
-- Hosted Clawd tray weight against the richer Fable map; 0.58J should accept it
+- Hosted Clawd setup console weight against the richer Fable map; 0.58K should accept it
   or name the exact styling blocker.
 - Dirty tree size: strict split guard must stay `0 blockers / 0 unknowns`.
 - Public URL baseline: `https://atlas-backend-production-e6fc.up.railway.app/preview`.
 
 ## Recent Proof
 
-- Integration desktop screenshot:
-  `C:/Users/mzwin/AppData/Local/Temp/atlas-integration-desktop.png`
-- Integration mobile screenshot:
-  `C:/Users/mzwin/AppData/Local/Temp/atlas-integration-mobile.png`
+- 0.58J desktop setup-console screenshot:
+  `C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-desktop.png`
+- 0.58J mobile setup-console screenshot:
+  `C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-mobile.png`
+- Browser metrics:
+  desktop `1280x800` and mobile `390x844` both had setupConsole=`grey`,
+  active step=`Target`, duplicate step list=`false`, no horizontal overflow, and
+  no console errors.
+- Fable final design QA:
+  `PASS` for 0.58K human visual gate, with only non-blocking nits.
 - Local preview when the server is running:
   `http://127.0.0.1:8787/preview`

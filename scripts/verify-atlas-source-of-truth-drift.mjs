@@ -6,9 +6,11 @@ import process from "node:process";
 const OWNER_GATE_UPDATE = "postalpha-0.45e-owner-gate-cutline-next-axis-selection";
 const HOSTED_CLAWD_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold";
 const INTEGRATION_UPDATE = "postalpha-0.58i-integration-canonicalization-release-decision";
+const SETUP_UI_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
+const SETUP_UI_INPUT_UPDATE = "postalpha-0.58i-integration-canonicalization-release-decision";
 const EXPECTED_SELECTOR_NEXT_QUEST = "0.44E Hidden Second-District Visual/Product Proof Packet";
 const OWNER_GATE_NEXT_QUEST = "0.46E Owner Gate Review Packet";
 const OWNER_GATE_SELECTED_AXIS = "owner_gate_review";
@@ -16,6 +18,8 @@ const HOSTED_CLAWD_NEXT_QUEST = "0.59H Hosted Clawd Storage/Auth Decision Packet
 const HOSTED_CLAWD_SELECTED_AXIS = "hosted_clawd_scaffold";
 const INTEGRATION_NEXT_QUEST = "0.58J Human Visual Gate / Deploy Readiness Decision";
 const INTEGRATION_SELECTED_AXIS = "integration_canonicalization";
+const SETUP_UI_NEXT_QUEST = "0.58K Human Visual Gate / Deploy Readiness Decision";
+const SETUP_UI_SELECTED_AXIS = "hosted_clawd_setup_ui";
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -86,7 +90,9 @@ checkRepairScope();
 const result = {
   ok: blockers.length === 0,
   update:
-    currentUpdate?.id === INTEGRATION_UPDATE
+    currentUpdate?.id === SETUP_UI_UPDATE
+      ? "postalpha-0.58j-setup-ui-source-of-truth-drift-check"
+      : currentUpdate?.id === INTEGRATION_UPDATE
       ? "postalpha-0.58i-integration-source-of-truth-drift-check"
       : "postalpha-0.45e-source-of-truth-drift-check",
   blockerCount: blockers.length,
@@ -139,7 +145,11 @@ function checkCurrentUpdate(update) {
     checkIntegrationCurrentUpdate(update);
     return;
   }
-  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, or ${INTEGRATION_UPDATE}; got ${update.id ?? "missing"}.`);
+  if (update.id === SETUP_UI_UPDATE) {
+    checkSetupUiCurrentUpdate(update);
+    return;
+  }
+  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, or ${SETUP_UI_UPDATE}; got ${update.id ?? "missing"}.`);
 }
 
 function checkOwnerGateCurrentUpdate(update) {
@@ -240,6 +250,50 @@ function checkIntegrationCurrentUpdate(update) {
   }
 }
 
+function checkSetupUiCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== SETUP_UI_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${SETUP_UI_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== SETUP_UI_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${SETUP_UI_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== SETUP_UI_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${SETUP_UI_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED") {
+    blockers.push(`artifacts/current-update.json decision must be SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED; got ${update.decision ?? "missing"}.`);
+  }
+  const setup = update.metricResult?.hostedClawdSetupUi;
+  const scope = update.metricResult?.scope;
+  if (setup?.branch !== "codex/integrate-hosted-clawd-fable-058e" || setup?.baseCommit !== "920cf8a") {
+    blockers.push("0.58J setup UI must record the integrated branch and 0.58I base commit.");
+  }
+  if (setup?.visualSource !== "Superior grey setup console") {
+    blockers.push("0.58J setup UI must record the Superior grey setup console as visual source.");
+  }
+  if (setup?.setupConsoleQa !== "hosted-clawd-setup-rail" || setup?.contextOnly !== true || setup?.newContextFields !== 0) {
+    blockers.push("0.58J setup UI must stay context-only with the stable hosted-clawd setup QA hook.");
+  }
+  if (setup?.publicToolCount !== 7 || setup?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.58J setup UI must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (setup?.persistenceDefault !== false || setup?.moneyDefault !== false || setup?.publicClaimDefault !== false) {
+    blockers.push("0.58J setup UI must keep persistence, money, and public-claim defaults false.");
+  }
+  if (setup?.humanVisualGateRequired !== true || setup?.deployRecommendation !== "HUMAN_VISUAL_GATE_FIRST") {
+    blockers.push("0.58J setup UI must keep human visual gate before deploy.");
+  }
+  if (scope?.dbMigrations !== 0 || scope?.liveCheckout !== false || scope?.persistedWrites !== false || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false) {
+    blockers.push("0.58J setup UI must record no DB migrations, no live checkout, no persisted writes, no public Anaheim promotion, and no provider geometry.");
+  }
+  if (scope?.uiSurfaceChanges !== true || scope?.rendererGeometryChanges !== false) {
+    blockers.push("0.58J setup UI must record UI surface changes without renderer geometry changes.");
+  }
+}
+
 function checkPriorSelectorArtifact(artifact) {
   if (!artifact) return;
   if (artifact.update !== "postalpha-0.43e-engine-quality-axis-review-next-target-selection") {
@@ -321,52 +375,101 @@ function checkNextQuestAlignment(update, nextQuests, releaseLadder) {
 }
 
 function checkIntegrationReleaseDocs(update, docs) {
-  if (update?.id !== INTEGRATION_UPDATE) return;
+  let requiredSnippetsByFile = null;
+  let label = "";
 
-  const requiredSnippetsByFile = {
-    "STATE.md": [
-      "codex/integrate-hosted-clawd-fable-058e",
-      "0.58I Integration Canonicalization / Release Decision Packet",
-      "HUMAN_VISUAL_GATE_FIRST",
-      INTEGRATION_NEXT_QUEST,
-      HOSTED_CLAWD_NEXT_QUEST,
-      "hosted-clawd-fable-integration",
-    ],
-    "docs/NEXT_QUESTS.md": [
-      "Current local-green integration slice",
-      "0.58I Integration Canonicalization / Release Decision Packet",
-      "0.58J Human Visual Gate / Deploy Readiness Decision",
-      "The active manifest is now the 0.58I integration packet",
-      "No deploy, DB, auth, Stripe, persistence",
-    ],
-    "docs/BUILD_LOG.md": [
-      "## Entry 195",
-      "0.58I Integration Canonicalization / Release Decision Packet",
-      "HUMAN_VISUAL_GATE_FIRST",
-      "hosted-clawd-fable-integration",
-      "No deploy, no push, no DB/auth/Stripe/persistence",
-    ],
-    "docs/DECISIONS.md": [
-      "## Decision 080",
-      "Integrated Hosted Clawd plus Fable branch needs a human visual gate before deploy",
-      "codex/integrate-hosted-clawd-fable-058e",
-      "0.58J Human Visual Gate / Deploy Readiness Decision",
-      "0.59H Hosted Clawd Storage/Auth Decision Packet",
-    ],
-    "docs/PRODUCT_SPEC_AND_GATES.md": [
-      "Current integration note (2026-07-05)",
-      "codex/integrate-hosted-clawd-fable-058e",
-      "The active manifest is now the 0.58I integration packet",
-      "Hosted Clawd is reopened only as a gated scaffold",
-      "0.59H storage/auth decision",
-    ],
-  };
+  if (update?.id === INTEGRATION_UPDATE) {
+    label = "0.58I release-decision";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "codex/integrate-hosted-clawd-fable-058e",
+        "0.58I Integration Canonicalization / Release Decision Packet",
+        "HUMAN_VISUAL_GATE_FIRST",
+        INTEGRATION_NEXT_QUEST,
+        HOSTED_CLAWD_NEXT_QUEST,
+        "hosted-clawd-fable-integration",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current local-green integration slice",
+        "0.58I Integration Canonicalization / Release Decision Packet",
+        "0.58J Human Visual Gate / Deploy Readiness Decision",
+        "The active manifest is now the 0.58I integration packet",
+        "No deploy, DB, auth, Stripe, persistence",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 195",
+        "0.58I Integration Canonicalization / Release Decision Packet",
+        "HUMAN_VISUAL_GATE_FIRST",
+        "hosted-clawd-fable-integration",
+        "No deploy, no push, no DB/auth/Stripe/persistence",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 080",
+        "Integrated Hosted Clawd plus Fable branch needs a human visual gate before deploy",
+        "codex/integrate-hosted-clawd-fable-058e",
+        "0.58J Human Visual Gate / Deploy Readiness Decision",
+        "0.59H Hosted Clawd Storage/Auth Decision Packet",
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current integration note (2026-07-05)",
+        "codex/integrate-hosted-clawd-fable-058e",
+        "The active manifest is now the 0.58I integration packet",
+        "Hosted Clawd is reopened only as a gated scaffold",
+        "0.59H storage/auth decision",
+      ],
+    };
+  }
+
+  if (update?.id === SETUP_UI_UPDATE) {
+    label = "0.58J setup-ui";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "codex/integrate-hosted-clawd-fable-058e",
+        "0.58J Hosted Clawd Setup UI Port",
+        "SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED",
+        "Superior grey setup console",
+        SETUP_UI_NEXT_QUEST,
+        HOSTED_CLAWD_NEXT_QUEST,
+        "hosted-clawd-fable-integration",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current local-green setup UI slice",
+        "0.58J Hosted Clawd Setup UI Port",
+        "Superior grey setup console",
+        SETUP_UI_NEXT_QUEST,
+        "No deploy, DB, auth, Stripe, persistence",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 196",
+        "0.58J Hosted Clawd Setup UI Port",
+        "SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED",
+        "Superior grey setup console",
+        "No deploy, no DB/auth/Stripe/persistence",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 081",
+        "Port Superior grey setup console into Hosted Clawd as UI-only setup",
+        "SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED",
+        SETUP_UI_NEXT_QUEST,
+        "0.59H Hosted Clawd Storage/Auth Decision Packet",
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current setup UI note (2026-07-05)",
+        "0.58J Hosted Clawd Setup UI Port",
+        "Superior grey setup console",
+        "No persistence, money, auth, or public paid claims",
+        SETUP_UI_NEXT_QUEST,
+      ],
+    };
+  }
+
+  if (!requiredSnippetsByFile) return;
 
   for (const [path, snippets] of Object.entries(requiredSnippetsByFile)) {
     const text = docs[docKey(path)] ?? "";
     for (const snippet of snippets) {
       if (!includesSnippet(text, snippet)) {
-        blockers.push(`${path} missing 0.58I release-decision wording: ${snippet}`);
+        blockers.push(`${path} missing ${label} wording: ${snippet}`);
       }
     }
   }
@@ -419,10 +522,10 @@ function checkAgentsDoctrine(agents) {
     "Current phase is Engine Beta, not Paid Beta",
     "Riverside/Eastvale is the only public playable district",
     "Anaheim/Ontario remain hidden and non-public until owner-gate approval",
-    "Hosted Clawd, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened",
+    "Hosted Clawd implementation beyond the gated setup UI/scaffold, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened",
     "If the human says \"continue,\" continue only the named next quest",
-    "Current human-directed local-green slice is `0.58I Integration Canonicalization / Release Decision Packet`",
-    "Default next integration slice after 0.58I is `0.58J Human Visual Gate / Deploy Readiness Decision`",
+    "Current human-directed local-green slice is `0.58J Hosted Clawd Setup UI Port`",
+    "Default next integration slice after 0.58J is `0.58K Human Visual Gate / Deploy Readiness Decision`",
     "Default Hosted Clawd implementation slice after the visual/deploy gate remains `0.59H Hosted Clawd Storage/Auth Decision Packet`",
     "The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`",
     "Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`",

@@ -6,27 +6,30 @@ proof packet.
 
 ## Current Update
 
-### Post-Alpha 0.58I - Integration Canonicalization / Release Decision Packet
+### Post-Alpha 0.58J - Hosted Clawd Setup UI Port
 
-Player-facing promise: Atlas keeps the sharper Fable map and the Hosted Clawd
-rental tray together in one coherent local branch while Alpha remains visibly
-session-only.
+Player-facing promise: Atlas keeps the sharper Fable map and makes the Hosted
+Clawd tray read as a focused setup console, not a generic upgrade card, while
+Alpha remains visibly session-only.
 
-Engineering promise: The integrated branch records Hosted Clawd scaffold plus
-Fable 0.53E-0.58E visual chain as a canonical candidate, with explicit split
-guard and human visual gate before deploy.
+Engineering promise: Port the Superior grey setup console / setup rail grammar
+into the Atlas Hosted Clawd tray without changing the public MCP surface,
+context contract, server state, persistence, auth, DB, Stripe, or deploy status.
 
 Spec:
-Use `artifacts/current-update.json`,
+Use `0.58I Integration Canonicalization / Release Decision Packet` at base
+commit `920cf8a` as the input update. Keep
 `scripts/verify-hosted-clawd-scaffold.mjs`,
-`scripts/verify-fable-prop-cleanup.mjs`, and strict
-`hosted-clawd-fable-integration` split mode as the 0.58I gate.
+`scripts/verify-atlas-source-of-truth-drift.mjs`, and strict
+`hosted-clawd-fable-integration` split mode as the 0.58J guard.
 
 Status:
 Local green. Branch `codex/integrate-hosted-clawd-fable-058e` is the local
-canonical candidate. Deploy is blocked on a human visual/deploy gate.
-Persistence, money, and public-claim flags are OFF by default. The public MCP
-tool surface remains the seven existing tools.
+canonical candidate. Decision is `SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED`;
+selected axis is `hosted_clawd_setup_ui`. Deploy is blocked on a human
+visual/deploy gate. Persistence, money, auth/OAuth, DB, server state, public
+pricing/saved-state claims, and public-claim flags remain closed. The public
+MCP tool surface remains the seven existing tools.
 
 ## Parked Owner-Gate Ladder
 
@@ -48,9 +51,10 @@ Anaheim/Ontario stay hidden.
 
 ## Next Updates
 
-### Post-Alpha 0.58J - Human Visual Gate / Deploy Readiness Decision
+### Post-Alpha 0.58K - Human Visual Gate / Deploy Readiness Decision
 
-Review the integrated desktop and 390x844 mobile proof, decide whether
+Review the integrated desktop and 390x844 mobile proof, including the Superior
+grey Hosted Clawd setup console port, decide whether
 `codex/integrate-hosted-clawd-fable-058e` becomes the canonical/deploy line,
 and either approve deploy or name exact visual/product blockers. Do not
 implement DB, auth, Stripe, persistence, public Anaheim/Ontario, or new MCP
