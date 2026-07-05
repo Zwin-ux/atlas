@@ -285,11 +285,20 @@ void main(void)
 
     // S-curve for form contrast — firmer than before so directional wall
     // shading survives the grade instead of washing to a matte pastel.
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.38);
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.46);
 
-    // Slight saturation trim keeps the palette calm.
+    // 0.54E — highlight rolloff. Sunlit stucco and lit roofs ride near-white
+    // luma and used to blow out into one paper tone; compressing the top of
+    // the range keeps their form (rims, material fields, tint spreads)
+    // legible while the scene still reads sunlit. This is the single biggest
+    // wash fix and applies to every scene the engine serves.
     float luma = dot(c, vec3(0.299, 0.587, 0.114));
-    c = mix(vec3(luma), c, 0.9);
+    c *= mix(1.0, 0.87, smoothstep(0.68, 1.0, luma));
+
+    // Gentler saturation trim: calm SoCal palette, but material identity
+    // (clay vs metal vs glass, per-home tint spread) survives the grade.
+    luma = dot(c, vec3(0.299, 0.587, 0.114));
+    c = mix(vec3(luma), c, 0.96);
 
     // Golden-hour split tone: warm sunlit highlights, cool shadows.
     vec3 warm = vec3(1.055, 1.005, 0.915);
