@@ -3698,15 +3698,25 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   // falls away into shade — consistent with the wall shading below.
   const halfW = footprintWidth / 2;
   const halfD = footprintDepth / 2;
+  // 0.53E item D — a whisper directional split across the roof plane itself:
+  // the sun-side half lifts warm, the fall-away half cools, so every roof
+  // reads directional under the same key light as the walls. Deliberately
+  // faint — this is the ROOF light finish, not the 0.54E whole-canvas grade.
+  const roofLitHalf = new Graphics()
+    .poly([top.x, top.y - halfD, top.x, top.y + halfD, top.x - halfW, top.y], true)
+    .fill({ color: 0xfff3d2, alpha: 0.09 });
+  const roofShadeHalf = new Graphics()
+    .poly([top.x, top.y - halfD, top.x, top.y + halfD, top.x + halfW, top.y], true)
+    .fill({ color: 0x2c4a5e, alpha: 0.08 });
   const roofRim = new Graphics()
     .moveTo(top.x - halfW, top.y)
     .lineTo(top.x, top.y - halfD);
-  roofRim.stroke({ color: 0xfff3d2, alpha: 0.55, width: 1.5, cap: "round", join: "round" });
+  roofRim.stroke({ color: 0xfff3d2, alpha: 0.68, width: 1.8, cap: "round", join: "round" });
   const roofFall = new Graphics()
     .moveTo(top.x, top.y - halfD)
     .lineTo(top.x + halfW, top.y);
-  roofFall.stroke({ color: shadeColor(roofColor, -52), alpha: 0.4, width: 1.3, cap: "round", join: "round" });
-  layer.addChild(roofRim, roofFall);
+  roofFall.stroke({ color: shadeColor(roofColor, -52), alpha: 0.5, width: 1.4, cap: "round", join: "round" });
+  layer.addChild(roofLitHalf, roofShadeHalf, roofRim, roofFall);
 
   const lines = new Graphics();
   if (roofShape === "gable") {
@@ -5692,7 +5702,9 @@ function sunlitColor(color: number, face: SunFace): number {
   // flat body, not merely un-shaded (it used to sit at factor 1.0, which is why
   // lit walls read matte). Widening the top/sun/shade spread gives every box a
   // legible light-to-shade gradient without going cartoon.
-  if (face === "top") return mixColor(scaleColor(color, 1.18), SUN_WARM_TINT, 0.13);
+  // 0.53E item D — the top face carries most of the frame; a slightly stronger
+  // lift + warm tint makes roofs read lit instead of matte next to the walls.
+  if (face === "top") return mixColor(scaleColor(color, 1.22), SUN_WARM_TINT, 0.15);
   if (face === "sun") return mixColor(scaleColor(color, 1.12), SUN_WARM_TINT, 0.12);
   return mixColor(scaleColor(color, 0.4), SUN_COOL_TINT, 0.32);
 }
