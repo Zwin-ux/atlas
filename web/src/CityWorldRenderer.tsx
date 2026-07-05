@@ -2485,13 +2485,17 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
   }
 
   if (style === "strip_store" || building.kind === "shop") {
-    const apron = polygon(
-      diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.43 }, footprintWidth * 0.88, footprintDepth * 0.18),
-      0xe8d0a3,
-      0.44,
-      0x7f6d4e,
-      0.14,
-    );
+    // 0.55E — kit commerce strips get their apron from the object-kit read
+    // (sharedStorefrontApron); drawing a second one here doubled the pad.
+    const apron = isObjectKitCommerceStrip(building)
+      ? null
+      : polygon(
+          diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.43 }, footprintWidth * 0.88, footprintDepth * 0.18),
+          0xe8d0a3,
+          0.44,
+          0x7f6d4e,
+          0.14,
+        );
     const bayGrounding = new Graphics();
     for (let bay = -1; bay <= 1; bay += 1) {
       bayGrounding
@@ -2504,7 +2508,8 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
       .lineTo(top.x + footprintWidth * 0.17, bottom.y - footprintDepth * 0.18)
       .lineTo(top.x + footprintWidth * 0.4, bottom.y - footprintDepth * 0.05);
     awningUnderside.stroke({ color: shadeColor(roofColor, -38), alpha: 0.34, width: 2.2, cap: "round", join: "round" });
-    layer.addChild(apron, bayGrounding, awningUnderside);
+    if (apron) layer.addChild(apron);
+    layer.addChild(bayGrounding, awningUnderside);
   }
 }
 
@@ -2737,7 +2742,7 @@ function drawEastvaleCorePublicCivicSignature(layer: Container, geometry: Buildi
 }
 
 function drawPublicResidentialSilhouette(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor, highlightColor, trimColor } = geometry;
+  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor, trimColor } = geometry;
   const style = building.facadeStyle ?? "suburban";
   const sideWingX = style === "ranch" ? bottom.x + footprintWidth * 0.22 : bottom.x - footprintWidth * 0.22;
   const sideWing = polygon(
@@ -2747,29 +2752,16 @@ function drawPublicResidentialSilhouette(layer: Container, geometry: BuildingGeo
     trimColor,
     0.05,
   );
-  const porch = polygon(
-    diamondPoints({ x: style === "ranch" ? bottom.x + footprintWidth * 0.1 : bottom.x - footprintWidth * 0.12, y: bottom.y + footprintDepth * 0.28 }, footprintWidth * 0.16, footprintDepth * 0.1),
-    0xe6c48f,
-    0.26,
-    0x7f6d4e,
-    0.12,
-  );
+  // 0.55E decal discipline — porch pad retired (drawHomeDetails porches +
+  // drawHomeStoop own entries) and the white windowRhythm bars retired
+  // (material-band sills + style windows own the window read). The fn keeps
+  // its unique jobs: the side-wing massing and the dark roof-break stroke.
   const roofBreak = new Graphics()
     .moveTo(top.x - footprintWidth * 0.36, top.y - footprintDepth * 0.08)
     .lineTo(top.x - footprintWidth * 0.05, top.y + footprintDepth * 0.09)
     .lineTo(top.x + footprintWidth * 0.28, top.y - footprintDepth * 0.06);
   roofBreak.stroke({ color: shadeColor(roofColor, -34), alpha: style === "rowhome" ? 0.18 : 0.32, width: style === "ranch" ? 2.5 : 2, cap: "round", join: "round" });
-
-  const windowRhythm = new Graphics();
-  const windowCount = style === "ranch" ? 4 : 3;
-  for (let index = 0; index < windowCount; index += 1) {
-    const offset = (index / Math.max(1, windowCount - 1) - 0.5) * footprintWidth * 0.56;
-    windowRhythm
-      .roundRect(top.x + offset - 3.5, bottom.y - footprintDepth * 0.05 + (index % 2) * 2, 7, 6, 1.4)
-      .fill({ color: highlightColor, alpha: 0.42 });
-  }
-  windowRhythm.stroke({ color: trimColor, alpha: 0.12, width: 0.7 });
-  layer.addChild(sideWing, porch, roofBreak, windowRhythm);
+  layer.addChild(sideWing, roofBreak);
 }
 
 function drawPublicCommerceSilhouette(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -2846,17 +2838,14 @@ function drawPublicServiceSilhouette(layer: Container, geometry: BuildingGeometr
   layer.addChild(serviceEntry, sawtooth, serviceWindows);
 }
 
+// 0.55E decal discipline — this generation's threshold pad (drawHomeDetails
+// porches + drawHomeStoop own entries), side block (the public silhouette's
+// sideWing owns the side mass), and white wall-rib bar fills (material-band
+// sills + style windows own the window rhythm) are retired. The fn keeps its
+// unique jobs: the dark eave stroke and the vertical parcel rib lines.
 function drawAuthoredResidentialKitRhythm(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor, highlightColor, trimColor } = geometry;
+  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor } = geometry;
   const style = building.facadeStyle ?? "suburban";
-  const entryX = style === "ranch" ? bottom.x + footprintWidth * 0.12 : style === "rowhome" ? bottom.x : bottom.x - footprintWidth * 0.14;
-  const threshold = polygon(
-    diamondPoints({ x: entryX, y: bottom.y + footprintDepth * 0.3 }, footprintWidth * (style === "rowhome" ? 0.26 : 0.18), footprintDepth * 0.12),
-    0xe7c895,
-    style === "rowhome" ? 0.36 : 0.28,
-    0x7f6d4e,
-    0.14,
-  );
   const roofEave = new Graphics()
     .moveTo(top.x - footprintWidth * 0.48, top.y + footprintDepth * 0.07)
     .lineTo(top.x, top.y + footprintDepth * 0.34)
@@ -2868,26 +2857,16 @@ function drawAuthoredResidentialKitRhythm(layer: Container, geometry: BuildingGe
   for (let bay = 0; bay < bayCount; bay += 1) {
     const offset = (bay / Math.max(1, bayCount - 1) - 0.5) * footprintWidth * 0.68;
     wallRibs
-      .roundRect(top.x + offset - footprintWidth * 0.035, bottom.y - footprintDepth * 0.22 + (bay % 2) * 2, footprintWidth * 0.07, 6, 1.5)
-      .fill({ color: highlightColor, alpha: style === "rowhome" ? 0.52 : 0.4 })
       .moveTo(top.x + offset + footprintWidth * 0.055, top.y + footprintDepth * 0.13)
       .lineTo(top.x + offset + footprintWidth * 0.055, bottom.y + footprintDepth * 0.06);
   }
   wallRibs.stroke({ color: shadeColor(bodyColor, -32), alpha: 0.17, width: 0.9 });
-
-  const sideBlock = polygon(
-    diamondPoints({ x: bottom.x + footprintWidth * 0.27, y: bottom.y - footprintDepth * 0.02 }, footprintWidth * 0.14, footprintDepth * 0.14),
-    shadeColor(bodyColor, -18),
-    0.14,
-    trimColor,
-    0.06,
-  );
-  layer.addChild(threshold, sideBlock, roofEave, wallRibs);
+  layer.addChild(roofEave, wallRibs);
 }
 
 function drawAuthoredCommerceStripRhythm(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor, accentColor } = geometry;
-  const bayCount = building.facadeStyle === "strip_store" ? 5 : 3;
+  const { top, bottom, footprintWidth, footprintDepth, roofColor } = geometry;
+  void building;
   const parapet = new Graphics()
     .moveTo(top.x - footprintWidth * 0.46, top.y - footprintDepth * 0.18)
     .lineTo(top.x - footprintWidth * 0.18, top.y - footprintDepth * 0.08)
@@ -2895,17 +2874,10 @@ function drawAuthoredCommerceStripRhythm(layer: Container, geometry: BuildingGeo
     .lineTo(top.x + footprintWidth * 0.42, top.y - footprintDepth * 0.06);
   parapet.stroke({ color: shadeColor(roofColor, -38), alpha: 0.36, width: 2.4, cap: "round", join: "round" });
 
-  const bays = new Graphics();
-  for (let bay = 0; bay < bayCount; bay += 1) {
-    const offset = (bay / Math.max(1, bayCount - 1) - 0.5) * footprintWidth * 0.72;
-    bays
-      .roundRect(top.x + offset - footprintWidth * 0.045, bottom.y - footprintDepth * 0.2, footprintWidth * 0.09, 10, 2)
-      .fill({ color: bay % 2 === 0 ? highlightColor : 0xc7ecf1, alpha: 0.54 })
-      .roundRect(top.x + offset - footprintWidth * 0.055, top.y + footprintDepth * 0.25, footprintWidth * 0.11, 5, 1.5)
-      .fill({ color: bay % 2 === 0 ? accentColor : shadeColor(roofColor, 20), alpha: 0.46 });
-  }
-  bays.stroke({ color: trimColor, alpha: 0.16, width: 0.8 });
-
+  // 0.55E decal discipline — the white/cyan bay bars are retired: the
+  // object-kit commerce read (same family population) owns the storefront bay
+  // rhythm. The dark parapet stroke and apron joint strokes stay — they are
+  // contrast, not wash.
   const apronJoint = new Graphics()
     .moveTo(bottom.x - footprintWidth * 0.4, bottom.y + footprintDepth * 0.25)
     .lineTo(bottom.x - footprintWidth * 0.12, bottom.y + footprintDepth * 0.37)
@@ -2914,7 +2886,7 @@ function drawAuthoredCommerceStripRhythm(layer: Container, geometry: BuildingGeo
     .lineTo(bottom.x + footprintWidth * 0.12, bottom.y + footprintDepth * 0.38)
     .lineTo(bottom.x - footprintWidth * 0.12, bottom.y + footprintDepth * 0.27);
   apronJoint.stroke({ color: 0x8f7a54, alpha: 0.24, width: 1.4, cap: "round", join: "round" });
-  layer.addChild(parapet, bays, apronJoint);
+  layer.addChild(parapet, apronJoint);
 }
 
 function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
