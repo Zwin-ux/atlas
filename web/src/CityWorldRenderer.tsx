@@ -3716,8 +3716,20 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
   const { top, footprintWidth, footprintDepth, roofColor } = geometry;
 
   if (profile === "terracotta_barrel_tile" || profile === "cool_clay_tile" || profile === "sage_tile") {
+    // 0.53E item B — clay reads warm and COURSED: a stronger tile tint plus
+    // eave-parallel course lines so tile separates from metal (smooth/cool)
+    // and membrane (flat/dark) at a glance.
     const tileTint = profile === "terracotta_barrel_tile" ? 0xc4764e : profile === "cool_clay_tile" ? 0x7f9aa8 : 0x8ba372;
-    const tint = polygon(diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86), tileTint, profile === "sage_tile" ? 0.12 : 0.1, tileTint, 0);
+    const tint = polygon(diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86), tileTint, profile === "sage_tile" ? 0.2 : 0.18, tileTint, 0);
+    const courses = new Graphics();
+    for (let course = 0; course < 3; course += 1) {
+      const inset = 0.72 - course * 0.2;
+      courses
+        .moveTo(top.x - footprintWidth * 0.5 * inset, top.y + footprintDepth * 0.5 * (1 - inset) * 0.5)
+        .lineTo(top.x, top.y + footprintDepth * 0.5 * (inset + (1 - inset) * 0.5))
+        .lineTo(top.x + footprintWidth * 0.5 * inset, top.y + footprintDepth * 0.5 * (1 - inset) * 0.5);
+    }
+    courses.stroke({ color: shadeColor(roofColor, -26), alpha: 0.2, width: 1, cap: "round", join: "round" });
     const ridgeStart = { x: top.x - footprintWidth * 0.24, y: top.y - footprintDepth * 0.13 };
     const ridgeEnd = { x: top.x + footprintWidth * 0.24, y: top.y + footprintDepth * 0.13 };
     const barrelCaps = new Graphics();
@@ -3730,28 +3742,33 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
     }
     barrelCaps.stroke({
       color: shadeColor(roofColor, profile === "cool_clay_tile" ? 34 : 28),
-      alpha: profile === "terracotta_barrel_tile" ? 0.42 : 0.32,
+      alpha: profile === "terracotta_barrel_tile" ? 0.5 : 0.4,
       width: profile === "terracotta_barrel_tile" ? 1.7 : 1.3,
       cap: "round",
     });
-    layer.addChild(tint, barrelCaps);
+    layer.addChild(tint, courses, barrelCaps);
     return;
   }
 
   if (profile === "flat_parapet_cap") {
-    const capRing = new Graphics()
-      .poly(diamondPoints(top, footprintWidth * 0.92, footprintDepth * 0.84), true)
-      .stroke({ color: shadeColor(roofColor, 34), alpha: 0.4, width: 2, cap: "round", join: "round" });
+    // 0.53E item B — the parapet (drawParapetCap) and the roof deck must read
+    // as ONE surface: a recessed membrane field sits inside the parapet line,
+    // darker than the coping, with gravel flecks on the membrane. The old
+    // bright cap ring competed with the parapet coping and made two decals.
+    const membrane = polygon(diamondPoints(top, footprintWidth * 0.84, footprintDepth * 0.76), shadeColor(roofColor, -14), 0.32, shadeColor(roofColor, -30), 0.24);
     const gravelFlecks = new Graphics()
       .circle(top.x - footprintWidth * 0.16, top.y + footprintDepth * 0.04, 1.1)
       .circle(top.x + footprintWidth * 0.06, top.y - footprintDepth * 0.1, 1)
       .circle(top.x + footprintWidth * 0.2, top.y + footprintDepth * 0.08, 1.1)
-      .fill({ color: shadeColor(roofColor, 22), alpha: 0.3 });
-    layer.addChild(capRing, gravelFlecks);
+      .fill({ color: shadeColor(roofColor, 22), alpha: 0.34 });
+    layer.addChild(membrane, gravelFlecks);
     return;
   }
 
   if (profile === "blue_metal_utility") {
+    // 0.53E item B — metal reads SMOOTH and COOL: a cool panel field under
+    // crisper standing seams and a long specular streak. No courses, no warmth.
+    const panelField = polygon(diamondPoints(top, footprintWidth * 0.9, footprintDepth * 0.82), mixColor(roofColor, SUN_COOL_TINT, 0.24), 0.16, roofColor, 0);
     const seams = new Graphics();
     for (let seam = -2; seam <= 2; seam += 1) {
       const offset = seam * footprintWidth * 0.13;
@@ -3759,22 +3776,31 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
         .moveTo(top.x + offset - footprintWidth * 0.09, top.y - footprintDepth * 0.2)
         .lineTo(top.x + offset + footprintWidth * 0.09, top.y + footprintDepth * 0.2);
     }
-    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.3, width: 1.1, cap: "round" });
+    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.4, width: 1.1, cap: "round" });
     const sheen = new Graphics()
       .moveTo(top.x - footprintWidth * 0.3, top.y - footprintDepth * 0.06)
       .lineTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.14);
-    sheen.stroke({ color: shadeColor(roofColor, 42), alpha: 0.26, width: 1.7, cap: "round" });
-    layer.addChild(seams, sheen);
+    sheen.stroke({ color: shadeColor(roofColor, 52), alpha: 0.36, width: 2, cap: "round" });
+    layer.addChild(panelField, seams, sheen);
     return;
   }
 
   if (profile === "civic_glass_cap") {
-    const glassField = polygon(diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.06 }, footprintWidth * 0.5, footprintDepth * 0.34), 0xbfe4ee, 0.22, 0x4e8298, 0.14);
+    // 0.53E item B — civic glass reads GLAZED: a wider glass field with a
+    // mullion cross and a bright specular so it is unmistakable next to clay
+    // and metal, and catches the key light (item D pairs the roof rim).
+    const glassField = polygon(diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.04 }, footprintWidth * 0.62, footprintDepth * 0.44), 0xbfe4ee, 0.3, 0x4e8298, 0.2);
+    const mullions = new Graphics()
+      .moveTo(top.x - footprintWidth * 0.31, top.y - footprintDepth * 0.04)
+      .lineTo(top.x + footprintWidth * 0.31, top.y - footprintDepth * 0.04)
+      .moveTo(top.x, top.y - footprintDepth * 0.26)
+      .lineTo(top.x, top.y + footprintDepth * 0.18);
+    mullions.stroke({ color: 0x4e8298, alpha: 0.28, width: 1, cap: "round" });
     const specular = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.16, top.y - footprintDepth * 0.14)
-      .lineTo(top.x + footprintWidth * 0.1, top.y + footprintDepth * 0.02);
-    specular.stroke({ color: 0xeafaff, alpha: 0.4, width: 1.5, cap: "round" });
-    layer.addChild(glassField, specular);
+      .moveTo(top.x - footprintWidth * 0.18, top.y - footprintDepth * 0.16)
+      .lineTo(top.x + footprintWidth * 0.12, top.y + footprintDepth * 0.04);
+    specular.stroke({ color: 0xeafaff, alpha: 0.55, width: 1.8, cap: "round" });
+    layer.addChild(glassField, mullions, specular);
   }
 }
 
