@@ -13,6 +13,7 @@ import type {
 } from "./cityWorldTypes.js";
 import {
   withBuildingMetadata,
+  withCityWorldTerrainContactMetadata,
   withLotMetadata,
   withPropMetadata,
   withRoadMetadata,
@@ -148,15 +149,18 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
 
     for (const parcel of parcels) {
       lots.push(
-        withLotMetadata({
-          id: `gen-lot-${zone.id}-${parcel.index}`,
-          kind: lotKind,
-          label: zone.label ?? zoneLabel(zone.kind),
-          position: { x: parcel.x, y: parcel.y, z: 0 },
-          width: parcel.width,
-          depth: parcel.depth,
-          placeId,
-        }),
+        withLotMetadata(
+          {
+            id: `gen-lot-${zone.id}-${parcel.index}`,
+            kind: lotKind,
+            label: zone.label ?? zoneLabel(zone.kind),
+            position: { x: parcel.x, y: parcel.y, z: 0 },
+            width: parcel.width,
+            depth: parcel.depth,
+            placeId,
+          },
+          roadSegments,
+        ),
       );
 
       const building = buildingForZone(zone, parcel, placeId, rng);
@@ -258,7 +262,7 @@ function createParametricTerrain(spec: CityWorldParametricSpec, bounds: CityWorl
       });
     }
   }
-  return tiles;
+  return withCityWorldTerrainContactMetadata(tiles, "public");
 }
 
 function parametricTerrainGrammar(

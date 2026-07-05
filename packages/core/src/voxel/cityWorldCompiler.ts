@@ -386,7 +386,7 @@ function createDraftDistrictTerrainTiles(profile: DraftDistrictProfile): CityWor
 }
 
 function createDraftDistrictRoadSegments(profile: DraftDistrictProfile): CityWorldRoadSegment[] {
-  return profile.roadSegments.map(withRoadMetadata);
+  return profile.roadSegments.map((road) => withRoadMetadata(road, "draft"));
 }
 
 function createDraftDistrictLots(anchors: DistrictPlaceAnchor[], positions: Map<string, CityWorldPoint>, roads: CityWorldRoadSegment[]): CityWorldLot[] {
@@ -405,6 +405,7 @@ function createDraftDistrictLots(anchors: DistrictPlaceAnchor[], positions: Map<
         placeId: `draft-place-${anchor.id}`,
       },
       roads,
+      "draft",
     );
   });
 }
@@ -677,7 +678,7 @@ function createRoadSegments(): CityWorldRoadSegment[] {
     { id: "cross-plaza", kind: "crosswalk", from: { x: 31, y: 13, z: 0 }, to: { x: 31, y: 16, z: 0 }, width: 0.45 },
   ];
 
-  return roads.map(withRoadMetadata);
+  return roads.map((road) => withRoadMetadata(road, "public"));
 }
 
 function draftLotKind(category: WorldPlaceCategory): CityWorldLot["kind"] {
@@ -805,7 +806,7 @@ function createLots(roads: CityWorldRoadSegment[]): CityWorldLot[] {
     }
   }
 
-  return lots.map((lot) => withLotMetadata(lot, roads));
+  return lots.map((lot) => withLotMetadata(lot, roads, "public"));
 }
 
 function createBuildings(): CityWorldBuilding[] {
@@ -1303,21 +1304,144 @@ function isResidentialShelfEdge(position: CityWorldPoint) {
   );
 }
 
-function roadVisualGrammar(road: CityWorldRoadSegment): CityWorldVisualGrammar {
-  if (road.kind === "crosswalk") return { roadProfile: "paver_crosswalk", contactProfile: "curb_shadow" };
-  if (road.kind === "driveway") return { roadProfile: "driveway_cut", contactProfile: "curb_shadow" };
-  return { roadProfile: "embedded_asphalt_slab", contactProfile: "curb_shadow" };
+// ---- Unified ground contact grammar (0.52E Diorama Engine) -----------------
+// The compiler is the single source of truth for ground contact treatment.
+// Tone (public/draft/shell), road/lot contact profiles, curb-cut edges, and
+// terrain material seams are authored here as typed metadata; the renderer
+// consumes them uniformly and never re-derives them from ids or kinds at
+// draw time.
+
+function cityWorldGroundTone(id: string): CityWorldGroundTone {
+  if (id.startsWith("draft-")) return "draft";
+  if (id.startsWith("shell-")) return "shell";
+  return "public";
 }
 
-function lotVisualGrammar(lot: CityWorldLot): CityWorldVisualGrammar {
+const CITY_WORLD_TILE_NEIGHBORS: ReadonlyArray<readonly [CityWorldTileEdge, number, number]> = [
+  ["north", 0, -1],
+  ["east", 1, 0],
+  ["south", 0, 1],
+  ["west", -1, 0],
+];
+
+// The higher-priority material of a boundary owns the seam, so every material
+// joint is authored exactly once instead of being double-drawn by both tiles.
+const TERRAIN_SEAM_PRIORITY: Record<CityWorldTerrainKind, number> = {
+  water: 5,
+  plaza: 4,
+  sidewalk: 3,
+  park: 2,
+  grass: 1,
+};
+
+export function withCityWorldTerrainContactMetadata(tiles: CityWorldTerrainTile[], tone: CityWorldGroundTone): CityWorldTerrainTile[] {
+  const kindByCoordinate = new Map<string, CityWorldTerrainKind>();
+  for (const tile of tiles) {
+    kindByCoordinate.set(`${tile.position.x},${tile.position.y}`, tile.kind);
+  }
+
+  return tiles.map((tile) => {
+    const edgeSides: CityWorldTileEdge[] = [];
+    const waterEdgeSides: CityWorldTileEdge[] = [];
+
+    for (const [side, dx, dy] of CITY_WORLD_TILE_NEIGHBORS) {
+      const neighborKind = kindByCoordinate.get(`${tile.position.x + dx},${tile.position.y + dy}`);
+      if (!neighborKind || neighborKind === tile.kind) continue;
+      if ((tile.kind === "water") !== (neighborKind === "water")) {
+        // The land tile owns the bank strand; the water side already carries
+        // waterfront bank massing from the elevation grammar.
+        if (tile.kind !== "water") waterEdgeSides.push(side);
+        continue;
+      }
+      if (TERRAIN_SEAM_PRIORITY[tile.kind] > TERRAIN_SEAM_PRIORITY[neighborKind]) {
+        edgeSides.push(side);
+      }
+    }
+
+    const terrainContact: CityWorldTerrainContactGrammar = {
+      tone,
+      contactShadow: tone === "public" && (tile.kind === "plaza" || tile.kind === "sidewalk") && edgeSides.length > 0,
+      ...(edgeSides.length > 0 ? { edgeSides } : {}),
+      ...(waterEdgeSides.length > 0 ? { waterEdgeSides } : {}),
+    };
+
+    return {
+      ...tile,
+      visualGrammar: { ...(tile.visualGrammar ?? { contactProfile: "soft_ground_shadow" as const }), terrainContact },
+    };
+  });
+}
+
+// Curb cuts only make sense for lots that actually front a road; anything
+// farther than this stays honest and does not fake a driveway join.
+const CURB_CUT_MAX_ROAD_DISTANCE = 7;
+
+function lotCurbCutEdge(lot: CityWorldLot, roads: CityWorldRoadSegment[]): CityWorldTileEdge | undefined {
+  if (lot.kind === "waterfront") return undefined;
+  let best: { distance: number; edge: CityWorldTileEdge } | undefined;
+
+  for (const road of roads) {
+    if (road.kind === "crosswalk") continue;
+    const nearest = nearestPointOnCitySegment(lot.position, road.from, road.to);
+    const dx = nearest.x - lot.position.x;
+    const dy = nearest.y - lot.position.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > CURB_CUT_MAX_ROAD_DISTANCE) continue;
+    // Normalize by the footprint so wide lots prefer their long frontage.
+    const edge: CityWorldTileEdge =
+      Math.abs(dx) / Math.max(lot.width, 0.001) >= Math.abs(dy) / Math.max(lot.depth, 0.001)
+        ? dx >= 0
+          ? "east"
+          : "west"
+        : dy >= 0
+          ? "south"
+          : "north";
+    if (!best || distance < best.distance) best = { distance, edge };
+  }
+
+  return best?.edge;
+}
+
+function nearestPointOnCitySegment(point: CityWorldPoint, from: CityWorldPoint, to: CityWorldPoint): CityWorldPoint {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0) return { x: from.x, y: from.y, z: 0 };
+  const t = Math.max(0, Math.min(1, ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared));
+  return { x: from.x + dx * t, y: from.y + dy * t, z: 0 };
+}
+
+function roadVisualGrammar(road: CityWorldRoadSegment, tone: CityWorldGroundTone): CityWorldVisualGrammar {
+  const roadContact: CityWorldRoadContactGrammar = {
+    profile: road.kind === "crosswalk" ? "painted" : road.kind === "driveway" ? "apron" : "embedded",
+    tone,
+    laneMarking:
+      road.kind === "avenue" ? "avenue_dash" : road.kind === "street" ? "street_dash" : road.kind === "driveway" ? "apron_dash" : "none",
+  };
+  if (road.kind === "crosswalk") return { roadProfile: "paver_crosswalk", contactProfile: "curb_shadow", roadContact };
+  if (road.kind === "driveway") return { roadProfile: "driveway_cut", contactProfile: "curb_shadow", roadContact };
+  return { roadProfile: "embedded_asphalt_slab", contactProfile: "curb_shadow", roadContact };
+}
+
+function lotContactGrammar(lot: CityWorldLot, tone: CityWorldGroundTone, curbCutEdge: CityWorldTileEdge | undefined): CityWorldLotContactGrammar {
+  const profile =
+    lot.kind === "waterfront" ? "shore" : lot.kind === "park" ? "green" : lot.kind === "shop" || lot.kind === "gym" ? "apron" : "foundation";
+  return {
+    profile,
+    tone,
+    ...(curbCutEdge && profile !== "shore" ? { curbCutEdge } : {}),
+  };
+}
+
+function lotVisualGrammar(lot: CityWorldLot, lotContact: CityWorldLotContactGrammar): CityWorldVisualGrammar {
   const parcelComposition = parcelCompositionProfile(lot);
   const parcelElevation = parcelElevationProfile(lot);
-  if (lot.kind === "home") return { lotProfile: lot.id.startsWith("lot-home-") ? "residential_yard_grid" : "home_parcel_pad", parcelComposition, parcelElevation, contactProfile: "parcel_pad_shadow" };
-  if (lot.kind === "shop" || lot.kind === "gym") return { lotProfile: "commercial_forecourt", parcelComposition, parcelElevation, contactProfile: "parcel_pad_shadow" };
-  if (lot.kind === "civic") return { lotProfile: lot.placeId === "place-eastvale-core" ? "landmark_civic_ground" : "civic_plaza_pad", parcelComposition, parcelElevation, contactProfile: "landmark_base_shadow" };
-  if (lot.kind === "apartments") return { lotProfile: "apartment_court", parcelComposition, parcelElevation, contactProfile: "parcel_pad_shadow" };
-  if (lot.kind === "waterfront") return { lotProfile: "waterfront_edge", parcelComposition, parcelElevation, contactProfile: "soft_ground_shadow" };
-  return { lotProfile: "park_soft_edge", parcelComposition, parcelElevation, contactProfile: "soft_ground_shadow" };
+  if (lot.kind === "home") return { lotProfile: lot.id.startsWith("lot-home-") ? "residential_yard_grid" : "home_parcel_pad", parcelComposition, parcelElevation, contactProfile: "parcel_pad_shadow", lotContact };
+  if (lot.kind === "shop" || lot.kind === "gym") return { lotProfile: "commercial_forecourt", parcelComposition, parcelElevation, contactProfile: "parcel_pad_shadow", lotContact };
+  if (lot.kind === "civic") return { lotProfile: lot.placeId === "place-eastvale-core" ? "landmark_civic_ground" : "civic_plaza_pad", parcelComposition, parcelElevation, contactProfile: "landmark_base_shadow", lotContact };
+  if (lot.kind === "apartments") return { lotProfile: "apartment_court", parcelComposition, parcelElevation, contactProfile: "parcel_pad_shadow", lotContact };
+  if (lot.kind === "waterfront") return { lotProfile: "waterfront_edge", parcelComposition, parcelElevation, contactProfile: "soft_ground_shadow", lotContact };
+  return { lotProfile: "park_soft_edge", parcelComposition, parcelElevation, contactProfile: "soft_ground_shadow", lotContact };
 }
 
 function parcelCompositionProfile(lot: CityWorldLot): NonNullable<CityWorldVisualGrammar["parcelComposition"]> {
@@ -1432,23 +1556,24 @@ function buildingNoLabelPriority(
   return "none";
 }
 
-export function withRoadMetadata(road: CityWorldRoadSegment): CityWorldRoadSegment {
+export function withRoadMetadata(road: CityWorldRoadSegment, tone: CityWorldGroundTone = cityWorldGroundTone(road.id)): CityWorldRoadSegment {
   return {
     ...road,
     spriteKey: `road.${road.kind}.${road.width > 1.8 ? "wide" : "standard"}`,
     paletteKey: road.kind === "crosswalk" ? "road.crosswalk" : road.kind === "driveway" ? "road.driveway" : "road.asphalt",
     detailLevel: road.kind === "crosswalk" ? "high" : "medium",
-    visualGrammar: roadVisualGrammar(road),
+    visualGrammar: roadVisualGrammar(road, tone),
   };
 }
 
-export function withLotMetadata(lot: CityWorldLot): CityWorldLot {
+export function withLotMetadata(lot: CityWorldLot, roads: CityWorldRoadSegment[] = [], tone: CityWorldGroundTone = cityWorldGroundTone(lot.id)): CityWorldLot {
+  const lotContact = lotContactGrammar(lot, tone, lotCurbCutEdge(lot, roads));
   return {
     ...lot,
     spriteKey: `lot.${lot.kind}.${lot.width > 4 ? "large" : "small"}`,
     paletteKey: `lot.${lot.kind}`,
     detailLevel: lot.kind === "home" ? "medium" : "high",
-    visualGrammar: lotVisualGrammar(lot),
+    visualGrammar: lotVisualGrammar(lot, lotContact),
   };
 }
 
