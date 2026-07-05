@@ -2598,7 +2598,7 @@ function drawObjectAuthorshipDetails(layer: Container, geometry: BuildingGeometr
   if (!family) return;
   if (family === "residential_kit") drawAuthoredResidentialKitRhythm(layer, geometry, building);
   if (family === "commerce_strip") drawAuthoredCommerceStripRhythm(layer, geometry, building);
-  if (family === "civic_landmark") drawAuthoredCivicLandmarkMass(layer, geometry);
+  if (family === "civic_landmark") drawAuthoredCivicLandmarkMass(layer, geometry, building);
   if (family === "lowrise_cluster") drawAuthoredLowriseClusterRhythm(layer, geometry);
   if (family === "service_block") drawAuthoredServiceBlockRhythm(layer, geometry);
   if (!isDraftBuilding(building)) drawPublicRiversideObjectAuthorshipPass(layer, geometry, building, family);
@@ -2614,14 +2614,14 @@ function drawPublicRiversideObjectAuthorshipPass(layer: Container, geometry: Bui
 }
 
 function drawPublicCivicLandmarkObjectKit(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  drawPublicCivicLandmarkSilhouette(layer, geometry);
+  drawPublicCivicLandmarkSilhouette(layer, geometry, building);
   drawCivicLandmarkBaseHierarchy(layer, geometry);
   drawCivicLandmarkRoofHierarchy(layer, geometry);
   drawCivicLandmarkFacadeHierarchy(layer, geometry);
   if (building.id === "building-civic") drawEastvaleCorePublicCivicSignature(layer, geometry);
 }
 
-function drawPublicCivicLandmarkSilhouette(layer: Container, geometry: BuildingGeometry) {
+function drawPublicCivicLandmarkSilhouette(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor } = geometry;
   const plinthEdge = new Graphics()
     .moveTo(bottom.x - footprintWidth * 0.46, bottom.y + footprintDepth * 0.42)
@@ -2653,7 +2653,8 @@ function drawPublicCivicLandmarkSilhouette(layer: Container, geometry: BuildingG
       .fill({ color: bay === 0 ? 0xd7f0f3 : highlightColor, alpha: bay === 0 ? 0.56 : 0.34 });
   }
   civicPilasters.stroke({ color: trimColor, alpha: 0.1, width: 0.8 });
-  layer.addChild(plinthEdge, entryCanopy, roofCrown, civicPilasters);
+  layer.addChild(plinthEdge, entryCanopy, civicPilasters);
+  if (!hasHeroTieredCrown(building)) layer.addChild(roofCrown);
 }
 
 function drawCivicLandmarkBaseHierarchy(layer: Container, geometry: BuildingGeometry) {
@@ -2736,13 +2737,8 @@ function drawCivicLandmarkFacadeHierarchy(layer: Container, geometry: BuildingGe
 
 function drawEastvaleCorePublicCivicSignature(layer: Container, geometry: BuildingGeometry) {
   const { top, bottom, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
-  const eastvaleCap = polygon(
-    diamondPoints({ x: top.x + footprintWidth * 0.02, y: top.y - footprintDepth * 0.56 }, footprintWidth * 0.2, footprintDepth * 0.15),
-    shadeColor(roofColor, 42),
-    0.5,
-    trimColor,
-    0.18,
-  );
+  // (item C) the floating eastvaleCap decal is retired — the tiered crown in
+  // drawTieredMassing is the hero's roof signature now.
   const civicAxis = new Graphics()
     .moveTo(top.x, top.y - footprintDepth * 0.48)
     .lineTo(top.x, bottom.y + footprintDepth * 0.34)
@@ -2750,7 +2746,7 @@ function drawEastvaleCorePublicCivicSignature(layer: Container, geometry: Buildi
     .lineTo(top.x, bottom.y + footprintDepth * 0.28)
     .lineTo(top.x + footprintWidth * 0.32, bottom.y + footprintDepth * 0.1);
   civicAxis.stroke({ color: 0xe9f8ff, alpha: 0.28, width: 1.8, cap: "round", join: "round" });
-  layer.addChild(eastvaleCap, civicAxis);
+  layer.addChild(civicAxis);
 }
 
 function drawPublicResidentialSilhouette(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -3099,15 +3095,55 @@ function drawObjectKitCivicLandmarkRead(layer: Container, geometry: BuildingGeom
     trimColor,
     0.1,
   );
-  const roofCap = polygon(
-    diamondPoints({ x: top.x + footprintWidth * 0.01, y: top.y - footprintDepth * (0.45 + roofCapWeight * 0.04) }, footprintWidth * (0.38 + roofCapWeight * 0.08), footprintDepth * 0.16),
-    shadeColor(roofColor, 38),
-    isEastvaleCore ? 0.46 : 0.32,
-    trimColor,
-    0.13,
-  );
 
-  layer.addChild(plinthTiers, civicEntryBays, facadePiers, glassBands, canopy, roofCap);
+  // 0.53E item C — the hero landmark's entry reads as a real portal: a wider
+  // plinth apron below the tiers, a lit canopy slab over the center bay with a
+  // shadow line under its lip, and two slim posts grounding it. Typed off the
+  // same civicGeometry focus the other hero reads key on — not a per-id hack.
+  if (isEastvaleCore) {
+    const apron = polygon(
+      diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.52 }, footprintWidth * 1.02, footprintDepth * 0.22),
+      0xd6bb86,
+      0.3,
+      0x756947,
+      0.16,
+    );
+    const canopySlab = polygon(
+      diamondPoints({ x: bottom.x, y: bottom.y - footprintDepth * 0.06 }, footprintWidth * 0.3, footprintDepth * 0.14),
+      sunlitColor(0xd8ecef, "top"),
+      0.85,
+      trimColor,
+      0.3,
+    );
+    const canopyShadow = new Graphics()
+      .moveTo(bottom.x - footprintWidth * 0.14, bottom.y - footprintDepth * 0.05)
+      .lineTo(bottom.x, bottom.y + footprintDepth * 0.02)
+      .lineTo(bottom.x + footprintWidth * 0.14, bottom.y - footprintDepth * 0.05);
+    canopyShadow.stroke({ color: 0x1a2c37, alpha: 0.3, width: 2, cap: "round", join: "round" });
+    const posts = new Graphics()
+      .moveTo(bottom.x - footprintWidth * 0.11, bottom.y - footprintDepth * 0.05)
+      .lineTo(bottom.x - footprintWidth * 0.11, bottom.y + footprintDepth * 0.16)
+      .moveTo(bottom.x + footprintWidth * 0.11, bottom.y - footprintDepth * 0.05)
+      .lineTo(bottom.x + footprintWidth * 0.11, bottom.y + footprintDepth * 0.16);
+    posts.stroke({ color: shadeColor(trimColor, -8), alpha: 0.5, width: 1.4, cap: "round" });
+    layer.addChild(apron, canopySlab, canopyShadow, posts);
+  }
+  // 0.53E item C — the hero landmark's crown is the TIERED MASSING (drawn in
+  // the shell pass); the old floating roof-cap decal painted a pale diamond
+  // right over that crown and flattened it back into a lid. Hero skips the
+  // decal; ordinary civic landmarks keep it.
+  const roofCap = isEastvaleCore
+    ? null
+    : polygon(
+        diamondPoints({ x: top.x + footprintWidth * 0.01, y: top.y - footprintDepth * (0.45 + roofCapWeight * 0.04) }, footprintWidth * (0.38 + roofCapWeight * 0.08), footprintDepth * 0.16),
+        shadeColor(roofColor, 38),
+        0.32,
+        trimColor,
+        0.13,
+      );
+
+  layer.addChild(plinthTiers, civicEntryBays, facadePiers, glassBands, canopy);
+  if (roofCap) layer.addChild(roofCap);
 }
 
 function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -3171,7 +3207,7 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
   layer.addChild(serviceApron, foundationLine, roofMonitors, serviceBays, utilitySideRibs);
 }
 
-function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeometry) {
+function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor } = geometry;
   const baseTerrace = polygon(
     diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.32 }, footprintWidth * 0.84, footprintDepth * 0.22),
@@ -3194,7 +3230,8 @@ function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeome
       .fill({ color: bay === 0 ? 0xb7dceb : highlightColor, alpha: bay === 0 ? 0.62 : 0.42 });
   }
   facadeBeats.stroke({ color: trimColor, alpha: 0.12, width: 0.8 });
-  layer.addChild(baseTerrace, upperCap, facadeBeats);
+  layer.addChild(baseTerrace, facadeBeats);
+  if (!hasHeroTieredCrown(building)) layer.addChild(upperCap);
 }
 
 function drawAuthoredLowriseClusterRhythm(layer: Container, geometry: BuildingGeometry) {
@@ -3427,39 +3464,73 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
 // extruded box. A smaller box rises from the roof center with its own lit/shade
 // walls, cap, and a warm sunlit crown edge — the "this is the important building"
 // silhouette cue. Sun-consistent; only for tall anchors so it stays rare.
+// 0.53E item C — when the hero landmark carries the tiered crown, the crown
+// OWNS the roof: the five legacy civic functions that each float their own
+// pale cap/lantern/crown decal over the same roof plane must stand down, or
+// they average into a milky fog that erases the silhouette. Ground-level
+// richness (plinth, entry, columns, glass) stays untouched.
+function hasHeroTieredCrown(building: CityWorldBuilding): boolean {
+  return building.objectKit?.civicGeometry?.focusTarget === "eastvale_core";
+}
+
 function drawTieredMassing(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const family = building.visualGrammar?.objectFamily;
   const isAnchor = family === "civic_landmark" || family === "venue_anchor" || family === "transit_anchor";
   if (!isAnchor || building.height < 1.9) return;
 
   const { top, footprintWidth, footprintDepth, bodyColor, roofColor } = geometry;
-  const tierW = footprintWidth * 0.46;
-  const tierD = footprintDepth * 0.46;
-  const halfW = tierW / 2;
-  const halfD = tierD / 2;
-  const rise = Math.max(12, Math.min(building.height * TILE_DEPTH * 0.34, 30));
-  // Base of the tier sits on the roof center; apex is `rise` above it.
-  const baseC = { x: top.x, y: top.y - footprintDepth * 0.04 };
-  const apex = { x: baseC.x, y: baseC.y - rise };
-  const bL = { x: baseC.x - halfW, y: baseC.y };
-  const bF = { x: baseC.x, y: baseC.y + halfD };
-  const bR = { x: baseC.x + halfW, y: baseC.y };
-  const tL = { x: apex.x - halfW, y: apex.y };
-  const tF = { x: apex.x, y: apex.y + halfD };
-  const tR = { x: apex.x + halfW, y: apex.y };
+  // 0.53E item C — the hero landmark (typed via civicGeometry.focusTarget) gets
+  // a taller, front-offset, TWO-step crown so the stepped silhouette clears the
+  // place marker + label band that sit over the roof's back half. Ordinary
+  // anchors keep the single restrained tier.
+  const hero = hasHeroTieredCrown(building);
+  const steps = hero ? 2 : 1;
+  let tierW = footprintWidth * (hero ? 0.62 : 0.46);
+  let tierD = footprintDepth * (hero ? 0.62 : 0.46);
+  // Hero rise is tuned to the label band: the place label floats ~44px above
+  // the ground anchor, so the crown caps must land in the open window between
+  // the label's bottom edge and the roofline — taller just hides the crown
+  // behind the label backing. Offset left so the marker pin column clears it.
+  let rise = hero
+    ? Math.max(18, Math.min(building.height * TILE_DEPTH * 0.52, 30))
+    : Math.max(12, Math.min(building.height * TILE_DEPTH * 0.34, 30));
+  let baseC = hero
+    ? { x: top.x - footprintWidth * 0.18, y: top.y + footprintDepth * 0.1 }
+    : { x: top.x, y: top.y - footprintDepth * 0.04 };
 
-  const litWall = new Graphics()
-    .poly([tL.x, tL.y, tF.x, tF.y, bF.x, bF.y, bL.x, bL.y], true)
-    .fill({ color: sunlitColor(bodyColor, "sun"), alpha: 0.98 });
-  const shadeWall = new Graphics()
-    .poly([tR.x, tR.y, tF.x, tF.y, bF.x, bF.y, bR.x, bR.y], true)
-    .fill({ color: sunlitColor(bodyColor, "shade"), alpha: 0.98 });
-  const cap = polygon(diamondPoints(apex, tierW, tierD), sunlitColor(roofColor, "top"), 0.99, 0x26332c, 0.4);
-  const crown = new Graphics().moveTo(tL.x, tL.y).lineTo(apex.x, apex.y - halfD).lineTo(tR.x, tR.y);
-  crown.stroke({ color: mixColor(shadeColor(roofColor, 42), SUN_WARM_TINT, 0.2), alpha: 0.85, width: 1.5, cap: "round", join: "round" });
-  const cornerSeam = new Graphics().moveTo(tF.x, tF.y).lineTo(bF.x, bF.y);
-  cornerSeam.stroke({ color: 0x18262e, alpha: 0.22, width: 1.1, cap: "round" });
-  layer.addChild(litWall, shadeWall, cap, crown, cornerSeam);
+  for (let step = 0; step < steps; step += 1) {
+    const halfW = tierW / 2;
+    const halfD = tierD / 2;
+    const apex = { x: baseC.x, y: baseC.y - rise };
+    const bL = { x: baseC.x - halfW, y: baseC.y };
+    const bF = { x: baseC.x, y: baseC.y + halfD };
+    const bR = { x: baseC.x + halfW, y: baseC.y };
+    const tL = { x: apex.x - halfW, y: apex.y };
+    const tF = { x: apex.x, y: apex.y + halfD };
+    const tR = { x: apex.x + halfW, y: apex.y };
+
+    const litWall = new Graphics()
+      .poly([tL.x, tL.y, tF.x, tF.y, bF.x, bF.y, bL.x, bL.y], true)
+      .fill({ color: sunlitColor(bodyColor, "sun"), alpha: 0.98 });
+    const shadeWall = new Graphics()
+      .poly([tR.x, tR.y, tF.x, tF.y, bF.x, bF.y, bR.x, bR.y], true)
+      .fill({ color: sunlitColor(bodyColor, "shade"), alpha: 0.98 });
+    // Hero caps hold a deeper roof tone so they stay saturated instead of
+    // blowing out toward white next to the sunlit cream walls.
+    const capTone = hero ? sunlitColor(shadeColor(roofColor, -12), "top") : sunlitColor(roofColor, "top");
+    const cap = polygon(diamondPoints(apex, tierW, tierD), capTone, 0.99, 0x26332c, hero ? 0.55 : 0.4);
+    const crown = new Graphics().moveTo(tL.x, tL.y).lineTo(apex.x, apex.y - halfD).lineTo(tR.x, tR.y);
+    crown.stroke({ color: mixColor(shadeColor(roofColor, 42), SUN_WARM_TINT, 0.2), alpha: 0.85, width: 1.5, cap: "round", join: "round" });
+    const cornerSeam = new Graphics().moveTo(tF.x, tF.y).lineTo(bF.x, bF.y);
+    cornerSeam.stroke({ color: 0x18262e, alpha: 0.22, width: 1.1, cap: "round" });
+    layer.addChild(litWall, shadeWall, cap, crown, cornerSeam);
+
+    // Next step rises from this cap, set back toward the sun-lit front corner.
+    baseC = { x: apex.x - tierW * 0.06, y: apex.y - tierD * 0.02 };
+    tierW *= 0.58;
+    tierD *= 0.58;
+    rise *= 0.6;
+  }
 }
 
 // 0.53E Hero Silhouette — a recessed, glazed ground-floor band with a canopy lip
@@ -4334,7 +4405,7 @@ function drawCivicDetails(layer: Container, geometry: BuildingGeometry, building
     .lineTo(top.x, top.y - footprintDepth * 0.29)
     .lineTo(top.x + footprintWidth * 0.25, top.y - footprintDepth * 0.19);
   roofRidge.stroke({ color: 0xe7f4f0, alpha: 0.3, width: 1.4, cap: "round", join: "round" });
-  layer.addChild(roofShadow, roofTier, roofFacetLeft, roofFacetRight, roofCap, skylight, roofRidge);
+  if (!hasHeroTieredCrown(building)) layer.addChild(roofShadow, roofTier, roofFacetLeft, roofFacetRight, roofCap, skylight, roofRidge);
 
   const plinth = polygon(diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.16 }, footprintWidth * 0.72, footprintDepth * 0.24), 0xe6cf9f, 0.36, 0x7f6d4e, 0.12);
   const sideTerraceLeft = polygon(diamondPoints({ x: bottom.x - footprintWidth * 0.31, y: bottom.y + footprintDepth * 0.22 }, footprintWidth * 0.22, footprintDepth * 0.15), 0xd8c08d, 0.4, 0x7f6d4e, 0.14);
@@ -4425,18 +4496,8 @@ function drawEastvaleCoreLandmarkDetails(layer: Container, geometry: BuildingGeo
     .fill({ color: shadeColor(roofColor, 28), alpha: 0.66 })
     .stroke({ color: trimColor, alpha: 0.22, width: 1.2 });
 
-  const roofLantern = polygon(
-    diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.3 }, footprintWidth * 0.22, footprintDepth * 0.18),
-    shadeColor(roofColor, 34),
-    0.76,
-    trimColor,
-    0.22,
-  );
-  const lanternGlass = new Graphics()
-    .roundRect(top.x - footprintWidth * 0.055, top.y - footprintDepth * 0.36, footprintWidth * 0.11, 10, 2)
-    .fill({ color: 0xdaf2ff, alpha: 0.62 })
-    .stroke({ color: trimColor, alpha: 0.2, width: 1 });
-
+  // (item C) roofLantern + lanternGlass retired — the tiered crown owns the
+  // hero roof; the ground-storey glass entry below keeps the lantern read.
   const wingBays = new Graphics();
   for (let bay = -2; bay <= 2; bay += 1) {
     if (bay === 0) continue;
@@ -4463,13 +4524,7 @@ function drawEastvaleCoreLandmarkDetails(layer: Container, geometry: BuildingGeo
     .lineTo(bottom.x + footprintWidth * 0.28, bottom.y + footprintDepth * 0.22);
   civicPlinthStack.stroke({ color: 0x8b7954, alpha: 0.3, width: 1.7, cap: "round", join: "round" });
 
-  const roofShoulders = new Graphics()
-    .poly(diamondPoints({ x: top.x - footprintWidth * 0.28, y: top.y - footprintDepth * 0.08 }, footprintWidth * 0.22, footprintDepth * 0.16), true)
-    .fill({ color: shadeColor(roofColor, 18), alpha: 0.34 })
-    .poly(diamondPoints({ x: top.x + footprintWidth * 0.28, y: top.y + footprintDepth * 0.02 }, footprintWidth * 0.22, footprintDepth * 0.16), true)
-    .fill({ color: shadeColor(roofColor, -10), alpha: 0.28 })
-    .stroke({ color: trimColor, alpha: 0.1, width: 0.9 });
-
+  // (item C) roofShoulders retired with the other roof decals — crown owns it.
   const entryAxis = polygon(
     diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.36 }, footprintWidth * 0.32, footprintDepth * 0.14),
     0xf0d8a8,
@@ -4478,7 +4533,7 @@ function drawEastvaleCoreLandmarkDetails(layer: Container, geometry: BuildingGeo
     0.16,
   );
 
-  layer.addChild(civicPlinthStack, roofShoulders, entryAxis, entryFrame, entryGlass, roofLantern, lanternGlass, wingBays, civicNameplateGeometry);
+  layer.addChild(civicPlinthStack, entryAxis, entryFrame, entryGlass, wingBays, civicNameplateGeometry);
 }
 
 function drawDraftAnchorDetails(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
