@@ -1,5 +1,31 @@
 # Build Log
 
+## Entry 198
+
+Quest:
+0.59H Hosted Clawd Storage/Auth Decision Packet.
+
+What changed:
+- Added `docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md` as the DB/Auth
+  implementation decision packet.
+- Selected Railway Postgres, committed SQL migrations plus a small Node runner,
+  and OAuth/OIDC account linking for protected MCP Hosted Clawd actions.
+- Added `scripts/verify-hosted-clawd-db-auth-prep.mjs` to guard the reopened
+  DB/Auth prep slice.
+- Updated `artifacts/current-update.json` and added
+  `artifacts/hosted-clawd/postalpha-0.59h-storage-auth-decision.json`.
+- Kept Stripe, public paid claims, evidence, XP, reports, exports, automation,
+  and public Anaheim/Ontario closed.
+
+Decision:
+DB/Auth is now the next build layer. Stripe remains downstream of ownership,
+idempotency, and reload-safe persistence.
+
+Verification:
+- `node scripts\verify-hosted-clawd-db-auth-prep.mjs`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only`
+
 ## Entry 197
 
 Quest:

@@ -19,8 +19,51 @@ reliability sweep, `0.50P` submission packet.
 The owner-gate / second-district ceremony below is **parked** but kept honest: `0.46E Owner Gate
 Review Packet` remains the recorded next quest for that parked ladder, its selector artifacts
 remain anchored at `0.45E`, and Anaheim/Ontario stay hidden and non-public. The active manifest
-is now the 0.58J Hosted Clawd setup UI packet, using 0.58I at base commit `920cf8a`
-as its input update. Re-open the owner-gate ladder only on human request.
+is now the 0.59H Hosted Clawd Storage/Auth Decision Packet, using 0.58J plus the
+2026-07-05 human DB/Auth reopening as its input update. Re-open the owner-gate
+ladder only on human request.
+
+## Current DB/Auth prep slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.59H Hosted Clawd Storage/Auth Decision Packet`.
+
+Player-facing promise:
+Atlas is preparing to make Hosted Clawd durable: one owner, one business, one
+saved Scout Drop, and one saved campaign draft, while the map remains the
+product surface.
+
+Engineering promise:
+Choose the production DB/auth foundation and verifier envelope before
+implementing persistence: Railway Postgres, OAuth/OIDC account linking for
+protected MCP Hosted Clawd actions, SQL migrations, owner checks,
+idempotency, and Stripe later.
+
+Decision:
+`DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED`.
+
+Selected axis:
+`hosted_clawd_storage_auth`.
+
+Contract:
+- Persistence implementation is reopened only for the next named slice,
+  `0.60H Persistence Foundation`.
+- Auth must work for protected MCP Hosted Clawd actions through OAuth/OIDC
+  account linking. ChatGPT model text and iframe-only cookies are not identity.
+- Public MCP tool surface remains the seven Alpha tools until a separate
+  protected Hosted Clawd tool slice is approved.
+- Fable save-state UX must stay as a compact tray/status strip over the map,
+  not a dashboard, pricing page, or geometry change.
+- Stripe/money remains closed until 0.60H ownership, idempotency, usage, and
+  reload-safe persistence pass.
+
+Proof:
+- `docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md`
+- `artifacts/hosted-clawd/postalpha-0.59h-storage-auth-decision.json`
+- `scripts/verify-hosted-clawd-db-auth-prep.mjs`
+
+Next quest:
+`0.60H Persistence Foundation`.
 
 ## Engine track note (2026-07-04, `fable/0.52e-diorama-engine`)
 

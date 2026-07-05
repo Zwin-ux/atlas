@@ -13,15 +13,20 @@ Current integration note (2026-07-05):
 combines the Fable visual chain with a gated Hosted Clawd rental scaffold.
 
 Current setup UI note (2026-07-05):
-`0.58J Hosted Clawd Setup UI Port`.
+`0.58J Hosted Clawd Setup UI Port` is local-green history.
 
 0.58J ports the Superior grey setup console / setup rail grammar into that
-tray as a UI-only, context-only change. It is not deployed. Paid persistence,
-auth/OAuth, DB, Stripe, public pricing or saved-state claims, server state, new
-context fields, XP, evidence, reports, exports, and new MCP tools remain
-closed. The next gate is `0.58K Human Visual Gate / Deploy Readiness Decision`,
-not implementation of persistence.
-No persistence, money, auth, or public paid claims.
+tray as a UI-only, context-only change.
+
+Current DB/Auth note (2026-07-05):
+`0.59H Hosted Clawd Storage/Auth Decision Packet`.
+
+The human explicitly reopened DB/Auth preparation. 0.59H chooses Railway
+Postgres, committed SQL migrations plus a small Node runner, and OAuth/OIDC
+account linking for protected MCP Hosted Clawd actions. The next named build
+slice is `0.60H Persistence Foundation`. Stripe/money, public paid claims,
+evidence, XP, reports, exports, automation, and public Anaheim/Ontario remain
+closed.
 
 Why this exists: the previous stretch (0.24E→0.46E) was decision machinery circling one blocked
 question ("promote hidden Anaheim?"). This spec replaces that with product-quality gates that

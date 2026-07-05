@@ -126,7 +126,7 @@ if (/\.city-world-hosted-clawd\s*\{[^}]*backdrop-filter/s.test(styles)) {
 
 const setupSteps = currentUpdate?.metricResult?.hostedClawdSetupUi?.steps;
 const expectedSetupSteps = ["Wake", "Target", "Scout", "Campaign", "Gate", "Proof"];
-if (JSON.stringify(setupSteps) !== JSON.stringify(expectedSetupSteps)) {
+if (currentUpdate?.id === "postalpha-0.58j-hosted-clawd-setup-ui-port" && JSON.stringify(setupSteps) !== JSON.stringify(expectedSetupSteps)) {
   blockers.push(`0.58J setup artifact steps drifted. Expected ${expectedSetupSteps.join(", ")}, got ${Array.isArray(setupSteps) ? setupSteps.join(", ") : "missing"}.`);
 }
 

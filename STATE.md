@@ -1,6 +1,6 @@
 # Atlas Loop State
 
-Last run: 2026-07-05 - 0.58J Hosted Clawd setup UI port
+Last run: 2026-07-05 - 0.59H Hosted Clawd storage/auth decision
 Loop level: L2 assisted
 Kill switch: active only if `loop-constraints.md` says `pause: true`
 
@@ -22,31 +22,34 @@ Extra local worktree:
 - `C:/Users/mzwin/Documents/atlas-53e-fable` on `fable/0.58e-prop-cleanup`.
 
 Deploy status:
-Not deployed and not pushed by default. The next gate is
-`0.58K Human Visual Gate / Deploy Readiness Decision`.
+Not deployed and not pushed by default. The integrated branch still needs live
+deploy proof before public promotion, but the human has explicitly reopened
+DB/Auth preparation for Hosted Clawd.
 
 ## Current Slice
 
-`0.58J Hosted Clawd Setup UI Port` is local green.
+`0.59H Hosted Clawd Storage/Auth Decision Packet` is local green.
 
 Decision:
-`SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED`.
+`DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED`.
 
 Selected axis:
-`hosted_clawd_setup_ui`.
+`hosted_clawd_storage_auth`.
 
 Scope:
-Ports the Superior grey setup console / setup rail grammar into the Atlas
-Hosted Clawd tray. This is UI-only and context-only: no new MCP tools, no new
-context fields, no server state, no persistence, no auth/OAuth, no DB, no
-Stripe/money, no public pricing/saved-state claims, and no deploy.
+Chooses the DB/Auth implementation path for Hosted Clawd: Railway Postgres,
+committed SQL migrations plus a small Node runner, OAuth/OIDC account linking
+for protected MCP Hosted Clawd actions, owner checks, idempotency, and Stripe
+later. This is docs/verifier prep only: no package dependency, migration,
+persisted write, auth provider mutation, Stripe call, public price claim, or
+new MCP tool was added.
 
 Next quest:
-`0.58K Human Visual Gate / Deploy Readiness Decision`.
+`0.60H Persistence Foundation`.
 
-After 0.58K, Hosted Clawd implementation can proceed only as
-`0.59H Hosted Clawd Storage/Auth Decision Packet`; no DB/auth/Stripe/persistence
-implementation starts before that decision.
+0.60H may implement DB/Auth persistence only inside the named slice. Stripe
+remains closed until 0.60H ownership, idempotency, usage, and reload-safe
+persistence pass.
 
 ## Branch Map
 
@@ -62,17 +65,20 @@ implementation starts before that decision.
 ## Gates
 
 - Keep seven public MCP tools.
-- Keep Hosted Clawd persistence, money, and public-claim flags closed.
+- Keep money and public-claim flags closed.
+- DB/Auth implementation is reopened only for 0.60H owner-protected
+  persistence.
 - Keep Anaheim/Ontario hidden and non-public.
 - No provider-created geometry.
-- No deploy without human visual/deploy approval.
+- No public deploy/promotion without live proof and human visual/deploy
+  approval.
 - Use `hosted-clawd-fable-integration` for strict split checks on this branch.
 
 ## Watch List
 
 - Mobile `390x844` product comprehension.
-- Hosted Clawd setup console weight against the richer Fable map; 0.58K should accept it
-  or name the exact styling blocker.
+- Hosted Clawd save-state UX must stay as a compact tray/status strip over the
+  Fable map; no dashboard, pricing page, or geometry change.
 - Dirty tree size: strict split guard must stay `0 blockers / 0 unknowns`.
 - Public URL baseline: `https://atlas-backend-production-e6fc.up.railway.app/preview`.
 
@@ -88,5 +94,7 @@ implementation starts before that decision.
   no console errors.
 - Fable final design QA:
   `PASS` for 0.58K human visual gate, with only non-blocking nits.
+- 0.59H DB/Auth decision packet:
+  `docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md`
 - Local preview when the server is running:
   `http://127.0.0.1:8787/preview`

@@ -1,0 +1,93 @@
+{
+  "id": "postalpha-0.59h-hosted-clawd-storage-auth-decision",
+  "name": "Post-Alpha 0.59H - Hosted Clawd Storage/Auth Decision Packet",
+  "createdAt": "2026-07-05",
+  "decision": "DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED",
+  "inputUpdate": "postalpha-0.58j-hosted-clawd-setup-ui-port+human-reopened-db-auth-2026-07-05",
+  "sourceDoc": "docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md",
+  "selectedAxis": "hosted_clawd_storage_auth",
+  "recommendedNextQuest": "0.60H Persistence Foundation",
+  "storage": {
+    "productionProvider": "Railway Postgres",
+    "localTestProvider": "Postgres via DATABASE_URL",
+    "migrationStrategy": "committed SQL migrations plus a small Node runner",
+    "implementationClient": "pg in 0.60H"
+  },
+  "auth": {
+    "model": "OAuth/OIDC account linking for protected MCP Hosted Clawd actions",
+    "providerShape": "Auth0-compatible OIDC provider",
+    "jwtVerificationLibrary": "jose in 0.60H, not added in 0.59H",
+    "requiredMetadata": [
+      "/.well-known/oauth-protected-resource",
+      "protected resource URL matching deployed /mcp",
+      "issuer",
+      "audience",
+      "JWKS",
+      "mcp/www_authenticate challenge"
+    ],
+    "scopes": [
+      "atlas:hosted_clawd.read",
+      "atlas:hosted_clawd.write"
+    ],
+    "notIdentity": [
+      "ChatGPT model text",
+      "iframe-only cookies",
+      "client-submitted email without token validation"
+    ]
+  },
+  "firstPersistenceSlice": {
+    "tables": [
+      "users",
+      "clawds",
+      "business_profiles",
+      "county_packs",
+      "scout_drops",
+      "scout_signals",
+      "campaigns",
+      "campaign_days",
+      "usage_events",
+      "idempotency_keys",
+      "app_events"
+    ],
+    "savedPath": "create or attach owned Hosted Clawd, save business profile, save Scout Drop summary, save campaign preview draft",
+    "requiredTests": [
+      "unauthenticated write denied",
+      "invalid token denied",
+      "wrong audience denied",
+      "expired token denied",
+      "User A cannot read User B's Clawd",
+      "User A cannot write User B's business profile",
+      "migration runs against empty Postgres",
+      "create-or-attach Clawd is idempotent",
+      "Scout Drop save is idempotent",
+      "campaign preview save is idempotent",
+      "session Clawd id cannot load persisted Clawd",
+      "no raw provider payload persisted",
+      "seven public Alpha tools remain stable"
+    ]
+  },
+  "stripe": {
+    "status": "closed",
+    "earliestSlice": "0.62H Stripe Test Billing",
+    "requires": [
+      "0.60H owner-protected persistence",
+      "idempotency tests",
+      "usage events",
+      "inactive and read-only state definitions"
+    ]
+  },
+  "fableSaveUxGuard": {
+    "allowed": [
+      "compact saved-state strip",
+      "Hosted Clawd tray state",
+      "business/location/scout/campaign save statuses"
+    ],
+    "blocked": [
+      "dashboard shell",
+      "pricing page",
+      "plan comparison cards",
+      "long setup wizard",
+      "public price claims"
+    ]
+  }
+}

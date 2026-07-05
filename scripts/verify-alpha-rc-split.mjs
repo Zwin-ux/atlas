@@ -191,6 +191,7 @@ const HOSTED_CLAWD_SCAFFOLD_FILES = new Set([
   "docs/ATLAS_FULL_STACK_PRODUCT_SPEC.md",
   "docs/BETA_HOSTED_CLAWD_SPEC.md",
   "docs/HOSTED_CLAWD_PRD.md",
+  "docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md",
   "docs/BUILD_LOG.md",
   "docs/DECISIONS.md",
   "docs/NEXT_QUESTS.md",
@@ -198,6 +199,7 @@ const HOSTED_CLAWD_SCAFFOLD_FILES = new Set([
   "docs/updates/ATLAS_RELEASE_LADDER.md",
   "scripts/verify-alpha-rc-split.mjs",
   "scripts/verify-atlas-source-of-truth-drift.mjs",
+  "scripts/verify-hosted-clawd-db-auth-prep.mjs",
   "scripts/verify-hosted-clawd-scaffold.mjs",
   "server/src/index.ts",
   "web/src/App.tsx",
@@ -208,6 +210,7 @@ const HOSTED_CLAWD_SCAFFOLD_FILES = new Set([
 ]);
 
 const HOSTED_CLAWD_SCAFFOLD_PREFIXES = [
+  "artifacts/hosted-clawd/",
   "server/src/hostedClawd/",
 ];
 

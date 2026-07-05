@@ -2,16 +2,17 @@
 
 Status:
 Planning source for the next big product leap after `0.58J Hosted Clawd Setup
-UI Port`. This is a CTO-level expansion spec, not approval to implement
-persistence, auth, Stripe, evidence, XP, reports, exports, automation, or public
-Anaheim/Ontario.
+UI Port`. 0.59H has now reopened DB/Auth preparation and selected the
+implementation path. This is still not approval to implement Stripe, evidence,
+XP, reports, exports, automation, or public Anaheim/Ontario.
 
 Current estimate:
 Atlas is about 60% of the way to a strong v1 ChatGPT app candidate and about
 45-55% of the way to the full commercial Hosted Clawd product.
 
 Current active gate:
-`0.58K Human Visual Gate / Deploy Readiness Decision`.
+`0.59H Hosted Clawd Storage/Auth Decision Packet`, with `0.60H Persistence
+Foundation` next.
 
 ## 1. Product Thesis
 

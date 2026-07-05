@@ -1,105 +1,93 @@
 {
-  "id": "postalpha-0.58j-hosted-clawd-setup-ui-port",
-  "name": "Post-Alpha 0.58J - Hosted Clawd Setup UI Port",
+  "id": "postalpha-0.59h-hosted-clawd-storage-auth-decision",
+  "name": "Post-Alpha 0.59H - Hosted Clawd Storage/Auth Decision Packet",
   "status": "local_green",
-  "playerPromise": "Hosted Clawd now reads like arming one business Clawd from a grey setup console on the map, not opening a signup form or pricing page.",
-  "engineeringPromise": "The tray ports Superior's grey setup-console grammar using existing Hosted Clawd context only: no new tool, no new server state, no persistence, no checkout.",
-  "inputUpdate": "postalpha-0.58i-integration-canonicalization-release-decision",
-  "selectedAxis": "hosted_clawd_setup_ui",
-  "recommendedNextQuest": "0.58K Human Visual Gate / Deploy Readiness Decision",
-  "decision": "SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED",
+  "playerPromise": "Atlas is preparing to make Hosted Clawd durable: one owner, one business, one saved Scout Drop, and one saved campaign draft, while the map remains the product surface.",
+  "engineeringPromise": "Choose the production DB/auth foundation and verifier envelope before implementing persistence: Railway Postgres, OAuth/OIDC account linking for protected MCP Hosted Clawd actions, SQL migrations, owner checks, idempotency, and Stripe later.",
+  "inputUpdate": "postalpha-0.58j-hosted-clawd-setup-ui-port+human-reopened-db-auth-2026-07-05",
+  "selectedAxis": "hosted_clawd_storage_auth",
+  "recommendedNextQuest": "0.60H Persistence Foundation",
+  "decision": "DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED",
   "metricResult": {
-    "hostedClawdSetupUi": {
+    "hostedClawdStorageAuth": {
       "branch": "codex/integrate-hosted-clawd-fable-058e",
-      "baseCommit": "920cf8a",
-      "sourceInfluence": "Superior setup rail, short stamped states, one active target, readiness lights",
-      "visualSource": "Superior grey setup console",
-      "component": "web/src/HostedClawdTray.tsx",
-      "styles": "web/src/styles.css",
-      "setupRailQa": "hosted-clawd-setup-rail",
-      "setupConsoleQa": "hosted-clawd-setup-rail",
-      "steps": [
-        "Wake",
-        "Target",
-        "Scout",
-        "Campaign",
-        "Gate",
-        "Proof"
-      ],
-      "contextOnly": true,
-      "newContextFields": 0,
+      "sourceDoc": "docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md",
+      "artifactPath": "artifacts/hosted-clawd/postalpha-0.59h-storage-auth-decision.json",
+      "storageProvider": "Railway Postgres",
+      "localTestStorage": "Postgres via DATABASE_URL, Docker acceptable",
+      "migrationStrategy": "committed SQL migrations plus a small Node runner",
+      "implementationDbClient": "pg in 0.60H, not added in 0.59H",
+      "authModel": "OAuth/OIDC account linking for protected MCP Hosted Clawd actions",
+      "authProviderShape": "Auth0-compatible OIDC provider with issuer, audience, JWKS, and scopes",
+      "jwtVerificationLibrary": "jose in 0.60H, not added in 0.59H",
+      "appsSdkAuthBoundary": "MCP auth challenge for protected writes; iframe cookies are not identity",
+      "firstPersistedCapability": "owned Hosted Clawd plus business profile, Scout Drop summary, and campaign preview draft",
+      "stripeTiming": "0.62H after 0.60H ownership and idempotency pass",
+      "fableSaveUxGuard": "saved-state strip/tray over the map; no dashboard shell or pricing page",
       "publicToolCount": 7,
       "newMcpTools": 0,
-      "persistenceDefault": false,
+      "persistenceImplementationNext": true,
       "moneyDefault": false,
-      "publicClaimDefault": false,
-      "humanVisualGateRequired": true,
-      "deployRecommendation": "HUMAN_VISUAL_GATE_FIRST",
-      "fableDesignQa": "PASS_WITH_NON_BLOCKING_NITS",
-      "desktopScreenshot": "C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-desktop.png",
-      "mobileScreenshot": "C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-mobile.png"
+      "publicClaimDefault": false
     },
     "scope": {
-      "uiSurfaceChanges": true,
-      "rendererGeometryChanges": false,
-      "newMcpTools": 0,
+      "docsOnly": true,
+      "verifierAdded": true,
       "dbMigrations": 0,
-      "liveCheckout": false,
       "persistedWrites": false,
+      "liveCheckout": false,
+      "authProviderMutation": false,
+      "packageDepsAdded": 0,
+      "newMcpTools": 0,
+      "uiSurfaceChanges": false,
+      "rendererGeometryChanges": false,
       "publicAnaheimPromotion": false,
-      "providerGeometry": false,
-      "artifactsAdded": false
+      "providerGeometry": false
     }
   },
   "verification": {
-    "typecheck": "pnpm typecheck",
-    "coreTests": "pnpm test:core",
-    "buildWeb": "pnpm build:web",
-    "hostedClawdGuard": "node scripts/verify-hosted-clawd-scaffold.mjs",
+    "dbAuthPrepGuard": "node scripts/verify-hosted-clawd-db-auth-prep.mjs",
     "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
-    "integrationSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only",
-    "previewHttp": "pnpm verify:preview:http",
-    "mcpFlow": "pnpm verify:mcp",
-    "desktopBrowserProof": "C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-desktop.png; 1280x800; setupConsole=grey; active=Target; duplicateStepList=false; scrollWidth=1280; no console errors",
-    "mobileBrowserProof": "C:/Users/mzwin/AppData/Local/Temp/atlas-058j-setup-mobile.png; 390x844; setupConsole=grey; active=Target; duplicateStepList=false; scrollWidth=390; no console errors"
+    "integrationSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only"
   },
-  "nextCodeStep": "0.58K Human Visual Gate / Deploy Readiness Decision",
+  "nextCodeStep": "0.60H Persistence Foundation",
   "forbiddenScope": [
-    "deploying before human visual/deploy approval",
-    "live Stripe Checkout, Billing Portal, webhook, product, price, or customer mutation",
-    "database client, migration, persisted write, or storage provider implementation",
-    "OAuth/account linking before the auth model is chosen",
-    "new public MCP tools",
-    "paid access grants, public pricing launch claims, or saved-state claims while gates are closed",
-    "XP, evidence, weekly reports, exports, automation, auto-posting, DMs, ads, or scraping",
+    "Stripe Checkout, Billing Portal, webhook endpoint, product, price, customer, or subscription mutation",
+    "public paid pricing or saved-state launch claims",
+    "evidence uploads",
+    "XP grants or XP ledger",
+    "weekly reports",
+    "exports",
+    "automation, auto-posting, DMs, ads, scraping, or scheduled outreach",
+    "new public MCP tools before protected Hosted Clawd tools are separately approved",
     "public Anaheim/Ontario exposure",
     "provider-created geometry or readiness promotion",
     "generic SaaS pricing page, dashboard shell, or long setup wizard"
   ],
   "gates": [
     {
-      "id": "human-visual-gate",
-      "label": "Human reviews desktop and 390x844 mobile screenshots before deploy or canonical promotion",
-      "required": true
-    },
-    {
-      "id": "setup-ui-gate",
-      "label": "Hosted Clawd setup rail must stay compact, map-first, and context-only",
-      "required": true
-    },
-    {
       "id": "persistence-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_PERSISTENCE stays closed until storage, migration, auth, ownership, and idempotency tests are selected",
+      "label": "HUMAN_APPROVAL_BEFORE_PERSISTENCE is reopened for 0.60H owner-protected DB/Auth implementation only",
       "required": true
     },
     {
       "id": "money-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_MONEY stays closed until persistence works and Stripe webhook-backed subscription state is approved",
+      "label": "HUMAN_APPROVAL_BEFORE_MONEY remains closed until 0.60H persistence and ownership tests pass",
+      "required": true
+    },
+    {
+      "id": "apps-sdk-auth-gate",
+      "label": "Hosted Clawd writes must use OAuth/OIDC account linking for protected MCP actions; model text and iframe cookies are not identity",
+      "required": true
+    },
+    {
+      "id": "fable-save-ux-gate",
+      "label": "Saved-state UX must stay map-first and compact; no dashboard or pricing page drift",
       "required": true
     },
     {
       "id": "public-claim-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM stays closed until pricing and saved-state launch claims are approved",
+      "label": "HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM remains closed until pricing and saved-state claims are approved",
       "required": true
     }
   ]

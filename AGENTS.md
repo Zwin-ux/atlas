@@ -12,21 +12,21 @@ Current phase is Engine Beta, not Paid Beta.
 
 Alpha Path B is accepted. Riverside/Eastvale is the only public playable district. Anaheim/Ontario remain hidden and non-public until owner-gate approval explicitly allows controlled public promotion.
 
-Hosted Clawd implementation beyond the gated setup UI/scaffold, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened by the human.
+Hosted Clawd implementation beyond the gated setup UI/scaffold, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened by the human. The human explicitly reopened DB/Auth preparation on 2026-07-05; Stripe/money, public paid claims, XP, evidence, automation, reports, and exports remain parked.
 
-Current human-directed local-green slice is `0.58J Hosted Clawd Setup UI Port`. It uses `0.58I Integration Canonicalization / Release Decision Packet` at base commit `920cf8a` as the input update, keeps branch `codex/integrate-hosted-clawd-fable-058e` as the local canonical candidate, and ports the Superior grey setup console / setup rail grammar into the Atlas Hosted Clawd tray.
+Current human-directed local-green slice is `0.59H Hosted Clawd Storage/Auth Decision Packet`. It uses `0.58J Hosted Clawd Setup UI Port` plus the 2026-07-05 human DB/Auth reopening as the input update, keeps branch `codex/integrate-hosted-clawd-fable-058e` as the local canonical candidate, and chooses the Hosted Clawd DB/Auth implementation path.
 
-0.58J decision is `SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED` with selected axis `hosted_clawd_setup_ui`. It is UI-only and context-only: no new MCP tools, no new context fields, no server state, no persistence, no auth/OAuth, no DB, no Stripe/money, no public pricing/saved-state claims, and no deploy.
+0.59H decision is `DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED` with selected axis `hosted_clawd_storage_auth`. It chooses Railway Postgres, committed SQL migrations plus a small Node runner, OAuth/OIDC account linking for protected MCP Hosted Clawd actions, and a first persisted capability of owned Hosted Clawd plus business profile, Scout Drop summary, and campaign preview draft.
 
-Default next integration slice after 0.58J is `0.58K Human Visual Gate / Deploy Readiness Decision`. It must inspect the integrated desktop and 390x844 mobile proof, decide whether this branch becomes the canonical/deploy line, and either approve deploy or name exact visual/product blockers.
+Default next slice after 0.59H is `0.60H Persistence Foundation`. It may implement DB/Auth persistence only inside the named slice: authenticated account context, Postgres migrations, owner-enforced Clawd/business/Scout Drop/campaign rows, usage events, idempotency, and no Stripe.
 
-Default Hosted Clawd implementation slice after the visual/deploy gate remains `0.59H Hosted Clawd Storage/Auth Decision Packet`. It must choose the storage provider, migration strategy, auth/account ownership model, idempotency tests, and first persisted object before DB or Stripe implementation starts.
+Stripe/money remains downstream of 0.60H. Do not implement Stripe Checkout, Billing Portal, webhooks, public paid claims, evidence, XP, reports, exports, automation, or public Anaheim/Ontario unless a later named gate explicitly opens that scope.
 
 Use `hosted-clawd-fable-integration` for strict split checks on the integrated branch.
 
 The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly. Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
 
-Do not continue commerce, terrain, mobile, Anaheim, live DB, paid, or persistence implementation unless a new verifier or selector names a real blocker that changes the axis. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted data, or playable county claims.
+Do not continue commerce, terrain, mobile, Anaheim, paid, or Stripe implementation unless a new verifier or selector names a real blocker that changes the axis. DB/Auth persistence may continue only as `0.60H Persistence Foundation`. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted data, or playable county claims.
 
 ## Named-Slice Rule
 

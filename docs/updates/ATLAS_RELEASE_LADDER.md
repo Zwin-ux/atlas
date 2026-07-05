@@ -6,30 +6,31 @@ proof packet.
 
 ## Current Update
 
-### Post-Alpha 0.58J - Hosted Clawd Setup UI Port
+### Post-Alpha 0.59H - Hosted Clawd Storage/Auth Decision Packet
 
-Player-facing promise: Atlas keeps the sharper Fable map and makes the Hosted
-Clawd tray read as a focused setup console, not a generic upgrade card, while
-Alpha remains visibly session-only.
+Player-facing promise: Atlas is preparing to make Hosted Clawd durable: one
+owner, one business, one saved Scout Drop, and one saved campaign draft, while
+the map remains the product surface.
 
-Engineering promise: Port the Superior grey setup console / setup rail grammar
-into the Atlas Hosted Clawd tray without changing the public MCP surface,
-context contract, server state, persistence, auth, DB, Stripe, or deploy status.
+Engineering promise: Choose the production DB/auth foundation and verifier
+envelope before implementing persistence: Railway Postgres, OAuth/OIDC account
+linking for protected MCP Hosted Clawd actions, SQL migrations, owner checks,
+idempotency, and Stripe later.
 
 Spec:
-Use `0.58I Integration Canonicalization / Release Decision Packet` at base
-commit `920cf8a` as the input update. Keep
-`scripts/verify-hosted-clawd-scaffold.mjs`,
+Use `0.58J Hosted Clawd Setup UI Port` plus the 2026-07-05 human DB/Auth
+reopening as the input update. Keep
+`scripts/verify-hosted-clawd-db-auth-prep.mjs`,
 `scripts/verify-atlas-source-of-truth-drift.mjs`, and strict
-`hosted-clawd-fable-integration` split mode as the 0.58J guard.
+`hosted-clawd-fable-integration` split mode as the 0.59H guard.
 
 Status:
 Local green. Branch `codex/integrate-hosted-clawd-fable-058e` is the local
-canonical candidate. Decision is `SETUP_CONSOLE_PORTED_GATES_STAY_CLOSED`;
-selected axis is `hosted_clawd_setup_ui`. Deploy is blocked on a human
-visual/deploy gate. Persistence, money, auth/OAuth, DB, server state, public
-pricing/saved-state claims, and public-claim flags remain closed. The public
-MCP tool surface remains the seven existing tools.
+canonical candidate. Decision is `DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED`;
+selected axis is `hosted_clawd_storage_auth`. DB/Auth implementation is now the
+next named build layer. Stripe, public paid claims, evidence, XP, reports,
+exports, automation, public Anaheim/Ontario, and new public MCP tools remain
+closed. The public MCP tool surface remains the seven existing tools.
 
 ## Parked Owner-Gate Ladder
 
@@ -51,21 +52,26 @@ Anaheim/Ontario stay hidden.
 
 ## Next Updates
 
-### Post-Alpha 0.58K - Human Visual Gate / Deploy Readiness Decision
+### Post-Alpha 0.60H - Persistence Foundation
 
-Review the integrated desktop and 390x844 mobile proof, including the Superior
-grey Hosted Clawd setup console port, decide whether
-`codex/integrate-hosted-clawd-fable-058e` becomes the canonical/deploy line,
-and either approve deploy or name exact visual/product blockers. Do not
-implement DB, auth, Stripe, persistence, public Anaheim/Ontario, or new MCP
-tools in this gate.
+Implement owner-protected Hosted Clawd persistence without Stripe: OAuth/OIDC
+account context, Postgres migrations, owned Clawd row, business profile row,
+saved Scout Drop summary, saved campaign preview draft, usage events,
+idempotency, and tests for unauthenticated denial and cross-owner denial.
 
-### Post-Alpha 0.59H - Hosted Clawd Storage/Auth Decision Packet
+### Post-Alpha 0.61H - Invite Beta Save UX
 
-Choose the storage provider, migration strategy, auth/account ownership model,
-idempotency tests, and first persisted object. Do not implement DB, auth,
-Stripe, webhooks, evidence, XP, reports, exports, or public pricing claims until
-the choices and gates are explicit.
+Make saved state understandable in the map-first UI: compact status strip or
+Hosted Clawd tray state, business/location confirmation, save first artifact,
+return to map, inactive/no-auth states, and 390x844 proof. No dashboard,
+pricing page, or geometry change.
+
+### Post-Alpha 0.62H - Stripe Test Billing
+
+Attach Stripe only after 0.60H ownership and idempotency pass: test Checkout,
+Customer Portal, webhook replay protection, active subscription writes,
+inactive read-only state, and proof that the success URL grants nothing by
+itself.
 
 ### Post-Alpha 0.46E - Owner Gate Review Packet
 

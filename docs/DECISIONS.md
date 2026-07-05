@@ -1,5 +1,37 @@
 # Decisions
 
+## Decision 083: Open DB/Auth preparation, keep Stripe downstream
+
+The human explicitly reopened DB/Auth preparation on 2026-07-05. The decision
+packet is now recorded in `docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md`.
+
+Decision:
+Proceed toward `0.60H Persistence Foundation` with:
+- Railway Postgres as the first production database path.
+- Committed SQL migrations plus a small Node runner.
+- `pg` as the 0.60H implementation client, not added in the 0.59H docs-only
+  prep slice.
+- OAuth/OIDC account linking for protected MCP Hosted Clawd actions.
+- Auth0-compatible OIDC provider shape for issuer, audience, JWKS, and scopes.
+- `jose` as the likely 0.60H JWT verification library, without adding the
+  Auth0 SDK unless the implementation proves it is needed.
+- First persisted capability: owned Hosted Clawd, business profile, saved Scout
+  Drop summary, and saved campaign preview draft.
+
+Reason:
+Hosted Clawd has reached the point where session-only state is the product
+ceiling. The correct next layer is owner-protected memory, not a pricing page.
+Stripe becomes useful only after saved ownership is boring.
+
+Allowed next:
+- 0.60H DB/Auth implementation for owner-protected persistence.
+- Auth challenges for protected Hosted Clawd writes.
+- Postgres migrations and DB client work inside the 0.60H slice.
+
+Still blocked:
+- Stripe Checkout, Billing Portal, webhooks, subscriptions, public paid claims,
+  evidence, XP, reports, exports, automation, and public Anaheim/Ontario.
+
 ## Decision 082: Full product completion means live reviewability before persistence and billing
 
 The full-stack completion map is now recorded in

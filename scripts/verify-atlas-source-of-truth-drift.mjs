@@ -7,10 +7,12 @@ const OWNER_GATE_UPDATE = "postalpha-0.45e-owner-gate-cutline-next-axis-selectio
 const HOSTED_CLAWD_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold";
 const INTEGRATION_UPDATE = "postalpha-0.58i-integration-canonicalization-release-decision";
 const SETUP_UI_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port";
+const STORAGE_AUTH_UPDATE = "postalpha-0.59h-hosted-clawd-storage-auth-decision";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
 const SETUP_UI_INPUT_UPDATE = "postalpha-0.58i-integration-canonicalization-release-decision";
+const STORAGE_AUTH_INPUT_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port+human-reopened-db-auth-2026-07-05";
 const EXPECTED_SELECTOR_NEXT_QUEST = "0.44E Hidden Second-District Visual/Product Proof Packet";
 const OWNER_GATE_NEXT_QUEST = "0.46E Owner Gate Review Packet";
 const OWNER_GATE_SELECTED_AXIS = "owner_gate_review";
@@ -20,6 +22,8 @@ const INTEGRATION_NEXT_QUEST = "0.58J Human Visual Gate / Deploy Readiness Decis
 const INTEGRATION_SELECTED_AXIS = "integration_canonicalization";
 const SETUP_UI_NEXT_QUEST = "0.58K Human Visual Gate / Deploy Readiness Decision";
 const SETUP_UI_SELECTED_AXIS = "hosted_clawd_setup_ui";
+const STORAGE_AUTH_NEXT_QUEST = "0.60H Persistence Foundation";
+const STORAGE_AUTH_SELECTED_AXIS = "hosted_clawd_storage_auth";
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -92,6 +96,8 @@ const result = {
   update:
     currentUpdate?.id === SETUP_UI_UPDATE
       ? "postalpha-0.58j-setup-ui-source-of-truth-drift-check"
+      : currentUpdate?.id === STORAGE_AUTH_UPDATE
+      ? "postalpha-0.59h-storage-auth-source-of-truth-drift-check"
       : currentUpdate?.id === INTEGRATION_UPDATE
       ? "postalpha-0.58i-integration-source-of-truth-drift-check"
       : "postalpha-0.45e-source-of-truth-drift-check",
@@ -149,7 +155,11 @@ function checkCurrentUpdate(update) {
     checkSetupUiCurrentUpdate(update);
     return;
   }
-  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, or ${SETUP_UI_UPDATE}; got ${update.id ?? "missing"}.`);
+  if (update.id === STORAGE_AUTH_UPDATE) {
+    checkStorageAuthCurrentUpdate(update);
+    return;
+  }
+  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, ${SETUP_UI_UPDATE}, or ${STORAGE_AUTH_UPDATE}; got ${update.id ?? "missing"}.`);
 }
 
 function checkOwnerGateCurrentUpdate(update) {
@@ -291,6 +301,50 @@ function checkSetupUiCurrentUpdate(update) {
   }
   if (scope?.uiSurfaceChanges !== true || scope?.rendererGeometryChanges !== false) {
     blockers.push("0.58J setup UI must record UI surface changes without renderer geometry changes.");
+  }
+}
+
+function checkStorageAuthCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== STORAGE_AUTH_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${STORAGE_AUTH_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== STORAGE_AUTH_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${STORAGE_AUTH_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== STORAGE_AUTH_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${STORAGE_AUTH_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED") {
+    blockers.push(`artifacts/current-update.json decision must be DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED; got ${update.decision ?? "missing"}.`);
+  }
+  if (!update.verification?.dbAuthPrepGuard || !update.verification?.sourceOfTruthDrift || !update.verification?.integrationSplitGuard) {
+    blockers.push("artifacts/current-update.json must record the DB/Auth prep guard, source-of-truth drift guard, and split guard.");
+  }
+  const prep = update.metricResult?.hostedClawdStorageAuth;
+  const scope = update.metricResult?.scope;
+  if (prep?.storageProvider !== "Railway Postgres") {
+    blockers.push("0.59H must record Railway Postgres as the production DB path.");
+  }
+  if (prep?.authModel !== "OAuth/OIDC account linking for protected MCP Hosted Clawd actions") {
+    blockers.push("0.59H must record OAuth/OIDC account linking for protected MCP Hosted Clawd actions.");
+  }
+  if (prep?.appsSdkAuthBoundary !== "MCP auth challenge for protected writes; iframe cookies are not identity") {
+    blockers.push("0.59H must record the Apps SDK auth boundary.");
+  }
+  if (prep?.stripeTiming !== "0.62H after 0.60H ownership and idempotency pass") {
+    blockers.push("0.59H must keep Stripe after the 0.60H ownership/idempotency pass.");
+  }
+  if (prep?.publicToolCount !== 7 || prep?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.59H must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (scope?.docsOnly !== true || scope?.dbMigrations !== 0 || scope?.persistedWrites !== false || scope?.liveCheckout !== false) {
+    blockers.push("0.59H must be docs/verifier prep only with no migrations, persisted writes, or live checkout.");
+  }
+  if (scope?.authProviderMutation !== false || scope?.packageDepsAdded !== 0 || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false) {
+    blockers.push("0.59H must record no auth-provider mutation, package dependency, public Anaheim promotion, or provider geometry.");
   }
 }
 
@@ -463,6 +517,48 @@ function checkIntegrationReleaseDocs(update, docs) {
     };
   }
 
+  if (update?.id === STORAGE_AUTH_UPDATE) {
+    label = "0.59H storage-auth";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.59H Hosted Clawd Storage/Auth Decision Packet",
+        "DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED",
+        STORAGE_AUTH_NEXT_QUEST,
+        "Railway Postgres",
+        "OAuth/OIDC account linking",
+        "Stripe remains closed",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current DB/Auth prep slice",
+        "0.59H Hosted Clawd Storage/Auth Decision Packet",
+        "DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED",
+        STORAGE_AUTH_NEXT_QUEST,
+        "Fable save-state UX",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 198",
+        "0.59H Hosted Clawd Storage/Auth Decision Packet",
+        "Railway Postgres",
+        "OAuth/OIDC account linking",
+        "Stripe remains downstream",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 083",
+        "Open DB/Auth preparation, keep Stripe downstream",
+        "Railway Postgres",
+        "OAuth/OIDC account linking",
+        STORAGE_AUTH_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current DB/Auth note (2026-07-05)",
+        "0.59H Hosted Clawd Storage/Auth Decision Packet",
+        "Railway Postgres",
+        STORAGE_AUTH_NEXT_QUEST,
+        "Stripe/money",
+      ],
+    };
+  }
+
   if (!requiredSnippetsByFile) return;
 
   for (const [path, snippets] of Object.entries(requiredSnippetsByFile)) {
@@ -523,10 +619,12 @@ function checkAgentsDoctrine(agents) {
     "Riverside/Eastvale is the only public playable district",
     "Anaheim/Ontario remain hidden and non-public until owner-gate approval",
     "Hosted Clawd implementation beyond the gated setup UI/scaffold, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened",
+    "The human explicitly reopened DB/Auth preparation on 2026-07-05",
     "If the human says \"continue,\" continue only the named next quest",
-    "Current human-directed local-green slice is `0.58J Hosted Clawd Setup UI Port`",
-    "Default next integration slice after 0.58J is `0.58K Human Visual Gate / Deploy Readiness Decision`",
-    "Default Hosted Clawd implementation slice after the visual/deploy gate remains `0.59H Hosted Clawd Storage/Auth Decision Packet`",
+    "Current human-directed local-green slice is `0.59H Hosted Clawd Storage/Auth Decision Packet`",
+    "0.59H decision is `DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED`",
+    "Default next slice after 0.59H is `0.60H Persistence Foundation`",
+    "Stripe/money remains downstream of 0.60H",
     "The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`",
     "Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`",
     "Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`",
