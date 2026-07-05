@@ -283,8 +283,9 @@ void main(void)
     vec4 source = texture(uTexture, vTextureCoord);
     vec3 c = source.rgb;
 
-    // Gentle S-curve for form contrast.
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.26);
+    // S-curve for form contrast — firmer than before so directional wall
+    // shading survives the grade instead of washing to a matte pastel.
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.38);
 
     // Slight saturation trim keeps the palette calm.
     float luma = dot(c, vec3(0.299, 0.587, 0.114));
@@ -301,9 +302,10 @@ void main(void)
     float vignette = mix(0.86, 1.0, smoothstep(0.62, 0.12, radius));
     c *= vignette;
 
-    // Light atmospheric haze toward a warm sky tone at the frame edges.
-    float haze = smoothstep(0.24, 0.62, radius);
-    c = mix(c, vec3(0.955, 0.93, 0.83), haze * 0.11);
+    // Light atmospheric haze toward a warm sky tone at the frame edges — kept
+    // to the outer corners only so it frames without flattening the district.
+    float haze = smoothstep(0.34, 0.66, radius);
+    c = mix(c, vec3(0.955, 0.93, 0.83), haze * 0.07);
 
     // Fine dither hides banding in the large ground gradients.
     float noise = fract(sin(dot(vFrameCoord, vec2(12.9898, 78.233))) * 43758.5453);
@@ -3372,9 +3374,9 @@ function drawBuildingShellLighting(layer: Container, geometry: BuildingGeometry)
   cornerSeam.stroke({ color: 0x18262e, alpha: 0.2, width: 1.2, cap: "round" });
 
   const rim = new Graphics().moveTo(top.x - halfW, top.y).lineTo(topFront.x, topFront.y);
-  rim.stroke({ color: 0xfff0cd, alpha: 0.5, width: 1.4, cap: "round" });
+  rim.stroke({ color: 0xfff4d6, alpha: 0.7, width: 1.7, cap: "round" });
   const shadeEdge = new Graphics().moveTo(topFront.x, topFront.y).lineTo(top.x + halfW, top.y);
-  shadeEdge.stroke({ color: 0x1c2f3a, alpha: 0.26, width: 1.2, cap: "round" });
+  shadeEdge.stroke({ color: 0x1a2c37, alpha: 0.38, width: 1.5, cap: "round" });
   layer.addChild(cornerSeam, rim, shadeEdge);
 }
 
@@ -5398,9 +5400,13 @@ type SunFace = "top" | "sun" | "shade";
 
 // Single source of truth for how any surface responds to the scene sun.
 function sunlitColor(color: number, face: SunFace): number {
-  if (face === "top") return mixColor(scaleColor(color, 1.07), SUN_WARM_TINT, 0.1);
-  if (face === "sun") return mixColor(scaleColor(color, 1.0), SUN_WARM_TINT, 0.1);
-  return mixColor(scaleColor(color, 0.44), SUN_COOL_TINT, 0.3);
+  // Real directional key light: the sun-facing wall must be brighter than the
+  // flat body, not merely un-shaded (it used to sit at factor 1.0, which is why
+  // lit walls read matte). Widening the top/sun/shade spread gives every box a
+  // legible light-to-shade gradient without going cartoon.
+  if (face === "top") return mixColor(scaleColor(color, 1.18), SUN_WARM_TINT, 0.13);
+  if (face === "sun") return mixColor(scaleColor(color, 1.12), SUN_WARM_TINT, 0.12);
+  return mixColor(scaleColor(color, 0.4), SUN_COOL_TINT, 0.32);
 }
 
 function stickerGlyph(kind: CityWorldPin["kind"]): string {
