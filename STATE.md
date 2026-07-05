@@ -30,6 +30,16 @@ to origin — nothing was discarded.
 
 ## High Priority
 
+-1. **IN FLIGHT: "Decal Discipline" pass (0.55E) — `fable/0.55e-decal-discipline`.**
+   - Spec + completion plan: `docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md`.
+   - Systemic fix for the milky wash: per-surface decal OWNERSHIP per family
+     (the 0.53E item-C roof fix generalized to walls + bases). Then queued:
+     0.56E label/marker layout, 0.57E generated-district parity (service
+     engine). Owner directive 2026-07-05: primary audience is the ChatGPT
+     app; spend Fable on big hard engine work first.
+   - 0.54E (grade contrast + Apps SDK tool discovery) landed on
+     `fable/0.54e-grade-contrast` (`43e560c`, `0e32a45`) — BUILD_LOG Entry 084.
+
 0. **COMPLETE: "The Hero Silhouette" pass (0.53E) — `fable/0.53e-hero-silhouette`.**
    - Finish run executed 2026-07-05 (Fable, isolated worktree). Items A-finish →
      E all landed, bisectable: `9bf1a94` (home roof accents + stoops, sprite AND

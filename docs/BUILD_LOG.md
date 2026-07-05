@@ -7936,3 +7936,31 @@ lifts labels off landmark crowns.
 Skipped (invariants held): no props, no new deps/assets, no 3D/PBR, no compiler
 or type changes, no deploy, Anaheim/Ontario hidden, shells honest, palette
 registry + diagnostics + ~95 draw fns + 0.52E contact grammar intact.
+
+## Entry 084
+
+**0.54E service-engine slice — grade contrast + Apps SDK tool discovery,
+2026-07-05, Fable.** Branch `fable/0.54e-grade-contrast` (`43e560c`, `0e32a45`).
+Owner steer captured this session: **the primary audience is the ChatGPT app**
+— engine work is judged on the MCP widget surface (panel-sized viewports,
+tool-driven scene states, mcp-flow/submission verifiers), not standalone
+/preview.
+
+- **Grade contrast (`43e560c`).** Highlight rolloff in the golden-hour post
+  pass (luma 0.68+ → 0.87x), S-curve 0.38→0.46, saturation trim 0.90→0.96.
+  Near-blown pixels 13.3%→11.9% (desktop frame incl. UI cards); material
+  families visibly separate at 390x844. Verified: Riverside light+dark,
+  Orange shell stays honestly empty.
+- **MCP tool metadata (`0e32a45`).** All 7 tool descriptions rewritten in the
+  Apps SDK "Use this when..." discovery form (select_county vs
+  render_voxel_county disambiguated, campaign→scout call-order dependency
+  stated, honesty boundaries kept as negative-prompt guards). Missing
+  .describe() added on render_voxel_county params. Contract-safe: names,
+  schemas, annotations unchanged; verify-submission + verify-mcp-flow ok:true.
+
+All green: 89/89 tests, product-loop ok desktop+mobile, rc-split 0/0.
+Honest finding: the grade gain is incremental because most of the remaining
+wash lives in STACKED TRANSLUCENT DECALS across the ~95 draw functions (0.53E
+item C proved 5 generations of roof decals on one building; walls have the
+same disease). That systemic fix is the next pass: 0.55E Decal Discipline
+(`docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md`).
