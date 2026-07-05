@@ -3340,6 +3340,47 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   drawStorefrontBase(layer, geometry, building);
 
   drawRoof(layer, geometry, building, selected, hovered);
+  drawTieredMassing(layer, geometry, building);
+}
+
+// 0.53E Hero Silhouette — a setback upper tier for civic/venue/transit anchors,
+// so the hero landmark reads as a stepped, tall structure instead of a single
+// extruded box. A smaller box rises from the roof center with its own lit/shade
+// walls, cap, and a warm sunlit crown edge — the "this is the important building"
+// silhouette cue. Sun-consistent; only for tall anchors so it stays rare.
+function drawTieredMassing(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const family = building.visualGrammar?.objectFamily;
+  const isAnchor = family === "civic_landmark" || family === "venue_anchor" || family === "transit_anchor";
+  if (!isAnchor || building.height < 1.9) return;
+
+  const { top, footprintWidth, footprintDepth, bodyColor, roofColor } = geometry;
+  const tierW = footprintWidth * 0.46;
+  const tierD = footprintDepth * 0.46;
+  const halfW = tierW / 2;
+  const halfD = tierD / 2;
+  const rise = Math.max(12, Math.min(building.height * TILE_DEPTH * 0.34, 30));
+  // Base of the tier sits on the roof center; apex is `rise` above it.
+  const baseC = { x: top.x, y: top.y - footprintDepth * 0.04 };
+  const apex = { x: baseC.x, y: baseC.y - rise };
+  const bL = { x: baseC.x - halfW, y: baseC.y };
+  const bF = { x: baseC.x, y: baseC.y + halfD };
+  const bR = { x: baseC.x + halfW, y: baseC.y };
+  const tL = { x: apex.x - halfW, y: apex.y };
+  const tF = { x: apex.x, y: apex.y + halfD };
+  const tR = { x: apex.x + halfW, y: apex.y };
+
+  const litWall = new Graphics()
+    .poly([tL.x, tL.y, tF.x, tF.y, bF.x, bF.y, bL.x, bL.y], true)
+    .fill({ color: sunlitColor(bodyColor, "sun"), alpha: 0.98 });
+  const shadeWall = new Graphics()
+    .poly([tR.x, tR.y, tF.x, tF.y, bF.x, bF.y, bR.x, bR.y], true)
+    .fill({ color: sunlitColor(bodyColor, "shade"), alpha: 0.98 });
+  const cap = polygon(diamondPoints(apex, tierW, tierD), sunlitColor(roofColor, "top"), 0.99, 0x26332c, 0.4);
+  const crown = new Graphics().moveTo(tL.x, tL.y).lineTo(apex.x, apex.y - halfD).lineTo(tR.x, tR.y);
+  crown.stroke({ color: mixColor(shadeColor(roofColor, 42), SUN_WARM_TINT, 0.2), alpha: 0.85, width: 1.5, cap: "round", join: "round" });
+  const cornerSeam = new Graphics().moveTo(tF.x, tF.y).lineTo(bF.x, bF.y);
+  cornerSeam.stroke({ color: 0x18262e, alpha: 0.22, width: 1.1, cap: "round" });
+  layer.addChild(litWall, shadeWall, cap, crown, cornerSeam);
 }
 
 // 0.53E Hero Silhouette — a recessed, glazed ground-floor band with a canopy lip
