@@ -213,7 +213,10 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     hudDefaults: {
       locationLabel: spec.region.county,
       districtLabel: spec.region.district,
-      selectedPlaceId: places[0]?.id ?? "",
+      // 0.57E parity — default the selection to the landmark (like curated
+      // Eastvale Core), not the first residential zone: selecting a
+      // many-building home_area place rings every house on first paint.
+      selectedPlaceId: (places.find((place) => place.kind === "landmark") ?? places[0])?.id ?? "",
     },
   };
 
@@ -237,6 +240,11 @@ type ParcelLayout = {
   width: number;
   depth: number;
   elevationBoost: number;
+  // 0.57E parity — the building spec is chosen FIRST and the parcel is sized
+  // around it. Sizing parcels before specs crushed every wide template (ranch,
+  // rowhome, strip) to the narrow default footprint, destroying the pool's
+  // silhouette variety and leaving oversized pads that read as empty lots.
+  spec?: ZoneBuildingSpec;
 };
 
 function createParametricTerrain(spec: CityWorldParametricSpec, bounds: CityWorldBounds): CityWorldTerrainTile[] {
@@ -386,40 +394,57 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number): ParcelLa
     ];
   }
 
-  const density = zone.density ?? (zone.kind === "residential" ? 0.62 : 0.5);
+  // 0.57E parity — denser defaults: generated districts read as sparse fields
+  // next to curated Eastvale at the old fill rates.
+  const density = zone.density ?? (zone.kind === "residential" ? 0.78 : 0.62);
   const cell = zone.kind === "residential" ? 2.4 : 3.4;
   const cols = Math.max(1, Math.floor(zoneWidth / cell));
   const rows = Math.max(1, Math.floor(zoneHeight / cell));
+  const cellWidth = zoneWidth / cols;
+  const cellHeight = zoneHeight / rows;
   const parcels: ParcelLayout[] = [];
   const footprint = parcelFootprint(zone.kind);
   let index = 0;
 
+  const parcelForSpec = (spec: ZoneBuildingSpec): { width: number; depth: number } => ({
+    // The lot pad hugs the chosen building (small margin) instead of imposing
+    // a fixed footprint, clamped to the grid pitch so neighbours stay parcels.
+    width: Math.max(footprint.width * 0.7, Math.min(spec.width * 1.16, cellWidth * 1.15)),
+    depth: Math.max(footprint.depth * 0.7, Math.min(spec.depth * 1.22, cellHeight * 1.15)),
+  });
+
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       if (rng() > density) continue;
-      const cx = rect.minX + (col + 0.5) * (zoneWidth / cols);
-      const cy = rect.minY + (row + 0.5) * (zoneHeight / rows);
+      const cx = rect.minX + (col + 0.5) * cellWidth;
+      const cy = rect.minY + (row + 0.5) * cellHeight;
       const jitter = (rng() - 0.5) * 0.3;
+      const spec = buildingSpecForZone(zone.kind, rng);
+      const pad = spec ? parcelForSpec(spec) : footprint;
       parcels.push({
         index: index++,
         x: cx + jitter,
         y: cy + jitter,
-        width: footprint.width,
-        depth: footprint.depth,
+        width: pad.width,
+        depth: pad.depth,
         elevationBoost: zone.elevationBoost ?? 0,
+        ...(spec ? { spec } : {}),
       });
     }
   }
 
   // Never leave a zoned block empty — guarantee at least one anchor parcel.
   if (parcels.length === 0) {
+    const spec = buildingSpecForZone(zone.kind, rng);
+    const pad = spec ? parcelForSpec(spec) : footprint;
     parcels.push({
       index: 0,
       x: rect.minX + zoneWidth / 2,
       y: rect.minY + zoneHeight / 2,
-      width: footprint.width,
-      depth: footprint.depth,
+      width: pad.width,
+      depth: pad.depth,
       elevationBoost: zone.elevationBoost ?? 0,
+      ...(spec ? { spec } : {}),
     });
   }
 
@@ -427,15 +452,17 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number): ParcelLa
 }
 
 function buildingForZone(zone: CityWorldZoneSpec, parcel: ParcelLayout, placeId: string, rng: () => number): CityWorldBuilding | null {
-  const spec = buildingSpecForZone(zone.kind, rng);
+  const spec = parcel.spec ?? buildingSpecForZone(zone.kind, rng);
   if (!spec) return null;
   return {
     id: `gen-building-${zone.id}-${parcel.index}`,
     kind: spec.kind,
     label: zone.label ?? zoneLabel(zone.kind),
     position: { x: parcel.x, y: parcel.y, z: 0 },
-    width: Math.min(parcel.width * 0.82, spec.width),
-    depth: Math.min(parcel.depth * 0.82, spec.depth),
+    // The parcel was sized around this spec, so the template's silhouette
+    // survives; the gentle clamp only guards grid-pitch overflow.
+    width: Math.min(parcel.width * 0.95, spec.width),
+    depth: Math.min(parcel.depth * 0.95, spec.depth),
     height: spec.height + parcel.elevationBoost,
     bodyColor: spec.bodyColor,
     roofColor: spec.roofColor,
@@ -696,13 +723,19 @@ export function exampleParametricDistrictSpec(): CityWorldParametricSpec {
       ],
     },
     zones: [
-      { id: "west-neighborhood", kind: "residential", rect: { minX: 3, minY: 4, maxX: 15, maxY: 18 }, density: 0.6 },
+      { id: "west-neighborhood", kind: "residential", rect: { minX: 3, minY: 4, maxX: 15, maxY: 18 }, density: 0.74 },
       { id: "civic-core", kind: "civic", rect: { minX: 17, minY: 8, maxX: 23, maxY: 14 } },
       { id: "commercial-spine", kind: "commercial", rect: { minX: 24, minY: 8, maxX: 34, maxY: 16 }, density: 0.8 },
       { id: "apartment-cluster", kind: "apartments", rect: { minX: 26, minY: 18, maxX: 34, maxY: 24 }, density: 0.7 },
       { id: "service-block", kind: "gym", rect: { minX: 18, minY: 16, maxX: 23, maxY: 21 } },
       { id: "community-park", kind: "park", rect: { minX: 8, minY: 20, maxX: 17, maxY: 26 } },
       { id: "waterfront", kind: "water", rect: { minX: 35, minY: 20, maxX: 39, maxY: 27 } },
+      // 0.57E parity — fill the frame the way curated Eastvale does: the east
+      // strip above the waterfront and the court west of the park were dead
+      // fields that read as an unfinished map.
+      { id: "east-neighborhood", kind: "residential", rect: { minX: 35, minY: 5, maxX: 39, maxY: 18 }, density: 0.72 },
+      { id: "south-court", kind: "residential", rect: { minX: 3, minY: 20, maxX: 7, maxY: 26 }, density: 0.7 },
+      { id: "south-commons", kind: "commercial", rect: { minX: 18, minY: 22, maxX: 25, maxY: 26 }, density: 0.66 },
     ],
     roadSeeds: [
       { id: "gen-road-main", kind: "avenue", from: { x: 3, y: 13 }, to: { x: 37, y: 13 } },
