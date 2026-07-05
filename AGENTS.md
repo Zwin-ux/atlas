@@ -14,11 +14,13 @@ Alpha Path B is accepted. Riverside/Eastvale is the only public playable distric
 
 Hosted Clawd, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened by the human.
 
-Current local-green slice is `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly.
+Current human-directed local-green slice is `0.58H Hosted Clawd Rental Scaffold`. It makes the ChatGPT app show a map-first path to host Clawd for a business, but only as a gated scaffold: no live Stripe, no auth provider, no DB client, no migrations, no persisted writes, no XP/evidence, no reports/exports, no public pricing claim, and no new MCP tool.
 
-Default next slice after 0.45E is `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
+Default next Hosted Clawd slice after 0.58H is `0.59H Hosted Clawd Storage/Auth Decision Packet`. It must choose the storage provider, migration strategy, auth/account ownership model, idempotency tests, and first persisted object before DB or Stripe implementation starts.
 
-Do not continue commerce, terrain, mobile, Anaheim, DB, paid, or persistence work unless a new verifier or selector names a real blocker that changes the axis. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted data, or playable county claims.
+The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly. Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
+
+Do not continue commerce, terrain, mobile, Anaheim, live DB, paid, or persistence implementation unless a new verifier or selector names a real blocker that changes the axis. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted data, or playable county claims.
 
 ## Named-Slice Rule
 
@@ -106,7 +108,7 @@ For Engine Beta source-of-truth and code slices, default to:
 - focused verifier for the slice
 - provider boundary guard
 - tool-result shape guard
-- strict `engine-beta-data` split guard
+- strict `engine-beta-data` split guard, or strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice
 
 Browser screenshot proof is required only when renderer or UI output changes.
 

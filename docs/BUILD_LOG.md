@@ -1,5 +1,39 @@
 # Build Log
 
+## Entry 193
+
+Quest:
+0.58H Hosted Clawd rental scaffold.
+
+What changed:
+- Added the Hosted Clawd product/spec pair:
+  `docs/BETA_HOSTED_CLAWD_SPEC.md` and `docs/HOSTED_CLAWD_PRD.md`.
+- Added `server/src/hostedClawd/` with typed feature gates, context state,
+  create/attach, session-promotion, saved-campaign, checkout, and billing
+  interfaces. Persistence, money, and public claims are OFF by default and
+  require explicit flags plus adapters.
+- Added guarded HTTP scaffolds under `/api/hosted-clawd/*`. With flags off,
+  they return waitlist/payment-not-live state and do not create checkout URLs,
+  database rows, accounts, evidence, XP, reports, or exports.
+- Added widget-only Hosted Clawd context to map, Scout Drop, Campaign Preview,
+  and upgrade responses. The public MCP tool list remains the same seven tools.
+- Added `web/src/HostedClawdTray.tsx` and map-first UI wiring so the app can
+  show what would be saved without leaving the city map.
+- Added `scripts/verify-hosted-clawd-scaffold.mjs` and a narrow
+  `hosted-clawd-scaffold` mode in `verify-alpha-rc-split.mjs`.
+
+Skipped:
+No live Stripe, no auth provider, no DB client, no migration, no persisted
+writes, no OAuth, no XP/evidence, no reports/exports, no new MCP tool, no
+deploy, and no public pricing launch claim.
+
+Verification:
+- `pnpm typecheck:starter` passed.
+- `pnpm test:core` passed, 89/89.
+- `node scripts\verify-hosted-clawd-scaffold.mjs` passed.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-scaffold --json-only`
+  passed with 0 blockers.
+
 ## Entry 192
 
 Quest:

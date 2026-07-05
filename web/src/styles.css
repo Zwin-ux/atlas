@@ -852,6 +852,246 @@ button {
   line-height: 1.35;
 }
 
+.city-world-hosted-clawd-open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--r-control);
+  background: var(--alpha-05);
+  color: var(--city-ink);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--dur-instant) var(--ease-out);
+}
+
+.city-world-hosted-clawd-open:hover {
+  background: var(--alpha-10);
+}
+
+.city-world-hosted-clawd-open:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.city-world-hosted-clawd-open span {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.city-world-hosted-clawd {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 4;
+  display: grid;
+  gap: 10px;
+  width: min(390px, calc(100vw - 28px));
+  max-height: min(calc(100dvh - 32px), 620px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--r-panel);
+  background: var(--city-panel-strong);
+  box-shadow: var(--elev-1);
+  color: var(--city-ink);
+  font-family: var(--font-ui);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+.city-world-hosted-clawd > * {
+  min-width: 0;
+}
+
+.city-world-hosted-clawd-head {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 32px;
+  gap: 10px;
+  align-items: start;
+}
+
+.city-world-hosted-clawd-head img {
+  width: 42px;
+  height: 42px;
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--r-control);
+  background: var(--alpha-05);
+}
+
+.city-world-hosted-clawd-head div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.city-world-hosted-clawd-head span,
+.city-world-hosted-clawd-section-head h3,
+.city-world-hosted-clawd-section-head span {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.city-world-hosted-clawd-head strong {
+  color: var(--city-ink);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.city-world-hosted-clawd-head p,
+.city-world-hosted-clawd-copy p,
+.city-world-hosted-clawd-save p,
+.city-world-hosted-clawd-action-message {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.city-world-hosted-clawd-close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--city-ink);
+  cursor: pointer;
+}
+
+.city-world-hosted-clawd-close:hover {
+  background: var(--alpha-05);
+}
+
+.city-world-hosted-clawd-state,
+.city-world-hosted-clawd-gates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.city-world-hosted-clawd-state span,
+.city-world-hosted-clawd-gates span {
+  min-width: 0;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.city-world-hosted-clawd-state span:first-child {
+  color: var(--city-ink);
+  font-weight: 600;
+}
+
+.city-world-hosted-clawd-copy {
+  display: grid;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.city-world-hosted-clawd-copy p:first-child {
+  color: var(--city-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.city-world-hosted-clawd-save {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: var(--hairline) solid var(--border-subtle);
+}
+
+.city-world-hosted-clawd-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.city-world-hosted-clawd-save ul {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.city-world-hosted-clawd-save li {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: var(--hairline) solid var(--border-subtle);
+}
+
+.city-world-hosted-clawd-save li:last-child {
+  border-bottom: 0;
+}
+
+.city-world-hosted-clawd-save strong {
+  display: block;
+  color: var(--city-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.city-world-hosted-clawd-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--status-green);
+}
+
+.city-world-hosted-clawd-dot.status-needs_confirmation {
+  background: var(--status-orange);
+}
+
+.city-world-hosted-clawd-dot.status-planned {
+  background: var(--status-blue);
+}
+
+.city-world-hosted-clawd-foot {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: var(--hairline) solid var(--border-subtle);
+}
+
+.city-world-hosted-clawd-primary {
+  width: 100%;
+}
+
+.city-world-hosted-clawd-primary:disabled {
+  background: var(--alpha-10);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
 .city-world-coverage-shell .city-world-location {
   border-color: var(--border);
 }
@@ -1582,6 +1822,39 @@ button {
     max-height: min(52dvh, calc(100dvh - 128px));
     overflow: hidden;
     padding: 12px;
+  }
+
+  .city-world-hosted-clawd {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: calc(env(safe-area-inset-bottom) + 12px);
+    width: auto;
+    max-width: calc(100vw - 24px);
+    max-height: min(62dvh, calc(100dvh - 116px));
+    padding: 12px;
+  }
+
+  .city-world-hosted-clawd-head {
+    grid-template-columns: 36px minmax(0, 1fr) 32px;
+    gap: 8px;
+  }
+
+  .city-world-hosted-clawd-head img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .city-world-hosted-clawd-head strong {
+    font-size: 14px;
+  }
+
+  .city-world-hosted-clawd-copy p:first-child,
+  .city-world-hosted-clawd-save strong {
+    font-size: 12px;
+  }
+
+  .city-world-hosted-clawd-primary {
+    min-height: 36px;
   }
 
   .city-world-preview-head strong {

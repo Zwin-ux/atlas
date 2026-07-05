@@ -6,34 +6,49 @@ proof packet.
 
 ## Current Update
 
-### Post-Alpha 0.45E - Owner Gate Cutline / Next Axis Selection
+### Post-Alpha 0.58H - Hosted Clawd Rental Scaffold
 
-Player-facing promise: Atlas turns hidden Anaheim evidence into a clear owner
-review decision without exposing Anaheim publicly.
+Player-facing promise: Atlas shows a map-first path to host Clawd for a
+business while keeping Alpha visibly session-only.
 
-Engineering promise: The selector reads the 0.44E visual packet, product proof,
-readiness aggregate, and owner cutline, then chooses one next axis with blocked
-alternatives.
+Engineering promise: The app adds Hosted Clawd service contracts, guarded HTTP
+scaffolds, widget-only state, and a compact upgrade tray without enabling live
+persistence, money, public claims, or new MCP tools.
 
 Spec:
-Use `scripts/select-second-district-owner-gate-next-axis.mjs` and
-`artifacts/second-district-readiness/latest/anaheim-candidate/postalpha-0.45e-owner-gate-next-axis.json`
-as the 0.45E gate.
+Use `scripts/verify-hosted-clawd-scaffold.mjs` and
+`artifacts/current-update.json` as the 0.58H gate.
 
 Status:
-Local green. The selector chose `owner_gate_review`, decision
-`REQUEST_OWNER_REVIEW`, and recommended `0.46E Owner Gate Review Packet`.
-Controlled public Anaheim remains blocked.
+Local green. Persistence, money, and public-claim flags are OFF by default.
+The public MCP tool surface remains the seven existing tools.
+
+## Parked Owner-Gate Ladder
+
+### Post-Alpha 0.45E - Owner Gate Cutline / Next Axis Selection
+
+The owner-gate ladder remains parked but valid. The selector chose
+`owner_gate_review`, decision `REQUEST_OWNER_REVIEW`, and recommended
+`0.46E Owner Gate Review Packet`. Controlled public Anaheim remains blocked
+until the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`.
 
 ## Active Product Submission Track
 
-Human-directed (2026-07-03). The live track is the product/app-quality path to a submittable
-ChatGPT app — see `docs/PRODUCT_SPEC_AND_GATES.md` (gates G1–G7). Slices: `0.46P` in-widget result
-surface (done + proven), `0.47P` widget polish, `0.48P` design ultra-pass (Fable supermove),
-`0.49P` reliability sweep, `0.50P` submission packet. The owner-gate updates below are parked and
-kept honest (`artifacts/current-update.json` stays `0.45E`; Anaheim/Ontario stay hidden).
+Human-directed (2026-07-03). The product/app-quality path to a submittable
+ChatGPT app is recorded in `docs/PRODUCT_SPEC_AND_GATES.md` (gates G1-G7).
+Slices: `0.46P` in-widget result surface (done + proven), `0.47P` widget polish,
+`0.48P` design ultra-pass (Fable supermove), `0.49P` reliability sweep,
+`0.50P` submission packet. The owner-gate updates are parked and kept honest;
+Anaheim/Ontario stay hidden.
 
 ## Next Updates
+
+### Post-Alpha 0.59H - Hosted Clawd Storage/Auth Decision Packet
+
+Choose the storage provider, migration strategy, auth/account ownership model,
+idempotency tests, and first persisted object. Do not implement DB, auth,
+Stripe, webhooks, evidence, XP, reports, exports, or public pricing claims until
+the choices and gates are explicit.
 
 ### Post-Alpha 0.46E - Owner Gate Review Packet
 
@@ -72,4 +87,5 @@ Riverside blocker.
 - Provider boundary gate: no provider leakage into renderer.
 - Visual grammar gate: no props or labels hiding weak art.
 - Mobile gate: 390x844 proof for product-surface changes.
-- Scope gate: no paid, persistence, XP, evidence, OAuth, automation, reports, or exports unless reopened.
+- Scope gate: no live paid, persistence, XP, evidence, OAuth, automation,
+  reports, or exports unless reopened with a named slice and explicit gates.

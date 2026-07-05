@@ -34,6 +34,41 @@ merge/deploy of this branch.
 
 ## Current phase
 
+## Current human-directed Hosted Clawd scaffold slice (2026-07-05)
+
+The human explicitly reopened Hosted Clawd for the ChatGPT app rental path. This
+does not reopen live Paid Beta by itself. The current named slice is:
+
+`0.58H Hosted Clawd Rental Scaffold`.
+
+Goal:
+Make the map-first app show the real Hosted Clawd path: host Clawd for this
+business, preview what would be saved, and keep the Alpha boundary visible.
+
+Allowed:
+- PRD/spec consolidation.
+- Server-side Hosted Clawd service interfaces and guarded HTTP routes.
+- Widget-only Hosted Clawd context on existing tool results.
+- Compact map-first Hosted Clawd tray.
+- OFF-by-default flags for persistence, money, and public claims.
+
+Still blocked:
+- live Stripe Checkout, Billing Portal, webhooks, auth provider, DB client,
+  migrations, persisted writes, OAuth, XP, evidence, reports, exports, public
+  pricing claims, deploy, or new public MCP tools.
+
+Verifier:
+`node scripts\verify-hosted-clawd-scaffold.mjs`.
+
+Split mode:
+`node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-scaffold --json-only`.
+
+Next quest after this scaffold:
+`0.59H Hosted Clawd Storage/Auth Decision Packet`. It should choose the storage
+provider, migration strategy, auth/account ownership model, idempotency tests,
+and first persisted object. Do not implement DB or Stripe until those choices
+are explicit.
+
 Fable takeover status:
 - The Fable product-submission lane is now locally controlled by Axiom/Codex,
   with Claude stopped and the Fable commit preserved as

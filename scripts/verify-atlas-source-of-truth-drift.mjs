@@ -3,11 +3,15 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 
-const EXPECTED_CURRENT_UPDATE = "postalpha-0.45e-owner-gate-cutline-next-axis-selection";
-const EXPECTED_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
+const OWNER_GATE_UPDATE = "postalpha-0.45e-owner-gate-cutline-next-axis-selection";
+const HOSTED_CLAWD_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold";
+const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
+const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const EXPECTED_SELECTOR_NEXT_QUEST = "0.44E Hidden Second-District Visual/Product Proof Packet";
-const EXPECTED_NEXT_QUEST = "0.46E Owner Gate Review Packet";
-const EXPECTED_SELECTED_AXIS = "owner_gate_review";
+const OWNER_GATE_NEXT_QUEST = "0.46E Owner Gate Review Packet";
+const OWNER_GATE_SELECTED_AXIS = "owner_gate_review";
+const HOSTED_CLAWD_NEXT_QUEST = "0.59H Hosted Clawd Storage/Auth Decision Packet";
+const HOSTED_CLAWD_SELECTED_AXIS = "hosted_clawd_scaffold";
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -111,26 +115,67 @@ function readJson(path, label) {
 
 function checkCurrentUpdate(update) {
   if (!update) return;
-  if (update.id !== EXPECTED_CURRENT_UPDATE) {
-    blockers.push(`artifacts/current-update.json id must be ${EXPECTED_CURRENT_UPDATE}; got ${update.id ?? "missing"}.`);
+  if (update.id === OWNER_GATE_UPDATE) {
+    checkOwnerGateCurrentUpdate(update);
+    return;
   }
+  if (update.id === HOSTED_CLAWD_UPDATE) {
+    checkHostedClawdCurrentUpdate(update);
+    return;
+  }
+  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE} or ${HOSTED_CLAWD_UPDATE}; got ${update.id ?? "missing"}.`);
+}
+
+function checkOwnerGateCurrentUpdate(update) {
   if (update.status !== "local_green") {
     blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
   }
-  if (update.selectedAxis !== EXPECTED_SELECTED_AXIS) {
-    blockers.push(`artifacts/current-update.json selectedAxis must be ${EXPECTED_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  if (update.selectedAxis !== OWNER_GATE_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${OWNER_GATE_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
   }
-  if (update.recommendedNextQuest !== EXPECTED_NEXT_QUEST) {
-    blockers.push(`Current update recommendedNextQuest must be ${EXPECTED_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  if (update.recommendedNextQuest !== OWNER_GATE_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${OWNER_GATE_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
   }
-  if (update.inputUpdate !== EXPECTED_INPUT_UPDATE) {
-    blockers.push(`artifacts/current-update.json inputUpdate must be ${EXPECTED_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  if (update.inputUpdate !== OWNER_GATE_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${OWNER_GATE_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
   }
   if (!update.verification?.selectorJson || !update.verification?.selectorArtifact || !update.verification?.ownerCutline) {
     blockers.push("artifacts/current-update.json must record the 0.45E selector, selector artifact, and owner cutline verifier commands.");
   }
   if (update.decision !== "REQUEST_OWNER_REVIEW") {
     blockers.push(`artifacts/current-update.json decision must be REQUEST_OWNER_REVIEW; got ${update.decision ?? "missing"}.`);
+  }
+}
+
+function checkHostedClawdCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== HOSTED_CLAWD_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${HOSTED_CLAWD_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== HOSTED_CLAWD_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${HOSTED_CLAWD_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== HOSTED_CLAWD_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${HOSTED_CLAWD_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "SCAFFOLD_ONLY_GATES_STAY_CLOSED") {
+    blockers.push(`artifacts/current-update.json decision must be SCAFFOLD_ONLY_GATES_STAY_CLOSED; got ${update.decision ?? "missing"}.`);
+  }
+  if (!update.verification?.hostedClawdGuard || !update.verification?.splitGuard) {
+    blockers.push("artifacts/current-update.json must record the Hosted Clawd scaffold verifier and split guard.");
+  }
+  const hosted = update.metricResult?.hostedClawdScaffold;
+  const scope = update.metricResult?.scope;
+  if (hosted?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("Hosted Clawd scaffold must record zero new MCP tools.");
+  }
+  if (hosted?.persistenceDefault !== false || hosted?.moneyDefault !== false || hosted?.publicClaimDefault !== false) {
+    blockers.push("Hosted Clawd scaffold must keep persistence, money, and public-claim defaults false.");
+  }
+  if (scope?.dbMigrations !== 0 || scope?.liveCheckout !== false || scope?.persistedWrites !== false) {
+    blockers.push("Hosted Clawd scaffold must record no DB migrations, no live checkout, and no persisted writes.");
   }
 }
 
@@ -178,20 +223,20 @@ function checkHiddenProofArtifacts(readiness, cutline, review) {
 
 function checkOwnerGateSelector(selectorArtifact) {
   if (!selectorArtifact) return;
-  if (selectorArtifact.update !== EXPECTED_CURRENT_UPDATE) {
-    blockers.push(`0.45E selector artifact update must be ${EXPECTED_CURRENT_UPDATE}; got ${selectorArtifact.update ?? "missing"}.`);
+  if (selectorArtifact.update !== OWNER_GATE_UPDATE) {
+    blockers.push(`0.45E selector artifact update must be ${OWNER_GATE_UPDATE}; got ${selectorArtifact.update ?? "missing"}.`);
   }
   if (selectorArtifact.ok !== true) {
     blockers.push(`0.45E selector artifact must have ok true; got ${String(selectorArtifact.ok)}.`);
   }
-  if (selectorArtifact.selectedAxis !== EXPECTED_SELECTED_AXIS) {
-    blockers.push(`0.45E selector selectedAxis must be ${EXPECTED_SELECTED_AXIS}; got ${selectorArtifact.selectedAxis ?? "missing"}.`);
+  if (selectorArtifact.selectedAxis !== OWNER_GATE_SELECTED_AXIS) {
+    blockers.push(`0.45E selector selectedAxis must be ${OWNER_GATE_SELECTED_AXIS}; got ${selectorArtifact.selectedAxis ?? "missing"}.`);
   }
   if (selectorArtifact.decision !== "REQUEST_OWNER_REVIEW") {
     blockers.push(`0.45E selector decision must be REQUEST_OWNER_REVIEW; got ${selectorArtifact.decision ?? "missing"}.`);
   }
-  if (selectorArtifact.recommendedNextQuest !== EXPECTED_NEXT_QUEST) {
-    blockers.push(`0.45E selector recommendedNextQuest must be ${EXPECTED_NEXT_QUEST}; got ${selectorArtifact.recommendedNextQuest ?? "missing"}.`);
+  if (selectorArtifact.recommendedNextQuest !== OWNER_GATE_NEXT_QUEST) {
+    blockers.push(`0.45E selector recommendedNextQuest must be ${OWNER_GATE_NEXT_QUEST}; got ${selectorArtifact.recommendedNextQuest ?? "missing"}.`);
   }
   if (selectorArtifact.evidence?.readyForPlayablePromotion !== false || selectorArtifact.evidence?.ownerCutlineOutcome !== "BLOCK_PROMOTION") {
     blockers.push("0.45E selector must keep readyForPlayablePromotion false and ownerCutlineOutcome BLOCK_PROMOTION.");
@@ -232,8 +277,10 @@ function checkAgentsDoctrine(agents) {
     "Anaheim/Ontario remain hidden and non-public until owner-gate approval",
     "Hosted Clawd, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened",
     "If the human says \"continue,\" continue only the named next quest",
-    "Current local-green slice is `0.45E Owner Gate Cutline / Next Axis Selection`",
-    "Default next slice after 0.45E is `0.46E Owner Gate Review Packet`",
+    "Current human-directed local-green slice is `0.58H Hosted Clawd Rental Scaffold`",
+    "Default next Hosted Clawd slice after 0.58H is `0.59H Hosted Clawd Storage/Auth Decision Packet`",
+    "The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`",
+    "Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`",
     "Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`",
     "Keep MCP tool surface stable",
     "Keep `structuredContent` concise",

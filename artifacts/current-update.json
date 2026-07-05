@@ -1,81 +1,72 @@
 {
-  "id": "postalpha-0.45e-owner-gate-cutline-next-axis-selection",
-  "name": "Post-Alpha 0.45E - Owner Gate Cutline / Next Axis Selection",
+  "id": "postalpha-0.58h-hosted-clawd-scaffold",
+  "name": "Post-Alpha 0.58H - Hosted Clawd Rental Scaffold",
   "status": "local_green",
-  "playerPromise": "Atlas turns the hidden Anaheim proof into a clear owner-gate decision without exposing Anaheim publicly.",
-  "engineeringPromise": "The selector reads the 0.44E hidden visual packet, product proof, readiness aggregate, and owner cutline, then chooses the next axis while blocking public promotion unless the cutline explicitly approves it.",
-  "inputUpdate": "postalpha-0.44e-hidden-second-district-visual-product-proof-packet",
-  "selectedAxis": "owner_gate_review",
-  "recommendedNextQuest": "0.46E Owner Gate Review Packet",
-  "decision": "REQUEST_OWNER_REVIEW",
+  "playerPromise": "Atlas shows a map-first path to host Clawd for a business while keeping Alpha visibly session-only.",
+  "engineeringPromise": "The app adds Hosted Clawd service contracts, guarded HTTP scaffolds, widget-only state, and a compact upgrade tray without enabling live persistence, money, public claims, or new MCP tools.",
+  "inputUpdate": "human-reopened-hosted-clawd-2026-07-05",
+  "selectedAxis": "hosted_clawd_scaffold",
+  "recommendedNextQuest": "0.59H Hosted Clawd Storage/Auth Decision Packet",
+  "decision": "SCAFFOLD_ONLY_GATES_STAY_CLOSED",
   "metricResult": {
-    "ownerGateSelector": {
-      "district": "anaheim-candidate",
-      "selectedAxis": "owner_gate_review",
-      "recommendedNextQuest": "0.46E Owner Gate Review Packet",
-      "decision": "REQUEST_OWNER_REVIEW",
-      "readyForPlayablePromotion": false,
-      "ownerCutlineOutcome": "BLOCK_PROMOTION",
-      "visualPacket": "passed",
-      "productProof": "passed",
-      "splitGuard": "passed",
-      "visualOutcome": "HIDDEN_DRAFT_ONLY",
-      "visualPromotionReady": false,
-      "visualPublicPlayable": false,
-      "productPromotionReady": false,
-      "productPublicPlayable": false,
-      "productMiraAcceptance": false,
-      "blockedPublicSpike": true
-    },
-    "candidateScores": {
-      "ownerGateReview": 94,
-      "controlledPublicSecondDistrictSpike": 0,
-      "focusedHiddenSecondDistrictFix": 50,
-      "publicEngineBetaQuality": 35
+    "hostedClawdScaffold": {
+      "publicToolCount": 7,
+      "newMcpTools": 0,
+      "persistenceDefault": false,
+      "moneyDefault": false,
+      "publicClaimDefault": false,
+      "dbMigrations": 0,
+      "liveStripeCalls": 0,
+      "authProviders": 0,
+      "publicPricingClaims": 0,
+      "widgetEntry": "map-first Hosted Clawd tray",
+      "firstSaveTarget": "business profile plus Scout Drop and campaign preview after future approval"
     },
     "scope": {
       "newMcpTools": 0,
       "dbMigrations": 0,
-      "rendererChanges": 0,
+      "rendererGeometryChanges": 0,
       "publicAnaheimPromotion": false,
-      "providerGeometry": false
+      "providerGeometry": false,
+      "liveCheckout": false,
+      "persistedWrites": false
     }
   },
   "verification": {
-    "selectorCheck": "node --check scripts/select-second-district-owner-gate-next-axis.mjs",
-    "selectorJson": "node scripts/select-second-district-owner-gate-next-axis.mjs --json-only",
-    "selectorArtifact": "node scripts/select-second-district-owner-gate-next-axis.mjs --write-default --json-only",
-    "ownerCutline": "node scripts/verify-second-district-owner-gate-cutline.mjs --readiness artifacts/second-district-readiness/latest/anaheim-candidate/readiness-aggregate.json --json-only",
-    "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
-    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only"
+    "typecheckStarter": "pnpm typecheck:starter",
+    "coreTests": "pnpm test:core",
+    "hostedClawdGuard": "node scripts/verify-hosted-clawd-scaffold.mjs",
+    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-scaffold --json-only",
+    "providerBoundary": "node scripts/verify-provider-boundaries.mjs --json-only",
+    "toolResultShape": "node scripts/verify-tool-result-shape.mjs --json-only",
+    "buildWeb": "pnpm build:web"
   },
-  "nextCodeStep": "0.46E Owner Gate Review Packet",
+  "nextCodeStep": "0.59H Hosted Clawd Storage/Auth Decision Packet",
   "forbiddenScope": [
+    "live Stripe Checkout, Billing Portal, webhook, product, price, or customer mutation",
+    "database client, migration, persisted write, or storage provider implementation",
+    "OAuth/account linking before the auth model is chosen",
+    "new public MCP tools",
+    "paid access grants, public pricing launch claims, or saved-state claims while gates are closed",
+    "XP, evidence, weekly reports, exports, automation, auto-posting, DMs, ads, or scraping",
     "public Anaheim/Ontario exposure",
-    "public playable second district unless owner cutline is APPROVE_CONTROLLED_PUBLIC_SPIKE",
-    "database persistence",
-    "migrations",
-    "new MCP tools",
-    "paid, Stripe, OAuth, Hosted Clawd, XP, evidence, automation, reports, or exports",
-    "provider-created geometry",
-    "live provider-to-scene normalization",
-    "renderer or public UI changes inside 0.45E",
-    "cars, humans, decorative props, panels, glows, or label crutches"
+    "provider-created geometry or readiness promotion",
+    "generic SaaS pricing page or dashboard shell"
   ],
   "gates": [
     {
-      "id": "selector-evidence",
-      "label": "Owner-gate selector reads 0.44E visual/product/readiness/cutline artifacts",
+      "id": "persistence-gate",
+      "label": "HUMAN_APPROVAL_BEFORE_PERSISTENCE stays closed until storage, migration, auth, ownership, and idempotency tests are selected",
       "required": true
     },
     {
-      "id": "block-public-spike",
-      "label": "Controlled public Anaheim spike remains blocked while cutline is BLOCK_PROMOTION",
+      "id": "money-gate",
+      "label": "HUMAN_APPROVAL_BEFORE_MONEY stays closed until persistence works and Stripe webhook-backed subscription state is approved",
       "required": true
     },
     {
-      "id": "owner-review",
-      "label": "Next step is owner review packet, not more hidden art or public promotion",
+      "id": "public-claim-gate",
+      "label": "HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM stays closed until pricing and saved-state launch claims are approved",
       "required": true
     }
   ]

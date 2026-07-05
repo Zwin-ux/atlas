@@ -17,7 +17,7 @@ import { sendUserMessage, updateModelContext, useToolResult, useWidgetState } fr
 import { CountyCoverageView } from "./CountyCoverageView";
 import { CountySwitcher, type CountySwitchSlug } from "./CountySwitcher";
 import { CityWorldView } from "./CityWorldView";
-import type { WidgetState } from "./types";
+import type { HostedClawdActionKind, HostedClawdContext, WidgetState } from "./types";
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
   sceneId: string;
@@ -68,6 +68,11 @@ type CampaignPreviewStructuredContent = Omit<CampaignPreviewState, "scene"> & {
   flow: VoxelScene["flow"];
 };
 
+type UpgradeOptionsStructuredContent = {
+  type: "upgradeOptions";
+  hostedClawd?: HostedClawdContext;
+};
+
 type ToolStructuredContent =
   | CampaignPreviewState
   | CampaignPreviewStructuredContent
@@ -76,6 +81,7 @@ type ToolStructuredContent =
   | VoxelScene
   | VoxelSceneStructuredContent
   | CountyCoverageStructuredContent
+  | UpgradeOptionsStructuredContent
   | null;
 
 const coverageSourceNote = {
@@ -297,6 +303,31 @@ function isCountyCoverageStructuredContent(value: unknown): value is CountyCover
   );
 }
 
+function isUpgradeOptionsStructuredContent(value: unknown): value is UpgradeOptionsStructuredContent {
+  return Boolean(isRecord(value) && value.type === "upgradeOptions");
+}
+
+function isHostedClawdContext(value: unknown): value is HostedClawdContext {
+  return Boolean(
+    isRecord(value) &&
+      value.type === "hostedClawdContext" &&
+      hasString(value, "screenState") &&
+      hasString(value, "statusLabel") &&
+      hasString(value, "contextLabel") &&
+      hasString(value, "primaryCopy") &&
+      isRecord(value.primaryAction) &&
+      hasString(value.primaryAction, "kind") &&
+      hasString(value.primaryAction, "label") &&
+      typeof value.primaryAction.enabled === "boolean" &&
+      Array.isArray(value.savePreview) &&
+      isRecord(value.flags) &&
+      typeof value.flags.persistenceEnabled === "boolean" &&
+      typeof value.flags.moneyEnabled === "boolean" &&
+      typeof value.flags.publicClaimEnabled === "boolean" &&
+      Array.isArray(value.gates),
+  );
+}
+
 function isCityWorldScene(value: unknown): value is CityWorldScene {
   return Boolean(
     isRecord(value) &&
@@ -325,6 +356,7 @@ export function App() {
   const metaCampaignPreview = isCampaignPreview(meta?.campaignPreview) ? meta.campaignPreview : null;
   const metaScoutPreview = isScoutPreview(meta?.scoutPreview) ? meta.scoutPreview : null;
   const metaScene = isVoxelScene(meta?.scene) ? meta.scene : null;
+  const metaHostedClawd = isHostedClawdContext(meta?.hostedClawd) ? meta.hostedClawd : null;
   const coverageSummary = isCountyCoverageStructuredContent(structuredContent) ? structuredContent : null;
   const coverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
   const forcedPlayableCounty = localCountySlug === "riverside-ca";
@@ -338,6 +370,7 @@ export function App() {
   const activeCountySlug = localCountySlug ?? switchSlugFromCoverage(coverageSummary);
   const campaignPreviewSummary = isCampaignPreviewStructuredContent(structuredContent) ? structuredContent : null;
   const scoutPreviewSummary = isScoutPreviewStructuredContent(structuredContent) ? structuredContent : null;
+  const upgradeOptionsSummary = isUpgradeOptionsStructuredContent(structuredContent) ? structuredContent : null;
   const structuredCampaignPreview = isCampaignPreview(structuredContent) ? structuredContent : null;
   const structuredScoutPreview = isScoutPreview(structuredContent) ? structuredContent : null;
   const campaignPreview =
@@ -363,6 +396,18 @@ export function App() {
   const notes = activeSceneMatches ? widgetState.notes ?? [] : [];
   const stickerMode = activeSceneMatches ? widgetState.stickerMode ?? "favorite" : "favorite";
   const noteDraft = activeSceneMatches ? widgetState.noteDraft ?? "" : "";
+  const hostedClawdOpen = activeSceneMatches ? widgetState.hostedClawdOpen ?? false : false;
+  const hostedClawdActionMessage = activeSceneMatches ? widgetState.hostedClawdActionMessage : undefined;
+  const hostedClawdContext =
+    metaHostedClawd ??
+    upgradeOptionsSummary?.hostedClawd ??
+    defaultHostedClawdContext({
+      scene,
+      selectedPlaceLabel: selectedPlace?.label,
+      scoutPreview,
+      campaignPreview,
+      selectedNoteCount: notes.length,
+    });
 
   const selectCountyFromSwitcher = (countySlug: CountySwitchSlug) => {
     setGeneratedScene(null);
@@ -481,9 +526,61 @@ export function App() {
     });
   };
 
+  const openHostedClawd = () => {
+    setWidgetState((current) => ({
+      ...current,
+      activeSceneId: scene.id,
+      hostedClawdOpen: true,
+      hostedClawdActionMessage: undefined,
+    }));
+    void updateModelContext(`User opened Hosted Clawd for ${hostedClawdContext.contextLabel}.`);
+  };
+
+  const closeHostedClawd = () => {
+    setWidgetState((current) => ({
+      ...current,
+      activeSceneId: scene.id,
+      hostedClawdOpen: false,
+    }));
+  };
+
+  const handleHostedClawdPrimaryAction = () => {
+    const endpoint = endpointForHostedClawdAction(hostedClawdContext.primaryAction.kind);
+    const payload = hostedClawdPayload({
+      context: hostedClawdContext,
+      scene,
+      selectedPlaceLabel: selectedPlace?.label,
+      scoutPreview,
+      campaignPreview,
+      selectedNoteCount: notes.length,
+    });
+
+    void fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((response) => response.json() as Promise<{ result?: { message?: string } }>)
+      .then((body) => {
+        const message = body.result?.message ?? hostedClawdContext.primaryCopy;
+        setWidgetState((current) => ({
+          ...current,
+          activeSceneId: scene.id,
+          hostedClawdActionMessage: message,
+        }));
+      })
+      .catch(() => {
+        setWidgetState((current) => ({
+          ...current,
+          activeSceneId: scene.id,
+          hostedClawdActionMessage: "Hosted Clawd is not live yet. This business stays session-only in Alpha.",
+        }));
+      });
+  };
+
   const advancePreview = () => {
     if (campaignPreview) {
-      void sendUserMessage("What are the Hosted Clawd hosting options?");
+      openHostedClawd();
       return;
     }
 
@@ -503,9 +600,15 @@ export function App() {
       noteDraft={noteDraft}
       scoutPreview={scoutPreview}
       campaignPreview={campaignPreview}
+      hostedClawdContext={hostedClawdContext}
+      hostedClawdOpen={hostedClawdOpen}
+      hostedClawdActionMessage={hostedClawdActionMessage}
       {...(campaignPreview || scoutPreview ? { onAdvancePreview: advancePreview } : {})}
       countySwitcher={countySwitcher}
       generatedScene={generatedScene}
+      onOpenHostedClawd={openHostedClawd}
+      onCloseHostedClawd={closeHostedClawd}
+      onHostedClawdPrimaryAction={handleHostedClawdPrimaryAction}
       onExitGeneratedPreview={exitGeneratedPreview}
       onSelectPlace={selectPlace}
       onSelectStickerMode={(kind) => setWidgetState((current) => ({ ...current, stickerMode: kind }))}
@@ -522,6 +625,145 @@ function uniqueSticker(sticker: VoxelSticker, count: number): VoxelSticker {
 
 function uniqueNote(note: VoxelNote, count: number): VoxelNote {
   return { ...note, id: `${note.id}-${count}` };
+}
+
+function endpointForHostedClawdAction(action: HostedClawdActionKind): string {
+  switch (action) {
+    case "continue_to_stripe":
+      return "/api/hosted-clawd/checkout";
+    case "open_billing_portal":
+      return "/api/hosted-clawd/billing-portal";
+    case "open_saved_campaign":
+      return "/api/hosted-clawd/saved-artifacts/campaigns";
+    case "create_hosted_clawd":
+    case "join_waitlist":
+    case "refresh_status":
+      return "/api/hosted-clawd/create-or-attach";
+  }
+}
+
+function hostedClawdPayload({
+  context,
+  scene,
+  selectedPlaceLabel,
+  scoutPreview,
+  campaignPreview,
+  selectedNoteCount,
+}: {
+  context: HostedClawdContext;
+  scene: VoxelScene;
+  selectedPlaceLabel?: string | undefined;
+  scoutPreview?: ScoutPreviewState | null;
+  campaignPreview?: CampaignPreviewState | null;
+  selectedNoteCount: number;
+}) {
+  return {
+    trigger: context.trigger,
+    businessType: campaignPreview?.businessType ?? scoutPreview?.businessType ?? "local business",
+    primaryGoal: scoutPreview?.goal,
+    countySlug: scene.county.slug,
+    countyLabel: scene.county.name,
+    placeLabel: selectedPlaceLabel ?? "Eastvale",
+    scoutPreviewId: campaignPreview?.scoutPreviewId ?? scoutPreview?.id,
+    campaignPreviewId: campaignPreview?.id,
+    campaignSummary: campaignPreview?.summary,
+    selectedNoteCount,
+    clientRequestId: `hosted-clawd-${scene.id}-${campaignPreview?.id ?? scoutPreview?.id ?? context.trigger}`,
+  };
+}
+
+function defaultHostedClawdContext({
+  scene,
+  selectedPlaceLabel,
+  scoutPreview,
+  campaignPreview,
+  selectedNoteCount,
+}: {
+  scene: VoxelScene;
+  selectedPlaceLabel?: string | undefined;
+  scoutPreview?: ScoutPreviewState | null;
+  campaignPreview?: CampaignPreviewState | null;
+  selectedNoteCount: number;
+}): HostedClawdContext {
+  const businessType = campaignPreview?.businessType ?? scoutPreview?.businessType ?? "this business";
+  const trigger = campaignPreview ? "campaign_preview" : scoutPreview ? "scout_drop" : "map_tray";
+  const savePreview: HostedClawdContext["savePreview"] = [
+    {
+      label: "Business",
+      value: businessType,
+      status: businessType === "this business" ? "needs_confirmation" : "ready",
+    },
+    {
+      label: "Location",
+      value: selectedPlaceLabel ?? scene.county.name,
+      status: "ready",
+    },
+    {
+      label: "Scout report",
+      value: scoutPreview || campaignPreview ? "Save this scout report" : "Run a Scout Drop before saving",
+      status: scoutPreview || campaignPreview ? "ready" : "planned",
+    },
+    {
+      label: "Campaign draft",
+      value: campaignPreview ? "Save campaign preview draft" : "Preview a campaign before saving",
+      status: campaignPreview ? "ready" : "planned",
+    },
+  ];
+
+  if (selectedNoteCount > 0) {
+    savePreview.push({
+      label: "Notes",
+      value: `${selectedNoteCount} selected note${selectedNoteCount === 1 ? "" : "s"}`,
+      status: "needs_confirmation",
+    });
+  }
+
+  return {
+    type: "hostedClawdContext",
+    mode: "alpha_free",
+    screenState: "waitlist",
+    trigger,
+    statusLabel: "Alpha Free",
+    contextLabel: `${businessType} at ${selectedPlaceLabel ?? scene.county.name}`,
+    primaryCopy: "Hosted Clawd is not live yet. Join the waitlist to save this business when Beta opens.",
+    secondaryCopy: "This map, pins, notes, Scout Drop, and campaign preview remain temporary.",
+    sessionBoundary: "Session-only until Hosted Clawd is live.",
+    paymentCopy: "Payment is not live in Alpha.",
+    primaryAction: {
+      kind: "join_waitlist",
+      label: "Join Hosted Clawd waitlist",
+      enabled: true,
+    },
+    savePreview,
+    flags: {
+      persistenceEnabled: false,
+      moneyEnabled: false,
+      publicClaimEnabled: false,
+    },
+    gates: [
+      {
+        gate: "HUMAN_APPROVAL_BEFORE_PERSISTENCE",
+        flag: "ATLAS_HOSTED_CLAWD_PERSISTENCE_ENABLED",
+        approved: false,
+        requiredFor: "accounts, business memory, Scout Drop saves, campaign saves, evidence, XP, reports, exports, and database migrations",
+      },
+      {
+        gate: "HUMAN_APPROVAL_BEFORE_MONEY",
+        flag: "ATLAS_HOSTED_CLAWD_MONEY_ENABLED",
+        approved: false,
+        requiredFor: "Stripe Checkout, Billing Portal, paid limits, and subscription-gated writes",
+      },
+      {
+        gate: "HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM",
+        flag: "ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED",
+        approved: false,
+        requiredFor: "public pricing copy, saved-state launch claims, and external Beta promotion",
+      },
+    ],
+    canPersist: false,
+    canStartCheckout: false,
+    canUsePaidWrites: false,
+  };
 }
 
 function switchSlugFromCoverage(coverage: CountyCoverageStructuredContent | null): CountySwitchSlug {

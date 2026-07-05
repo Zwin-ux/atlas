@@ -38,6 +38,7 @@ import {
   SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
   type ScenePacketMemorySummary,
 } from "./scenePacketMemoryAdapter.js";
+import { HostedClawdService, type HostedClawdContext, type HostedClawdContextInput } from "./hostedClawd/index.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-v1.html";
@@ -58,6 +59,7 @@ const worldService = createNationalWorldService([riversideDemoVoxelScene]);
 const scenePacketMemory = createScenePacketMemoryAdapter<ScoutPreviewState["scene"]>({
   maxEntries: MAX_SCENE_PACKET_MEMORY_ENTRIES,
 });
+const hostedClawdService = new HostedClawdService();
 
 type WorldLookupCacheEntry = {
   response: WorldPlaceLookupResponse;
@@ -539,6 +541,71 @@ const campaignPreviewOutputSchema = {
   flow: z.array(flowStepSchema),
 };
 
+const hostedClawdScreenStateSchema = z.enum([
+  "waitlist",
+  "confirm_save",
+  "checkout_pending",
+  "activating",
+  "active",
+  "inactive_payment_failed",
+]);
+
+const hostedClawdContextSchema = z.object({
+  type: z.literal("hostedClawdContext"),
+  mode: z.enum(["alpha_free", "beta_invite", "beta_paid"]),
+  screenState: hostedClawdScreenStateSchema,
+  trigger: z.enum(["map_tray", "scout_drop", "campaign_preview", "upgrade_tool"]),
+  statusLabel: z.string(),
+  contextLabel: z.string(),
+  primaryCopy: z.string(),
+  secondaryCopy: z.string(),
+  sessionBoundary: z.string(),
+  paymentCopy: z.string(),
+  primaryAction: z.object({
+    kind: z.enum([
+      "join_waitlist",
+      "create_hosted_clawd",
+      "continue_to_stripe",
+      "refresh_status",
+      "open_saved_campaign",
+      "open_billing_portal",
+    ]),
+    label: z.string(),
+    enabled: z.boolean(),
+  }),
+  savePreview: z.array(
+    z.object({
+      label: z.string(),
+      value: z.string(),
+      status: z.enum(["ready", "needs_confirmation", "planned"]),
+    }),
+  ),
+  flags: z.object({
+    persistenceEnabled: z.boolean(),
+    moneyEnabled: z.boolean(),
+    publicClaimEnabled: z.boolean(),
+  }),
+  gates: z.array(
+    z.object({
+      gate: z.enum([
+        "HUMAN_APPROVAL_BEFORE_PERSISTENCE",
+        "HUMAN_APPROVAL_BEFORE_MONEY",
+        "HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM",
+      ]),
+      flag: z.enum([
+        "ATLAS_HOSTED_CLAWD_PERSISTENCE_ENABLED",
+        "ATLAS_HOSTED_CLAWD_MONEY_ENABLED",
+        "ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED",
+      ]),
+      approved: z.boolean(),
+      requiredFor: z.string(),
+    }),
+  ),
+  canPersist: z.boolean(),
+  canStartCheckout: z.boolean(),
+  canUsePaidWrites: z.boolean(),
+});
+
 const upgradeOptionsOutputSchema = {
   type: z.literal("upgradeOptions"),
   trigger: z.string().optional(),
@@ -554,6 +621,7 @@ const upgradeOptionsOutputSchema = {
   }),
   unavailableActions: z.array(z.string()),
   nextStep: z.string(),
+  hostedClawd: hostedClawdContextSchema,
 };
 
 const worldSourceNoteSchema = z.object({
@@ -843,6 +911,14 @@ function isWorldSourceKind(value: string): value is WorldSourceKind {
 }
 
 function upgradeOptionsStructuredContent(trigger?: string) {
+  const hostedClawd = hostedClawdService.getContext({
+    trigger: "upgrade_tool",
+    businessType: trigger === "pricing" || trigger === "general" ? "local business" : undefined,
+    countySlug: PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
+    countyLabel: "Riverside County",
+    placeLabel: "Eastvale",
+  });
+
   return {
     type: "upgradeOptions" as const,
     ...(trigger ? { trigger } : {}),
@@ -874,7 +950,44 @@ function upgradeOptionsStructuredContent(trigger?: string) {
       "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
     ],
     nextStep: "Use the free Alpha preview now; Hosted Clawd becomes the persistence layer in Beta.",
+    hostedClawd,
   };
+}
+
+function hostedClawdContextForScene(scene: ScoutPreviewState["scene"], trigger: HostedClawdContextInput["trigger"]): HostedClawdContext {
+  const selectedPlace = scene.world?.places.find((place) => place.nodeId === scene.selectedNodeId) ?? scene.world?.places[0];
+  return hostedClawdService.getContext({
+    trigger,
+    countySlug: scene.county.slug,
+    countyLabel: scene.county.name,
+    placeLabel: selectedPlace?.label ?? scene.county.name,
+  });
+}
+
+function hostedClawdContextForScout(preview: ScoutPreviewState): HostedClawdContext {
+  const selectedPlace = preview.scene.world?.places.find((place) => place.nodeId === preview.selectedNodeId) ?? preview.scene.world?.places[0];
+  return hostedClawdService.getContext({
+    trigger: "scout_drop",
+    businessType: preview.businessType,
+    primaryGoal: preview.goal,
+    countySlug: preview.countySlug,
+    countyLabel: preview.scene.county.name,
+    placeLabel: selectedPlace?.label ?? "Eastvale",
+    scoutPreviewId: preview.id,
+  });
+}
+
+function hostedClawdContextForCampaign(preview: CampaignPreviewState): HostedClawdContext {
+  const selectedPlace = preview.scene.world?.places.find((place) => place.nodeId === preview.selectedNodeId) ?? preview.scene.world?.places[0];
+  return hostedClawdService.getContext({
+    trigger: "campaign_preview",
+    businessType: preview.businessType,
+    countySlug: preview.countySlug,
+    countyLabel: preview.scene.county.name,
+    placeLabel: selectedPlace?.label ?? "Eastvale",
+    scoutPreviewId: preview.scoutPreviewId,
+    campaignPreviewId: preview.id,
+  });
 }
 
 // The built widget inlines the whole ~1MB JS/CSS bundle into a single HTML
@@ -1389,6 +1502,136 @@ function handleCampaignPreview(url: URL, res: ServerResponse): void {
   }
 }
 
+function hostedClawdInputFromUrl(url: URL): HostedClawdContextInput {
+  return {
+    trigger: hostedClawdTriggerFromString(url.searchParams.get("trigger")),
+    businessName: optionalQuery(url, "businessName"),
+    businessType: optionalQuery(url, "businessType"),
+    serviceArea: optionalQuery(url, "serviceArea"),
+    primaryGoal: optionalQuery(url, "primaryGoal"),
+    countySlug: optionalQuery(url, "countySlug") ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
+    countyLabel: optionalQuery(url, "countyLabel") ?? "Riverside County",
+    placeLabel: optionalQuery(url, "placeLabel") ?? "Eastvale",
+    scoutPreviewId: optionalQuery(url, "scoutPreviewId"),
+    campaignPreviewId: optionalQuery(url, "campaignPreviewId"),
+    selectedNoteCount: optionalNumberQuery(url, "selectedNoteCount"),
+  };
+}
+
+async function handleHostedClawdAction(
+  req: IncomingMessage,
+  res: ServerResponse,
+  operation: "create_or_attach_clawd" | "promote_session" | "save_campaign_artifact" | "start_checkout" | "open_billing_portal",
+): Promise<void> {
+  try {
+    const body = await readJsonObjectBody(req);
+    const input = hostedClawdInputFromObject(body);
+    const result =
+      operation === "create_or_attach_clawd"
+        ? await hostedClawdService.createOrAttachClawd(input)
+        : operation === "promote_session"
+          ? await hostedClawdService.promoteSession(input)
+          : operation === "save_campaign_artifact"
+            ? await hostedClawdService.saveCampaignArtifact(input)
+            : operation === "start_checkout"
+              ? await hostedClawdService.startCheckout(input)
+              : await hostedClawdService.openBillingPortal(input);
+
+    jsonResponse(res, 200, { ok: true, result });
+  } catch (error) {
+    jsonResponse(res, 400, {
+      ok: false,
+      error: error instanceof Error ? error.message : "Hosted Clawd action failed.",
+    });
+  }
+}
+
+async function readJsonObjectBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  const body = await new Promise<string>((resolveBody, rejectBody) => {
+    let text = "";
+    req.setEncoding("utf8");
+    req.on("data", (chunk) => {
+      text += chunk;
+      if (text.length > 64_000) {
+        rejectBody(new Error("Request body is too large."));
+      }
+    });
+    req.on("end", () => resolveBody(text));
+    req.on("error", rejectBody);
+  });
+
+  if (!body.trim()) return {};
+  const parsed = JSON.parse(body) as unknown;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Expected a JSON object body.");
+  }
+  return parsed as Record<string, unknown>;
+}
+
+function hostedClawdInputFromObject(value: Record<string, unknown>): HostedClawdContextInput & {
+  clientRequestId?: string;
+  confirmedFields?: string[];
+  campaignSummary?: string;
+} {
+  return {
+    trigger: hostedClawdTriggerFromString(stringFromObject(value, "trigger")),
+    businessName: stringFromObject(value, "businessName"),
+    businessType: stringFromObject(value, "businessType"),
+    serviceArea: stringFromObject(value, "serviceArea"),
+    primaryGoal: stringFromObject(value, "primaryGoal"),
+    offerNotes: stringFromObject(value, "offerNotes"),
+    countySlug: stringFromObject(value, "countySlug") ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
+    countyLabel: stringFromObject(value, "countyLabel") ?? "Riverside County",
+    placeLabel: stringFromObject(value, "placeLabel") ?? "Eastvale",
+    scoutPreviewId: stringFromObject(value, "scoutPreviewId"),
+    campaignPreviewId: stringFromObject(value, "campaignPreviewId"),
+    selectedNoteCount: numberFromObject(value, "selectedNoteCount"),
+    clientRequestId: stringFromObject(value, "clientRequestId"),
+    campaignSummary: stringFromObject(value, "campaignSummary"),
+    confirmedFields: arrayOfStringsFromObject(value, "confirmedFields"),
+  };
+}
+
+function hostedClawdTriggerFromString(value: string | null | undefined): HostedClawdContextInput["trigger"] {
+  switch (value) {
+    case "scout_drop":
+    case "campaign_preview":
+    case "upgrade_tool":
+    case "map_tray":
+      return value;
+    default:
+      return "map_tray";
+  }
+}
+
+function optionalQuery(url: URL, key: string): string | undefined {
+  const value = url.searchParams.get(key)?.trim();
+  return value || undefined;
+}
+
+function optionalNumberQuery(url: URL, key: string): number | undefined {
+  const value = url.searchParams.get(key);
+  if (!value) return undefined;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+function stringFromObject(value: Record<string, unknown>, key: string): string | undefined {
+  const raw = value[key];
+  return typeof raw === "string" && raw.trim() ? raw.trim() : undefined;
+}
+
+function numberFromObject(value: Record<string, unknown>, key: string): number | undefined {
+  const raw = value[key];
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
+function arrayOfStringsFromObject(value: Record<string, unknown>, key: string): string[] | undefined {
+  const raw = value[key];
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim());
+}
+
 function createAtlasServer(): McpServer {
   const server = new McpServer(
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
@@ -1495,6 +1738,11 @@ function createAtlasServer(): McpServer {
           structuredContent: coverage,
           _meta: {
             scenePacket,
+            hostedClawd: hostedClawdService.getContext({
+              trigger: "map_tray",
+              countySlug: coverage.countySlug,
+              countyLabel: coverage.countyLabel,
+            }),
             ...(coverageShellScene ? { coverageShellScene } : {}),
           },
           content: [
@@ -1512,6 +1760,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           scene,
           scenePacket,
+          hostedClawd: hostedClawdContextForScene(scene, "map_tray"),
         },
         content: [
           {
@@ -1598,6 +1847,11 @@ function createAtlasServer(): McpServer {
           structuredContent: coverage,
           _meta: {
             scenePacket,
+            hostedClawd: hostedClawdService.getContext({
+              trigger: "map_tray",
+              countySlug: coverage.countySlug,
+              countyLabel: coverage.countyLabel,
+            }),
             ...(coverageShellScene ? { coverageShellScene } : {}),
           },
           content: [
@@ -1618,6 +1872,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           scene,
           scenePacket,
+          hostedClawd: hostedClawdContextForScene(scene, "map_tray"),
         },
         content: [
           {
@@ -1675,6 +1930,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           scoutPreview: preview,
           scene: preview.scene,
+          hostedClawd: hostedClawdContextForScout(preview),
         },
         content: [
           {
@@ -1738,6 +1994,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           campaignPreview,
           scene: campaignPreview.scene,
+          hostedClawd: hostedClawdContextForCampaign(campaignPreview),
         },
         content: [
           {
@@ -1777,6 +2034,9 @@ function createAtlasServer(): McpServer {
       const options = upgradeOptionsStructuredContent(trigger);
       return {
         structuredContent: options,
+        _meta: {
+          hostedClawd: options.hostedClawd,
+        },
         content: [
           {
             type: "text" as const,
@@ -1865,6 +2125,39 @@ const httpServer = createServer(async (req, res) => {
       update: SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
       cache: scenePacketMemory.status(),
     });
+    return;
+  }
+
+  if (url.pathname === "/api/hosted-clawd/state" && req.method === "GET") {
+    jsonResponse(res, 200, {
+      ok: true,
+      hostedClawd: hostedClawdService.getContext(hostedClawdInputFromUrl(url)),
+    });
+    return;
+  }
+
+  if (url.pathname === "/api/hosted-clawd/create-or-attach" && req.method === "POST") {
+    await handleHostedClawdAction(req, res, "create_or_attach_clawd");
+    return;
+  }
+
+  if (url.pathname === "/api/hosted-clawd/promote-session" && req.method === "POST") {
+    await handleHostedClawdAction(req, res, "promote_session");
+    return;
+  }
+
+  if (url.pathname === "/api/hosted-clawd/saved-artifacts/campaigns" && req.method === "POST") {
+    await handleHostedClawdAction(req, res, "save_campaign_artifact");
+    return;
+  }
+
+  if (url.pathname === "/api/hosted-clawd/checkout" && req.method === "POST") {
+    await handleHostedClawdAction(req, res, "start_checkout");
+    return;
+  }
+
+  if (url.pathname === "/api/hosted-clawd/billing-portal" && req.method === "POST") {
+    await handleHostedClawdAction(req, res, "open_billing_portal");
     return;
   }
 

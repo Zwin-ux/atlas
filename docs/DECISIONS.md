@@ -1,5 +1,33 @@
 # Decisions
 
+## Decision 078: Hosted Clawd can reopen only as a gated scaffold until storage, auth, and money are chosen
+
+The human reopened Hosted Clawd on 2026-07-05 for the ChatGPT app rental path:
+the product should let a business owner host Clawd for a business and preserve
+the work later. The accepted implementation step is a safe scaffold, not live
+Paid Beta.
+
+Allowed now:
+- Hosted Clawd PRD and technical spec.
+- Server service interfaces and HTTP routes.
+- Widget-only Hosted Clawd state in existing map, Scout Drop, Campaign Preview,
+  and upgrade responses.
+- A map-first Hosted Clawd tray showing what would be saved.
+- OFF-by-default feature flags for persistence, money, and public claims.
+
+Still blocked until explicit follow-up choices:
+- Database provider, migrations, auth/account ownership, Stripe Checkout,
+  Billing Portal, webhooks, evidence, XP, weekly reports, exports, and public
+  pricing claims.
+- Any new public MCP tool.
+- Any claim that Alpha saves state or accepts payment.
+
+Reason:
+Hosted Clawd is the right paid product path, but going live without storage,
+auth ownership, idempotency, and webhook-confirmed subscription state would
+turn a promising product idea into a fragile backend. The scaffold makes the
+map-first upgrade path real while preserving the hard gates.
+
 ## Decision 077: Public synthetic generated-district preview is accepted for Engine Beta, with limits
 
 The human accepted the Fable product-submission lane and allowed continuation

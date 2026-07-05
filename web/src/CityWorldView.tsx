@@ -9,8 +9,10 @@ import {
   type VoxelStickerKind,
 } from "@atlas/core/voxel";
 import { CityWorldRenderer, type CityWorldRendererHandle } from "./CityWorldRenderer";
+import { HostedClawdTray } from "./HostedClawdTray";
 import { MapChrome, readRequestedCameraPreset, readRequestedDebugMode } from "./MapChrome";
 import { PreviewPanel } from "./PreviewPanel";
+import type { HostedClawdContext } from "./types";
 
 export type CityWorldViewProps = {
   scene: VoxelScene;
@@ -23,7 +25,13 @@ export type CityWorldViewProps = {
   noteDraft?: string;
   scoutPreview?: ScoutPreviewState | null;
   campaignPreview?: CampaignPreviewState | null;
+  hostedClawdContext?: HostedClawdContext | null;
+  hostedClawdOpen?: boolean;
+  hostedClawdActionMessage?: string | undefined;
   onAdvancePreview?: () => void;
+  onOpenHostedClawd?: () => void;
+  onCloseHostedClawd?: () => void;
+  onHostedClawdPrimaryAction?: () => void;
   onExitGeneratedPreview?: () => void;
   countySwitcher?: ReactNode;
   onSelectPlace: (placeId: string) => void;
@@ -46,7 +54,13 @@ export function CityWorldView({
   noteDraft = "",
   scoutPreview = null,
   campaignPreview = null,
+  hostedClawdContext = null,
+  hostedClawdOpen = false,
+  hostedClawdActionMessage,
   onAdvancePreview,
+  onOpenHostedClawd,
+  onCloseHostedClawd,
+  onHostedClawdPrimaryAction,
   onExitGeneratedPreview,
   countySwitcher,
   onSelectPlace,
@@ -57,6 +71,7 @@ export function CityWorldView({
 }: CityWorldViewProps) {
   const isGeneratedMode = Boolean(generatedScene);
   const hasPreview = !isGeneratedMode && Boolean(scoutPreview || campaignPreview);
+  const hasHostedClawdTray = !isGeneratedMode && hostedClawdOpen && Boolean(hostedClawdContext);
   const rendererRef = useRef<CityWorldRendererHandle | null>(null);
   const cityScene = useMemo<CityWorldScene>(
     () => {
@@ -104,7 +119,7 @@ export function CityWorldView({
 
   return (
     <main
-      className={hasPreview ? "city-world-shell has-preview" : "city-world-shell"}
+      className={hasPreview || hasHostedClawdTray ? "city-world-shell has-preview" : "city-world-shell"}
       data-qa="alpha-city-world"
       data-qa-selected-place={activePlace?.id ?? ""}
       data-qa-pin-count={stickerCount}
@@ -145,7 +160,7 @@ export function CityWorldView({
 
       <MapChrome rendererRef={rendererRef} />
 
-      {!hasPreview && !isGeneratedMode ? (
+      {!hasPreview && !hasHostedClawdTray && !isGeneratedMode ? (
       <div className="city-world-stickers" aria-label="Sticker tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
         {STICKER_ORDER.map((kind) => (
           <button
@@ -176,7 +191,14 @@ export function CityWorldView({
       </div>
       ) : null}
 
-      {hasPreview ? (
+      {hasHostedClawdTray && hostedClawdContext && onCloseHostedClawd && onHostedClawdPrimaryAction ? (
+        <HostedClawdTray
+          context={hostedClawdContext}
+          actionMessage={hostedClawdActionMessage}
+          onClose={onCloseHostedClawd}
+          onPrimaryAction={onHostedClawdPrimaryAction}
+        />
+      ) : hasPreview ? (
         <PreviewPanel scoutPreview={scoutPreview} campaignPreview={campaignPreview} {...(onAdvancePreview ? { onAdvance: onAdvancePreview } : {})} />
       ) : !isGeneratedMode ? (
       <section
@@ -211,6 +233,12 @@ export function CityWorldView({
         <div className="city-world-session-boundary" data-qa="session-only-boundary">
           Pins and notes stay in this chat.
         </div>
+        {hostedClawdContext && onOpenHostedClawd ? (
+          <button type="button" className="city-world-hosted-clawd-open" data-qa="hosted-clawd-open" onClick={onOpenHostedClawd}>
+            Host Clawd
+            <span>{hostedClawdContext.sessionBoundary}</span>
+          </button>
+        ) : null}
         {latestPlaceNote ? (
           <div className="city-world-latest-note" data-qa="latest-note">
             {latestPlaceNote.body}

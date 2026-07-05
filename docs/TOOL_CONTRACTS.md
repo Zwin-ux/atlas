@@ -26,6 +26,8 @@ Rules:
 - Compiles from the curated county pack.
 - Does not expose raw Google or provider payloads.
 - Does not save state.
+- Widget-only `_meta.hostedClawd` may include gated Hosted Clawd context for the
+  map tray. It is not a persisted object and does not add a public tool.
 
 ### ask_county_question
 Use when the user asks a basic Riverside/Eastvale county or business question
@@ -70,6 +72,7 @@ Model-visible output:
 
 Widget-only `_meta`:
 - full `VoxelScene`
+- gated Hosted Clawd context for the map tray
 
 ### lookup_world_places
 Use when the user asks to look up real nearby places or place categories for a location.
@@ -112,6 +115,7 @@ Output:
 Apps SDK shape:
 - `structuredContent` stays concise and excludes the full renderer scene.
 - `_meta.scoutPreview` carries the widget-only scene and report panel data.
+- `_meta.hostedClawd` may describe the gated save path for this Scout Drop.
 
 ### preview_campaign_engine
 Use when user wants a basic campaign preview from a scout report.
@@ -132,6 +136,10 @@ Output:
 - route priorities
 - manual guardrails
 
+Apps SDK shape:
+- `_meta.hostedClawd` may describe the gated save path for this campaign
+  preview.
+
 ### get_upgrade_options
 Use when user asks about hosting Clawd or hits persistence/action limits.
 
@@ -143,6 +151,13 @@ Output:
 - planned Hosted Clawd Beta capabilities
 - unavailable Alpha actions
 - next step
+- `hostedClawd` context describing the current gated Hosted Clawd state
+
+Rules:
+- Does not start checkout, create an account, save campaign state, or grant
+  access.
+- Payment and persistence remain off unless the server gates and adapters are
+  explicitly enabled.
 
 ## Future paid/hosted tools
 

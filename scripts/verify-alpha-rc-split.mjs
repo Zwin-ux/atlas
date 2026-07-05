@@ -10,7 +10,14 @@ const CLASSIFICATIONS = [
   "unknown",
 ];
 
-const RC_MODES = new Set(["functional-alpha", "mira-tray-hardening", "engine-beta-renderer", "engine-beta-data", "provider-boundary"]);
+const RC_MODES = new Set([
+  "functional-alpha",
+  "mira-tray-hardening",
+  "engine-beta-renderer",
+  "engine-beta-data",
+  "provider-boundary",
+  "hosted-clawd-scaffold",
+]);
 
 const SAFE_FUNCTIONAL_RC_DOCS = new Set([
   "docs/ALPHA_COMMAND_CENTER.md",
@@ -177,6 +184,31 @@ const PROVIDER_BOUNDARY_PREFIXES = [
   "packages/geo/test/",
 ];
 
+const HOSTED_CLAWD_SCAFFOLD_FILES = new Set([
+  "artifacts/current-update.json",
+  "AGENTS.md",
+  "docs/BETA_HOSTED_CLAWD_SPEC.md",
+  "docs/HOSTED_CLAWD_PRD.md",
+  "docs/BUILD_LOG.md",
+  "docs/DECISIONS.md",
+  "docs/NEXT_QUESTS.md",
+  "docs/TOOL_CONTRACTS.md",
+  "docs/updates/ATLAS_RELEASE_LADDER.md",
+  "scripts/verify-alpha-rc-split.mjs",
+  "scripts/verify-atlas-source-of-truth-drift.mjs",
+  "scripts/verify-hosted-clawd-scaffold.mjs",
+  "server/src/index.ts",
+  "web/src/App.tsx",
+  "web/src/CityWorldView.tsx",
+  "web/src/HostedClawdTray.tsx",
+  "web/src/styles.css",
+  "web/src/types.ts",
+]);
+
+const HOSTED_CLAWD_SCAFFOLD_PREFIXES = [
+  "server/src/hostedClawd/",
+];
+
 const EXACT_RULES = [
   ["hosted-clawd-parked", ".env.example", "DB and invite-token env placeholders are not part of public Alpha RC."],
   ["hosted-clawd-parked", "package.json", "Hosted Clawd DB scripts/dependencies must stay out of F2 Alpha RC."],
@@ -244,6 +276,9 @@ for the selected RC mode. Use this before staging/deploy claims.
                          server tool guard, and verifier files.
   provider-boundary      Allows only Pre-Alpha 0.1E provider boundary docs,
                          geo package policy files, and focused verifiers.
+  hosted-clawd-scaffold  Allows only the human-reopened Hosted Clawd scaffold
+                         envelope. Persistence, money, and public claims must
+                         still be OFF by default.
 
 The check is conservative. Parked runtime/backend/visual paths, shared docs
 that require hunk review, and unknown paths block a Functional Alpha RC.`);
@@ -385,6 +420,13 @@ function classifyPath(path) {
     };
   }
 
+  if (rcMode === "hosted-clawd-scaffold" && isHostedClawdScaffoldPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named Hosted Clawd scaffold RC mode.",
+    };
+  }
+
   for (const [classification, exactPath, reason] of EXACT_RULES) {
     if (path === exactPath) {
       return { classification, reason };
@@ -438,6 +480,11 @@ function getSelectedRcAllowedPaths(modeName) {
       paths.add(path);
     }
   }
+  if (modeName === "hosted-clawd-scaffold") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+  }
   return paths;
 }
 
@@ -453,6 +500,9 @@ function isSelectedRcAllowedPath(path) {
   }
   if (rcMode === "provider-boundary") {
     return isProviderBoundaryPath(path);
+  }
+  if (rcMode === "hosted-clawd-scaffold") {
+    return isHostedClawdScaffoldPath(path);
   }
   return false;
 }
@@ -476,6 +526,10 @@ function isProviderBoundaryPath(path) {
   return PROVIDER_BOUNDARY_FILES.has(path) || PROVIDER_BOUNDARY_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
+function isHostedClawdScaffoldPath(path) {
+  return HOSTED_CLAWD_SCAFFOLD_FILES.has(path) || HOSTED_CLAWD_SCAFFOLD_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
 function getSelectedRcAllowlistSummary(modeName) {
   const exact = [...selectedRcAllowedPaths];
   if (modeName === "engine-beta-renderer") {
@@ -490,6 +544,9 @@ function getSelectedRcAllowlistSummary(modeName) {
   }
   if (modeName === "provider-boundary") {
     return [...exact, ...PROVIDER_BOUNDARY_PREFIXES.map((prefix) => `${prefix}*`)];
+  }
+  if (modeName === "hosted-clawd-scaffold") {
+    return [...exact, ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`)];
   }
   return exact;
 }
