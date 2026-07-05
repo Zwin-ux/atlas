@@ -1,0 +1,15 @@
+# Keep the Railway upload to build/runtime inputs only. Everything below is
+# docs, screenshots, prompts, or reference art — not needed to build or run the
+# server, and it was bloating the upload enough to time out.
+artifacts/
+docs/
+prompt-pack/
+engineering-prompt-pack/
+prompts/
+experiments/
+assets/reference/
+.reference/
+.codex/
+.gstack/
+.github/
+.claude/
