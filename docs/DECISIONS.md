@@ -1,5 +1,30 @@
 # Decisions
 
+## Decision 078: Clawd is product state, not a map mascot
+
+The Fable visual branch removes the Clawd panda/mascot from rendered map actor
+grammar. Clawd can still exist as product language, session state, and future
+Hosted Clawd service surface, but the city map should earn quality through
+silhouette, terrain, lots, roads, and building grammar.
+
+Reason:
+The mascot prop was drawing attention away from weak map composition. It made
+the scene feel cute but less like a serious county-to-scene engine. Removing it
+forces the renderer to carry identity through massing and material discipline.
+
+Accepted consequence:
+Shell/not-indexed areas can be visibly firmer than flat placeholders, but they
+must remain muted and non-public. The shell grammar may use facets, seams,
+construction marks, and restrained color differences; it must not add public
+place props, people, cars, fake labels, or playable claims.
+
+Still blocked:
+- Public Anaheim/Ontario promotion.
+- Provider-created geometry.
+- New MCP tools.
+- Hosted Clawd, DB persistence, Stripe, OAuth, XP, evidence, automation,
+  reports, or exports.
+
 ## Decision 077: Public synthetic generated-district preview is accepted for Engine Beta, with limits
 
 The human accepted the Fable product-submission lane and allowed continuation

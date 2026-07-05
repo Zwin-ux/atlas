@@ -678,26 +678,6 @@ function drawNodes(
   }
 }
 
-function drawClawd(world: Container, scene: VoxelScene, animated: AnimatedTarget[]) {
-  const node = scene.nodes.find((item) => item.id === scene.clawd.nodeId) ?? scene.nodes.find((item) => item.id === scene.selectedNodeId);
-  if (!node) return;
-  const point = project(scene, node.position);
-  const clawd = new Container();
-  const body = new Graphics()
-    .roundRect(point.x - 24, point.y - 64, 48, 34, 7)
-    .fill({ color: 0xfff8e9 })
-    .stroke({ color: 0x242017, width: 2 })
-    .circle(point.x - 10, point.y - 50, 2.8)
-    .fill({ color: 0x242017 })
-    .circle(point.x + 10, point.y - 50, 2.8)
-    .fill({ color: 0x242017 });
-  const mouth = new Graphics().moveTo(point.x - 8, point.y - 42).lineTo(point.x, point.y - 37).lineTo(point.x + 8, point.y - 42).stroke({ color: 0x242017, width: 2 });
-  const ring = new Graphics().circle(point.x, point.y - 47, 32).stroke({ color: 0x0d8f8a, alpha: 0.55, width: 3 });
-  clawd.addChild(ring, body, mouth, makeLabel(scene.clawd.label, point.x, point.y - 73, 10));
-  if (scene.clawd.pulse) animated.push({ target: ring, mode: "pulse", baseAlpha: 0.7 });
-  world.addChild(clawd);
-}
-
 function drawPhaseStamp(world: Container, scene: VoxelScene, activeStepId: string | undefined) {
   const active = scene.flow.find((step) => step.id === activeStepId) ?? scene.flow.find((step) => step.status === "active");
   if (!active) return;

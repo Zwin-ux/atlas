@@ -32,6 +32,50 @@ pass with design sign-off** — the golden-hour wash, not the ground, now caps t
 north-star score. Human review of `artifacts/0.52e-diorama/` screenshots gates any
 merge/deploy of this branch.
 
+## Branch-local Fable pass (2026-07-05, `fable/0.58e-prop-cleanup`)
+
+Current quest:
+`0.58E Fable Prop Cleanup / Shell Building Firming`.
+
+Player-facing promise:
+The map reads more like a serious voxel county engine and less like a scene
+covered by a cute mascot or placeholder props.
+
+Engineering promise:
+Suppress Clawd actor drawing in the map renderer, remove unused Clawd sprite
+helpers from voxel preview copies, and give shell/not-indexed terrain, roads,
+lots, and buildings a firmer muted grammar without making them public/playable.
+
+Contract:
+- `CityWorldRenderer` may skip `actor.kind === "clawd"` at draw time.
+- Shell grammar may add low-noise material cues and color discipline.
+- Shell grammar may not add fake public places, people, cars, labels, provider
+  geometry, or public readiness claims.
+
+Metric / verifier:
+`node scripts\verify-fable-prop-cleanup.mjs`.
+
+Proof:
+Renderer source has no animated Clawd target path or Eastvale mascot offset;
+legacy `drawClawd` helpers are gone from the web/widget voxel preview copies;
+shell terrain/road/lot/building grammar has explicit functions and palettes.
+
+Anti-scope:
+No MCP tool changes, Hosted Clawd, Stripe, DB, OAuth, persistence, XP, evidence,
+automation, reports, exports, provider geometry, dashboard shell, public
+Anaheim/Ontario promotion, or new decorative clutter.
+
+Stop condition:
+Stop after focused verifier, typecheck, core tests, web build, and desktop/mobile
+preview proof pass. Do not merge this branch into the Hosted Clawd scaffold
+branch without an explicit integration decision.
+
+Source-of-truth note:
+`artifacts/current-update.json` intentionally remains on the parked 0.45E
+owner-gate manifest in this branch. This Fable pass is a branch-local visual
+slice, not a promotion of Anaheim/Ontario and not a replacement for the owner
+gate ladder.
+
 ## Current phase
 
 Fable takeover status:

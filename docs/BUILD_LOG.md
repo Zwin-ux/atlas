@@ -1,5 +1,34 @@
 # Build Log
 
+## Entry 193
+
+Quest:
+`0.58E Fable Prop Cleanup / Shell Building Firming`.
+
+What changed:
+- `web/src/CityWorldRenderer.tsx` now suppresses `actor.kind === "clawd"` before
+  drawing map actors. The app can still talk about Clawd as product state, but
+  the city map no longer uses a panda/mascot prop to carry weak composition.
+- Shell terrain, shell lots, shell roads, and shell buildings now have a more
+  explicit muted material grammar: shell palettes, contact seams, small facets,
+  road ribs, lot construction marks, and shell-specific building colors.
+- Removed the unused legacy `drawClawd` helper from both
+  `web/src/PixiVoxelSceneView.tsx` and `apps/widget/src/PixiVoxelSceneView.tsx`.
+- Added `scripts/verify-fable-prop-cleanup.mjs` so the branch has a focused
+  guard for no map mascot and explicit shell grammar.
+
+Anti-scope:
+- No MCP tool changes.
+- No Hosted Clawd, Stripe, DB, OAuth, persistence, XP, evidence, automation,
+  reports, exports, provider geometry, or public Anaheim/Ontario promotion.
+- No cars, people, panels, glows, or extra labels to hide art weakness.
+
+Verification:
+- `node scripts\verify-fable-prop-cleanup.mjs` is the focused gate for this
+  branch-local Fable pass.
+- Broader typecheck/build/browser proof should run before merging this visual
+  branch.
+
 ## Entry 192
 
 Quest:
