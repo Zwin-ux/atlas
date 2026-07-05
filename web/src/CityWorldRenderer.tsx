@@ -2416,6 +2416,11 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
   sprite.label = `sprite-${building.id}`;
   layer.addChild(sprite);
 
+  if (home) {
+    drawHomeStoop(layer, geometry, building, flip);
+    drawHomeRoofAccent(layer, geometry, building, flip, variant);
+  }
+
   if (selected || hovered) {
     const ring = new Graphics()
       .ellipse(bottom.x, bottom.y + footprintDepth * 0.34, geometry.footprintWidth * 0.52, footprintDepth * 0.62)
@@ -2492,6 +2497,64 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
     awningUnderside.stroke({ color: shadeColor(roofColor, -38), alpha: 0.34, width: 2.2, cap: "round", join: "round" });
     layer.addChild(apron, bayGrounding, awningUnderside);
   }
+}
+
+// 0.53E Hero Silhouette (item A finish) — tiny deterministic roof accents so
+// pitched homes stop reading as one repeated model: every gable/hip home gets a
+// ridge shadow line, and by hash a third get a chimney fleck, a third a front
+// dormer, a third stay quiet. Whisper-small on purpose — at overview zoom they
+// read as variety, not detail. Follows the same per-home mirror as the sprite.
+function drawHomeRoofAccent(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, flip: number, variant: number) {
+  const roofShape = building.roofShape ?? "flat";
+  if (roofShape !== "gable" && roofShape !== "hip") return;
+  const { top, footprintWidth, footprintDepth, roofColor, bodyColor } = geometry;
+
+  const ridge = new Graphics()
+    .moveTo(top.x - flip * footprintWidth * 0.22, top.y - footprintDepth * 0.08)
+    .lineTo(top.x + flip * footprintWidth * 0.18, top.y + footprintDepth * 0.08);
+  ridge.stroke({ color: shadeColor(roofColor, -34), alpha: 0.3, width: 1.1, cap: "round" });
+  layer.addChild(ridge);
+
+  if (variant % 3 === 0) {
+    const cx = top.x + flip * footprintWidth * 0.16;
+    const cy = top.y + footprintDepth * 0.04;
+    const chimney = new Graphics()
+      .rect(cx - 1.2, cy - 5, 2.4, 5)
+      .fill({ color: sunlitColor(shadeColor(bodyColor, -18), "sun"), alpha: 0.88 })
+      .rect(cx - 1.6, cy - 6, 3.2, 1.2)
+      .fill({ color: mixColor(shadeColor(roofColor, 34), SUN_WARM_TINT, 0.25), alpha: 0.88 });
+    layer.addChild(chimney);
+  } else if (variant % 3 === 1 && building.facadeStyle !== "cottage") {
+    // cottages already carry an authored dormer — no double-stamping
+    const dx = top.x - flip * footprintWidth * 0.09;
+    const dy = top.y + footprintDepth * 0.2;
+    const dormer = new Graphics()
+      .rect(dx - 2.1, dy - 2.4, 4.2, 3.2)
+      .fill({ color: sunlitColor(bodyColor, "sun"), alpha: 0.82 })
+      .poly([dx - 2.7, dy - 2.4, dx, dy - 4.2, dx + 2.7, dy - 2.4], true)
+      .fill({ color: sunlitColor(roofColor, "top"), alpha: 0.88 });
+    layer.addChild(dormer);
+  }
+}
+
+// 0.53E Hero Silhouette (item A finish) — a front entry stoop: a small warm pad
+// at the facade base plus a short walk stub toward the street, mirrored with
+// the house. Grounds each home with an authored entrance; rowhomes keep their
+// existing per-bay stoops so this skips them.
+function drawHomeStoop(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, flip: number) {
+  if (building.facadeStyle === "rowhome") return;
+  const { bottom, footprintWidth, footprintDepth, trimColor } = geometry;
+  const px = bottom.x + flip * footprintWidth * 0.12;
+  const py = bottom.y + footprintDepth * 0.3;
+  const pad = new Graphics()
+    .roundRect(px - footprintWidth * 0.05, py - 1.6, footprintWidth * 0.1, 3.4, 1.2)
+    .fill({ color: 0xf2d8a6, alpha: 0.58 })
+    .stroke({ color: trimColor, alpha: 0.16, width: 0.8 });
+  const walk = new Graphics()
+    .moveTo(px, py + 1.4)
+    .lineTo(px + flip * footprintWidth * 0.04, py + footprintDepth * 0.15);
+  walk.stroke({ color: 0xe8d0a3, alpha: 0.46, width: 2, cap: "round" });
+  layer.addChild(pad, walk);
 }
 
 function drawSpriteObjectAuthorshipBase(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -3959,6 +4022,14 @@ function drawHomeDetails(layer: Container, geometry: BuildingGeometry, building:
     units.stroke({ color: trimColor, alpha: 0.24, width: 1 });
     layer.addChild(parapet, units);
   }
+
+  // 0.53E item A finish — the shell path is where most homes actually render
+  // (only rowhomes have sprite art), so the hash-keyed roof accent + entry
+  // stoop live here too. Same objectVariant key as the sprite path.
+  const accentVariant = objectVariant(building.id, 97);
+  const accentFlip = accentVariant % 2 === 0 ? -1 : 1;
+  drawHomeStoop(layer, geometry, building, accentFlip);
+  drawHomeRoofAccent(layer, geometry, building, accentFlip, accentVariant);
 }
 
 function drawResidentialAuthorshipVariation(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, style: CityWorldBuilding["facadeStyle"]) {
