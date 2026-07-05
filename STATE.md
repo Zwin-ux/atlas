@@ -30,14 +30,36 @@ to origin — nothing was discarded.
 
 ## High Priority
 
-0. **NEXT Fable super-move LOADED: "The Hero Silhouette" pass (0.53E).**
-   - Spec: `docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md`.
-   - Branch off `fable/0.52e-diorama-engine` → `fable/0.53e-hero-silhouette`.
-   - Goal: buildings read as authored architecture (silhouette variety +
-     material legibility + finished light model), pushing north-star ~7 → ≥8.
-     Ground is solved; this makes the *subject* worthy. Strictly inside
-     invariants (no props/deps/3D/deploy; palette-cohesion + 0.52E contact
-     grammar intact). Status: prompt loaded, **not yet run.**
+-1. **COMPLETE: "Decal Discipline" pass (0.55E) — `fable/0.55e-decal-discipline`.**
+   - Landed 2026-07-05 (`2a1815f` civic, `d8011c1` residential+commerce) —
+     BUILD_LOG **Entry 085**. Per-surface decal ownership per family; the
+     civic wall wash (7 stacked generations) is gone at the source. All
+     verifiers green (89/89, product-loop, rc-split, mcp-flow).
+   - 0.54E (grade contrast + Apps SDK tool discovery) landed on
+     `fable/0.54e-grade-contrast` (`43e560c`, `0e32a45`) — Entry 084.
+   - Branch stack awaiting the human gate: 0.53E → 0.54E → 0.55E (each
+     bisectable). **NEXT Fable-class passes queued** (spec:
+     `DECAL_DISCIPLINE_SUPERPASS.md` tail): 0.56E label/marker layout,
+     0.57E generated-district parity. Owner directive: primary audience is
+     the ChatGPT app; spend Fable on big hard engine work first.
+
+0. **COMPLETE: "The Hero Silhouette" pass (0.53E) — `fable/0.53e-hero-silhouette`.**
+   - Finish run executed 2026-07-05 (Fable, isolated worktree). Items A-finish →
+     E all landed, bisectable: `9bf1a94` (home roof accents + stoops, sprite AND
+     shell paths), `e0a8b46` (roof material families one notch apart), `762450c`
+     (Eastvale Core tiered landmark + legacy roof-decal fog retired), `8bbaa5e`
+     (roof light finish). Full record: BUILD_LOG **Entry 083**.
+   - Verified: typecheck/build/test (89/89) green; product-loop `ok: true`
+     desktop+mobile, zero console errors; rc-split 0/0; screenshots (light+dark,
+     desktop 1280x720 + mobile 390x844) in `artifacts/0.53e-hero/final-*.png`.
+   - **Self-rating vs north star: desktop 8/10, mobile 7.9/10.** Named plateau:
+     marker/label band sits on the hero crown zone (marker system, not building
+     draw); golden-hour grade wash is now the biggest remaining gap (0.54E,
+     design-gated).
+   - **AWAITING HUMAN GATE:** review screenshots + /10, then merge to release
+     line + redeploy as a post-launch update. Production stays live on `main`
+     until then. Ops note: `pnpm dev` caches the inlined bundle at process start
+     — every visual iteration needs `build:web` + server RESTART.
 
 1. **"The Diorama Engine" pass: RUN (2026-07-04, `fable/0.52e-diorama-engine`).**
    - Spec: `docs/design/fable-prompts/DIORAMA_ENGINE_SUPERPASS.md`. Result:

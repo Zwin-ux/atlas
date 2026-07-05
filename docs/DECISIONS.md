@@ -1,6 +1,6 @@
 # Decisions
 
-## Decision 078: Hosted Clawd can reopen only as a gated scaffold until storage, auth, and money are chosen
+## Decision 079: Hosted Clawd can reopen only as a gated scaffold until storage, auth, and money are chosen
 
 The human reopened Hosted Clawd on 2026-07-05 for the ChatGPT app rental path:
 the product should let a business owner host Clawd for a business and preserve
@@ -27,6 +27,31 @@ Hosted Clawd is the right paid product path, but going live without storage,
 auth ownership, idempotency, and webhook-confirmed subscription state would
 turn a promising product idea into a fragile backend. The scaffold makes the
 map-first upgrade path real while preserving the hard gates.
+
+## Decision 078: Clawd is product state, not a map mascot
+
+The Fable visual branch removes the Clawd panda/mascot from rendered map actor
+grammar. Clawd can still exist as product language, session state, and future
+Hosted Clawd service surface, but the city map should earn quality through
+silhouette, terrain, lots, roads, and building grammar.
+
+Reason:
+The mascot prop was drawing attention away from weak map composition. It made
+the scene feel cute but less like a serious county-to-scene engine. Removing it
+forces the renderer to carry identity through massing and material discipline.
+
+Accepted consequence:
+Shell/not-indexed areas can be visibly firmer than flat placeholders, but they
+must remain muted and non-public. The shell grammar may use facets, seams,
+construction marks, and restrained color differences; it must not add public
+place props, people, cars, fake labels, or playable claims.
+
+Still blocked:
+- Public Anaheim/Ontario promotion.
+- Provider-created geometry.
+- New MCP tools.
+- Hosted Clawd, DB persistence, Stripe, OAuth, XP, evidence, automation,
+  reports, or exports.
 
 ## Decision 077: Public synthetic generated-district preview is accepted for Engine Beta, with limits
 

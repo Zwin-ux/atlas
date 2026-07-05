@@ -1,6 +1,6 @@
 # Build Log
 
-## Entry 193
+## Entry 194
 
 Quest:
 0.58H Hosted Clawd rental scaffold.
@@ -33,6 +33,35 @@ Verification:
 - `node scripts\verify-hosted-clawd-scaffold.mjs` passed.
 - `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-scaffold --json-only`
   passed with 0 blockers.
+
+## Entry 193
+
+Quest:
+`0.58E Fable Prop Cleanup / Shell Building Firming`.
+
+What changed:
+- `web/src/CityWorldRenderer.tsx` now suppresses `actor.kind === "clawd"` before
+  drawing map actors. The app can still talk about Clawd as product state, but
+  the city map no longer uses a panda/mascot prop to carry weak composition.
+- Shell terrain, shell lots, shell roads, and shell buildings now have a more
+  explicit muted material grammar: shell palettes, contact seams, small facets,
+  road ribs, lot construction marks, and shell-specific building colors.
+- Removed the unused legacy `drawClawd` helper from both
+  `web/src/PixiVoxelSceneView.tsx` and `apps/widget/src/PixiVoxelSceneView.tsx`.
+- Added `scripts/verify-fable-prop-cleanup.mjs` so the branch has a focused
+  guard for no map mascot and explicit shell grammar.
+
+Anti-scope:
+- No MCP tool changes.
+- No Hosted Clawd, Stripe, DB, OAuth, persistence, XP, evidence, automation,
+  reports, exports, provider geometry, or public Anaheim/Ontario promotion.
+- No cars, people, panels, glows, or extra labels to hide art weakness.
+
+Verification:
+- `node scripts\verify-fable-prop-cleanup.mjs` is the focused gate for this
+  branch-local Fable pass.
+- Broader typecheck/build/browser proof should run before merging this visual
+  branch.
 
 ## Entry 192
 
@@ -7904,3 +7933,150 @@ grade/contrast tuning pass with design sign-off, not more ground work.
 
 Skipped:
 No new deps, assets, props, or modules; no persistence/Stripe/OAuth/XP; no deploy.
+
+## Entry 083
+
+**0.53E "Hero Silhouette" — finish run (items A-finish → E), 2026-07-05, Fable.**
+Branch `fable/0.53e-hero-silhouette`, commits `9bf1a94..8bbaa5e` + docs. Executed
+in the isolated worktree per the launch doc; the stray agent holding :8787 was
+killed first. All work renderer-side in `web/src/CityWorldRenderer.tsx`, driven
+by the existing typed grammar — zero compiler/type/dep changes.
+
+- **A-finish — residential accents (`9bf1a94`).** `drawHomeRoofAccent`: every
+  gable/hip home gets a hash-keyed ridge line; a third get a chimney fleck, a
+  third a dormer (skipped on cottages, which have an authored one), a third stay
+  quiet. `drawHomeStoop`: warm entry pad + walk stub, mirrored per home. Wired
+  into BOTH sprite and shell paths — audit found only rowhomes/strip stores have
+  sprite art, so all pitched homes render via `drawHomeDetails` (shell).
+- **B — roof material separation (`e0a8b46`).** Clay tile = stronger tint +
+  eave-parallel courses (warm, coursed). Metal = cool panel field + crisper
+  standing seams + long specular (smooth, cool). Civic glass = wider glazed
+  field + mullion cross + bright specular. Flat parapet = recessed membrane
+  deck INSIDE the parapet line replacing the old bright cap ring (one surface,
+  not two decals).
+- **C — Eastvale Core landmark (`762450c`).** Root cause of the flat hero read:
+  FIVE legacy civic functions each floated a pale cap/lantern/crown/shoulder
+  decal over the same roof plane and averaged into fog. New
+  `hasHeroTieredCrown` gate (typed off `civicGeometry.focusTarget`) stands them
+  down when the tiered crown owns the roof. Crown is now two-step, front-offset,
+  sized to the open window between the label band and the roofline, with
+  saturated caps. Entry gains plinth apron + lit canopy slab + posts. The big
+  "milky box" west of the entry was diagnosed as the 0.52E civic plinth TERRAIN
+  massing (intentional contact grammar) — left intact.
+- **D — roof light finish (`8bbaa5e`).** `sunlitColor("top")` 1.18→1.22 with
+  warmer tint; every roof plane gains a whisper directional split (warm sun
+  half / cool fall half) + stronger sun rim and shade fall. Roof slice only —
+  NOT the 0.54E whole-canvas grade.
+
+Execution note for future passes: `pnpm dev` inlines `web/dist/component.js`
+into the preview HTML ONCE at process start (`builtWidgetCache`). Every visual
+iteration requires `build:web` AND a server restart — a reload is not enough.
+Screenshot A/B pixel-diffing caught this (item A initially "rendered" as a
+no-op because the served bundle was stale).
+
+Verification (all green):
+- `pnpm typecheck:starter`, `pnpm build:web`, `pnpm test:core` (89/89).
+- `verify-alpha-product-loop.mjs` → `ok: true` desktop 1280x720 + mobile
+  390x844, zero console errors, no horizontal overflow.
+- `verify-alpha-rc-split.mjs` → 0 blockers / 0 unknowns. `git diff --check` clean.
+- Screenshots (light+dark, desktop+mobile) in `artifacts/0.53e-hero/`
+  (`final-*.png`), plus per-item before/afters. Shells untouched/honest.
+- Payload: `component.js` 957.5kb raw (+5.1kb vs pass start — vector code only).
+
+Honest visual delta and self-rating vs `atlas-voxel-town-north-star.png`:
+Residential no longer reads cloned (mirror+jitter+tint from the first half of
+the pass, now finished with per-home roof accents + stoops); commerce/civic
+roofs are material-typed at a glance; Eastvale Core finally reads as a stepped
+landmark instead of a fogged box; roofs sit in the same key light as the walls.
+**Desktop 8/10. Mobile 7.9/10.** Named plateau on mobile: the place marker +
+label band sit ON the hero's crown zone (marker system anchors to the ground
+point), and at 390px the home accents drop below legibility — both are
+marker/UI-layer constraints, not building-draw constraints. Next funded moves:
+(1) the 0.54E design-gated grade/contrast pass (the golden-hour wash is now the
+single biggest gap to the north star), (2) a label/marker layout pass that
+lifts labels off landmark crowns.
+
+Skipped (invariants held): no props, no new deps/assets, no 3D/PBR, no compiler
+or type changes, no deploy, Anaheim/Ontario hidden, shells honest, palette
+registry + diagnostics + ~95 draw fns + 0.52E contact grammar intact.
+
+## Entry 084
+
+**0.54E service-engine slice — grade contrast + Apps SDK tool discovery,
+2026-07-05, Fable.** Branch `fable/0.54e-grade-contrast` (`43e560c`, `0e32a45`).
+Owner steer captured this session: **the primary audience is the ChatGPT app**
+— engine work is judged on the MCP widget surface (panel-sized viewports,
+tool-driven scene states, mcp-flow/submission verifiers), not standalone
+/preview.
+
+- **Grade contrast (`43e560c`).** Highlight rolloff in the golden-hour post
+  pass (luma 0.68+ → 0.87x), S-curve 0.38→0.46, saturation trim 0.90→0.96.
+  Near-blown pixels 13.3%→11.9% (desktop frame incl. UI cards); material
+  families visibly separate at 390x844. Verified: Riverside light+dark,
+  Orange shell stays honestly empty.
+- **MCP tool metadata (`0e32a45`).** All 7 tool descriptions rewritten in the
+  Apps SDK "Use this when..." discovery form (select_county vs
+  render_voxel_county disambiguated, campaign→scout call-order dependency
+  stated, honesty boundaries kept as negative-prompt guards). Missing
+  .describe() added on render_voxel_county params. Contract-safe: names,
+  schemas, annotations unchanged; verify-submission + verify-mcp-flow ok:true.
+
+All green: 89/89 tests, product-loop ok desktop+mobile, rc-split 0/0.
+Honest finding: the grade gain is incremental because most of the remaining
+wash lives in STACKED TRANSLUCENT DECALS across the ~95 draw functions (0.53E
+item C proved 5 generations of roof decals on one building; walls have the
+same disease). That systemic fix is the next pass: 0.55E Decal Discipline
+(`docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md`).
+
+## Entry 085
+
+**0.55E "Decal Discipline" — per-surface decal ownership, 2026-07-05, Fable.**
+Branch `fable/0.55e-decal-discipline` (`2a1815f` civic, `d8011c1`
+residential+commerce). Spec: `docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md`.
+The systemic fix for the milky wash the 0.54E grade could only dent: the same
+building surface was receiving translucent decals from up to SEVEN generations
+of draw functions (civic facade: ~38 pale bars, 3 canopies, ~9 base pads).
+
+Ownership model landed (retire duplicate PALE FILLS, keep dark strokes):
+- **Civic:** object-kit read owns facade rhythm + entry canopy + plinth;
+  drawCivicDetails stands down its plinth pad, canopy, and alpha-0.95 column
+  bars on kit landmarks (non-kit civic keeps the full legacy read);
+  facadeBeats, wingRhythm, pilasters, baseTerrace, duplicate canopies,
+  plinth-edge strokes, and the Eastvale entryAxis pad are retired; the roof
+  hierarchy cap/inset/shoulders now respect the hero crown (a decal item C
+  missed).
+- **Residential:** kit-rhythm threshold pad, side block, and white wall-rib
+  fills retired (HomeDetails porches + drawHomeStoop own entries;
+  material-band sills + style windows own windows; sideWing owns the side
+  mass); public silhouette retires its duplicate porch + windowRhythm bars.
+- **Commerce:** authored-rhythm white/cyan bay bars retired (kit read owns
+  storefront bays); sprite strip stores no longer double their apron.
+
+Verification: typecheck + build:web green; test:core 89/89; product-loop
+ok:true desktop+mobile, zero console errors; rc-split 0/0; mcp-flow ok:true;
+git diff --check clean. Evidence: `artifacts/0.55e-decal/` (civic-after vs
+0.53E itemC-before shows the wall wash gone; homes/plaza clips intact).
+Net -92 lines of draw code; all ~95 draw fns survive with real jobs.
+
+Remaining queued (spec doc): 0.56E label/marker layout (lift labels off
+landmark crowns), 0.57E generated-district parity (service-engine bar).
+
+## Entry 086
+
+**0.56E label layout — labels clear the architecture, 2026-07-05, Fable.**
+Branch `fable/0.56e-label-layout` (`4532a68`, stacked on 0.55E). Place labels
+sat at a fixed -44px ground offset that landed exactly on landmark crowns —
+the plateau named in Entry 083. `placeCrownLiftMap` now lifts each label above
+the tallest structure anchored to its place (roof + crown allowance: 52px hero
+tiered crown / 30px tower / 14px default, clamped 104px), legacy offset for
+building-less places. Eastvale Core, Plaza Row, and Gym labels float clear of
+their silhouettes on desktop AND 390x844. The 0.53E hero crown is now fully
+visible in the default frame for the first time. Verified: 89/89, product-loop
+ok desktop+mobile, rc-split 0/0, git diff --check clean.
+
+Session arc (one Fable run, 2026-07-05): 0.53E finish (A-E) → 0.54E grade +
+Apps SDK tool discovery → 0.55E decal discipline → 0.56E label layout. Each
+pass on its own branch, all verifier-green, all awaiting the single human
+gate. Next queued Fable-class engine work: **0.57E generated-district parity**
+(parametric districts must hit the curated bar — the service-engine milestone;
+see DECAL_DISCIPLINE_SUPERPASS.md tail).

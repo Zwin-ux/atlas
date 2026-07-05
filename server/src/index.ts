@@ -1668,7 +1668,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Lookup world places",
       description:
-        "Resolve a location and return nearby places normalized into Atlas-owned place categories. This is read-only and may use Google Maps Platform when configured.",
+        "Use this when the user asks what places are near a real-world location, in any county. Read-only lookup normalized into Atlas place categories; may use Google Maps Platform when configured. Results are not saved and are not coverage proof — this never unlocks a playable map.",
       inputSchema: {
         query: z.string().min(1).describe("Location query, such as Eastvale, CA."),
         radiusMeters: z
@@ -1712,7 +1712,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Select county",
       description:
-        "Select a California county coverage contract. Riverside returns the playable Eastvale scene; shell counties return honest coverage state only.",
+        "Use this when the user asks to open Atlas or switch to a California county. Riverside returns the playable Eastvale voxel city map in the widget; any other county returns its honest browse-only coverage state. Not for refreshing an already-open map — use render_voxel_county for that.",
       inputSchema: {
         countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca and shells indexed California counties."),
       },
@@ -1778,7 +1778,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Ask county question",
       description:
-        "Answer a small set of Riverside/Eastvale county and business questions from the curated Atlas Alpha pack only. Closed-world and read-only.",
+        "Use this when the user asks a factual Riverside/Eastvale county or local-business question. Answers come only from the curated Atlas Alpha pack — closed-world and read-only; unsupported questions are refused rather than guessed.",
       inputSchema: {
         question: z.string().min(1).describe("County or business question to answer from curated Atlas data."),
         countySlug: z.string().optional().describe("County slug. Alpha supports riverside-ca."),
@@ -1820,10 +1820,11 @@ function createAtlasServer(): McpServer {
     "render_voxel_county",
     {
       title: "Render voxel county",
-      description: "Render the Riverside County voxel city map, or return honest coverage state for non-playable counties.",
+      description:
+        "Use this when the user asks to refresh, re-render, or focus the county map that is already open. Renders the Riverside/Eastvale playable scene in the widget, or honest coverage state for non-playable counties. To open Atlas or switch counties, use select_county instead.",
       inputSchema: {
-        countySlug: z.string().optional(),
-        selectedNodeId: z.string().optional(),
+        countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca; other slugs return honest coverage shells."),
+        selectedNodeId: z.string().optional().describe("Atlas node id to focus, such as eastvale."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -1890,7 +1891,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Scout Drop",
       description:
-        "Drop Clawd into a Riverside node and return a temporary Scout Drop preview with route, signals, risks, channels, and next actions. Alpha is curated demo data only.",
+        "Use this when the user asks to drop Clawd, scout a location, or find where to launch a local offer. Returns a temporary Scout Drop preview (route, signals, risks, channels, next actions) rendered on the map. Alpha is curated Riverside demo data only; nothing is saved, posted, or executed.",
       inputSchema: {
         countySlug: z.string().optional().describe("County slug. Alpha supports riverside-ca."),
         nodeId: z.string().optional().describe("Atlas node id, such as eastvale."),
@@ -1948,7 +1949,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Campaign Engine",
       description:
-        "Create a manual 7-day campaign preview from an existing Atlas Scout Drop. Requires the scoutPreviewId returned by preview_scout_drop. Alpha does not post, DM, buy ads, persist state, or perform live campaign execution.",
+        "Use this when the user wants a 7-day manual campaign plan for an existing Atlas Scout Drop. Requires the scoutPreviewId returned by preview_scout_drop — call that tool first if no Scout Drop exists. Session-only: Alpha does not post, DM, buy ads, persist state, or perform live campaign execution.",
       inputSchema: {
         scoutPreviewId: z.string().describe("Scout Drop id returned by preview_scout_drop."),
         countySlug: z.string().optional().describe("County slug from the Scout Drop. Alpha supports riverside-ca."),
@@ -2012,7 +2013,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Get Hosted Clawd options",
       description:
-        "Explain the free Alpha limits and planned Hosted Clawd Beta persistence options. Does not start checkout, create an account, post, message, buy ads, or save campaign state.",
+        "Use this when the user asks to save or persist their work, track evidence, or asks about pricing or Hosted Clawd. Explains the free Alpha limits and planned Hosted Clawd Beta options. Informational only — it does not start checkout, create an account, post, message, buy ads, or save campaign state.",
       inputSchema: {
         trigger: z
           .enum(["save_scout_drop", "save_campaign", "track_evidence", "pricing", "general"])

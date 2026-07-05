@@ -64,7 +64,7 @@ type CameraState = {
 
 type AnimatedTarget = {
   target: Container | Graphics;
-  kind: "car" | "walker" | "water" | "cloud" | "pulse" | "clawd";
+  kind: "car" | "walker" | "water" | "cloud" | "pulse";
   path: CityWorldPoint[];
   speed: number;
   phase: number;
@@ -134,6 +134,14 @@ const DRAFT_TERRAIN_COLORS = {
   sidewalk: 0xc6bd92,
 } satisfies Record<CityWorldTerrainTile["kind"], number>;
 
+const SHELL_TERRAIN_COLORS = {
+  grass: 0xaeb699,
+  park: 0x9dac86,
+  plaza: 0xc9c2a8,
+  water: 0x8bb5bd,
+  sidewalk: 0xbfc1ad,
+} satisfies Record<CityWorldTerrainTile["kind"], number>;
+
 const LOT_COLORS = {
   home: 0xbdcd90,
   shop: 0xe0cba2,
@@ -152,6 +160,16 @@ const DRAFT_LOT_COLORS = {
   apartments: 0xd2bd9d,
   civic: 0xdecca4,
   waterfront: 0x97c6ca,
+} satisfies Record<CityWorldLot["kind"], number>;
+
+const SHELL_LOT_COLORS = {
+  home: 0xb8bea4,
+  shop: 0xcac1a4,
+  park: 0x9fad86,
+  gym: 0xb8c1bf,
+  apartments: 0xc3bba7,
+  civic: 0xc8c0aa,
+  waterfront: 0x9dbdc2,
 } satisfies Record<CityWorldLot["kind"], number>;
 
 const PARKED_CAR_COLORS = [0xc65a4e, 0x4a7ba4, 0x63a06e, 0xdcc57a, 0xa96687];
@@ -198,7 +216,7 @@ function resolveLotContact(lot: CityWorldLot): CityWorldLotContactGrammar {
 const TERRAIN_SEAM_TONE_STYLE: Record<CityWorldGroundTone, { seamAlpha: number; lipAlpha: number; strandAlpha: number; wetAlpha: number }> = {
   public: { seamAlpha: 0.3, lipAlpha: 0.2, strandAlpha: 0.42, wetAlpha: 0.3 },
   draft: { seamAlpha: 0.14, lipAlpha: 0.09, strandAlpha: 0.2, wetAlpha: 0.14 },
-  shell: { seamAlpha: 0.05, lipAlpha: 0, strandAlpha: 0, wetAlpha: 0 },
+  shell: { seamAlpha: 0.18, lipAlpha: 0.09, strandAlpha: 0.12, wetAlpha: 0.08 },
 };
 
 const LOT_CURB_CUT_STYLE = {
@@ -285,11 +303,20 @@ void main(void)
 
     // S-curve for form contrast — firmer than before so directional wall
     // shading survives the grade instead of washing to a matte pastel.
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.38);
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.46);
 
-    // Slight saturation trim keeps the palette calm.
+    // 0.54E — highlight rolloff. Sunlit stucco and lit roofs ride near-white
+    // luma and used to blow out into one paper tone; compressing the top of
+    // the range keeps their form (rims, material fields, tint spreads)
+    // legible while the scene still reads sunlit. This is the single biggest
+    // wash fix and applies to every scene the engine serves.
     float luma = dot(c, vec3(0.299, 0.587, 0.114));
-    c = mix(vec3(luma), c, 0.9);
+    c *= mix(1.0, 0.87, smoothstep(0.68, 1.0, luma));
+
+    // Gentler saturation trim: calm SoCal palette, but material identity
+    // (clay vs metal vs glass, per-home tint spread) survives the grade.
+    luma = dot(c, vec3(0.299, 0.587, 0.114));
+    c = mix(vec3(luma), c, 0.96);
 
     // Golden-hour split tone: warm sunlit highlights, cool shadows.
     vec3 warm = vec3(1.055, 1.005, 0.915);
@@ -668,7 +695,11 @@ function drawScene(
   for (const place of orderedSceneItems(renderCommands, "place_marker", scene.places)) drawPlaceMarker(layers.markerLayer, place, selectedPlaceId, hoverPlaceId, onSelectPlace, onHoverPlace, animated);
   for (const pin of orderedSceneItems(renderCommands, "pin", scene.pins)) drawPin(layers.markerLayer, pin, atlas);
   if (includeLabels) {
-    for (const place of orderedSceneItems(renderCommands, "place_label", scene.places)) drawPlaceLabel(layers.labelLayer, place, selectedPlaceId, hoverPlaceId);
+    // 0.56E — labels clear the architecture: each place's label lifts above
+    // the tallest structure anchored to it (plus crown allowance), instead of
+    // sitting at a fixed ground offset that erased landmark crowns.
+    const crownLift = placeCrownLiftMap(scene.buildings);
+    for (const place of orderedSceneItems(renderCommands, "place_label", scene.places)) drawPlaceLabel(layers.labelLayer, place, selectedPlaceId, hoverPlaceId, crownLift.get(place.id));
   }
   if (debugMode === "engine") drawEngineDebugOverlay(layers.hudBridgeLayer, scene);
   return sceneWindow.frame;
@@ -835,7 +866,8 @@ function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
   const point = project(tile.position);
   const contact = resolveTerrainContact(tile);
   const draftTile = contact.tone === "draft";
-  const baseColor = draftTile ? DRAFT_TERRAIN_COLORS[tile.kind] : TERRAIN_COLORS[tile.kind];
+  const shellTile = contact.tone === "shell";
+  const baseColor = shellTile ? SHELL_TERRAIN_COLORS[tile.kind] : draftTile ? DRAFT_TERRAIN_COLORS[tile.kind] : TERRAIN_COLORS[tile.kind];
   // Deterministic tonal variation: two low-frequency waves plus a whisper of
   // per-tile hash so the ground reads as planted terrain, not a flat board —
   // and not a checkerboard. Calm range only.
@@ -848,10 +880,13 @@ function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
   const variation = (tile.variant - 2) * (tile.kind === "water" ? 2.4 : tile.kind === "grass" ? 1.2 : 1.8) + (lowFrequencyTone + hashTone) * toneScale;
   // Ground sits a half-step below the sunlit rooftops so built forms read
   // bright against the terrain instead of blending into it.
-  const color = mixColor(scaleColor(shadeColor(baseColor, variation), 0.98), SUN_WARM_TINT, 0.07);
-  const alpha = draftTile ? (tile.kind === "grass" ? 0.84 : 0.92) : tile.kind === "water" ? 0.97 : tile.kind === "grass" ? 0.92 : 0.94;
-  const strokeAlpha = draftTile ? (tile.kind === "grass" ? 0.018 : 0.1) : tile.kind === "grass" ? 0.026 : tile.kind === "water" ? 0.18 : 0.12;
-  const graphic = polygon(diamondPoints(point, TILE_WIDTH + 1, TILE_HEIGHT + 1), color, alpha, tile.kind === "water" ? 0x3a8ea1 : draftTile ? 0x7a8a58 : 0x6d824f, strokeAlpha);
+  const color = shellTile
+    ? mixColor(scaleColor(shadeColor(baseColor, variation * 0.35), 0.96), 0xe0dec4, 0.16)
+    : mixColor(scaleColor(shadeColor(baseColor, variation), 0.98), SUN_WARM_TINT, 0.07);
+  const alpha = shellTile ? (tile.kind === "grass" ? 0.86 : 0.9) : draftTile ? (tile.kind === "grass" ? 0.84 : 0.92) : tile.kind === "water" ? 0.97 : tile.kind === "grass" ? 0.92 : 0.94;
+  const strokeAlpha = shellTile ? (tile.kind === "grass" ? 0.1 : 0.14) : draftTile ? (tile.kind === "grass" ? 0.018 : 0.1) : tile.kind === "grass" ? 0.026 : tile.kind === "water" ? 0.18 : 0.12;
+  const strokeColor = tile.kind === "water" ? 0x3a8ea1 : shellTile ? 0x747965 : draftTile ? 0x7a8a58 : 0x6d824f;
+  const graphic = polygon(diamondPoints(point, TILE_WIDTH + 1, TILE_HEIGHT + 1), color, alpha, strokeColor, strokeAlpha);
   drawTerrainChunkMassing(layer, tile, point, color);
   drawTerrainElevationEdges(layer, tile, point, color);
 
@@ -884,6 +919,7 @@ function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
   drawTerrainParcelComposition(graphic, tile, point);
   drawTerrainContactSeams(graphic, tile, point, contact, color);
   if (draftTile) drawDraftTerrainFacet(graphic, tile, point);
+  if (shellTile) drawShellTerrainFacet(graphic, tile, point);
   layer.addChild(graphic);
 }
 
@@ -1357,6 +1393,24 @@ function drawDraftTerrainFacet(graphic: Graphics, tile: CityWorldTerrainTile, po
   }
 }
 
+function drawShellTerrainFacet(graphic: Graphics, tile: CityWorldTerrainTile, point: ProjectedPoint) {
+  const hash = Math.abs((tile.position.x * 19 + tile.position.y * 29 + tile.variant * 7) % 17);
+
+  if (hash % 3 === 0) {
+    graphic
+      .moveTo(point.x - TILE_WIDTH * 0.28, point.y - TILE_HEIGHT * 0.04)
+      .lineTo(point.x, point.y + TILE_HEIGHT * 0.12)
+      .lineTo(point.x + TILE_WIDTH * 0.28, point.y - TILE_HEIGHT * 0.04)
+      .stroke({ color: 0xf1ead2, alpha: 0.15, width: 1, cap: "round", join: "round" });
+  }
+
+  if (tile.kind === "grass" && hash === 4) {
+    graphic
+      .poly([point.x - 12, point.y, point.x - 2, point.y - 5, point.x + 12, point.y, point.x + 2, point.y + 5], true)
+      .fill({ color: 0xd5dcc1, alpha: 0.11 });
+  }
+}
+
 function drawRoadNetwork(layer: Container, roads: CityWorldRoadSegment[]) {
   const physicalRoads = roads.filter((road) => resolveRoadContact(road).profile !== "painted");
   for (const road of physicalRoads) drawRoadSegmentModule(layer, road);
@@ -1377,14 +1431,15 @@ function drawRoadSegmentModule(layer: Container, road: CityWorldRoadSegment) {
   const baseWidth = road.width * 15.2;
   const contact = resolveRoadContact(road);
   const draftRoad = contact.tone === "draft";
+  const shellRoad = contact.tone === "shell";
   const apron = contact.profile === "apron";
   const cap = apron ? "round" : "butt";
   const shadow = new Graphics().moveTo(start.x, start.y + 7).lineTo(end.x, end.y + 7);
-  shadow.stroke({ color: 0x263a34, alpha: draftRoad ? 0.2 : 0.16, width: baseWidth + (draftRoad ? 15 : 13), cap, join: "round" });
+  shadow.stroke({ color: 0x263a34, alpha: shellRoad ? 0.18 : draftRoad ? 0.2 : 0.16, width: baseWidth + (draftRoad || shellRoad ? 15 : 13), cap, join: "round" });
   const sideFace = new Graphics().moveTo(start.x, start.y + 4).lineTo(end.x, end.y + 4);
   sideFace.stroke({
-    color: draftRoad ? (apron ? 0x8b846d : 0x4d554d) : apron ? 0x7c806f : 0x46514c,
-    alpha: draftRoad ? (apron ? 0.44 : 0.56) : apron ? 0.34 : 0.48,
+    color: shellRoad ? (apron ? 0x8d8c7d : 0x59615d) : draftRoad ? (apron ? 0x8b846d : 0x4d554d) : apron ? 0x7c806f : 0x46514c,
+    alpha: shellRoad ? (apron ? 0.48 : 0.62) : draftRoad ? (apron ? 0.44 : 0.56) : apron ? 0.34 : 0.48,
     width: baseWidth + 8,
     cap,
     join: "round",
@@ -1392,24 +1447,24 @@ function drawRoadSegmentModule(layer: Container, road: CityWorldRoadSegment) {
 
   const curb = new Graphics().moveTo(start.x, start.y).lineTo(end.x, end.y);
   curb.stroke({
-    color: draftRoad ? (apron ? 0xc4b182 : 0xd8c28b) : apron ? 0xc1ae88 : 0xd6c996,
-    alpha: draftRoad ? (apron ? 0.58 : 0.82) : apron ? 0.48 : 0.78,
+    color: shellRoad ? (apron ? 0xc9c0a4 : 0xd4ceb2) : draftRoad ? (apron ? 0xc4b182 : 0xd8c28b) : apron ? 0xc1ae88 : 0xd6c996,
+    alpha: shellRoad ? (apron ? 0.58 : 0.76) : draftRoad ? (apron ? 0.58 : 0.82) : apron ? 0.48 : 0.78,
     width: baseWidth + 7,
     cap,
     join: "round",
   });
   const bed = new Graphics().moveTo(start.x, start.y + 1).lineTo(end.x, end.y + 1);
   bed.stroke({
-    color: draftRoad ? (apron ? 0x8e8c7d : 0x555e58) : apron ? 0x858b7e : 0x58635f,
-    alpha: apron ? 0.82 : 0.98,
+    color: shellRoad ? (apron ? 0x8f9185 : 0x646c67) : draftRoad ? (apron ? 0x8e8c7d : 0x555e58) : apron ? 0x858b7e : 0x58635f,
+    alpha: shellRoad ? (apron ? 0.76 : 0.88) : apron ? 0.82 : 0.98,
     width: baseWidth + 1,
     cap,
     join: "round",
   });
   const surface = new Graphics().moveTo(start.x, start.y - 1).lineTo(end.x, end.y - 1);
   surface.stroke({
-    color: draftRoad ? (apron ? 0xa09c87 : 0x697069) : apron ? 0x969b8b : 0x68736d,
-    alpha: draftRoad ? (apron ? 0.62 : 0.82) : apron ? 0.58 : 0.78,
+    color: shellRoad ? (apron ? 0xaaa58e : 0x7c8278) : draftRoad ? (apron ? 0xa09c87 : 0x697069) : apron ? 0x969b8b : 0x68736d,
+    alpha: shellRoad ? (apron ? 0.62 : 0.76) : draftRoad ? (apron ? 0.62 : 0.82) : apron ? 0.58 : 0.78,
     width: Math.max(4, baseWidth - 6),
     cap,
     join: "round",
@@ -1418,15 +1473,47 @@ function drawRoadSegmentModule(layer: Container, road: CityWorldRoadSegment) {
   drawRoadEdgeBevels(layer, start, end, baseWidth, apron);
   drawRoadModuleSeams(layer, start, end, baseWidth, apron);
   if (draftRoad) drawDraftRoadMaterial(layer, start, end, baseWidth, contact);
+  else if (shellRoad) drawShellRoadMaterial(layer, start, end, baseWidth, contact);
   else drawPublicRoadMaterial(layer, start, end, baseWidth, contact);
 
   if (contact.laneMarking === "avenue_dash") {
-    drawDashedLine(layer, start, end, 9, 12, draftRoad ? 0xe9d59c : 0xf3e3a4, 1.45, draftRoad ? 0.28 : 0.38);
+    drawDashedLine(layer, start, end, 9, 12, shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.45, shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
   } else if (contact.laneMarking === "street_dash") {
-    drawDashedLine(layer, start, end, 6, 10, draftRoad ? 0xe9d59c : 0xf3e3a4, 1.1, draftRoad ? 0.28 : 0.38);
+    drawDashedLine(layer, start, end, 6, 10, shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.1, shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
   } else if (contact.laneMarking === "apron_dash") {
     drawDashedLine(layer, start, end, 4, 12, 0xe8dfbd, 0.9, 0.18);
   }
+}
+
+function drawShellRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (length <= 0 || contact.profile === "painted") return;
+
+  const ux = dx / length;
+  const uy = dy / length;
+  const nx = -dy / length;
+  const ny = dx / length;
+  const edgeInset = roadWidth * 0.45;
+  const blueprint = new Graphics()
+    .moveTo(start.x + nx * edgeInset, start.y + ny * edgeInset - 1)
+    .lineTo(end.x + nx * edgeInset, end.y + ny * edgeInset - 1)
+    .moveTo(start.x - nx * edgeInset, start.y - ny * edgeInset + 2)
+    .lineTo(end.x - nx * edgeInset, end.y - ny * edgeInset + 2);
+  blueprint.stroke({ color: 0xf1ead2, alpha: 0.16, width: 1.2, cap: "butt" });
+
+  const step = contact.profile === "apron" ? 34 : 44;
+  const ribs = new Graphics();
+  for (let cursor = step * 0.65; cursor < length - step * 0.35; cursor += step) {
+    const centerX = start.x + ux * cursor;
+    const centerY = start.y + uy * cursor;
+    ribs
+      .moveTo(centerX - nx * roadWidth * 0.22 - ux * 3, centerY - ny * roadWidth * 0.22 - uy * 3)
+      .lineTo(centerX + nx * roadWidth * 0.22 + ux * 3, centerY + ny * roadWidth * 0.22 + uy * 3);
+  }
+  ribs.stroke({ color: 0x3f4945, alpha: 0.1, width: 1, cap: "round" });
+  layer.addChild(blueprint, ribs);
 }
 
 function drawDraftRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
@@ -1781,11 +1868,17 @@ function drawLot(layer: Container, lot: CityWorldLot) {
   const height = lot.depth * TILE_HEIGHT;
   const lotContact = resolveLotContact(lot);
   const draftLot = lotContact.tone === "draft";
+  const shellLot = lotContact.tone === "shell";
+  const mutedLot = draftLot || shellLot;
   const quietPad = lotContact.profile === "foundation";
-  const color = draftLot ? DRAFT_LOT_COLORS[lot.kind] : LOT_COLORS[lot.kind];
-  const lotAlpha = draftLot ? (quietPad ? 0.58 : 0.6) : lotContact.profile === "shore" ? 0.34 : quietPad ? 0.5 : 0.52;
+  const color = shellLot ? SHELL_LOT_COLORS[lot.kind] : draftLot ? DRAFT_LOT_COLORS[lot.kind] : LOT_COLORS[lot.kind];
+  const lotAlpha = shellLot ? (quietPad ? 0.56 : 0.62) : draftLot ? (quietPad ? 0.58 : 0.6) : lotContact.profile === "shore" ? 0.34 : quietPad ? 0.5 : 0.52;
   const lotContactProfile = lot.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
-  const contactAlpha = draftLot
+  const contactAlpha = shellLot
+    ? lotContact.profile === "green"
+      ? 0.12
+      : 0.16
+    : draftLot
     ? lotContact.profile === "green"
       ? 0.1
       : 0.18
@@ -1798,10 +1891,10 @@ function drawLot(layer: Container, lot: CityWorldLot) {
           : 0.13;
   const contactSpread = lotContactProfile === "landmark_base_shadow" ? 1.1 : lotContactProfile === "soft_ground_shadow" ? 1.12 : 1.04;
   const contact = polygon(diamondPoints({ x: point.x, y: point.y + 6 }, width * contactSpread, height * (contactSpread + 0.04)), 0x23342e, contactAlpha, 0x23342e, 0);
-  if (!draftLot && lotContactProfile === "landmark_base_shadow") {
+  if (!mutedLot && lotContactProfile === "landmark_base_shadow") {
     layer.addChild(polygon(diamondPoints({ x: point.x, y: point.y + 8 }, width * 0.86, height * 0.8), 0x1d2a24, 0.09, 0x1d2a24, 0));
   }
-  const lotGraphic = polygon(diamondPoints(point, width, height), color, lotAlpha, draftLot ? 0x7f6d4e : 0x28473f, draftLot ? 0.14 : quietPad ? 0.1 : 0.18);
+  const lotGraphic = polygon(diamondPoints(point, width, height), color, lotAlpha, shellLot ? 0x747965 : draftLot ? 0x7f6d4e : 0x28473f, shellLot ? 0.16 : draftLot ? 0.14 : quietPad ? 0.1 : 0.18);
   const lowerLip = new Graphics()
     .moveTo(point.x - width * 0.5, point.y)
     .lineTo(point.x, point.y + height * 0.5)
@@ -1810,16 +1903,21 @@ function drawLot(layer: Container, lot: CityWorldLot) {
     .lineTo(point.x, point.y + height * 0.5 + 6)
     .lineTo(point.x - width * 0.5, point.y + 4)
     .closePath()
-    .fill({ color: shadeColor(color, -28), alpha: draftLot ? 0.3 : quietPad ? 0.18 : 0.24 });
-  const innerBevel = polygon(diamondPoints(point, width * 0.88, height * 0.82), shadeColor(color, draftLot ? 7 : 10), draftLot ? 0.13 : quietPad ? 0.09 : 0.12, 0xffffff, 0);
+    .fill({ color: shadeColor(color, -28), alpha: shellLot ? 0.24 : draftLot ? 0.3 : quietPad ? 0.18 : 0.24 });
+  const innerBevel = polygon(diamondPoints(point, width * 0.88, height * 0.82), shadeColor(color, mutedLot ? 7 : 10), shellLot ? 0.14 : draftLot ? 0.13 : quietPad ? 0.09 : 0.12, 0xffffff, 0);
   layer.addChild(contact, lotGraphic, lowerLip, innerBevel);
-  drawParcelElevationShelf(layer, point, width, height, lot, color, draftLot);
-  drawLotWorldComposition(layer, point, width, height, lot, color, draftLot);
-  drawLotEdgeBlockwork(layer, point, width, height, lotContact, draftLot);
+  drawParcelElevationShelf(layer, point, width, height, lot, color, mutedLot);
+  drawLotWorldComposition(layer, point, width, height, lot, color, mutedLot);
+  drawLotEdgeBlockwork(layer, point, width, height, lotContact, mutedLot);
   drawParcelEdgeTicks(layer, point, width, height, lotContact);
   drawParcelCompositionDetails(layer, point, width, height, lot);
   drawLotCurbCut(layer, lotContact, point, width, height);
   if (draftLot) drawDraftLotMaterial(layer, point, width, height, lot.kind);
+  if (shellLot) drawShellLotMaterial(layer, point, width, height, lot.kind);
+
+  if (shellLot) {
+    return;
+  }
 
   if (lot.kind === "park") {
     const path = new Graphics()
@@ -1852,6 +1950,28 @@ function drawLot(layer: Container, lot: CityWorldLot) {
     edge.stroke({ color: 0xe9fbff, alpha: 0.42, width: 3, cap: "round", join: "round" });
     layer.addChild(edge);
   }
+}
+
+function drawShellLotMaterial(layer: Container, point: ProjectedPoint, width: number, height: number, kind: CityWorldLot["kind"]) {
+  if (kind === "park" || kind === "waterfront") return;
+
+  const edge = new Graphics()
+    .moveTo(point.x - width * 0.4, point.y + height * 0.1)
+    .lineTo(point.x - width * 0.16, point.y + height * 0.23)
+    .lineTo(point.x + width * 0.08, point.y + height * 0.1)
+    .moveTo(point.x + width * 0.4, point.y + height * 0.08)
+    .lineTo(point.x + width * 0.16, point.y + height * 0.22)
+    .lineTo(point.x - width * 0.06, point.y + height * 0.1);
+  edge.stroke({ color: 0x6f7565, alpha: kind === "civic" ? 0.22 : 0.18, width: 1.15, cap: "round", join: "round" });
+
+  const facet = polygon(
+    diamondPoints({ x: point.x + width * 0.08, y: point.y - height * 0.08 }, width * 0.3, height * 0.18),
+    0xd4d0b8,
+    0.14,
+    0xffffff,
+    0,
+  );
+  layer.addChild(facet, edge);
 }
 
 function drawLotWorldComposition(layer: Container, point: ProjectedPoint, width: number, height: number, lot: CityWorldLot, color: number, draftLot: boolean) {
@@ -2341,17 +2461,18 @@ function createBuildingGeometry(building: CityWorldBuilding, selected: boolean, 
   const top = project({ x: building.position.x, y: building.position.y, z: building.height });
   const asset = atlas.resolveAsset(building.spriteKey, building.paletteKey, "building");
   const useAuthoredDraftColors = isDraftBuilding(building);
+  const useShellColors = isShellBuilding(building);
   return {
     bottom,
     top,
     footprintWidth: building.width * TILE_WIDTH,
     footprintDepth: building.depth * TILE_HEIGHT,
     height: building.height * TILE_DEPTH,
-    bodyColor: useAuthoredDraftColors ? colorToNumber(building.bodyColor ?? asset.palette.colors.base) : paletteColor(asset.palette.colors.base, building.bodyColor),
-    roofColor: useAuthoredDraftColors ? colorToNumber(building.roofColor ?? asset.palette.colors.roof ?? "#8c9b75") : paletteColor(asset.palette.colors.roof, building.roofColor),
-    highlightColor: useAuthoredDraftColors ? 0xf8e8ca : paletteColor(asset.palette.colors.highlight, "#fff4d8"),
-    accentColor: useAuthoredDraftColors ? 0x5f8f8a : paletteColor(asset.palette.colors.accent, asset.palette.colors.roof ?? "#ffcf56"),
-    trimColor: useAuthoredDraftColors ? 0x5f5547 : paletteColor(asset.palette.colors.trim, "#26332c"),
+    bodyColor: useShellColors ? 0xb9bca2 : useAuthoredDraftColors ? colorToNumber(building.bodyColor ?? asset.palette.colors.base) : paletteColor(asset.palette.colors.base, building.bodyColor),
+    roofColor: useShellColors ? 0x9ca58d : useAuthoredDraftColors ? colorToNumber(building.roofColor ?? asset.palette.colors.roof ?? "#8c9b75") : paletteColor(asset.palette.colors.roof, building.roofColor),
+    highlightColor: useShellColors ? 0xe4dec6 : useAuthoredDraftColors ? 0xf8e8ca : paletteColor(asset.palette.colors.highlight, "#fff4d8"),
+    accentColor: useShellColors ? 0x80928c : useAuthoredDraftColors ? 0x5f8f8a : paletteColor(asset.palette.colors.accent, asset.palette.colors.roof ?? "#ffcf56"),
+    trimColor: useShellColors ? 0x5f665b : useAuthoredDraftColors ? 0x5f5547 : paletteColor(asset.palette.colors.trim, "#26332c"),
     outline: selected ? 0xffffff : hovered ? 0xffee88 : 0x26332c,
     activeStrokeAlpha: hovered || selected ? 0.82 : 0.38,
     asset,
@@ -2360,6 +2481,10 @@ function createBuildingGeometry(building: CityWorldBuilding, selected: boolean, 
 
 function isDraftBuilding(building: CityWorldBuilding) {
   return building.id.startsWith("draft-building-");
+}
+
+function isShellBuilding(building: CityWorldBuilding) {
+  return building.id.startsWith("shell-building-");
 }
 
 function isObjectKitCommerceStrip(building: CityWorldBuilding) {
@@ -2390,15 +2515,43 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
 
   const sprite = new Sprite(asset.texture);
   sprite.anchor.set(asset.anchor.x, asset.anchor.y);
-  sprite.scale.set(asset.scale);
+  // 0.53E Hero Silhouette (item A) — deterministic per-home variety kills the
+  // clone read without new art: hash-based horizontal mirror + gentle scale
+  // jitter break the "one model repeated" row, all keyed on the building id so
+  // it is stable across frames. Homes only; commerce sprites stay uniform.
+  const home = building.kind === "home";
+  const variant = objectVariant(building.id, 97);
+  const flip = home && variant % 2 === 0 ? -1 : 1;
+  const jitter = home ? 0.95 + (variant % 11) / 100 : 1; // 0.95–1.05
+  // 0.57E generated-district parity — sprites must FIT the building footprint
+  // they stand on. Curated Riverside footprints match the authored art
+  // (ratio ~1, unchanged); parametric districts author arbitrary widths, and
+  // a fixed-scale sprite there read as a toy box floating on its apron. The
+  // fit is clamped so damaged ratios can never balloon or vanish a sprite.
+  const displayWidth = asset.texture.width * asset.scale;
+  const footprintFit = displayWidth > 0 ? clamp(geometry.footprintWidth / displayWidth, 0.72, 1.45) : 1;
+  sprite.scale.set(asset.scale * footprintFit * jitter * flip, asset.scale * footprintFit * jitter);
   sprite.position.set(Math.round(bottom.x), Math.round(bottom.y + footprintDepth * 0.5));
   // Honor the building's assigned palette-variant ramp on screen: gently wash
   // the textured sprite toward its resolved body color so sprite-mode buildings
   // (rowhomes, strip stores) read the same variant identity the diagnostics key
   // on. Kept subtle (mixed toward white) so authored SVG art is preserved.
-  sprite.tint = mixColor(0xffffff, geometry.bodyColor, 0.3);
+  // For homes, spread the wash factor + a whisper of warm/cool per house so no
+  // two neighbours read identical — still the resolved palette, never raw color.
+  let homeTint = geometry.bodyColor;
+  if (home) {
+    const warmCool = (variant % 3) - 1;
+    if (warmCool > 0) homeTint = mixColor(homeTint, SUN_WARM_TINT, 0.07);
+    else if (warmCool < 0) homeTint = mixColor(homeTint, SUN_COOL_TINT, 0.06);
+  }
+  sprite.tint = mixColor(0xffffff, homeTint, home ? 0.24 + (variant % 7) * 0.026 : 0.3);
   sprite.label = `sprite-${building.id}`;
   layer.addChild(sprite);
+
+  if (home) {
+    drawHomeStoop(layer, geometry, building, flip);
+    drawHomeRoofAccent(layer, geometry, building, flip, variant);
+  }
 
   if (selected || hovered) {
     const ring = new Graphics()
@@ -2455,13 +2608,17 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
   }
 
   if (style === "strip_store" || building.kind === "shop") {
-    const apron = polygon(
-      diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.43 }, footprintWidth * 0.88, footprintDepth * 0.18),
-      0xe8d0a3,
-      0.44,
-      0x7f6d4e,
-      0.14,
-    );
+    // 0.55E — kit commerce strips get their apron from the object-kit read
+    // (sharedStorefrontApron); drawing a second one here doubled the pad.
+    const apron = isObjectKitCommerceStrip(building)
+      ? null
+      : polygon(
+          diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.43 }, footprintWidth * 0.88, footprintDepth * 0.18),
+          0xe8d0a3,
+          0.44,
+          0x7f6d4e,
+          0.14,
+        );
     const bayGrounding = new Graphics();
     for (let bay = -1; bay <= 1; bay += 1) {
       bayGrounding
@@ -2474,8 +2631,67 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
       .lineTo(top.x + footprintWidth * 0.17, bottom.y - footprintDepth * 0.18)
       .lineTo(top.x + footprintWidth * 0.4, bottom.y - footprintDepth * 0.05);
     awningUnderside.stroke({ color: shadeColor(roofColor, -38), alpha: 0.34, width: 2.2, cap: "round", join: "round" });
-    layer.addChild(apron, bayGrounding, awningUnderside);
+    if (apron) layer.addChild(apron);
+    layer.addChild(bayGrounding, awningUnderside);
   }
+}
+
+// 0.53E Hero Silhouette (item A finish) — tiny deterministic roof accents so
+// pitched homes stop reading as one repeated model: every gable/hip home gets a
+// ridge shadow line, and by hash a third get a chimney fleck, a third a front
+// dormer, a third stay quiet. Whisper-small on purpose — at overview zoom they
+// read as variety, not detail. Follows the same per-home mirror as the sprite.
+function drawHomeRoofAccent(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, flip: number, variant: number) {
+  const roofShape = building.roofShape ?? "flat";
+  if (roofShape !== "gable" && roofShape !== "hip") return;
+  const { top, footprintWidth, footprintDepth, roofColor, bodyColor } = geometry;
+
+  const ridge = new Graphics()
+    .moveTo(top.x - flip * footprintWidth * 0.22, top.y - footprintDepth * 0.08)
+    .lineTo(top.x + flip * footprintWidth * 0.18, top.y + footprintDepth * 0.08);
+  ridge.stroke({ color: shadeColor(roofColor, -34), alpha: 0.3, width: 1.1, cap: "round" });
+  layer.addChild(ridge);
+
+  if (variant % 3 === 0) {
+    const cx = top.x + flip * footprintWidth * 0.16;
+    const cy = top.y + footprintDepth * 0.04;
+    const chimney = new Graphics()
+      .rect(cx - 1.2, cy - 5, 2.4, 5)
+      .fill({ color: sunlitColor(shadeColor(bodyColor, -18), "sun"), alpha: 0.88 })
+      .rect(cx - 1.6, cy - 6, 3.2, 1.2)
+      .fill({ color: mixColor(shadeColor(roofColor, 34), SUN_WARM_TINT, 0.25), alpha: 0.88 });
+    layer.addChild(chimney);
+  } else if (variant % 3 === 1 && building.facadeStyle !== "cottage") {
+    // cottages already carry an authored dormer — no double-stamping
+    const dx = top.x - flip * footprintWidth * 0.09;
+    const dy = top.y + footprintDepth * 0.2;
+    const dormer = new Graphics()
+      .rect(dx - 2.1, dy - 2.4, 4.2, 3.2)
+      .fill({ color: sunlitColor(bodyColor, "sun"), alpha: 0.82 })
+      .poly([dx - 2.7, dy - 2.4, dx, dy - 4.2, dx + 2.7, dy - 2.4], true)
+      .fill({ color: sunlitColor(roofColor, "top"), alpha: 0.88 });
+    layer.addChild(dormer);
+  }
+}
+
+// 0.53E Hero Silhouette (item A finish) — a front entry stoop: a small warm pad
+// at the facade base plus a short walk stub toward the street, mirrored with
+// the house. Grounds each home with an authored entrance; rowhomes keep their
+// existing per-bay stoops so this skips them.
+function drawHomeStoop(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, flip: number) {
+  if (building.facadeStyle === "rowhome") return;
+  const { bottom, footprintWidth, footprintDepth, trimColor } = geometry;
+  const px = bottom.x + flip * footprintWidth * 0.12;
+  const py = bottom.y + footprintDepth * 0.3;
+  const pad = new Graphics()
+    .roundRect(px - footprintWidth * 0.05, py - 1.6, footprintWidth * 0.1, 3.4, 1.2)
+    .fill({ color: 0xf2d8a6, alpha: 0.58 })
+    .stroke({ color: trimColor, alpha: 0.16, width: 0.8 });
+  const walk = new Graphics()
+    .moveTo(px, py + 1.4)
+    .lineTo(px + flip * footprintWidth * 0.04, py + footprintDepth * 0.15);
+  walk.stroke({ color: 0xe8d0a3, alpha: 0.46, width: 2, cap: "round" });
+  layer.addChild(pad, walk);
 }
 
 function drawSpriteObjectAuthorshipBase(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -2519,7 +2735,7 @@ function drawObjectAuthorshipDetails(layer: Container, geometry: BuildingGeometr
   if (!family) return;
   if (family === "residential_kit") drawAuthoredResidentialKitRhythm(layer, geometry, building);
   if (family === "commerce_strip") drawAuthoredCommerceStripRhythm(layer, geometry, building);
-  if (family === "civic_landmark") drawAuthoredCivicLandmarkMass(layer, geometry);
+  if (family === "civic_landmark") drawAuthoredCivicLandmarkMass(layer, geometry, building);
   if (family === "lowrise_cluster") drawAuthoredLowriseClusterRhythm(layer, geometry);
   if (family === "service_block") drawAuthoredServiceBlockRhythm(layer, geometry);
   if (!isDraftBuilding(building)) drawPublicRiversideObjectAuthorshipPass(layer, geometry, building, family);
@@ -2535,31 +2751,20 @@ function drawPublicRiversideObjectAuthorshipPass(layer: Container, geometry: Bui
 }
 
 function drawPublicCivicLandmarkObjectKit(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  drawPublicCivicLandmarkSilhouette(layer, geometry);
+  drawPublicCivicLandmarkSilhouette(layer, geometry, building);
   drawCivicLandmarkBaseHierarchy(layer, geometry);
-  drawCivicLandmarkRoofHierarchy(layer, geometry);
+  drawCivicLandmarkRoofHierarchy(layer, geometry, building);
   drawCivicLandmarkFacadeHierarchy(layer, geometry);
   if (building.id === "building-civic") drawEastvaleCorePublicCivicSignature(layer, geometry);
 }
 
-function drawPublicCivicLandmarkSilhouette(layer: Container, geometry: BuildingGeometry) {
-  const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor } = geometry;
-  const plinthEdge = new Graphics()
-    .moveTo(bottom.x - footprintWidth * 0.46, bottom.y + footprintDepth * 0.42)
-    .lineTo(bottom.x - footprintWidth * 0.12, bottom.y + footprintDepth * 0.58)
-    .lineTo(bottom.x + footprintWidth * 0.24, bottom.y + footprintDepth * 0.42)
-    .moveTo(bottom.x + footprintWidth * 0.46, bottom.y + footprintDepth * 0.4)
-    .lineTo(bottom.x + footprintWidth * 0.12, bottom.y + footprintDepth * 0.58)
-    .lineTo(bottom.x - footprintWidth * 0.22, bottom.y + footprintDepth * 0.42);
-  plinthEdge.stroke({ color: 0x7f6d4e, alpha: 0.26, width: 1.6, cap: "round", join: "round" });
-
-  const entryCanopy = polygon(
-    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.06 }, footprintWidth * 0.32, footprintDepth * 0.13),
-    0xb7dceb,
-    0.34,
-    trimColor,
-    0.1,
-  );
+// 0.55E decal discipline — the object-kit read owns the entry canopy and
+// facade rhythm for this exact population (both run only on civic_landmark
+// kit buildings), so this generation's duplicate canopy + pilaster bars and
+// plinth-edge strokes (stairCuts in the base hierarchy do that job) are
+// retired. The silhouette fn keeps the non-hero roof crown.
+function drawPublicCivicLandmarkSilhouette(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const { top, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
   const roofCrown = polygon(
     diamondPoints({ x: top.x - footprintWidth * 0.02, y: top.y - footprintDepth * 0.42 }, footprintWidth * 0.5, footprintDepth * 0.17),
     shadeColor(roofColor, 22),
@@ -2567,14 +2772,7 @@ function drawPublicCivicLandmarkSilhouette(layer: Container, geometry: BuildingG
     trimColor,
     0.12,
   );
-  const civicPilasters = new Graphics();
-  for (let bay = -2; bay <= 2; bay += 1) {
-    civicPilasters
-      .roundRect(top.x + bay * (footprintWidth * 0.12) - 2.5, bottom.y - footprintDepth * 0.42, 5, 23, 1.5)
-      .fill({ color: bay === 0 ? 0xd7f0f3 : highlightColor, alpha: bay === 0 ? 0.56 : 0.34 });
-  }
-  civicPilasters.stroke({ color: trimColor, alpha: 0.1, width: 0.8 });
-  layer.addChild(plinthEdge, entryCanopy, roofCrown, civicPilasters);
+  if (!hasHeroTieredCrown(building)) layer.addChild(roofCrown);
 }
 
 function drawCivicLandmarkBaseHierarchy(layer: Container, geometry: BuildingGeometry) {
@@ -2604,7 +2802,10 @@ function drawCivicLandmarkBaseHierarchy(layer: Container, geometry: BuildingGeom
   layer.addChild(baseShadow, forecourt, stairCuts);
 }
 
-function drawCivicLandmarkRoofHierarchy(layer: Container, geometry: BuildingGeometry) {
+function drawCivicLandmarkRoofHierarchy(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  // 0.55E — the hero's tiered crown owns its roof; this generation's floating
+  // cap + inset + shoulder strokes only draw for non-hero kit landmarks.
+  if (hasHeroTieredCrown(building)) return;
   const { top, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
   const civicCap = polygon(
     diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.36 }, footprintWidth * 0.42, footprintDepth * 0.22),
@@ -2632,38 +2833,27 @@ function drawCivicLandmarkRoofHierarchy(layer: Container, geometry: BuildingGeom
   layer.addChild(civicCap, capInset, shoulderLines);
 }
 
+// 0.55E — wingRhythm retired: the object-kit read's entry bays own the facade
+// bar rhythm. The center glass column (unique atrium read) and the warm entry
+// axis stroke stay.
 function drawCivicLandmarkFacadeHierarchy(layer: Container, geometry: BuildingGeometry) {
-  const { top, bottom, footprintWidth, footprintDepth, highlightColor, trimColor } = geometry;
+  const { top, bottom, footprintWidth, footprintDepth, trimColor } = geometry;
   const centerGlass = new Graphics()
     .roundRect(top.x - footprintWidth * 0.08, bottom.y - footprintDepth * 0.34, footprintWidth * 0.16, 26, 3)
     .fill({ color: 0xb7dceb, alpha: 0.38 })
     .stroke({ color: trimColor, alpha: 0.12, width: 0.9 });
-  const wingRhythm = new Graphics();
-  for (let bay = -3; bay <= 3; bay += 1) {
-    if (bay === 0) continue;
-    const bayAlpha = Math.abs(bay) === 1 ? 0.36 : 0.24;
-    wingRhythm
-      .roundRect(top.x + bay * (footprintWidth * 0.1) - 3, bottom.y - footprintDepth * 0.22, 6, 17, 1.4)
-      .fill({ color: highlightColor, alpha: bayAlpha });
-  }
-  wingRhythm.stroke({ color: trimColor, alpha: 0.1, width: 0.8 });
   const entryAxis = new Graphics()
     .moveTo(top.x - footprintWidth * 0.18, bottom.y - footprintDepth * 0.08)
     .lineTo(top.x, bottom.y + footprintDepth * 0.02)
     .lineTo(top.x + footprintWidth * 0.2, bottom.y - footprintDepth * 0.08);
   entryAxis.stroke({ color: 0xfff1cc, alpha: 0.42, width: 2, cap: "round", join: "round" });
-  layer.addChild(centerGlass, wingRhythm, entryAxis);
+  layer.addChild(centerGlass, entryAxis);
 }
 
 function drawEastvaleCorePublicCivicSignature(layer: Container, geometry: BuildingGeometry) {
   const { top, bottom, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
-  const eastvaleCap = polygon(
-    diamondPoints({ x: top.x + footprintWidth * 0.02, y: top.y - footprintDepth * 0.56 }, footprintWidth * 0.2, footprintDepth * 0.15),
-    shadeColor(roofColor, 42),
-    0.5,
-    trimColor,
-    0.18,
-  );
+  // (item C) the floating eastvaleCap decal is retired — the tiered crown in
+  // drawTieredMassing is the hero's roof signature now.
   const civicAxis = new Graphics()
     .moveTo(top.x, top.y - footprintDepth * 0.48)
     .lineTo(top.x, bottom.y + footprintDepth * 0.34)
@@ -2671,11 +2861,11 @@ function drawEastvaleCorePublicCivicSignature(layer: Container, geometry: Buildi
     .lineTo(top.x, bottom.y + footprintDepth * 0.28)
     .lineTo(top.x + footprintWidth * 0.32, bottom.y + footprintDepth * 0.1);
   civicAxis.stroke({ color: 0xe9f8ff, alpha: 0.28, width: 1.8, cap: "round", join: "round" });
-  layer.addChild(eastvaleCap, civicAxis);
+  layer.addChild(civicAxis);
 }
 
 function drawPublicResidentialSilhouette(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor, highlightColor, trimColor } = geometry;
+  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor, trimColor } = geometry;
   const style = building.facadeStyle ?? "suburban";
   const sideWingX = style === "ranch" ? bottom.x + footprintWidth * 0.22 : bottom.x - footprintWidth * 0.22;
   const sideWing = polygon(
@@ -2685,29 +2875,16 @@ function drawPublicResidentialSilhouette(layer: Container, geometry: BuildingGeo
     trimColor,
     0.05,
   );
-  const porch = polygon(
-    diamondPoints({ x: style === "ranch" ? bottom.x + footprintWidth * 0.1 : bottom.x - footprintWidth * 0.12, y: bottom.y + footprintDepth * 0.28 }, footprintWidth * 0.16, footprintDepth * 0.1),
-    0xe6c48f,
-    0.26,
-    0x7f6d4e,
-    0.12,
-  );
+  // 0.55E decal discipline — porch pad retired (drawHomeDetails porches +
+  // drawHomeStoop own entries) and the white windowRhythm bars retired
+  // (material-band sills + style windows own the window read). The fn keeps
+  // its unique jobs: the side-wing massing and the dark roof-break stroke.
   const roofBreak = new Graphics()
     .moveTo(top.x - footprintWidth * 0.36, top.y - footprintDepth * 0.08)
     .lineTo(top.x - footprintWidth * 0.05, top.y + footprintDepth * 0.09)
     .lineTo(top.x + footprintWidth * 0.28, top.y - footprintDepth * 0.06);
   roofBreak.stroke({ color: shadeColor(roofColor, -34), alpha: style === "rowhome" ? 0.18 : 0.32, width: style === "ranch" ? 2.5 : 2, cap: "round", join: "round" });
-
-  const windowRhythm = new Graphics();
-  const windowCount = style === "ranch" ? 4 : 3;
-  for (let index = 0; index < windowCount; index += 1) {
-    const offset = (index / Math.max(1, windowCount - 1) - 0.5) * footprintWidth * 0.56;
-    windowRhythm
-      .roundRect(top.x + offset - 3.5, bottom.y - footprintDepth * 0.05 + (index % 2) * 2, 7, 6, 1.4)
-      .fill({ color: highlightColor, alpha: 0.42 });
-  }
-  windowRhythm.stroke({ color: trimColor, alpha: 0.12, width: 0.7 });
-  layer.addChild(sideWing, porch, roofBreak, windowRhythm);
+  layer.addChild(sideWing, roofBreak);
 }
 
 function drawPublicCommerceSilhouette(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -2784,17 +2961,14 @@ function drawPublicServiceSilhouette(layer: Container, geometry: BuildingGeometr
   layer.addChild(serviceEntry, sawtooth, serviceWindows);
 }
 
+// 0.55E decal discipline — this generation's threshold pad (drawHomeDetails
+// porches + drawHomeStoop own entries), side block (the public silhouette's
+// sideWing owns the side mass), and white wall-rib bar fills (material-band
+// sills + style windows own the window rhythm) are retired. The fn keeps its
+// unique jobs: the dark eave stroke and the vertical parcel rib lines.
 function drawAuthoredResidentialKitRhythm(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor, highlightColor, trimColor } = geometry;
+  const { top, bottom, footprintWidth, footprintDepth, bodyColor, roofColor } = geometry;
   const style = building.facadeStyle ?? "suburban";
-  const entryX = style === "ranch" ? bottom.x + footprintWidth * 0.12 : style === "rowhome" ? bottom.x : bottom.x - footprintWidth * 0.14;
-  const threshold = polygon(
-    diamondPoints({ x: entryX, y: bottom.y + footprintDepth * 0.3 }, footprintWidth * (style === "rowhome" ? 0.26 : 0.18), footprintDepth * 0.12),
-    0xe7c895,
-    style === "rowhome" ? 0.36 : 0.28,
-    0x7f6d4e,
-    0.14,
-  );
   const roofEave = new Graphics()
     .moveTo(top.x - footprintWidth * 0.48, top.y + footprintDepth * 0.07)
     .lineTo(top.x, top.y + footprintDepth * 0.34)
@@ -2806,26 +2980,16 @@ function drawAuthoredResidentialKitRhythm(layer: Container, geometry: BuildingGe
   for (let bay = 0; bay < bayCount; bay += 1) {
     const offset = (bay / Math.max(1, bayCount - 1) - 0.5) * footprintWidth * 0.68;
     wallRibs
-      .roundRect(top.x + offset - footprintWidth * 0.035, bottom.y - footprintDepth * 0.22 + (bay % 2) * 2, footprintWidth * 0.07, 6, 1.5)
-      .fill({ color: highlightColor, alpha: style === "rowhome" ? 0.52 : 0.4 })
       .moveTo(top.x + offset + footprintWidth * 0.055, top.y + footprintDepth * 0.13)
       .lineTo(top.x + offset + footprintWidth * 0.055, bottom.y + footprintDepth * 0.06);
   }
   wallRibs.stroke({ color: shadeColor(bodyColor, -32), alpha: 0.17, width: 0.9 });
-
-  const sideBlock = polygon(
-    diamondPoints({ x: bottom.x + footprintWidth * 0.27, y: bottom.y - footprintDepth * 0.02 }, footprintWidth * 0.14, footprintDepth * 0.14),
-    shadeColor(bodyColor, -18),
-    0.14,
-    trimColor,
-    0.06,
-  );
-  layer.addChild(threshold, sideBlock, roofEave, wallRibs);
+  layer.addChild(roofEave, wallRibs);
 }
 
 function drawAuthoredCommerceStripRhythm(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor, accentColor } = geometry;
-  const bayCount = building.facadeStyle === "strip_store" ? 5 : 3;
+  const { top, bottom, footprintWidth, footprintDepth, roofColor } = geometry;
+  void building;
   const parapet = new Graphics()
     .moveTo(top.x - footprintWidth * 0.46, top.y - footprintDepth * 0.18)
     .lineTo(top.x - footprintWidth * 0.18, top.y - footprintDepth * 0.08)
@@ -2833,17 +2997,10 @@ function drawAuthoredCommerceStripRhythm(layer: Container, geometry: BuildingGeo
     .lineTo(top.x + footprintWidth * 0.42, top.y - footprintDepth * 0.06);
   parapet.stroke({ color: shadeColor(roofColor, -38), alpha: 0.36, width: 2.4, cap: "round", join: "round" });
 
-  const bays = new Graphics();
-  for (let bay = 0; bay < bayCount; bay += 1) {
-    const offset = (bay / Math.max(1, bayCount - 1) - 0.5) * footprintWidth * 0.72;
-    bays
-      .roundRect(top.x + offset - footprintWidth * 0.045, bottom.y - footprintDepth * 0.2, footprintWidth * 0.09, 10, 2)
-      .fill({ color: bay % 2 === 0 ? highlightColor : 0xc7ecf1, alpha: 0.54 })
-      .roundRect(top.x + offset - footprintWidth * 0.055, top.y + footprintDepth * 0.25, footprintWidth * 0.11, 5, 1.5)
-      .fill({ color: bay % 2 === 0 ? accentColor : shadeColor(roofColor, 20), alpha: 0.46 });
-  }
-  bays.stroke({ color: trimColor, alpha: 0.16, width: 0.8 });
-
+  // 0.55E decal discipline — the white/cyan bay bars are retired: the
+  // object-kit commerce read (same family population) owns the storefront bay
+  // rhythm. The dark parapet stroke and apron joint strokes stay — they are
+  // contrast, not wash.
   const apronJoint = new Graphics()
     .moveTo(bottom.x - footprintWidth * 0.4, bottom.y + footprintDepth * 0.25)
     .lineTo(bottom.x - footprintWidth * 0.12, bottom.y + footprintDepth * 0.37)
@@ -2852,7 +3009,7 @@ function drawAuthoredCommerceStripRhythm(layer: Container, geometry: BuildingGeo
     .lineTo(bottom.x + footprintWidth * 0.12, bottom.y + footprintDepth * 0.38)
     .lineTo(bottom.x - footprintWidth * 0.12, bottom.y + footprintDepth * 0.27);
   apronJoint.stroke({ color: 0x8f7a54, alpha: 0.24, width: 1.4, cap: "round", join: "round" });
-  layer.addChild(parapet, bays, apronJoint);
+  layer.addChild(parapet, apronJoint);
 }
 
 function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -3020,15 +3177,55 @@ function drawObjectKitCivicLandmarkRead(layer: Container, geometry: BuildingGeom
     trimColor,
     0.1,
   );
-  const roofCap = polygon(
-    diamondPoints({ x: top.x + footprintWidth * 0.01, y: top.y - footprintDepth * (0.45 + roofCapWeight * 0.04) }, footprintWidth * (0.38 + roofCapWeight * 0.08), footprintDepth * 0.16),
-    shadeColor(roofColor, 38),
-    isEastvaleCore ? 0.46 : 0.32,
-    trimColor,
-    0.13,
-  );
 
-  layer.addChild(plinthTiers, civicEntryBays, facadePiers, glassBands, canopy, roofCap);
+  // 0.53E item C — the hero landmark's entry reads as a real portal: a wider
+  // plinth apron below the tiers, a lit canopy slab over the center bay with a
+  // shadow line under its lip, and two slim posts grounding it. Typed off the
+  // same civicGeometry focus the other hero reads key on — not a per-id hack.
+  if (isEastvaleCore) {
+    const apron = polygon(
+      diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.52 }, footprintWidth * 1.02, footprintDepth * 0.22),
+      0xd6bb86,
+      0.3,
+      0x756947,
+      0.16,
+    );
+    const canopySlab = polygon(
+      diamondPoints({ x: bottom.x, y: bottom.y - footprintDepth * 0.06 }, footprintWidth * 0.3, footprintDepth * 0.14),
+      sunlitColor(0xd8ecef, "top"),
+      0.85,
+      trimColor,
+      0.3,
+    );
+    const canopyShadow = new Graphics()
+      .moveTo(bottom.x - footprintWidth * 0.14, bottom.y - footprintDepth * 0.05)
+      .lineTo(bottom.x, bottom.y + footprintDepth * 0.02)
+      .lineTo(bottom.x + footprintWidth * 0.14, bottom.y - footprintDepth * 0.05);
+    canopyShadow.stroke({ color: 0x1a2c37, alpha: 0.3, width: 2, cap: "round", join: "round" });
+    const posts = new Graphics()
+      .moveTo(bottom.x - footprintWidth * 0.11, bottom.y - footprintDepth * 0.05)
+      .lineTo(bottom.x - footprintWidth * 0.11, bottom.y + footprintDepth * 0.16)
+      .moveTo(bottom.x + footprintWidth * 0.11, bottom.y - footprintDepth * 0.05)
+      .lineTo(bottom.x + footprintWidth * 0.11, bottom.y + footprintDepth * 0.16);
+    posts.stroke({ color: shadeColor(trimColor, -8), alpha: 0.5, width: 1.4, cap: "round" });
+    layer.addChild(apron, canopySlab, canopyShadow, posts);
+  }
+  // 0.53E item C — the hero landmark's crown is the TIERED MASSING (drawn in
+  // the shell pass); the old floating roof-cap decal painted a pale diamond
+  // right over that crown and flattened it back into a lid. Hero skips the
+  // decal; ordinary civic landmarks keep it.
+  const roofCap = isEastvaleCore
+    ? null
+    : polygon(
+        diamondPoints({ x: top.x + footprintWidth * 0.01, y: top.y - footprintDepth * (0.45 + roofCapWeight * 0.04) }, footprintWidth * (0.38 + roofCapWeight * 0.08), footprintDepth * 0.16),
+        shadeColor(roofColor, 38),
+        0.32,
+        trimColor,
+        0.13,
+      );
+
+  layer.addChild(plinthTiers, civicEntryBays, facadePiers, glassBands, canopy);
+  if (roofCap) layer.addChild(roofCap);
 }
 
 function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -3092,15 +3289,11 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
   layer.addChild(serviceApron, foundationLine, roofMonitors, serviceBays, utilitySideRibs);
 }
 
-function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeometry) {
-  const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor } = geometry;
-  const baseTerrace = polygon(
-    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.32 }, footprintWidth * 0.84, footprintDepth * 0.22),
-    0xddc18f,
-    0.32,
-    0x7f6d4e,
-    0.12,
-  );
+// 0.55E decal discipline — this generation's baseTerrace (duplicate of the
+// object-kit plinth tiers) and facadeBeats (duplicate facade bar rhythm) are
+// retired; the fn keeps the non-hero upper roof cap it uniquely owns.
+function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const { top, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
   const upperCap = polygon(
     diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.3 }, footprintWidth * 0.34, footprintDepth * 0.26),
     shadeColor(roofColor, 30),
@@ -3108,14 +3301,7 @@ function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeome
     trimColor,
     0.18,
   );
-  const facadeBeats = new Graphics();
-  for (let bay = -3; bay <= 3; bay += 1) {
-    facadeBeats
-      .roundRect(top.x + bay * (footprintWidth * 0.09) - 3, bottom.y - footprintDepth * 0.27, 6, 15, 1.5)
-      .fill({ color: bay === 0 ? 0xb7dceb : highlightColor, alpha: bay === 0 ? 0.62 : 0.42 });
-  }
-  facadeBeats.stroke({ color: trimColor, alpha: 0.12, width: 0.8 });
-  layer.addChild(baseTerrace, upperCap, facadeBeats);
+  if (!hasHeroTieredCrown(building)) layer.addChild(upperCap);
 }
 
 function drawAuthoredLowriseClusterRhythm(layer: Container, geometry: BuildingGeometry) {
@@ -3337,8 +3523,123 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   drawBuildingShellLighting(layer, geometry);
   drawWallDepthLines(layer, geometry, building);
   drawAuthoredWallMaterial(layer, geometry, building);
+  drawStorefrontBase(layer, geometry, building);
 
   drawRoof(layer, geometry, building, selected, hovered);
+  drawTieredMassing(layer, geometry, building);
+}
+
+// 0.53E Hero Silhouette — a setback upper tier for civic/venue/transit anchors,
+// so the hero landmark reads as a stepped, tall structure instead of a single
+// extruded box. A smaller box rises from the roof center with its own lit/shade
+// walls, cap, and a warm sunlit crown edge — the "this is the important building"
+// silhouette cue. Sun-consistent; only for tall anchors so it stays rare.
+// 0.53E item C — when the hero landmark carries the tiered crown, the crown
+// OWNS the roof: the five legacy civic functions that each float their own
+// pale cap/lantern/crown decal over the same roof plane must stand down, or
+// they average into a milky fog that erases the silhouette. Ground-level
+// richness (plinth, entry, columns, glass) stays untouched.
+function hasHeroTieredCrown(building: CityWorldBuilding): boolean {
+  return building.objectKit?.civicGeometry?.focusTarget === "eastvale_core";
+}
+
+function drawTieredMassing(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const family = building.visualGrammar?.objectFamily;
+  const isAnchor = family === "civic_landmark" || family === "venue_anchor" || family === "transit_anchor";
+  if (!isAnchor || building.height < 1.9) return;
+
+  const { top, footprintWidth, footprintDepth, bodyColor, roofColor } = geometry;
+  // 0.53E item C — the hero landmark (typed via civicGeometry.focusTarget) gets
+  // a taller, front-offset, TWO-step crown so the stepped silhouette clears the
+  // place marker + label band that sit over the roof's back half. Ordinary
+  // anchors keep the single restrained tier.
+  const hero = hasHeroTieredCrown(building);
+  const steps = hero ? 2 : 1;
+  let tierW = footprintWidth * (hero ? 0.62 : 0.46);
+  let tierD = footprintDepth * (hero ? 0.62 : 0.46);
+  // Hero rise is tuned to the label band: the place label floats ~44px above
+  // the ground anchor, so the crown caps must land in the open window between
+  // the label's bottom edge and the roofline — taller just hides the crown
+  // behind the label backing. Offset left so the marker pin column clears it.
+  let rise = hero
+    ? Math.max(18, Math.min(building.height * TILE_DEPTH * 0.52, 30))
+    : Math.max(12, Math.min(building.height * TILE_DEPTH * 0.34, 30));
+  let baseC = hero
+    ? { x: top.x - footprintWidth * 0.18, y: top.y + footprintDepth * 0.1 }
+    : { x: top.x, y: top.y - footprintDepth * 0.04 };
+
+  for (let step = 0; step < steps; step += 1) {
+    const halfW = tierW / 2;
+    const halfD = tierD / 2;
+    const apex = { x: baseC.x, y: baseC.y - rise };
+    const bL = { x: baseC.x - halfW, y: baseC.y };
+    const bF = { x: baseC.x, y: baseC.y + halfD };
+    const bR = { x: baseC.x + halfW, y: baseC.y };
+    const tL = { x: apex.x - halfW, y: apex.y };
+    const tF = { x: apex.x, y: apex.y + halfD };
+    const tR = { x: apex.x + halfW, y: apex.y };
+
+    const litWall = new Graphics()
+      .poly([tL.x, tL.y, tF.x, tF.y, bF.x, bF.y, bL.x, bL.y], true)
+      .fill({ color: sunlitColor(bodyColor, "sun"), alpha: 0.98 });
+    const shadeWall = new Graphics()
+      .poly([tR.x, tR.y, tF.x, tF.y, bF.x, bF.y, bR.x, bR.y], true)
+      .fill({ color: sunlitColor(bodyColor, "shade"), alpha: 0.98 });
+    // Hero caps hold a deeper roof tone so they stay saturated instead of
+    // blowing out toward white next to the sunlit cream walls.
+    const capTone = hero ? sunlitColor(shadeColor(roofColor, -12), "top") : sunlitColor(roofColor, "top");
+    const cap = polygon(diamondPoints(apex, tierW, tierD), capTone, 0.99, 0x26332c, hero ? 0.55 : 0.4);
+    const crown = new Graphics().moveTo(tL.x, tL.y).lineTo(apex.x, apex.y - halfD).lineTo(tR.x, tR.y);
+    crown.stroke({ color: mixColor(shadeColor(roofColor, 42), SUN_WARM_TINT, 0.2), alpha: 0.85, width: 1.5, cap: "round", join: "round" });
+    const cornerSeam = new Graphics().moveTo(tF.x, tF.y).lineTo(bF.x, bF.y);
+    cornerSeam.stroke({ color: 0x18262e, alpha: 0.22, width: 1.1, cap: "round" });
+    layer.addChild(litWall, shadeWall, cap, crown, cornerSeam);
+
+    // Next step rises from this cap, set back toward the sun-lit front corner.
+    baseC = { x: apex.x - tierW * 0.06, y: apex.y - tierD * 0.02 };
+    tierW *= 0.58;
+    tierD *= 0.58;
+    rise *= 0.6;
+  }
+}
+
+// 0.53E Hero Silhouette — a recessed, glazed ground-floor band with a canopy lip
+// across the two front walls of commerce/civic/service buildings. Reads as a
+// real shopfront / entrance storey, so the box gains a base storey instead of
+// being a single blank extrusion. Sun-consistent; skips homes and towers.
+function drawStorefrontBase(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const family = building.visualGrammar?.objectFamily;
+  const eligible = family === "commerce_strip" || family === "civic_landmark" || family === "service_block" || family === "venue_anchor" || family === "transit_anchor";
+  if (!eligible) return;
+
+  const { top, bottom, footprintWidth, footprintDepth, bodyColor } = geometry;
+  const halfW = footprintWidth / 2;
+  const halfD = footprintDepth / 2;
+  const wallSpan = bottom.y - top.y;
+  if (wallSpan < 16) return; // too short to carry a distinct storey
+  const f = 0.66; // band starts ~two-thirds down the wall
+  const bandY = (edgeTopY: number) => edgeTopY + wallSpan * f;
+  const civic = family === "civic_landmark" || family === "venue_anchor" || family === "transit_anchor";
+  const glassTone = civic ? 0xd6e4e0 : 0xbfe2ea;
+  const recess = shadeColor(bodyColor, -30);
+
+  // Left (sun) + right (shade) lower-wall quads.
+  const leftBand = new Graphics()
+    .poly([top.x - halfW, bandY(top.y), top.x, bandY(top.y + halfD), top.x, bottom.y + halfD, top.x - halfW, bottom.y], true)
+    .fill({ color: sunlitColor(recess, "sun"), alpha: 0.55 });
+  const rightBand = new Graphics()
+    .poly([top.x + halfW, bandY(top.y), top.x, bandY(top.y + halfD), top.x, bottom.y + halfD, top.x + halfW, bottom.y], true)
+    .fill({ color: sunlitColor(recess, "shade"), alpha: 0.6 });
+  // Glazing sheen on the sun side + a canopy lip line where the band starts.
+  const glazing = new Graphics()
+    .poly([top.x - halfW * 0.9, bandY(top.y) + wallSpan * 0.06, top.x - halfW * 0.06, bandY(top.y + halfD * 0.9) + wallSpan * 0.06, top.x - halfW * 0.06, bottom.y + halfD * 0.86, top.x - halfW * 0.9, bottom.y - wallSpan * 0.02], true)
+    .fill({ color: glassTone, alpha: civic ? 0.16 : 0.2 });
+  const canopy = new Graphics()
+    .moveTo(top.x - halfW, bandY(top.y))
+    .lineTo(top.x, bandY(top.y + halfD))
+    .lineTo(top.x + halfW, bandY(top.y));
+  canopy.stroke({ color: mixColor(shadeColor(bodyColor, 30), SUN_WARM_TINT, 0.16), alpha: 0.7, width: 1.6, cap: "round", join: "round" });
+  layer.addChild(leftBand, rightBand, glazing, canopy);
 }
 
 // Ambient occlusion + rim light for the box shell: dark gradient bands where
@@ -3467,15 +3768,25 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   // falls away into shade — consistent with the wall shading below.
   const halfW = footprintWidth / 2;
   const halfD = footprintDepth / 2;
+  // 0.53E item D — a whisper directional split across the roof plane itself:
+  // the sun-side half lifts warm, the fall-away half cools, so every roof
+  // reads directional under the same key light as the walls. Deliberately
+  // faint — this is the ROOF light finish, not the 0.54E whole-canvas grade.
+  const roofLitHalf = new Graphics()
+    .poly([top.x, top.y - halfD, top.x, top.y + halfD, top.x - halfW, top.y], true)
+    .fill({ color: 0xfff3d2, alpha: 0.09 });
+  const roofShadeHalf = new Graphics()
+    .poly([top.x, top.y - halfD, top.x, top.y + halfD, top.x + halfW, top.y], true)
+    .fill({ color: 0x2c4a5e, alpha: 0.08 });
   const roofRim = new Graphics()
     .moveTo(top.x - halfW, top.y)
     .lineTo(top.x, top.y - halfD);
-  roofRim.stroke({ color: 0xfff3d2, alpha: 0.55, width: 1.5, cap: "round", join: "round" });
+  roofRim.stroke({ color: 0xfff3d2, alpha: 0.68, width: 1.8, cap: "round", join: "round" });
   const roofFall = new Graphics()
     .moveTo(top.x, top.y - halfD)
     .lineTo(top.x + halfW, top.y);
-  roofFall.stroke({ color: shadeColor(roofColor, -52), alpha: 0.4, width: 1.3, cap: "round", join: "round" });
-  layer.addChild(roofRim, roofFall);
+  roofFall.stroke({ color: shadeColor(roofColor, -52), alpha: 0.5, width: 1.4, cap: "round", join: "round" });
+  layer.addChild(roofLitHalf, roofShadeHalf, roofRim, roofFall);
 
   const lines = new Graphics();
   if (roofShape === "gable") {
@@ -3507,8 +3818,47 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   }
   lines.stroke({ color: shadeColor(roofColor, -44), alpha: 0.38, width: 1.5, cap: "round", join: "round" });
   layer.addChild(lines);
+  drawParapetCap(layer, geometry, building, roofShape);
   drawRoofMaterial(layer, geometry, building);
   drawAuthoredRoofProfile(layer, geometry, building);
+}
+
+// 0.53E Hero Silhouette — a raised parapet wall around a flat roof edge. This is
+// the single biggest "box -> building" cue: the roof stops reading as a flush
+// lid and starts reading as a real rooftop bounded by a low wall. Only flat-
+// roofed commercial / civic / lowrise families get it (pitched roofs don't have
+// parapets). Obeys the unified sun: front-left face lit, front-right in shade.
+function drawParapetCap(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, roofShape: CityWorldBuilding["roofShape"]) {
+  if (roofShape !== "flat" && roofShape !== "sawtooth") return;
+  const family = building.visualGrammar?.objectFamily;
+  const eligible =
+    family === "commerce_strip" || family === "civic_landmark" || family === "lowrise_cluster" ||
+    family === "service_block" || family === "venue_anchor" || family === "transit_anchor";
+  if (!eligible) return;
+
+  const { top, footprintWidth, footprintDepth, roofColor } = geometry;
+  const halfW = footprintWidth / 2;
+  const halfD = footprintDepth / 2;
+  const lift = Math.max(3.2, Math.min(footprintWidth * 0.05, 6.5));
+  // Perimeter diamond corners of the roof top.
+  const left = { x: top.x - halfW, y: top.y };
+  const front = { x: top.x, y: top.y + halfD };
+  const right = { x: top.x + halfW, y: top.y };
+
+  // Two lit-vs-shade parapet wall faces standing up from the front edges.
+  const litFace = new Graphics()
+    .poly([left.x, left.y, front.x, front.y, front.x, front.y - lift, left.x, left.y - lift], true)
+    .fill({ color: sunlitColor(shadeColor(roofColor, -6), "sun"), alpha: 0.9 });
+  const shadeFace = new Graphics()
+    .poly([front.x, front.y, right.x, right.y, right.x, right.y - lift, front.x, front.y - lift], true)
+    .fill({ color: sunlitColor(shadeColor(roofColor, -6), "shade"), alpha: 0.92 });
+  // Bright coping line along the top of the parapet + a warm sunlit front corner.
+  const coping = new Graphics()
+    .moveTo(left.x, left.y - lift)
+    .lineTo(front.x, front.y - lift)
+    .lineTo(right.x, right.y - lift);
+  coping.stroke({ color: mixColor(shadeColor(roofColor, 40), SUN_WARM_TINT, 0.18), alpha: 0.85, width: 1.4, cap: "round", join: "round" });
+  layer.addChild(litFace, shadeFace, coping);
 }
 
 function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -3517,8 +3867,20 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
   const { top, footprintWidth, footprintDepth, roofColor } = geometry;
 
   if (profile === "terracotta_barrel_tile" || profile === "cool_clay_tile" || profile === "sage_tile") {
+    // 0.53E item B — clay reads warm and COURSED: a stronger tile tint plus
+    // eave-parallel course lines so tile separates from metal (smooth/cool)
+    // and membrane (flat/dark) at a glance.
     const tileTint = profile === "terracotta_barrel_tile" ? 0xc4764e : profile === "cool_clay_tile" ? 0x7f9aa8 : 0x8ba372;
-    const tint = polygon(diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86), tileTint, profile === "sage_tile" ? 0.12 : 0.1, tileTint, 0);
+    const tint = polygon(diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86), tileTint, profile === "sage_tile" ? 0.2 : 0.18, tileTint, 0);
+    const courses = new Graphics();
+    for (let course = 0; course < 3; course += 1) {
+      const inset = 0.72 - course * 0.2;
+      courses
+        .moveTo(top.x - footprintWidth * 0.5 * inset, top.y + footprintDepth * 0.5 * (1 - inset) * 0.5)
+        .lineTo(top.x, top.y + footprintDepth * 0.5 * (inset + (1 - inset) * 0.5))
+        .lineTo(top.x + footprintWidth * 0.5 * inset, top.y + footprintDepth * 0.5 * (1 - inset) * 0.5);
+    }
+    courses.stroke({ color: shadeColor(roofColor, -26), alpha: 0.2, width: 1, cap: "round", join: "round" });
     const ridgeStart = { x: top.x - footprintWidth * 0.24, y: top.y - footprintDepth * 0.13 };
     const ridgeEnd = { x: top.x + footprintWidth * 0.24, y: top.y + footprintDepth * 0.13 };
     const barrelCaps = new Graphics();
@@ -3531,28 +3893,33 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
     }
     barrelCaps.stroke({
       color: shadeColor(roofColor, profile === "cool_clay_tile" ? 34 : 28),
-      alpha: profile === "terracotta_barrel_tile" ? 0.42 : 0.32,
+      alpha: profile === "terracotta_barrel_tile" ? 0.5 : 0.4,
       width: profile === "terracotta_barrel_tile" ? 1.7 : 1.3,
       cap: "round",
     });
-    layer.addChild(tint, barrelCaps);
+    layer.addChild(tint, courses, barrelCaps);
     return;
   }
 
   if (profile === "flat_parapet_cap") {
-    const capRing = new Graphics()
-      .poly(diamondPoints(top, footprintWidth * 0.92, footprintDepth * 0.84), true)
-      .stroke({ color: shadeColor(roofColor, 34), alpha: 0.4, width: 2, cap: "round", join: "round" });
+    // 0.53E item B — the parapet (drawParapetCap) and the roof deck must read
+    // as ONE surface: a recessed membrane field sits inside the parapet line,
+    // darker than the coping, with gravel flecks on the membrane. The old
+    // bright cap ring competed with the parapet coping and made two decals.
+    const membrane = polygon(diamondPoints(top, footprintWidth * 0.84, footprintDepth * 0.76), shadeColor(roofColor, -14), 0.32, shadeColor(roofColor, -30), 0.24);
     const gravelFlecks = new Graphics()
       .circle(top.x - footprintWidth * 0.16, top.y + footprintDepth * 0.04, 1.1)
       .circle(top.x + footprintWidth * 0.06, top.y - footprintDepth * 0.1, 1)
       .circle(top.x + footprintWidth * 0.2, top.y + footprintDepth * 0.08, 1.1)
-      .fill({ color: shadeColor(roofColor, 22), alpha: 0.3 });
-    layer.addChild(capRing, gravelFlecks);
+      .fill({ color: shadeColor(roofColor, 22), alpha: 0.34 });
+    layer.addChild(membrane, gravelFlecks);
     return;
   }
 
   if (profile === "blue_metal_utility") {
+    // 0.53E item B — metal reads SMOOTH and COOL: a cool panel field under
+    // crisper standing seams and a long specular streak. No courses, no warmth.
+    const panelField = polygon(diamondPoints(top, footprintWidth * 0.9, footprintDepth * 0.82), mixColor(roofColor, SUN_COOL_TINT, 0.24), 0.16, roofColor, 0);
     const seams = new Graphics();
     for (let seam = -2; seam <= 2; seam += 1) {
       const offset = seam * footprintWidth * 0.13;
@@ -3560,22 +3927,31 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
         .moveTo(top.x + offset - footprintWidth * 0.09, top.y - footprintDepth * 0.2)
         .lineTo(top.x + offset + footprintWidth * 0.09, top.y + footprintDepth * 0.2);
     }
-    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.3, width: 1.1, cap: "round" });
+    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.4, width: 1.1, cap: "round" });
     const sheen = new Graphics()
       .moveTo(top.x - footprintWidth * 0.3, top.y - footprintDepth * 0.06)
       .lineTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.14);
-    sheen.stroke({ color: shadeColor(roofColor, 42), alpha: 0.26, width: 1.7, cap: "round" });
-    layer.addChild(seams, sheen);
+    sheen.stroke({ color: shadeColor(roofColor, 52), alpha: 0.36, width: 2, cap: "round" });
+    layer.addChild(panelField, seams, sheen);
     return;
   }
 
   if (profile === "civic_glass_cap") {
-    const glassField = polygon(diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.06 }, footprintWidth * 0.5, footprintDepth * 0.34), 0xbfe4ee, 0.22, 0x4e8298, 0.14);
+    // 0.53E item B — civic glass reads GLAZED: a wider glass field with a
+    // mullion cross and a bright specular so it is unmistakable next to clay
+    // and metal, and catches the key light (item D pairs the roof rim).
+    const glassField = polygon(diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.04 }, footprintWidth * 0.62, footprintDepth * 0.44), 0xbfe4ee, 0.3, 0x4e8298, 0.2);
+    const mullions = new Graphics()
+      .moveTo(top.x - footprintWidth * 0.31, top.y - footprintDepth * 0.04)
+      .lineTo(top.x + footprintWidth * 0.31, top.y - footprintDepth * 0.04)
+      .moveTo(top.x, top.y - footprintDepth * 0.26)
+      .lineTo(top.x, top.y + footprintDepth * 0.18);
+    mullions.stroke({ color: 0x4e8298, alpha: 0.28, width: 1, cap: "round" });
     const specular = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.16, top.y - footprintDepth * 0.14)
-      .lineTo(top.x + footprintWidth * 0.1, top.y + footprintDepth * 0.02);
-    specular.stroke({ color: 0xeafaff, alpha: 0.4, width: 1.5, cap: "round" });
-    layer.addChild(glassField, specular);
+      .moveTo(top.x - footprintWidth * 0.18, top.y - footprintDepth * 0.16)
+      .lineTo(top.x + footprintWidth * 0.12, top.y + footprintDepth * 0.04);
+    specular.stroke({ color: 0xeafaff, alpha: 0.55, width: 1.8, cap: "round" });
+    layer.addChild(glassField, mullions, specular);
   }
 }
 
@@ -3823,6 +4199,14 @@ function drawHomeDetails(layer: Container, geometry: BuildingGeometry, building:
     units.stroke({ color: trimColor, alpha: 0.24, width: 1 });
     layer.addChild(parapet, units);
   }
+
+  // 0.53E item A finish — the shell path is where most homes actually render
+  // (only rowhomes have sprite art), so the hash-keyed roof accent + entry
+  // stoop live here too. Same objectVariant key as the sprite path.
+  const accentVariant = objectVariant(building.id, 97);
+  const accentFlip = accentVariant % 2 === 0 ? -1 : 1;
+  drawHomeStoop(layer, geometry, building, accentFlip);
+  drawHomeRoofAccent(layer, geometry, building, accentFlip, accentVariant);
 }
 
 function drawResidentialAuthorshipVariation(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, style: CityWorldBuilding["facadeStyle"]) {
@@ -4101,7 +4485,7 @@ function drawCivicDetails(layer: Container, geometry: BuildingGeometry, building
     .lineTo(top.x, top.y - footprintDepth * 0.29)
     .lineTo(top.x + footprintWidth * 0.25, top.y - footprintDepth * 0.19);
   roofRidge.stroke({ color: 0xe7f4f0, alpha: 0.3, width: 1.4, cap: "round", join: "round" });
-  layer.addChild(roofShadow, roofTier, roofFacetLeft, roofFacetRight, roofCap, skylight, roofRidge);
+  if (!hasHeroTieredCrown(building)) layer.addChild(roofShadow, roofTier, roofFacetLeft, roofFacetRight, roofCap, skylight, roofRidge);
 
   const plinth = polygon(diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.16 }, footprintWidth * 0.72, footprintDepth * 0.24), 0xe6cf9f, 0.36, 0x7f6d4e, 0.12);
   const sideTerraceLeft = polygon(diamondPoints({ x: bottom.x - footprintWidth * 0.31, y: bottom.y + footprintDepth * 0.22 }, footprintWidth * 0.22, footprintDepth * 0.15), 0xd8c08d, 0.4, 0x7f6d4e, 0.14);
@@ -4158,7 +4542,16 @@ function drawCivicDetails(layer: Container, geometry: BuildingGeometry, building
     .moveTo(top.x + footprintWidth * 0.48, bottom.y - footprintDepth * 0.02)
     .lineTo(top.x + footprintWidth * 0.31, bottom.y + footprintDepth * 0.08);
   baseRibs.stroke({ color: trimColor, alpha: 0.14, width: 1.2, cap: "round", join: "round" });
-  layer.addChild(sideTerraceLeft, sideTerraceRight, plinth, frontSteps, entryBlock, entryCanopy, columns, sideWindows, facadeRhythm, baseRibs);
+  // 0.55E decal discipline — on object-kit civic landmarks the kit read owns
+  // the plinth (plinthTiers), the entry canopy, and the facade bar rhythm, so
+  // this generation's plinth pad, canopy, and near-white column bars (the
+  // worst single wash: 5 bars + a wide band at alpha ~0.95) stand down there.
+  // Non-kit civic buildings keep the full legacy read.
+  if (isObjectKitCivicLandmark(building)) {
+    layer.addChild(sideTerraceLeft, sideTerraceRight, frontSteps, entryBlock, sideWindows, facadeRhythm, baseRibs);
+  } else {
+    layer.addChild(sideTerraceLeft, sideTerraceRight, plinth, frontSteps, entryBlock, entryCanopy, columns, sideWindows, facadeRhythm, baseRibs);
+  }
 
   const flag = new Graphics()
     .rect(top.x + footprintWidth * 0.08, top.y - 34, 2, 17)
@@ -4192,18 +4585,8 @@ function drawEastvaleCoreLandmarkDetails(layer: Container, geometry: BuildingGeo
     .fill({ color: shadeColor(roofColor, 28), alpha: 0.66 })
     .stroke({ color: trimColor, alpha: 0.22, width: 1.2 });
 
-  const roofLantern = polygon(
-    diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.3 }, footprintWidth * 0.22, footprintDepth * 0.18),
-    shadeColor(roofColor, 34),
-    0.76,
-    trimColor,
-    0.22,
-  );
-  const lanternGlass = new Graphics()
-    .roundRect(top.x - footprintWidth * 0.055, top.y - footprintDepth * 0.36, footprintWidth * 0.11, 10, 2)
-    .fill({ color: 0xdaf2ff, alpha: 0.62 })
-    .stroke({ color: trimColor, alpha: 0.2, width: 1 });
-
+  // (item C) roofLantern + lanternGlass retired — the tiered crown owns the
+  // hero roof; the ground-storey glass entry below keeps the lantern read.
   const wingBays = new Graphics();
   for (let bay = -2; bay <= 2; bay += 1) {
     if (bay === 0) continue;
@@ -4230,22 +4613,10 @@ function drawEastvaleCoreLandmarkDetails(layer: Container, geometry: BuildingGeo
     .lineTo(bottom.x + footprintWidth * 0.28, bottom.y + footprintDepth * 0.22);
   civicPlinthStack.stroke({ color: 0x8b7954, alpha: 0.3, width: 1.7, cap: "round", join: "round" });
 
-  const roofShoulders = new Graphics()
-    .poly(diamondPoints({ x: top.x - footprintWidth * 0.28, y: top.y - footprintDepth * 0.08 }, footprintWidth * 0.22, footprintDepth * 0.16), true)
-    .fill({ color: shadeColor(roofColor, 18), alpha: 0.34 })
-    .poly(diamondPoints({ x: top.x + footprintWidth * 0.28, y: top.y + footprintDepth * 0.02 }, footprintWidth * 0.22, footprintDepth * 0.16), true)
-    .fill({ color: shadeColor(roofColor, -10), alpha: 0.28 })
-    .stroke({ color: trimColor, alpha: 0.1, width: 0.9 });
-
-  const entryAxis = polygon(
-    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.36 }, footprintWidth * 0.32, footprintDepth * 0.14),
-    0xf0d8a8,
-    0.42,
-    0x7f6d4e,
-    0.16,
-  );
-
-  layer.addChild(civicPlinthStack, roofShoulders, entryAxis, entryFrame, entryGlass, roofLantern, lanternGlass, wingBays, civicNameplateGeometry);
+  // (item C) roofShoulders retired with the other roof decals — crown owns it.
+  // (0.55E) the entryAxis ground pad is retired too: the base hierarchy
+  // forecourt + the kit plinth tiers already own the approach read.
+  layer.addChild(civicPlinthStack, entryFrame, entryGlass, wingBays, civicNameplateGeometry);
 }
 
 function drawDraftAnchorDetails(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -5109,8 +5480,10 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
 }
 
 function drawActor(layer: Container, actor: CityWorldActor, animated: AnimatedTarget[], atlas: CityWorldAtlasResolver) {
+  if (actor.kind === "clawd") return;
+
   const point = project(actor.position);
-  const actorPoint = actor.kind === "clawd" && actor.placeId === "place-eastvale-core" ? { x: point.x - 6, y: point.y + 20 } : point;
+  const actorPoint = point;
   const asset = atlas.resolveAsset(actor.spriteKey, actor.paletteKey, "actor");
   const actorBase = colorToNumber(actor.color);
   const shade = colorToNumber(asset.palette.colors.shade);
@@ -5127,7 +5500,7 @@ function drawActor(layer: Container, actor: CityWorldActor, animated: AnimatedTa
       lightColor: accent,
       outlineColor: shade,
     });
-  } else if (actor.kind === "walker") {
+  } else {
     graphic = new Graphics()
       .ellipse(actorPoint.x, actorPoint.y - 1, 5, 2)
       .fill({ color: 0x23342e, alpha: 0.18 })
@@ -5140,21 +5513,6 @@ function drawActor(layer: Container, actor: CityWorldActor, animated: AnimatedTa
       .moveTo(actorPoint.x + 1, actorPoint.y - 3)
       .lineTo(actorPoint.x + 4, actorPoint.y + 1)
       .stroke({ color: shade, alpha: 0.64, width: 1.5, cap: "round" });
-  } else {
-    graphic = new Graphics()
-      .ellipse(actorPoint.x, actorPoint.y - 3, 12, 5)
-      .fill({ color: 0x23342e, alpha: 0.2 })
-      .circle(actorPoint.x, actorPoint.y - 22, 9)
-      .fill({ color: highlight, alpha: 0.98 })
-      .stroke({ color: shade, width: 2 })
-      .circle(actorPoint.x - 3, actorPoint.y - 22, 1.4)
-      .circle(actorPoint.x + 3, actorPoint.y - 22, 1.4)
-      .fill({ color: shade })
-      .roundRect(actorPoint.x - 6, actorPoint.y - 15, 12, 10, 4)
-      .fill({ color: colorToNumber(asset.palette.colors.base), alpha: 0.92 })
-      .circle(actorPoint.x - 7, actorPoint.y - 28, 3)
-      .circle(actorPoint.x + 7, actorPoint.y - 28, 3)
-      .fill({ color: shade, alpha: 0.95 });
   }
 
   animated.push({
@@ -5280,7 +5638,21 @@ function offsetPinPoint(point: ProjectedPoint, pin: CityWorldPin): ProjectedPoin
   return { x: point.x + 4, y: point.y + 22 };
 }
 
-function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId: string, hoverPlaceId: string | undefined) {
+// 0.56E — a place label must never erase the architecture it names: the lift
+// is the max of the legacy ground offset and the tallest anchored structure's
+// silhouette (roof + crown allowance), clamped so labels stay attached.
+function placeCrownLiftMap(buildings: CityWorldBuilding[]): Map<string, number> {
+  const lift = new Map<string, number>();
+  for (const building of buildings) {
+    if (!building.placeId) continue;
+    const crownAllowance = hasHeroTieredCrown(building) ? 52 : building.roofShape === "tower" ? 30 : 14;
+    const clearance = Math.min(building.height * TILE_DEPTH + crownAllowance, 104);
+    if (clearance > (lift.get(building.placeId) ?? 0)) lift.set(building.placeId, clearance);
+  }
+  return lift;
+}
+
+function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId: string, hoverPlaceId: string | undefined, crownLift?: number) {
   const selected = place.id === selectedPlaceId;
   const hovered = place.id === hoverPlaceId;
   if (!selected && !hovered && place.labelPriority < 7) return;
@@ -5298,7 +5670,8 @@ function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId
     },
   });
   text.anchor.set(0.5);
-  text.position.set(point.x + (landmarkFocus ? -28 : 0), point.y - (landmarkFocus ? 70 : selected || hovered ? 55 : 44));
+  const baseLift = landmarkFocus ? 70 : selected || hovered ? 55 : 44;
+  text.position.set(point.x + (landmarkFocus ? -28 : 0), point.y - Math.max(baseLift, crownLift ?? 0));
   const paddingX = landmarkFocus ? 8 : 7;
   const paddingY = landmarkFocus ? 3 : 4;
   const backing = new Graphics()
@@ -5329,7 +5702,7 @@ function animateTargets(targets: AnimatedTarget[], delta: number) {
     } else if (item.kind === "cloud") {
       item.target.x += delta * item.speed * 8;
       item.target.alpha = item.baseAlpha + Math.sin(elapsed + item.phase * 4) * 0.06;
-    } else if (item.kind === "walker" || item.kind === "clawd") {
+    } else if (item.kind === "walker") {
       item.target.y += Math.sin(elapsed * 4 + item.phase * 5) * 0.05;
     } else if (item.kind === "pulse") {
       item.target.alpha = item.baseAlpha + Math.sin(elapsed * 2 + item.phase * 4) * 0.1;
@@ -5404,7 +5777,9 @@ function sunlitColor(color: number, face: SunFace): number {
   // flat body, not merely un-shaded (it used to sit at factor 1.0, which is why
   // lit walls read matte). Widening the top/sun/shade spread gives every box a
   // legible light-to-shade gradient without going cartoon.
-  if (face === "top") return mixColor(scaleColor(color, 1.18), SUN_WARM_TINT, 0.13);
+  // 0.53E item D — the top face carries most of the frame; a slightly stronger
+  // lift + warm tint makes roofs read lit instead of matte next to the walls.
+  if (face === "top") return mixColor(scaleColor(color, 1.22), SUN_WARM_TINT, 0.15);
   if (face === "sun") return mixColor(scaleColor(color, 1.12), SUN_WARM_TINT, 0.12);
   return mixColor(scaleColor(color, 0.4), SUN_COOL_TINT, 0.32);
 }

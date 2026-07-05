@@ -6,6 +6,92 @@
 > desktop and mobile. The ground is already solved (0.52E); this pass makes the
 > *subject* worthy of the stage.
 
+---
+
+## ⚡ COMPLETION PLAN — read this first (efficient, one clean run)
+
+This pass is **mid-flight**, not fresh. Three shell-path primitives already
+landed on `fable/0.53e-hero-silhouette` (see "Progress" below). Do NOT redo them.
+Finish the pass in ONE batched run against the work-breakdown here, then verify
+once, screenshot desktop + mobile, and stop at ≥8 or a named plateau.
+
+### Execution model (this is the efficiency fix — obey it)
+
+- **Run in an isolated `git worktree`** off `fable/0.53e-hero-silhouette`
+  (`git worktree add ../atlas-53e fable/0.53e-hero-silhouette`). A concurrent
+  process on the main tree killed the dev server 3× and once `git reset` the
+  branch mid-work. One agent, one worktree — no exceptions.
+- **Batch, don't drip.** Implement items A→E below in order, screenshot after A,
+  C, and E only (not every edit), ONE full verify at the end. Do not stop to ask
+  between items — this plan IS the approval.
+- **Commit per item** (bisectable), tag after each (`wip/53e-<item>`), push after
+  each so nothing is lost.
+- Merge to `main` + redeploy as a post-launch update **only after** ≥8 or a named
+  plateau, and only through the human deploy gate.
+
+### Progress so far (DONE — do not repeat)
+
+- ✅ `drawParapetCap` — walled parapet on flat commerce/civic/lowrise roofs. Helps.
+- ✅ `drawStorefrontBase` — glazed recessed ground storey + canopy on commerce/
+  civic fronts. Helps.
+- ✅ `drawTieredMassing` — setback tier for tall anchors. Correct but occluded on
+  Eastvale Core (sits under its marker) — see item C to make it read.
+- Current honest rating: **~7.4/10**. Target: **≥8**.
+
+### Remaining work-breakdown (do all, in order)
+
+**A. Residential variety — THE biggest visible gap (sprite path).**
+Homes read as clones because the same SVG sprite + footprint repeats. Targets:
+`drawSpriteBuilding:2385`, `drawSpriteBuildingFitDetails:2411`. No new art —
+use deterministic per-home variety keyed on `hashId(building.id)`:
+  - hash-based horizontal flip of the sprite (anchor mirror) so rows don't repeat;
+  - ±6% scale jitter + tiny vertical offset so the rooflines aren't a dead-level
+    comb;
+  - widen the per-home roof/wall tint spread (still inside the palette registry —
+    tint the resolved variant, never inject raw colors);
+  - a shared `drawHomeRoofAccent` (ridge line + a dormer or chimney fleck, chosen
+    by hash) for gable/hip homes, and a `drawHomeStoop` (front entry pad + path)
+    at the base. Keep both tiny — they read as variety, not detail.
+Acceptance: no two adjacent homes read identical; `homeClonePressure` diagnostic
+stays ≤ 0.24; neighborhood reads as houses, not a warehouse of one model.
+
+**B. Roof + material legibility finish.**
+Targets: `drawRoofMaterial:3582`, `drawAuthoredRoofProfile:3514`. Push
+tile/metal/glass/parapet families one notch apart so a clay roof, a metal utility
+roof, and a civic glass cap are unmistakable at glance — and so parapet + roof
+material read as one surface, not two decals. Keep the muted-SoCal palette calm.
+Acceptance: `roofSideSeparationRatio` and `facadeContrastCoverageRatio` hold or
+rise in `verify-roads-roofs-scene-grammar.mjs`.
+
+**C. Make the anchor read as a landmark.**
+The tier is occluded by the marker on Eastvale Core. Fix so the hero reads tall:
+raise/offset `drawTieredMassing` so the crown clears the label band, and enrich
+the civic entry (deeper plinth + entry canopy via the existing civic composition
+path). Acceptance: Eastvale Core reads unmistakably as the biggest, tiered,
+most-articulated structure in frame, marker notwithstanding.
+
+**D. Light finish on roofs (small, coupled slice — NOT the 0.54E grade).**
+Roofs (the top face, most of the frame) still read flatter than the now-lit
+walls. Nudge `sunlitColor("top")` + the roof rim/fall so roofs read lit and
+directional. Restrained — this is not the whole-canvas grade pass (that's 0.54E,
+design-gated). Acceptance: roofs no longer read matte vs walls; no cartoon bloom.
+
+**E. Verify + mobile + honesty.**
+ONE full sweep: `pnpm typecheck:starter && build:web && test:core`; product-loop +
+split guard; before/after desktop 1280×720 + mobile 390×844 (light+dark);
+diagnostics (`homeClonePressure`, `facadeContrastCoverageRatio`,
+`objectSignatureCoverageRatio`, `civicVenueObjectKitScore`). Blunt /10 vs the
+north-star + weak-list. Shells stay honest. If < 8, name the exact blocker.
+
+### Definition of done for 0.53E
+
+Residential reads varied; commerce/civic/anchor read as articulated architecture
+with legible materials and lit roofs; **≥8/10** on desktop AND mobile, or a named
+plateau; all verifiers green; invariants + palette cohesion + 0.52E contact
+grammar intact; committed bisectably; BUILD_LOG + STATE updated.
+
+---
+
 You are the Fable super-move — the factory's single best tool, spent
 deliberately (see `feedback_fable_allocation`: hard SWE only, never
 decision-blocked ops). This is the sanctioned elite pass. Do work only a strong

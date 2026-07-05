@@ -17,6 +17,7 @@ const RC_MODES = new Set([
   "engine-beta-data",
   "provider-boundary",
   "hosted-clawd-scaffold",
+  "hosted-clawd-fable-integration",
 ]);
 
 const SAFE_FUNCTIONAL_RC_DOCS = new Set([
@@ -209,6 +210,27 @@ const HOSTED_CLAWD_SCAFFOLD_PREFIXES = [
   "server/src/hostedClawd/",
 ];
 
+const HOSTED_CLAWD_FABLE_INTEGRATION_FILES = new Set([
+  "STATE.md",
+  "apps/widget/src/PixiVoxelSceneView.tsx",
+  "docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md",
+  "docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md",
+  "docs/design/fable-prompts/FABLE_LAUNCH_0.53E.md",
+  "packages/core/src/voxel/cityWorldParametricGenerator.ts",
+  "scripts/verify-fable-prop-cleanup.mjs",
+  "web/src/CityWorldRenderer.tsx",
+  "web/src/PixiVoxelSceneView.tsx",
+]);
+
+const HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES = [
+  "artifacts/0.53e-hero/",
+  "artifacts/0.54e-grade/",
+  "artifacts/0.55e-decal/",
+  "artifacts/0.56e-labels/",
+  "artifacts/0.57e-parity/",
+  "artifacts/ship-prep/",
+];
+
 const EXACT_RULES = [
   ["hosted-clawd-parked", ".env.example", "DB and invite-token env placeholders are not part of public Alpha RC."],
   ["hosted-clawd-parked", "package.json", "Hosted Clawd DB scripts/dependencies must stay out of F2 Alpha RC."],
@@ -279,6 +301,9 @@ for the selected RC mode. Use this before staging/deploy claims.
   hosted-clawd-scaffold  Allows only the human-reopened Hosted Clawd scaffold
                          envelope. Persistence, money, and public claims must
                          still be OFF by default.
+  hosted-clawd-fable-integration
+                         Allows the Hosted Clawd scaffold plus the explicit
+                         Fable 0.53E-0.58E visual chain.
 
 The check is conservative. Parked runtime/backend/visual paths, shared docs
 that require hunk review, and unknown paths block a Functional Alpha RC.`);
@@ -427,6 +452,13 @@ function classifyPath(path) {
     };
   }
 
+  if (rcMode === "hosted-clawd-fable-integration" && isHostedClawdFableIntegrationPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named Hosted Clawd plus Fable integration RC mode.",
+    };
+  }
+
   for (const [classification, exactPath, reason] of EXACT_RULES) {
     if (path === exactPath) {
       return { classification, reason };
@@ -485,6 +517,14 @@ function getSelectedRcAllowedPaths(modeName) {
       paths.add(path);
     }
   }
+  if (modeName === "hosted-clawd-fable-integration") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+  }
   return paths;
 }
 
@@ -503,6 +543,9 @@ function isSelectedRcAllowedPath(path) {
   }
   if (rcMode === "hosted-clawd-scaffold") {
     return isHostedClawdScaffoldPath(path);
+  }
+  if (rcMode === "hosted-clawd-fable-integration") {
+    return isHostedClawdFableIntegrationPath(path);
   }
   return false;
 }
@@ -530,6 +573,14 @@ function isHostedClawdScaffoldPath(path) {
   return HOSTED_CLAWD_SCAFFOLD_FILES.has(path) || HOSTED_CLAWD_SCAFFOLD_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
+function isHostedClawdFableIntegrationPath(path) {
+  return (
+    isHostedClawdScaffoldPath(path) ||
+    HOSTED_CLAWD_FABLE_INTEGRATION_FILES.has(path) ||
+    HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.some((prefix) => path.startsWith(prefix))
+  );
+}
+
 function getSelectedRcAllowlistSummary(modeName) {
   const exact = [...selectedRcAllowedPaths];
   if (modeName === "engine-beta-renderer") {
@@ -547,6 +598,13 @@ function getSelectedRcAllowlistSummary(modeName) {
   }
   if (modeName === "hosted-clawd-scaffold") {
     return [...exact, ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`)];
+  }
+  if (modeName === "hosted-clawd-fable-integration") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
   }
   return exact;
 }
