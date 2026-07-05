@@ -677,7 +677,11 @@ function drawScene(
   for (const place of orderedSceneItems(renderCommands, "place_marker", scene.places)) drawPlaceMarker(layers.markerLayer, place, selectedPlaceId, hoverPlaceId, onSelectPlace, onHoverPlace, animated);
   for (const pin of orderedSceneItems(renderCommands, "pin", scene.pins)) drawPin(layers.markerLayer, pin, atlas);
   if (includeLabels) {
-    for (const place of orderedSceneItems(renderCommands, "place_label", scene.places)) drawPlaceLabel(layers.labelLayer, place, selectedPlaceId, hoverPlaceId);
+    // 0.56E — labels clear the architecture: each place's label lifts above
+    // the tallest structure anchored to it (plus crown allowance), instead of
+    // sitting at a fixed ground offset that erased landmark crowns.
+    const crownLift = placeCrownLiftMap(scene.buildings);
+    for (const place of orderedSceneItems(renderCommands, "place_label", scene.places)) drawPlaceLabel(layers.labelLayer, place, selectedPlaceId, hoverPlaceId, crownLift.get(place.id));
   }
   if (debugMode === "engine") drawEngineDebugOverlay(layers.hudBridgeLayer, scene);
   return sceneWindow.frame;
@@ -5528,7 +5532,21 @@ function offsetPinPoint(point: ProjectedPoint, pin: CityWorldPin): ProjectedPoin
   return { x: point.x + 4, y: point.y + 22 };
 }
 
-function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId: string, hoverPlaceId: string | undefined) {
+// 0.56E — a place label must never erase the architecture it names: the lift
+// is the max of the legacy ground offset and the tallest anchored structure's
+// silhouette (roof + crown allowance), clamped so labels stay attached.
+function placeCrownLiftMap(buildings: CityWorldBuilding[]): Map<string, number> {
+  const lift = new Map<string, number>();
+  for (const building of buildings) {
+    if (!building.placeId) continue;
+    const crownAllowance = hasHeroTieredCrown(building) ? 52 : building.roofShape === "tower" ? 30 : 14;
+    const clearance = Math.min(building.height * TILE_DEPTH + crownAllowance, 104);
+    if (clearance > (lift.get(building.placeId) ?? 0)) lift.set(building.placeId, clearance);
+  }
+  return lift;
+}
+
+function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId: string, hoverPlaceId: string | undefined, crownLift?: number) {
   const selected = place.id === selectedPlaceId;
   const hovered = place.id === hoverPlaceId;
   if (!selected && !hovered && place.labelPriority < 7) return;
@@ -5546,7 +5564,8 @@ function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId
     },
   });
   text.anchor.set(0.5);
-  text.position.set(point.x + (landmarkFocus ? -28 : 0), point.y - (landmarkFocus ? 70 : selected || hovered ? 55 : 44));
+  const baseLift = landmarkFocus ? 70 : selected || hovered ? 55 : 44;
+  text.position.set(point.x + (landmarkFocus ? -28 : 0), point.y - Math.max(baseLift, crownLift ?? 0));
   const paddingX = landmarkFocus ? 8 : 7;
   const paddingY = landmarkFocus ? 3 : 4;
   const backing = new Graphics()
