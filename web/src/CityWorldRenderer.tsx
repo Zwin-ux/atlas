@@ -2625,29 +2625,18 @@ function drawPublicRiversideObjectAuthorshipPass(layer: Container, geometry: Bui
 function drawPublicCivicLandmarkObjectKit(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   drawPublicCivicLandmarkSilhouette(layer, geometry, building);
   drawCivicLandmarkBaseHierarchy(layer, geometry);
-  drawCivicLandmarkRoofHierarchy(layer, geometry);
+  drawCivicLandmarkRoofHierarchy(layer, geometry, building);
   drawCivicLandmarkFacadeHierarchy(layer, geometry);
   if (building.id === "building-civic") drawEastvaleCorePublicCivicSignature(layer, geometry);
 }
 
+// 0.55E decal discipline — the object-kit read owns the entry canopy and
+// facade rhythm for this exact population (both run only on civic_landmark
+// kit buildings), so this generation's duplicate canopy + pilaster bars and
+// plinth-edge strokes (stairCuts in the base hierarchy do that job) are
+// retired. The silhouette fn keeps the non-hero roof crown.
 function drawPublicCivicLandmarkSilhouette(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor } = geometry;
-  const plinthEdge = new Graphics()
-    .moveTo(bottom.x - footprintWidth * 0.46, bottom.y + footprintDepth * 0.42)
-    .lineTo(bottom.x - footprintWidth * 0.12, bottom.y + footprintDepth * 0.58)
-    .lineTo(bottom.x + footprintWidth * 0.24, bottom.y + footprintDepth * 0.42)
-    .moveTo(bottom.x + footprintWidth * 0.46, bottom.y + footprintDepth * 0.4)
-    .lineTo(bottom.x + footprintWidth * 0.12, bottom.y + footprintDepth * 0.58)
-    .lineTo(bottom.x - footprintWidth * 0.22, bottom.y + footprintDepth * 0.42);
-  plinthEdge.stroke({ color: 0x7f6d4e, alpha: 0.26, width: 1.6, cap: "round", join: "round" });
-
-  const entryCanopy = polygon(
-    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.06 }, footprintWidth * 0.32, footprintDepth * 0.13),
-    0xb7dceb,
-    0.34,
-    trimColor,
-    0.1,
-  );
+  const { top, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
   const roofCrown = polygon(
     diamondPoints({ x: top.x - footprintWidth * 0.02, y: top.y - footprintDepth * 0.42 }, footprintWidth * 0.5, footprintDepth * 0.17),
     shadeColor(roofColor, 22),
@@ -2655,14 +2644,6 @@ function drawPublicCivicLandmarkSilhouette(layer: Container, geometry: BuildingG
     trimColor,
     0.12,
   );
-  const civicPilasters = new Graphics();
-  for (let bay = -2; bay <= 2; bay += 1) {
-    civicPilasters
-      .roundRect(top.x + bay * (footprintWidth * 0.12) - 2.5, bottom.y - footprintDepth * 0.42, 5, 23, 1.5)
-      .fill({ color: bay === 0 ? 0xd7f0f3 : highlightColor, alpha: bay === 0 ? 0.56 : 0.34 });
-  }
-  civicPilasters.stroke({ color: trimColor, alpha: 0.1, width: 0.8 });
-  layer.addChild(plinthEdge, entryCanopy, civicPilasters);
   if (!hasHeroTieredCrown(building)) layer.addChild(roofCrown);
 }
 
@@ -2693,7 +2674,10 @@ function drawCivicLandmarkBaseHierarchy(layer: Container, geometry: BuildingGeom
   layer.addChild(baseShadow, forecourt, stairCuts);
 }
 
-function drawCivicLandmarkRoofHierarchy(layer: Container, geometry: BuildingGeometry) {
+function drawCivicLandmarkRoofHierarchy(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  // 0.55E — the hero's tiered crown owns its roof; this generation's floating
+  // cap + inset + shoulder strokes only draw for non-hero kit landmarks.
+  if (hasHeroTieredCrown(building)) return;
   const { top, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
   const civicCap = polygon(
     diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.36 }, footprintWidth * 0.42, footprintDepth * 0.22),
@@ -2721,27 +2705,21 @@ function drawCivicLandmarkRoofHierarchy(layer: Container, geometry: BuildingGeom
   layer.addChild(civicCap, capInset, shoulderLines);
 }
 
+// 0.55E — wingRhythm retired: the object-kit read's entry bays own the facade
+// bar rhythm. The center glass column (unique atrium read) and the warm entry
+// axis stroke stay.
 function drawCivicLandmarkFacadeHierarchy(layer: Container, geometry: BuildingGeometry) {
-  const { top, bottom, footprintWidth, footprintDepth, highlightColor, trimColor } = geometry;
+  const { top, bottom, footprintWidth, footprintDepth, trimColor } = geometry;
   const centerGlass = new Graphics()
     .roundRect(top.x - footprintWidth * 0.08, bottom.y - footprintDepth * 0.34, footprintWidth * 0.16, 26, 3)
     .fill({ color: 0xb7dceb, alpha: 0.38 })
     .stroke({ color: trimColor, alpha: 0.12, width: 0.9 });
-  const wingRhythm = new Graphics();
-  for (let bay = -3; bay <= 3; bay += 1) {
-    if (bay === 0) continue;
-    const bayAlpha = Math.abs(bay) === 1 ? 0.36 : 0.24;
-    wingRhythm
-      .roundRect(top.x + bay * (footprintWidth * 0.1) - 3, bottom.y - footprintDepth * 0.22, 6, 17, 1.4)
-      .fill({ color: highlightColor, alpha: bayAlpha });
-  }
-  wingRhythm.stroke({ color: trimColor, alpha: 0.1, width: 0.8 });
   const entryAxis = new Graphics()
     .moveTo(top.x - footprintWidth * 0.18, bottom.y - footprintDepth * 0.08)
     .lineTo(top.x, bottom.y + footprintDepth * 0.02)
     .lineTo(top.x + footprintWidth * 0.2, bottom.y - footprintDepth * 0.08);
   entryAxis.stroke({ color: 0xfff1cc, alpha: 0.42, width: 2, cap: "round", join: "round" });
-  layer.addChild(centerGlass, wingRhythm, entryAxis);
+  layer.addChild(centerGlass, entryAxis);
 }
 
 function drawEastvaleCorePublicCivicSignature(layer: Container, geometry: BuildingGeometry) {
@@ -3216,15 +3194,11 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
   layer.addChild(serviceApron, foundationLine, roofMonitors, serviceBays, utilitySideRibs);
 }
 
+// 0.55E decal discipline — this generation's baseTerrace (duplicate of the
+// object-kit plinth tiers) and facadeBeats (duplicate facade bar rhythm) are
+// retired; the fn keeps the non-hero upper roof cap it uniquely owns.
 function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, roofColor, highlightColor, trimColor } = geometry;
-  const baseTerrace = polygon(
-    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.32 }, footprintWidth * 0.84, footprintDepth * 0.22),
-    0xddc18f,
-    0.32,
-    0x7f6d4e,
-    0.12,
-  );
+  const { top, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
   const upperCap = polygon(
     diamondPoints({ x: top.x, y: top.y - footprintDepth * 0.3 }, footprintWidth * 0.34, footprintDepth * 0.26),
     shadeColor(roofColor, 30),
@@ -3232,14 +3206,6 @@ function drawAuthoredCivicLandmarkMass(layer: Container, geometry: BuildingGeome
     trimColor,
     0.18,
   );
-  const facadeBeats = new Graphics();
-  for (let bay = -3; bay <= 3; bay += 1) {
-    facadeBeats
-      .roundRect(top.x + bay * (footprintWidth * 0.09) - 3, bottom.y - footprintDepth * 0.27, 6, 15, 1.5)
-      .fill({ color: bay === 0 ? 0xb7dceb : highlightColor, alpha: bay === 0 ? 0.62 : 0.42 });
-  }
-  facadeBeats.stroke({ color: trimColor, alpha: 0.12, width: 0.8 });
-  layer.addChild(baseTerrace, facadeBeats);
   if (!hasHeroTieredCrown(building)) layer.addChild(upperCap);
 }
 
@@ -4481,7 +4447,16 @@ function drawCivicDetails(layer: Container, geometry: BuildingGeometry, building
     .moveTo(top.x + footprintWidth * 0.48, bottom.y - footprintDepth * 0.02)
     .lineTo(top.x + footprintWidth * 0.31, bottom.y + footprintDepth * 0.08);
   baseRibs.stroke({ color: trimColor, alpha: 0.14, width: 1.2, cap: "round", join: "round" });
-  layer.addChild(sideTerraceLeft, sideTerraceRight, plinth, frontSteps, entryBlock, entryCanopy, columns, sideWindows, facadeRhythm, baseRibs);
+  // 0.55E decal discipline — on object-kit civic landmarks the kit read owns
+  // the plinth (plinthTiers), the entry canopy, and the facade bar rhythm, so
+  // this generation's plinth pad, canopy, and near-white column bars (the
+  // worst single wash: 5 bars + a wide band at alpha ~0.95) stand down there.
+  // Non-kit civic buildings keep the full legacy read.
+  if (isObjectKitCivicLandmark(building)) {
+    layer.addChild(sideTerraceLeft, sideTerraceRight, frontSteps, entryBlock, sideWindows, facadeRhythm, baseRibs);
+  } else {
+    layer.addChild(sideTerraceLeft, sideTerraceRight, plinth, frontSteps, entryBlock, entryCanopy, columns, sideWindows, facadeRhythm, baseRibs);
+  }
 
   const flag = new Graphics()
     .rect(top.x + footprintWidth * 0.08, top.y - 34, 2, 17)
@@ -4544,15 +4519,9 @@ function drawEastvaleCoreLandmarkDetails(layer: Container, geometry: BuildingGeo
   civicPlinthStack.stroke({ color: 0x8b7954, alpha: 0.3, width: 1.7, cap: "round", join: "round" });
 
   // (item C) roofShoulders retired with the other roof decals — crown owns it.
-  const entryAxis = polygon(
-    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.36 }, footprintWidth * 0.32, footprintDepth * 0.14),
-    0xf0d8a8,
-    0.42,
-    0x7f6d4e,
-    0.16,
-  );
-
-  layer.addChild(civicPlinthStack, entryAxis, entryFrame, entryGlass, wingBays, civicNameplateGeometry);
+  // (0.55E) the entryAxis ground pad is retired too: the base hierarchy
+  // forecourt + the kit plinth tiers already own the approach read.
+  layer.addChild(civicPlinthStack, entryFrame, entryGlass, wingBays, civicNameplateGeometry);
 }
 
 function drawDraftAnchorDetails(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
