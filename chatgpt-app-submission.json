@@ -5,7 +5,10 @@
     "display_name": "Atlas",
     "subtitle": "Explore your county as a voxel city and scout it with an AI agent",
     "description": "Atlas opens your county inside ChatGPT as an explorable voxel city map. Browse the streets, ask closed-world local questions, and drop Clawd — an AI companion — onto a place to scout opportunity signals, risks, and a route, then generate a manual 7-day campaign preview. Whether you're sizing up a local business, exploring your town, or researching a market, it all happens in the chat and is session-only: do not save state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Riverside/Eastvale is the playable Alpha; other California counties show honest coverage status. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is planned, not live.",
-    "category": "BUSINESS"
+    "category": "BUSINESS",
+    "icon": "assets/generated/placeholders/png/atlas-icon.png",
+    "privacy_policy_url": "https://atlas-backend-production-e6fc.up.railway.app/privacy",
+    "terms_of_service_url": "https://atlas-backend-production-e6fc.up.railway.app/terms"
   },
   "tools": {
     "select_county": {

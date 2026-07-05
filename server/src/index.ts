@@ -982,6 +982,103 @@ function jsonResponse(res: ServerResponse, status: number, body: unknown): void 
   res.end(JSON.stringify(body));
 }
 
+// ---- Legal / directory pages (ChatGPT App Store G6 requirement) -------------
+// Atlas is session-only: it persists nothing, has no accounts, and sells no
+// data. These pages state exactly that — they are honest to the app's actual
+// behavior (verified by verify-submission.mjs / verify-provider-boundaries.mjs),
+// not boilerplate. Owner contact is overridable via ATLAS_CONTACT_EMAIL.
+const ATLAS_CONTACT_EMAIL = process.env.ATLAS_CONTACT_EMAIL ?? "mzwin3545@gmail.com";
+const LEGAL_LAST_UPDATED = "2026-07-05";
+
+function legalPageShell(title: string, bodyHtml: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Atlas — ${title}</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem;
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #1c2530; background: #fbfaf6; }
+      @media (prefers-color-scheme: dark) { body { color: #e7ecf2; background: #12161b; } }
+      h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+      h2 { font-size: 1.1rem; margin: 1.8rem 0 .4rem; }
+      .meta { opacity: .6; font-size: .85rem; margin-bottom: 1.5rem; }
+      a { color: #2f6fb0; }
+      ul { padding-left: 1.2rem; }
+      li { margin: .3rem 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Atlas — ${title}</h1>
+    <p class="meta">Last updated ${LEGAL_LAST_UPDATED}. Atlas is an Alpha ChatGPT app.</p>
+    ${bodyHtml}
+    <p style="margin-top:2.5rem"><a href="/preview">Open Atlas</a></p>
+  </body>
+</html>`;
+}
+
+function privacyPageHtml(): string {
+  return legalPageShell(
+    "Privacy Policy",
+    `<p>Atlas is a ChatGPT app that renders a voxel county map and session-only
+      previews. It is built to store as little as possible about you.</p>
+    <h2>What Atlas does not collect</h2>
+    <ul>
+      <li>No accounts, no sign-in, no user profiles.</li>
+      <li>No persistent storage of your activity. Pins, notes, scout drops, and
+        campaign previews exist only for the current session and are discarded
+        when it ends. Nothing is saved to a database.</li>
+      <li>No advertising identifiers, no cross-site tracking, no data sales.</li>
+    </ul>
+    <h2>Location lookups</h2>
+    <p>When you ask Atlas to look up a place, the location text you provide may be
+      sent to Google Maps Platform to resolve it into map results. This is
+      read-only and used solely to answer that request; Atlas does not store the
+      query or the result beyond the session. Google's handling of that request
+      is governed by Google's own privacy terms.</p>
+    <h2>Data shared with OpenAI / ChatGPT</h2>
+    <p>Atlas runs inside ChatGPT via the Apps SDK. Your interaction with the
+      ChatGPT surface is governed by OpenAI's privacy policy. Atlas itself
+      receives only the tool inputs needed to render the map and previews.</p>
+    <h2>Children</h2>
+    <p>Atlas is not directed to children under 13.</p>
+    <h2>Contact</h2>
+    <p>Questions about this policy: <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>`,
+  );
+}
+
+function termsPageHtml(): string {
+  return legalPageShell(
+    "Terms of Service",
+    `<p>By using Atlas you agree to these terms. Atlas is Alpha software provided
+      as-is, for exploration and preview only.</p>
+    <h2>What Atlas is</h2>
+    <p>A session-only voxel map and business-scouting preview tool inside ChatGPT.
+      Scout Drop and campaign previews are illustrative planning aids — they are
+      not guarantees of results, and they do not post, message, advertise, or take
+      any action on your behalf.</p>
+    <h2>What Atlas is not (yet)</h2>
+    <ul>
+      <li>It does not save data, run automations, or process payments.</li>
+      <li>Coverage is honest: only counties marked playable are interactive; shell
+        and unsupported counties are clearly labeled and are not real playable
+        worlds.</li>
+    </ul>
+    <h2>Acceptable use</h2>
+    <p>Do not use Atlas to attempt to extract provider data, to misrepresent its
+      previews as commitments, or in violation of OpenAI's usage policies.</p>
+    <h2>No warranty</h2>
+    <p>Atlas is provided "as is" without warranties of any kind. To the maximum
+      extent permitted by law, the operator is not liable for any damages arising
+      from its use.</p>
+    <h2>Contact</h2>
+    <p><a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>`,
+  );
+}
+
 function setCors(res: ServerResponse): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
@@ -1782,6 +1879,16 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/api/campaign/preview" && req.method === "GET") {
     handleCampaignPreview(url, res);
+    return;
+  }
+
+  if (url.pathname === "/privacy" && req.method === "GET") {
+    htmlResponse(res, 200, privacyPageHtml());
+    return;
+  }
+
+  if (url.pathname === "/terms" && req.method === "GET") {
+    htmlResponse(res, 200, termsPageHtml());
     return;
   }
 
