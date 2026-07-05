@@ -3337,8 +3337,48 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   drawBuildingShellLighting(layer, geometry);
   drawWallDepthLines(layer, geometry, building);
   drawAuthoredWallMaterial(layer, geometry, building);
+  drawStorefrontBase(layer, geometry, building);
 
   drawRoof(layer, geometry, building, selected, hovered);
+}
+
+// 0.53E Hero Silhouette — a recessed, glazed ground-floor band with a canopy lip
+// across the two front walls of commerce/civic/service buildings. Reads as a
+// real shopfront / entrance storey, so the box gains a base storey instead of
+// being a single blank extrusion. Sun-consistent; skips homes and towers.
+function drawStorefrontBase(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const family = building.visualGrammar?.objectFamily;
+  const eligible = family === "commerce_strip" || family === "civic_landmark" || family === "service_block" || family === "venue_anchor" || family === "transit_anchor";
+  if (!eligible) return;
+
+  const { top, bottom, footprintWidth, footprintDepth, bodyColor } = geometry;
+  const halfW = footprintWidth / 2;
+  const halfD = footprintDepth / 2;
+  const wallSpan = bottom.y - top.y;
+  if (wallSpan < 16) return; // too short to carry a distinct storey
+  const f = 0.66; // band starts ~two-thirds down the wall
+  const bandY = (edgeTopY: number) => edgeTopY + wallSpan * f;
+  const civic = family === "civic_landmark" || family === "venue_anchor" || family === "transit_anchor";
+  const glassTone = civic ? 0xd6e4e0 : 0xbfe2ea;
+  const recess = shadeColor(bodyColor, -30);
+
+  // Left (sun) + right (shade) lower-wall quads.
+  const leftBand = new Graphics()
+    .poly([top.x - halfW, bandY(top.y), top.x, bandY(top.y + halfD), top.x, bottom.y + halfD, top.x - halfW, bottom.y], true)
+    .fill({ color: sunlitColor(recess, "sun"), alpha: 0.55 });
+  const rightBand = new Graphics()
+    .poly([top.x + halfW, bandY(top.y), top.x, bandY(top.y + halfD), top.x, bottom.y + halfD, top.x + halfW, bottom.y], true)
+    .fill({ color: sunlitColor(recess, "shade"), alpha: 0.6 });
+  // Glazing sheen on the sun side + a canopy lip line where the band starts.
+  const glazing = new Graphics()
+    .poly([top.x - halfW * 0.9, bandY(top.y) + wallSpan * 0.06, top.x - halfW * 0.06, bandY(top.y + halfD * 0.9) + wallSpan * 0.06, top.x - halfW * 0.06, bottom.y + halfD * 0.86, top.x - halfW * 0.9, bottom.y - wallSpan * 0.02], true)
+    .fill({ color: glassTone, alpha: civic ? 0.16 : 0.2 });
+  const canopy = new Graphics()
+    .moveTo(top.x - halfW, bandY(top.y))
+    .lineTo(top.x, bandY(top.y + halfD))
+    .lineTo(top.x + halfW, bandY(top.y));
+  canopy.stroke({ color: mixColor(shadeColor(bodyColor, 30), SUN_WARM_TINT, 0.16), alpha: 0.7, width: 1.6, cap: "round", join: "round" });
+  layer.addChild(leftBand, rightBand, glazing, canopy);
 }
 
 // Ambient occlusion + rim light for the box shell: dark gradient bands where
