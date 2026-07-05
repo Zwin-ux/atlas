@@ -30,6 +30,15 @@ to origin — nothing was discarded.
 
 ## High Priority
 
+0. **NEXT Fable super-move LOADED: "The Hero Silhouette" pass (0.53E).**
+   - Spec: `docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md`.
+   - Branch off `fable/0.52e-diorama-engine` → `fable/0.53e-hero-silhouette`.
+   - Goal: buildings read as authored architecture (silhouette variety +
+     material legibility + finished light model), pushing north-star ~7 → ≥8.
+     Ground is solved; this makes the *subject* worthy. Strictly inside
+     invariants (no props/deps/3D/deploy; palette-cohesion + 0.52E contact
+     grammar intact). Status: prompt loaded, **not yet run.**
+
 1. **"The Diorama Engine" pass: RUN (2026-07-04, `fable/0.52e-diorama-engine`).**
    - Spec: `docs/design/fable-prompts/DIORAMA_ENGINE_SUPERPASS.md`. Result:
      BUILD_LOG Entry 082.
