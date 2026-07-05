@@ -84,3 +84,30 @@ massing is contact grammar, NOT decal fog — leave it alone.
 - **0.57E Generated-district parity** — the parametric "Turn to a new
   district" scenes must hit the same visual bar + diagnostics as curated
   Eastvale; that is what makes Atlas a SERVICE engine, not a hand-tuned demo.
+
+---
+
+## 0.57E Generated-District Parity — scouting findings (2026-07-05)
+
+Sprite-footprint fit landed renderer-side (`drawSpriteBuilding`: sprites now
+scale to the building footprint, clamped 0.72–1.45; curated Plaza Row finally
+fills its authored 6.1-tile lot). The REMAINING parity gaps are all
+**compiler-side in `cityWorldParametricGenerator.ts`** (evidence:
+`artifacts/0.57e-parity/generated-district-*.png`, deterministic layout):
+
+1. **"Commercial row" toy-box massing** — generator authors low tan slabs with
+   small saturated blocks on top that read as toys, not storefronts. Route
+   them through the same commerce_strip family grammar Eastvale uses
+   (storefront base + parapet + kit read), not bespoke stacked masses.
+2. **Empty lot rings** — foundation pads/selection ovals with NO building
+   (top-left cluster). Either place a building or don't emit the pad.
+3. **Density** — bottom half of the district is empty field; Eastvale's
+   residential fabric fills its frame. Raise parcel fill or shrink the tile
+   window.
+4. **Red-roof misregistration** — the center building's roof plane bleeds past
+   its eaves (authored roof polygon vs footprint mismatch).
+5. Apartment court window columns float off wall edges at some widths.
+
+Acceptance: a generated district passes the same eyeball bar + diagnostics as
+curated Eastvale; the honesty banner stays; verifiers stay green. This is a
+core-package pass (compiler + tests), sized like 0.53E.

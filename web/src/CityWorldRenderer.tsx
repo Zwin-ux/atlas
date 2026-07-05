@@ -2411,7 +2411,14 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
   const variant = objectVariant(building.id, 97);
   const flip = home && variant % 2 === 0 ? -1 : 1;
   const jitter = home ? 0.95 + (variant % 11) / 100 : 1; // 0.95–1.05
-  sprite.scale.set(asset.scale * jitter * flip, asset.scale * jitter);
+  // 0.57E generated-district parity — sprites must FIT the building footprint
+  // they stand on. Curated Riverside footprints match the authored art
+  // (ratio ~1, unchanged); parametric districts author arbitrary widths, and
+  // a fixed-scale sprite there read as a toy box floating on its apron. The
+  // fit is clamped so damaged ratios can never balloon or vanish a sprite.
+  const displayWidth = asset.texture.width * asset.scale;
+  const footprintFit = displayWidth > 0 ? clamp(geometry.footprintWidth / displayWidth, 0.72, 1.45) : 1;
+  sprite.scale.set(asset.scale * footprintFit * jitter * flip, asset.scale * footprintFit * jitter);
   sprite.position.set(Math.round(bottom.x), Math.round(bottom.y + footprintDepth * 0.5));
   // Honor the building's assigned palette-variant ramp on screen: gently wash
   // the textured sprite toward its resolved body color so sprite-mode buildings
