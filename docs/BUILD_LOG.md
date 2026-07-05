@@ -7997,3 +7997,23 @@ Net -92 lines of draw code; all ~95 draw fns survive with real jobs.
 
 Remaining queued (spec doc): 0.56E label/marker layout (lift labels off
 landmark crowns), 0.57E generated-district parity (service-engine bar).
+
+## Entry 086
+
+**0.56E label layout — labels clear the architecture, 2026-07-05, Fable.**
+Branch `fable/0.56e-label-layout` (`4532a68`, stacked on 0.55E). Place labels
+sat at a fixed -44px ground offset that landed exactly on landmark crowns —
+the plateau named in Entry 083. `placeCrownLiftMap` now lifts each label above
+the tallest structure anchored to its place (roof + crown allowance: 52px hero
+tiered crown / 30px tower / 14px default, clamped 104px), legacy offset for
+building-less places. Eastvale Core, Plaza Row, and Gym labels float clear of
+their silhouettes on desktop AND 390x844. The 0.53E hero crown is now fully
+visible in the default frame for the first time. Verified: 89/89, product-loop
+ok desktop+mobile, rc-split 0/0, git diff --check clean.
+
+Session arc (one Fable run, 2026-07-05): 0.53E finish (A-E) → 0.54E grade +
+Apps SDK tool discovery → 0.55E decal discipline → 0.56E label layout. Each
+pass on its own branch, all verifier-green, all awaiting the single human
+gate. Next queued Fable-class engine work: **0.57E generated-district parity**
+(parametric districts must hit the curated bar — the service-engine milestone;
+see DECAL_DISCIPLINE_SUPERPASS.md tail).
