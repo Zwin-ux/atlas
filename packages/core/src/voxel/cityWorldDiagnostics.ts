@@ -54,7 +54,9 @@ export type CityWorldEngineDiagnosticReport = {
     terrainComposition: Record<string, number>;
     terrainElevation: Record<string, number>;
     roadProfiles: Record<string, number>;
+    roadContactProfiles: Record<string, number>;
     lotProfiles: Record<string, number>;
+    lotContactProfiles: Record<string, number>;
     parcelElevation: Record<string, number>;
     objectFamilies: Record<string, number>;
     clusterRoles: Record<string, number>;
@@ -69,6 +71,10 @@ export type CityWorldEngineDiagnosticReport = {
     focalFeatureDensityRatio: number;
     buildingLotContactRatio: number;
     lotRoadContactRatio: number;
+    authoredTerrainContactRatio: number;
+    authoredRoadContactRatio: number;
+    authoredLotContactRatio: number;
+    lotCurbCutCoverageRatio: number;
     objectFamilyCoverageRatio: number;
     homeClonePressure: number;
     homeVariantCount: number;
@@ -133,7 +139,9 @@ export function analyzeCityWorldScene(
   const terrainComposition = countBy(scene.terrainTiles, (tile) => tile.visualGrammar?.terrainComposition ?? "none");
   const terrainElevation = countBy(scene.terrainTiles, (tile) => tile.visualGrammar?.terrainElevation ?? "none");
   const roadProfiles = countBy(scene.roadSegments, (road) => road.visualGrammar?.roadProfile ?? "none");
+  const roadContactProfiles = countBy(scene.roadSegments, (road) => road.visualGrammar?.roadContact?.profile ?? "none");
   const lotProfiles = countBy(scene.lots, (lot) => lot.visualGrammar?.lotProfile ?? "none");
+  const lotContactProfiles = countBy(scene.lots, (lot) => lot.visualGrammar?.lotContact?.profile ?? "none");
   const parcelElevation = countBy(scene.lots, (lot) => lot.visualGrammar?.parcelElevation ?? "none");
   const objectFamilies = countBy(scene.buildings, (building) => building.visualGrammar?.objectFamily ?? "none");
   const clusterRoles = countBy(scene.buildings, (building) => building.visualGrammar?.clusterRole ?? "none");
@@ -150,6 +158,14 @@ export function analyzeCityWorldScene(
   const maxHomeVariantCount = Math.max(0, ...Object.values(homeVariantCounts));
   const buildingLotContacts = scene.buildings.filter((building) => scene.lots.some((lot) => cityWorldBuildingTouchesLot(building, lot))).length;
   const lotRoadContacts = scene.lots.filter((lot) => scene.roadSegments.some((road) => cityWorldLotTouchesRoad(lot, road))).length;
+  // Unified contact grammar (0.52E): the compiler must author typed contact
+  // metadata on every ground entity so the renderer never falls back to
+  // draw-time id/kind derivation.
+  const authoredTerrainContacts = scene.terrainTiles.filter((tile) => Boolean(tile.visualGrammar?.terrainContact)).length;
+  const authoredRoadContacts = scene.roadSegments.filter((road) => Boolean(road.visualGrammar?.roadContact)).length;
+  const authoredLotContacts = scene.lots.filter((lot) => Boolean(lot.visualGrammar?.lotContact)).length;
+  const curbCutEligibleLots = scene.lots.filter((lot) => lot.visualGrammar?.lotContact && lot.visualGrammar.lotContact.profile !== "shore");
+  const curbCutServedLots = curbCutEligibleLots.filter((lot) => Boolean(lot.visualGrammar?.lotContact?.curbCutEdge)).length;
   const spriteBackedBuildings = scene.buildings.filter((building) => Boolean(building.spriteKey)).length;
   const expectedObjectFamilies = scenario === "hidden_draft" ? 4 : scenario === "playable" ? 5 : 1;
   const objectFamilyCount = Object.keys(objectFamilies).filter((family) => family !== "none").length;
@@ -180,6 +196,10 @@ export function analyzeCityWorldScene(
     focalFeatureDensityRatio: cityWorldClamp(featureArea / worldCellCount, 0, 1),
     buildingLotContactRatio: ratio(buildingLotContacts, scene.buildings.length),
     lotRoadContactRatio: ratio(lotRoadContacts, scene.lots.length),
+    authoredTerrainContactRatio: ratio(authoredTerrainContacts, scene.terrainTiles.length),
+    authoredRoadContactRatio: ratio(authoredRoadContacts, scene.roadSegments.length),
+    authoredLotContactRatio: ratio(authoredLotContacts, scene.lots.length),
+    lotCurbCutCoverageRatio: ratio(curbCutServedLots, curbCutEligibleLots.length),
     objectFamilyCoverageRatio: cityWorldClamp(objectFamilyCount / expectedObjectFamilies, 0, 1),
     homeClonePressure: ratio(maxHomeVariantCount, homes.length),
     homeVariantCount: Object.keys(homeVariantCounts).length,
@@ -230,7 +250,9 @@ export function analyzeCityWorldScene(
       terrainComposition,
       terrainElevation,
       roadProfiles,
+      roadContactProfiles,
       lotProfiles,
+      lotContactProfiles,
       parcelElevation,
       objectFamilies,
       clusterRoles,
@@ -301,6 +323,10 @@ function collectMetricWarnings(
     warnAbove(warnings, "density", "HIGH_EMPTY_BOARD", metrics.emptyBoardRatio, 0.42, "Playable scene still has a high empty-board ratio.");
     warnBelow(warnings, "contact", "LOW_BUILDING_LOT_CONTACT", metrics.buildingLotContactRatio, 0.86, "Too many buildings are not grounded by lot contact.");
     warnBelow(warnings, "contact", "LOW_LOT_ROAD_CONTACT", metrics.lotRoadContactRatio, 0.72, "Too many lots lack road/contact access.");
+    warnBelow(warnings, "contact", "LOW_AUTHORED_TERRAIN_CONTACT", metrics.authoredTerrainContactRatio, 1, "Playable terrain tiles are missing compiler-authored contact metadata.");
+    warnBelow(warnings, "contact", "LOW_AUTHORED_ROAD_CONTACT", metrics.authoredRoadContactRatio, 1, "Playable road segments are missing compiler-authored contact metadata.");
+    warnBelow(warnings, "contact", "LOW_AUTHORED_LOT_CONTACT", metrics.authoredLotContactRatio, 1, "Playable lots are missing compiler-authored contact metadata.");
+    warnBelow(warnings, "contact", "LOW_LOT_CURB_CUT_COVERAGE", metrics.lotCurbCutCoverageRatio, 0.6, "Too few lots carry a curb-cut join toward their serving road.");
     warnBelow(warnings, "object_authorship", "LOW_OBJECT_FAMILY_COVERAGE", metrics.objectFamilyCoverageRatio, 0.9, "Playable scene does not cover enough object families.");
     warnBelow(warnings, "object_authorship", "LOW_FACE_ORIENTATION_COVERAGE", metrics.faceOrientationCoverageRatio, 0.9, "Playable scene lacks enough front/side/top face orientation cues.");
     warnBelow(warnings, "object_authorship", "LOW_ROOF_SIDE_SEPARATION", metrics.roofSideSeparationRatio, 0.85, "Playable scene lacks enough roof/body separation.");
@@ -318,6 +344,14 @@ function collectMetricWarnings(
     warnBelow(warnings, "source_contrast", "LOW_HIDDEN_ANCHOR_CONTRAST", metrics.hiddenAnchorContrastScore, 0.68, "Hidden draft no-label anchors do not have enough source-art contrast.");
     warnBelow(warnings, "object_authorship", "LOW_HIDDEN_CIVIC_VENUE_OBJECT_KIT", metrics.civicVenueObjectKitScore, 0.74, "Hidden draft civic/venue stress cell does not clear the reusable object-kit floor.");
     warnBelow(warnings, "object_authorship", "LOW_DRAFT_OBJECT_FAMILIES", metrics.objectFamilyCoverageRatio, 0.75, "Hidden draft lacks enough object-family coverage.");
+    warnBelow(
+      warnings,
+      "contact",
+      "LOW_AUTHORED_DRAFT_CONTACT",
+      Math.min(metrics.authoredTerrainContactRatio, metrics.authoredRoadContactRatio, metrics.authoredLotContactRatio),
+      1,
+      "Hidden draft ground entities are missing compiler-authored contact metadata.",
+    );
   }
 }
 

@@ -12,6 +12,8 @@ import {
   analyzeCityWorldObjectKit,
   parseDistrictPlaceAnchorPack,
   riversideDemoVoxelScene,
+  withLotMetadata,
+  withRoadMetadata,
 } from "../src/index.js";
 
 const testDir = dirname(fileURLToPath(import.meta.url));
@@ -168,6 +170,122 @@ describe("CityWorld compiler", () => {
     expect(report.metrics.terrainMassingCoverageRatio).toBeGreaterThanOrEqual(0.88);
     expect(report.metrics.buildingLotContactRatio).toBeGreaterThanOrEqual(0.98);
     expect(report.weakestPrefabFamily).not.toBe("none");
+  });
+
+  it("authors the unified ground contact grammar on every road, lot, and terrain tile", () => {
+    const city = compileCityWorldScene(riversideDemoVoxelScene);
+
+    // Roads: typed contact profile + lane marking + public tone everywhere.
+    expect(city.roadSegments.length).toBeGreaterThan(0);
+    for (const road of city.roadSegments) {
+      const roadContact = road.visualGrammar?.roadContact;
+      expect(roadContact).toBeDefined();
+      expect(roadContact?.tone).toBe("public");
+      if (road.kind === "crosswalk") expect(roadContact?.profile).toBe("painted");
+      else if (road.kind === "driveway") expect(roadContact?.profile).toBe("apron");
+      else expect(roadContact?.profile).toBe("embedded");
+      if (road.kind === "avenue") expect(roadContact?.laneMarking).toBe("avenue_dash");
+      if (road.kind === "street") expect(roadContact?.laneMarking).toBe("street_dash");
+      if (road.kind === "driveway") expect(roadContact?.laneMarking).toBe("apron_dash");
+      if (road.kind === "crosswalk") expect(roadContact?.laneMarking).toBe("none");
+    }
+
+    // Lots: typed contact profile, public tone, and curb cuts facing roads.
+    expect(city.lots.length).toBeGreaterThan(0);
+    for (const lot of city.lots) {
+      const lotContact = lot.visualGrammar?.lotContact;
+      expect(lotContact).toBeDefined();
+      expect(lotContact?.tone).toBe("public");
+      if (lot.kind === "waterfront") {
+        expect(lotContact?.profile).toBe("shore");
+        expect(lotContact?.curbCutEdge).toBeUndefined();
+      } else if (lot.kind === "park") {
+        expect(lotContact?.profile).toBe("green");
+      } else if (lot.kind === "shop" || lot.kind === "gym") {
+        expect(lotContact?.profile).toBe("apron");
+      } else {
+        expect(lotContact?.profile).toBe("foundation");
+      }
+    }
+    const curbCutLots = city.lots.filter((lot) => lot.visualGrammar?.lotContact?.curbCutEdge);
+    expect(curbCutLots.length / Math.max(1, city.lots.length - 1)).toBeGreaterThanOrEqual(0.6);
+    // The plaza row sits just above Hamner Ave (y=13), so its curb cut faces
+    // the avenue on the south edge.
+    const plazaLot = city.lots.find((lot) => lot.id === "lot-plaza");
+    expect(plazaLot?.visualGrammar?.lotContact?.curbCutEdge).toBe("south");
+
+    // Terrain: tone + neighbor-derived material seams and water banks.
+    expect(city.terrainTiles.every((tile) => tile.visualGrammar?.terrainContact?.tone === "public")).toBe(true);
+    const seamTiles = city.terrainTiles.filter((tile) => (tile.visualGrammar?.terrainContact?.edgeSides?.length ?? 0) > 0);
+    const bankTiles = city.terrainTiles.filter((tile) => (tile.visualGrammar?.terrainContact?.waterEdgeSides?.length ?? 0) > 0);
+    expect(seamTiles.length).toBeGreaterThan(10);
+    expect(bankTiles.length).toBeGreaterThan(4);
+    // Bank strands live on the land side only; water tiles never carry them.
+    expect(bankTiles.every((tile) => tile.kind !== "water")).toBe(true);
+    // Each material joint is authored exactly once: grass never owns a seam
+    // against a higher-priority material.
+    for (const tile of seamTiles) {
+      expect(tile.kind).not.toBe("grass");
+    }
+
+    // Diagnostics gate the authored coverage.
+    const report = analyzeCityWorldScene(city, "playable");
+    expect(report.metrics.authoredTerrainContactRatio).toBe(1);
+    expect(report.metrics.authoredRoadContactRatio).toBe(1);
+    expect(report.metrics.authoredLotContactRatio).toBe(1);
+    expect(report.metrics.lotCurbCutCoverageRatio).toBeGreaterThanOrEqual(0.6);
+    expect(report.warnings.map((warning) => warning.code)).not.toEqual(
+      expect.arrayContaining(["LOW_AUTHORED_TERRAIN_CONTACT", "LOW_AUTHORED_ROAD_CONTACT", "LOW_AUTHORED_LOT_CONTACT", "LOW_LOT_CURB_CUT_COVERAGE"]),
+    );
+  });
+
+  it("keeps draft and shell ground tones honest and renders older scenes with defaulted contact fields", () => {
+    const anaheimAnchorPack = parseDistrictPlaceAnchorPack(JSON.parse(readFileSync(anaheimAnchorPackPath, "utf8")), anaheimAnchorPackPath);
+    const draft = compileDistrictPlaceAnchorDraftCityWorldScene({ anchorPack: anaheimAnchorPack });
+    expect(draft.roadSegments.every((road) => road.visualGrammar?.roadContact?.tone === "draft")).toBe(true);
+    expect(draft.lots.every((lot) => lot.visualGrammar?.lotContact?.tone === "draft")).toBe(true);
+    expect(draft.terrainTiles.every((tile) => tile.visualGrammar?.terrainContact?.tone === "draft")).toBe(true);
+    // Draft terrain must not fake public slab contact shadows.
+    expect(draft.terrainTiles.every((tile) => tile.visualGrammar?.terrainContact?.contactShadow !== true)).toBe(true);
+
+    const shell = compileCountyShellCityWorldScene({
+      countySlug: "orange-ca",
+      countyName: "Orange County",
+      stateCode: "CA",
+      coverage: {
+        countySlug: "orange-ca",
+        coverageTier: "L1_COUNTY_SHELL",
+        coverageLabel: "County shell",
+        coverageMessage: "Orange County is indexed, but not playable yet.",
+        playable: false,
+      },
+    });
+    expect(shell.terrainTiles.every((tile) => tile.visualGrammar?.terrainContact?.tone === "shell")).toBe(true);
+    expect(shell.terrainTiles.every((tile) => tile.visualGrammar?.terrainContact?.contactShadow !== true)).toBe(true);
+
+    // Older-scene contract: the enrichment decorators still accept bare
+    // entities without a road context and default the new optional fields.
+    const legacyLot = withLotMetadata({
+      id: "lot-legacy",
+      kind: "home",
+      label: "Legacy lot",
+      position: { x: 4, y: 4, z: 0 },
+      width: 1.6,
+      depth: 1.4,
+    });
+    expect(legacyLot.visualGrammar?.lotContact?.profile).toBe("foundation");
+    expect(legacyLot.visualGrammar?.lotContact?.tone).toBe("public");
+    expect(legacyLot.visualGrammar?.lotContact?.curbCutEdge).toBeUndefined();
+
+    const legacyRoad = withRoadMetadata({
+      id: "draft-road-legacy",
+      kind: "street",
+      from: { x: 0, y: 0, z: 0 },
+      to: { x: 4, y: 0, z: 0 },
+      width: 1.4,
+    });
+    expect(legacyRoad.visualGrammar?.roadContact?.tone).toBe("draft");
+    expect(legacyRoad.visualGrammar?.roadContact?.profile).toBe("embedded");
   });
 
   it("attaches terrain and parcel composition grammar without changing playable boundaries", () => {

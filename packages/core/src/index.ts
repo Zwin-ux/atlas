@@ -157,6 +157,11 @@ export {
   serializeVoxelMapSession,
   unprojectCityWorldGroundPoint,
   validateVoxelWorld,
+  withBuildingMetadata,
+  withCityWorldTerrainContactMetadata,
+  withLotMetadata,
+  withPropMetadata,
+  withRoadMetadata,
 } from "./voxel/index.js";
 export type {
   CreateVoxelNoteInput,

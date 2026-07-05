@@ -13,16 +13,21 @@ import {
 import type {
   CityWorldActor,
   CityWorldBuilding,
+  CityWorldGroundTone,
   CityWorldLot,
+  CityWorldLotContactGrammar,
   CityWorldPin,
   CityWorldPlace,
   CityWorldPoint,
   CityWorldProp,
   CityWorldRenderCommand,
   CityWorldRenderCommandKind,
+  CityWorldRoadContactGrammar,
   CityWorldRoadSegment,
   CityWorldScene,
+  CityWorldTerrainContactGrammar,
   CityWorldTerrainTile,
+  CityWorldTileEdge,
   CityWorldViewportFrame,
 } from "@atlas/core/voxel";
 import { createCityWorldAtlasResolver, loadCityWorldAtlasTextures, type CityWorldAtlasResolver, type CityWorldTextureMap, type ResolvedCityWorldAsset } from "./cityWorldAtlasResolver";
@@ -150,6 +155,86 @@ const DRAFT_LOT_COLORS = {
 } satisfies Record<CityWorldLot["kind"], number>;
 
 const PARKED_CAR_COLORS = [0xc65a4e, 0x4a7ba4, 0x63a06e, 0xdcc57a, 0xa96687];
+
+// ---- Ground contact grammar (0.52E Diorama Engine) --------------------------
+// Contact treatment is authored by the compiler as typed metadata
+// (visualGrammar.terrainContact / roadContact / lotContact). These resolvers
+// are the ONLY place a legacy scene without metadata falls back to id-prefix
+// or kind derivation — every draw function below consumes the resolved
+// grammar and never re-derives contact treatment at draw time.
+
+function groundToneFromId(id: string): CityWorldGroundTone {
+  if (id.startsWith("draft-")) return "draft";
+  if (id.startsWith("shell-")) return "shell";
+  return "public";
+}
+
+function resolveTerrainContact(tile: CityWorldTerrainTile): CityWorldTerrainContactGrammar {
+  return tile.visualGrammar?.terrainContact ?? { tone: groundToneFromId(tile.id), contactShadow: false };
+}
+
+function resolveRoadContact(road: CityWorldRoadSegment): CityWorldRoadContactGrammar {
+  return (
+    road.visualGrammar?.roadContact ?? {
+      profile: road.kind === "crosswalk" ? "painted" : road.kind === "driveway" ? "apron" : "embedded",
+      tone: groundToneFromId(road.id),
+      laneMarking:
+        road.kind === "avenue" ? "avenue_dash" : road.kind === "street" ? "street_dash" : road.kind === "driveway" ? "apron_dash" : "none",
+    }
+  );
+}
+
+function resolveLotContact(lot: CityWorldLot): CityWorldLotContactGrammar {
+  return (
+    lot.visualGrammar?.lotContact ?? {
+      profile: lot.kind === "waterfront" ? "shore" : lot.kind === "park" ? "green" : lot.kind === "shop" || lot.kind === "gym" ? "apron" : "foundation",
+      tone: groundToneFromId(lot.id),
+    }
+  );
+}
+
+// Tone tables keep shell counties honest (near-silent ground detail) and
+// hidden drafts muted, while the public county carries the full treatment.
+const TERRAIN_SEAM_TONE_STYLE: Record<CityWorldGroundTone, { seamAlpha: number; lipAlpha: number; strandAlpha: number; wetAlpha: number }> = {
+  public: { seamAlpha: 0.2, lipAlpha: 0.13, strandAlpha: 0.3, wetAlpha: 0.22 },
+  draft: { seamAlpha: 0.12, lipAlpha: 0.08, strandAlpha: 0.18, wetAlpha: 0.12 },
+  shell: { seamAlpha: 0.05, lipAlpha: 0, strandAlpha: 0, wetAlpha: 0 },
+};
+
+const LOT_CURB_CUT_STYLE = {
+  apron: 0xd9c89c,
+  groove: 0x655742,
+  walk: 0xefdcb0,
+} as const;
+
+// Diamond-edge geometry on the 2:1 iso grid. north = y-1 neighbor,
+// east = x+1, south = y+1, west = x-1 (matches the compiler's edge authoring).
+function tileEdgeSegment(point: ProjectedPoint, width: number, height: number, side: CityWorldTileEdge): { from: ProjectedPoint; to: ProjectedPoint } {
+  const top = { x: point.x, y: point.y - height / 2 };
+  const right = { x: point.x + width / 2, y: point.y };
+  const bottom = { x: point.x, y: point.y + height / 2 };
+  const left = { x: point.x - width / 2, y: point.y };
+
+  if (side === "north") return { from: top, to: right };
+  if (side === "east") return { from: right, to: bottom };
+  if (side === "south") return { from: bottom, to: left };
+  return { from: left, to: top };
+}
+
+function insetEdgeSegment(point: ProjectedPoint, segment: { from: ProjectedPoint; to: ProjectedPoint }, inset: number): { from: ProjectedPoint; to: ProjectedPoint } {
+  return {
+    from: { x: segment.from.x + (point.x - segment.from.x) * inset, y: segment.from.y + (point.y - segment.from.y) * inset },
+    to: { x: segment.to.x + (point.x - segment.to.x) * inset, y: segment.to.y + (point.y - segment.to.y) * inset },
+  };
+}
+
+function lotCurbPoint(point: ProjectedPoint, width: number, height: number, edge: CityWorldTileEdge): ProjectedPoint {
+  const segment = tileEdgeSegment(point, width, height, edge);
+  return {
+    x: (segment.from.x + segment.to.x) / 2,
+    y: (segment.from.y + segment.to.y) / 2,
+  };
+}
 
 // ---- Whole-canvas golden-hour grade ---------------------------------------
 // One post pass over the Pixi stage: gentle contrast S-curve, warm-highlight /
@@ -746,7 +831,8 @@ function namedLayer(label: keyof LayerMap): Container {
 
 function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
   const point = project(tile.position);
-  const draftTile = isDraftTile(tile.id);
+  const contact = resolveTerrainContact(tile);
+  const draftTile = contact.tone === "draft";
   const baseColor = draftTile ? DRAFT_TERRAIN_COLORS[tile.kind] : TERRAIN_COLORS[tile.kind];
   // Deterministic tonal variation: two low-frequency waves plus a whisper of
   // per-tile hash so the ground reads as planted terrain, not a flat board —
@@ -794,8 +880,55 @@ function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
   if (tile.kind === "grass") drawGrassFacet(graphic, tile, point);
   drawTerrainElevationChunkFace(graphic, tile, point, color);
   drawTerrainParcelComposition(graphic, tile, point);
+  drawTerrainContactSeams(graphic, tile, point, contact, color);
   if (draftTile) drawDraftTerrainFacet(graphic, tile, point);
   layer.addChild(graphic);
+}
+
+// Material seams + water bank strands, authored by the compiler as
+// terrainContact metadata. Seams are inset inside the owning tile so they
+// survive the painter's draw order regardless of which neighbor drew last.
+function drawTerrainContactSeams(graphic: Graphics, tile: CityWorldTerrainTile, point: ProjectedPoint, contact: CityWorldTerrainContactGrammar, color: number) {
+  const style = TERRAIN_SEAM_TONE_STYLE[contact.tone];
+  const edgeSides = contact.edgeSides ?? [];
+  const waterEdgeSides = contact.waterEdgeSides ?? [];
+  if (edgeSides.length === 0 && waterEdgeSides.length === 0) return;
+
+  const width = TILE_WIDTH + 1;
+  const height = TILE_HEIGHT + 1;
+
+  if (edgeSides.length > 0 && style.seamAlpha > 0) {
+    // Dark groove where the slab material meets the softer neighbor...
+    for (const side of edgeSides) {
+      const seam = insetEdgeSegment(point, tileEdgeSegment(point, width, height, side), 0.08);
+      graphic.moveTo(seam.from.x, seam.from.y).lineTo(seam.to.x, seam.to.y);
+    }
+    graphic.stroke({ color: shadeColor(color, -52), alpha: style.seamAlpha, width: 1.15, cap: "round", join: "round" });
+
+    if (contact.contactShadow && style.lipAlpha > 0) {
+      // ...with a sunlit lip just inside it, so the slab reads as a physical
+      // step instead of a painted boundary.
+      for (const side of edgeSides) {
+        const lip = insetEdgeSegment(point, tileEdgeSegment(point, width, height, side), 0.2);
+        graphic.moveTo(lip.from.x, lip.from.y).lineTo(lip.to.x, lip.to.y);
+      }
+      graphic.stroke({ color: shadeColor(color, 34), alpha: style.lipAlpha, width: 1, cap: "round", join: "round" });
+    }
+  }
+
+  if (waterEdgeSides.length > 0 && style.strandAlpha > 0) {
+    // Bank strand on the land side: a pale dry line above a darker wet line.
+    for (const side of waterEdgeSides) {
+      const strand = insetEdgeSegment(point, tileEdgeSegment(point, width, height, side), 0.1);
+      graphic.moveTo(strand.from.x, strand.from.y).lineTo(strand.to.x, strand.to.y);
+    }
+    graphic.stroke({ color: 0xeadfb4, alpha: style.strandAlpha, width: 1.4, cap: "round", join: "round" });
+    for (const side of waterEdgeSides) {
+      const wet = insetEdgeSegment(point, tileEdgeSegment(point, width, height, side), 0.22);
+      graphic.moveTo(wet.from.x, wet.from.y).lineTo(wet.to.x, wet.to.y);
+    }
+    graphic.stroke({ color: 0x3f7d8c, alpha: style.wetAlpha, width: 1.1, cap: "round", join: "round" });
+  }
 }
 
 function drawTerrainChunkMassing(layer: Container, tile: CityWorldTerrainTile, point: ProjectedPoint, color: number) {
@@ -1021,10 +1154,6 @@ function drawTerrainElevationEdges(layer: Container, tile: CityWorldTerrainTile,
   }
 }
 
-function isDraftTile(id: string) {
-  return id.startsWith("draft-");
-}
-
 function drawGrassFacet(graphic: Graphics, tile: CityWorldTerrainTile, point: ProjectedPoint) {
   const hash = (tile.position.x * 19 + tile.position.y * 23 + tile.variant * 11) % 29;
 
@@ -1223,31 +1352,33 @@ function drawDraftTerrainFacet(graphic: Graphics, tile: CityWorldTerrainTile, po
 }
 
 function drawRoadNetwork(layer: Container, roads: CityWorldRoadSegment[]) {
-  const physicalRoads = roads.filter((road) => road.kind !== "crosswalk");
+  const physicalRoads = roads.filter((road) => resolveRoadContact(road).profile !== "painted");
   for (const road of physicalRoads) drawRoadSegmentModule(layer, road);
 
   const joints = collectRoadJoints(physicalRoads);
   for (const joint of joints.sort((a, b) => a.point.x + a.point.y - (b.point.x + b.point.y))) {
-    if (joint.roads.length > 1 || joint.roads.some((road) => road.kind === "driveway")) {
+    if (joint.roads.length > 1 || joint.roads.some((road) => resolveRoadContact(road).profile === "apron")) {
       drawRoadJointModule(layer, joint);
     }
   }
 
-  for (const road of roads.filter((road) => road.kind === "crosswalk")) drawCrosswalkRoad(layer, road);
+  for (const road of roads.filter((road) => resolveRoadContact(road).profile === "painted")) drawCrosswalkRoad(layer, road);
 }
 
 function drawRoadSegmentModule(layer: Container, road: CityWorldRoadSegment) {
   const start = project(road.from);
   const end = project(road.to);
   const baseWidth = road.width * 15.2;
-  const draftRoad = isDraftRoad(road);
-  const cap = road.kind === "driveway" ? "round" : "butt";
+  const contact = resolveRoadContact(road);
+  const draftRoad = contact.tone === "draft";
+  const apron = contact.profile === "apron";
+  const cap = apron ? "round" : "butt";
   const shadow = new Graphics().moveTo(start.x, start.y + 7).lineTo(end.x, end.y + 7);
   shadow.stroke({ color: 0x263a34, alpha: draftRoad ? 0.2 : 0.16, width: baseWidth + (draftRoad ? 15 : 13), cap, join: "round" });
   const sideFace = new Graphics().moveTo(start.x, start.y + 4).lineTo(end.x, end.y + 4);
   sideFace.stroke({
-    color: draftRoad ? (road.kind === "driveway" ? 0x8b846d : 0x4d554d) : road.kind === "driveway" ? 0x7c806f : 0x46514c,
-    alpha: draftRoad ? (road.kind === "driveway" ? 0.44 : 0.56) : road.kind === "driveway" ? 0.34 : 0.48,
+    color: draftRoad ? (apron ? 0x8b846d : 0x4d554d) : apron ? 0x7c806f : 0x46514c,
+    alpha: draftRoad ? (apron ? 0.44 : 0.56) : apron ? 0.34 : 0.48,
     width: baseWidth + 8,
     cap,
     join: "round",
@@ -1255,57 +1386,56 @@ function drawRoadSegmentModule(layer: Container, road: CityWorldRoadSegment) {
 
   const curb = new Graphics().moveTo(start.x, start.y).lineTo(end.x, end.y);
   curb.stroke({
-    color: draftRoad ? (road.kind === "driveway" ? 0xc4b182 : 0xd8c28b) : road.kind === "driveway" ? 0xc1ae88 : 0xd6c996,
-    alpha: draftRoad ? (road.kind === "driveway" ? 0.58 : 0.82) : road.kind === "driveway" ? 0.48 : 0.78,
+    color: draftRoad ? (apron ? 0xc4b182 : 0xd8c28b) : apron ? 0xc1ae88 : 0xd6c996,
+    alpha: draftRoad ? (apron ? 0.58 : 0.82) : apron ? 0.48 : 0.78,
     width: baseWidth + 7,
     cap,
     join: "round",
   });
   const bed = new Graphics().moveTo(start.x, start.y + 1).lineTo(end.x, end.y + 1);
   bed.stroke({
-    color: draftRoad ? (road.kind === "driveway" ? 0x8e8c7d : 0x555e58) : road.kind === "driveway" ? 0x858b7e : 0x58635f,
-    alpha: road.kind === "driveway" ? 0.82 : 0.98,
+    color: draftRoad ? (apron ? 0x8e8c7d : 0x555e58) : apron ? 0x858b7e : 0x58635f,
+    alpha: apron ? 0.82 : 0.98,
     width: baseWidth + 1,
     cap,
     join: "round",
   });
   const surface = new Graphics().moveTo(start.x, start.y - 1).lineTo(end.x, end.y - 1);
   surface.stroke({
-    color: draftRoad ? (road.kind === "driveway" ? 0xa09c87 : 0x697069) : road.kind === "driveway" ? 0x969b8b : 0x68736d,
-    alpha: draftRoad ? (road.kind === "driveway" ? 0.62 : 0.82) : road.kind === "driveway" ? 0.58 : 0.78,
+    color: draftRoad ? (apron ? 0xa09c87 : 0x697069) : apron ? 0x969b8b : 0x68736d,
+    alpha: draftRoad ? (apron ? 0.62 : 0.82) : apron ? 0.58 : 0.78,
     width: Math.max(4, baseWidth - 6),
     cap,
     join: "round",
   });
   layer.addChild(shadow, sideFace, curb, bed, surface);
-  drawRoadEdgeBevels(layer, start, end, baseWidth, road.kind === "driveway");
-  drawRoadModuleSeams(layer, start, end, baseWidth, road.kind === "driveway");
-  if (draftRoad) drawDraftRoadMaterial(layer, start, end, baseWidth, road.kind);
-  else drawPublicRoadMaterial(layer, start, end, baseWidth, road.kind);
+  drawRoadEdgeBevels(layer, start, end, baseWidth, apron);
+  drawRoadModuleSeams(layer, start, end, baseWidth, apron);
+  if (draftRoad) drawDraftRoadMaterial(layer, start, end, baseWidth, contact);
+  else drawPublicRoadMaterial(layer, start, end, baseWidth, contact);
 
-  if (road.kind === "avenue" || road.kind === "street") {
-    drawDashedLine(layer, start, end, road.kind === "avenue" ? 9 : 6, road.kind === "avenue" ? 12 : 10, draftRoad ? 0xe9d59c : 0xf3e3a4, road.kind === "avenue" ? 1.45 : 1.1, draftRoad ? 0.28 : 0.38);
-  } else if (road.kind === "driveway") {
+  if (contact.laneMarking === "avenue_dash") {
+    drawDashedLine(layer, start, end, 9, 12, draftRoad ? 0xe9d59c : 0xf3e3a4, 1.45, draftRoad ? 0.28 : 0.38);
+  } else if (contact.laneMarking === "street_dash") {
+    drawDashedLine(layer, start, end, 6, 10, draftRoad ? 0xe9d59c : 0xf3e3a4, 1.1, draftRoad ? 0.28 : 0.38);
+  } else if (contact.laneMarking === "apron_dash") {
     drawDashedLine(layer, start, end, 4, 12, 0xe8dfbd, 0.9, 0.18);
   }
 }
 
-function isDraftRoad(road: CityWorldRoadSegment) {
-  return road.id.startsWith("draft-");
-}
-
-function drawDraftRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, kind: CityWorldRoadSegment["kind"]) {
+function drawDraftRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
-  if (length <= 0 || kind === "crosswalk") return;
+  if (length <= 0 || contact.profile === "painted") return;
 
+  const apron = contact.profile === "apron";
   const ux = dx / length;
   const uy = dy / length;
   const nx = -dy / length;
   const ny = dx / length;
   const grit = new Graphics();
-  const step = kind === "driveway" ? 34 : 42;
+  const step = apron ? 34 : 42;
   for (let cursor = step * 0.45; cursor < length - step * 0.2; cursor += step) {
     const side = Math.floor(cursor / step) % 2 === 0 ? 1 : -1;
     const centerX = start.x + ux * cursor + nx * roadWidth * 0.18 * side;
@@ -1314,7 +1444,7 @@ function drawDraftRoadMaterial(layer: Container, start: ProjectedPoint, end: Pro
       .moveTo(centerX - ux * 7, centerY - uy * 7)
       .lineTo(centerX + ux * 8, centerY + uy * 8);
   }
-  grit.stroke({ color: 0x3e4944, alpha: kind === "driveway" ? 0.08 : 0.12, width: 1.1, cap: "round" });
+  grit.stroke({ color: 0x3e4944, alpha: apron ? 0.08 : 0.12, width: 1.1, cap: "round" });
 
   const curbWear = new Graphics()
     .moveTo(start.x + nx * roadWidth * 0.48, start.y + ny * roadWidth * 0.48)
@@ -1325,27 +1455,28 @@ function drawDraftRoadMaterial(layer: Container, start: ProjectedPoint, end: Pro
   layer.addChild(grit, curbWear);
 }
 
-function drawPublicRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, kind: CityWorldRoadSegment["kind"]) {
+function drawPublicRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
-  if (length <= 0 || kind === "crosswalk") return;
+  if (length <= 0 || contact.profile === "painted") return;
 
+  const apron = contact.profile === "apron";
   const ux = dx / length;
   const uy = dy / length;
   const nx = -dy / length;
   const ny = dx / length;
   const curbLift = new Graphics();
   const slabWear = new Graphics();
-  const step = kind === "driveway" ? 38 : 50;
-  const edgeInset = roadWidth * (kind === "driveway" ? 0.44 : 0.48);
+  const step = apron ? 38 : 50;
+  const edgeInset = roadWidth * (apron ? 0.44 : 0.48);
 
   curbLift
     .moveTo(start.x + nx * edgeInset, start.y + ny * edgeInset - 1.5)
     .lineTo(end.x + nx * edgeInset, end.y + ny * edgeInset - 1.5)
     .moveTo(start.x - nx * edgeInset, start.y - ny * edgeInset + 2.5)
     .lineTo(end.x - nx * edgeInset, end.y - ny * edgeInset + 2.5);
-  curbLift.stroke({ color: kind === "driveway" ? 0xf1ddb2 : 0xe8d49f, alpha: kind === "driveway" ? 0.12 : 0.16, width: 1.2, cap: "butt" });
+  curbLift.stroke({ color: apron ? 0xf1ddb2 : 0xe8d49f, alpha: apron ? 0.12 : 0.16, width: 1.2, cap: "butt" });
 
   for (let cursor = step * 0.7; cursor < length - step * 0.45; cursor += step) {
     const side = Math.floor(cursor / step) % 2 === 0 ? -1 : 1;
@@ -1355,12 +1486,12 @@ function drawPublicRoadMaterial(layer: Container, start: ProjectedPoint, end: Pr
       .moveTo(centerX - ux * 8, centerY - uy * 8)
       .lineTo(centerX + ux * 11, centerY + uy * 11);
   }
-  slabWear.stroke({ color: 0x3f4d47, alpha: kind === "driveway" ? 0.055 : 0.075, width: 1.05, cap: "round" });
+  slabWear.stroke({ color: 0x3f4d47, alpha: apron ? 0.055 : 0.075, width: 1.05, cap: "round" });
 
   const roadBedFace = new Graphics()
     .moveTo(start.x - nx * roadWidth * 0.34, start.y - ny * roadWidth * 0.34 + 4)
     .lineTo(end.x - nx * roadWidth * 0.34, end.y - ny * roadWidth * 0.34 + 4);
-  roadBedFace.stroke({ color: 0x253b35, alpha: kind === "driveway" ? 0.08 : 0.12, width: Math.max(2, roadWidth * 0.08), cap: "butt" });
+  roadBedFace.stroke({ color: 0x253b35, alpha: apron ? 0.08 : 0.12, width: Math.max(2, roadWidth * 0.08), cap: "butt" });
 
   layer.addChild(roadBedFace, curbLift, slabWear);
 }
@@ -1369,7 +1500,7 @@ function drawCrosswalkRoad(layer: Container, road: CityWorldRoadSegment) {
   const start = project(road.from);
   const end = project(road.to);
   const baseWidth = road.width * 15.2;
-  const draftRoad = isDraftRoad(road);
+  const draftRoad = resolveRoadContact(road).tone === "draft";
   const shadow = new Graphics().moveTo(start.x, start.y + 5).lineTo(end.x, end.y + 5);
   shadow.stroke({ color: 0x263a34, alpha: draftRoad ? 0.16 : 0.12, width: baseWidth + 8, cap: "butt", join: "round" });
   const curb = new Graphics().moveTo(start.x, start.y + 1).lineTo(end.x, end.y + 1);
@@ -1516,9 +1647,10 @@ function drawRoadJointModule(layer: Container, joint: RoadJoint) {
   const point = project(joint.point);
   const maxWidth = Math.max(...joint.roads.map((road) => road.width));
   const directions = roadDirectionsAtJoint(joint);
+  const contacts = joint.roads.map(resolveRoadContact);
   const major = joint.roads.some((road) => road.kind === "avenue");
-  const drivewayOnly = joint.roads.every((road) => road.kind === "driveway");
-  const draftJoint = joint.roads.some(isDraftRoad);
+  const drivewayOnly = contacts.every((contact) => contact.profile === "apron");
+  const draftJoint = contacts.some((contact) => contact.tone === "draft");
   const radius = maxWidth * (major ? 17 : 15) + (directions.size >= 3 ? 9 : 5);
   const width = drivewayOnly ? radius * 1.65 : radius * 2.05;
   const height = drivewayOnly ? radius * 0.9 : radius * 1.08;
@@ -1558,10 +1690,10 @@ function drawRoadJointBlockwork(layer: Container, point: ProjectedPoint, width: 
 }
 
 function drawDrivewayJoinThroats(layer: Container, joint: RoadJoint, point: ProjectedPoint, maxRoadWidth: number) {
-  const hasMainRoad = joint.roads.some((road) => road.kind === "avenue" || road.kind === "street");
+  const hasMainRoad = joint.roads.some((road) => resolveRoadContact(road).profile === "embedded");
   if (!hasMainRoad) return;
 
-  const driveways = joint.roads.filter((road) => road.kind === "driveway");
+  const driveways = joint.roads.filter((road) => resolveRoadContact(road).profile === "apron");
   for (const driveway of driveways) {
     const opposite = sameCityPoint(joint.point, driveway.from) ? driveway.to : driveway.from;
     const target = project(opposite);
@@ -1641,19 +1773,21 @@ function drawLot(layer: Container, lot: CityWorldLot) {
   const point = project(lot.position);
   const width = lot.width * TILE_WIDTH;
   const height = lot.depth * TILE_HEIGHT;
-  const draftLot = isDraftLot(lot);
+  const lotContact = resolveLotContact(lot);
+  const draftLot = lotContact.tone === "draft";
+  const quietPad = lotContact.profile === "foundation";
   const color = draftLot ? DRAFT_LOT_COLORS[lot.kind] : LOT_COLORS[lot.kind];
-  const lotAlpha = draftLot ? (lot.kind === "home" ? 0.58 : 0.6) : lot.kind === "waterfront" ? 0.34 : lot.kind === "home" ? 0.5 : 0.52;
+  const lotAlpha = draftLot ? (quietPad ? 0.58 : 0.6) : lotContact.profile === "shore" ? 0.34 : quietPad ? 0.5 : 0.52;
   const lotContactProfile = lot.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
   const contactAlpha = draftLot
-    ? lot.kind === "park"
+    ? lotContact.profile === "green"
       ? 0.1
       : 0.18
     : lotContactProfile === "landmark_base_shadow"
       ? 0.17
       : lotContactProfile === "soft_ground_shadow"
         ? 0.09
-        : lot.kind === "home"
+        : quietPad
           ? 0.14
           : 0.13;
   const contactSpread = lotContactProfile === "landmark_base_shadow" ? 1.1 : lotContactProfile === "soft_ground_shadow" ? 1.12 : 1.04;
@@ -1661,7 +1795,7 @@ function drawLot(layer: Container, lot: CityWorldLot) {
   if (!draftLot && lotContactProfile === "landmark_base_shadow") {
     layer.addChild(polygon(diamondPoints({ x: point.x, y: point.y + 8 }, width * 0.86, height * 0.8), 0x1d2a24, 0.09, 0x1d2a24, 0));
   }
-  const lotGraphic = polygon(diamondPoints(point, width, height), color, lotAlpha, draftLot ? 0x7f6d4e : 0x28473f, draftLot ? 0.14 : lot.kind === "home" ? 0.1 : 0.18);
+  const lotGraphic = polygon(diamondPoints(point, width, height), color, lotAlpha, draftLot ? 0x7f6d4e : 0x28473f, draftLot ? 0.14 : quietPad ? 0.1 : 0.18);
   const lowerLip = new Graphics()
     .moveTo(point.x - width * 0.5, point.y)
     .lineTo(point.x, point.y + height * 0.5)
@@ -1670,14 +1804,15 @@ function drawLot(layer: Container, lot: CityWorldLot) {
     .lineTo(point.x, point.y + height * 0.5 + 6)
     .lineTo(point.x - width * 0.5, point.y + 4)
     .closePath()
-    .fill({ color: shadeColor(color, -28), alpha: draftLot ? 0.3 : lot.kind === "home" ? 0.18 : 0.24 });
-  const innerBevel = polygon(diamondPoints(point, width * 0.88, height * 0.82), shadeColor(color, draftLot ? 7 : 10), draftLot ? 0.13 : lot.kind === "home" ? 0.09 : 0.12, 0xffffff, 0);
+    .fill({ color: shadeColor(color, -28), alpha: draftLot ? 0.3 : quietPad ? 0.18 : 0.24 });
+  const innerBevel = polygon(diamondPoints(point, width * 0.88, height * 0.82), shadeColor(color, draftLot ? 7 : 10), draftLot ? 0.13 : quietPad ? 0.09 : 0.12, 0xffffff, 0);
   layer.addChild(contact, lotGraphic, lowerLip, innerBevel);
   drawParcelElevationShelf(layer, point, width, height, lot, color, draftLot);
   drawLotWorldComposition(layer, point, width, height, lot, color, draftLot);
-  drawLotEdgeBlockwork(layer, point, width, height, lot.kind, draftLot);
-  drawParcelEdgeTicks(layer, point, width, height, lot.kind);
+  drawLotEdgeBlockwork(layer, point, width, height, lotContact, draftLot);
+  drawParcelEdgeTicks(layer, point, width, height, lotContact);
   drawParcelCompositionDetails(layer, point, width, height, lot);
+  drawLotCurbCut(layer, lotContact, point, width, height);
   if (draftLot) drawDraftLotMaterial(layer, point, width, height, lot.kind);
 
   if (lot.kind === "park") {
@@ -1717,7 +1852,6 @@ function drawLotWorldComposition(layer: Container, point: ProjectedPoint, width:
   if (draftLot || lot.kind === "park" || lot.kind === "waterfront") return;
 
   const profile = lot.visualGrammar?.lotProfile;
-  drawParcelElevationShelf(layer, point, width, height, lot, color, draftLot);
 
   if (profile === "residential_yard_grid") {
     const variant = objectVariant(lot.id, 4);
@@ -1848,11 +1982,12 @@ function drawParcelElevationShelf(layer: Container, point: ProjectedPoint, width
   }
 }
 
-function drawLotEdgeBlockwork(layer: Container, point: ProjectedPoint, width: number, height: number, kind: CityWorldLot["kind"], draftLot: boolean) {
-  if (kind === "waterfront" || kind === "park") return;
+function drawLotEdgeBlockwork(layer: Container, point: ProjectedPoint, width: number, height: number, lotContact: CityWorldLotContactGrammar, draftLot: boolean) {
+  if (lotContact.profile === "shore" || lotContact.profile === "green") return;
 
-  const alpha = draftLot ? 0.16 : kind === "home" ? 0.1 : 0.14;
-  const edgeColor = kind === "home" ? 0xe9ddb4 : 0xf0dfb7;
+  const quiet = lotContact.profile === "foundation";
+  const alpha = draftLot ? 0.16 : quiet ? 0.1 : 0.14;
+  const edgeColor = quiet ? 0xe9ddb4 : 0xf0dfb7;
   const curbFace = new Graphics()
     .moveTo(point.x - width * 0.46, point.y + height * 0.02)
     .lineTo(point.x - width * 0.18, point.y + height * 0.18)
@@ -1860,10 +1995,10 @@ function drawLotEdgeBlockwork(layer: Container, point: ProjectedPoint, width: nu
     .moveTo(point.x + width * 0.46, point.y + height * 0.02)
     .lineTo(point.x + width * 0.18, point.y + height * 0.18)
     .lineTo(point.x - width * 0.08, point.y + height * 0.05);
-  curbFace.stroke({ color: edgeColor, alpha, width: kind === "home" ? 1 : 1.2, cap: "round", join: "round" });
+  curbFace.stroke({ color: edgeColor, alpha, width: quiet ? 1 : 1.2, cap: "round", join: "round" });
 
   const frontBlocks = new Graphics();
-  const blockCount = kind === "home" ? 3 : 5;
+  const blockCount = quiet ? 3 : 5;
   for (let block = 0; block < blockCount; block += 1) {
     const t = block / (blockCount - 1);
     const x = point.x - width * 0.28 + t * width * 0.56;
@@ -1871,12 +2006,38 @@ function drawLotEdgeBlockwork(layer: Container, point: ProjectedPoint, width: nu
       .moveTo(x - width * 0.035, point.y + height * 0.26)
       .lineTo(x + width * 0.025, point.y + height * 0.3);
   }
-  frontBlocks.stroke({ color: 0x7f6d4e, alpha: draftLot ? 0.14 : kind === "home" ? 0.08 : 0.12, width: 0.9, cap: "round" });
+  frontBlocks.stroke({ color: 0x7f6d4e, alpha: draftLot ? 0.14 : quiet ? 0.08 : 0.12, width: 0.9, cap: "round" });
   layer.addChild(curbFace, frontBlocks);
 }
 
-function isDraftLot(lot: CityWorldLot) {
-  return lot.id.startsWith("draft-");
+// Curb-cut / walk join toward the serving road, authored by the compiler as
+// lotContact.curbCutEdge. This is the driveway-mouth read that makes a parcel
+// look served by its street instead of floating beside it.
+function drawLotCurbCut(layer: Container, lotContact: CityWorldLotContactGrammar, point: ProjectedPoint, width: number, height: number) {
+  if (!lotContact.curbCutEdge || lotContact.profile === "shore") return;
+
+  const draft = lotContact.tone === "draft";
+  const green = lotContact.profile === "green";
+  const quiet = lotContact.profile === "foundation";
+  const edgePoint = lotCurbPoint(point, width, height, lotContact.curbCutEdge);
+  const apronWidth = Math.max(quiet ? 12 : 20, width * (quiet ? 0.18 : 0.26));
+  const apronHeight = Math.max(quiet ? 5 : 8, height * (quiet ? 0.08 : 0.12));
+  const apron = polygon(
+    diamondPoints(edgePoint, apronWidth, apronHeight),
+    LOT_CURB_CUT_STYLE.apron,
+    draft ? 0.14 : green ? 0.18 : quiet ? 0.22 : 0.3,
+    LOT_CURB_CUT_STYLE.groove,
+    draft ? 0.06 : 0.12,
+  );
+  layer.addChild(apron);
+
+  if (!green) {
+    const walk = new Graphics()
+      .moveTo(point.x, point.y + height * 0.06)
+      .lineTo(edgePoint.x, edgePoint.y);
+    walk.stroke({ color: LOT_CURB_CUT_STYLE.walk, alpha: draft ? 0.12 : quiet ? 0.2 : 0.26, width: quiet ? 1.6 : 2.4, cap: "round" });
+    layer.addChild(walk);
+  }
 }
 
 function drawDraftLotMaterial(layer: Container, point: ProjectedPoint, width: number, height: number, kind: CityWorldLot["kind"]) {
@@ -1901,12 +2062,12 @@ function drawDraftLotMaterial(layer: Container, point: ProjectedPoint, width: nu
   layer.addChild(warmFacet, edge);
 }
 
-function drawParcelEdgeTicks(layer: Container, point: ProjectedPoint, width: number, height: number, kind: CityWorldLot["kind"]) {
-  if (kind === "waterfront" || kind === "park") return;
+function drawParcelEdgeTicks(layer: Container, point: ProjectedPoint, width: number, height: number, lotContact: CityWorldLotContactGrammar) {
+  if (lotContact.profile === "shore" || lotContact.profile === "green") return;
 
   const tick = new Graphics();
-  const alpha = kind === "home" ? 0.18 : 0.22;
-  const color = kind === "home" ? 0xf2e4b8 : 0xf4e8c7;
+  const alpha = lotContact.profile === "foundation" ? 0.18 : 0.22;
+  const color = lotContact.profile === "foundation" ? 0xf2e4b8 : 0xf4e8c7;
   const leftX = point.x - width * 0.5;
   const rightX = point.x + width * 0.5;
   const topY = point.y - height * 0.5;

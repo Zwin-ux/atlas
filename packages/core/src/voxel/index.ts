@@ -9,7 +9,7 @@ export * from "./cityWorldSceneWindow.js";
 export * from "./cityWorldDiagnostics.js";
 export * from "./cityWorldPaletteRegistry.js";
 export * from "./cityWorldAtlas.js";
-export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistrictPlaceAnchorDraftCityWorldScene, withBuildingMetadata, withLotMetadata, withRoadMetadata, withPropMetadata } from "./cityWorldCompiler.js";
+export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistrictPlaceAnchorDraftCityWorldScene, withBuildingMetadata, withCityWorldTerrainContactMetadata, withLotMetadata, withRoadMetadata, withPropMetadata } from "./cityWorldCompiler.js";
 export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./cityWorldCompiler.js";
 export { generateParametricCityWorldScene, exampleParametricDistrictSpec } from "./cityWorldParametricGenerator.js";
 export type { CityWorldParametricSpec, CityWorldParametricResult, CityWorldZoneSpec, CityWorldZoneKind, CityWorldRoadSeed } from "./cityWorldParametricGenerator.js";
