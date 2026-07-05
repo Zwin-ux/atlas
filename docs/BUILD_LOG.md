@@ -1,5 +1,43 @@
 # Build Log
 
+## Entry 195
+
+Quest:
+`0.58I Integration Canonicalization / Release Decision Packet`.
+
+What changed:
+- Recorded `codex/integrate-hosted-clawd-fable-058e` as the local canonical
+  candidate that combines the gated Hosted Clawd scaffold with the Fable
+  0.53E-0.58E visual chain.
+- Updated `artifacts/current-update.json`, `AGENTS.md`, `docs/NEXT_QUESTS.md`,
+  `docs/updates/ATLAS_RELEASE_LADDER.md`, and `STATE.md` so the current slice
+  no longer reads as Hosted Clawd-only.
+- Updated `scripts/verify-atlas-source-of-truth-drift.mjs` so 0.58I is
+  machine-checked: seven public tools, closed persistence/money/public-claim
+  gates, acknowledged renderer changes, integration split mode, and human
+  visual gate before deploy.
+
+Decision:
+Deploy recommendation is `HUMAN_VISUAL_GATE_FIRST`. The branch is locally green
+and suitable as a canonical candidate, but not approved for deploy until the
+human reviews desktop and 390x844 mobile proof.
+
+Skipped:
+No deploy, no push, no DB/auth/Stripe/persistence, no public pricing claim, no
+XP/evidence/reports/exports, no provider geometry, no public Anaheim/Ontario,
+and no new MCP tool.
+
+Verification:
+- `pnpm typecheck`
+- `pnpm test:core`
+- `pnpm build:web`
+- `node scripts\verify-hosted-clawd-scaffold.mjs`
+- `node scripts\verify-fable-prop-cleanup.mjs`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only`
+- `pnpm verify:preview:http`
+- `pnpm verify:mcp`
+
 ## Entry 194
 
 Quest:

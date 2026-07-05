@@ -1,10 +1,18 @@
 # Atlas — Product Spec & Submission Gates
 
 Status: **ACTIVE product track** (human-directed, 2026-07-03). This is the live track.
-The owner-gate / second-district promotion ceremony (0.44E–0.47E) is **parked** — it stays
-honest and untouched (`artifacts/current-update.json` remains at `0.45E`, the source-of-truth
-drift checker stays green), but it is no longer what we are working toward. We are shipping a
-fully high-quality, submittable ChatGPT app.
+The owner-gate / second-district promotion ceremony (0.44E-0.47E) is **parked**:
+its selector artifacts stay anchored at `0.45E`, the source-of-truth drift
+checker stays green, and Anaheim/Ontario stay hidden and non-public. The active
+manifest is now the 0.58I integration packet. We are shipping a fully
+high-quality, submittable ChatGPT app.
+
+Current integration note (2026-07-05):
+`codex/integrate-hosted-clawd-fable-058e` is the local canonical candidate that
+combines the Fable visual chain with a gated Hosted Clawd rental scaffold. It is
+not deployed. Paid persistence, auth, Stripe, public pricing claims, XP,
+evidence, reports, exports, and new MCP tools remain closed. The next gate is
+human visual/deploy review, not implementation of persistence.
 
 Why this exists: the previous stretch (0.24E→0.46E) was decision machinery circling one blocked
 question ("promote hidden Anaheim?"). This spec replaces that with product-quality gates that
@@ -104,12 +112,13 @@ server, and browser proofs. Fable is spent once, on the working UI, where qualit
 
 ## 7. Parked (explicitly not in the active track)
 
-- **Owner-gate / second-district promotion ceremony (0.44E–0.47E).** Kept honest; Anaheim/Ontario
-  remain hidden and non-public; `current-update.json` stays `0.45E`; drift checker stays green.
-  Re-open only if a human calls for a controlled public second-district spike.
-- **Paid / backend.** Hosted Clawd, Stripe/checkout, DB persistence, OAuth, XP, evidence,
-  automation, reports, exports — all parked until explicitly reopened after the engine is
-  submitted and credible.
+- **Owner-gate / second-district promotion ceremony (0.44E-0.47E).** Kept honest; Anaheim/Ontario
+  remain hidden and non-public; owner-gate selector artifacts stay anchored at `0.45E`; drift
+  checker stays green. Re-open only if a human calls for a controlled public second-district spike.
+- **Paid / backend.** Hosted Clawd is reopened only as a gated scaffold. Stripe/checkout, DB
+  persistence, OAuth, XP, evidence, automation, reports, exports, and public saved-state claims
+  stay parked until 0.58J approves the integrated branch and a later 0.59H storage/auth decision
+  names the implementation contract.
 - **Provider-created geometry, live provider→scene normalization, renderer/UI redesign.**
 
 ## 8. What already exists (reused, not rebuilt)

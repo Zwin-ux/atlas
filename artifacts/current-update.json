@@ -1,14 +1,33 @@
 {
-  "id": "postalpha-0.58h-hosted-clawd-scaffold",
-  "name": "Post-Alpha 0.58H - Hosted Clawd Rental Scaffold",
+  "id": "postalpha-0.58i-integration-canonicalization-release-decision",
+  "name": "Post-Alpha 0.58I - Integration Canonicalization / Release Decision Packet",
   "status": "local_green",
-  "playerPromise": "Atlas shows a map-first path to host Clawd for a business while keeping Alpha visibly session-only.",
-  "engineeringPromise": "The app adds Hosted Clawd service contracts, guarded HTTP scaffolds, widget-only state, and a compact upgrade tray without enabling live persistence, money, public claims, or new MCP tools.",
-  "inputUpdate": "human-reopened-hosted-clawd-2026-07-05",
-  "selectedAxis": "hosted_clawd_scaffold",
-  "recommendedNextQuest": "0.59H Hosted Clawd Storage/Auth Decision Packet",
-  "decision": "SCAFFOLD_ONLY_GATES_STAY_CLOSED",
+  "playerPromise": "Atlas keeps the sharper Fable map and the Hosted Clawd rental tray together in one coherent local branch while Alpha remains visibly session-only.",
+  "engineeringPromise": "The integrated branch records Hosted Clawd scaffold plus Fable 0.53E-0.58E visual chain as a canonical candidate, with explicit split guard and human visual gate before deploy.",
+  "inputUpdate": "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup",
+  "selectedAxis": "integration_canonicalization",
+  "recommendedNextQuest": "0.58J Human Visual Gate / Deploy Readiness Decision",
+  "decision": "HUMAN_VISUAL_GATE_FIRST",
   "metricResult": {
+    "integrationCanonicalization": {
+      "branch": "codex/integrate-hosted-clawd-fable-058e",
+      "mergeCommit": "9b8a5fb",
+      "hostedClawdCommit": "7804ed0",
+      "fableCleanupCommit": "0c4c350",
+      "publicToolCount": 7,
+      "newMcpTools": 0,
+      "splitMode": "hosted-clawd-fable-integration",
+      "conflictsResolved": [
+        "docs/BUILD_LOG.md",
+        "docs/DECISIONS.md"
+      ],
+      "suitableCanonicalCandidate": true,
+      "humanVisualGateRequired": true,
+      "deployRecommendation": "HUMAN_VISUAL_GATE_FIRST",
+      "localPreviewUrl": "http://127.0.0.1:8787/preview",
+      "desktopProof": "C:/Users/mzwin/AppData/Local/Temp/atlas-integration-desktop.png",
+      "mobileProof": "C:/Users/mzwin/AppData/Local/Temp/atlas-integration-mobile.png"
+    },
     "hostedClawdScaffold": {
       "publicToolCount": 7,
       "newMcpTools": 0,
@@ -25,24 +44,32 @@
     "scope": {
       "newMcpTools": 0,
       "dbMigrations": 0,
-      "rendererGeometryChanges": 0,
+      "rendererGeometryChanges": true,
       "publicAnaheimPromotion": false,
       "providerGeometry": false,
       "liveCheckout": false,
-      "persistedWrites": false
+      "persistedWrites": false,
+      "artifactsAdded": true
     }
   },
   "verification": {
-    "typecheckStarter": "pnpm typecheck:starter",
+    "typecheck": "pnpm typecheck",
     "coreTests": "pnpm test:core",
+    "buildWeb": "pnpm build:web",
     "hostedClawdGuard": "node scripts/verify-hosted-clawd-scaffold.mjs",
-    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-scaffold --json-only",
+    "fablePropCleanupGuard": "node scripts/verify-fable-prop-cleanup.mjs",
+    "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "integrationSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only",
     "providerBoundary": "node scripts/verify-provider-boundaries.mjs --json-only",
     "toolResultShape": "node scripts/verify-tool-result-shape.mjs --json-only",
-    "buildWeb": "pnpm build:web"
+    "previewHttp": "pnpm verify:preview:http",
+    "mcpFlow": "pnpm verify:mcp",
+    "desktopBrowserProof": "gstack browse desktop 1280x800 with Hosted Clawd tray open",
+    "mobileBrowserProof": "gstack browse mobile 390x844 with Hosted Clawd tray open"
   },
-  "nextCodeStep": "0.59H Hosted Clawd Storage/Auth Decision Packet",
+  "nextCodeStep": "0.58J Human Visual Gate / Deploy Readiness Decision",
   "forbiddenScope": [
+    "deploying before human visual/deploy approval",
     "live Stripe Checkout, Billing Portal, webhook, product, price, or customer mutation",
     "database client, migration, persisted write, or storage provider implementation",
     "OAuth/account linking before the auth model is chosen",
@@ -54,6 +81,16 @@
     "generic SaaS pricing page or dashboard shell"
   ],
   "gates": [
+    {
+      "id": "human-visual-gate",
+      "label": "Human reviews desktop and 390x844 mobile screenshots before deploy or canonical promotion",
+      "required": true
+    },
+    {
+      "id": "integration-split-gate",
+      "label": "Combined branch must pass strict hosted-clawd-fable-integration split guard",
+      "required": true
+    },
     {
       "id": "persistence-gate",
       "label": "HUMAN_APPROVAL_BEFORE_PERSISTENCE stays closed until storage, migration, auth, ownership, and idempotency tests are selected",

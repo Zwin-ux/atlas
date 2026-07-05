@@ -213,6 +213,7 @@ const HOSTED_CLAWD_SCAFFOLD_PREFIXES = [
 const HOSTED_CLAWD_FABLE_INTEGRATION_FILES = new Set([
   "STATE.md",
   "apps/widget/src/PixiVoxelSceneView.tsx",
+  "docs/PRODUCT_SPEC_AND_GATES.md",
   "docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md",
   "docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md",
   "docs/design/fable-prompts/FABLE_LAUNCH_0.53E.md",

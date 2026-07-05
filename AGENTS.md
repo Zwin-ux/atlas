@@ -14,9 +14,13 @@ Alpha Path B is accepted. Riverside/Eastvale is the only public playable distric
 
 Hosted Clawd, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened by the human.
 
-Current human-directed local-green slice is `0.58H Hosted Clawd Rental Scaffold`. It makes the ChatGPT app show a map-first path to host Clawd for a business, but only as a gated scaffold: no live Stripe, no auth provider, no DB client, no migrations, no persisted writes, no XP/evidence, no reports/exports, no public pricing claim, and no new MCP tool.
+Current human-directed local-green slice is `0.58I Integration Canonicalization / Release Decision Packet`. It records branch `codex/integrate-hosted-clawd-fable-058e` as the local canonical candidate that combines the Hosted Clawd rental scaffold with the Fable 0.53E-0.58E visual chain. It is green locally, but deployment is blocked on a human visual/deploy gate.
 
-Default next Hosted Clawd slice after 0.58H is `0.59H Hosted Clawd Storage/Auth Decision Packet`. It must choose the storage provider, migration strategy, auth/account ownership model, idempotency tests, and first persisted object before DB or Stripe implementation starts.
+Default next integration slice after 0.58I is `0.58J Human Visual Gate / Deploy Readiness Decision`. It must inspect the integrated desktop and 390x844 mobile proof, decide whether this branch becomes the canonical/deploy line, and either approve deploy or name exact visual/product blockers.
+
+Default Hosted Clawd implementation slice after the visual/deploy gate remains `0.59H Hosted Clawd Storage/Auth Decision Packet`. It must choose the storage provider, migration strategy, auth/account ownership model, idempotency tests, and first persisted object before DB or Stripe implementation starts.
+
+Use `hosted-clawd-fable-integration` for strict split checks on the integrated branch.
 
 The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly. Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
 
@@ -108,7 +112,7 @@ For Engine Beta source-of-truth and code slices, default to:
 - focused verifier for the slice
 - provider boundary guard
 - tool-result shape guard
-- strict `engine-beta-data` split guard, or strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice
+- strict `engine-beta-data` split guard, strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice, or strict `hosted-clawd-fable-integration` split guard for the integrated local canonical candidate
 
 Browser screenshot proof is required only when renderer or UI output changes.
 

@@ -17,8 +17,9 @@ supermove) **done + proven on branch `fable/0.48p-design-ultra-pass` (BUILD_LOG 
 reliability sweep, `0.50P` submission packet.
 
 The owner-gate / second-district ceremony below is **parked** but kept honest: `0.46E Owner Gate
-Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`
-stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only on human request.
+Review Packet` remains the recorded next quest for that parked ladder, its selector artifacts
+remain anchored at `0.45E`, and Anaheim/Ontario stay hidden and non-public. The active manifest
+is now the 0.58I integration packet. Re-open the owner-gate ladder only on human request.
 
 ## Engine track note (2026-07-04, `fable/0.52e-diorama-engine`)
 
@@ -31,6 +32,58 @@ history only, do not reopen. The next visual-engine decision (per the 2B spec's
 pass with design sign-off** — the golden-hour wash, not the ground, now caps the
 north-star score. Human review of `artifacts/0.52e-diorama/` screenshots gates any
 merge/deploy of this branch.
+
+## Current local-green integration slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.58I Integration Canonicalization / Release Decision Packet`.
+
+Player-facing promise:
+Atlas keeps the sharper Fable map and the Hosted Clawd rental tray together in
+one coherent local branch while Alpha remains visibly session-only.
+
+Engineering promise:
+Record the integrated Hosted Clawd scaffold plus Fable 0.53E-0.58E visual chain
+as a canonical candidate, with explicit split guard and a human visual gate
+before deploy.
+
+Contract:
+- Branch `codex/integrate-hosted-clawd-fable-058e` is the local canonical
+  candidate, not automatically deployed.
+- Public MCP tool surface remains the seven Alpha tools.
+- Hosted Clawd persistence, money, auth, public claims, reports, evidence, XP,
+  exports, and automation remain closed.
+- The Fable visual chain is explicit integration scope, not hidden inside the
+  Hosted Clawd scaffold.
+- Anaheim/Ontario remain hidden and non-public.
+
+Metric / verifier:
+- `pnpm typecheck`
+- `pnpm test:core`
+- `pnpm build:web`
+- `node scripts\verify-hosted-clawd-scaffold.mjs`
+- `node scripts\verify-fable-prop-cleanup.mjs`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only`
+- `pnpm verify:preview:http`
+- `pnpm verify:mcp`
+
+Proof:
+Desktop and 390x844 mobile proof exist at
+`C:\Users\mzwin\AppData\Local\Temp\atlas-integration-desktop.png` and
+`C:\Users\mzwin\AppData\Local\Temp\atlas-integration-mobile.png`.
+
+Anti-scope:
+No deploy, DB, auth, Stripe, persistence, OAuth, XP, evidence, reports, exports,
+automation, provider geometry, public Anaheim/Ontario, dashboard shell, generic
+SaaS page, or new public MCP tool.
+
+Stop condition:
+Stop after the source-of-truth docs and verifiers agree that this branch is a
+local canonical candidate with deploy blocked on human visual approval.
+
+Next quest:
+`0.58J Human Visual Gate / Deploy Readiness Decision`.
 
 ## Branch-local Fable pass (2026-07-05, `fable/0.58e-prop-cleanup`)
 
@@ -71,17 +124,14 @@ preview proof pass. Do not merge this branch into the Hosted Clawd scaffold
 branch without an explicit integration decision.
 
 Source-of-truth note:
-`artifacts/current-update.json` intentionally remains on the parked 0.45E
-owner-gate manifest in this branch. This Fable pass is a branch-local visual
-slice, not a promotion of Anaheim/Ontario and not a replacement for the owner
-gate ladder.
+This Fable pass is now one explicit input to the 0.58I integrated canonical
+candidate. It is not a promotion of Anaheim/Ontario and not a replacement for
+the parked owner-gate ladder.
 
-## Current phase
-
-## Current human-directed Hosted Clawd scaffold slice (2026-07-05)
+## Completed Hosted Clawd scaffold input (2026-07-05)
 
 The human explicitly reopened Hosted Clawd for the ChatGPT app rental path. This
-does not reopen live Paid Beta by itself. The current named slice is:
+does not reopen live Paid Beta by itself. The completed scaffold input is:
 
 `0.58H Hosted Clawd Rental Scaffold`.
 
@@ -107,7 +157,7 @@ Verifier:
 Split mode:
 `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-scaffold --json-only`.
 
-Next quest after this scaffold:
+Next Hosted Clawd implementation slice after the 0.58J visual/deploy gate:
 `0.59H Hosted Clawd Storage/Auth Decision Packet`. It should choose the storage
 provider, migration strategy, auth/account ownership model, idempotency tests,
 and first persisted object. Do not implement DB or Stripe until those choices

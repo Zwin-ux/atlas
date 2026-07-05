@@ -1,5 +1,36 @@
 # Decisions
 
+## Decision 080: Integrated Hosted Clawd plus Fable branch needs a human visual gate before deploy
+
+Branch `codex/integrate-hosted-clawd-fable-058e` is accepted as the local
+canonical candidate. It combines the Hosted Clawd rental scaffold with the
+Fable 0.53E-0.58E visual chain and has a strict
+`hosted-clawd-fable-integration` split mode.
+
+Decision:
+Do not deploy automatically. The next gate is `0.58J Human Visual Gate / Deploy
+Readiness Decision`. `0.59H Hosted Clawd Storage/Auth Decision Packet` remains
+behind that visual/deploy gate.
+
+Reason:
+The branch is technically green, but it changes both the product upgrade path
+and the map renderer. That is exactly the kind of branch that needs human
+visual approval before becoming the deploy line. Treating it as Hosted
+Clawd-only would hide renderer scope; treating it as an art-only branch would
+hide the new paid-product scaffold.
+
+Allowed now:
+- Keep the integrated branch as the local canonical candidate.
+- Use `hosted-clawd-fable-integration` for strict split checks.
+- Review desktop and 390x844 mobile proof for deploy readiness.
+
+Still blocked:
+- Deploy without explicit human approval.
+- DB, auth, Stripe, persistence, OAuth, XP, evidence, reports, exports, or
+  public pricing claims.
+- Public Anaheim/Ontario promotion.
+- New public MCP tools.
+
 ## Decision 079: Hosted Clawd can reopen only as a gated scaffold until storage, auth, and money are chosen
 
 The human reopened Hosted Clawd on 2026-07-05 for the ChatGPT app rental path:

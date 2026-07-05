@@ -5,13 +5,17 @@ import process from "node:process";
 
 const OWNER_GATE_UPDATE = "postalpha-0.45e-owner-gate-cutline-next-axis-selection";
 const HOSTED_CLAWD_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold";
+const INTEGRATION_UPDATE = "postalpha-0.58i-integration-canonicalization-release-decision";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
+const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
 const EXPECTED_SELECTOR_NEXT_QUEST = "0.44E Hidden Second-District Visual/Product Proof Packet";
 const OWNER_GATE_NEXT_QUEST = "0.46E Owner Gate Review Packet";
 const OWNER_GATE_SELECTED_AXIS = "owner_gate_review";
 const HOSTED_CLAWD_NEXT_QUEST = "0.59H Hosted Clawd Storage/Auth Decision Packet";
 const HOSTED_CLAWD_SELECTED_AXIS = "hosted_clawd_scaffold";
+const INTEGRATION_NEXT_QUEST = "0.58J Human Visual Gate / Deploy Readiness Decision";
+const INTEGRATION_SELECTED_AXIS = "integration_canonicalization";
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -48,8 +52,12 @@ const ownerGateSelector = readJson(
   "0.45E owner-gate selector artifact",
 );
 const agents = readText("AGENTS.md", "AGENTS instructions");
+const state = readText("STATE.md", "loop state");
 const readme = readText("README.md", "README");
 const nextQuests = readText("docs/NEXT_QUESTS.md", "next quests");
+const buildLog = readText("docs/BUILD_LOG.md", "build log");
+const decisions = readText("docs/DECISIONS.md", "decisions");
+const productSpec = readText("docs/PRODUCT_SPEC_AND_GATES.md", "product spec and gates");
 const releaseLadder = readText("docs/updates/ATLAS_RELEASE_LADDER.md", "release ladder");
 const toolContracts = readText("docs/TOOL_CONTRACTS.md", "tool contracts");
 const serverIndex = readText("server/src/index.ts", "server entrypoint");
@@ -61,6 +69,7 @@ checkPriorSelectorArtifact(selector);
 checkHiddenProofArtifacts(readinessAggregate, ownerCutline, visualReview);
 checkOwnerGateSelector(ownerGateSelector);
 checkNextQuestAlignment(currentUpdate, nextQuests, releaseLadder);
+checkIntegrationReleaseDocs(currentUpdate, { state, nextQuests, buildLog, decisions, productSpec });
 checkAgentsDoctrine(agents);
 checkReadmeDrift(readme);
 checkToolSurface(toolContracts, serverIndex);
@@ -76,7 +85,10 @@ checkRepairScope();
 
 const result = {
   ok: blockers.length === 0,
-  update: "postalpha-0.45e-source-of-truth-drift-check",
+  update:
+    currentUpdate?.id === INTEGRATION_UPDATE
+      ? "postalpha-0.58i-integration-source-of-truth-drift-check"
+      : "postalpha-0.45e-source-of-truth-drift-check",
   blockerCount: blockers.length,
   blockers,
   warnings,
@@ -123,7 +135,11 @@ function checkCurrentUpdate(update) {
     checkHostedClawdCurrentUpdate(update);
     return;
   }
-  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE} or ${HOSTED_CLAWD_UPDATE}; got ${update.id ?? "missing"}.`);
+  if (update.id === INTEGRATION_UPDATE) {
+    checkIntegrationCurrentUpdate(update);
+    return;
+  }
+  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, or ${INTEGRATION_UPDATE}; got ${update.id ?? "missing"}.`);
 }
 
 function checkOwnerGateCurrentUpdate(update) {
@@ -176,6 +192,51 @@ function checkHostedClawdCurrentUpdate(update) {
   }
   if (scope?.dbMigrations !== 0 || scope?.liveCheckout !== false || scope?.persistedWrites !== false) {
     blockers.push("Hosted Clawd scaffold must record no DB migrations, no live checkout, and no persisted writes.");
+  }
+}
+
+function checkIntegrationCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== INTEGRATION_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${INTEGRATION_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== INTEGRATION_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${INTEGRATION_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== INTEGRATION_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${INTEGRATION_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "HUMAN_VISUAL_GATE_FIRST") {
+    blockers.push(`artifacts/current-update.json decision must be HUMAN_VISUAL_GATE_FIRST; got ${update.decision ?? "missing"}.`);
+  }
+  if (!update.verification?.hostedClawdGuard || !update.verification?.fablePropCleanupGuard || !update.verification?.integrationSplitGuard) {
+    blockers.push("artifacts/current-update.json must record Hosted Clawd, Fable cleanup, and integration split guards.");
+  }
+  const integration = update.metricResult?.integrationCanonicalization;
+  const hosted = update.metricResult?.hostedClawdScaffold;
+  const scope = update.metricResult?.scope;
+  if (integration?.branch !== "codex/integrate-hosted-clawd-fable-058e" || integration?.splitMode !== "hosted-clawd-fable-integration") {
+    blockers.push("0.58I integration must record the integration branch and hosted-clawd-fable-integration split mode.");
+  }
+  if (integration?.suitableCanonicalCandidate !== true || integration?.humanVisualGateRequired !== true) {
+    blockers.push("0.58I integration must be a canonical candidate with a required human visual gate.");
+  }
+  if (integration?.deployRecommendation !== "HUMAN_VISUAL_GATE_FIRST") {
+    blockers.push(`0.58I deployRecommendation must be HUMAN_VISUAL_GATE_FIRST; got ${integration?.deployRecommendation ?? "missing"}.`);
+  }
+  if (integration?.publicToolCount !== 7 || integration?.newMcpTools !== 0 || hosted?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.58I integration must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (hosted?.persistenceDefault !== false || hosted?.moneyDefault !== false || hosted?.publicClaimDefault !== false) {
+    blockers.push("0.58I integration must keep Hosted Clawd persistence, money, and public-claim defaults false.");
+  }
+  if (scope?.dbMigrations !== 0 || scope?.liveCheckout !== false || scope?.persistedWrites !== false || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false) {
+    blockers.push("0.58I integration must record no DB migrations, no live checkout, no persisted writes, no public Anaheim promotion, and no provider geometry.");
+  }
+  if (scope?.rendererGeometryChanges !== true) {
+    blockers.push("0.58I integration must explicitly acknowledge Fable renderer geometry changes.");
   }
 }
 
@@ -259,6 +320,89 @@ function checkNextQuestAlignment(update, nextQuests, releaseLadder) {
   }
 }
 
+function checkIntegrationReleaseDocs(update, docs) {
+  if (update?.id !== INTEGRATION_UPDATE) return;
+
+  const requiredSnippetsByFile = {
+    "STATE.md": [
+      "codex/integrate-hosted-clawd-fable-058e",
+      "0.58I Integration Canonicalization / Release Decision Packet",
+      "HUMAN_VISUAL_GATE_FIRST",
+      INTEGRATION_NEXT_QUEST,
+      HOSTED_CLAWD_NEXT_QUEST,
+      "hosted-clawd-fable-integration",
+    ],
+    "docs/NEXT_QUESTS.md": [
+      "Current local-green integration slice",
+      "0.58I Integration Canonicalization / Release Decision Packet",
+      "0.58J Human Visual Gate / Deploy Readiness Decision",
+      "The active manifest is now the 0.58I integration packet",
+      "No deploy, DB, auth, Stripe, persistence",
+    ],
+    "docs/BUILD_LOG.md": [
+      "## Entry 195",
+      "0.58I Integration Canonicalization / Release Decision Packet",
+      "HUMAN_VISUAL_GATE_FIRST",
+      "hosted-clawd-fable-integration",
+      "No deploy, no push, no DB/auth/Stripe/persistence",
+    ],
+    "docs/DECISIONS.md": [
+      "## Decision 080",
+      "Integrated Hosted Clawd plus Fable branch needs a human visual gate before deploy",
+      "codex/integrate-hosted-clawd-fable-058e",
+      "0.58J Human Visual Gate / Deploy Readiness Decision",
+      "0.59H Hosted Clawd Storage/Auth Decision Packet",
+    ],
+    "docs/PRODUCT_SPEC_AND_GATES.md": [
+      "Current integration note (2026-07-05)",
+      "codex/integrate-hosted-clawd-fable-058e",
+      "The active manifest is now the 0.58I integration packet",
+      "Hosted Clawd is reopened only as a gated scaffold",
+      "0.59H storage/auth decision",
+    ],
+  };
+
+  for (const [path, snippets] of Object.entries(requiredSnippetsByFile)) {
+    const text = docs[docKey(path)] ?? "";
+    for (const snippet of snippets) {
+      if (!includesSnippet(text, snippet)) {
+        blockers.push(`${path} missing 0.58I release-decision wording: ${snippet}`);
+      }
+    }
+  }
+
+  const staleManifestClaims = [
+    ["docs/NEXT_QUESTS.md", docs.nextQuests],
+    ["docs/PRODUCT_SPEC_AND_GATES.md", docs.productSpec],
+  ];
+  for (const [path, text] of staleManifestClaims) {
+    if (/current-update\.json` (?:stays|remains)(?: at)? `0\.45E`/i.test(text)) {
+      blockers.push(`${path} still claims the active current-update manifest stays at 0.45E.`);
+    }
+    if (/artifacts\/current-update\.json`\s*(?:stays|remains)(?: at)? `0\.45E`/i.test(text)) {
+      blockers.push(`${path} still claims artifacts/current-update.json stays at 0.45E.`);
+    }
+  }
+}
+
+function docKey(path) {
+  return {
+    "STATE.md": "state",
+    "docs/NEXT_QUESTS.md": "nextQuests",
+    "docs/BUILD_LOG.md": "buildLog",
+    "docs/DECISIONS.md": "decisions",
+    "docs/PRODUCT_SPEC_AND_GATES.md": "productSpec",
+  }[path];
+}
+
+function includesSnippet(text, snippet) {
+  return normalizeWhitespace(text).includes(normalizeWhitespace(snippet));
+}
+
+function normalizeWhitespace(value) {
+  return String(value).replace(/\s+/g, " ").trim();
+}
+
 function extractFirstNextUpdate(releaseLadder) {
   const nextSection = releaseLadder.split("## Next Updates")[1] ?? "";
   const match = nextSection.match(/^###\s+(.+)$/m);
@@ -277,8 +421,9 @@ function checkAgentsDoctrine(agents) {
     "Anaheim/Ontario remain hidden and non-public until owner-gate approval",
     "Hosted Clawd, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened",
     "If the human says \"continue,\" continue only the named next quest",
-    "Current human-directed local-green slice is `0.58H Hosted Clawd Rental Scaffold`",
-    "Default next Hosted Clawd slice after 0.58H is `0.59H Hosted Clawd Storage/Auth Decision Packet`",
+    "Current human-directed local-green slice is `0.58I Integration Canonicalization / Release Decision Packet`",
+    "Default next integration slice after 0.58I is `0.58J Human Visual Gate / Deploy Readiness Decision`",
+    "Default Hosted Clawd implementation slice after the visual/deploy gate remains `0.59H Hosted Clawd Storage/Auth Decision Packet`",
     "The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`",
     "Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`",
     "Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`",
@@ -287,6 +432,7 @@ function checkAgentsDoctrine(agents) {
     "Put large widget-only or renderer-only scene data in `_meta`",
     "Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays",
     "Do not add new MCP tools casually",
+    "Use `hosted-clawd-fable-integration` for strict split checks on the integrated branch",
   ];
   for (const snippet of requiredSnippets) {
     if (!agents.includes(snippet)) {

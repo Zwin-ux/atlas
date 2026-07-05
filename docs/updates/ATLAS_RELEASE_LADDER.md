@@ -6,22 +6,27 @@ proof packet.
 
 ## Current Update
 
-### Post-Alpha 0.58H - Hosted Clawd Rental Scaffold
+### Post-Alpha 0.58I - Integration Canonicalization / Release Decision Packet
 
-Player-facing promise: Atlas shows a map-first path to host Clawd for a
-business while keeping Alpha visibly session-only.
+Player-facing promise: Atlas keeps the sharper Fable map and the Hosted Clawd
+rental tray together in one coherent local branch while Alpha remains visibly
+session-only.
 
-Engineering promise: The app adds Hosted Clawd service contracts, guarded HTTP
-scaffolds, widget-only state, and a compact upgrade tray without enabling live
-persistence, money, public claims, or new MCP tools.
+Engineering promise: The integrated branch records Hosted Clawd scaffold plus
+Fable 0.53E-0.58E visual chain as a canonical candidate, with explicit split
+guard and human visual gate before deploy.
 
 Spec:
-Use `scripts/verify-hosted-clawd-scaffold.mjs` and
-`artifacts/current-update.json` as the 0.58H gate.
+Use `artifacts/current-update.json`,
+`scripts/verify-hosted-clawd-scaffold.mjs`,
+`scripts/verify-fable-prop-cleanup.mjs`, and strict
+`hosted-clawd-fable-integration` split mode as the 0.58I gate.
 
 Status:
-Local green. Persistence, money, and public-claim flags are OFF by default.
-The public MCP tool surface remains the seven existing tools.
+Local green. Branch `codex/integrate-hosted-clawd-fable-058e` is the local
+canonical candidate. Deploy is blocked on a human visual/deploy gate.
+Persistence, money, and public-claim flags are OFF by default. The public MCP
+tool surface remains the seven existing tools.
 
 ## Parked Owner-Gate Ladder
 
@@ -42,6 +47,14 @@ Slices: `0.46P` in-widget result surface (done + proven), `0.47P` widget polish,
 Anaheim/Ontario stay hidden.
 
 ## Next Updates
+
+### Post-Alpha 0.58J - Human Visual Gate / Deploy Readiness Decision
+
+Review the integrated desktop and 390x844 mobile proof, decide whether
+`codex/integrate-hosted-clawd-fable-058e` becomes the canonical/deploy line,
+and either approve deploy or name exact visual/product blockers. Do not
+implement DB, auth, Stripe, persistence, public Anaheim/Ontario, or new MCP
+tools in this gate.
 
 ### Post-Alpha 0.59H - Hosted Clawd Storage/Auth Decision Packet
 
