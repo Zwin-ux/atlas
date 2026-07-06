@@ -18,6 +18,7 @@ const RC_MODES = new Set([
   "provider-boundary",
   "hosted-clawd-scaffold",
   "hosted-clawd-fable-integration",
+  "hosted-clawd-persistence-foundation",
 ]);
 
 const SAFE_FUNCTIONAL_RC_DOCS = new Set([
@@ -236,6 +237,16 @@ const HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES = [
   "artifacts/ship-prep/",
 ];
 
+const HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES = new Set([
+  ".env.example",
+  "package.json",
+  "pnpm-lock.yaml",
+  "migrations/hosted-clawd/001_persistence_foundation.sql",
+  "scripts/verify-hosted-clawd-persistence-foundation.mjs",
+  "server/test/hosted-clawd-persistence-foundation.test.ts",
+  "server/test/hosted-clawd-postgres-smoke.ts",
+]);
+
 const EXACT_RULES = [
   ["hosted-clawd-parked", ".env.example", "DB and invite-token env placeholders are not part of public Alpha RC."],
   ["hosted-clawd-parked", "package.json", "Hosted Clawd DB scripts/dependencies must stay out of F2 Alpha RC."],
@@ -309,6 +320,9 @@ for the selected RC mode. Use this before staging/deploy claims.
   hosted-clawd-fable-integration
                          Allows the Hosted Clawd scaffold plus the explicit
                          Fable 0.53E-0.58E visual chain.
+  hosted-clawd-persistence-foundation
+                         Allows the integrated Hosted Clawd branch plus the
+                         narrow 0.60H DB/Auth persistence foundation envelope.
 
 The check is conservative. Parked runtime/backend/visual paths, shared docs
 that require hunk review, and unknown paths block a Functional Alpha RC.`);
@@ -464,6 +478,13 @@ function classifyPath(path) {
     };
   }
 
+  if (rcMode === "hosted-clawd-persistence-foundation" && isHostedClawdPersistenceFoundationPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.60H Hosted Clawd persistence foundation RC mode.",
+    };
+  }
+
   for (const [classification, exactPath, reason] of EXACT_RULES) {
     if (path === exactPath) {
       return { classification, reason };
@@ -530,6 +551,17 @@ function getSelectedRcAllowedPaths(modeName) {
       paths.add(path);
     }
   }
+  if (modeName === "hosted-clawd-persistence-foundation") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+  }
   return paths;
 }
 
@@ -551,6 +583,9 @@ function isSelectedRcAllowedPath(path) {
   }
   if (rcMode === "hosted-clawd-fable-integration") {
     return isHostedClawdFableIntegrationPath(path);
+  }
+  if (rcMode === "hosted-clawd-persistence-foundation") {
+    return isHostedClawdPersistenceFoundationPath(path);
   }
   return false;
 }
@@ -586,6 +621,13 @@ function isHostedClawdFableIntegrationPath(path) {
   );
 }
 
+function isHostedClawdPersistenceFoundationPath(path) {
+  return (
+    isHostedClawdFableIntegrationPath(path) ||
+    HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES.has(path)
+  );
+}
+
 function getSelectedRcAllowlistSummary(modeName) {
   const exact = [...selectedRcAllowedPaths];
   if (modeName === "engine-beta-renderer") {
@@ -605,6 +647,13 @@ function getSelectedRcAllowlistSummary(modeName) {
     return [...exact, ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`)];
   }
   if (modeName === "hosted-clawd-fable-integration") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "hosted-clawd-persistence-foundation") {
     return [
       ...exact,
       ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),

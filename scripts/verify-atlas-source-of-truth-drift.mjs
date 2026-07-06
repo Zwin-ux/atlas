@@ -8,11 +8,13 @@ const HOSTED_CLAWD_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold";
 const INTEGRATION_UPDATE = "postalpha-0.58i-integration-canonicalization-release-decision";
 const SETUP_UI_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port";
 const STORAGE_AUTH_UPDATE = "postalpha-0.59h-hosted-clawd-storage-auth-decision";
+const PERSISTENCE_FOUNDATION_UPDATE = "postalpha-0.60h-hosted-clawd-persistence-foundation";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
 const SETUP_UI_INPUT_UPDATE = "postalpha-0.58i-integration-canonicalization-release-decision";
 const STORAGE_AUTH_INPUT_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port+human-reopened-db-auth-2026-07-05";
+const PERSISTENCE_FOUNDATION_INPUT_UPDATE = "postalpha-0.59h-hosted-clawd-storage-auth-decision+claude-fable-5";
 const EXPECTED_SELECTOR_NEXT_QUEST = "0.44E Hidden Second-District Visual/Product Proof Packet";
 const OWNER_GATE_NEXT_QUEST = "0.46E Owner Gate Review Packet";
 const OWNER_GATE_SELECTED_AXIS = "owner_gate_review";
@@ -24,6 +26,8 @@ const SETUP_UI_NEXT_QUEST = "0.58K Human Visual Gate / Deploy Readiness Decision
 const SETUP_UI_SELECTED_AXIS = "hosted_clawd_setup_ui";
 const STORAGE_AUTH_NEXT_QUEST = "0.60H Persistence Foundation";
 const STORAGE_AUTH_SELECTED_AXIS = "hosted_clawd_storage_auth";
+const PERSISTENCE_FOUNDATION_NEXT_QUEST = "0.61H Invite Beta Save UX";
+const PERSISTENCE_FOUNDATION_SELECTED_AXIS = "hosted_clawd_persistence_foundation";
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -98,6 +102,8 @@ const result = {
       ? "postalpha-0.58j-setup-ui-source-of-truth-drift-check"
       : currentUpdate?.id === STORAGE_AUTH_UPDATE
       ? "postalpha-0.59h-storage-auth-source-of-truth-drift-check"
+      : currentUpdate?.id === PERSISTENCE_FOUNDATION_UPDATE
+      ? "postalpha-0.60h-persistence-foundation-source-of-truth-drift-check"
       : currentUpdate?.id === INTEGRATION_UPDATE
       ? "postalpha-0.58i-integration-source-of-truth-drift-check"
       : "postalpha-0.45e-source-of-truth-drift-check",
@@ -159,7 +165,11 @@ function checkCurrentUpdate(update) {
     checkStorageAuthCurrentUpdate(update);
     return;
   }
-  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, ${SETUP_UI_UPDATE}, or ${STORAGE_AUTH_UPDATE}; got ${update.id ?? "missing"}.`);
+  if (update.id === PERSISTENCE_FOUNDATION_UPDATE) {
+    checkPersistenceFoundationCurrentUpdate(update);
+    return;
+  }
+  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, ${SETUP_UI_UPDATE}, ${STORAGE_AUTH_UPDATE}, or ${PERSISTENCE_FOUNDATION_UPDATE}; got ${update.id ?? "missing"}.`);
 }
 
 function checkOwnerGateCurrentUpdate(update) {
@@ -345,6 +355,44 @@ function checkStorageAuthCurrentUpdate(update) {
   }
   if (scope?.authProviderMutation !== false || scope?.packageDepsAdded !== 0 || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false) {
     blockers.push("0.59H must record no auth-provider mutation, package dependency, public Anaheim promotion, or provider geometry.");
+  }
+}
+
+function checkPersistenceFoundationCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== PERSISTENCE_FOUNDATION_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${PERSISTENCE_FOUNDATION_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== PERSISTENCE_FOUNDATION_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${PERSISTENCE_FOUNDATION_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== PERSISTENCE_FOUNDATION_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${PERSISTENCE_FOUNDATION_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED") {
+    blockers.push(`artifacts/current-update.json decision must be PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED; got ${update.decision ?? "missing"}.`);
+  }
+  if (!update.verification?.persistenceFoundationGuard || !update.verification?.hostedClawdTests || !update.verification?.persistenceSplitGuard) {
+    blockers.push("artifacts/current-update.json must record the 0.60H persistence guard, Hosted Clawd tests, and split guard.");
+  }
+  const foundation = update.metricResult?.hostedClawdPersistenceFoundation;
+  const scope = update.metricResult?.scope;
+  if (foundation?.storageProvider !== "Railway Postgres") {
+    blockers.push("0.60H must record Railway Postgres as the production DB path.");
+  }
+  if (foundation?.authModel !== "OAuth/OIDC account linking for protected Hosted Clawd writes") {
+    blockers.push("0.60H must record OAuth/OIDC account linking for protected Hosted Clawd writes.");
+  }
+  if (foundation?.publicToolCount !== 7 || foundation?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.60H must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (scope?.dbMigrations !== 1 || scope?.persistedWrites !== true || scope?.liveCheckout !== false) {
+    blockers.push("0.60H must record one DB migration, protected persisted writes, and no live checkout.");
+  }
+  if (scope?.stripeDepsAdded !== 0 || scope?.stripeTablesAdded !== 0 || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false) {
+    blockers.push("0.60H must record no Stripe deps/tables, no public Anaheim promotion, and no provider geometry.");
   }
 }
 
@@ -559,6 +607,47 @@ function checkIntegrationReleaseDocs(update, docs) {
     };
   }
 
+  if (update?.id === PERSISTENCE_FOUNDATION_UPDATE) {
+    label = "0.60H persistence-foundation";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.60H Hosted Clawd persistence foundation",
+        "PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED",
+        PERSISTENCE_FOUNDATION_NEXT_QUEST,
+        "Railway Postgres",
+        "OAuth/OIDC account linking",
+        "Stripe stays closed",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current persistence foundation slice",
+        "0.60H Persistence Foundation",
+        "PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED",
+        PERSISTENCE_FOUNDATION_NEXT_QUEST,
+        "paid neighborhood operator",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 199",
+        "0.60H Persistence Foundation",
+        "owner-protected Hosted Clawd persistence",
+        "Stripe stays closed",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 084",
+        "Persist Hosted Clawd ownership before billing",
+        "Railway Postgres",
+        "OAuth/OIDC account linking",
+        PERSISTENCE_FOUNDATION_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current persistence note (2026-07-05)",
+        "0.60H Persistence Foundation",
+        "paid neighborhood operator",
+        PERSISTENCE_FOUNDATION_NEXT_QUEST,
+        "Stripe/money",
+      ],
+    };
+  }
+
   if (!requiredSnippetsByFile) return;
 
   for (const [path, snippets] of Object.entries(requiredSnippetsByFile)) {
@@ -618,13 +707,13 @@ function checkAgentsDoctrine(agents) {
     "Current phase is Engine Beta, not Paid Beta",
     "Riverside/Eastvale is the only public playable district",
     "Anaheim/Ontario remain hidden and non-public until owner-gate approval",
-    "Hosted Clawd implementation beyond the gated setup UI/scaffold, Stripe, paid, DB persistence implementation, OAuth, XP, evidence, automation, reports, exports remain parked until explicitly reopened",
+    "Hosted Clawd DB/Auth persistence is now local-green only for owner-protected rows",
     "The human explicitly reopened DB/Auth preparation on 2026-07-05",
     "If the human says \"continue,\" continue only the named next quest",
-    "Current human-directed local-green slice is `0.59H Hosted Clawd Storage/Auth Decision Packet`",
-    "0.59H decision is `DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED`",
-    "Default next slice after 0.59H is `0.60H Persistence Foundation`",
-    "Stripe/money remains downstream of 0.60H",
+    "Current human-directed local-green slice is `0.60H Persistence Foundation`",
+    "0.60H decision is `PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED`",
+    "Default next slice after 0.60H is `0.61H Invite Beta Save UX`",
+    "Stripe/money remains downstream of 0.60H and 0.61H",
     "The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`",
     "Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`",
     "Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`",
@@ -633,7 +722,7 @@ function checkAgentsDoctrine(agents) {
     "Put large widget-only or renderer-only scene data in `_meta`",
     "Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays",
     "Do not add new MCP tools casually",
-    "Use `hosted-clawd-fable-integration` for strict split checks on the integrated branch",
+    "Use `hosted-clawd-persistence-foundation` for strict split checks on the 0.60H persistence branch",
   ];
   for (const snippet of requiredSnippets) {
     if (!agents.includes(snippet)) {
@@ -691,6 +780,10 @@ function checkPublicCandidateClaims(files) {
 }
 
 function checkDbDrift(packageJson, serverIndex, envExample) {
+  if (currentUpdate?.id === PERSISTENCE_FOUNDATION_UPDATE) {
+    checkPersistenceFoundationDbEnvelope(packageJson, serverIndex, envExample);
+    return;
+  }
   const dependencies = {
     ...(packageJson?.dependencies ?? {}),
     ...(packageJson?.devDependencies ?? {}),
@@ -705,6 +798,34 @@ function checkDbDrift(packageJson, serverIndex, envExample) {
   }
   if (existsSync(resolve("migrations")) && hasFiles(resolve("migrations"))) {
     blockers.push("migrations/ exists with files while DB scene persistence implementation is parked.");
+  }
+}
+
+function checkPersistenceFoundationDbEnvelope(packageJson, serverIndex, envExample) {
+  const dependencies = {
+    ...(packageJson?.dependencies ?? {}),
+    ...(packageJson?.devDependencies ?? {}),
+  };
+  for (const dep of ["pg", "jose", "@types/pg"]) {
+    if (!Object.prototype.hasOwnProperty.call(dependencies, dep)) {
+      blockers.push(`0.60H persistence foundation requires dependency ${dep}.`);
+    }
+  }
+  for (const dep of ["stripe", "@stripe/stripe-js", "@supabase/supabase-js", "prisma", "@prisma/client", "drizzle-orm", "auth0", "next-auth"]) {
+    if (Object.prototype.hasOwnProperty.call(dependencies, dep)) {
+      blockers.push(`0.60H persistence foundation must not add blocked dependency ${dep}.`);
+    }
+  }
+  for (const token of ["DATABASE_URL", "ATLAS_OIDC_ISSUER", "ATLAS_OIDC_AUDIENCE", "ATLAS_OIDC_JWKS_URL"]) {
+    if (!envExample.includes(token)) {
+      blockers.push(`0.60H .env.example is missing ${token}.`);
+    }
+  }
+  if (!/\bDATABASE_URL\b/.test(serverIndex)) {
+    blockers.push("0.60H server runtime must wire DATABASE_URL behind the persistence flag.");
+  }
+  if (!existsSync(resolve("migrations/hosted-clawd/001_persistence_foundation.sql"))) {
+    blockers.push("0.60H migration file is missing.");
   }
 }
 

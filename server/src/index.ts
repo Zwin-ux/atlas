@@ -38,7 +38,21 @@ import {
   SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
   type ScenePacketMemorySummary,
 } from "./scenePacketMemoryAdapter.js";
-import { HostedClawdService, type HostedClawdContext, type HostedClawdContextInput } from "./hostedClawd/index.js";
+import {
+  buildAuthChallengeHeader,
+  buildOAuthProtectedResourceMetadata,
+  createHostedClawdPool,
+  createHostedClawdRepositoryPersistence,
+  createPostgresHostedClawdRepository,
+  HOSTED_CLAWD_WRITE_SCOPE,
+  HostedClawdAuthenticator,
+  HostedClawdService,
+  readHostedClawdAuthConfig,
+  readHostedClawdFeatureFlags,
+  type HostedClawdAuthContext,
+  type HostedClawdContext,
+  type HostedClawdContextInput,
+} from "./hostedClawd/index.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-v1.html";
@@ -59,7 +73,26 @@ const worldService = createNationalWorldService([riversideDemoVoxelScene]);
 const scenePacketMemory = createScenePacketMemoryAdapter<ScoutPreviewState["scene"]>({
   maxEntries: MAX_SCENE_PACKET_MEMORY_ENTRIES,
 });
-const hostedClawdService = new HostedClawdService();
+// Hosted Clawd persistence foundation (0.60H). Everything stays OFF unless the
+// persistence flag is enabled AND DATABASE_URL and OIDC auth are configured.
+// Protected writes require OAuth/OIDC bearer tokens; iframe cookies and model
+// text are never identity.
+const hostedClawdFlags = readHostedClawdFeatureFlags(process.env);
+const hostedClawdAuthConfig = readHostedClawdAuthConfig(process.env);
+const hostedClawdAuthenticator = hostedClawdAuthConfig
+  ? new HostedClawdAuthenticator(hostedClawdAuthConfig)
+  : undefined;
+const hostedClawdDatabaseUrl = process.env.DATABASE_URL?.trim() || undefined;
+const hostedClawdPersistence =
+  hostedClawdFlags.persistenceEnabled && hostedClawdDatabaseUrl && hostedClawdAuthenticator
+    ? createHostedClawdRepositoryPersistence(
+        createPostgresHostedClawdRepository(createHostedClawdPool(hostedClawdDatabaseUrl)),
+      )
+    : undefined;
+const hostedClawdService = new HostedClawdService({
+  flags: hostedClawdFlags,
+  persistence: hostedClawdPersistence,
+});
 
 type WorldLookupCacheEntry = {
   response: WorldPlaceLookupResponse;
@@ -1195,8 +1228,8 @@ function termsPageHtml(): string {
 function setCors(res: ServerResponse): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "content-type, mcp-session-id");
-  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
+  res.setHeader("Access-Control-Allow-Headers", "content-type, mcp-session-id, authorization");
+  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id, WWW-Authenticate");
 }
 
 function loadLocalEnv(): void {
@@ -1518,24 +1551,81 @@ function hostedClawdInputFromUrl(url: URL): HostedClawdContextInput {
   };
 }
 
+function hostedClawdResourceMetadataUrl(req: IncomingMessage): string {
+  const host = req.headers.host ?? `localhost:${PORT}`;
+  const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
+  return `${protocol}://${host}/.well-known/oauth-protected-resource`;
+}
+
+function hostedClawdProtectedResourceUrl(req: IncomingMessage): string {
+  const explicit = process.env.ATLAS_OIDC_RESOURCE?.trim();
+  if (explicit) return explicit;
+  const host = req.headers.host ?? `localhost:${PORT}`;
+  const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
+  return `${protocol}://${host}${MCP_PATH}`;
+}
+
+function setHostedClawdAuthChallenge(req: IncomingMessage, res: ServerResponse): void {
+  res.setHeader(
+    "WWW-Authenticate",
+    buildAuthChallengeHeader(hostedClawdResourceMetadataUrl(req), HOSTED_CLAWD_WRITE_SCOPE),
+  );
+}
+
+// Bearer extraction for protected Hosted Clawd writes. Missing or bad
+// credentials produce an auth challenge instead of silently creating state.
+async function verifiedHostedClawdAuth(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<{ ok: true; auth?: HostedClawdAuthContext } | { ok: false }> {
+  const header = req.headers.authorization;
+  if (!hostedClawdAuthenticator || !header) {
+    return { ok: true };
+  }
+
+  const verdict = await hostedClawdAuthenticator.verifyAuthorizationHeader(header);
+  if (!verdict.ok) {
+    setHostedClawdAuthChallenge(req, res);
+    jsonResponse(res, 401, { ok: false, reason: verdict.reason, error: verdict.detail });
+    return { ok: false };
+  }
+
+  return { ok: true, auth: verdict.auth };
+}
+
 async function handleHostedClawdAction(
   req: IncomingMessage,
   res: ServerResponse,
   operation: "create_or_attach_clawd" | "promote_session" | "save_campaign_artifact" | "start_checkout" | "open_billing_portal",
 ): Promise<void> {
   try {
+    const verified = await verifiedHostedClawdAuth(req, res);
+    if (!verified.ok) return;
+
     const body = await readJsonObjectBody(req);
     const input = hostedClawdInputFromObject(body);
     const result =
       operation === "create_or_attach_clawd"
-        ? await hostedClawdService.createOrAttachClawd(input)
+        ? await hostedClawdService.createOrAttachClawd(input, verified.auth)
         : operation === "promote_session"
-          ? await hostedClawdService.promoteSession(input)
+          ? await hostedClawdService.promoteSession(input, verified.auth)
           : operation === "save_campaign_artifact"
-            ? await hostedClawdService.saveCampaignArtifact(input)
+            ? await hostedClawdService.saveCampaignArtifact(input, verified.auth)
             : operation === "start_checkout"
               ? await hostedClawdService.startCheckout(input)
               : await hostedClawdService.openBillingPortal(input);
+
+    if (result.reason === "auth_required") {
+      setHostedClawdAuthChallenge(req, res);
+      jsonResponse(res, 401, { ok: false, result });
+      return;
+    }
+
+    if (result.reason === "write_scope_required") {
+      setHostedClawdAuthChallenge(req, res);
+      jsonResponse(res, 403, { ok: false, result });
+      return;
+    }
 
     jsonResponse(res, 200, { ok: true, result });
   } catch (error) {
@@ -2126,6 +2216,25 @@ const httpServer = createServer(async (req, res) => {
       update: SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
       cache: scenePacketMemory.status(),
     });
+    return;
+  }
+
+  // OAuth protected-resource metadata (RFC 9728) for Hosted Clawd account
+  // linking. Only meaningful when the OIDC issuer/audience are configured.
+  if (url.pathname === "/.well-known/oauth-protected-resource" && req.method === "GET") {
+    setCors(res);
+    if (!hostedClawdAuthConfig) {
+      jsonResponse(res, 404, {
+        ok: false,
+        error: "OAuth protected-resource metadata is not configured on this deployment.",
+      });
+      return;
+    }
+    jsonResponse(
+      res,
+      200,
+      buildOAuthProtectedResourceMetadata(hostedClawdAuthConfig, hostedClawdProtectedResourceUrl(req)),
+    );
     return;
   }
 

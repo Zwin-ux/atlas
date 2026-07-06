@@ -6,31 +6,35 @@ proof packet.
 
 ## Current Update
 
-### Post-Alpha 0.59H - Hosted Clawd Storage/Auth Decision Packet
+### Post-Alpha 0.60H - Hosted Clawd Persistence Foundation
 
-Player-facing promise: Atlas is preparing to make Hosted Clawd durable: one
-owner, one business, one saved Scout Drop, and one saved campaign draft, while
-the map remains the product surface.
+Player-facing promise: Atlas now has the owner-protected memory needed for a
+map/chat app where users can see their local world, keep local business
+context, and later deploy Clawdbot as a paid neighborhood operator without
+leaving the voxel map surface.
 
-Engineering promise: Choose the production DB/auth foundation and verifier
-envelope before implementing persistence: Railway Postgres, OAuth/OIDC account
-linking for protected MCP Hosted Clawd actions, SQL migrations, owner checks,
-idempotency, and Stripe later.
+Engineering promise: Implement the first DB/Auth persistence foundation:
+Railway Postgres, SQL migration, OAuth/OIDC bearer verification, protected
+write routing, owned Hosted Clawd rows, business profile rows, Scout Drop
+saves, campaign draft saves, usage events, and idempotency. Stripe stays
+closed.
 
 Spec:
-Use `0.58J Hosted Clawd Setup UI Port` plus the 2026-07-05 human DB/Auth
-reopening as the input update. Keep
-`scripts/verify-hosted-clawd-db-auth-prep.mjs`,
-`scripts/verify-atlas-source-of-truth-drift.mjs`, and strict
-`hosted-clawd-fable-integration` split mode as the 0.59H guard.
+Use `0.59H Hosted Clawd Storage/Auth Decision Packet` plus the Claude Fable 5
+implementation pass as the input update. Keep
+`scripts/verify-hosted-clawd-persistence-foundation.mjs`,
+`scripts/verify-atlas-source-of-truth-drift.mjs`, focused Hosted Clawd tests,
+and strict `hosted-clawd-persistence-foundation` split mode as the 0.60H guard.
 
 Status:
 Local green. Branch `codex/integrate-hosted-clawd-fable-058e` is the local
-canonical candidate. Decision is `DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED`;
-selected axis is `hosted_clawd_storage_auth`. DB/Auth implementation is now the
-next named build layer. Stripe, public paid claims, evidence, XP, reports,
-exports, automation, public Anaheim/Ontario, and new public MCP tools remain
-closed. The public MCP tool surface remains the seven existing tools.
+canonical candidate. Decision is
+`PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED`; selected axis is
+`hosted_clawd_persistence_foundation`. The memory layer is in place for owned
+Atlas map/chat state and the future paid Clawdbot neighborhood operator.
+Stripe, public paid claims, evidence, XP, reports, exports, automation, public
+Anaheim/Ontario, and new public MCP tools remain closed. The public MCP tool
+surface remains the seven existing tools.
 
 ## Parked Owner-Gate Ladder
 
@@ -51,13 +55,6 @@ Slices: `0.46P` in-widget result surface (done + proven), `0.47P` widget polish,
 Anaheim/Ontario stay hidden.
 
 ## Next Updates
-
-### Post-Alpha 0.60H - Persistence Foundation
-
-Implement owner-protected Hosted Clawd persistence without Stripe: OAuth/OIDC
-account context, Postgres migrations, owned Clawd row, business profile row,
-saved Scout Drop summary, saved campaign preview draft, usage events,
-idempotency, and tests for unauthenticated denial and cross-owner denial.
 
 ### Post-Alpha 0.61H - Invite Beta Save UX
 

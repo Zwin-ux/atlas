@@ -6,6 +6,7 @@ import {
   HUMAN_APPROVAL_BEFORE_PERSISTENCE,
   HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM,
 } from "./gates.js";
+import { hasWriteScope, type HostedClawdAuthContext } from "./auth.js";
 import type {
   HostedClawdActionKind,
   HostedClawdActionOperation,
@@ -18,6 +19,7 @@ import type {
   HostedClawdFeatureFlags,
   HostedClawdGateStatus,
   HostedClawdPersistencePort,
+  HostedClawdPersistResult,
   HostedClawdPrimaryAction,
   HostedClawdPromotionInput,
   HostedClawdSavePreviewItem,
@@ -71,7 +73,10 @@ export class HostedClawdService {
     };
   }
 
-  async createOrAttachClawd(input: HostedClawdCreateOrAttachInput = {}): Promise<HostedClawdActionResponse> {
+  async createOrAttachClawd(
+    input: HostedClawdCreateOrAttachInput = {},
+    auth?: HostedClawdAuthContext,
+  ): Promise<HostedClawdActionResponse> {
     if (!this.flags.persistenceEnabled) {
       return this.closedGateResponse("create_or_attach_clawd", input, "persistence_not_enabled", "join_waitlist");
     }
@@ -86,10 +91,17 @@ export class HostedClawdService {
       );
     }
 
-    return this.persistence.createOrAttachClawd(input);
+    const denied = this.writeAuthDenial("create_or_attach_clawd", input, auth);
+    if (denied) return denied;
+
+    const result = await this.persistence.createOrAttachClawd(auth as HostedClawdAuthContext, input);
+    return this.acceptedResponse("create_or_attach_clawd", input, result);
   }
 
-  async promoteSession(input: HostedClawdPromotionInput = {}): Promise<HostedClawdActionResponse> {
+  async promoteSession(
+    input: HostedClawdPromotionInput = {},
+    auth?: HostedClawdAuthContext,
+  ): Promise<HostedClawdActionResponse> {
     if (!this.flags.persistenceEnabled) {
       return this.closedGateResponse("promote_session", input, "persistence_not_enabled", "join_waitlist");
     }
@@ -104,10 +116,17 @@ export class HostedClawdService {
       );
     }
 
-    return this.persistence.promoteSession(input);
+    const denied = this.writeAuthDenial("promote_session", input, auth);
+    if (denied) return denied;
+
+    const result = await this.persistence.promoteSession(auth as HostedClawdAuthContext, input);
+    return this.acceptedResponse("promote_session", input, result);
   }
 
-  async saveCampaignArtifact(input: HostedClawdCampaignArtifactInput = {}): Promise<HostedClawdActionResponse> {
+  async saveCampaignArtifact(
+    input: HostedClawdCampaignArtifactInput = {},
+    auth?: HostedClawdAuthContext,
+  ): Promise<HostedClawdActionResponse> {
     if (!this.flags.persistenceEnabled) {
       return this.closedGateResponse("save_campaign_artifact", input, "persistence_not_enabled", "join_waitlist");
     }
@@ -122,7 +141,11 @@ export class HostedClawdService {
       );
     }
 
-    return this.persistence.saveCampaignArtifact(input);
+    const denied = this.writeAuthDenial("save_campaign_artifact", input, auth);
+    if (denied) return denied;
+
+    const result = await this.persistence.saveCampaignArtifact(auth as HostedClawdAuthContext, input);
+    return this.acceptedResponse("save_campaign_artifact", input, result);
   }
 
   async startCheckout(input: HostedClawdContextInput = {}): Promise<HostedClawdActionResponse> {
@@ -195,6 +218,65 @@ export class HostedClawdService {
       case "inactive_payment_failed":
         return { kind: "open_billing_portal", label: "Open billing portal", enabled: this.flags.moneyEnabled };
     }
+  }
+
+  private writeAuthDenial(
+    operation: HostedClawdActionOperation,
+    input: HostedClawdContextInput,
+    auth: HostedClawdAuthContext | undefined,
+  ): HostedClawdActionResponse | undefined {
+    if (!auth) {
+      const context = this.getContext(input);
+      return {
+        type: "hostedClawdAction",
+        operation,
+        status: "blocked",
+        reason: "auth_required",
+        screenState: context.screenState,
+        message:
+          "Saving requires a linked account. Connect through OAuth/OIDC account linking; session previews stay temporary.",
+        nextAction: "create_hosted_clawd",
+        context,
+      };
+    }
+
+    if (!hasWriteScope(auth)) {
+      const context = this.getContext(input);
+      return {
+        type: "hostedClawdAction",
+        operation,
+        status: "blocked",
+        reason: "write_scope_required",
+        screenState: context.screenState,
+        message: "This account is linked but its token is missing the Hosted Clawd write scope.",
+        nextAction: "refresh_status",
+        context,
+      };
+    }
+
+    return undefined;
+  }
+
+  private acceptedResponse(
+    operation: HostedClawdActionOperation,
+    input: HostedClawdContextInput,
+    result: HostedClawdPersistResult,
+  ): HostedClawdActionResponse {
+    const context = this.getContext(input);
+    const savedKinds = result.records.map((record) => record.kind.replace(/_/g, " ")).join(", ");
+    return {
+      type: "hostedClawdAction",
+      operation,
+      status: "accepted",
+      reason: "ready",
+      screenState: context.screenState,
+      message: result.reusedRequest
+        ? `Already saved. Returning the original saved ${savedKinds || "records"}.`
+        : `Saved ${savedKinds || "records"} to your Hosted Clawd.`,
+      nextAction: "refresh_status",
+      saved: result.records,
+      context,
+    };
   }
 
   private closedGateResponse(

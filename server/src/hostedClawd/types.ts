@@ -6,6 +6,7 @@ import type {
   HUMAN_APPROVAL_BEFORE_PERSISTENCE,
   HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM,
 } from "./gates.js";
+import type { HostedClawdAuthContext } from "./auth.js";
 
 export type HostedClawdApprovalGate =
   | typeof HUMAN_APPROVAL_BEFORE_PERSISTENCE
@@ -105,6 +106,17 @@ export type HostedClawdActionOperation =
   | "start_checkout"
   | "open_billing_portal";
 
+export type HostedClawdSavedRecord = {
+  kind: "clawd" | "business_profile" | "scout_drop" | "campaign_draft";
+  id: string;
+  reused: boolean;
+};
+
+export type HostedClawdPersistResult = {
+  records: HostedClawdSavedRecord[];
+  reusedRequest: boolean;
+};
+
 export type HostedClawdActionResponse = {
   type: "hostedClawdAction";
   operation: HostedClawdActionOperation;
@@ -113,12 +125,15 @@ export type HostedClawdActionResponse = {
     | "persistence_not_enabled"
     | "money_not_enabled"
     | "auth_not_configured"
+    | "auth_required"
+    | "write_scope_required"
     | "persistence_adapter_not_configured"
     | "billing_adapter_not_configured"
     | "ready";
   screenState: HostedClawdScreenState;
   message: string;
   nextAction: HostedClawdActionKind;
+  saved?: HostedClawdSavedRecord[];
   context: HostedClawdContext;
 };
 
@@ -138,12 +153,19 @@ export type HostedClawdCampaignArtifactInput = HostedClawdContextInput & {
   campaignSummary?: string;
 };
 
+// HUMAN_APPROVAL_BEFORE_PERSISTENCE is reopened for the named 0.60H slice only.
+// Every write requires a verified OIDC account context; there is no
+// unauthenticated persisted write path.
 export type HostedClawdPersistencePort = {
-  // TODO(gate: HUMAN_APPROVAL_BEFORE_PERSISTENCE): implement after auth, DB,
-  // migration, ownership, and idempotency tests are approved.
-  createOrAttachClawd(input: HostedClawdCreateOrAttachInput): Promise<HostedClawdActionResponse>;
-  promoteSession(input: HostedClawdPromotionInput): Promise<HostedClawdActionResponse>;
-  saveCampaignArtifact(input: HostedClawdCampaignArtifactInput): Promise<HostedClawdActionResponse>;
+  createOrAttachClawd(
+    auth: HostedClawdAuthContext,
+    input: HostedClawdCreateOrAttachInput,
+  ): Promise<HostedClawdPersistResult>;
+  promoteSession(auth: HostedClawdAuthContext, input: HostedClawdPromotionInput): Promise<HostedClawdPersistResult>;
+  saveCampaignArtifact(
+    auth: HostedClawdAuthContext,
+    input: HostedClawdCampaignArtifactInput,
+  ): Promise<HostedClawdPersistResult>;
 };
 
 export type HostedClawdBillingPort = {

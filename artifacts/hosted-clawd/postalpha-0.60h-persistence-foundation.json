@@ -1,0 +1,98 @@
+{
+  "id": "postalpha-0.60h-hosted-clawd-persistence-foundation",
+  "name": "Post-Alpha 0.60H - Hosted Clawd Persistence Foundation",
+  "createdAt": "2026-07-05",
+  "decision": "PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED",
+  "inputUpdate": "postalpha-0.59h-hosted-clawd-storage-auth-decision+claude-fable-5",
+  "sourceDoc": "docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md",
+  "selectedAxis": "hosted_clawd_persistence_foundation",
+  "recommendedNextQuest": "0.61H Invite Beta Save UX",
+  "productFrame": {
+    "atlas": "Map/chat app with an instant voxel view of the local world, session notes, local context, and elevated neighborhood understanding.",
+    "clawdbot": "Paid Hosted Clawd service that can later manage local business and neighborhood work from owned Atlas state.",
+    "whyPersistenceNow": "Clawdbot cannot become a paid local operator until account ownership, business context, Scout Drops, and campaign drafts are durable and owner-protected."
+  },
+  "storage": {
+    "productionProvider": "Railway Postgres",
+    "localTestProvider": "Postgres via DATABASE_URL",
+    "migrationStrategy": "committed SQL migrations plus a small Node runner",
+    "migrationPath": "migrations/hosted-clawd/001_persistence_foundation.sql",
+    "implementationClient": "pg"
+  },
+  "auth": {
+    "model": "OAuth/OIDC account linking for protected Hosted Clawd writes",
+    "providerShape": "Auth0-compatible OIDC provider",
+    "jwtVerificationLibrary": "jose",
+    "protectedResourceMetadata": "/.well-known/oauth-protected-resource",
+    "scopes": [
+      "atlas:hosted_clawd.read",
+      "atlas:hosted_clawd.write"
+    ],
+    "notIdentity": [
+      "ChatGPT model text",
+      "iframe-only cookies",
+      "client-submitted email without token validation",
+      "request-body owner ids"
+    ]
+  },
+  "firstPersistenceSlice": {
+    "publicToolCount": 7,
+    "newMcpTools": 0,
+    "tables": [
+      "users",
+      "clawds",
+      "business_profiles",
+      "county_packs",
+      "scout_drops",
+      "scout_signals",
+      "campaigns",
+      "campaign_days",
+      "usage_events",
+      "idempotency_keys",
+      "app_events"
+    ],
+    "savedPath": "create or attach owned Hosted Clawd, save business profile, save Scout Drop summary, save campaign preview draft",
+    "ownerBoundary": "Every write derives owner_user_id from verified OIDC subject. Session ids never resolve as persisted Clawds.",
+    "idempotency": "owner_user_id + operation + client_request_id returns the original saved records",
+    "requiredTests": [
+      "valid bearer token verifies subject, email, and scopes",
+      "missing token denied",
+      "invalid token denied",
+      "wrong audience denied",
+      "expired token denied",
+      "write scope required",
+      "create-or-attach Clawd is idempotent",
+      "Scout Drop save is idempotent",
+      "campaign preview save is idempotent",
+      "User A cannot read or write User B's rows",
+      "session Clawd id cannot load persisted Clawd",
+      "Postgres smoke skips without DATABASE_URL",
+      "seven public Alpha tools remain stable"
+    ]
+  },
+  "stripe": {
+    "status": "closed",
+    "earliestSlice": "0.62H Stripe Test Billing",
+    "requires": [
+      "0.60H owner-protected persistence",
+      "0.61H Invite Beta Save UX",
+      "idempotency tests",
+      "inactive and read-only state definitions"
+    ]
+  },
+  "blocked": [
+    "subscriptions table",
+    "stripe_webhook_events table",
+    "Stripe dependency",
+    "checkout route that creates a live session",
+    "public paid claim",
+    "evidence uploads",
+    "XP ledger",
+    "reports",
+    "exports",
+    "automation or scheduled outreach",
+    "provider payload persistence",
+    "provider-created geometry",
+    "dashboard shell"
+  ]
+}

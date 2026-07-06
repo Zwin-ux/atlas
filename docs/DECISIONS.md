@@ -1,5 +1,37 @@
 # Decisions
 
+## Decision 084: Persist Hosted Clawd ownership before billing
+
+0.60H implements the first owner-protected Hosted Clawd persistence foundation.
+
+Decision:
+Accept `0.60H Persistence Foundation` as local-green with:
+- Railway Postgres as the production database path.
+- Committed SQL migration plus a small Node runner.
+- `pg` as the database client.
+- `jose` for OAuth/OIDC bearer verification.
+- Protected Hosted Clawd write routes that derive ownership from verified auth
+  context, not request bodies.
+- Owned Hosted Clawd, business profile, Scout Drop, campaign draft, usage
+  event, and idempotency rows.
+
+Reason:
+Atlas is a map/chat app and high-quality voxel engine for seeing local areas,
+logging local context, and gaining an elevated neighborhood view. Hosted Clawd
+/ Clawdbot is the paid neighborhood operator that can later manage local work,
+but it needs boring owner-protected memory before pricing, billing, or
+automation can be honest.
+
+Allowed next:
+- `0.61H Invite Beta Save UX`: make saved state legible in the map-first UI,
+  including business/location confirmation, save status, no-auth/inactive
+  states, and 390x844 proof.
+
+Still blocked:
+- Stripe Checkout, Billing Portal, webhooks, subscriptions, public paid claims,
+  evidence, XP, reports, exports, automation, provider-created geometry, public
+  Anaheim/Ontario, dashboard shells, and new public MCP tools.
+
 ## Decision 083: Open DB/Auth preparation, keep Stripe downstream
 
 The human explicitly reopened DB/Auth preparation on 2026-07-05. The decision

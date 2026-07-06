@@ -1,43 +1,45 @@
 {
-  "id": "postalpha-0.59h-hosted-clawd-storage-auth-decision",
-  "name": "Post-Alpha 0.59H - Hosted Clawd Storage/Auth Decision Packet",
+  "id": "postalpha-0.60h-hosted-clawd-persistence-foundation",
+  "name": "Post-Alpha 0.60H - Hosted Clawd Persistence Foundation",
   "status": "local_green",
-  "playerPromise": "Atlas is preparing to make Hosted Clawd durable: one owner, one business, one saved Scout Drop, and one saved campaign draft, while the map remains the product surface.",
-  "engineeringPromise": "Choose the production DB/auth foundation and verifier envelope before implementing persistence: Railway Postgres, OAuth/OIDC account linking for protected MCP Hosted Clawd actions, SQL migrations, owner checks, idempotency, and Stripe later.",
-  "inputUpdate": "postalpha-0.58j-hosted-clawd-setup-ui-port+human-reopened-db-auth-2026-07-05",
-  "selectedAxis": "hosted_clawd_storage_auth",
-  "recommendedNextQuest": "0.60H Persistence Foundation",
-  "decision": "DB_AUTH_PREP_APPROVED_STRIPE_STAYS_CLOSED",
+  "playerPromise": "Atlas now has the owner-protected memory needed for a map/chat app where users can see their local world, keep local business context, and later deploy Clawdbot as a paid neighborhood operator without leaving the voxel map surface.",
+  "engineeringPromise": "Implement the first DB/Auth persistence foundation: Railway Postgres, SQL migration, OAuth/OIDC bearer verification, protected write routing, owned Hosted Clawd rows, business profile rows, Scout Drop saves, campaign draft saves, usage events, and idempotency. Stripe stays closed.",
+  "inputUpdate": "postalpha-0.59h-hosted-clawd-storage-auth-decision+claude-fable-5",
+  "selectedAxis": "hosted_clawd_persistence_foundation",
+  "recommendedNextQuest": "0.61H Invite Beta Save UX",
+  "decision": "PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED",
   "metricResult": {
-    "hostedClawdStorageAuth": {
+    "hostedClawdPersistenceFoundation": {
       "branch": "codex/integrate-hosted-clawd-fable-058e",
       "sourceDoc": "docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md",
-      "artifactPath": "artifacts/hosted-clawd/postalpha-0.59h-storage-auth-decision.json",
+      "artifactPath": "artifacts/hosted-clawd/postalpha-0.60h-persistence-foundation.json",
+      "migrationPath": "migrations/hosted-clawd/001_persistence_foundation.sql",
       "storageProvider": "Railway Postgres",
-      "localTestStorage": "Postgres via DATABASE_URL, Docker acceptable",
-      "migrationStrategy": "committed SQL migrations plus a small Node runner",
-      "implementationDbClient": "pg in 0.60H, not added in 0.59H",
-      "authModel": "OAuth/OIDC account linking for protected MCP Hosted Clawd actions",
+      "localTestStorage": "Postgres via DATABASE_URL; smoke skips cleanly when unset",
+      "dbClient": "pg",
+      "jwtVerificationLibrary": "jose",
+      "authModel": "OAuth/OIDC account linking for protected Hosted Clawd writes",
       "authProviderShape": "Auth0-compatible OIDC provider with issuer, audience, JWKS, and scopes",
-      "jwtVerificationLibrary": "jose in 0.60H, not added in 0.59H",
-      "appsSdkAuthBoundary": "MCP auth challenge for protected writes; iframe cookies are not identity",
+      "appsSdkAuthBoundary": "MCP auth challenge for protected writes; iframe cookies and model text are not identity",
       "firstPersistedCapability": "owned Hosted Clawd plus business profile, Scout Drop summary, and campaign preview draft",
-      "stripeTiming": "0.62H after 0.60H ownership and idempotency pass",
-      "fableSaveUxGuard": "saved-state strip/tray over the map; no dashboard shell or pricing page",
+      "idempotency": "owner_user_id + operation + client_request_id returns original saved records",
       "publicToolCount": 7,
       "newMcpTools": 0,
-      "persistenceImplementationNext": true,
-      "moneyDefault": false,
-      "publicClaimDefault": false
+      "focusedTestCount": 15,
+      "stripeTiming": "0.62H after 0.60H ownership and idempotency pass and 0.61H save UX proof",
+      "nextUxGate": "0.61H Invite Beta Save UX"
     },
     "scope": {
-      "docsOnly": true,
+      "docsOnly": false,
       "verifierAdded": true,
-      "dbMigrations": 0,
-      "persistedWrites": false,
+      "dbMigrations": 1,
+      "persistedWrites": true,
+      "protectedWritesOnly": true,
       "liveCheckout": false,
       "authProviderMutation": false,
-      "packageDepsAdded": 0,
+      "packageDepsAdded": 3,
+      "stripeDepsAdded": 0,
+      "stripeTablesAdded": 0,
       "newMcpTools": 0,
       "uiSurfaceChanges": false,
       "rendererGeometryChanges": false,
@@ -46,11 +48,14 @@
     }
   },
   "verification": {
-    "dbAuthPrepGuard": "node scripts/verify-hosted-clawd-db-auth-prep.mjs",
+    "hostedClawdTests": "pnpm exec tsx --test server/test/hosted-clawd-persistence-foundation.test.ts",
+    "starterTypecheck": "pnpm typecheck:starter",
+    "persistenceFoundationGuard": "node scripts/verify-hosted-clawd-persistence-foundation.mjs",
     "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
-    "integrationSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-fable-integration --json-only"
+    "persistenceSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-persistence-foundation --json-only",
+    "postgresSmoke": "pnpm exec tsx server/test/hosted-clawd-postgres-smoke.ts"
   },
-  "nextCodeStep": "0.60H Persistence Foundation",
+  "nextCodeStep": "0.61H Invite Beta Save UX",
   "forbiddenScope": [
     "Stripe Checkout, Billing Portal, webhook endpoint, product, price, customer, or subscription mutation",
     "public paid pricing or saved-state launch claims",
@@ -67,22 +72,22 @@
   "gates": [
     {
       "id": "persistence-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_PERSISTENCE is reopened for 0.60H owner-protected DB/Auth implementation only",
+      "label": "HUMAN_APPROVAL_BEFORE_PERSISTENCE is reopened only for 0.60H owner-protected DB/Auth foundation",
       "required": true
     },
     {
       "id": "money-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_MONEY remains closed until 0.60H persistence and ownership tests pass",
+      "label": "HUMAN_APPROVAL_BEFORE_MONEY remains closed until persistence and map-first save UX are proven",
       "required": true
     },
     {
       "id": "apps-sdk-auth-gate",
-      "label": "Hosted Clawd writes must use OAuth/OIDC account linking for protected MCP actions; model text and iframe cookies are not identity",
+      "label": "Hosted Clawd writes require verified OAuth/OIDC auth context; request bodies cannot claim owner identity",
       "required": true
     },
     {
-      "id": "fable-save-ux-gate",
-      "label": "Saved-state UX must stay map-first and compact; no dashboard or pricing page drift",
+      "id": "map-first-gate",
+      "label": "Persistence supports the Atlas map/chat product; it must not create a dashboard shell",
       "required": true
     },
     {

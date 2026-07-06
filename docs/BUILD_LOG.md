@@ -1,5 +1,49 @@
 # Build Log
 
+## Entry 199
+
+Quest:
+0.60H Persistence Foundation.
+
+What changed:
+- Used Claude Fable 5 to draft the owner-protected Hosted Clawd persistence
+  foundation, then hardened the result inside `codex/integrate-hosted-clawd-fable-058e`.
+- Added Railway Postgres support through `pg`, OAuth/OIDC bearer verification
+  through `jose`, and OFF-by-default env placeholders for `DATABASE_URL` and
+  OIDC issuer/audience/JWKS.
+- Added `migrations/hosted-clawd/001_persistence_foundation.sql` for owned
+  users, Clawds, business profiles, Scout Drops, campaign drafts, usage events,
+  idempotency, and app events.
+- Added repository, Postgres, auth, and migration modules under
+  `server/src/hostedClawd/`.
+- Protected Hosted Clawd write routes with verified account context and write
+  scope. Request bodies cannot claim owner identity.
+- Added focused Node tests and an optional Postgres smoke that skips cleanly
+  when `DATABASE_URL` is absent.
+- Added `scripts/verify-hosted-clawd-persistence-foundation.mjs` and a strict
+  `hosted-clawd-persistence-foundation` split mode.
+
+Decision:
+Atlas is still the instant map/chat voxel engine for local context, notes, and
+elevated neighborhood understanding. Hosted Clawd / Clawdbot is the paid
+neighborhood operator layered on top of owned Atlas state. 0.60H gives that
+operator durable owner-protected memory; Stripe stays closed until the save UX
+and billing gates are separately opened.
+
+Skipped:
+No Stripe Checkout, Billing Portal, webhook endpoint, subscriptions table,
+public paid claim, evidence upload, XP ledger, reports, exports, automation,
+new public MCP tools, dashboard shell, provider geometry, or public
+Anaheim/Ontario exposure.
+
+Verification:
+- `pnpm exec tsx --test server/test/hosted-clawd-persistence-foundation.test.ts`
+- `pnpm typecheck:starter`
+- `node scripts\verify-hosted-clawd-persistence-foundation.mjs`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-persistence-foundation --json-only`
+- `pnpm exec tsx server/test/hosted-clawd-postgres-smoke.ts`
+
 ## Entry 198
 
 Quest:

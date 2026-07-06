@@ -4,8 +4,9 @@ Status: **ACTIVE product track** (human-directed, 2026-07-03). This is the live 
 The owner-gate / second-district promotion ceremony (0.44E-0.47E) is **parked**:
 its selector artifacts stay anchored at `0.45E`, the source-of-truth drift
 checker stays green, and Anaheim/Ontario stay hidden and non-public. The active
-manifest is now the 0.58J Hosted Clawd setup UI packet, using 0.58I at base
-commit `920cf8a` as its input update. We are shipping a fully high-quality,
+manifest is now the 0.60H Hosted Clawd persistence foundation, using the 0.59H
+storage/auth decision plus a Claude Fable 5 implementation pass as its input.
+We are shipping a fully high-quality,
 submittable ChatGPT app.
 
 Current integration note (2026-07-05):
@@ -27,6 +28,19 @@ account linking for protected MCP Hosted Clawd actions. The next named build
 slice is `0.60H Persistence Foundation`. Stripe/money, public paid claims,
 evidence, XP, reports, exports, automation, and public Anaheim/Ontario remain
 closed.
+
+Current persistence note (2026-07-05):
+`0.60H Persistence Foundation`.
+
+0.60H implements the first owner-protected memory layer for Atlas: Railway
+Postgres, SQL migration, OAuth/OIDC bearer verification, protected write
+routing, owned Hosted Clawd rows, business profile rows, Scout Drop saves,
+campaign draft saves, usage events, and idempotency. This exists because Atlas
+is a map/chat app for seeing the local world and keeping local context; Hosted
+Clawd / Clawdbot is the paid neighborhood operator that can later act on owned
+state. The next named slice is `0.61H Invite Beta Save UX`. Stripe/money,
+public paid claims, evidence, XP, reports, exports, automation, and public
+Anaheim/Ontario remain closed.
 
 Why this exists: the previous stretch (0.24E→0.46E) was decision machinery circling one blocked
 question ("promote hidden Anaheim?"). This spec replaces that with product-quality gates that
@@ -129,10 +143,11 @@ server, and browser proofs. Fable is spent once, on the working UI, where qualit
 - **Owner-gate / second-district promotion ceremony (0.44E-0.47E).** Kept honest; Anaheim/Ontario
   remain hidden and non-public; owner-gate selector artifacts stay anchored at `0.45E`; drift
   checker stays green. Re-open only if a human calls for a controlled public second-district spike.
-- **Paid / backend.** Hosted Clawd is reopened only as a gated scaffold. Stripe/checkout, DB
-  persistence, OAuth, XP, evidence, automation, reports, exports, and public saved-state claims
-  stay parked until 0.58K approves the integrated branch and a later 0.59H storage/auth decision
-  names the implementation contract.
+- **Paid / backend.** Hosted Clawd now has a local-green DB/Auth foundation for
+  owner-protected rows. Stripe/checkout, public paid claims, XP, evidence,
+  automation, reports, exports, and public saved-state launch claims stay parked
+  until a later named slice opens them. The next backend/product gate is 0.61H:
+  make saved state legible in the map, not a dashboard.
 - **Provider-created geometry, live provider→scene normalization, renderer/UI redesign.**
 
 ## 8. What already exists (reused, not rebuilt)
