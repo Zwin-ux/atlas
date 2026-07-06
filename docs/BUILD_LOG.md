@@ -8079,3 +8079,39 @@ desktop+mobile with zero console errors on the merged bundle (includes the
 sibling 0.58E renderer work `0c4c350`); rc-split passed; mcp-flow ok:true.
 Evidence: `artifacts/0.57e-parity/` — iter1-* (before) vs iter2-* /
 final-generated-* (after), desktop 1280x720 + mobile 390x844.
+
+## Entry 088
+
+**0.58E generated-district parity + numeric proof — complete, 2026-07-05,
+Fable.** The 0.57E fixes were screenshot-proven only; this slice makes them
+FAILABLE. New core seam diagnostics `analyzeGeneratedDistrictParity`
+(`cityWorldParametricGenerator.ts`): pad honesty (empty rings + footprint
+fill per buildable lot), roof/eave registration from shared footprint bounds
+(building bbox vs lot pad), apartment window-column eave clearance computed
+scale-free from `CITY_WORLD_TILE_BASIS` + the renderer's proportional column
+layout, commerce strip-grammar routing (strip_store facade + commerce_strip
+prefab + toy-slab width floor + bay floor), and screen-lower frame-band
+density for the desktop/mobile presets (split on projected x+y, frame clipped
+to world bounds so off-board area cannot dilute the denominator). New gate
+`scripts/verify-generated-district-parity.mjs`: 9 numeric gates + 4 shared
+scene floors, a curated-Riverside reference readout, and a built-in detection
+proof — each known 0.57E failure mode (empty pads, toy commerce, roof
+overhang, floating apartment columns, lower-frame sparsity) is re-introduced
+into a degraded clone and its gate must FIRE, so the verifier cannot rot into
+an always-green stamp. Generator density residuals closed: commercial strip
+columns round UP (a 7-tile zone gets two strips, not one lonely slab),
+apartment courts pack tighter (cell 2.9 / density 0.74 default, sample spec
+0.78). Also fixed `verify-generated-district-widget.mjs` `--url`, which was
+resolved before flag parsing — proof runs silently hit whatever server owned
+:8787 (this bit during this slice: the canonical-tree server was serving a
+stale bundle on the shared port).
+
+Verified: test:core 95/95 (6 new parity tests); typecheck:starter green;
+build:web green (component.js 959.8kb); verify-parametric-generator OK (37
+buildings / 39 lots); verify-generated-district-parity OK — all 9 gates + 4
+floors + 5 detection proofs pass, curated reference pad-fill mean 0.993 vs
+generated 0.719, desktop lower-frame 0.269 (curated 0.194), mobile 0.131;
+generated-district widget ok:true desktop+mobile (honesty banner, no console
+errors, fresh worktree bundle on :8791); product-loop ok:true desktop+mobile;
+verify-fable-prop-cleanup ok; git diff --check clean. Evidence:
+`artifacts/0.58e-generated-parity-plus/`.

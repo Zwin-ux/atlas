@@ -24,13 +24,16 @@ class CdpClient {
   close() { this.socket?.close(); }
 }
 
-const DEFAULT_PREVIEW_URL = process.env.ATLAS_PREVIEW_URL ?? "http://127.0.0.1:8787/preview";
 const VIEWPORTS = [
   { label: "desktop-1280x720", width: 1280, height: 720 },
   { label: "mobile-390x844", width: 390, height: 844 },
 ];
 
 const args = parseArgs(process.argv.slice(2));
+// Resolved AFTER parseArgs so --url (which writes ATLAS_PREVIEW_URL) is
+// honored — resolving it earlier silently pointed proof runs at whatever
+// server already owned the default port.
+const DEFAULT_PREVIEW_URL = process.env.ATLAS_PREVIEW_URL ?? "http://127.0.0.1:8787/preview";
 const chromePath = findChrome(args.chromePath);
 if (!chromePath) throw new Error("Could not find Chrome or Edge. Set CHROME_PATH.");
 if (args.screenshotDir) await mkdir(resolve(args.screenshotDir), { recursive: true });

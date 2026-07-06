@@ -123,6 +123,7 @@ export {
   compileDistrictPlaceAnchorDraftCityWorldScene,
   generateParametricCityWorldScene,
   exampleParametricDistrictSpec,
+  analyzeGeneratedDistrictParity,
   analyzeCityWorldScene,
   analyzeCityWorldObjectKit,
   assignCityWorldObjectKit,
@@ -175,6 +176,9 @@ export type {
   CityWorldZoneSpec,
   CityWorldZoneKind,
   CityWorldRoadSeed,
+  CityWorldGeneratedDistrictParityReport,
+  CityWorldGeneratedFrameBandDensity,
+  CityWorldGeneratedPadMetric,
 } from "./voxel/cityWorldParametricGenerator.js";
 export type {
   CampaignAssetPlaceholder,

@@ -18,6 +18,11 @@ import {
   withPropMetadata,
   withRoadMetadata,
 } from "./cityWorldCompiler.js";
+import {
+  CITY_WORLD_TILE_BASIS,
+  cityWorldPointInsideFootprint,
+  cityWorldViewportFrameForCameraPreset,
+} from "./cityWorldBasis.js";
 
 /**
  * Parametric scene-generator seam.
@@ -399,7 +404,10 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number): ParcelLa
   // repeat, so the template stretches to fill it), never a grid of small
   // shops scattered across aprons — that grid read as toy boxes on podiums.
   if (zone.kind === "commercial") {
-    const cols = Math.max(1, Math.round(zoneWidth / 5.4));
+    // 0.58E parity — ceil, not round: a 7-tile zone deserves two strip
+    // segments; rounding down left small commercial zones as one lonely slab
+    // and starved the lower frame.
+    const cols = Math.max(1, Math.ceil(zoneWidth / 5.4));
     const rows = Math.max(1, Math.floor(zoneHeight / 3.6));
     const stripCellWidth = zoneWidth / cols;
     const stripCellHeight = zoneHeight / rows;
@@ -449,8 +457,10 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number): ParcelLa
 
   // 0.57E parity — denser defaults: generated districts read as sparse fields
   // next to curated Eastvale at the old fill rates.
-  const density = zone.density ?? (zone.kind === "residential" ? 0.78 : 0.62);
-  const cell = zone.kind === "residential" ? 2.4 : 3.4;
+  // 0.58E parity — apartment courts pack tighter (curated Eastvale's court is
+  // a dense block, not scattered towers); they usually sit in the lower frame.
+  const density = zone.density ?? (zone.kind === "residential" ? 0.78 : zone.kind === "apartments" ? 0.74 : 0.62);
+  const cell = zone.kind === "residential" ? 2.4 : zone.kind === "apartments" ? 2.9 : 3.4;
   const cols = Math.max(1, Math.floor(zoneWidth / cell));
   const rows = Math.max(1, Math.floor(zoneHeight / cell));
   const cellWidth = zoneWidth / cols;
@@ -755,6 +765,279 @@ function mulberry32(seed: number): () => number {
 }
 
 /**
+ * 0.58E Generated District Parity — numeric structural diagnostics at the
+ * generator seam.
+ *
+ * These are the measurable versions of the 0.57E screenshot findings, so
+ * generated-district quality can FAIL a gate instead of failing only an
+ * eyeball review:
+ *
+ * - pad honesty: buildable lot pads must carry a building whose footprint
+ *   actually fills the pad (empty rings / toy-on-apron read as fake);
+ * - roof/eave registration: building footprints must register inside their
+ *   lot pad bounds (the shared bound the renderer draws roof planes from);
+ * - facade element bounds: apartment window columns must clear the eave line
+ *   above the wall base — computed scale-free from the shared iso basis
+ *   ({@link CITY_WORLD_TILE_BASIS}) and the renderer's proportional column
+ *   layout (columns at -0.34/-0.21/-0.08 of footprint width, eave drop
+ *   `wallHalfDepth * (1 - |dx|/wallHalfWidth)`);
+ * - commerce strip grammar: generated shops must route through the
+ *   commerce_strip family as wide elastic strips, not toy slabs;
+ * - frame density: the desktop/mobile first viewport must be built in the
+ *   LOWER band too, not only around the camera focus.
+ *
+ * The report carries numbers only; pass/fail thresholds live in
+ * `scripts/verify-generated-district-parity.mjs` so gates stay reviewable.
+ */
+
+export type CityWorldGeneratedPadMetric = {
+  lotId: string;
+  lotKind: CityWorldLot["kind"];
+  buildingId: string | null;
+  footprintFillRatio: number;
+  overhangTiles: number;
+};
+
+export type CityWorldGeneratedFrameBandDensity = {
+  cameraPresetId: string;
+  buildingsInFrame: number;
+  buildingsInLowerBand: number;
+  lowerFrameOccupancyRatio: number;
+  upperFrameOccupancyRatio: number;
+  /** lower occupancy / upper occupancy, clamped to [0, 3]. */
+  lowerFrameBalance: number;
+};
+
+export type CityWorldGeneratedDistrictParityReport = {
+  type: "cityWorldGeneratedDistrictParityReport";
+  update: "0.58e-generated-district-parity-numeric-proof";
+  sceneId: string;
+  counts: {
+    buildableLots: number;
+    softLots: number;
+    buildings: number;
+    emptyPadCount: number;
+    shopCount: number;
+    apartmentCount: number;
+  };
+  padMetrics: {
+    lotBuildingFillRatio: number;
+    padFootprintFillFloor: number;
+    padFootprintFillMean: number;
+    emptyPadLotIds: string[];
+  };
+  registrationMetrics: {
+    buildingWithinLotRatio: number;
+    roofOverhangCount: number;
+    maxOverhangTiles: number;
+    overhangBuildingIds: string[];
+  };
+  facadeMetrics: {
+    apartmentColumnClearanceFloor: number;
+    apartmentColumnUnsafeCount: number;
+    minApartmentWidth: number;
+    unsafeApartmentIds: string[];
+  };
+  commerceMetrics: {
+    stripStoreRatio: number;
+    commerceStripMinWidth: number;
+    commerceStripMeanWidth: number;
+    toyCommerceCount: number;
+    commerceBayFloor: number;
+    toyCommerceIds: string[];
+  };
+  frameDensity: Record<string, CityWorldGeneratedFrameBandDensity>;
+  pads: CityWorldGeneratedPadMetric[];
+};
+
+/** Shops narrower than this read as toy boxes next to curated Plaza Row. */
+const TOY_COMMERCE_WIDTH_TILES = 2.2;
+
+/**
+ * Renderer window-column proportions from `drawApartmentDetails`: three
+ * columns at horizontal offsets -0.34/-0.21/-0.08 of footprint width. The
+ * innermost column (|dx| = 0.08w) suffers the deepest eave drop.
+ */
+const APARTMENT_INNER_COLUMN_OFFSET_RATIO = 0.08;
+
+export function analyzeGeneratedDistrictParity(scene: CityWorldScene): CityWorldGeneratedDistrictParityReport {
+  const softLotKinds = new Set<CityWorldLot["kind"]>(["park", "waterfront"]);
+  const buildableLots = scene.lots.filter((lot) => !softLotKinds.has(lot.kind));
+  const softLots = scene.lots.length - buildableLots.length;
+
+  const pads: CityWorldGeneratedPadMetric[] = buildableLots.map((lot) => {
+    const residents = scene.buildings.filter((building) =>
+      cityWorldPointInsideFootprint(building.position, lot.position, lot.width, lot.depth),
+    );
+    const primary = residents.reduce<CityWorldBuilding | null>(
+      (largest, building) =>
+        !largest || building.width * building.depth > largest.width * largest.depth ? building : largest,
+      null,
+    );
+    if (!primary) {
+      return { lotId: lot.id, lotKind: lot.kind, buildingId: null, footprintFillRatio: 0, overhangTiles: 0 };
+    }
+    const lotArea = Math.max(0.0001, lot.width * lot.depth);
+    const overhangX = Math.abs(primary.position.x - lot.position.x) + primary.width / 2 - lot.width / 2;
+    const overhangY = Math.abs(primary.position.y - lot.position.y) + primary.depth / 2 - lot.depth / 2;
+    return {
+      lotId: lot.id,
+      lotKind: lot.kind,
+      buildingId: primary.id,
+      footprintFillRatio: roundParityMetric((primary.width * primary.depth) / lotArea),
+      overhangTiles: roundParityMetric(Math.max(0, overhangX, overhangY)),
+    };
+  });
+
+  const filledPads = pads.filter((pad) => pad.buildingId !== null);
+  const emptyPads = pads.filter((pad) => pad.buildingId === null);
+  const overhangTolerance = 0.02;
+  const overhangPads = filledPads.filter((pad) => pad.overhangTiles > overhangTolerance);
+
+  const shops = scene.buildings.filter((building) => building.kind === "shop");
+  const stripShops = shops.filter(
+    (building) => building.facadeStyle === "strip_store" && building.objectKit?.prefabFamily === "commerce_strip",
+  );
+  const toyShops = shops.filter((building) => building.width < TOY_COMMERCE_WIDTH_TILES);
+  const shopBayCounts = shops.map((building) => building.objectKit?.commerceGeometry?.bayCount ?? 0);
+
+  const apartments = scene.buildings.filter((building) => building.kind === "apartment");
+  const apartmentClearances = apartments.map((building) => ({
+    id: building.id,
+    clearance: apartmentColumnClearance(building),
+  }));
+  const unsafeApartments = apartmentClearances.filter((entry) => entry.clearance < 1);
+
+  const frameDensity: Record<string, CityWorldGeneratedFrameBandDensity> = {};
+  for (const preset of scene.cameraPresets) {
+    if (preset.id !== "desktop" && preset.id !== "mobile") continue;
+    frameDensity[preset.id] = frameBandDensity(scene, preset);
+  }
+
+  return {
+    type: "cityWorldGeneratedDistrictParityReport",
+    update: "0.58e-generated-district-parity-numeric-proof",
+    sceneId: scene.id,
+    counts: {
+      buildableLots: buildableLots.length,
+      softLots,
+      buildings: scene.buildings.length,
+      emptyPadCount: emptyPads.length,
+      shopCount: shops.length,
+      apartmentCount: apartments.length,
+    },
+    padMetrics: {
+      lotBuildingFillRatio: roundParityMetric(safeRatio(filledPads.length, buildableLots.length)),
+      padFootprintFillFloor: roundParityMetric(
+        filledPads.length > 0 ? Math.min(...filledPads.map((pad) => pad.footprintFillRatio)) : 0,
+      ),
+      padFootprintFillMean: roundParityMetric(
+        safeRatio(filledPads.reduce((sum, pad) => sum + pad.footprintFillRatio, 0), filledPads.length),
+      ),
+      emptyPadLotIds: emptyPads.map((pad) => pad.lotId),
+    },
+    registrationMetrics: {
+      buildingWithinLotRatio: roundParityMetric(
+        safeRatio(filledPads.length - overhangPads.length, Math.max(1, filledPads.length)),
+      ),
+      roofOverhangCount: overhangPads.length,
+      maxOverhangTiles: roundParityMetric(Math.max(0, ...filledPads.map((pad) => pad.overhangTiles))),
+      overhangBuildingIds: overhangPads.map((pad) => pad.buildingId ?? pad.lotId),
+    },
+    facadeMetrics: {
+      apartmentColumnClearanceFloor: roundParityMetric(
+        apartmentClearances.length > 0 ? Math.min(...apartmentClearances.map((entry) => entry.clearance)) : 1,
+      ),
+      apartmentColumnUnsafeCount: unsafeApartments.length,
+      minApartmentWidth: roundParityMetric(
+        apartments.length > 0 ? Math.min(...apartments.map((building) => building.width)) : 0,
+      ),
+      unsafeApartmentIds: unsafeApartments.map((entry) => entry.id),
+    },
+    commerceMetrics: {
+      stripStoreRatio: roundParityMetric(safeRatio(stripShops.length, shops.length)),
+      commerceStripMinWidth: roundParityMetric(
+        shops.length > 0 ? Math.min(...shops.map((building) => building.width)) : 0,
+      ),
+      commerceStripMeanWidth: roundParityMetric(
+        safeRatio(shops.reduce((sum, building) => sum + building.width, 0), shops.length),
+      ),
+      toyCommerceCount: toyShops.length,
+      commerceBayFloor: shopBayCounts.length > 0 ? Math.min(...shopBayCounts) : 0,
+      toyCommerceIds: toyShops.map((building) => building.id),
+    },
+    frameDensity,
+    pads,
+  };
+}
+
+/**
+ * Scale-free window-column clearance: the wall (projected height
+ * `height * tileDepth`) must be tall enough that the innermost column's eave
+ * drop (`~0.92 * halfFootprintDepth`, where the projected footprint depth of a
+ * w×d box is `(w + d) * tileHeight / 2`) still leaves room for a two-row
+ * window block. Values >= 1 are safe; below 1 the columns start at or below
+ * the wall base — the pre-0.57E floating-window failure.
+ */
+function apartmentColumnClearance(building: CityWorldBuilding): number {
+  const projectedFootprintDepth = ((building.width + building.depth) * CITY_WORLD_TILE_BASIS.tileHeight) / 2;
+  const innerEaveDropRatio = 1 - APARTMENT_INNER_COLUMN_OFFSET_RATIO * 2;
+  const eaveDrop = (projectedFootprintDepth / 2) * innerEaveDropRatio;
+  const wallHeight = building.height * CITY_WORLD_TILE_BASIS.tileDepth;
+  // Reserve ~35% of the wall below the eave drop for the window block itself.
+  const required = eaveDrop * 1.35;
+  return roundParityMetric(required > 0 ? wallHeight / required : 1);
+}
+
+function frameBandDensity(
+  scene: CityWorldScene,
+  preset: CityWorldScene["cameraPresets"][number],
+): CityWorldGeneratedFrameBandDensity {
+  const rawFrame = cityWorldViewportFrameForCameraPreset(preset);
+  // Clip to the world: a tall mobile frame hangs past the board edge, and
+  // off-world area must not dilute the occupancy denominator.
+  const frame = {
+    minX: Math.max(rawFrame.minX, scene.bounds.minX),
+    maxX: Math.min(rawFrame.maxX, scene.bounds.maxX),
+    minY: Math.max(rawFrame.minY, scene.bounds.minY),
+    maxY: Math.min(rawFrame.maxY, scene.bounds.maxY),
+  };
+  // "Lower frame" is the SCREEN-lower half: projected screen-y grows with
+  // board (x + y), so the split runs across the frame's x+y midline. The two
+  // bands halve the board-rect area by symmetry.
+  const midScreenY = (frame.minX + frame.maxX + frame.minY + frame.maxY) / 2;
+  const bandArea = Math.max(0.0001, (frame.maxX - frame.minX) * (frame.maxY - frame.minY) * 0.5);
+  const inFrame = scene.buildings.filter(
+    (building) =>
+      building.position.x >= frame.minX &&
+      building.position.x <= frame.maxX &&
+      building.position.y >= frame.minY &&
+      building.position.y <= frame.maxY,
+  );
+  const lower = inFrame.filter((building) => building.position.x + building.position.y >= midScreenY);
+  const upper = inFrame.filter((building) => building.position.x + building.position.y < midScreenY);
+  const areaOf = (buildings: CityWorldBuilding[]) => buildings.reduce((sum, b) => sum + b.width * b.depth, 0);
+  const lowerOccupancy = clamp01(areaOf(lower) / bandArea);
+  const upperOccupancy = clamp01(areaOf(upper) / bandArea);
+  return {
+    cameraPresetId: preset.id,
+    buildingsInFrame: inFrame.length,
+    buildingsInLowerBand: lower.length,
+    lowerFrameOccupancyRatio: roundParityMetric(lowerOccupancy),
+    upperFrameOccupancyRatio: roundParityMetric(upperOccupancy),
+    lowerFrameBalance: roundParityMetric(Math.min(3, lowerOccupancy / Math.max(0.001, upperOccupancy))),
+  };
+}
+
+function safeRatio(numerator: number, denominator: number): number {
+  return denominator > 0 ? numerator / denominator : 0;
+}
+
+function roundParityMetric(value: number): number {
+  return Number.isFinite(value) ? Math.round(value * 1000) / 1000 : 0;
+}
+
+/**
  * A small, credible reference spec (a compact synthetic district) used to prove
  * the generator end to end. Represents a generic inland Southern-California
  * district: a residential west, a civic core, a commercial spine, an apartment
@@ -779,7 +1062,7 @@ export function exampleParametricDistrictSpec(): CityWorldParametricSpec {
       { id: "west-neighborhood", kind: "residential", rect: { minX: 3, minY: 4, maxX: 15, maxY: 18 }, density: 0.74 },
       { id: "civic-core", kind: "civic", rect: { minX: 17, minY: 8, maxX: 23, maxY: 14 } },
       { id: "commercial-spine", kind: "commercial", rect: { minX: 24, minY: 8, maxX: 34, maxY: 16 }, density: 0.8 },
-      { id: "apartment-cluster", kind: "apartments", rect: { minX: 26, minY: 18, maxX: 34, maxY: 24 }, density: 0.7 },
+      { id: "apartment-cluster", kind: "apartments", rect: { minX: 26, minY: 18, maxX: 34, maxY: 24 }, density: 0.78 },
       { id: "service-block", kind: "gym", rect: { minX: 18, minY: 16, maxX: 23, maxY: 21 } },
       { id: "community-park", kind: "park", rect: { minX: 8, minY: 20, maxX: 17, maxY: 26 } },
       { id: "waterfront", kind: "water", rect: { minX: 35, minY: 20, maxX: 39, maxY: 27 } },

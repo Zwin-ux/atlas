@@ -76,6 +76,28 @@ owner-gate manifest in this branch. This Fable pass is a branch-local visual
 slice, not a promotion of Anaheim/Ontario and not a replacement for the owner
 gate ladder.
 
+## Branch-local Fable pass (2026-07-05, `fable/0.58e-prop-cleanup`, second slice)
+
+`0.58E Generated District Parity + Numeric Proof` is locally green (BUILD_LOG
+Entry 088). Generated-district quality is now gated numerically, not by
+screenshot vibes: `node scripts\verify-generated-district-parity.mjs
+--json-only` runs 9 gates (pad honesty, footprint fill, roof/eave
+registration, apartment facade bounds, commerce strip routing/massing,
+desktop+mobile lower-frame density) plus a built-in detection proof that
+re-introduces each known 0.57E failure mode into a degraded scene and asserts
+its gate fires. Core seam API: `analyzeGeneratedDistrictParity` in
+`packages/core/src/voxel/cityWorldParametricGenerator.ts` (tests in
+`packages/core/test/city-world-parametric-parity.test.ts`). Evidence:
+`artifacts/0.58e-generated-parity-plus/`.
+
+Next visual-engine blocker (named by the curated reference readout): the
+generated commercial zones still paint bare plaza-apron terrain much larger
+than their strip rows (curated pad-fill mean 0.993 vs generated 0.719), and
+the generated palette leans on saturated rooftop units where curated
+Riverside reads calmer. A future slice should shrink commercial-zone apron
+terrain to hug the strip rows — and gate the apron-to-strip terrain ratio at
+the generator seam so it cannot regress.
+
 ## Current phase
 
 Fable takeover status:
