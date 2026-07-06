@@ -394,6 +394,59 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number): ParcelLa
     ];
   }
 
+  // 0.57E parity — commerce authors road-facing STRIP ROWS the way curated
+  // Plaza Row does: one wide elastic storefront strip per row segment (bays
+  // repeat, so the template stretches to fill it), never a grid of small
+  // shops scattered across aprons — that grid read as toy boxes on podiums.
+  if (zone.kind === "commercial") {
+    const cols = Math.max(1, Math.round(zoneWidth / 5.4));
+    const rows = Math.max(1, Math.floor(zoneHeight / 3.6));
+    const stripCellWidth = zoneWidth / cols;
+    const stripCellHeight = zoneHeight / rows;
+    const stripDensity = zone.density ?? 0.85;
+    const strips: ParcelLayout[] = [];
+    let stripIndex = 0;
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < cols; col += 1) {
+        if (rng() > stripDensity) continue;
+        const template = buildingSpecForZone(zone.kind, rng);
+        if (!template) continue;
+        const spec: ZoneBuildingSpec = {
+          ...template,
+          // Stretch to the row segment, capped near the hero strip's 6.1 tiles.
+          width: Math.min(Math.max(template.width, stripCellWidth * 0.84), 6.2),
+          depth: Math.min(Math.max(template.depth, 1.4), Math.max(1.4, stripCellHeight * 0.52)),
+        };
+        const stripJitter = (rng() - 0.5) * 0.2;
+        strips.push({
+          index: stripIndex++,
+          x: rect.minX + (col + 0.5) * stripCellWidth + stripJitter,
+          y: rect.minY + (row + 0.5) * stripCellHeight + stripJitter,
+          width: Math.min(spec.width * 1.1, stripCellWidth * 1.04),
+          depth: Math.min(spec.depth * 1.35, stripCellHeight * 0.9),
+          elevationBoost: zone.elevationBoost ?? 0,
+          spec,
+        });
+      }
+    }
+    if (strips.length === 0) {
+      const template = buildingSpecForZone(zone.kind, rng);
+      const spec: ZoneBuildingSpec | undefined = template
+        ? { ...template, width: Math.min(Math.max(template.width, zoneWidth * 0.6), 6.2) }
+        : undefined;
+      strips.push({
+        index: 0,
+        x: rect.minX + zoneWidth / 2,
+        y: rect.minY + zoneHeight / 2,
+        width: spec ? spec.width * 1.1 : parcelFootprint(zone.kind).width,
+        depth: spec ? spec.depth * 1.35 : parcelFootprint(zone.kind).depth,
+        elevationBoost: zone.elevationBoost ?? 0,
+        ...(spec ? { spec } : {}),
+      });
+    }
+    return strips;
+  }
+
   // 0.57E parity — denser defaults: generated districts read as sparse fields
   // next to curated Eastvale at the old fill rates.
   const density = zone.density ?? (zone.kind === "residential" ? 0.78 : 0.62);

@@ -2944,12 +2944,19 @@ function drawPublicServiceSilhouette(layer: Container, geometry: BuildingGeometr
     0x7f6d4e,
     0.1,
   );
+  // 0.57E parity — the zigzag's outer peaks sit where the roof diamond has
+  // almost no depth left; clamp each vertex under its local eave line so the
+  // profile never bleeds past the roof edge on generated footprints.
+  const sawHalfW = footprintWidth / 2;
+  const sawHalfD = footprintDepth / 2;
+  const sawEave = (dx: number, want: number) =>
+    Math.min(footprintDepth * want, sawHalfD * Math.max(0, 1 - Math.abs(dx) / sawHalfW) * 0.85);
   const sawtooth = new Graphics()
-    .moveTo(top.x - footprintWidth * 0.38, top.y - footprintDepth * 0.16)
-    .lineTo(top.x - footprintWidth * 0.18, top.y - footprintDepth * 0.02)
-    .lineTo(top.x, top.y - footprintDepth * 0.16)
-    .lineTo(top.x + footprintWidth * 0.2, top.y - footprintDepth * 0.02)
-    .lineTo(top.x + footprintWidth * 0.4, top.y - footprintDepth * 0.16);
+    .moveTo(top.x - footprintWidth * 0.38, top.y - sawEave(-footprintWidth * 0.38, 0.16))
+    .lineTo(top.x - footprintWidth * 0.18, top.y - sawEave(-footprintWidth * 0.18, 0.02))
+    .lineTo(top.x, top.y - sawEave(0, 0.16))
+    .lineTo(top.x + footprintWidth * 0.2, top.y - sawEave(footprintWidth * 0.2, 0.02))
+    .lineTo(top.x + footprintWidth * 0.4, top.y - sawEave(footprintWidth * 0.4, 0.16));
   sawtooth.stroke({ color: shadeColor(roofColor, -42), alpha: 0.34, width: 2, cap: "round", join: "round" });
   const serviceWindows = new Graphics();
   for (let bay = -1; bay <= 1; bay += 1) {
@@ -3255,13 +3262,23 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
     .lineTo(bottom.x - footprintWidth * 0.4, bottom.y + footprintDepth * 0.29);
   foundationLine.stroke({ color: 0x24352f, alpha: isEastvaleGym ? 0.28 : 0.18, width: isEastvaleGym ? 3 : 2.2, cap: "round", join: "round" });
 
+  // 0.57E parity — monitors stay inside the roof diamond: the outer teeth sat
+  // at offsets where the eave allows far less rise than the fixed 0.23 depth,
+  // so the monitor strokes bled past the eaves on generated footprints.
   const roofMonitors = new Graphics();
+  const monitorHalfW = footprintWidth / 2;
+  const monitorHalfD = footprintDepth / 2;
+  const monitorRise = (dx: number, want: number) =>
+    Math.min(footprintDepth * want, monitorHalfD * Math.max(0, 1 - Math.abs(dx) / monitorHalfW) * 0.85);
   for (let tooth = 0; tooth < sawtoothCount; tooth += 1) {
-    const offset = (tooth / Math.max(1, sawtoothCount - 1) - 0.5) * footprintWidth * 0.74;
+    const offset = (tooth / Math.max(1, sawtoothCount - 1) - 0.5) * footprintWidth * 0.62;
+    const x0 = offset - footprintWidth * 0.045;
+    const x1 = offset + footprintWidth * 0.045;
+    const x2 = offset + footprintWidth * 0.12;
     roofMonitors
-      .moveTo(top.x + offset - footprintWidth * 0.045, top.y - footprintDepth * 0.23)
-      .lineTo(top.x + offset + footprintWidth * 0.045, top.y - footprintDepth * 0.1)
-      .lineTo(top.x + offset + footprintWidth * 0.12, top.y - footprintDepth * 0.2);
+      .moveTo(top.x + x0, top.y - monitorRise(x0, 0.23))
+      .lineTo(top.x + x1, top.y - monitorRise(x1, 0.1))
+      .lineTo(top.x + x2, top.y - monitorRise(x2, 0.2));
   }
   roofMonitors.stroke({ color: shadeColor(roofColor, -46), alpha: 0.38 + roofMonitorWeight * 0.08, width: 1.7 + roofMonitorWeight * 0.65, cap: "round", join: "round" });
 
@@ -3803,10 +3820,18 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
       .moveTo(top.x, top.y - footprintDepth * 0.25)
       .lineTo(top.x, top.y + footprintDepth * 0.25);
   } else if (roofShape === "sawtooth") {
+    // 0.57E parity — teeth stay INSIDE the roof diamond: at horizontal offset
+    // u the eave only allows halfD * (1 - |u|/halfW) of rise, and the old
+    // fixed pixel extents bled past the eaves on generated footprints.
+    const halfW = footprintWidth / 2;
+    const halfD = footprintDepth / 2;
+    const eaveRise = (dx: number) => halfD * Math.max(0, 1 - Math.abs(dx) / halfW) * 0.8;
     for (let i = -2; i <= 2; i += 1) {
+      const xa = i * (footprintWidth / 7) - footprintWidth * 0.035;
+      const xb = i * (footprintWidth / 7) + footprintWidth * 0.085;
       lines
-        .moveTo(top.x + i * (footprintWidth / 7) - 5, top.y - footprintDepth * 0.28)
-        .lineTo(top.x + i * (footprintWidth / 7) + 12, top.y + footprintDepth * 0.24);
+        .moveTo(top.x + xa, top.y - eaveRise(xa))
+        .lineTo(top.x + xb, top.y + eaveRise(xb));
     }
   } else if (roofShape === "tower") {
     lines
@@ -4421,11 +4446,22 @@ function drawApartmentDetails(layer: Container, geometry: BuildingGeometry) {
   );
   layer.addChild(steppedWing, wingCap);
 
+  // 0.57E parity — window columns LIVE on the front-left wall face: each
+  // column starts under the eave line at its own horizontal offset (the face
+  // slopes down toward center) and rows divide the actual wall height. The
+  // old fixed-pixel grid floated columns off the face on generated widths.
   const windows = new Graphics();
-  for (let row = 0; row < 4; row += 1) {
-    for (let col = 0; col < 3; col += 1) {
-      const x = top.x - footprintWidth * 0.28 + col * (footprintWidth * 0.19);
-      const y = top.y + footprintDepth * 0.22 + row * 9;
+  const wallHalfW = footprintWidth / 2;
+  const wallHalfD = footprintDepth / 2;
+  const wallHeight = Math.max(0, bottom.y - top.y);
+  const windowRows = Math.min(4, Math.max(2, Math.floor((wallHeight - 8) / 9)));
+  const rowStep = (wallHeight - 10) / windowRows;
+  for (let col = 0; col < 3; col += 1) {
+    const dx = -footprintWidth * (0.34 - col * 0.13);
+    const eaveDrop = wallHalfD * (1 - Math.abs(dx) / wallHalfW);
+    for (let row = 0; row < windowRows; row += 1) {
+      const x = top.x + dx;
+      const y = top.y + eaveDrop + 4 + row * rowStep;
       windows
         .roundRect(x - 1, y - 1, 9, 7, 1.5)
         .fill({ color: shadeColor(bodyColor, -34), alpha: 0.22 })

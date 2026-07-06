@@ -30,6 +30,21 @@ to origin — nothing was discarded.
 
 ## High Priority
 
+-2. **COMPLETE: "Generated-District Parity" pass (0.57E) — landed 2026-07-05.**
+   - All five scouting findings closed (BUILD_LOG **Entry 087**, resolution in
+     `DECAL_DISCIPLINE_SUPERPASS.md`): strip-row commerce (no more toy-box
+     grid), landmark-first selection (no more whole-neighborhood ring storm),
+     frame-fill density + spec-first parcels, gym sawtooth strokes clamped to
+     the roof diamond, apartment windows seated on the wall face.
+   - Verified on the merged tree (includes sibling 0.58E `0c4c350`): 89/89,
+     product-loop ok desktop+mobile zero console errors, rc-split passed,
+     mcp-flow ok, verify-parametric-generator OK. Evidence:
+     `artifacts/0.57e-parity/` (iter1 before / final-generated after).
+   - NOTE: a sibling session committed the pending 0.57E generator diff as
+     `77524a2` and 0.58E prop-cleanup as `0c4c350` on
+     `fable/0.58e-prop-cleanup` while this pass ran; the 0.57E completion
+     commit stacks on that branch to keep the line linear.
+
 -1. **COMPLETE: "Decal Discipline" pass (0.55E) — `fable/0.55e-decal-discipline`.**
    - Landed 2026-07-05 (`2a1815f` civic, `d8011c1` residential+commerce) —
      BUILD_LOG **Entry 085**. Per-surface decal ownership per family; the

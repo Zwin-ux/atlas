@@ -8046,3 +8046,36 @@ pass on its own branch, all verifier-green, all awaiting the single human
 gate. Next queued Fable-class engine work: **0.57E generated-district parity**
 (parametric districts must hit the curated bar — the service-engine milestone;
 see DECAL_DISCIPLINE_SUPERPASS.md tail).
+
+## Entry 087
+
+**0.57E generated-district parity — complete, 2026-07-05, Fable.**
+All five scouting findings (superpass doc, Entry after `2efd82c`) closed.
+Generator (`cityWorldParametricGenerator.ts`): spec-first parcels — the
+building template is chosen FIRST and the lot pad sized around it, so wide
+templates (ranch, rowhome, strip) keep their silhouettes instead of being
+crushed to the default footprint on oversized empty-reading pads (landed as
+`77524a2`); commerce now authors road-facing STRIP ROWS the way curated Plaza
+Row reads — one wide elastic storefront strip per row segment (capped near the
+hero's 6.1 tiles), never a grid of toy shops on aprons; denser residential
+defaults + three new frame-fill zones (east strip, south court, south
+commons); HUD default selection is the landmark, not a many-building
+home_area. Widget (`CityWorldView.tsx`): selection resolves against places
+that exist in THIS scene — the generated district no longer inherits a stale
+county place id and falls back to ringing an entire neighborhood on first
+paint. Renderer (`CityWorldRenderer.tsx`): all three sawtooth generations
+(drawRoof teeth, service zigzag, object-kit monitors) now clamp under the
+local eave line of the iso roof diamond — the gym's roof no longer bleeds
+strokes past its eaves at generated footprints; apartment window columns live
+ON the front-left wall face (per-column eave drop, rows divide real wall
+height) instead of floating on a fixed-pixel grid.
+
+Verified: typecheck starter+workspaces green; test:core 89/89 (full suite —
+earlier failures were vitest 5s-timeout flakes under machine load, confirmed
+by isolation runs + quiet-machine rerun); verify-parametric-generator OK (38
+buildings / 40 lots — the only building-less lots are the park and waterfront
+soft parcels, so empty-pad rings are structurally gone); product-loop ok:true
+desktop+mobile with zero console errors on the merged bundle (includes the
+sibling 0.58E renderer work `0c4c350`); rc-split passed; mcp-flow ok:true.
+Evidence: `artifacts/0.57e-parity/` — iter1-* (before) vs iter2-* /
+final-generated-* (after), desktop 1280x720 + mobile 390x844.
