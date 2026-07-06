@@ -19,6 +19,7 @@ const RC_MODES = new Set([
   "hosted-clawd-scaffold",
   "hosted-clawd-fable-integration",
   "hosted-clawd-persistence-foundation",
+  "hosted-clawd-save-ux",
 ]);
 
 const SAFE_FUNCTIONAL_RC_DOCS = new Set([
@@ -247,6 +248,11 @@ const HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES = new Set([
   "server/test/hosted-clawd-postgres-smoke.ts",
 ]);
 
+const HOSTED_CLAWD_SAVE_UX_FILES = new Set([
+  "scripts/verify-hosted-clawd-save-ux.mjs",
+  "scripts/verify-hosted-clawd-save-ux-browser.mjs",
+]);
+
 const EXACT_RULES = [
   ["hosted-clawd-parked", ".env.example", "DB and invite-token env placeholders are not part of public Alpha RC."],
   ["hosted-clawd-parked", "package.json", "Hosted Clawd DB scripts/dependencies must stay out of F2 Alpha RC."],
@@ -323,6 +329,9 @@ for the selected RC mode. Use this before staging/deploy claims.
   hosted-clawd-persistence-foundation
                          Allows the integrated Hosted Clawd branch plus the
                          narrow 0.60H DB/Auth persistence foundation envelope.
+  hosted-clawd-save-ux
+                         Allows 0.61H map-first Hosted Clawd save UX over the
+                         integrated persistence foundation. Billing stays out.
 
 The check is conservative. Parked runtime/backend/visual paths, shared docs
 that require hunk review, and unknown paths block a Functional Alpha RC.`);
@@ -485,6 +494,13 @@ function classifyPath(path) {
     };
   }
 
+  if (rcMode === "hosted-clawd-save-ux" && isHostedClawdSaveUxPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.61H Hosted Clawd save UX RC mode.",
+    };
+  }
+
   for (const [classification, exactPath, reason] of EXACT_RULES) {
     if (path === exactPath) {
       return { classification, reason };
@@ -562,6 +578,20 @@ function getSelectedRcAllowedPaths(modeName) {
       paths.add(path);
     }
   }
+  if (modeName === "hosted-clawd-save-ux") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVE_UX_FILES) {
+      paths.add(path);
+    }
+  }
   return paths;
 }
 
@@ -586,6 +616,9 @@ function isSelectedRcAllowedPath(path) {
   }
   if (rcMode === "hosted-clawd-persistence-foundation") {
     return isHostedClawdPersistenceFoundationPath(path);
+  }
+  if (rcMode === "hosted-clawd-save-ux") {
+    return isHostedClawdSaveUxPath(path);
   }
   return false;
 }
@@ -628,6 +661,10 @@ function isHostedClawdPersistenceFoundationPath(path) {
   );
 }
 
+function isHostedClawdSaveUxPath(path) {
+  return isHostedClawdPersistenceFoundationPath(path) || HOSTED_CLAWD_SAVE_UX_FILES.has(path);
+}
+
 function getSelectedRcAllowlistSummary(modeName) {
   const exact = [...selectedRcAllowedPaths];
   if (modeName === "engine-beta-renderer") {
@@ -654,6 +691,13 @@ function getSelectedRcAllowlistSummary(modeName) {
     ];
   }
   if (modeName === "hosted-clawd-persistence-foundation") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "hosted-clawd-save-ux") {
     return [
       ...exact,
       ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),

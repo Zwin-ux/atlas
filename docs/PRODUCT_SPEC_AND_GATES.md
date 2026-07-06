@@ -4,8 +4,8 @@ Status: **ACTIVE product track** (human-directed, 2026-07-03). This is the live 
 The owner-gate / second-district promotion ceremony (0.44E-0.47E) is **parked**:
 its selector artifacts stay anchored at `0.45E`, the source-of-truth drift
 checker stays green, and Anaheim/Ontario stay hidden and non-public. The active
-manifest is now the 0.60H Hosted Clawd persistence foundation, using the 0.59H
-storage/auth decision plus a Claude Fable 5 implementation pass as its input.
+manifest is now the 0.61H Hosted Clawd invite beta save UX, using the 0.60H
+persistence foundation as its input.
 We are shipping a fully high-quality,
 submittable ChatGPT app.
 
@@ -41,6 +41,16 @@ Clawd / Clawdbot is the paid neighborhood operator that can later act on owned
 state. The next named slice is `0.61H Invite Beta Save UX`. Stripe/money,
 public paid claims, evidence, XP, reports, exports, automation, and public
 Anaheim/Ontario remain closed.
+
+Current save UX note (2026-07-05):
+`0.61H Invite Beta Save UX`.
+
+0.61H keeps the Superior grey setup console and adds claymation save slots
+inside the map tray so the user can see what Clawdbot could read later:
+business/location, local notes, Scout Drop, and campaign draft state. The next
+named slice is `0.62H Stripe Test Billing`. Stripe/money, public paid claims,
+evidence, XP, reports, exports, automation, provider geometry, renderer
+geometry, dashboard shells, and public Anaheim/Ontario remain closed.
 
 Why this exists: the previous stretch (0.24E→0.46E) was decision machinery circling one blocked
 question ("promote hidden Anaheim?"). This spec replaces that with product-quality gates that
@@ -144,10 +154,11 @@ server, and browser proofs. Fable is spent once, on the working UI, where qualit
   remain hidden and non-public; owner-gate selector artifacts stay anchored at `0.45E`; drift
   checker stays green. Re-open only if a human calls for a controlled public second-district spike.
 - **Paid / backend.** Hosted Clawd now has a local-green DB/Auth foundation for
-  owner-protected rows. Stripe/checkout, public paid claims, XP, evidence,
-  automation, reports, exports, and public saved-state launch claims stay parked
-  until a later named slice opens them. The next backend/product gate is 0.61H:
-  make saved state legible in the map, not a dashboard.
+  owner-protected rows, and 0.61H makes future saved state legible in the map
+  tray. Stripe/checkout, public paid claims, XP, evidence, automation, reports,
+  exports, and public saved-state launch claims stay parked until a later named
+  slice opens them. The next backend/product gate is 0.62H: test billing only
+  after the save UX proof is boring.
 - **Provider-created geometry, live provider→scene normalization, renderer/UI redesign.**
 
 ## 8. What already exists (reused, not rebuilt)

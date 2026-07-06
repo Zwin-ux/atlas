@@ -1,5 +1,30 @@
 # Decisions
 
+## Decision 085: Keep saved state in the map, not a dashboard
+
+0.61H accepts the Hosted Clawd save UX as local-green.
+
+Decision:
+Use the existing map tray as the saved-state surface. Keep the Superior grey
+setup console plus claymation save slots so users can understand what Clawdbot
+could read later: business/location, local notes, Scout Drop, and campaign
+draft state.
+
+Reason:
+Atlas is a map/chat voxel app. A separate dashboard, pricing page, or generic
+setup wizard would split attention away from the local world. The paid
+neighborhood operator should feel like it belongs on top of the map, not beside
+it.
+
+Allowed next:
+- `0.62H Stripe Test Billing`, but only as a named test-mode billing slice with
+  webhook replay protection and no success-URL trust.
+
+Still blocked:
+- Public paid claims, live billing, evidence, XP, reports, exports, automation,
+  provider-created geometry, public Anaheim/Ontario, dashboard shells, and new
+  public MCP tools until their own gates open.
+
 ## Decision 084: Persist Hosted Clawd ownership before billing
 
 0.60H implements the first owner-protected Hosted Clawd persistence foundation.

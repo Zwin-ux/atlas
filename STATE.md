@@ -1,6 +1,6 @@
 # Atlas Loop State
 
-Last run: 2026-07-05 - 0.60H Hosted Clawd persistence foundation
+Last run: 2026-07-05 - 0.61H Hosted Clawd invite beta save UX
 Loop level: L2 assisted
 Kill switch: active only if `loop-constraints.md` says `pause: true`
 
@@ -28,30 +28,30 @@ DB/Auth preparation for Hosted Clawd.
 
 ## Current Slice
 
-`0.60H Hosted Clawd persistence foundation` is local green.
+`0.61H Hosted Clawd invite beta save UX` is local green.
 
 Decision:
-`PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED`.
+`MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED`.
 
 Selected axis:
-`hosted_clawd_persistence_foundation`.
+`hosted_clawd_invite_beta_save_ux`.
 
 Scope:
-Implements the first owner-protected DB/Auth foundation for Hosted Clawd:
-Railway Postgres via `pg`, committed SQL migrations plus a small Node runner,
-OAuth/OIDC account linking via `jose`, protected HTTP write routing, owned
-Clawd/business/Scout Drop/campaign draft rows, usage events, and idempotency.
-This is the memory layer for Atlas as a map/chat app and for Clawdbot as the
-future paid neighborhood operator. No Stripe call, public price claim, provider
-geometry, dashboard shell, or new MCP tool was added.
+Keeps the Superior grey setup console plus claymation save slots inside the
+Hosted Clawd map tray. The tray now explains which business/location, local
+notes, Scout Drop, and campaign draft state could become Clawdbot memory later.
+The 0.60H owner-protected DB/Auth foundation remains in place; 0.61H adds no
+Stripe call, public price claim, provider geometry, renderer geometry,
+dashboard shell, or new MCP tool.
+Stripe stays closed.
 
 Next quest:
-`0.61H Invite Beta Save UX`.
+`0.62H Stripe Test Billing`.
 
-0.61H should make saved state legible in the map-first UI: business/location
-confirmation, save status, no-auth/inactive states, local context continuity,
-and 390x844 proof. Stripe stays closed until the persistence foundation and
-save UX are both boring.
+0.62H may attach test-mode Stripe only after the persistence foundation and save
+UX are both boring: Checkout, Customer Portal, webhook replay protection,
+inactive read-only state, and proof that success URLs grant nothing by
+themselves.
 
 ## Branch Map
 
@@ -73,8 +73,7 @@ save UX are both boring.
 - No provider-created geometry.
 - No public deploy/promotion without live proof and human visual/deploy
   approval.
-- Use `hosted-clawd-persistence-foundation` for strict split checks on this
-  branch.
+- Use `hosted-clawd-save-ux` for strict split checks on this branch.
 
 ## Watch List
 
@@ -100,5 +99,7 @@ save UX are both boring.
   `docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md`
 - 0.60H persistence foundation:
   `artifacts/hosted-clawd/postalpha-0.60h-persistence-foundation.json`
+- 0.61H save UX proof:
+  `artifacts/hosted-clawd/postalpha-0.61h-save-ux.json`
 - Local preview when the server is running:
   `http://127.0.0.1:8787/preview`

@@ -15,19 +15,19 @@ Alpha Path B is accepted. Riverside/Eastvale is the only public playable distric
 Hosted Clawd DB/Auth persistence is now local-green only for owner-protected rows. Atlas remains the map/chat app and voxel world engine; Hosted Clawd / Clawdbot is the paid neighborhood operator layered on top of owned Atlas state. Stripe/money, public paid claims, XP, evidence, automation, reports, and exports remain parked.
 The human explicitly reopened DB/Auth preparation on 2026-07-05.
 
-Current human-directed local-green slice is `0.60H Persistence Foundation`. It uses `0.59H Hosted Clawd Storage/Auth Decision Packet` plus a Claude Fable 5 implementation pass as input, keeps branch `codex/integrate-hosted-clawd-fable-058e` as the local canonical candidate, and implements the first Hosted Clawd DB/Auth foundation.
+Current human-directed local-green slice is `0.61H Invite Beta Save UX`. It uses `postalpha-0.60h-hosted-clawd-persistence-foundation` as input, keeps branch `codex/integrate-hosted-clawd-fable-058e` as the local canonical candidate, and makes owned local state understandable inside the Hosted Clawd map tray.
 
-0.60H decision is `PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED` with selected axis `hosted_clawd_persistence_foundation`. It adds Railway Postgres via `pg`, committed SQL migrations plus a small Node runner, OAuth/OIDC bearer verification via `jose`, owner-enforced Hosted Clawd/business/Scout Drop/campaign rows, usage events, and idempotency.
+0.61H decision is `MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED` with selected axis `hosted_clawd_invite_beta_save_ux`. It keeps the Superior grey setup console and adds claymation save slots for business/location, local notes, Scout Drop, and campaign draft state. The 0.60H Railway Postgres/OAuth/OIDC owner-protected persistence foundation remains local-green.
 
-Default next slice after 0.60H is `0.61H Invite Beta Save UX`. It should make owned saved state understandable in the map-first UI: compact status/tray, business/location confirmation, local context save, no dashboard shell, no pricing page, and mobile proof.
+Default next slice after 0.61H is `0.62H Stripe Test Billing`. It may attach test-mode Stripe only after ownership, idempotency, and the map-first save UX are boring: Checkout, Customer Portal, webhook replay protection, inactive read-only state, and proof that success URLs grant nothing by themselves.
 
 Stripe/money remains downstream of 0.60H and 0.61H. Do not implement Stripe Checkout, Billing Portal, webhooks, public paid claims, evidence, XP, reports, exports, automation, or public Anaheim/Ontario unless a later named gate explicitly opens that scope.
 
-Use `hosted-clawd-persistence-foundation` for strict split checks on the 0.60H persistence branch.
+Use `hosted-clawd-save-ux` for strict split checks on the 0.61H save UX branch.
 
 The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly. Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
 
-Do not continue commerce, terrain, mobile, Anaheim, paid, or Stripe implementation unless a new verifier or selector names a real blocker that changes the axis. DB/Auth persistence is now local-green; continue into `0.61H Invite Beta Save UX` before any billing layer. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted provider data, or playable county claims.
+Do not continue commerce, terrain, mobile, Anaheim, paid, or Stripe implementation unless a new verifier or selector names a real blocker that changes the axis. DB/Auth persistence and map-first save UX are now local-green; continue into `0.62H Stripe Test Billing` only as a named test-billing slice. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted provider data, or playable county claims.
 
 ## Named-Slice Rule
 
@@ -115,7 +115,7 @@ For Engine Beta source-of-truth and code slices, default to:
 - focused verifier for the slice
 - provider boundary guard
 - tool-result shape guard
-- strict `engine-beta-data` split guard, strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice, strict `hosted-clawd-fable-integration` split guard for the integrated local canonical candidate, or strict `hosted-clawd-persistence-foundation` split guard for the 0.60H DB/Auth foundation
+- strict `engine-beta-data` split guard, strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice, strict `hosted-clawd-fable-integration` split guard for the integrated local canonical candidate, strict `hosted-clawd-persistence-foundation` split guard for the 0.60H DB/Auth foundation, or strict `hosted-clawd-save-ux` split guard for the 0.61H save UX branch
 
 Browser screenshot proof is required only when renderer or UI output changes.
 

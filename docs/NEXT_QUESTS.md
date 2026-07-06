@@ -19,11 +19,56 @@ reliability sweep, `0.50P` submission packet.
 The owner-gate / second-district ceremony below is **parked** but kept honest: `0.46E Owner Gate
 Review Packet` remains the recorded next quest for that parked ladder, its selector artifacts
 remain anchored at `0.45E`, and Anaheim/Ontario stay hidden and non-public. The active manifest
-is now the 0.60H Hosted Clawd Persistence Foundation, using 0.59H plus a Claude
-Fable 5 implementation pass as its input update. Re-open the owner-gate
-ladder only on human request.
+is now the 0.61H Hosted Clawd Invite Beta Save UX, using the 0.60H persistence
+foundation as its input update. Re-open the owner-gate ladder only on human
+request.
 
-## Current persistence foundation slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+## Current save UX slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.61H Invite Beta Save UX`.
+
+Player-facing promise:
+Atlas keeps the voxel map as the product surface while making owned local state
+understandable: business/location, local notes, Scout Drop, and campaign draft
+show as the memory Clawdbot could read later.
+
+Engineering promise:
+Keep the Superior grey setup console, add compact claymation save slots inside
+the Hosted Clawd tray, and prove the result on desktop and 390x844 mobile.
+Stripe, public paid claims, new MCP tools, dashboards, and renderer geometry
+stay closed.
+
+Decision:
+`MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED`.
+
+Selected axis:
+`hosted_clawd_invite_beta_save_ux`.
+
+Contract:
+- Atlas stays a map/chat app and high-quality voxel engine first.
+- Hosted Clawd / Clawdbot is the paid neighborhood operator layer, but 0.61H
+  only makes its future owned memory readable in the map tray.
+- Public MCP tool surface remains the seven Alpha tools.
+- Save UX stays as a compact tray/status strip over the map, not a dashboard,
+  pricing page, or long setup wizard.
+- The 0.60H DB/Auth foundation remains owner-protected; no new persistence
+  capability is opened in this UI slice.
+- Stripe/money remains closed until `0.62H Stripe Test Billing`.
+
+Proof:
+- `web/src/HostedClawdTray.tsx`
+- `web/src/styles.css`
+- `scripts/verify-hosted-clawd-save-ux.mjs`
+- `scripts/verify-hosted-clawd-save-ux-browser.mjs`
+- `artifacts/hosted-clawd/postalpha-0.61h-save-ux.json`
+- `artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-desktop-1280x720.png`
+- `artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-mobile-390x844.png`
+
+Next quest:
+`0.62H Stripe Test Billing`.
+
+## Completed persistence foundation slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
 
 Current quest:
 `0.60H Persistence Foundation`.
@@ -44,17 +89,6 @@ Decision:
 
 Selected axis:
 `hosted_clawd_persistence_foundation`.
-
-Contract:
-- Atlas stays a map/chat app and high-quality voxel engine first.
-- Hosted Clawd / Clawdbot is the paid neighborhood operator layer, but 0.60H
-  only gives it owner-protected memory.
-- Every persisted write derives owner identity from verified OAuth/OIDC auth
-  context. Request bodies cannot claim owner ids.
-- Public MCP tool surface remains the seven Alpha tools.
-- Fable save-state UX must stay as a compact tray/status strip over the map,
-  not a dashboard, pricing page, or geometry change.
-- Stripe/money remains closed until 0.61H save UX and later 0.62H billing gates.
 
 Proof:
 - `migrations/hosted-clawd/001_persistence_foundation.sql`

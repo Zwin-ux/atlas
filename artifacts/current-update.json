@@ -1,33 +1,34 @@
 {
-  "id": "postalpha-0.60h-hosted-clawd-persistence-foundation",
-  "name": "Post-Alpha 0.60H - Hosted Clawd Persistence Foundation",
+  "id": "postalpha-0.61h-hosted-clawd-invite-beta-save-ux",
+  "name": "Post-Alpha 0.61H - Hosted Clawd Invite Beta Save UX",
   "status": "local_green",
-  "playerPromise": "Atlas now has the owner-protected memory needed for a map/chat app where users can see their local world, keep local business context, and later deploy Clawdbot as a paid neighborhood operator without leaving the voxel map surface.",
-  "engineeringPromise": "Implement the first DB/Auth persistence foundation: Railway Postgres, SQL migration, OAuth/OIDC bearer verification, protected write routing, owned Hosted Clawd rows, business profile rows, Scout Drop saves, campaign draft saves, usage events, and idempotency. Stripe stays closed.",
-  "inputUpdate": "postalpha-0.59h-hosted-clawd-storage-auth-decision+claude-fable-5",
-  "selectedAxis": "hosted_clawd_persistence_foundation",
-  "recommendedNextQuest": "0.61H Invite Beta Save UX",
-  "decision": "PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED",
+  "playerPromise": "Atlas keeps the map as the product surface while making owned local state legible: the user can see which business, place, notes, Scout Drop, and campaign draft are ready for future Clawdbot memory without leaving the voxel world.",
+  "engineeringPromise": "Add a compact map tray save-readiness strip to the Hosted Clawd UI, preserving the Superior grey setup console and adding claymation save slots with desktop and 390x844 browser proof. Stripe, new MCP tools, and renderer geometry stay closed.",
+  "inputUpdate": "postalpha-0.60h-hosted-clawd-persistence-foundation",
+  "selectedAxis": "hosted_clawd_invite_beta_save_ux",
+  "recommendedNextQuest": "0.62H Stripe Test Billing",
+  "decision": "MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED",
   "metricResult": {
-    "hostedClawdPersistenceFoundation": {
+    "hostedClawdSaveUx": {
       "branch": "codex/integrate-hosted-clawd-fable-058e",
-      "sourceDoc": "docs/HOSTED_CLAWD_STORAGE_AUTH_DECISION_PACKET.md",
-      "artifactPath": "artifacts/hosted-clawd/postalpha-0.60h-persistence-foundation.json",
-      "migrationPath": "migrations/hosted-clawd/001_persistence_foundation.sql",
-      "storageProvider": "Railway Postgres",
-      "localTestStorage": "Postgres via DATABASE_URL; smoke skips cleanly when unset",
-      "dbClient": "pg",
-      "jwtVerificationLibrary": "jose",
-      "authModel": "OAuth/OIDC account linking for protected Hosted Clawd writes",
-      "authProviderShape": "Auth0-compatible OIDC provider with issuer, audience, JWKS, and scopes",
-      "appsSdkAuthBoundary": "MCP auth challenge for protected writes; iframe cookies and model text are not identity",
-      "firstPersistedCapability": "owned Hosted Clawd plus business profile, Scout Drop summary, and campaign preview draft",
-      "idempotency": "owner_user_id + operation + client_request_id returns original saved records",
+      "sourceFoundation": "postalpha-0.60h-hosted-clawd-persistence-foundation",
+      "artifactPath": "artifacts/hosted-clawd/postalpha-0.61h-save-ux.json",
+      "visualSource": "Superior grey setup console plus claymation save slots",
+      "surface": "Hosted Clawd map tray overlay",
+      "primaryQaHook": "hosted-clawd-save-strip",
+      "localViewQaHook": "hosted-clawd-local-view",
+      "saveSlotQaPrefix": "hosted-clawd-save-slot-",
+      "browserProofViewports": [
+        "desktop-1280x720",
+        "mobile-390x844"
+      ],
+      "desktopScreenshot": "artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-desktop-1280x720.png",
+      "mobileScreenshot": "artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-mobile-390x844.png",
       "publicToolCount": 7,
       "newMcpTools": 0,
-      "focusedTestCount": 15,
-      "stripeTiming": "0.62H after 0.60H ownership and idempotency pass and 0.61H save UX proof",
-      "nextUxGate": "0.61H Invite Beta Save UX"
+      "firstSavedArtifactExplained": "Business/location context plus session notes, Scout Drop, and campaign draft are shown as what Clawdbot could read after paid gates open.",
+      "mobileProofRequired": true,
+      "stripeTiming": "0.62H Stripe Test Billing after save UX proof"
     },
     "scope": {
       "docsOnly": false,
@@ -37,27 +38,29 @@
       "protectedWritesOnly": true,
       "liveCheckout": false,
       "authProviderMutation": false,
-      "packageDepsAdded": 3,
+      "packageDepsAdded": 0,
       "stripeDepsAdded": 0,
       "stripeTablesAdded": 0,
       "newMcpTools": 0,
-      "uiSurfaceChanges": false,
+      "uiSurfaceChanges": true,
       "rendererGeometryChanges": false,
       "publicAnaheimPromotion": false,
       "providerGeometry": false
     }
   },
   "verification": {
-    "hostedClawdTests": "pnpm exec tsx --test server/test/hosted-clawd-persistence-foundation.test.ts",
     "starterTypecheck": "pnpm typecheck:starter",
-    "persistenceFoundationGuard": "node scripts/verify-hosted-clawd-persistence-foundation.mjs",
+    "saveUxGuard": "node scripts/verify-hosted-clawd-save-ux.mjs",
+    "browserSaveUxGuard": "node scripts/verify-hosted-clawd-save-ux-browser.mjs --url http://127.0.0.1:8790/preview --screenshots artifacts/hosted-clawd/postalpha-0.61h-save-ux",
     "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
-    "persistenceSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-persistence-foundation --json-only",
-    "postgresSmoke": "pnpm exec tsx server/test/hosted-clawd-postgres-smoke.ts"
+    "saveUxSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-save-ux --json-only",
+    "providerBoundary": "node scripts/verify-provider-boundaries.mjs --json-only",
+    "toolResultShape": "node scripts/verify-tool-result-shape.mjs --json-only",
+    "starterBuild": "pnpm build:starter"
   },
-  "nextCodeStep": "0.61H Invite Beta Save UX",
+  "nextCodeStep": "0.62H Stripe Test Billing",
   "forbiddenScope": [
-    "Stripe Checkout, Billing Portal, webhook endpoint, product, price, customer, or subscription mutation",
+    "Stripe Checkout, Billing Portal, webhook endpoint, product, price, customer, or subscription mutation before 0.62H",
     "public paid pricing or saved-state launch claims",
     "evidence uploads",
     "XP grants or XP ledger",
@@ -67,27 +70,28 @@
     "new public MCP tools before protected Hosted Clawd tools are separately approved",
     "public Anaheim/Ontario exposure",
     "provider-created geometry or readiness promotion",
-    "generic SaaS pricing page, dashboard shell, or long setup wizard"
+    "generic SaaS pricing page, dashboard shell, or long setup wizard",
+    "voxel renderer geometry changes inside the save UX slice"
   ],
   "gates": [
     {
       "id": "persistence-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_PERSISTENCE is reopened only for 0.60H owner-protected DB/Auth foundation",
+      "label": "0.60H owner-protected DB/Auth foundation remains the only reopened persistence implementation",
       "required": true
     },
     {
       "id": "money-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_MONEY remains closed until persistence and map-first save UX are proven",
-      "required": true
-    },
-    {
-      "id": "apps-sdk-auth-gate",
-      "label": "Hosted Clawd writes require verified OAuth/OIDC auth context; request bodies cannot claim owner identity",
+      "label": "HUMAN_APPROVAL_BEFORE_MONEY remains closed until 0.62H opens test billing explicitly",
       "required": true
     },
     {
       "id": "map-first-gate",
-      "label": "Persistence supports the Atlas map/chat product; it must not create a dashboard shell",
+      "label": "Save UX lives inside the map tray and must not become a dashboard shell or pricing page",
+      "required": true
+    },
+    {
+      "id": "mobile-gate",
+      "label": "390x844 browser proof is required for the Hosted Clawd save tray",
       "required": true
     },
     {

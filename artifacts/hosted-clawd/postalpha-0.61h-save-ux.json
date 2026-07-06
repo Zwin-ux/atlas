@@ -1,0 +1,65 @@
+{
+  "id": "postalpha-0.61h-hosted-clawd-invite-beta-save-ux",
+  "quest": "0.61H Invite Beta Save UX",
+  "status": "local_green",
+  "decision": "MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED",
+  "branch": "codex/integrate-hosted-clawd-fable-058e",
+  "inputUpdate": "postalpha-0.60h-hosted-clawd-persistence-foundation",
+  "playerPromise": "The map tray now shows what local memory Clawdbot could keep: business/location, local notes, Scout Drop, and campaign draft state.",
+  "engineeringPromise": "Keep the Superior grey setup console, add claymation save slots, prove the tray on desktop and 390x844 mobile, and leave money/tool/renderer boundaries closed.",
+  "ui": {
+    "surface": "Hosted Clawd tray over the city map",
+    "visualSource": "Superior grey setup console plus claymation save slots",
+    "qaHooks": [
+      "hosted-clawd-save-strip",
+      "hosted-clawd-local-view",
+      "hosted-clawd-save-slot-business-location",
+      "hosted-clawd-save-slot-local-notes",
+      "hosted-clawd-save-slot-scout-drop",
+      "hosted-clawd-save-slot-campaign-draft"
+    ],
+    "motion": [
+      "city-world-hosted-clawd-clay-settle",
+      "city-world-hosted-clawd-slot-pop",
+      "city-world-hosted-clawd-rail-tick"
+    ],
+    "browserProof": {
+      "desktop": "artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-desktop-1280x720.png",
+      "mobile": "artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-mobile-390x844.png"
+    }
+  },
+  "stripe": {
+    "status": "closed",
+    "earliestSlice": "0.62H Stripe Test Billing",
+    "blocked": [
+      "Checkout Sessions",
+      "Billing Portal",
+      "webhooks",
+      "subscriptions",
+      "public paid claims"
+    ]
+  },
+  "mcp": {
+    "publicToolCount": 7,
+    "newMcpTools": 0
+  },
+  "scope": {
+    "uiSurfaceChanges": true,
+    "rendererGeometryChanges": false,
+    "providerGeometry": false,
+    "publicAnaheimPromotion": false,
+    "dashboardShell": false,
+    "genericPricingPage": false
+  },
+  "verification": [
+    "pnpm typecheck:starter",
+    "node scripts/verify-hosted-clawd-save-ux.mjs",
+    "node scripts/verify-hosted-clawd-save-ux-browser.mjs --url http://127.0.0.1:8790/preview --screenshots artifacts/hosted-clawd/postalpha-0.61h-save-ux",
+    "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-save-ux --json-only",
+    "node scripts/verify-provider-boundaries.mjs --json-only",
+    "node scripts/verify-tool-result-shape.mjs --json-only",
+    "pnpm build:starter"
+  ],
+  "nextQuest": "0.62H Stripe Test Billing"
+}

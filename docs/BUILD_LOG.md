@@ -1,5 +1,44 @@
 # Build Log
 
+## Entry 200
+
+Quest:
+0.61H Invite Beta Save UX.
+
+What changed:
+- Added a map-first Hosted Clawd save-readiness strip inside the existing tray.
+- Kept the Superior grey setup console and layered in claymation save slots for
+  business/location, local notes, Scout Drop, and campaign draft state.
+- Added mobile-safe one-column slot layout and restrained motion so the tray
+  reads clearly at 390x844 without becoming a dashboard or pricing page.
+- Added `scripts/verify-hosted-clawd-save-ux.mjs`,
+  `scripts/verify-hosted-clawd-save-ux-browser.mjs`, and strict
+  `hosted-clawd-save-ux` split coverage.
+- Added `artifacts/hosted-clawd/postalpha-0.61h-save-ux.json` as the proof
+  packet for this UI slice.
+
+Decision:
+Keep saved state in the map, not a dashboard. Atlas is still the instant
+map/chat voxel engine; Clawdbot is the future paid neighborhood operator layered
+on owned state. The save UX may show what Clawdbot could read later, but Stripe
+stays closed.
+
+Skipped:
+No Stripe Checkout, Billing Portal, webhooks, subscription tables, public paid
+claims, evidence, XP, reports, exports, automation, new public MCP tools,
+provider geometry, renderer geometry, dashboard shell, or public
+Anaheim/Ontario exposure.
+
+Verification:
+- `pnpm typecheck:starter`
+- `node scripts\verify-hosted-clawd-save-ux.mjs`
+- `node scripts\verify-hosted-clawd-save-ux-browser.mjs --url http://127.0.0.1:8790/preview --screenshots artifacts/hosted-clawd/postalpha-0.61h-save-ux`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-save-ux --json-only`
+- `node scripts\verify-provider-boundaries.mjs --json-only`
+- `node scripts\verify-tool-result-shape.mjs --json-only`
+- `pnpm build:starter`
+
 ## Entry 199
 
 Quest:

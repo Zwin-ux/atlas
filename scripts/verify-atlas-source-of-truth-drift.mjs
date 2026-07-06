@@ -9,12 +9,14 @@ const INTEGRATION_UPDATE = "postalpha-0.58i-integration-canonicalization-release
 const SETUP_UI_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port";
 const STORAGE_AUTH_UPDATE = "postalpha-0.59h-hosted-clawd-storage-auth-decision";
 const PERSISTENCE_FOUNDATION_UPDATE = "postalpha-0.60h-hosted-clawd-persistence-foundation";
+const SAVE_UX_UPDATE = "postalpha-0.61h-hosted-clawd-invite-beta-save-ux";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
 const SETUP_UI_INPUT_UPDATE = "postalpha-0.58i-integration-canonicalization-release-decision";
 const STORAGE_AUTH_INPUT_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port+human-reopened-db-auth-2026-07-05";
 const PERSISTENCE_FOUNDATION_INPUT_UPDATE = "postalpha-0.59h-hosted-clawd-storage-auth-decision+claude-fable-5";
+const SAVE_UX_INPUT_UPDATE = PERSISTENCE_FOUNDATION_UPDATE;
 const EXPECTED_SELECTOR_NEXT_QUEST = "0.44E Hidden Second-District Visual/Product Proof Packet";
 const OWNER_GATE_NEXT_QUEST = "0.46E Owner Gate Review Packet";
 const OWNER_GATE_SELECTED_AXIS = "owner_gate_review";
@@ -28,6 +30,8 @@ const STORAGE_AUTH_NEXT_QUEST = "0.60H Persistence Foundation";
 const STORAGE_AUTH_SELECTED_AXIS = "hosted_clawd_storage_auth";
 const PERSISTENCE_FOUNDATION_NEXT_QUEST = "0.61H Invite Beta Save UX";
 const PERSISTENCE_FOUNDATION_SELECTED_AXIS = "hosted_clawd_persistence_foundation";
+const SAVE_UX_NEXT_QUEST = "0.62H Stripe Test Billing";
+const SAVE_UX_SELECTED_AXIS = "hosted_clawd_invite_beta_save_ux";
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -104,6 +108,8 @@ const result = {
       ? "postalpha-0.59h-storage-auth-source-of-truth-drift-check"
       : currentUpdate?.id === PERSISTENCE_FOUNDATION_UPDATE
       ? "postalpha-0.60h-persistence-foundation-source-of-truth-drift-check"
+      : currentUpdate?.id === SAVE_UX_UPDATE
+      ? "postalpha-0.61h-save-ux-source-of-truth-drift-check"
       : currentUpdate?.id === INTEGRATION_UPDATE
       ? "postalpha-0.58i-integration-source-of-truth-drift-check"
       : "postalpha-0.45e-source-of-truth-drift-check",
@@ -169,7 +175,11 @@ function checkCurrentUpdate(update) {
     checkPersistenceFoundationCurrentUpdate(update);
     return;
   }
-  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, ${SETUP_UI_UPDATE}, ${STORAGE_AUTH_UPDATE}, or ${PERSISTENCE_FOUNDATION_UPDATE}; got ${update.id ?? "missing"}.`);
+  if (update.id === SAVE_UX_UPDATE) {
+    checkSaveUxCurrentUpdate(update);
+    return;
+  }
+  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, ${SETUP_UI_UPDATE}, ${STORAGE_AUTH_UPDATE}, ${PERSISTENCE_FOUNDATION_UPDATE}, or ${SAVE_UX_UPDATE}; got ${update.id ?? "missing"}.`);
 }
 
 function checkOwnerGateCurrentUpdate(update) {
@@ -393,6 +403,41 @@ function checkPersistenceFoundationCurrentUpdate(update) {
   }
   if (scope?.stripeDepsAdded !== 0 || scope?.stripeTablesAdded !== 0 || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false) {
     blockers.push("0.60H must record no Stripe deps/tables, no public Anaheim promotion, and no provider geometry.");
+  }
+}
+
+function checkSaveUxCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== SAVE_UX_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${SAVE_UX_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== SAVE_UX_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${SAVE_UX_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== SAVE_UX_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${SAVE_UX_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED") {
+    blockers.push(`artifacts/current-update.json decision must be MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED; got ${update.decision ?? "missing"}.`);
+  }
+  if (!update.verification?.saveUxGuard || !update.verification?.browserSaveUxGuard || !update.verification?.saveUxSplitGuard) {
+    blockers.push("artifacts/current-update.json must record the 0.61H save UX guard, browser proof, and split guard.");
+  }
+  const saveUx = update.metricResult?.hostedClawdSaveUx;
+  const scope = update.metricResult?.scope;
+  if (saveUx?.visualSource !== "Superior grey setup console plus claymation save slots") {
+    blockers.push("0.61H must record Superior grey setup console plus claymation save slots as the visual source.");
+  }
+  if (saveUx?.publicToolCount !== 7 || saveUx?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.61H must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (scope?.uiSurfaceChanges !== true || scope?.rendererGeometryChanges !== false || scope?.liveCheckout !== false) {
+    blockers.push("0.61H must record a UI-only save UX change with no renderer geometry or live checkout.");
+  }
+  if (scope?.stripeDepsAdded !== 0 || scope?.stripeTablesAdded !== 0 || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false) {
+    blockers.push("0.61H must record no Stripe deps/tables, no public Anaheim promotion, and no provider geometry.");
   }
 }
 
@@ -648,6 +693,45 @@ function checkIntegrationReleaseDocs(update, docs) {
     };
   }
 
+  if (update?.id === SAVE_UX_UPDATE) {
+    label = "0.61H save-ux";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.61H Hosted Clawd invite beta save UX",
+        "MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED",
+        SAVE_UX_NEXT_QUEST,
+        "Superior grey setup console plus claymation save slots",
+        "Stripe stays closed",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current save UX slice",
+        "0.61H Invite Beta Save UX",
+        "MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED",
+        SAVE_UX_NEXT_QUEST,
+        "paid neighborhood operator",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 200",
+        "0.61H Invite Beta Save UX",
+        "claymation save slots",
+        "Stripe stays closed",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 085",
+        "Keep saved state in the map, not a dashboard",
+        "Superior grey setup console plus claymation save slots",
+        SAVE_UX_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current save UX note (2026-07-05)",
+        "0.61H Invite Beta Save UX",
+        "Clawdbot",
+        SAVE_UX_NEXT_QUEST,
+        "Stripe/money",
+      ],
+    };
+  }
+
   if (!requiredSnippetsByFile) return;
 
   for (const [path, snippets] of Object.entries(requiredSnippetsByFile)) {
@@ -710,9 +794,9 @@ function checkAgentsDoctrine(agents) {
     "Hosted Clawd DB/Auth persistence is now local-green only for owner-protected rows",
     "The human explicitly reopened DB/Auth preparation on 2026-07-05",
     "If the human says \"continue,\" continue only the named next quest",
-    "Current human-directed local-green slice is `0.60H Persistence Foundation`",
-    "0.60H decision is `PERSISTENCE_FOUNDATION_LOCAL_GREEN_STRIPE_CLOSED`",
-    "Default next slice after 0.60H is `0.61H Invite Beta Save UX`",
+    "Current human-directed local-green slice is `0.61H Invite Beta Save UX`",
+    "0.61H decision is `MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED`",
+    "Default next slice after 0.61H is `0.62H Stripe Test Billing`",
     "Stripe/money remains downstream of 0.60H and 0.61H",
     "The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`",
     "Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`",
@@ -722,7 +806,7 @@ function checkAgentsDoctrine(agents) {
     "Put large widget-only or renderer-only scene data in `_meta`",
     "Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays",
     "Do not add new MCP tools casually",
-    "Use `hosted-clawd-persistence-foundation` for strict split checks on the 0.60H persistence branch",
+    "Use `hosted-clawd-save-ux` for strict split checks on the 0.61H save UX branch",
   ];
   for (const snippet of requiredSnippets) {
     if (!agents.includes(snippet)) {
@@ -780,7 +864,7 @@ function checkPublicCandidateClaims(files) {
 }
 
 function checkDbDrift(packageJson, serverIndex, envExample) {
-  if (currentUpdate?.id === PERSISTENCE_FOUNDATION_UPDATE) {
+  if (currentUpdate?.id === PERSISTENCE_FOUNDATION_UPDATE || currentUpdate?.id === SAVE_UX_UPDATE) {
     checkPersistenceFoundationDbEnvelope(packageJson, serverIndex, envExample);
     return;
   }

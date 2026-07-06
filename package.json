@@ -20,6 +20,8 @@
     "test:hosted-clawd": "tsx --test server/test/hosted-clawd-persistence-foundation.test.ts",
     "verify:mcp": "node scripts/verify-mcp-flow.mjs",
     "verify:hosted-clawd-persistence": "node scripts/verify-hosted-clawd-persistence-foundation.mjs",
+    "verify:hosted-clawd-save-ux": "node scripts/verify-hosted-clawd-save-ux.mjs",
+    "verify:hosted-clawd-save-ux:browser": "node scripts/verify-hosted-clawd-save-ux-browser.mjs",
     "smoke:hosted-clawd:postgres": "tsx server/test/hosted-clawd-postgres-smoke.ts",
     "migrate:hosted-clawd": "tsx server/src/hostedClawd/migrations.ts",
     "verify:submission": "node scripts/verify-submission.mjs",

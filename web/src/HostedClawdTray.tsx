@@ -1,4 +1,5 @@
 import hostedClawdBadge from "../../assets/generated/placeholders/svg/hosted-clawd-badge.svg";
+import type { CSSProperties } from "react";
 import type { HostedClawdContext } from "./types";
 
 export type HostedClawdTrayProps = {
@@ -13,6 +14,7 @@ export function HostedClawdTray({ context, actionMessage, onClose, onPrimaryActi
   const setupSteps = setupStepsForContext(context, closedGateCount);
   const activeSetupStepId = setupSteps.find((step) => step.status !== "ready")?.id ?? setupSteps[setupSteps.length - 1]?.id;
   const recoveryCues = recoveryCuesForContext(context, closedGateCount);
+  const saveReadiness = saveReadinessForContext(context, closedGateCount);
 
   return (
     <section
@@ -44,6 +46,50 @@ export function HostedClawdTray({ context, actionMessage, onClose, onPrimaryActi
         <span>{context.sessionBoundary}</span>
         <span>{context.paymentCopy}</span>
       </div>
+
+      <section
+        className="city-world-hosted-clawd-save-strip"
+        aria-label="Hosted Clawd save readiness"
+        data-qa="hosted-clawd-save-strip"
+        data-qa-save-readiness={saveReadiness.status}
+        data-qa-save-ready-count={saveReadiness.readyCount}
+      >
+        <div className="city-world-hosted-clawd-local" data-qa="hosted-clawd-local-view">
+          <span>{saveReadiness.kicker}</span>
+          <strong>{saveReadiness.title}</strong>
+          <p>{saveReadiness.detail}</p>
+        </div>
+        <ol className="city-world-hosted-clawd-save-slots" aria-label="Save slots">
+          {saveReadiness.slots.map((slot, index) => (
+            <li
+              key={`${slot.id}-${index}`}
+              aria-label={`${slot.label}: ${saveSlotStatusLabel(slot.status)}. ${slot.detail}`}
+              data-status={slot.status}
+              data-qa={`hosted-clawd-save-slot-${slot.id}`}
+              style={{ "--slot-index": index } as CSSProperties}
+            >
+              <span aria-hidden="true">{index + 1}</span>
+              <div>
+                <strong title={`${slot.label}: ${saveSlotStatusLabel(slot.status)}`}>{slot.label}</strong>
+                <p title={slot.detail}>{slot.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div
+          className="city-world-hosted-clawd-motion-rail"
+          aria-hidden="true"
+          style={{ "--save-slot-count": saveReadiness.slots.length } as CSSProperties}
+        >
+          {saveReadiness.slots.map((slot, index) => (
+            <span
+              key={`${slot.id}-${index}-rail`}
+              data-status={slot.status}
+              style={{ "--slot-index": index } as CSSProperties}
+            />
+          ))}
+        </div>
+      </section>
 
       <section
         className="city-world-hosted-clawd-setup"
@@ -135,6 +181,66 @@ export function HostedClawdTray({ context, actionMessage, onClose, onPrimaryActi
       </footer>
     </section>
   );
+}
+
+type HostedClawdSaveSlot = {
+  id: string;
+  label: string;
+  detail: string;
+  status: "ready" | "pending" | "locked";
+};
+
+type HostedClawdSaveReadiness = {
+  status: "session" | "needs_account" | "ready";
+  kicker: string;
+  title: string;
+  detail: string;
+  readyCount: number;
+  slots: HostedClawdSaveSlot[];
+};
+
+function saveReadinessForContext(context: HostedClawdContext, closedGateCount: number): HostedClawdSaveReadiness {
+  const slots = context.savePreview.map((item): HostedClawdSaveSlot => ({
+    id: saveSlotId(item.label),
+    label: item.label,
+    detail: item.value,
+    status: item.status === "ready" ? "ready" : item.status === "needs_confirmation" ? "pending" : "locked",
+  }));
+  const readyCount = slots.filter((slot) => slot.status === "ready").length;
+  const status = context.canPersist ? "ready" : closedGateCount > 0 ? "session" : "needs_account";
+
+  if (context.canPersist) {
+    return {
+      status,
+      kicker: "Local memory",
+      title: `${readyCount}/${slots.length} ready to own`,
+      detail: "Save only what is confirmed for this map, business, and local campaign draft.",
+      readyCount,
+      slots,
+    };
+  }
+
+  return {
+    status,
+    kicker: "Local view",
+    title: `${readyCount}/${slots.length} ready in this chat`,
+    detail:
+      closedGateCount > 0
+        ? "Clawdbot can read this setup later; today the map, notes, and campaign stay session-only."
+        : "Connect an account before this local setup becomes owned memory.",
+    readyCount,
+    slots,
+  };
+}
+
+function saveSlotId(label: string): string {
+  return label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "slot";
+}
+
+function saveSlotStatusLabel(status: HostedClawdSaveSlot["status"]): string {
+  if (status === "ready") return "ready";
+  if (status === "pending") return "needs confirmation";
+  return "locked until Hosted Clawd opens";
 }
 
 function CloseIcon() {
