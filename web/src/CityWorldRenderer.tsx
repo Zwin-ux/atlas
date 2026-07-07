@@ -1116,6 +1116,7 @@ function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile) {
   // Graphics, path order is z order (old per-object add order preserved).
   drawTerrainChunkMassing(g, tile, point, color);
   drawTerrainElevationEdges(g, tile, point, color);
+  drawTerrainCliffCourses(g, tile, point, color);
   const graphic = appendPolygon(g, diamondPoints(point, TILE_WIDTH + 1, TILE_HEIGHT + 1), color, alpha, strokeColor, strokeAlpha);
 
   if (tile.kind === "water") {
@@ -1150,6 +1151,53 @@ function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile) {
   if (shellTile) drawShellTerrainFacet(graphic, tile, point);
 }
 
+// 0.74F terrain relief: raised tiles extrude stacked voxel cliff courses on
+// every side that drops to a lower neighbor. South/east faces are the
+// sun-consistent visible cliff walls; north/west bands read as shadowed cuts
+// AND cover the projection gap a raised tile leaves over its back neighbors.
+// Authored by the generator as visualGrammar.elevation — no neighbor scans here.
+function drawTerrainCliffCourses(g: Graphics, tile: CityWorldTerrainTile, point: ProjectedPoint, color: number) {
+  const elevation = tile.visualGrammar?.elevation;
+  if (!elevation || elevation.dropDepth <= 0 || elevation.dropSides.length === 0) return;
+
+  const width = TILE_WIDTH + 1;
+  const height = TILE_HEIGHT + 1;
+  const courseZ = 0.5;
+  const courseCount = Math.max(1, Math.round(elevation.dropDepth / courseZ));
+  const coursePx = (elevation.dropDepth * TILE_DEPTH) / courseCount;
+  const cliffBase = shadeColor(color, -10);
+
+  for (const side of elevation.dropSides) {
+    const edge = tileEdgeSegment(point, width, height, side);
+    const frontFace = side === "south" || side === "east";
+    for (let course = 0; course < courseCount; course += 1) {
+      const topDrop = course * coursePx;
+      const bottomDrop = (course + 1) * coursePx + (course === courseCount - 1 ? 1.5 : 0);
+      const faceColor = frontFace
+        ? sunlitColor(shadeColor(cliffBase, -course * 9), side === "south" ? "sun" : "shade")
+        : shadeColor(cliffBase, -30 - course * 8);
+      g
+        .poly(
+          [
+            edge.from.x, edge.from.y + topDrop,
+            edge.to.x, edge.to.y + topDrop,
+            edge.to.x, edge.to.y + bottomDrop,
+            edge.from.x, edge.from.y + bottomDrop,
+          ],
+          true,
+        )
+        .fill({ color: faceColor, alpha: frontFace ? 0.98 : 0.92 });
+      if (frontFace) {
+        // Sunlit lip along the top of each course — the stacked-block read.
+        g
+          .moveTo(edge.from.x, edge.from.y + topDrop)
+          .lineTo(edge.to.x, edge.to.y + topDrop)
+          .stroke({ color: shadeColor(color, 26), alpha: course === 0 ? 0.5 : 0.3, width: 1.1, cap: "butt" });
+      }
+    }
+  }
+}
+
 // Material seams + water bank strands, authored by the compiler as
 // terrainContact metadata. Seams are inset inside the owning tile so they
 // survive the painter's draw order regardless of which neighbor drew last.
@@ -1182,7 +1230,16 @@ function drawTerrainContactSeams(graphic: Graphics, tile: CityWorldTerrainTile, 
   }
 
   if (waterEdgeSides.length > 0 && style.strandAlpha > 0) {
-    // Bank strand on the land side: a pale dry line above a darker wet line.
+    // Beach strand on the land side: a filled sand wedge between the tile
+    // edge and the dry line, then a pale dry line above a darker wet line —
+    // the shore reads as a beach, not a painted boundary.
+    for (const side of waterEdgeSides) {
+      const edge = tileEdgeSegment(point, width, height, side);
+      const inner = insetEdgeSegment(point, edge, 0.34);
+      graphic
+        .poly([edge.from.x, edge.from.y, edge.to.x, edge.to.y, inner.to.x, inner.to.y, inner.from.x, inner.from.y], true)
+        .fill({ color: 0xe8dcae, alpha: style.strandAlpha * 0.55 });
+    }
     for (const side of waterEdgeSides) {
       const strand = insetEdgeSegment(point, tileEdgeSegment(point, width, height, side), 0.1);
       graphic.moveTo(strand.from.x, strand.from.y).lineTo(strand.to.x, strand.to.y);
@@ -2724,7 +2781,7 @@ function drawBuilding(layers: LayerMap, building: CityWorldBuilding, atlas: City
 
 function createBuildingGeometry(building: CityWorldBuilding, atlas: CityWorldAtlasResolver): BuildingGeometry {
   const bottom = project(building.position);
-  const top = project({ x: building.position.x, y: building.position.y, z: building.height });
+  const top = project({ x: building.position.x, y: building.position.y, z: (building.position.z ?? 0) + building.height });
   const asset = atlas.resolveAsset(building.spriteKey, building.paletteKey, "building");
   const useAuthoredDraftColors = isDraftBuilding(building);
   const useShellColors = isShellBuilding(building);

@@ -24,6 +24,36 @@ describe("generated district parity diagnostics (0.58E)", () => {
     expect(report.commerceMetrics.commerceStripMinWidth).toBeGreaterThanOrEqual(2.4);
   });
 
+  it("terrain relief keeps water flat, buildings on their block z, and authors drop grammar (0.74F)", () => {
+    const scene = generatedScene();
+    const tileZ = new Map(scene.terrainTiles.map((tile) => [`${tile.position.x}:${tile.position.y}`, tile.position.z ?? 0]));
+
+    // The sample heightGrid produces real plateaus.
+    expect(scene.terrainTiles.some((tile) => (tile.position.z ?? 0) > 0)).toBe(true);
+    // Water and its surface never rise.
+    for (const tile of scene.terrainTiles.filter((item) => item.kind === "water")) {
+      expect(tile.position.z ?? 0).toBe(0);
+    }
+    // Every building shares its tile's block elevation (no floaters/sinkers).
+    for (const building of scene.buildings) {
+      const z = tileZ.get(`${Math.round(building.position.x)}:${Math.round(building.position.y)}`);
+      expect(building.position.z ?? 0).toBe(z);
+    }
+    // Drop grammar is consistent with the tile map: a tile claiming a south
+    // drop really has a lower south neighbor.
+    for (const tile of scene.terrainTiles) {
+      const elevation = tile.visualGrammar?.elevation;
+      if (!elevation || elevation.dropSides.length === 0) continue;
+      for (const side of elevation.dropSides) {
+        const dx = side === "east" ? 1 : side === "west" ? -1 : 0;
+        const dy = side === "south" ? 1 : side === "north" ? -1 : 0;
+        const neighborZ = tileZ.get(`${tile.position.x + dx}:${tile.position.y + dy}`);
+        if (neighborZ === undefined) continue;
+        expect(neighborZ).toBeLessThan(tile.position.z ?? 0);
+      }
+    }
+  });
+
   it("measures screen-lower frame density for the desktop and mobile presets", () => {
     const report = analyzeGeneratedDistrictParity(generatedScene());
 

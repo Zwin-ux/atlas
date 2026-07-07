@@ -9,6 +9,8 @@ import type {
   CityWorldScene,
   CityWorldTerrainKind,
   CityWorldTerrainTile,
+  CityWorldTileEdge,
+  CityWorldTileElevationGrammar,
   CityWorldVisualGrammar,
 } from "./cityWorldTypes.js";
 import {
@@ -131,7 +133,6 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
   const bounds: CityWorldBounds = { minX: 0, minY: 0, maxX: spec.size.width, maxY: spec.size.height };
   const rng = mulberry32(spec.seed ?? 1);
 
-  const terrainTiles = createParametricTerrain(spec, bounds);
   const roadSegments = spec.roadSeeds.map((seed) =>
     withRoadMetadata({
       id: seed.id,
@@ -141,6 +142,14 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       width: seed.width ?? defaultRoadWidth(seed.kind),
     }),
   );
+  const elevationModel = createParametricElevationModel(spec, bounds, roadSegments);
+  const terrainTiles = createParametricTerrain(spec, bounds, elevationModel);
+  // Roads render at the elevation of the ground they cross (corridor rule
+  // keeps both endpoints on the same level for grid-aligned seeds).
+  for (const road of roadSegments) {
+    road.from.z = elevationModel.tileZ(Math.round(road.from.x), Math.round(road.from.y));
+    road.to.z = elevationModel.tileZ(Math.round(road.to.x), Math.round(road.to.y));
+  }
 
   const lots: CityWorldLot[] = [];
   const buildings: CityWorldBuilding[] = [];
@@ -165,13 +174,14 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     if (parcels.length === 0) continue;
 
     for (const parcel of parcels) {
+      const parcelZ = elevationModel.tileZ(Math.round(parcel.x), Math.round(parcel.y));
       lots.push(
         withLotMetadata(
           {
             id: `gen-lot-${zone.id}-${parcel.index}`,
             kind: parcel.lotKind ?? lotKind,
             label: parcel.spec?.labelOverride ?? zone.label ?? zoneLabel(zone.kind),
-            position: { x: parcel.x, y: parcel.y, z: 0 },
+            position: { x: parcel.x, y: parcel.y, z: parcelZ },
             width: parcel.width,
             depth: parcel.depth,
             placeId,
@@ -181,7 +191,10 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       );
 
       const building = buildingForZone(zone, parcel, placeId, rng);
-      if (building) buildings.push(withBuildingMetadata(building));
+      if (building) {
+        building.position.z = parcelZ;
+        buildings.push(withBuildingMetadata(building));
+      }
     }
 
     places.push({
@@ -190,7 +203,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       kind: placeKindForZone(zone.kind),
       districtId: spec.region.district,
       nodeId: zone.id,
-      anchor: { x: zoneCenter(zone).x, y: zoneCenter(zone).y, z: 0 },
+      anchor: { x: zoneCenter(zone).x, y: zoneCenter(zone).y, z: elevationModel.tileZ(Math.round(zoneCenter(zone).x), Math.round(zoneCenter(zone).y)) },
       hitRadius: zone.kind === "park" ? 3.8 : 2.8,
       description: `Generated ${zoneLabel(zone.kind)} zone.`,
       activity: 0,
@@ -199,7 +212,10 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     placeIndex += 1;
 
     if (zone.kind === "park" || zone.kind === "water") {
-      props.push(...zoneNatureProps(zone, rng));
+      for (const prop of zoneNatureProps(zone, rng)) {
+        prop.position.z = elevationModel.tileZ(Math.round(prop.position.x), Math.round(prop.position.y));
+        props.push(prop);
+      }
     }
   }
 
@@ -286,15 +302,17 @@ type ParcelLayout = {
   lotKind?: CityWorldLot["kind"];
 };
 
-function createParametricTerrain(spec: CityWorldParametricSpec, bounds: CityWorldBounds): CityWorldTerrainTile[] {
+function createParametricTerrain(spec: CityWorldParametricSpec, bounds: CityWorldBounds, elevationModel: ParametricElevationModel): CityWorldTerrainTile[] {
   const tiles: CityWorldTerrainTile[] = [];
   for (let y = bounds.minY; y <= bounds.maxY; y += 1) {
     for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
-      const point: CityWorldPoint = { x, y, z: 0 };
+      const point: CityWorldPoint = { x, y, z: elevationModel.tileZ(x, y) };
       const zone = zoneAt(spec.zones, x, y);
       const kind: CityWorldTerrainKind = zone ? ZONE_TO_TERRAIN[zone.kind] : "grass";
       const variant = (x * 17 + y * 11) % 5;
       const relief = reliefAt(spec, x, y);
+      const grammar = parametricTerrainGrammar(spec, zone, point, bounds, relief);
+      const elevation = tileElevationGrammar(elevationModel, x, y);
       tiles.push({
         id: `gen-terrain-${x}-${y}`,
         kind,
@@ -305,7 +323,7 @@ function createParametricTerrain(spec: CityWorldParametricSpec, bounds: CityWorl
         spriteKey: `tile.${kind}.${variant}`,
         paletteKey: `terrain.${kind}`,
         detailLevel: kind === "water" || kind === "park" || kind === "plaza" ? "medium" : "low",
-        visualGrammar: parametricTerrainGrammar(spec, zone, point, bounds, relief),
+        visualGrammar: elevation ? { ...grammar, elevation } : grammar,
       });
     }
   }
@@ -872,6 +890,119 @@ function isNearBounds(point: CityWorldPoint, bounds: CityWorldBounds, distance: 
     point.y <= bounds.minY + distance ||
     point.y >= bounds.maxY - distance
   );
+}
+
+// ---- Terrain relief (0.74F) -------------------------------------------------
+// Continuous heightGrid relief quantized to BLOCK granularity: the road grid
+// partitions the board into blocks; every tile in a block (and its lots,
+// buildings, props, and place anchors) shares one z level, so streets and
+// parcels stay flat while the district steps up plateaus. Water and its
+// one-tile shore ring force z = 0; road corridors take the LOWER of the
+// blocks they border so asphalt never climbs a cliff.
+const ELEVATION_Z_LEVELS = [0, 0.5, 1] as const;
+
+type ParametricElevationModel = {
+  tileZ: (x: number, y: number) => number;
+};
+
+function reliefAtBilinear(spec: CityWorldParametricSpec, x: number, y: number): number {
+  const grid = spec.heightGrid;
+  if (!grid || grid.values.length === 0) return 0;
+  const rows = grid.values.length;
+  const cols = Math.max(...grid.values.map((row) => row.length), 1);
+  const sample = (gx: number, gy: number) => clamp01(grid.values[Math.min(rows - 1, Math.max(0, gy))]?.[Math.min(cols - 1, Math.max(0, gx))] ?? 0);
+  // Grid values sample cell centers.
+  const fx = x / grid.cellSize - 0.5;
+  const fy = y / grid.cellSize - 0.5;
+  const x0 = Math.floor(fx);
+  const y0 = Math.floor(fy);
+  const tx = clamp01(fx - x0);
+  const ty = clamp01(fy - y0);
+  const top = sample(x0, y0) * (1 - tx) + sample(x0 + 1, y0) * tx;
+  const bottom = sample(x0, y0 + 1) * (1 - tx) + sample(x0 + 1, y0 + 1) * tx;
+  return top * (1 - ty) + bottom * ty;
+}
+
+function quantizeElevation(value: number): number {
+  if (value < 0.45) return ELEVATION_Z_LEVELS[0];
+  if (value < 0.7) return ELEVATION_Z_LEVELS[1];
+  return ELEVATION_Z_LEVELS[2];
+}
+
+function createParametricElevationModel(
+  spec: CityWorldParametricSpec,
+  bounds: CityWorldBounds,
+  roads: CityWorldRoadSegment[],
+): ParametricElevationModel {
+  const noRelief = !spec.heightGrid || spec.heightGrid.values.length === 0;
+  if (noRelief) return { tileZ: () => 0 };
+
+  const waterZones = spec.zones.filter((zone) => zone.kind === "water");
+  const nearWater = (x: number, y: number) =>
+    waterZones.some(
+      (zone) => x >= zone.rect.minX - 1 && x <= zone.rect.maxX + 1 && y >= zone.rect.minY - 1 && y <= zone.rect.maxY + 1,
+    );
+
+  // Corridor roads: axis-aligned embedded streets/avenues (driveways and
+  // crosswalks ride whatever ground they sit on).
+  const corridorRoads = roads.filter((road) => road.kind === "avenue" || road.kind === "street");
+  const verticalLines = corridorRoads.filter((road) => road.from.x === road.to.x);
+  const horizontalLines = corridorRoads.filter((road) => road.from.y === road.to.y);
+
+  const blockZ = (x: number, y: number): number => {
+    const xLines = verticalLines.map((road) => road.from.x).sort((a, b) => a - b);
+    const yLines = horizontalLines.map((road) => road.from.y).sort((a, b) => a - b);
+    const minX = Math.max(bounds.minX, ...xLines.filter((line) => line <= x));
+    const maxX = Math.min(bounds.maxX, ...xLines.filter((line) => line > x));
+    const minY = Math.max(bounds.minY, ...yLines.filter((line) => line <= y));
+    const maxY = Math.min(bounds.maxY, ...yLines.filter((line) => line > y));
+    return quantizeElevation(reliefAtBilinear(spec, (minX + maxX) / 2, (minY + maxY) / 2));
+  };
+
+  const cache = new Map<string, number>();
+  const tileZ = (x: number, y: number): number => {
+    const key = `${x}:${y}`;
+    const cached = cache.get(key);
+    if (cached !== undefined) return cached;
+
+    let z: number;
+    if (nearWater(x, y)) {
+      z = 0;
+    } else {
+      z = blockZ(x, y);
+      // Road corridor: take the lower of the two bordering blocks.
+      for (const road of verticalLines) {
+        const half = road.width / 2 + 0.55;
+        if (Math.abs(x - road.from.x) <= half && y >= Math.min(road.from.y, road.to.y) - half && y <= Math.max(road.from.y, road.to.y) + half) {
+          z = Math.min(z, blockZ(road.from.x - half - 0.5, y), blockZ(road.from.x + half + 0.5, y));
+        }
+      }
+      for (const road of horizontalLines) {
+        const half = road.width / 2 + 0.55;
+        if (Math.abs(y - road.from.y) <= half && x >= Math.min(road.from.x, road.to.x) - half && x <= Math.max(road.from.x, road.to.x) + half) {
+          z = Math.min(z, blockZ(x, road.from.y - half - 0.5), blockZ(x, road.from.y + half + 0.5));
+        }
+      }
+    }
+    cache.set(key, z);
+    return z;
+  };
+
+  return { tileZ };
+}
+
+function tileElevationGrammar(model: ParametricElevationModel, x: number, y: number): CityWorldTileElevationGrammar | undefined {
+  const z = model.tileZ(x, y);
+  const neighbors: Array<{ side: CityWorldTileEdge; z: number }> = [
+    { side: "north", z: model.tileZ(x, y - 1) },
+    { side: "east", z: model.tileZ(x + 1, y) },
+    { side: "south", z: model.tileZ(x, y + 1) },
+    { side: "west", z: model.tileZ(x - 1, y) },
+  ];
+  const dropSides = neighbors.filter((neighbor) => neighbor.z < z).map((neighbor) => neighbor.side);
+  if (z === 0 && dropSides.length === 0) return undefined;
+  const dropDepth = dropSides.length > 0 ? z - Math.min(...neighbors.filter((n) => n.z < z).map((n) => n.z)) : 0;
+  return { z, dropSides, dropDepth };
 }
 
 function reliefAt(spec: CityWorldParametricSpec, x: number, y: number): number {
