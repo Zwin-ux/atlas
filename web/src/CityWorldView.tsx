@@ -126,6 +126,7 @@ export function CityWorldView({
         selectedPlaceId={activePlace?.id}
         cameraPresetId={cameraPresetId}
         debugMode={debugMode}
+        suppressPlaceLabels={isGeneratedMode}
         onSelectPlace={isGeneratedMode ? () => undefined : onSelectPlace}
       />
 

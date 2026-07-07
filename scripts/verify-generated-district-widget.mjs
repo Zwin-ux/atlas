@@ -79,6 +79,7 @@ async function runViewport({ viewport, chrome }) {
         honest: text.includes("synthetic") && (text.includes("not a real place") || text.includes("not real coverage")) && text.includes("session"),
         exitPresent: Boolean(document.querySelector("[data-qa='exit-generated']")),
         collectionHidden: !document.querySelector("[data-qa='sticker-tools']") && !document.querySelector("[data-qa='selected-place-tray']"),
+        placeLabels: document.querySelector(".city-world-renderer")?.getAttribute("data-qa-place-labels") || "",
         canvasCount: document.querySelectorAll("canvas").length,
         horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       };
@@ -91,6 +92,7 @@ async function runViewport({ viewport, chrome }) {
     if (!state.honest) failures.push(`banner not honest: "${state.bannerText}"`);
     if (!state.exitPresent) failures.push("exit-generated control missing");
     if (!state.collectionHidden) failures.push("place-collection UI not suppressed");
+    if (state.placeLabels !== "suppressed") failures.push(`generated place labels not suppressed: ${state.placeLabels || "missing"}`);
     if (state.canvasCount !== 1) failures.push(`expected 1 canvas, got ${state.canvasCount}`);
     if (state.horizontalOverflow) failures.push("horizontal overflow");
     if (errors.length) failures.push(`console errors: ${errors.join(" | ")}`);

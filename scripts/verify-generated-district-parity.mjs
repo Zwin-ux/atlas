@@ -82,6 +82,13 @@ const GATES = [
     value: (parity) => parity.commerceMetrics.commerceStripMinWidth,
   },
   {
+    id: "residential_roof_safety",
+    label: "generated homes use roof-safe proportions (unsafeRoofCount == 0)",
+    finding: "tiny/tall houses create skewed gable or hip roof reads",
+    check: (parity) => parity.residentialRoofMetrics.unsafeRoofCount === 0,
+    value: (parity) => parity.residentialRoofMetrics.unsafeRoofCount,
+  },
+  {
     id: "desktop_lower_frame",
     label: "desktop lower-frame occupancy >= 0.18 and balance >= 0.9",
     finding: "lower-frame sparsity: bottom of the first viewport is empty field",
@@ -179,6 +186,18 @@ function degradeRoofRegistration(input) {
   return degraded;
 }
 
+function degradeResidentialRoofSafety(input) {
+  const degraded = structuredClone(input);
+  const cottage = degraded.buildings.find((building) => building.kind === "home" && building.facadeStyle === "cottage");
+  if (cottage) {
+    cottage.roofShape = "hip";
+    cottage.height = 1.72;
+    cottage.width = 1.34;
+    cottage.depth = 1.08;
+  }
+  return degraded;
+}
+
 function degradeApartmentFacade(input) {
   // Deep flat court: eave drop swallows the wall -> columns float off face.
   const degraded = structuredClone(input);
@@ -202,6 +221,7 @@ const DETECTION_CASES = [
   { gateId: "empty_pads", degrade: degradeEmptyPads },
   { gateId: "commerce_toy_massing", degrade: degradeToyCommerce },
   { gateId: "roof_registration", degrade: degradeRoofRegistration },
+  { gateId: "residential_roof_safety", degrade: degradeResidentialRoofSafety },
   { gateId: "facade_bounds", degrade: degradeApartmentFacade },
   { gateId: "mobile_lower_frame", degrade: degradeLowerFrame },
 ];
@@ -241,6 +261,7 @@ const report = {
     registrationMetrics: parity.registrationMetrics,
     facadeMetrics: parity.facadeMetrics,
     commerceMetrics: parity.commerceMetrics,
+    residentialRoofMetrics: parity.residentialRoofMetrics,
     frameDensity: parity.frameDensity,
   },
   curatedReference: {

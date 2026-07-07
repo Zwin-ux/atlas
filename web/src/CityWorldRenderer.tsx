@@ -46,6 +46,7 @@ type CityWorldRendererProps = {
   selectedPlaceId?: string | undefined;
   cameraPresetId?: CityWorldCameraPresetId | undefined;
   debugMode?: CityWorldDebugMode | undefined;
+  suppressPlaceLabels?: boolean;
   onSelectPlace: (placeId: string) => void;
 };
 
@@ -354,7 +355,7 @@ function createAtlasGradeFilter(): Filter {
 }
 
 export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRendererProps>(function CityWorldRenderer(
-  { scene, selectedPlaceId, cameraPresetId, debugMode, onSelectPlace },
+  { scene, selectedPlaceId, cameraPresetId, debugMode, suppressPlaceLabels = false, onSelectPlace },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -442,6 +443,9 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       world.sortableChildren = true;
       worldRef.current = world;
       app.stage.addChild(world);
+      // QA hook: verifiers and browser QA sessions bisect draw layers through
+      // this handle (e.g. hide propLayer to attribute a visual artifact).
+      (window as unknown as Record<string, unknown>).__ATLAS_QA__ = { app, world };
       try {
         app.stage.filters = [createAtlasGradeFilter()];
         app.stage.filterArea = app.screen;
@@ -559,12 +563,14 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     if (!ready || !app || !world || !mount) return;
     const activeCameraPresetId = resolveCameraPresetId(scene, cameraPresetId, mount.clientWidth);
     const viewportFrame = rendererViewportFrame(mount, cameraRef.current, activeCameraPresetId, STREAMING_WINDOW_MARGIN_TILES);
-    const sceneWindowFrame = drawScene(world, scene, activeCameraPresetId, viewportFrame, selectedPlaceId ?? scene.hudDefaults.selectedPlaceId, hoverPlaceId, atlasTextures, debugMode, (placeId) => {
+    const sceneWindowFrame = drawScene(world, scene, activeCameraPresetId, viewportFrame, selectedPlaceId ?? scene.hudDefaults.selectedPlaceId, hoverPlaceId, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
       if (!movedRef.current) selectPlaceRef.current(placeId);
     }, setHoverPlaceId, animatedRef.current);
+    const qaHandle = (window as unknown as Record<string, unknown>).__ATLAS_QA__ as Record<string, unknown> | undefined;
+    if (qaHandle) qaHandle.scene = scene;
     activeWindowFrameRef.current = sceneWindowFrame;
     applyCamera();
-  }, [atlasTextures, cameraPresetId, debugMode, hoverPlaceId, ready, scene, selectedPlaceId, windowRefreshKey]);
+  }, [atlasTextures, cameraPresetId, debugMode, hoverPlaceId, ready, scene, selectedPlaceId, suppressPlaceLabels, windowRefreshKey]);
 
   function zoomBy(multiplier: number) {
     const camera = cameraRef.current;
@@ -639,7 +645,14 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     return nearest?.id;
   }
 
-  return <div ref={mountRef} className="city-world-renderer" aria-label={`${scene.region.district} voxel city map`} />;
+  return (
+    <div
+      ref={mountRef}
+      className="city-world-renderer"
+      aria-label={`${scene.region.district} voxel city map`}
+      data-qa-place-labels={suppressPlaceLabels ? "suppressed" : "visible"}
+    />
+  );
 });
 
 function pointerDistance(pointers: Map<number, { x: number; y: number }>): number | undefined {
@@ -660,6 +673,7 @@ function drawScene(
   hoverPlaceId: string | undefined,
   atlasTextures: CityWorldTextureMap,
   debugMode: CityWorldDebugMode | undefined,
+  suppressPlaceLabels: boolean,
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
   animated: AnimatedTarget[],
@@ -673,7 +687,7 @@ function drawScene(
   const layers = createLayers();
   Object.values(layers).forEach((layer) => world.addChild(layer));
   const atlas = createCityWorldAtlasResolver(scene, atlasTextures);
-  const includeLabels = !shouldHideCityWorldLabels();
+  const includeLabels = !suppressPlaceLabels && !shouldHideCityWorldLabels();
   const sceneWindow = compileCityWorldSceneWindow(scene, cameraPresetId, {
     includeLabels,
     includeDebug: debugMode === "engine",
@@ -692,7 +706,7 @@ function drawScene(
   for (const prop of props) drawProp(layers.propLayer, prop, animated, atlas);
   const actors = orderedSceneItems(renderCommands, "actor", scene.actors);
   for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas);
-  for (const place of orderedSceneItems(renderCommands, "place_marker", scene.places)) drawPlaceMarker(layers.markerLayer, place, selectedPlaceId, hoverPlaceId, onSelectPlace, onHoverPlace, animated);
+  for (const place of orderedSceneItems(renderCommands, "place_marker", scene.places)) drawPlaceMarker(layers, place, selectedPlaceId, hoverPlaceId, onSelectPlace, onHoverPlace, animated);
   for (const pin of orderedSceneItems(renderCommands, "pin", scene.pins)) drawPin(layers.markerLayer, pin, atlas);
   if (includeLabels) {
     // 0.56E — labels clear the architecture: each place's label lifts above
@@ -843,8 +857,11 @@ function debugText(text: string, x: number, y: number, color: number) {
 function createLayers(): LayerMap {
   return {
     terrainLayer: namedLayer("terrainLayer"),
-    roadLayer: namedLayer("roadLayer"),
+    // Lots under roads: both are ground material, but a road corridor crossing
+    // a lot (park loop, generated overlaps) must read as embedded asphalt
+    // cutting the lot, never as a lot sheet laid over the road.
     lotLayer: namedLayer("lotLayer"),
+    roadLayer: namedLayer("roadLayer"),
     padLayer: namedLayer("padLayer"),
     shadowLayer: namedLayer("shadowLayer"),
     buildingLayer: namedLayer("buildingLayer"),
@@ -1872,7 +1889,9 @@ function drawLot(layer: Container, lot: CityWorldLot) {
   const mutedLot = draftLot || shellLot;
   const quietPad = lotContact.profile === "foundation";
   const color = shellLot ? SHELL_LOT_COLORS[lot.kind] : draftLot ? DRAFT_LOT_COLORS[lot.kind] : LOT_COLORS[lot.kind];
-  const lotAlpha = shellLot ? (quietPad ? 0.56 : 0.62) : draftLot ? (quietPad ? 0.58 : 0.6) : lotContact.profile === "shore" ? 0.34 : quietPad ? 0.5 : 0.52;
+  // Lots are ground material, not tinted film: near-opaque so aprons and
+  // yards read as real surfaces instead of a translucent wash over grass.
+  const lotAlpha = shellLot ? (quietPad ? 0.82 : 0.86) : draftLot ? (quietPad ? 0.84 : 0.86) : lotContact.profile === "shore" ? 0.55 : quietPad ? 0.94 : 0.96;
   const lotContactProfile = lot.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
   const contactAlpha = shellLot
     ? lotContact.profile === "green"
@@ -1890,6 +1909,10 @@ function drawLot(layer: Container, lot: CityWorldLot) {
           ? 0.14
           : 0.13;
   const contactSpread = lotContactProfile === "landmark_base_shadow" ? 1.1 : lotContactProfile === "soft_ground_shadow" ? 1.12 : 1.04;
+  // Waterfront lots have real water terrain beneath them; a lot slab on top
+  // reads as a glass sheet floating on the shore. Water carries the surface,
+  // the lot contributes nothing.
+  if (lotContact.profile === "shore") return;
   const contact = polygon(diamondPoints({ x: point.x, y: point.y + 6 }, width * contactSpread, height * (contactSpread + 0.04)), 0x23342e, contactAlpha, 0x23342e, 0);
   if (!mutedLot && lotContactProfile === "landmark_base_shadow") {
     layer.addChild(polygon(diamondPoints({ x: point.x, y: point.y + 8 }, width * 0.86, height * 0.8), 0x1d2a24, 0.09, 0x1d2a24, 0));
@@ -2434,26 +2457,15 @@ function drawBuilding(layers: LayerMap, building: CityWorldBuilding, selected: b
   drawBuildingCastShadow(layers.shadowLayer, building);
 
   if (geometry.asset.mode === "sprite") {
-    drawSpriteObjectAuthorshipBase(layer, geometry, building);
-    if (isObjectKitCommerceStrip(building)) drawObjectKitCommerceStripRead(layer, geometry, building);
-    if (isObjectKitCivicLandmark(building)) drawObjectKitCivicLandmarkRead(layer, geometry, building);
-    if (isObjectKitServiceGym(building)) drawObjectKitServiceGymRead(layer, geometry, building);
     drawSpriteBuilding(layer, geometry, building, selected, hovered);
     return;
   }
 
+  // One facade system draws every vector building: opaque walls, a roof, and
+  // a wall-plane window/storefront grid. The legacy per-kind + per-family
+  // "authorship" overlay stack (15 functions of translucent screen-space
+  // decals) is retired — misregistered decals were the ghost-facade defect.
   drawBuildingShell(layer, geometry, building, selected, hovered);
-
-  if (building.kind === "home") drawHomeDetails(layer, geometry, building);
-  if (building.kind === "shop") drawShopDetails(layer, geometry, building);
-  if (building.kind === "gym") drawGymDetails(layer, geometry, building);
-  if (building.kind === "apartment") drawApartmentDetails(layer, geometry);
-  if (building.kind === "civic") drawCivicDetails(layer, geometry, building);
-  drawObjectAuthorshipDetails(layer, geometry, building);
-  if (isObjectKitCommerceStrip(building)) drawObjectKitCommerceStripRead(layer, geometry, building);
-  if (isObjectKitCivicLandmark(building)) drawObjectKitCivicLandmarkRead(layer, geometry, building);
-  if (isObjectKitServiceGym(building)) drawObjectKitServiceGymRead(layer, geometry, building);
-  if (building.id.startsWith("draft-building-")) drawDraftAnchorDetails(layer, geometry, building);
 }
 
 function createBuildingGeometry(building: CityWorldBuilding, selected: boolean, hovered: boolean, atlas: CityWorldAtlasResolver): BuildingGeometry {
@@ -2562,30 +2574,12 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
 }
 
 function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, roofColor, bodyColor, highlightColor, trimColor } = geometry;
+  const { top, bottom, footprintWidth, footprintDepth, trimColor } = geometry;
   const style = building.facadeStyle ?? building.kind;
-  const contactProfile = building.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
-
-  const contact = polygon(
-    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.38 }, footprintWidth * 0.78, footprintDepth * 0.18),
-    0xd8bd8f,
-    style === "strip_store" ? 0.42 : 0.34,
-    0x7f6d4e,
-    0.12,
-  );
-  const baseShadow = new Graphics()
-    .moveTo(bottom.x - footprintWidth * 0.38, bottom.y + footprintDepth * 0.32)
-    .lineTo(bottom.x - footprintWidth * 0.06, bottom.y + footprintDepth * 0.47)
-    .lineTo(bottom.x + footprintWidth * 0.38, bottom.y + footprintDepth * 0.28)
-    .stroke({
-      color: 0x2d423b,
-      alpha: contactProfile === "landmark_base_shadow" ? 0.28 : contactProfile === "soft_ground_shadow" ? 0.13 : 0.2,
-      width: contactProfile === "landmark_base_shadow" ? 3.6 : 3,
-      cap: "round",
-      join: "round",
-    });
-  layer.addChild(baseShadow, contact);
-
+  // Ground contact for sprite buildings comes from the shared foundation pad
+  // + contact shadow in drawBuildingFootprint. The extra per-sprite contact
+  // diamond, base-shadow stroke, apron, and awning strokes stacked into the
+  // translucent smear ring around every sprite — removed.
   if (style === "rowhome") {
     const stoops = new Graphics();
     for (let bay = 0; bay < 3; bay += 1) {
@@ -2593,46 +2587,11 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
       const yLift = bay === 1 ? -2 : 0;
       stoops
         .roundRect(top.x + offset - footprintWidth * 0.035, bottom.y + footprintDepth * 0.22 + yLift, footprintWidth * 0.07, 5.5, 1.5)
-        .fill({ color: 0xf2d8a6, alpha: 0.66 })
+        .fill({ color: 0xf2d8a6, alpha: 0.9 })
         .roundRect(top.x + offset - footprintWidth * 0.04, bottom.y + footprintDepth * 0.15 + yLift, footprintWidth * 0.08, 9, 1.5)
-        .stroke({ color: trimColor, alpha: 0.22, width: 0.9 });
+        .stroke({ color: trimColor, alpha: 0.3, width: 0.9 });
     }
-    const parapetRhythm = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.32, top.y - footprintDepth * 0.36)
-      .lineTo(top.x - footprintWidth * 0.12, top.y - footprintDepth * 0.44)
-      .lineTo(top.x + footprintWidth * 0.06, top.y - footprintDepth * 0.36)
-      .lineTo(top.x + footprintWidth * 0.3, top.y - footprintDepth * 0.43);
-    parapetRhythm.stroke({ color: shadeColor(roofColor, -30), alpha: 0.28, width: 1.7, cap: "round", join: "round" });
-    layer.addChild(stoops, parapetRhythm);
-    return;
-  }
-
-  if (style === "strip_store" || building.kind === "shop") {
-    // 0.55E — kit commerce strips get their apron from the object-kit read
-    // (sharedStorefrontApron); drawing a second one here doubled the pad.
-    const apron = isObjectKitCommerceStrip(building)
-      ? null
-      : polygon(
-          diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.43 }, footprintWidth * 0.88, footprintDepth * 0.18),
-          0xe8d0a3,
-          0.44,
-          0x7f6d4e,
-          0.14,
-        );
-    const bayGrounding = new Graphics();
-    for (let bay = -1; bay <= 1; bay += 1) {
-      bayGrounding
-        .roundRect(top.x + bay * (footprintWidth * 0.2) - footprintWidth * 0.06, bottom.y + footprintDepth * 0.18, footprintWidth * 0.12, 5, 1.4)
-        .fill({ color: bay === 0 ? highlightColor : shadeColor(bodyColor, 12), alpha: bay === 0 ? 0.52 : 0.32 });
-    }
-    const awningUnderside = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.38, bottom.y - footprintDepth * 0.2)
-      .lineTo(top.x - footprintWidth * 0.1, bottom.y - footprintDepth * 0.06)
-      .lineTo(top.x + footprintWidth * 0.17, bottom.y - footprintDepth * 0.18)
-      .lineTo(top.x + footprintWidth * 0.4, bottom.y - footprintDepth * 0.05);
-    awningUnderside.stroke({ color: shadeColor(roofColor, -38), alpha: 0.34, width: 2.2, cap: "round", join: "round" });
-    if (apron) layer.addChild(apron);
-    layer.addChild(bayGrounding, awningUnderside);
+    layer.addChild(stoops);
   }
 }
 
@@ -3418,7 +3377,9 @@ function drawBuildingCastShadow(layer: Container, building: CityWorldBuilding) {
       .fill({ color: CAST_SHADOW_COLOR, alpha });
   };
 
-  layer.addChild(sweep(1, CAST_SHADOW_ALPHA), sweep(0.5, 0.12));
+  // Short, quiet sweep + a faint penumbra. The old 0.5-alpha full-height sweep
+  // painted half-black sheets across roads and pads — the "murk" defect.
+  layer.addChild(sweep(0.5, 0.14), sweep(0.78, 0.05));
 }
 
 function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
@@ -3432,21 +3393,27 @@ function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, bui
   const padColor = draftBuilding ? (building.kind === "civic" ? 0xe6cf9f : 0xe7c999) : style === "strip_store" || building.kind === "shop" || building.kind === "civic" ? 0xe7d0a2 : shadeColor(bodyColor, 18);
   const edgeColor = style === "rowhome" || style === "strip_store" ? shadeColor(trimColor, -14) : shadeColor(roofColor, -48);
 
-  const contactGraphics = buildingContactShadow(geometry, building, selected, hovered, padWidth, padDepth, draftBuilding);
-  const pad = polygon(diamondPoints(padCenter, padWidth, padDepth), padColor, draftBuilding ? 0.58 : spriteBacked ? 0.46 : 0.48, 0x6f7f55, selected || hovered ? 0.34 : draftBuilding ? 0.2 : 0.16);
+  // Foundation pads are physical slabs: an opaque top, a thin solid south lip
+  // for slab thickness, and one quiet contact shadow. Translucent cream pads
+  // read as cards floating on the grass — the 0.72 "cream card" defect.
+  const slabColor = mixColor(padColor, 0xffffff, 0.08);
+  const pad = polygon(diamondPoints(padCenter, padWidth, padDepth), slabColor, 1, shadeColor(slabColor, -42), 0.3);
+  const lipDrop = 2.5;
   const lowerLip = new Graphics()
     .moveTo(padCenter.x - padWidth * 0.5, padCenter.y)
     .lineTo(padCenter.x, padCenter.y + padDepth * 0.5)
     .lineTo(padCenter.x + padWidth * 0.5, padCenter.y)
-    .lineTo(padCenter.x + padWidth * 0.5, padCenter.y + 5)
-    .lineTo(padCenter.x, padCenter.y + padDepth * 0.5 + 7)
-    .lineTo(padCenter.x - padWidth * 0.5, padCenter.y + 5)
+    .lineTo(padCenter.x + padWidth * 0.5, padCenter.y + lipDrop)
+    .lineTo(padCenter.x, padCenter.y + padDepth * 0.5 + lipDrop)
+    .lineTo(padCenter.x - padWidth * 0.5, padCenter.y + lipDrop)
     .closePath()
-    .fill({ color: shadeColor(padColor, draftBuilding ? -38 : -34), alpha: draftBuilding ? 0.42 : spriteBacked ? 0.42 : 0.32 })
-    .stroke({ color: edgeColor, alpha: 0.16, width: 1 });
+    .fill({ color: shadeColor(slabColor, -38) })
+    .stroke({ color: edgeColor, alpha: 0.2, width: 1 });
+  const contact = new Graphics()
+    .ellipse(padCenter.x, padCenter.y + padDepth * 0.18, padWidth * 0.5, padDepth * 0.4)
+    .fill({ color: 0x23342e, alpha: selected || hovered ? 0.16 : 0.1 });
 
-  layer.addChild(...contactGraphics, pad, lowerLip);
-  if (draftBuilding) drawDraftFoundationMaterial(layer, padCenter, padWidth, padDepth, padColor);
+  layer.addChild(contact, pad, lowerLip);
 }
 
 function buildingContactShadow(
@@ -3534,16 +3501,175 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const leftSide = [topLeft.x, topLeft.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomLeft.x, bottomLeft.y];
   const rightSide = [topRight.x, topRight.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomRight.x, bottomRight.y];
 
-  const left = polygon(leftSide, sideLeft, 0.99, outline, activeStrokeAlpha);
-  const right = polygon(rightSide, sideRight, 0.99, outline, activeStrokeAlpha);
+  const left = polygon(leftSide, sideLeft, 1, outline, activeStrokeAlpha);
+  const right = polygon(rightSide, sideRight, 1, outline, activeStrokeAlpha);
   layer.addChild(left, right);
   drawBuildingShellLighting(layer, geometry);
-  drawWallDepthLines(layer, geometry, building);
-  drawAuthoredWallMaterial(layer, geometry, building);
-  drawStorefrontBase(layer, geometry, building);
+  drawWallFacade(layer, geometry, building);
 
   drawRoof(layer, geometry, building, selected, hovered);
   drawTieredMassing(layer, geometry, building);
+}
+
+// ---- Wall-plane facade system ----------------------------------------------
+// Every window, storefront, and door is authored in wall-plane coordinates:
+// u ∈ [0,1] runs along the wall's ground edge from the outer corner to the
+// shared front corner; v is height in screen pixels. Elements are projected
+// through the same corner math as the wall quads, so they register exactly on
+// the wall — they cannot float off the face or leak past the silhouette.
+
+type WallSide = "sun" | "shade";
+
+type WallSurface = {
+  groundCorner: ProjectedPoint;
+  groundFront: ProjectedPoint;
+  heightPx: number;
+  edgeLengthPx: number;
+};
+
+function wallSurface(geometry: BuildingGeometry, side: WallSide): WallSurface {
+  const { bottom, top, footprintWidth, footprintDepth } = geometry;
+  const halfW = footprintWidth / 2;
+  const halfD = footprintDepth / 2;
+  const groundCorner = side === "sun" ? { x: bottom.x - halfW, y: bottom.y } : { x: bottom.x + halfW, y: bottom.y };
+  const groundFront = { x: bottom.x, y: bottom.y + halfD };
+  const heightPx = Math.max(0, bottom.y - top.y);
+  const edgeLengthPx = Math.hypot(groundFront.x - groundCorner.x, groundFront.y - groundCorner.y);
+  return { groundCorner, groundFront, heightPx, edgeLengthPx };
+}
+
+function wallPoint(surface: WallSurface, u: number, v: number): ProjectedPoint {
+  return {
+    x: surface.groundCorner.x + (surface.groundFront.x - surface.groundCorner.x) * u,
+    y: surface.groundCorner.y + (surface.groundFront.y - surface.groundCorner.y) * u - v,
+  };
+}
+
+function wallQuadPoints(surface: WallSurface, u0: number, v0: number, u1: number, v1: number): number[] {
+  const a = wallPoint(surface, u0, v0);
+  const b = wallPoint(surface, u1, v0);
+  const c = wallPoint(surface, u1, v1);
+  const d = wallPoint(surface, u0, v1);
+  return [a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y];
+}
+
+function isCommerceFacade(building: CityWorldBuilding): boolean {
+  const family = building.visualGrammar?.objectFamily;
+  return (
+    building.kind === "shop" ||
+    building.kind === "gym" ||
+    building.kind === "civic" ||
+    family === "commerce_strip" ||
+    family === "civic_landmark" ||
+    family === "service_block" ||
+    family === "venue_anchor" ||
+    family === "transit_anchor"
+  );
+}
+
+function drawWallFacade(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const commerce = isCommerceFacade(building);
+  const variant = objectVariant(building.id, 977);
+  for (const side of ["sun", "shade"] as const) {
+    const surface = wallSurface(geometry, side);
+    if (surface.heightPx < 10 || surface.edgeLengthPx < 12) continue;
+    const storefront = commerce && surface.heightPx >= 24;
+    drawFacadeStorefront(layer, geometry, surface, side, storefront);
+    drawFacadeWindows(layer, geometry, surface, side, building, variant, storefront);
+  }
+  if (!commerce) drawFacadeDoor(layer, geometry, building, variant);
+}
+
+// Recessed ground-storey glass band with mullions and a canopy lip. Opaque:
+// the storefront is real material, not a wash over the wall.
+function drawFacadeStorefront(layer: Container, geometry: BuildingGeometry, surface: WallSurface, side: WallSide, enabled: boolean) {
+  if (!enabled) return;
+  const { bodyColor, trimColor } = geometry;
+  const bandTop = Math.min(16, surface.heightPx * 0.34);
+  const recess = new Graphics()
+    .poly(wallQuadPoints(surface, 0.06, 1, 0.94, bandTop), true)
+    .fill({ color: sunlitColor(shadeColor(bodyColor, -34), side) });
+  const glass = new Graphics()
+    .poly(wallQuadPoints(surface, 0.09, 2.5, 0.91, bandTop - 3), true)
+    .fill({ color: side === "sun" ? 0xbcd8de : 0x8fb0bd });
+  const mullions = new Graphics();
+  const bays = Math.max(2, Math.round(surface.edgeLengthPx / 18));
+  for (let bay = 1; bay < bays; bay += 1) {
+    const u = 0.09 + (0.82 * bay) / bays;
+    const lower = wallPoint(surface, u, 2.5);
+    const upper = wallPoint(surface, u, bandTop - 3);
+    mullions.moveTo(lower.x, lower.y).lineTo(upper.x, upper.y);
+  }
+  mullions.stroke({ color: shadeColor(trimColor, -8), alpha: 0.85, width: 1 });
+  const canopyA = wallPoint(surface, 0.04, bandTop + 1.5);
+  const canopyB = wallPoint(surface, 0.96, bandTop + 1.5);
+  const canopy = new Graphics().moveTo(canopyA.x, canopyA.y).lineTo(canopyB.x, canopyB.y);
+  canopy.stroke({ color: sunlitColor(shadeColor(geometry.roofColor, -8), side), alpha: 0.95, width: 2.2, cap: "butt" });
+  layer.addChild(recess, glass, mullions, canopy);
+}
+
+// Window grid: floors split the wall height, bays split the wall length.
+// Each window is a parallelogram in the wall plane — an opaque frame quad
+// with an opaque glass quad inside; a hashed minority of panes glow warm so
+// facades read inhabited without pattern noise.
+function drawFacadeWindows(
+  layer: Container,
+  geometry: BuildingGeometry,
+  surface: WallSurface,
+  side: WallSide,
+  building: CityWorldBuilding,
+  variant: number,
+  storefront: boolean,
+) {
+  const { bodyColor, trimColor } = geometry;
+  const baseV = storefront ? Math.min(16, surface.heightPx * 0.34) + 4 : 4;
+  const usableHeight = surface.heightPx - baseV - 4;
+  if (usableHeight < 7) return;
+  const floors = Math.max(1, Math.min(5, Math.floor(usableHeight / 12)));
+  const floorStep = usableHeight / floors;
+  const bays = Math.max(1, Math.min(6, Math.floor(surface.edgeLengthPx / 16)));
+  const bayStep = 0.84 / bays;
+  const windowH = Math.min(7.5, floorStep * 0.58);
+  const frames = new Graphics();
+  const panes = new Graphics();
+  const litPanes = new Graphics();
+  const frameColor = sunlitColor(shadeColor(bodyColor, -38), side);
+  const glassColor = side === "sun" ? 0xd7e9ea : 0x92aebc;
+  const litColor = 0xf7e3ae;
+  for (let floor = 0; floor < floors; floor += 1) {
+    const v0 = baseV + floor * floorStep + (floorStep - windowH) * 0.55;
+    for (let bay = 0; bay < bays; bay += 1) {
+      const u0 = 0.08 + bay * bayStep + bayStep * 0.18;
+      const u1 = 0.08 + (bay + 1) * bayStep - bayStep * 0.18;
+      frames.poly(wallQuadPoints(surface, u0 - 0.012, v0 - 0.8, u1 + 0.012, v0 + windowH + 0.8), true);
+      const lit = ((variant + floor * 7 + bay * 13 + (side === "sun" ? 3 : 0)) % 9) === 0;
+      const paneTarget = lit ? litPanes : panes;
+      paneTarget.poly(wallQuadPoints(surface, u0, v0, u1, v0 + windowH), true);
+    }
+  }
+  frames.fill({ color: frameColor });
+  panes.fill({ color: glassColor });
+  litPanes.fill({ color: litColor });
+  panes.stroke({ color: shadeColor(trimColor, -6), alpha: 0.4, width: 0.8 });
+  layer.addChild(frames, panes, litPanes);
+}
+
+// Homes get a door instead of a storefront: a dark recessed leaf with a
+// lintel shadow on the sun wall near the front corner.
+function drawFacadeDoor(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, variant: number) {
+  const surface = wallSurface(geometry, variant % 2 === 0 ? "sun" : "shade");
+  if (surface.heightPx < 14) return;
+  const doorH = Math.min(11, surface.heightPx * 0.5);
+  const u0 = 0.6;
+  const u1 = Math.min(0.78, u0 + 14 / Math.max(14, surface.edgeLengthPx));
+  const leaf = new Graphics()
+    .poly(wallQuadPoints(surface, u0, 0.5, u1, doorH), true)
+    .fill({ color: shadeColor(geometry.trimColor, 14) });
+  const lintelA = wallPoint(surface, u0 - 0.02, doorH + 1);
+  const lintelB = wallPoint(surface, u1 + 0.02, doorH + 1);
+  const lintel = new Graphics().moveTo(lintelA.x, lintelA.y).lineTo(lintelB.x, lintelB.y);
+  lintel.stroke({ color: shadeColor(geometry.bodyColor, -44), alpha: 0.8, width: 1.4, cap: "butt" });
+  layer.addChild(leaf, lintel);
 }
 
 // 0.53E Hero Silhouette — a setback upper tier for civic/venue/transit anchors,
@@ -3806,33 +3932,72 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   layer.addChild(roofLitHalf, roofShadeHalf, roofRim, roofFall);
 
   const lines = new Graphics();
+  const generatedBuilding = building.id.startsWith("gen-building-");
   if (roofShape === "gable") {
-    lines
-      .moveTo(top.x - footprintWidth * 0.24, top.y - footprintDepth * 0.13)
-      .lineTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.13)
-      .moveTo(top.x - footprintWidth * 0.24, top.y - footprintDepth * 0.13)
-      .lineTo(top.x - footprintWidth * 0.5, top.y)
-      .moveTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.13)
-      .lineTo(top.x + footprintWidth * 0.5, top.y);
+    const ridgeHalf = footprintWidth * 0.24;
+    const ridgeY = top.y - footprintDepth * 0.035;
+    if (generatedBuilding) {
+      lines
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x + ridgeHalf, ridgeY)
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x - halfW, top.y)
+        .moveTo(top.x + ridgeHalf, ridgeY)
+        .lineTo(top.x + halfW, top.y);
+    } else {
+      lines
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x + ridgeHalf, ridgeY)
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x, top.y - halfD)
+        .moveTo(top.x + ridgeHalf, ridgeY)
+        .lineTo(top.x, top.y - halfD)
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x - halfW, top.y)
+        .moveTo(top.x + ridgeHalf, ridgeY)
+        .lineTo(top.x + halfW, top.y)
+        .moveTo(top.x, top.y + halfD * 0.82)
+        .lineTo(top.x - ridgeHalf * 0.9, ridgeY)
+        .moveTo(top.x, top.y + halfD * 0.82)
+        .lineTo(top.x + ridgeHalf * 0.9, ridgeY);
+    }
   } else if (roofShape === "hip") {
-    lines
-      .poly(diamondPoints(top, footprintWidth * 0.54, footprintDepth * 0.5), true)
-      .moveTo(top.x, top.y - footprintDepth * 0.25)
-      .lineTo(top.x, top.y + footprintDepth * 0.25);
+    const inset = diamondPoints(top, footprintWidth * 0.44, footprintDepth * 0.38);
+    lines.poly(inset, true);
+    if (!generatedBuilding) {
+      lines
+        .moveTo(top.x, top.y - halfD)
+        .lineTo(top.x, top.y - footprintDepth * 0.19)
+        .moveTo(top.x + halfW, top.y)
+        .lineTo(top.x + footprintWidth * 0.22, top.y)
+        .moveTo(top.x, top.y + halfD)
+        .lineTo(top.x, top.y + footprintDepth * 0.19)
+        .moveTo(top.x - halfW, top.y)
+        .lineTo(top.x - footprintWidth * 0.22, top.y);
+    }
   } else if (roofShape === "sawtooth") {
-    // 0.57E parity — teeth stay INSIDE the roof diamond: at horizontal offset
-    // u the eave only allows halfD * (1 - |u|/halfW) of rise, and the old
-    // fixed pixel extents bled past the eaves on generated footprints.
+    // Sawtooth reads as MATERIAL, not linework: alternating lit/shade tooth
+    // strips filled inside the roof diamond (the old naked diagonal strokes
+    // read as scribble). Strip extents follow the diamond edge so teeth can
+    // never bleed past the eaves on generated footprints.
     const halfW = footprintWidth / 2;
     const halfD = footprintDepth / 2;
-    const eaveRise = (dx: number) => halfD * Math.max(0, 1 - Math.abs(dx) / halfW) * 0.8;
-    for (let i = -2; i <= 2; i += 1) {
-      const xa = i * (footprintWidth / 7) - footprintWidth * 0.035;
-      const xb = i * (footprintWidth / 7) + footprintWidth * 0.085;
-      lines
-        .moveTo(top.x + xa, top.y - eaveRise(xa))
-        .lineTo(top.x + xb, top.y + eaveRise(xb));
+    const eaveRise = (dx: number) => halfD * Math.max(0, 1 - Math.abs(dx) / halfW) * 0.86;
+    const teeth = new Graphics();
+    const shadeTeeth = new Graphics();
+    const stripCount = 6;
+    for (let i = 0; i < stripCount; i += 1) {
+      const xa = -halfW * 0.86 + (i * (halfW * 1.72)) / stripCount;
+      const xb = xa + (halfW * 1.72) / stripCount;
+      const target = i % 2 === 0 ? teeth : shadeTeeth;
+      target.poly(
+        [top.x + xa, top.y - eaveRise(xa), top.x + xb, top.y - eaveRise(xb), top.x + xb, top.y + eaveRise(xb), top.x + xa, top.y + eaveRise(xa)],
+        true,
+      );
     }
+    teeth.fill({ color: shadeColor(roofColor, 16) });
+    shadeTeeth.fill({ color: shadeColor(roofColor, -14) });
+    layer.addChild(teeth, shadeTeeth);
   } else if (roofShape === "tower") {
     lines
       .poly(diamondPoints({ x: top.x, y: top.y - 12 }, footprintWidth * 0.36, footprintDepth * 0.34), true)
@@ -3896,16 +4061,9 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
     // eave-parallel course lines so tile separates from metal (smooth/cool)
     // and membrane (flat/dark) at a glance.
     const tileTint = profile === "terracotta_barrel_tile" ? 0xc4764e : profile === "cool_clay_tile" ? 0x7f9aa8 : 0x8ba372;
+    // Tile identity = tint + ridge barrel caps. The old chevron course strokes
+    // stacked with the gable ridge/eave linework into roof scribble.
     const tint = polygon(diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86), tileTint, profile === "sage_tile" ? 0.2 : 0.18, tileTint, 0);
-    const courses = new Graphics();
-    for (let course = 0; course < 3; course += 1) {
-      const inset = 0.72 - course * 0.2;
-      courses
-        .moveTo(top.x - footprintWidth * 0.5 * inset, top.y + footprintDepth * 0.5 * (1 - inset) * 0.5)
-        .lineTo(top.x, top.y + footprintDepth * 0.5 * (inset + (1 - inset) * 0.5))
-        .lineTo(top.x + footprintWidth * 0.5 * inset, top.y + footprintDepth * 0.5 * (1 - inset) * 0.5);
-    }
-    courses.stroke({ color: shadeColor(roofColor, -26), alpha: 0.2, width: 1, cap: "round", join: "round" });
     const ridgeStart = { x: top.x - footprintWidth * 0.24, y: top.y - footprintDepth * 0.13 };
     const ridgeEnd = { x: top.x + footprintWidth * 0.24, y: top.y + footprintDepth * 0.13 };
     const barrelCaps = new Graphics();
@@ -3922,7 +4080,7 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
       width: profile === "terracotta_barrel_tile" ? 1.7 : 1.3,
       cap: "round",
     });
-    layer.addChild(tint, courses, barrelCaps);
+    layer.addChild(tint, barrelCaps);
     return;
   }
 
@@ -3952,12 +4110,11 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
         .moveTo(top.x + offset - footprintWidth * 0.09, top.y - footprintDepth * 0.2)
         .lineTo(top.x + offset + footprintWidth * 0.09, top.y + footprintDepth * 0.2);
     }
-    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.4, width: 1.1, cap: "round" });
-    const sheen = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.3, top.y - footprintDepth * 0.06)
-      .lineTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.14);
-    sheen.stroke({ color: shadeColor(roofColor, 52), alpha: 0.36, width: 2, cap: "round" });
-    layer.addChild(panelField, seams, sheen);
+    // Parallel seams only. The old counter-diagonal sheen streak crossed the
+    // seams into an X-scribble at map zoom — metal identity is the cool panel
+    // field + quiet seams.
+    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.22, width: 1, cap: "round" });
+    layer.addChild(panelField, seams);
     return;
   }
 
@@ -3993,14 +4150,7 @@ function drawRoofMaterial(layer: Container, geometry: BuildingGeometry, building
     .lineTo(top.x + footprintWidth * 0.5, top.y)
     .stroke({ color: dark, alpha: 0.22, width: 2.2, cap: "round", join: "round" });
 
-  if (roofShape === "gable") {
-    detail
-      .moveTo(top.x - footprintWidth * 0.36, top.y - footprintDepth * 0.02)
-      .lineTo(top.x - footprintWidth * 0.12, top.y + footprintDepth * 0.1)
-      .moveTo(top.x + footprintWidth * 0.1, top.y - footprintDepth * 0.08)
-      .lineTo(top.x + footprintWidth * 0.34, top.y + footprintDepth * 0.04)
-      .stroke({ color: light, alpha: 0.18, width: 1.2, cap: "round" });
-  } else if (roofShape === "hip") {
+  if (roofShape === "hip") {
     detail
       .poly(diamondPoints(top, footprintWidth * 0.72, footprintDepth * 0.66), true)
       .stroke({ color: dark, alpha: 0.16, width: 1.2 })
@@ -4019,54 +4169,18 @@ function drawRoofMaterial(layer: Container, geometry: BuildingGeometry, building
 }
 
 function drawSoCalRoofCourses(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
+  const { top, footprintWidth, footprintDepth, roofColor } = geometry;
   const roofShape = building.roofShape ?? "flat";
-  const style = building.facadeStyle ?? building.kind;
-  const dark = shadeColor(roofColor, -36);
-  const light = shadeColor(roofColor, 26);
-
-  if (building.kind === "home" && (roofShape === "gable" || roofShape === "hip")) {
-    const courses = new Graphics();
-    const courseCount = style === "ranch" ? 4 : 3;
-    for (let course = 1; course <= courseCount; course += 1) {
-      const yOffset = -footprintDepth * 0.22 + course * (footprintDepth * 0.12);
-      courses
-        .moveTo(top.x - footprintWidth * 0.38, top.y + yOffset)
-        .lineTo(top.x - footprintWidth * 0.04, top.y + yOffset + footprintDepth * 0.16)
-        .lineTo(top.x + footprintWidth * 0.36, top.y + yOffset - footprintDepth * 0.02);
-    }
-    courses.stroke({ color: dark, alpha: style === "ranch" ? 0.17 : 0.14, width: 0.9, cap: "round", join: "round" });
-
-    const eaveLip = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.5, top.y + footprintDepth * 0.02)
-      .lineTo(top.x, top.y + footprintDepth * 0.31)
-      .lineTo(top.x + footprintWidth * 0.5, top.y + footprintDepth * 0.02);
-    eaveLip.stroke({ color: shadeColor(roofColor, -50), alpha: style === "ranch" ? 0.26 : 0.22, width: style === "ranch" ? 2.2 : 1.8, cap: "round", join: "round" });
-    layer.addChild(courses, eaveLip);
-    return;
-  }
-
-  if (roofShape === "flat" || style === "rowhome" || style === "strip_store") {
-    const parapet = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.46, top.y - footprintDepth * 0.03)
-      .lineTo(top.x - footprintWidth * 0.13, top.y + footprintDepth * 0.12)
-      .lineTo(top.x + footprintWidth * 0.16, top.y - footprintDepth * 0.01)
-      .lineTo(top.x + footprintWidth * 0.46, top.y + footprintDepth * 0.13);
-    parapet.stroke({ color: dark, alpha: building.kind === "shop" ? 0.22 : 0.18, width: building.kind === "shop" ? 1.8 : 1.4, cap: "round", join: "round" });
-
-    const roofPads = new Graphics();
-    const padCount = building.kind === "apartment" ? 3 : building.kind === "shop" ? 4 : 2;
-    for (let pad = 0; pad < padCount; pad += 1) {
-      const position = pad / (padCount - 1);
-      const x = top.x - footprintWidth * 0.28 + position * footprintWidth * 0.56;
-      const y = top.y - footprintDepth * 0.12 + (pad % 2) * footprintDepth * 0.1;
-      roofPads
-        .poly(diamondPoints({ x, y }, footprintWidth * 0.08, footprintDepth * 0.07), true)
-        .fill({ color: pad % 2 === 0 ? light : dark, alpha: pad % 2 === 0 ? 0.11 : 0.08 });
-    }
-    roofPads.stroke({ color: trimColor, alpha: 0.05, width: 0.8 });
-    layer.addChild(parapet, roofPads);
-  }
+  // One eave shadow under pitched home roofs. The old wandering parapet
+  // squiggles, shingle-course strokes, and translucent roof pads were the
+  // scribble noise that made roofs read procedural.
+  if (building.kind !== "home" || (roofShape !== "gable" && roofShape !== "hip")) return;
+  const eaveLip = new Graphics()
+    .moveTo(top.x - footprintWidth * 0.5, top.y + footprintDepth * 0.02)
+    .lineTo(top.x, top.y + footprintDepth * 0.31)
+    .lineTo(top.x + footprintWidth * 0.5, top.y + footprintDepth * 0.02);
+  eaveLip.stroke({ color: shadeColor(roofColor, -50), alpha: 0.24, width: 1.8, cap: "round", join: "round" });
+  layer.addChild(eaveLip);
 }
 
 function drawWallDepthLines(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -5603,7 +5717,7 @@ function drawSmallCarGraphic(
 }
 
 function drawPlaceMarker(
-  layer: Container,
+  layers: LayerMap,
   place: CityWorldPlace,
   selectedPlaceId: string,
   hoverPlaceId: string | undefined,
@@ -5622,7 +5736,9 @@ function drawPlaceMarker(
     .fill({ color: selected ? 0xfff2a6 : 0xffffff, alpha: landmarkFocus ? 0.2 : selected ? 0.26 : hovered ? 0.2 : 0.04 })
     .stroke({ color: selected ? 0xffe16c : hovered ? 0xffffff : 0x1f362f, alpha: selected || hovered ? 0.8 : 0.12, width: landmarkFocus ? 2.2 : selected ? 3 : 2 });
   animated.push({ target: ring, kind: "pulse", path: [], speed: 0.02, phase: place.activity, baseAlpha: selected || hovered ? 0.72 : 0.22, origin: markerPoint });
-  layer.addChild(ring);
+  // The ring is ground furniture: it lives under shadows and buildings so it
+  // can never draw across a wall when the anchor sits inside a structure.
+  layers.padLayer.addChild(ring);
 
   const hit = new Graphics().circle(markerPoint.x, markerPoint.y - 12, place.hitRadius * 13).fill({ color: 0xffffff, alpha: 0.001 });
   hit.eventMode = "static";
@@ -5630,7 +5746,7 @@ function drawPlaceMarker(
   hit.on("pointertap", () => onSelectPlace(place.id));
   hit.on("pointerover", () => onHoverPlace(place.id));
   hit.on("pointerout", () => onHoverPlace(undefined));
-  layer.addChild(hit);
+  layers.markerLayer.addChild(hit);
 }
 
 function drawPin(layer: Container, pin: CityWorldPin, atlas: CityWorldAtlasResolver) {

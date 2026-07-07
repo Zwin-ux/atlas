@@ -20,6 +20,46 @@ The owner-gate / second-district ceremony below is **parked** but kept honest: `
 Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`
 stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only on human request.
 
+## Branch-local generated visual gate (2026-07-06, `fable/0.58e-prop-cleanup`)
+
+Current quest:
+`0.72H-b Fable Roof / No-Label Cleanup Gate`.
+
+Player-facing promise:
+Generated district previews stop leaning on visible place labels and house roofs
+read cleaner at desktop and 390x844 mobile scale.
+
+Engineering promise:
+Generated preview labels are suppressed through an explicit renderer prop,
+residential generation avoids roof-unsafe tiny/tall home specs, and generated
+parity/browser verifiers fail if labels or unsafe residential roofs return.
+
+Contract:
+- Generated mode passes `suppressPlaceLabels` to `CityWorldRenderer`.
+- Public Riverside label behavior is unchanged.
+- Generated homes stay non-playable, synthetic, provider-free, and
+  session-only.
+- Residential roof safety is checked numerically at the generated-scene seam.
+- Browser proof must show `data-qa-place-labels="suppressed"` in generated mode.
+
+Metric / verifier:
+- `node scripts\verify-generated-district-parity.mjs --json-only`
+- `node scripts\verify-generated-district-widget.mjs --url http://127.0.0.1:8793/preview --screenshots artifacts\0.72h-b-roof-label-cleanup\screens --json-only`
+
+Proof:
+`artifacts/0.72h-b-roof-label-cleanup/FABLE_RESULT.md`.
+
+Anti-scope:
+No backend, Railway, DB/Auth, Stripe, MCP tool surface, provider geometry,
+public paid claims, cars, humans, dashboards, broad UI, public Anaheim/Ontario,
+or public playable county promotion.
+
+Next visual-engine move:
+`0.72H-c Residential Object-Kit Authorship Pass`: replace the remaining
+procedural house-detail feel with a smaller set of authored cottage/ranch/
+rowhome modules and closer no-label desktop/mobile crops before broadening the
+district again.
+
 ## Engine track note (2026-07-04, `fable/0.52e-diorama-engine`)
 
 The 0.52E Diorama Engine super-pass ran (BUILD_LOG Entry 082). Atlas has ONE

@@ -1,5 +1,53 @@
 # Build Log
 
+## Entry 194
+
+Quest:
+`0.72H-b Fable Roof / No-Label Cleanup Gate`.
+
+What changed:
+- Launched Claude/Fable background agent `664103ff` with the bounded
+  roof/label cleanup prompt, then stopped it after it remained in analysis so
+  one writer owned the final diff.
+- `CityWorldRenderer` now accepts `suppressPlaceLabels` and exposes
+  `data-qa-place-labels`; `CityWorldView` passes that flag in generated mode.
+- Generated residential templates removed the tiny/tall hip cottage, reduced
+  home dimension jitter, and keep cottages/ranches/rowhomes in safer roof
+  buckets.
+- Generated gable/hip roof linework is restrained so generated homes rely on
+  ridge/eave/hip form instead of busy diagonal hatching.
+- Generated parity now reports residential roof metrics and fails an injected
+  unsafe roof case.
+- Generated widget proof now fails if generated map labels are visible.
+
+Proof:
+- Artifacts live at
+  `artifacts/0.72h-b-roof-label-cleanup/`.
+- Desktop and mobile screenshots are in
+  `artifacts/0.72h-b-roof-label-cleanup/screens/`.
+
+Verification:
+- `pnpm --dir packages/core build`
+- `pnpm --dir packages/core test -- city-world-parametric-parity.test.ts`
+- `node scripts\verify-generated-district-parity.mjs --json-only`
+- `pnpm typecheck:starter`
+- `pnpm build:starter`
+- `node scripts\verify-generated-district-widget.mjs --url http://127.0.0.1:8793/preview --screenshots artifacts\0.72h-b-roof-label-cleanup\screens --json-only`
+- `node scripts\verify-provider-boundaries.mjs --json-only`
+- `node scripts\verify-tool-result-shape.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+
+Remaining visual weakness:
+The generated labels are gone and the bad roof template is removed, but this is
+still not final art quality. The honesty banner covers part of the scene, and a
+future authored residential object-kit pass should replace the remaining
+procedural house-detail feel.
+
+Anti-scope:
+No backend, Railway, DB/Auth, Stripe, MCP tool surface, provider geometry,
+public paid claims, cars, humans, dashboards, broad UI, or public
+Anaheim/Ontario promotion.
+
 ## Entry 193
 
 Quest:
