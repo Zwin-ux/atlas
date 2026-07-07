@@ -35,13 +35,24 @@ requireText("renderer", "building.objectKit?.prefabFamily === \"service_gym\"", 
 requireText("renderer", "building.objectKit?.civicGeometry", "Renderer must consume objectKit civicGeometry.");
 requireText("renderer", "building.objectKit?.serviceGeometry", "Renderer must consume objectKit serviceGeometry.");
 
-const civicCallCount = countOccurrences(source.renderer, "drawObjectKitCivicLandmarkRead(layer, geometry, building)");
-if (civicCallCount < 2) {
-  blockers.push(`drawObjectKitCivicLandmarkRead must be used in sprite-backed and primitive paths; found ${civicCallCount} call(s).`);
+// 0.74F contract revision: civic/service identity no longer renders through
+// the per-family decal read helpers (retired in 0.73F as the ghost-facade
+// defect). Civic anchors read via the tiered crown (consumes
+// objectKit.civicGeometry.focusTarget) + storefront facade; the gym reads via
+// filled sawtooth roof teeth + facade. Count those instead.
+const civicCallCount = countOccurrences(source.renderer, "drawTieredMassing(layer, geometry, building)");
+if (civicCallCount < 1) {
+  blockers.push(`drawTieredMassing must give civic anchors their stepped crown; found ${civicCallCount} call(s).`);
 }
-const serviceCallCount = countOccurrences(source.renderer, "drawObjectKitServiceGymRead(layer, geometry, building)");
-if (serviceCallCount < 2) {
-  blockers.push(`drawObjectKitServiceGymRead must be used in sprite-backed and primitive paths; found ${serviceCallCount} call(s).`);
+if (!source.renderer.includes("function hasHeroTieredCrown")) {
+  blockers.push("Renderer must key the hero civic crown from objectKit civicGeometry focusTarget.");
+}
+const serviceCallCount = countOccurrences(source.renderer, "roofShape === \"sawtooth\"");
+if (serviceCallCount < 1) {
+  blockers.push(`Renderer must draw the service/gym sawtooth roof identity; found ${serviceCallCount} branch(es).`);
+}
+if (!source.renderer.includes("shadeTeeth")) {
+  blockers.push("Sawtooth roofs must render as filled lit/shade tooth strips, not naked strokes.");
 }
 
 for (const [label, content] of Object.entries(source)) {

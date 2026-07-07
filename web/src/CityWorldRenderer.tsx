@@ -7,7 +7,7 @@ import {
   cityWorldFrameContainsFrame,
   cityWorldScreenCenterForCamera,
   cityWorldViewportFrameForPreset,
-  compileCityWorldSceneWindow,
+  createCityWorldSceneWindowCompiler,
   projectCityWorldPoint,
 } from "@atlas/core/voxel";
 import type {
@@ -74,7 +74,7 @@ type AnimatedTarget = {
 };
 
 type LayerMap = Record<
-  "terrainLayer" | "roadLayer" | "lotLayer" | "padLayer" | "shadowLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
+  "terrainLayer" | "roadLayer" | "lotLayer" | "padLayer" | "shadowLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "focusLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
   Container
 >;
 
@@ -383,6 +383,9 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   // scene's, and vice versa.
   const focusAnimatedRef = useRef<AnimatedTarget[]>([]);
   const renderLoopRef = useRef({ active: true });
+  const focusIndexRef = useRef<FocusIndex | null>(null);
+  const focusLayerRef = useRef<Container | null>(null);
+  const [focusEpoch, setFocusEpoch] = useState(0);
 
   useImperativeHandle(ref, () => ({
     zoomIn: () => zoomBy(1.12),
@@ -591,16 +594,50 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     const activeCameraPresetId = resolveCameraPresetId(scene, cameraPresetId, mount.clientWidth);
     const viewportFrame = rendererViewportFrame(mount, cameraRef.current, activeCameraPresetId, STREAMING_WINDOW_MARGIN_TILES);
     const rebuildStart = performance.now();
-    const sceneWindowFrame = drawScene(world, scene, activeCameraPresetId, viewportFrame, selectedPlaceId ?? scene.hudDefaults.selectedPlaceId, hoverPlaceId, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
+    const drawn = drawScene(world, scene, activeCameraPresetId, viewportFrame, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
       if (!movedRef.current) selectPlaceRef.current(placeId);
     }, setHoverPlaceId, animatedRef.current);
     perfRef.current.sceneRebuilds += 1;
     perfRef.current.lastRebuildMs = Math.round((performance.now() - rebuildStart) * 10) / 10;
     const qaHandle = (window as unknown as Record<string, unknown>).__ATLAS_QA__ as Record<string, unknown> | undefined;
     if (qaHandle) qaHandle.scene = scene;
-    activeWindowFrameRef.current = sceneWindowFrame;
+    activeWindowFrameRef.current = drawn.frame;
+    focusIndexRef.current = drawn.focus;
+    focusLayerRef.current = (world.children.find((child) => child.label === "focusLayer") as Container | undefined) ?? null;
+    setFocusEpoch((epoch) => epoch + 1);
     applyCamera();
-  }, [atlasTextures, cameraPresetId, debugMode, hoverPlaceId, ready, scene, selectedPlaceId, suppressPlaceLabels, windowRefreshKey]);
+    // Hover/selection deliberately absent: focus changes redraw ONLY the
+    // focus overlay effect below, never this full scene rebuild.
+  }, [atlasTextures, cameraPresetId, debugMode, ready, scene, suppressPlaceLabels, windowRefreshKey]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const layer = focusLayerRef.current;
+    if (!layer) return;
+    for (const child of layer.removeChildren()) child.destroy({ children: true });
+    focusAnimatedRef.current.length = 0;
+    const focus = focusIndexRef.current;
+    if (!focus) return;
+    const labelLayer = worldRef.current?.children.find((child) => child.label === "labelLayer") as Container | undefined;
+    if (labelLayer) for (const child of labelLayer.children) child.visible = true;
+    const effectiveSelected = selectedPlaceId ?? sceneRef.current.hudDefaults.selectedPlaceId;
+    const focusTargets: Array<{ placeId: string | undefined; mode: FocusMode }> = [
+      { placeId: effectiveSelected, mode: "selected" },
+    ];
+    if (hoverPlaceId && hoverPlaceId !== effectiveSelected) focusTargets.push({ placeId: hoverPlaceId, mode: "hovered" });
+    for (const { placeId, mode } of focusTargets) {
+      if (!placeId || !focus.drawnPlaceIds.has(placeId)) continue;
+      const place = focus.placesById.get(placeId);
+      if (!place) continue;
+      // The emphasized focus label replaces the neutral base label.
+      if (labelLayer) {
+        const baseLabel = labelLayer.children.find((child) => child.label === `place-label-${placeId}`);
+        if (baseLabel) baseLabel.visible = false;
+      }
+      drawFocusOverlay(layer, place, focus, mode, focusAnimatedRef.current);
+    }
+    perfRef.current.overlayRedraws += 1;
+  }, [hoverPlaceId, selectedPlaceId, ready, focusEpoch]);
 
   function zoomBy(multiplier: number) {
     const camera = cameraRef.current;
@@ -694,20 +731,49 @@ function pointerDistance(pointers: Map<number, { x: number; y: number }>): numbe
   return Math.hypot(first.x - second.x, first.y - second.y);
 }
 
+// Everything the incremental focus overlay needs to redraw hover/selection
+// without touching the base scene: visible places, their anchored buildings,
+// and the label crown lifts, captured at scene-rebuild time.
+type FocusIndex = {
+  placesById: Map<string, CityWorldPlace>;
+  buildingsByPlaceId: Map<string, CityWorldBuilding[]>;
+  crownLift: Map<string, number>;
+  drawnPlaceIds: Set<string>;
+};
+
+// Frame-independent scene-window artifacts are memoized per scene object +
+// option set: createCityWorldSceneWindowCompiler wraps the same compile as
+// compileCityWorldSceneWindow but only re-runs the frame filter on streaming
+// pan refreshes.
+const sceneWindowCompilerCache = new WeakMap<CityWorldScene, Map<string, ReturnType<typeof createCityWorldSceneWindowCompiler>>>();
+
+function sceneWindowCompilerFor(scene: CityWorldScene, includeLabels: boolean, includeDebug: boolean) {
+  let byOptions = sceneWindowCompilerCache.get(scene);
+  if (!byOptions) {
+    byOptions = new Map();
+    sceneWindowCompilerCache.set(scene, byOptions);
+  }
+  const key = `${includeLabels}:${includeDebug}`;
+  let compiler = byOptions.get(key);
+  if (!compiler) {
+    compiler = createCityWorldSceneWindowCompiler(scene, { includeLabels, includeDebug });
+    byOptions.set(key, compiler);
+  }
+  return compiler;
+}
+
 function drawScene(
   world: Container,
   scene: CityWorldScene,
   cameraPresetId: CityWorldCameraPresetId,
   viewportFrame: CityWorldViewportFrame,
-  selectedPlaceId: string,
-  hoverPlaceId: string | undefined,
   atlasTextures: CityWorldTextureMap,
   debugMode: CityWorldDebugMode | undefined,
   suppressPlaceLabels: boolean,
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
   animated: AnimatedTarget[],
-) {
+): { frame: CityWorldViewportFrame; focus: FocusIndex } {
   const previousChildren = world.removeChildren();
   for (const child of previousChildren) {
     child.destroy({ children: true });
@@ -718,35 +784,47 @@ function drawScene(
   Object.values(layers).forEach((layer) => world.addChild(layer));
   const atlas = createCityWorldAtlasResolver(scene, atlasTextures);
   const includeLabels = !suppressPlaceLabels && !shouldHideCityWorldLabels();
-  const sceneWindow = compileCityWorldSceneWindow(scene, cameraPresetId, {
-    includeLabels,
-    includeDebug: debugMode === "engine",
-    viewportFrame,
-  });
+  const compiler = sceneWindowCompilerFor(scene, includeLabels, debugMode === "engine");
+  const sceneWindow = compiler.windowFor(cameraPresetId, viewportFrame);
+  const itemIndex = compiler.itemIndex;
   const renderCommands = sceneWindow.visibleCommands;
 
-  for (const tile of orderedSceneItems(renderCommands, "terrain_tile", scene.terrainTiles)) drawTerrainTile(layers.terrainLayer, tile);
-  drawRoadNetwork(layers.roadLayer, orderedSceneItems(renderCommands, "road_segment", scene.roadSegments));
-  for (const lot of orderedSceneItems(renderCommands, "lot", scene.lots)) drawLot(layers.lotLayer, lot);
+  for (const tile of orderedSceneItems(renderCommands, "terrain_tile", itemIndex.terrainTiles)) drawTerrainTile(layers.terrainLayer, tile);
+  drawRoadNetwork(layers.roadLayer, orderedSceneItems(renderCommands, "road_segment", itemIndex.roadSegments));
+  for (const lot of orderedSceneItems(renderCommands, "lot", itemIndex.lots)) drawLot(layers.lotLayer, lot);
 
-  const buildings = orderedSceneItems(renderCommands, "building", scene.buildings);
-  for (const building of buildings) drawBuilding(layers, building, building.placeId === selectedPlaceId, building.placeId === hoverPlaceId, atlas);
+  const buildings = orderedSceneItems(renderCommands, "building", itemIndex.buildings);
+  for (const building of buildings) drawBuilding(layers, building, atlas);
 
-  const props = orderedSceneItems(renderCommands, "prop", scene.props);
+  const props = orderedSceneItems(renderCommands, "prop", itemIndex.props);
   for (const prop of props) drawProp(layers.propLayer, prop, animated, atlas);
-  const actors = orderedSceneItems(renderCommands, "actor", scene.actors);
+  const actors = orderedSceneItems(renderCommands, "actor", itemIndex.actors);
   for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas);
-  for (const place of orderedSceneItems(renderCommands, "place_marker", scene.places)) drawPlaceMarker(layers, place, selectedPlaceId, hoverPlaceId, onSelectPlace, onHoverPlace, animated);
-  for (const pin of orderedSceneItems(renderCommands, "pin", scene.pins)) drawPin(layers.markerLayer, pin, atlas);
+  const visiblePlaces = orderedSceneItems(renderCommands, "place_marker", itemIndex.places);
+  for (const place of visiblePlaces) drawPlaceMarker(layers, place, onSelectPlace, onHoverPlace);
+  for (const pin of orderedSceneItems(renderCommands, "pin", itemIndex.pins)) drawPin(layers.markerLayer, pin, atlas);
+  // 0.56E — labels clear the architecture: each place's label lifts above
+  // the tallest structure anchored to it (plus crown allowance), instead of
+  // sitting at a fixed ground offset that erased landmark crowns.
+  const crownLift = placeCrownLiftMap(scene.buildings);
   if (includeLabels) {
-    // 0.56E — labels clear the architecture: each place's label lifts above
-    // the tallest structure anchored to it (plus crown allowance), instead of
-    // sitting at a fixed ground offset that erased landmark crowns.
-    const crownLift = placeCrownLiftMap(scene.buildings);
-    for (const place of orderedSceneItems(renderCommands, "place_label", scene.places)) drawPlaceLabel(layers.labelLayer, place, selectedPlaceId, hoverPlaceId, crownLift.get(place.id));
+    for (const place of orderedSceneItems(renderCommands, "place_label", itemIndex.places)) drawPlaceLabel(layers.labelLayer, place, crownLift.get(place.id));
   }
   if (debugMode === "engine") drawEngineDebugOverlay(layers.hudBridgeLayer, scene);
-  return sceneWindow.frame;
+
+  const focus: FocusIndex = {
+    placesById: new Map(visiblePlaces.map((place) => [place.id, place])),
+    buildingsByPlaceId: new Map(),
+    crownLift,
+    drawnPlaceIds: new Set(visiblePlaces.map((place) => place.id)),
+  };
+  for (const building of buildings) {
+    if (!building.placeId) continue;
+    const anchored = focus.buildingsByPlaceId.get(building.placeId);
+    if (anchored) anchored.push(building);
+    else focus.buildingsByPlaceId.set(building.placeId, [building]);
+  }
+  return { frame: sceneWindow.frame, focus };
 }
 
 function shouldHideCityWorldLabels(): boolean {
@@ -775,17 +853,18 @@ function rendererViewportFrame(mount: HTMLDivElement, camera: CameraState, camer
 function orderedSceneItems<T extends { id: string }>(
   commands: readonly CityWorldRenderCommand[],
   kind: CityWorldRenderCommandKind,
-  items: T[],
+  itemById: ReadonlyMap<string, T>,
 ): T[] {
-  const itemById = new Map(items.map((item) => [item.id, item]));
-  return commands
-    .filter((command) => command.kind === kind)
-    .map((command) => itemById.get(command.sourceId))
-    .filter(isDefined);
-}
-
-function isDefined<T>(item: T | undefined): item is T {
-  return item !== undefined;
+  // Single pass over the visible commands resolving through the scene's
+  // shared id index — the old per-call Map rebuild scanned every item array
+  // nine times per scene rebuild.
+  const items: T[] = [];
+  for (const command of commands) {
+    if (command.kind !== kind) continue;
+    const item = itemById.get(command.sourceId);
+    if (item) items.push(item);
+  }
+  return items;
 }
 
 function drawEngineDebugOverlay(layer: Container, scene: CityWorldScene) {
@@ -897,6 +976,10 @@ function createLayers(): LayerMap {
     buildingLayer: namedLayer("buildingLayer"),
     propLayer: namedLayer("propLayer"),
     actorLayer: namedLayer("actorLayer"),
+    // Hover/selection emphasis draws here alone — over the buildings it
+    // traces, under labels and hit targets — so focus changes never rebuild
+    // the base scene.
+    focusLayer: namedLayer("focusLayer"),
     labelLayer: namedLayer("labelLayer"),
     markerLayer: namedLayer("markerLayer"),
     hudBridgeLayer: namedLayer("hudBridgeLayer"),
@@ -2478,16 +2561,18 @@ function drawCivicLotComposition(layer: Container, point: ProjectedPoint, width:
   layer.addChild(plinthShadow, civicGreen, civicCourt, paverGrid, civicSteps, sideBlockwork);
 }
 
-function drawBuilding(layers: LayerMap, building: CityWorldBuilding, selected: boolean, hovered: boolean, atlas: CityWorldAtlasResolver) {
+function drawBuilding(layers: LayerMap, building: CityWorldBuilding, atlas: CityWorldAtlasResolver) {
   const layer = layers.buildingLayer;
-  const geometry = createBuildingGeometry(building, selected, hovered, atlas);
+  // The base scene is focus-agnostic: hover/selection emphasis draws in the
+  // focusLayer overlay so focus changes never rebuild these Graphics.
+  const geometry = createBuildingGeometry(building, atlas);
   // Foundation pads are ground decals: they live in a shared layer below every
   // cast shadow so shadows land ON pads instead of being washed out by them.
-  drawBuildingFootprint(layers.padLayer, geometry, building, selected, hovered);
+  drawBuildingFootprint(layers.padLayer, geometry, building);
   drawBuildingCastShadow(layers.shadowLayer, building);
 
   if (geometry.asset.mode === "sprite") {
-    drawSpriteBuilding(layer, geometry, building, selected, hovered);
+    drawSpriteBuilding(layer, geometry, building);
     return;
   }
 
@@ -2495,10 +2580,10 @@ function drawBuilding(layers: LayerMap, building: CityWorldBuilding, selected: b
   // a wall-plane window/storefront grid. The legacy per-kind + per-family
   // "authorship" overlay stack (15 functions of translucent screen-space
   // decals) is retired — misregistered decals were the ghost-facade defect.
-  drawBuildingShell(layer, geometry, building, selected, hovered);
+  drawBuildingShell(layer, geometry, building);
 }
 
-function createBuildingGeometry(building: CityWorldBuilding, selected: boolean, hovered: boolean, atlas: CityWorldAtlasResolver): BuildingGeometry {
+function createBuildingGeometry(building: CityWorldBuilding, atlas: CityWorldAtlasResolver): BuildingGeometry {
   const bottom = project(building.position);
   const top = project({ x: building.position.x, y: building.position.y, z: building.height });
   const asset = atlas.resolveAsset(building.spriteKey, building.paletteKey, "building");
@@ -2515,8 +2600,8 @@ function createBuildingGeometry(building: CityWorldBuilding, selected: boolean, 
     highlightColor: useShellColors ? 0xe4dec6 : useAuthoredDraftColors ? 0xf8e8ca : paletteColor(asset.palette.colors.highlight, "#fff4d8"),
     accentColor: useShellColors ? 0x80928c : useAuthoredDraftColors ? 0x5f8f8a : paletteColor(asset.palette.colors.accent, asset.palette.colors.roof ?? "#ffcf56"),
     trimColor: useShellColors ? 0x5f665b : useAuthoredDraftColors ? 0x5f5547 : paletteColor(asset.palette.colors.trim, "#26332c"),
-    outline: selected ? 0xffffff : hovered ? 0xffee88 : 0x26332c,
-    activeStrokeAlpha: hovered || selected ? 0.82 : 0.38,
+    outline: 0x26332c,
+    activeStrokeAlpha: 0.38,
     asset,
   };
 }
@@ -2549,7 +2634,7 @@ function objectVariant(id: string, modulo: number) {
   return hash % modulo;
 }
 
-function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
+function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { bottom, footprintDepth, asset } = geometry;
   if (asset.mode !== "sprite") return;
 
@@ -2595,12 +2680,6 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
     drawHomeRoofAccent(layer, geometry, building, flip, variant);
   }
 
-  if (selected || hovered) {
-    const ring = new Graphics()
-      .ellipse(bottom.x, bottom.y + footprintDepth * 0.34, geometry.footprintWidth * 0.52, footprintDepth * 0.62)
-      .stroke({ color: selected ? 0xffffff : 0xffee88, alpha: selected ? 0.8 : 0.58, width: selected ? 2.2 : 1.6 });
-    layer.addChild(ring);
-  }
 }
 
 function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -3412,7 +3491,7 @@ function drawBuildingCastShadow(layer: Container, building: CityWorldBuilding) {
   layer.addChild(sweep(0.5, 0.14), sweep(0.78, 0.05));
 }
 
-function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
+function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { bottom, footprintWidth, footprintDepth, bodyColor, roofColor, trimColor } = geometry;
   const spriteBacked = geometry.asset.mode === "sprite";
   const style = building.facadeStyle ?? building.kind;
@@ -3441,7 +3520,7 @@ function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, bui
     .stroke({ color: edgeColor, alpha: 0.2, width: 1 });
   const contact = new Graphics()
     .ellipse(padCenter.x, padCenter.y + padDepth * 0.18, padWidth * 0.5, padDepth * 0.4)
-    .fill({ color: 0x23342e, alpha: selected || hovered ? 0.16 : 0.1 });
+    .fill({ color: 0x23342e, alpha: 0.1 });
 
   layer.addChild(contact, pad, lowerLip);
 }
@@ -3516,7 +3595,7 @@ function drawDraftFoundationMaterial(layer: Container, center: ProjectedPoint, w
   layer.addChild(contactTile, stratum);
 }
 
-function drawBuildingShell(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
+function drawBuildingShell(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { bottom, top, footprintWidth, footprintDepth, bodyColor, outline, activeStrokeAlpha } = geometry;
   // Unified sun: lower-left wall faces the sun, lower-right wall falls into
   // cool shade. Same factors for every building in the scene.
@@ -3537,7 +3616,7 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   drawBuildingShellLighting(layer, geometry);
   drawWallFacade(layer, geometry, building);
 
-  drawRoof(layer, geometry, building, selected, hovered);
+  drawRoof(layer, geometry, building);
   drawTieredMassing(layer, geometry, building);
 }
 
@@ -3930,11 +4009,11 @@ function drawAuthoredWallMaterial(layer: Container, geometry: BuildingGeometry, 
   }
 }
 
-function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
+function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { top, footprintWidth, footprintDepth, roofColor, outline, activeStrokeAlpha } = geometry;
   const roofShape = building.roofShape ?? "flat";
   // Roofs are the brightest surfaces in the scene: lit from above by the sun.
-  const roof = polygon(diamondPoints(top, footprintWidth, footprintDepth), sunlitColor(roofColor, "top"), 0.99, outline, hovered || selected ? 0.92 : activeStrokeAlpha);
+  const roof = polygon(diamondPoints(top, footprintWidth, footprintDepth), sunlitColor(roofColor, "top"), 0.99, outline, activeStrokeAlpha);
   layer.addChild(roof);
 
   // Sun-facing upper-left roof edge catches a warm rim; the lower-right edge
@@ -5749,34 +5828,113 @@ function drawSmallCarGraphic(
 function drawPlaceMarker(
   layers: LayerMap,
   place: CityWorldPlace,
-  selectedPlaceId: string,
-  hoverPlaceId: string | undefined,
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
-  animated: AnimatedTarget[],
 ) {
+  // Neutral, static marker only: emphasis rings + their pulse animation live
+  // in the focus overlay, so hover/selection never rebuilds the base scene
+  // and a scene with no focus has no perpetual marker animations.
   const point = project(place.anchor);
-  const selected = place.id === selectedPlaceId;
-  const hovered = place.id === hoverPlaceId;
-  const landmarkFocus = selected && place.kind === "landmark";
-  const markerPoint = landmarkFocus ? { x: point.x, y: point.y + 20 } : point;
-  const radius = selected ? (landmarkFocus ? 24 : 30) : hovered ? 27 : 22;
   const ring = new Graphics()
-    .ellipse(markerPoint.x, markerPoint.y - 4, radius, radius * 0.48)
-    .fill({ color: selected ? 0xfff2a6 : 0xffffff, alpha: landmarkFocus ? 0.2 : selected ? 0.26 : hovered ? 0.2 : 0.04 })
-    .stroke({ color: selected ? 0xffe16c : hovered ? 0xffffff : 0x1f362f, alpha: selected || hovered ? 0.8 : 0.12, width: landmarkFocus ? 2.2 : selected ? 3 : 2 });
-  animated.push({ target: ring, kind: "pulse", path: [], speed: 0.02, phase: place.activity, baseAlpha: selected || hovered ? 0.72 : 0.22, origin: markerPoint });
+    .ellipse(point.x, point.y - 4, 22, 22 * 0.48)
+    .fill({ color: 0xffffff, alpha: 0.04 })
+    .stroke({ color: 0x1f362f, alpha: 0.12, width: 2 });
   // The ring is ground furniture: it lives under shadows and buildings so it
   // can never draw across a wall when the anchor sits inside a structure.
   layers.padLayer.addChild(ring);
 
-  const hit = new Graphics().circle(markerPoint.x, markerPoint.y - 12, place.hitRadius * 13).fill({ color: 0xffffff, alpha: 0.001 });
+  const hit = new Graphics().circle(point.x, point.y - 12, place.hitRadius * 13).fill({ color: 0xffffff, alpha: 0.001 });
   hit.eventMode = "static";
   hit.cursor = "pointer";
   hit.on("pointertap", () => onSelectPlace(place.id));
   hit.on("pointerover", () => onHoverPlace(place.id));
   hit.on("pointerout", () => onHoverPlace(undefined));
   layers.markerLayer.addChild(hit);
+}
+
+type FocusMode = "selected" | "hovered";
+
+// Redraws ONLY the focus overlay: emphasized ring (with the pulse animation),
+// stroke-only silhouettes of the place's anchored buildings, and the
+// emphasized label. A hover change costs ~4-10 Graphics instead of a full
+// scene teardown.
+function drawFocusOverlay(
+  layer: Container,
+  place: CityWorldPlace,
+  focus: FocusIndex,
+  mode: FocusMode,
+  animated: AnimatedTarget[],
+) {
+  const point = project(place.anchor);
+  const selected = mode === "selected";
+  const landmarkFocus = selected && place.kind === "landmark";
+  const markerPoint = landmarkFocus ? { x: point.x, y: point.y + 20 } : point;
+  const radius = selected ? (landmarkFocus ? 24 : 30) : 27;
+  const ring = new Graphics()
+    .ellipse(markerPoint.x, markerPoint.y - 4, radius, radius * 0.48)
+    .fill({ color: selected ? 0xfff2a6 : 0xffffff, alpha: landmarkFocus ? 0.2 : selected ? 0.26 : 0.2 })
+    .stroke({ color: selected ? 0xffe16c : 0xffffff, alpha: 0.8, width: landmarkFocus ? 2.2 : selected ? 3 : 2 });
+  animated.push({ target: ring, kind: "pulse", path: [], speed: 0.02, phase: place.activity, baseAlpha: 0.72, origin: markerPoint });
+  layer.addChild(ring);
+
+  const outlineColor = selected ? 0xffffff : 0xffee88;
+  for (const building of focus.buildingsByPlaceId.get(place.id) ?? []) {
+    const bottom = project(building.position);
+    const top = project({ x: building.position.x, y: building.position.y, z: (building.position.z ?? 0) + building.height });
+    const halfW = (building.width * TILE_WIDTH) / 2;
+    const halfD = (building.depth * TILE_HEIGHT) / 2;
+    const silhouette = new Graphics()
+      .poly(
+        [
+          top.x - halfW, top.y,
+          top.x, top.y - halfD,
+          top.x + halfW, top.y,
+          bottom.x + halfW, bottom.y,
+          bottom.x, bottom.y + halfD,
+          bottom.x - halfW, bottom.y,
+        ],
+        true,
+      )
+      .stroke({ color: outlineColor, alpha: selected ? 0.85 : 0.7, width: selected ? 2.2 : 1.6, join: "round" });
+    const roofEdge = new Graphics()
+      .poly(diamondPoints(top, building.width * TILE_WIDTH, building.depth * TILE_HEIGHT), true)
+      .stroke({ color: outlineColor, alpha: selected ? 0.6 : 0.45, width: 1.2 });
+    layer.addChild(silhouette, roofEdge);
+  }
+
+  drawFocusPlaceLabel(layer, place, mode, focus.crownLift.get(place.id));
+}
+
+function drawFocusPlaceLabel(layer: Container, place: CityWorldPlace, mode: FocusMode, crownLift?: number) {
+  const point = project(place.anchor);
+  const selected = mode === "selected";
+  const landmarkFocus = selected && place.kind === "landmark";
+  const text = new Text({
+    text: place.label,
+    style: {
+      fill: 0x1f2d28,
+      fontFamily: "Arial",
+      fontSize: landmarkFocus ? 12 : 13,
+      fontWeight: "900",
+      stroke: { color: 0xfff8e7, width: 4 },
+    },
+  });
+  text.anchor.set(0.5);
+  const baseLift = landmarkFocus ? 70 : 55;
+  text.position.set(point.x + (landmarkFocus ? -28 : 0), point.y - Math.max(baseLift, crownLift ?? 0));
+  const paddingX = landmarkFocus ? 8 : 7;
+  const paddingY = landmarkFocus ? 3 : 4;
+  const backing = new Graphics()
+    .roundRect(
+      text.position.x - text.width / 2 - paddingX,
+      text.position.y - text.height / 2 - paddingY,
+      text.width + paddingX * 2,
+      text.height + paddingY * 2,
+      4,
+    )
+    .fill({ color: 0xfff7df, alpha: 0.78 })
+    .stroke({ color: 0x26332c, alpha: 0.24, width: 1 });
+  layer.addChild(backing, text);
 }
 
 function drawPin(layer: Container, pin: CityWorldPin, atlas: CityWorldAtlasResolver) {
@@ -5834,39 +5992,38 @@ function placeCrownLiftMap(buildings: CityWorldBuilding[]): Map<string, number> 
   return lift;
 }
 
-function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId: string, hoverPlaceId: string | undefined, crownLift?: number) {
-  const selected = place.id === selectedPlaceId;
-  const hovered = place.id === hoverPlaceId;
-  if (!selected && !hovered && place.labelPriority < 7) return;
+function drawPlaceLabel(layer: Container, place: CityWorldPlace, crownLift?: number) {
+  // Neutral base label only; the focus overlay draws the emphasized variant
+  // and hides this one (matched by container label) while the place is focused.
+  if (place.labelPriority < 7) return;
 
   const point = project(place.anchor);
-  const landmarkFocus = selected && place.kind === "landmark";
   const text = new Text({
     text: place.label,
     style: {
       fill: 0x1f2d28,
       fontFamily: "Arial",
-      fontSize: landmarkFocus ? 12 : selected || hovered ? 13 : 11,
+      fontSize: 11,
       fontWeight: "900",
       stroke: { color: 0xfff8e7, width: 4 },
     },
   });
   text.anchor.set(0.5);
-  const baseLift = landmarkFocus ? 70 : selected || hovered ? 55 : 44;
-  text.position.set(point.x + (landmarkFocus ? -28 : 0), point.y - Math.max(baseLift, crownLift ?? 0));
-  const paddingX = landmarkFocus ? 8 : 7;
-  const paddingY = landmarkFocus ? 3 : 4;
+  text.position.set(point.x, point.y - Math.max(44, crownLift ?? 0));
   const backing = new Graphics()
     .roundRect(
-      text.position.x - text.width / 2 - paddingX,
-      text.position.y - text.height / 2 - paddingY,
-      text.width + paddingX * 2,
-      text.height + paddingY * 2,
+      text.position.x - text.width / 2 - 7,
+      text.position.y - text.height / 2 - 4,
+      text.width + 14,
+      text.height + 8,
       4,
     )
-    .fill({ color: 0xfff7df, alpha: selected || hovered ? 0.78 : 0.58 })
-    .stroke({ color: 0x26332c, alpha: selected || hovered ? 0.24 : 0.14, width: 1 });
-  layer.addChild(backing, text);
+    .fill({ color: 0xfff7df, alpha: 0.58 })
+    .stroke({ color: 0x26332c, alpha: 0.14, width: 1 });
+  const group = new Container();
+  group.label = `place-label-${place.id}`;
+  group.addChild(backing, text);
+  layer.addChild(group);
 }
 
 function animateTargets(targets: AnimatedTarget[], delta: number) {
