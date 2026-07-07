@@ -1,0 +1,109 @@
+{
+  "ok": true,
+  "update": "postalpha-0.69h-us-county-index-nationwide-shells",
+  "artifactPath": "artifacts/national-generation/0.69h/nationwide-shells.json",
+  "checkedFiles": [
+    "packages/core/src/world/usCountyIndex.ts",
+    "packages/core/src/world/NationalWorldService.ts",
+    "packages/core/src/index.ts",
+    "packages/core/src/world/index.ts",
+    "packages/core/test/national-world-service.test.ts",
+    "packages/core/test/national-generation-production.test.ts",
+    "server/src/index.ts",
+    "package.json"
+  ],
+  "runtime": {
+    "directoryTotals": {
+      "stateCount": 52,
+      "indexedCountyCount": 3222,
+      "supportedCountyCount": 3222,
+      "playableCountyCount": 1,
+      "shellCountyCount": 3221,
+      "providerNormalizedCountyCount": 0,
+      "publicQualityCountyCount": 0,
+      "indexedUnsupportedCountyCount": 0
+    },
+    "playableCountySlugs": [
+      "riverside-ca"
+    ],
+    "sampleShells": [
+      {
+        "slug": "cook-il",
+        "geoid": "17031",
+        "stateCode": "IL",
+        "coverageTier": "L1_COUNTY_SHELL",
+        "districtCount": 0,
+        "placeCount": 0,
+        "shellSceneCounts": {
+          "terrainTiles": 285,
+          "roads": 0,
+          "lots": 0,
+          "buildings": 0,
+          "places": 0,
+          "pins": 0,
+          "actors": 0
+        }
+      },
+      {
+        "slug": "miami-dade-fl",
+        "geoid": "12086",
+        "stateCode": "FL",
+        "coverageTier": "L1_COUNTY_SHELL",
+        "districtCount": 0,
+        "placeCount": 0,
+        "shellSceneCounts": {
+          "terrainTiles": 285,
+          "roads": 0,
+          "lots": 0,
+          "buildings": 0,
+          "places": 0,
+          "pins": 0,
+          "actors": 0
+        }
+      },
+      {
+        "slug": "maricopa-az",
+        "geoid": "04013",
+        "stateCode": "AZ",
+        "coverageTier": "L1_COUNTY_SHELL",
+        "districtCount": 0,
+        "placeCount": 0,
+        "shellSceneCounts": {
+          "terrainTiles": 285,
+          "roads": 0,
+          "lots": 0,
+          "buildings": 0,
+          "places": 0,
+          "pins": 0,
+          "actors": 0
+        }
+      }
+    ],
+    "readiness": {
+      "type": "nationalGenerationProductionReadiness",
+      "productionReady": false,
+      "currentStage": "P2_DETERMINISTIC_GENERATED_DISTRICTS",
+      "nextStage": "P3_PROVIDER_NORMALIZED_LOCAL_ANCHORS",
+      "blockers": [
+        "A production US engine needs a deterministic generated-district compiler for counties without curated packs.",
+        "Provider-normalized local anchors need category, attribution, cache, and policy gates before generated districts can be promoted."
+      ],
+      "guarantees": [
+        "Playable claims remain gated by coverage tier and proof.",
+        "Shell counties are browse-only and do not invent local places.",
+        "Provider lookup is not coverage readiness and cannot create renderer geometry.",
+        "Generated scenes must use typed specs, deterministic seeds, and windowed renderer packets."
+      ],
+      "counts": {
+        "stateCount": 52,
+        "indexedCountyCount": 3222,
+        "shellCountyCount": 3221,
+        "playableCountyCount": 1,
+        "publicQualityCountyCount": 0
+      }
+    }
+  },
+  "blockerCount": 0,
+  "blockers": [],
+  "warnings": []
+}

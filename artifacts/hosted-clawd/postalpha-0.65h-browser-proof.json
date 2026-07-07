@@ -1,0 +1,103 @@
+{
+  "id": "postalpha-0.65h-hosted-clawd-browser-proof",
+  "name": "Post-Alpha 0.65H - Hosted Clawd Browser Proof",
+  "status": "local_green",
+  "decision": "BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN",
+  "selectedAxis": "hosted_clawd_browser_proof",
+  "inputUpdate": "postalpha-0.64h-hosted-clawd-saved-read-surface",
+  "playerPromise": "Atlas stays a ChatGPT App with the voxel map as the product surface: when the widget has no account-linked bearer token, the Hosted Clawd tray blocks saved reads honestly and keeps the user on the map.",
+  "engineeringPromise": "Prove the saved-state browser path on desktop and 390x844 mobile. Missing bearer reads return a 401 OAuth resource challenge with read scope, no saved shelf renders, no widget token is exposed, and the tray remains touch-accessible.",
+  "metricResult": {
+    "hostedClawdBrowserProof": {
+      "branch": "codex/integrate-hosted-clawd-fable-058e",
+      "sourceFoundation": "postalpha-0.64h-hosted-clawd-saved-read-surface",
+      "artifactPath": "artifacts/hosted-clawd/postalpha-0.65h-browser-proof.json",
+      "desktopScreenshot": "artifacts/hosted-clawd/postalpha-0.65h-browser-proof/hosted-clawd-auth-required-desktop-1280x720.png",
+      "mobileScreenshot": "artifacts/hosted-clawd/postalpha-0.65h-browser-proof/hosted-clawd-auth-required-mobile-390x844.png",
+      "browserAuthRequired": true,
+      "httpStatus": 401,
+      "readScopeChallenge": true,
+      "resourceMetadataChallenge": true,
+      "savedShelfNotRendered": true,
+      "widgetBearerTokenExposed": false,
+      "dialogSemantics": true,
+      "statusLiveRegion": true,
+      "primaryActionVisible": true,
+      "touchTargets44": true,
+      "desktopNoOverflow": true,
+      "mobile390NoOverflow": true,
+      "desktopTrayWithinViewport": true,
+      "mobileTrayWithinViewport": true,
+      "publicToolCount": 7,
+      "newMcpTools": 0
+    },
+    "scope": {
+      "docsOnly": false,
+      "verifierAdded": true,
+      "dbMigrations": 2,
+      "persistedWrites": true,
+      "persistedWritesAdded": false,
+      "readOnlySurface": true,
+      "protectedWritesOnly": true,
+      "liveCheckout": true,
+      "testModeOnly": true,
+      "authProviderMutation": false,
+      "newMcpTools": 0,
+      "uiSurfaceChanges": true,
+      "rendererGeometryChanges": false,
+      "publicPaidClaim": false,
+      "publicAnaheimPromotion": false,
+      "providerGeometry": false
+    }
+  },
+  "verification": {
+    "browserProof": "node scripts/verify-hosted-clawd-browser-proof.mjs --url http://127.0.0.1:8787/preview --screenshots artifacts/hosted-clawd/postalpha-0.65h-browser-proof",
+    "starterTypecheck": "pnpm typecheck:starter",
+    "starterBuild": "pnpm build:starter",
+    "browserProofSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-browser-proof --json-only",
+    "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "providerBoundary": "node scripts/verify-provider-boundaries.mjs --json-only",
+    "toolResultShape": "node scripts/verify-tool-result-shape.mjs --json-only"
+  },
+  "nextCodeStep": "0.66H Mobile Interaction Hardening",
+  "recommendedNextQuest": "0.66H Mobile Interaction Hardening",
+  "forbiddenScope": [
+    "new public MCP tools before an explicit tool-surface gate",
+    "creating rows from saved-state reads",
+    "trusting client-supplied subscriptionStatus for reads or writes",
+    "granting access from Stripe success or portal return URLs",
+    "live-mode Stripe keys, products, prices, or public launch claims",
+    "public paid pricing page, plan comparison, dashboard shell, or subscribe-now copy",
+    "browser Stripe JS or client-side price trust",
+    "evidence uploads",
+    "XP grants or XP ledger",
+    "weekly reports",
+    "exports",
+    "automation, auto-posting, DMs, ads, scraping, or scheduled outreach",
+    "public Anaheim/Ontario exposure",
+    "provider-created geometry or readiness promotion",
+    "voxel renderer geometry changes inside the browser-proof slice"
+  ],
+  "gates": [
+    {
+      "id": "chatgpt-app-gate",
+      "label": "Atlas remains a ChatGPT App with the existing seven public MCP tools",
+      "required": true
+    },
+    {
+      "id": "saved-read-browser-auth-gate",
+      "label": "Missing widget bearer token blocks saved reads with account-link challenge",
+      "required": true
+    },
+    {
+      "id": "mobile-touch-gate",
+      "label": "Hosted Clawd tray controls meet 44px touch target and visible primary-action proof at 390x844",
+      "required": true
+    },
+    {
+      "id": "public-claim-gate",
+      "label": "HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM remains closed",
+      "required": true
+    }
+  ]
+}

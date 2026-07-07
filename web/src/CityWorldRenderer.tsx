@@ -370,6 +370,8 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   const selectPlaceRef = useRef(onSelectPlace);
   const activeWindowFrameRef = useRef<CityWorldViewportFrame | null>(null);
   const pendingWindowRefreshRef = useRef(false);
+  const cameraFrameRef = useRef<number | null>(null);
+  const rebuildCountRef = useRef(0);
   const [ready, setReady] = useState(false);
   const [hoverPlaceId, setHoverPlaceId] = useState<string | undefined>();
   const [atlasTextures, setAtlasTextures] = useState<CityWorldTextureMap>({});
@@ -462,6 +464,10 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       animatedRef.current = [];
       worldRef.current = null;
       appRef.current = null;
+      if (cameraFrameRef.current !== null) {
+        window.cancelAnimationFrame(cameraFrameRef.current);
+        cameraFrameRef.current = null;
+      }
       app.destroy({ removeView: true }, { children: true });
     };
   }, []);
@@ -480,7 +486,11 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
       dragRef.current = { active: true, x: event.clientX, y: event.clientY };
       movedRef.current = false;
-      mount.setPointerCapture?.(event.pointerId);
+      try {
+        mount.setPointerCapture?.(event.pointerId);
+      } catch {
+        // Synthetic browser-proof events may not register as active pointers.
+      }
       const distance = pointerDistance(activePointersRef.current);
       if (distance) {
         pinchRef.current = { distance, zoom: cameraRef.current.zoom };
@@ -496,7 +506,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
         movedRef.current = true;
         const camera = cameraRef.current;
         camera.zoom = clamp(pinchRef.current.zoom * (distance / pinchRef.current.distance), camera.minZoom, camera.maxZoom);
-        applyCamera();
+        scheduleCameraApply();
         return;
       }
 
@@ -514,7 +524,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       dragRef.current = { active: true, x: event.clientX, y: event.clientY };
       cameraRef.current.x += dx;
       cameraRef.current.y += dy;
-      applyCamera();
+      scheduleCameraApply();
     };
     const handlePointerUp = (event: PointerEvent) => {
       if (!movedRef.current) {
@@ -524,13 +534,21 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       activePointersRef.current.delete(event.pointerId);
       if (activePointersRef.current.size < 2) pinchRef.current = null;
       dragRef.current.active = false;
-      mount.releasePointerCapture?.(event.pointerId);
+      try {
+        mount.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // Ignore release calls for synthetic or already-released pointers.
+      }
     };
     const handlePointerCancel = (event: PointerEvent) => {
       activePointersRef.current.delete(event.pointerId);
       if (activePointersRef.current.size < 2) pinchRef.current = null;
       dragRef.current.active = false;
-      mount.releasePointerCapture?.(event.pointerId);
+      try {
+        mount.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // Ignore release calls for synthetic or already-released pointers.
+      }
     };
 
     mount.addEventListener("wheel", handleWheel, { passive: false });
@@ -563,13 +581,17 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       if (!movedRef.current) selectPlaceRef.current(placeId);
     }, setHoverPlaceId, animatedRef.current);
     activeWindowFrameRef.current = sceneWindowFrame;
-    applyCamera();
+    const nextRebuildCount = rebuildCountRef.current + 1;
+    rebuildCountRef.current = nextRebuildCount;
+    mount.dataset.qaCityWorldRebuildCount = String(nextRebuildCount);
+    (window as Window & { __atlasCityWorldRebuildCount?: number }).__atlasCityWorldRebuildCount = nextRebuildCount;
+    applyCameraNow();
   }, [atlasTextures, cameraPresetId, debugMode, hoverPlaceId, ready, scene, selectedPlaceId, windowRefreshKey]);
 
   function zoomBy(multiplier: number) {
     const camera = cameraRef.current;
     camera.zoom = clamp(camera.zoom * multiplier, camera.minZoom, camera.maxZoom);
-    applyCamera();
+    scheduleCameraApply();
   }
 
   function resetCamera(nextScene: CityWorldScene) {
@@ -590,10 +612,18 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       minZoom: cameraPreset.minZoom,
       maxZoom: cameraPreset.maxZoom,
     };
-    applyCamera();
+    applyCameraNow();
   }
 
-  function applyCamera() {
+  function scheduleCameraApply() {
+    if (cameraFrameRef.current !== null) return;
+    cameraFrameRef.current = window.requestAnimationFrame(() => {
+      cameraFrameRef.current = null;
+      applyCameraNow();
+    });
+  }
+
+  function applyCameraNow() {
     const world = worldRef.current;
     if (!world) return;
     const camera = cameraRef.current;
@@ -688,10 +718,14 @@ function drawScene(
   const buildings = orderedSceneItems(renderCommands, "building", scene.buildings);
   for (const building of buildings) drawBuilding(layers, building, building.placeId === selectedPlaceId, building.placeId === hoverPlaceId, atlas);
 
+  // 0.67H focal calm — props/actors that sit inside the focal anchor's ring
+  // dim toward ambience so the hero building's face separation stays the
+  // loudest read at the center of the frame.
+  const focalAnchor = focalPlaceAnchor(scene, selectedPlaceId);
   const props = orderedSceneItems(renderCommands, "prop", scene.props);
-  for (const prop of props) drawProp(layers.propLayer, prop, animated, atlas);
+  for (const prop of props) drawProp(layers.propLayer, prop, animated, atlas, focalCalm(prop.position, focalAnchor));
   const actors = orderedSceneItems(renderCommands, "actor", scene.actors);
-  for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas);
+  for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas, focalCalm(actor.position, focalAnchor));
   for (const place of orderedSceneItems(renderCommands, "place_marker", scene.places)) drawPlaceMarker(layers.markerLayer, place, selectedPlaceId, hoverPlaceId, onSelectPlace, onHoverPlace, animated);
   for (const pin of orderedSceneItems(renderCommands, "pin", scene.pins)) drawPin(layers.markerLayer, pin, atlas);
   if (includeLabels) {
@@ -699,7 +733,10 @@ function drawScene(
     // the tallest structure anchored to it (plus crown allowance), instead of
     // sitting at a fixed ground offset that erased landmark crowns.
     const crownLift = placeCrownLiftMap(scene.buildings);
-    for (const place of orderedSceneItems(renderCommands, "place_label", scene.places)) drawPlaceLabel(layers.labelLayer, place, selectedPlaceId, hoverPlaceId, crownLift.get(place.id));
+    // 0.67H — mobile shows selected/hover labels only; desktop keeps at most
+    // two ambient anchors, so the frame never reads as a board of pills.
+    const ambientLabelIds = ambientLabelAllowance(scene, cameraPresetId);
+    for (const place of orderedSceneItems(renderCommands, "place_label", scene.places)) drawPlaceLabel(layers.labelLayer, place, selectedPlaceId, hoverPlaceId, ambientLabelIds, crownLift.get(place.id));
   }
   if (debugMode === "engine") drawEngineDebugOverlay(layers.hudBridgeLayer, scene);
   return sceneWindow.frame;
@@ -708,6 +745,36 @@ function drawScene(
 function shouldHideCityWorldLabels(): boolean {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("atlasNoLabels") === "1";
+}
+
+// 0.67H label demotion — the ambient (non-selected, non-hovered) label budget
+// is a hard cap, not a priority threshold: mobile gets none, desktop gets the
+// two highest-priority anchors. Selected/hover labels render on top of this
+// allowance, so a desktop frame tops out at three label cards.
+function ambientLabelAllowance(scene: CityWorldScene, cameraPresetId: CityWorldCameraPresetId): Set<string> {
+  if (cameraPresetId === "mobile") return new Set();
+  return new Set(
+    scene.places
+      .filter((place) => place.labelPriority >= 9)
+      .sort((a, b) => b.labelPriority - a.labelPriority)
+      .slice(0, 2)
+      .map((place) => place.id),
+  );
+}
+
+// 0.67H focal calm — the selected place (or the first landmark as a fallback)
+// defines the focal ring where decoration must yield to architecture.
+function focalPlaceAnchor(scene: CityWorldScene, selectedPlaceId: string): CityWorldPoint | undefined {
+  const focal = scene.places.find((place) => place.id === selectedPlaceId) ?? scene.places.find((place) => place.kind === "landmark");
+  return focal?.anchor;
+}
+
+function focalCalm(position: CityWorldPoint, focalAnchor: CityWorldPoint | undefined): number {
+  if (!focalAnchor) return 1;
+  const distance = Math.hypot(position.x - focalAnchor.x, position.y - focalAnchor.y);
+  if (distance < 2.2) return 0.55;
+  if (distance < 3.6) return 0.78;
+  return 1;
 }
 
 function resolveCameraPresetId(scene: CityWorldScene, requestedId: CityWorldCameraPresetId | undefined, width: number): CityWorldCameraPresetId {
@@ -2473,8 +2540,10 @@ function createBuildingGeometry(building: CityWorldBuilding, selected: boolean, 
     highlightColor: useShellColors ? 0xe4dec6 : useAuthoredDraftColors ? 0xf8e8ca : paletteColor(asset.palette.colors.highlight, "#fff4d8"),
     accentColor: useShellColors ? 0x80928c : useAuthoredDraftColors ? 0x5f8f8a : paletteColor(asset.palette.colors.accent, asset.palette.colors.roof ?? "#ffcf56"),
     trimColor: useShellColors ? 0x5f665b : useAuthoredDraftColors ? 0x5f5547 : paletteColor(asset.palette.colors.trim, "#26332c"),
-    outline: selected ? 0xffffff : hovered ? 0xffee88 : 0x26332c,
-    activeStrokeAlpha: hovered || selected ? 0.82 : 0.38,
+    // 0.67H — selection is a warm contact accent, not a white debug outline:
+    // the active stroke warms and firms slightly instead of flashing bright.
+    outline: selected ? 0x7a6238 : hovered ? 0x6f6544 : 0x26332c,
+    activeStrokeAlpha: hovered || selected ? 0.44 : 0.38,
     asset,
   };
 }
@@ -2544,7 +2613,12 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
     if (warmCool > 0) homeTint = mixColor(homeTint, SUN_WARM_TINT, 0.07);
     else if (warmCool < 0) homeTint = mixColor(homeTint, SUN_COOL_TINT, 0.06);
   }
-  sprite.tint = mixColor(0xffffff, homeTint, home ? 0.24 + (variant % 7) * 0.026 : 0.3);
+  // 0.68H sprite tint wash — the old wash (24–40% home, 30% commerce) pulled
+  // every authored SVG toward one body-color soup and blurred the art's own
+  // painted shading. Homes keep just enough wash to hold their palette-variant
+  // identity; commerce/civic/service sprites drop to a whisper so the authored
+  // art carries its own crisp material read.
+  sprite.tint = mixColor(0xffffff, homeTint, home ? 0.14 + (variant % 7) * 0.018 : 0.12);
   sprite.label = `sprite-${building.id}`;
   layer.addChild(sprite);
 
@@ -2554,9 +2628,12 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
   }
 
   if (selected || hovered) {
+    // 0.67H — the active sprite reads through a low, warm contact accent at
+    // the foundation instead of a bright outline drawn over the art.
     const ring = new Graphics()
-      .ellipse(bottom.x, bottom.y + footprintDepth * 0.34, geometry.footprintWidth * 0.52, footprintDepth * 0.62)
-      .stroke({ color: selected ? 0xffffff : 0xffee88, alpha: selected ? 0.8 : 0.58, width: selected ? 2.2 : 1.6 });
+      .ellipse(bottom.x, bottom.y + footprintDepth * 0.4, geometry.footprintWidth * 0.5, footprintDepth * 0.5)
+      .fill({ color: 0xe8c98d, alpha: selected ? 0.1 : 0.06 })
+      .stroke({ color: selected ? 0xc2a05e : 0xcdb98a, alpha: selected ? 0.42 : 0.3, width: selected ? 1.4 : 1.2 });
     layer.addChild(ring);
   }
 }
@@ -2615,7 +2692,7 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
       : polygon(
           diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.43 }, footprintWidth * 0.88, footprintDepth * 0.18),
           0xe8d0a3,
-          0.44,
+          0.3, // 0.68H — quieter apron wash; the crisp sprite carries the read
           0x7f6d4e,
           0.14,
         );
@@ -2669,7 +2746,7 @@ function drawHomeRoofAccent(layer: Container, geometry: BuildingGeometry, buildi
       .rect(dx - 2.1, dy - 2.4, 4.2, 3.2)
       .fill({ color: sunlitColor(bodyColor, "sun"), alpha: 0.82 })
       .poly([dx - 2.7, dy - 2.4, dx, dy - 4.2, dx + 2.7, dy - 2.4], true)
-      .fill({ color: sunlitColor(roofColor, "top"), alpha: 0.88 });
+      .fill({ color: buildingFaceColor(roofColor, "top"), alpha: 0.88 }); // 0.68H — pigmented top curve
     layer.addChild(dormer);
   }
 }
@@ -3023,10 +3100,12 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
   const signMountCount = Math.min(commerceGeometry?.signMountCount ?? bayCount, bayCount);
   const isPlazaRowFocus = commerceGeometry?.focusTarget === "plaza_row";
 
+  // 0.68H — the apron drops from a wide translucent wash to a quieter pad;
+  // the storefront read now comes from bay rhythm below, not a haze field.
   const sharedStorefrontApron = polygon(
     diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * (0.45 + apronDepth * 0.08) }, footprintWidth * 1.02, footprintDepth * apronDepth),
     0xe2c796,
-    isPlazaRowFocus ? 0.52 : 0.42,
+    isPlazaRowFocus ? 0.36 : 0.28,
     0x756947,
     isPlazaRowFocus ? 0.22 : 0.16,
   );
@@ -3037,7 +3116,10 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
     .moveTo(bottom.x + footprintWidth * 0.46, bottom.y + footprintDepth * 0.35)
     .lineTo(bottom.x + footprintWidth * 0.1, bottom.y + footprintDepth * 0.53)
     .lineTo(bottom.x - footprintWidth * 0.44, bottom.y + footprintDepth * 0.31);
-  foundationShadow.stroke({ color: 0x24352f, alpha: isPlazaRowFocus ? 0.3 : 0.24, width: isPlazaRowFocus ? 3.6 : 2.8, cap: "round", join: "round" });
+  // 0.67H — commerce detail reads as clean silhouette first: every translucent
+  // overlay (glass, sign mounts, thresholds, ribs) drops toward whisper alpha
+  // so the massing and parapet carry the read instead of milky clutter.
+  foundationShadow.stroke({ color: 0x24352f, alpha: isPlazaRowFocus ? 0.22 : 0.18, width: isPlazaRowFocus ? 2.6 : 2.2, cap: "round", join: "round" });
 
   const parapetCap = new Graphics()
     .moveTo(top.x - footprintWidth * 0.48, top.y - footprintDepth * 0.2)
@@ -3055,16 +3137,17 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
     const offset = (bay / Math.max(1, bayCount - 1) - 0.5) * footprintWidth * 0.76;
     const bayWidth = footprintWidth * (isPlazaRowFocus ? 0.082 : 0.095);
     const doorHeight = bay === Math.floor(bayCount / 2) ? 14 + glassRecessDepth * 5 : 10 + glassRecessDepth * 4;
+    // 0.68H — bays read as punched openings: firmer fill, darker frame stroke.
     glassRecesses
       .roundRect(top.x + offset - bayWidth * 0.5, bottom.y - footprintDepth * 0.23, bayWidth, doorHeight, 2)
-      .fill({ color: bay === Math.floor(bayCount / 2) ? 0xb9dfe7 : highlightColor, alpha: 0.6 })
+      .fill({ color: bay === Math.floor(bayCount / 2) ? 0xb9dfe7 : highlightColor, alpha: 0.5 })
       .roundRect(top.x + offset - bayWidth * 0.54, bottom.y - footprintDepth * 0.24, bayWidth * 1.08, doorHeight + 1.5, 2)
-      .stroke({ color: shadeColor(bodyColor, -34), alpha: 0.18, width: 0.9 });
+      .stroke({ color: shadeColor(bodyColor, -40), alpha: 0.3, width: 1 });
 
     if (bay < signMountCount) {
       signMounts
-        .roundRect(top.x + offset - bayWidth * 0.62, top.y + footprintDepth * 0.23, bayWidth * 1.24, isPlazaRowFocus ? 5.8 : 4.8, 1.2)
-        .fill({ color: bay % 2 === 0 ? accentColor : shadeColor(roofColor, 18), alpha: isPlazaRowFocus ? 0.56 : 0.46 });
+        .roundRect(top.x + offset - bayWidth * 0.62, top.y + footprintDepth * 0.23, bayWidth * 1.24, isPlazaRowFocus ? 5 : 4.2, 1.2)
+        .fill({ color: bay % 2 === 0 ? accentColor : shadeColor(roofColor, 18), alpha: isPlazaRowFocus ? 0.42 : 0.32 });
     }
 
     awningLip
@@ -3079,10 +3162,11 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
 
     storefrontThresholds
       .roundRect(top.x + offset - bayWidth * 0.64, bottom.y - footprintDepth * 0.025, bayWidth * 1.28, isPlazaRowFocus ? 3.8 : 2.8, 1.1)
-      .fill({ color: 0xc9a46f, alpha: isPlazaRowFocus ? 0.38 : 0.24 });
+      .fill({ color: 0xc9a46f, alpha: isPlazaRowFocus ? 0.24 : 0.16 });
   }
   awningLip.stroke({ color: shadeColor(roofColor, -46), alpha: 0.32, width: 2.1, cap: "round", join: "round" });
-  bayPilasters.stroke({ color: shadeColor(trimColor, -18), alpha: isPlazaRowFocus ? 0.28 : 0.18, width: isPlazaRowFocus ? 1.4 : 0.9, cap: "round", join: "round" });
+  // 0.68H — pilasters firm up into the storefront's vertical rhythm.
+  bayPilasters.stroke({ color: shadeColor(trimColor, -18), alpha: isPlazaRowFocus ? 0.3 : 0.22, width: isPlazaRowFocus ? 1.3 : 1.1, cap: "round", join: "round" });
 
   const sideFaceRibs = new Graphics()
     .moveTo(top.x - footprintWidth * 0.47, top.y + footprintDepth * 0.1)
@@ -3091,7 +3175,7 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
     .moveTo(top.x + footprintWidth * 0.47, top.y + footprintDepth * 0.1)
     .lineTo(bottom.x + footprintWidth * 0.45, bottom.y + footprintDepth * 0.14)
     .lineTo(bottom.x + footprintWidth * 0.31, bottom.y + footprintDepth * 0.21);
-  sideFaceRibs.stroke({ color: shadeColor(trimColor, -20), alpha: 0.2, width: 1.2, cap: "round", join: "round" });
+  sideFaceRibs.stroke({ color: shadeColor(trimColor, -20), alpha: 0.14, width: 1.2, cap: "round", join: "round" });
 
   const plazaRowFrontageDepth = isPlazaRowFocus
     ? polygon(
@@ -3239,10 +3323,12 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
   const roofMonitorWeight = serviceGeometry?.roofMonitorWeight ?? 0.82;
   const isEastvaleGym = serviceGeometry?.focusTarget === "eastvale_gym";
 
+  // 0.68H — utility apron quiets down; the warehouse read comes from the
+  // sawtooth roof and bay rhythm, not a translucent ground wash.
   const serviceApron = polygon(
     diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * (0.4 + utilityApronDepth * 0.06) }, footprintWidth * 0.86, footprintDepth * utilityApronDepth),
     0xd8bf90,
-    isEastvaleGym ? 0.4 : 0.28,
+    isEastvaleGym ? 0.28 : 0.2,
     0x756947,
     isEastvaleGym ? 0.18 : 0.1,
   );
@@ -3253,7 +3339,10 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
     .moveTo(bottom.x + footprintWidth * 0.42, bottom.y + footprintDepth * 0.31)
     .lineTo(bottom.x + footprintWidth * 0.08, bottom.y + footprintDepth * 0.49)
     .lineTo(bottom.x - footprintWidth * 0.4, bottom.y + footprintDepth * 0.29);
-  foundationLine.stroke({ color: 0x24352f, alpha: isEastvaleGym ? 0.28 : 0.18, width: isEastvaleGym ? 3 : 2.2, cap: "round", join: "round" });
+  // 0.67H — the gym reads as a clean warehouse silhouette first: translucent
+  // bays, ribs, and heavy foundation lines all drop toward whisper alpha so
+  // the massing and sawtooth roof carry the read.
+  foundationLine.stroke({ color: 0x24352f, alpha: isEastvaleGym ? 0.2 : 0.14, width: isEastvaleGym ? 2.4 : 2, cap: "round", join: "round" });
 
   const roofMonitors = new Graphics();
   for (let tooth = 0; tooth < sawtoothCount; tooth += 1) {
@@ -3263,18 +3352,20 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
       .lineTo(top.x + offset + footprintWidth * 0.045, top.y - footprintDepth * 0.1)
       .lineTo(top.x + offset + footprintWidth * 0.12, top.y - footprintDepth * 0.2);
   }
-  roofMonitors.stroke({ color: shadeColor(roofColor, -46), alpha: 0.38 + roofMonitorWeight * 0.08, width: 1.7 + roofMonitorWeight * 0.65, cap: "round", join: "round" });
+  roofMonitors.stroke({ color: shadeColor(roofColor, -46), alpha: 0.3 + roofMonitorWeight * 0.06, width: 1.5 + roofMonitorWeight * 0.5, cap: "round", join: "round" });
 
   const serviceBays = new Graphics();
   const bayWidth = footprintWidth * 0.09;
   for (let bay = 0; bay < serviceBayCount; bay += 1) {
     const offset = (bay / Math.max(1, serviceBayCount - 1) - 0.5) * footprintWidth * 0.62;
     const isEntry = bay === 0;
+    // 0.68H — service bays commit to material: darker roller-door fill with a
+    // real frame stroke instead of a translucent smudge.
     serviceBays
       .roundRect(top.x + offset - bayWidth * 0.5, bottom.y - footprintDepth * 0.22, bayWidth, isEntry ? 15 : 10, 1.8)
-      .fill({ color: isEntry ? highlightColor : shadeColor(bodyColor, -16), alpha: isEntry ? 0.5 : 0.27 })
+      .fill({ color: isEntry ? highlightColor : shadeColor(bodyColor, -24), alpha: isEntry ? 0.42 : 0.3 })
       .roundRect(top.x + offset - bayWidth * 0.56, bottom.y - footprintDepth * (0.23 + entryRecessDepth * 0.03), bayWidth * 1.12, isEntry ? 16.5 : 11.5, 1.8)
-      .stroke({ color: trimColor, alpha: isEntry ? 0.18 : 0.09, width: 0.8 });
+      .stroke({ color: trimColor, alpha: isEntry ? 0.24 : 0.16, width: 0.9 });
   }
 
   const utilitySideRibs = new Graphics()
@@ -3284,7 +3375,7 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
     .moveTo(top.x + footprintWidth * 0.46, top.y + footprintDepth * 0.04)
     .lineTo(bottom.x + footprintWidth * 0.42, bottom.y + footprintDepth * 0.1)
     .lineTo(bottom.x + footprintWidth * 0.24, bottom.y + footprintDepth * 0.18);
-  utilitySideRibs.stroke({ color: shadeColor(trimColor, -22), alpha: isEastvaleGym ? 0.22 : 0.14, width: 1.15, cap: "round", join: "round" });
+  utilitySideRibs.stroke({ color: shadeColor(trimColor, -22), alpha: isEastvaleGym ? 0.14 : 0.1, width: 1.15, cap: "round", join: "round" });
 
   layer.addChild(serviceApron, foundationLine, roofMonitors, serviceBays, utilitySideRibs);
 }
@@ -3416,7 +3507,7 @@ function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, bui
   const edgeColor = style === "rowhome" || style === "strip_store" ? shadeColor(trimColor, -14) : shadeColor(roofColor, -48);
 
   const contactGraphics = buildingContactShadow(geometry, building, selected, hovered, padWidth, padDepth, draftBuilding);
-  const pad = polygon(diamondPoints(padCenter, padWidth, padDepth), padColor, draftBuilding ? 0.58 : spriteBacked ? 0.46 : 0.48, 0x6f7f55, selected || hovered ? 0.34 : draftBuilding ? 0.2 : 0.16);
+  const pad = polygon(diamondPoints(padCenter, padWidth, padDepth), padColor, draftBuilding ? 0.58 : spriteBacked ? 0.46 : 0.48, 0x6f7f55, selected || hovered ? 0.24 : draftBuilding ? 0.2 : 0.16);
   const lowerLip = new Graphics()
     .moveTo(padCenter.x - padWidth * 0.5, padCenter.y)
     .lineTo(padCenter.x, padCenter.y + padDepth * 0.5)
@@ -3443,7 +3534,7 @@ function buildingContactShadow(
 ): Graphics[] {
   const { bottom, footprintDepth } = geometry;
   const profile = building.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
-  const activeBoost = selected ? 0.09 : hovered ? 0.05 : 0;
+  const activeBoost = selected ? 0.06 : hovered ? 0.03 : 0;
   const draftBoost = draftBuilding ? 0.04 : 0;
   const centerY = bottom.y + footprintDepth * 0.38;
 
@@ -3506,8 +3597,10 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const { bottom, top, footprintWidth, footprintDepth, bodyColor, outline, activeStrokeAlpha } = geometry;
   // Unified sun: lower-left wall faces the sun, lower-right wall falls into
   // cool shade. Same factors for every building in the scene.
-  const sideLeft = sunlitColor(bodyColor, "sun");
-  const sideRight = sunlitColor(bodyColor, "shade");
+  // 0.68H — walls use the building-face curve so the lit wall stays pigmented
+  // (the old near-white lift is what the post-grade rolloff turned milky).
+  const sideLeft = buildingFaceColor(bodyColor, "sun");
+  const sideRight = buildingFaceColor(bodyColor, "shade");
   const topLeft = { x: top.x - footprintWidth / 2, y: top.y };
   const topRight = { x: top.x + footprintWidth / 2, y: top.y };
   const topFront = { x: top.x, y: top.y + footprintDepth / 2 };
@@ -3579,15 +3672,17 @@ function drawTieredMassing(layer: Container, geometry: BuildingGeometry, buildin
     const tF = { x: apex.x, y: apex.y + halfD };
     const tR = { x: apex.x + halfW, y: apex.y };
 
+    // 0.68H — crown tiers follow the building-face curve so they hold the
+    // same three-value read as the shell below them.
     const litWall = new Graphics()
       .poly([tL.x, tL.y, tF.x, tF.y, bF.x, bF.y, bL.x, bL.y], true)
-      .fill({ color: sunlitColor(bodyColor, "sun"), alpha: 0.98 });
+      .fill({ color: buildingFaceColor(bodyColor, "sun"), alpha: 0.98 });
     const shadeWall = new Graphics()
       .poly([tR.x, tR.y, tF.x, tF.y, bF.x, bF.y, bR.x, bR.y], true)
-      .fill({ color: sunlitColor(bodyColor, "shade"), alpha: 0.98 });
+      .fill({ color: buildingFaceColor(bodyColor, "shade"), alpha: 0.98 });
     // Hero caps hold a deeper roof tone so they stay saturated instead of
     // blowing out toward white next to the sunlit cream walls.
-    const capTone = hero ? sunlitColor(shadeColor(roofColor, -12), "top") : sunlitColor(roofColor, "top");
+    const capTone = hero ? buildingFaceColor(shadeColor(roofColor, -12), "top") : buildingFaceColor(roofColor, "top");
     const cap = polygon(diamondPoints(apex, tierW, tierD), capTone, 0.99, 0x26332c, hero ? 0.55 : 0.4);
     const crown = new Graphics().moveTo(tL.x, tL.y).lineTo(apex.x, apex.y - halfD).lineTo(tR.x, tR.y);
     crown.stroke({ color: mixColor(shadeColor(roofColor, 42), SUN_WARM_TINT, 0.2), alpha: 0.85, width: 1.5, cap: "round", join: "round" });
@@ -3624,29 +3719,41 @@ function drawStorefrontBase(layer: Container, geometry: BuildingGeometry, buildi
   const recess = shadeColor(bodyColor, -30);
 
   // Left (sun) + right (shade) lower-wall quads.
+  // 0.68H — the base storey commits to opaque recessed material (the old
+  // half-alpha bands averaged with the wall into haze), and the broad glazing
+  // sheen becomes a thin field plus dark mullion rhythm: material, not milk.
   const leftBand = new Graphics()
     .poly([top.x - halfW, bandY(top.y), top.x, bandY(top.y + halfD), top.x, bottom.y + halfD, top.x - halfW, bottom.y], true)
-    .fill({ color: sunlitColor(recess, "sun"), alpha: 0.55 });
+    .fill({ color: buildingFaceColor(recess, "sun"), alpha: 0.68 });
   const rightBand = new Graphics()
     .poly([top.x + halfW, bandY(top.y), top.x, bandY(top.y + halfD), top.x, bottom.y + halfD, top.x + halfW, bottom.y], true)
-    .fill({ color: sunlitColor(recess, "shade"), alpha: 0.6 });
-  // Glazing sheen on the sun side + a canopy lip line where the band starts.
+    .fill({ color: buildingFaceColor(recess, "shade"), alpha: 0.72 });
   const glazing = new Graphics()
     .poly([top.x - halfW * 0.9, bandY(top.y) + wallSpan * 0.06, top.x - halfW * 0.06, bandY(top.y + halfD * 0.9) + wallSpan * 0.06, top.x - halfW * 0.06, bottom.y + halfD * 0.86, top.x - halfW * 0.9, bottom.y - wallSpan * 0.02], true)
-    .fill({ color: glassTone, alpha: civic ? 0.16 : 0.2 });
+    .fill({ color: glassTone, alpha: civic ? 0.1 : 0.12 });
+  const mullions = new Graphics();
+  for (let mullion = 1; mullion <= 3; mullion += 1) {
+    const u = mullion / 4;
+    const x = top.x - halfW * (0.9 - 0.84 * u);
+    const lift = halfD * 0.9 * u;
+    mullions
+      .moveTo(x, bandY(top.y) + wallSpan * 0.06 + lift)
+      .lineTo(x, bottom.y - wallSpan * 0.02 + lift * 0.96);
+  }
+  mullions.stroke({ color: shadeColor(recess, -22), alpha: 0.34, width: 1, cap: "round" });
   const canopy = new Graphics()
     .moveTo(top.x - halfW, bandY(top.y))
     .lineTo(top.x, bandY(top.y + halfD))
     .lineTo(top.x + halfW, bandY(top.y));
   canopy.stroke({ color: mixColor(shadeColor(bodyColor, 30), SUN_WARM_TINT, 0.16), alpha: 0.7, width: 1.6, cap: "round", join: "round" });
-  layer.addChild(leftBand, rightBand, glazing, canopy);
+  layer.addChild(leftBand, rightBand, glazing, mullions, canopy);
 }
 
 // Ambient occlusion + rim light for the box shell: dark gradient bands where
 // the walls meet the ground, a darkened seam on the front corner, and a warm
 // rim on the sun-facing top edge.
 function drawBuildingShellLighting(layer: Container, geometry: BuildingGeometry) {
-  const { bottom, top, footprintWidth, footprintDepth, height } = geometry;
+  const { bottom, top, footprintWidth, footprintDepth, height, bodyColor } = geometry;
   const halfW = footprintWidth / 2;
   const halfD = footprintDepth / 2;
   const topFront = { x: top.x, y: top.y + halfD };
@@ -3668,16 +3775,20 @@ function drawBuildingShellLighting(layer: Container, geometry: BuildingGeometry)
         true,
       )
       .fill({ color: 0x18262e, alpha });
+  // 0.68H — firmer ground-contact bands: the wall-to-ground seam is the cue
+  // that separates a standing mass from a flat decal, so it darkens slightly.
   const aoTall = Math.max(4, Math.min(height * 0.22, 12));
-  layer.addChild(aoBand(aoTall, 0.13), aoBand(aoTall * 0.5, 0.15));
+  layer.addChild(aoBand(aoTall, 0.16), aoBand(aoTall * 0.5, 0.18));
 
   const cornerSeam = new Graphics().moveTo(topFront.x, topFront.y).lineTo(bottomFront.x, bottomFront.y);
-  cornerSeam.stroke({ color: 0x18262e, alpha: 0.2, width: 1.2, cap: "round" });
+  cornerSeam.stroke({ color: 0x18262e, alpha: 0.26, width: 1.2, cap: "round" });
 
+  // 0.68H — the sun rim derives from the wall pigment instead of near-white,
+  // so the lit top edge reads warm without feeding the milky highlight band.
   const rim = new Graphics().moveTo(top.x - halfW, top.y).lineTo(topFront.x, topFront.y);
-  rim.stroke({ color: 0xfff4d6, alpha: 0.7, width: 1.7, cap: "round" });
+  rim.stroke({ color: mixColor(shadeColor(bodyColor, 52), SUN_WARM_TINT, 0.34), alpha: 0.6, width: 1.6, cap: "round" });
   const shadeEdge = new Graphics().moveTo(topFront.x, topFront.y).lineTo(top.x + halfW, top.y);
-  shadeEdge.stroke({ color: 0x1a2c37, alpha: 0.38, width: 1.5, cap: "round" });
+  shadeEdge.stroke({ color: 0x1a2c37, alpha: 0.46, width: 1.5, cap: "round" });
   layer.addChild(cornerSeam, rim, shadeEdge);
 }
 
@@ -3761,7 +3872,9 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   const { top, footprintWidth, footprintDepth, roofColor, outline, activeStrokeAlpha } = geometry;
   const roofShape = building.roofShape ?? "flat";
   // Roofs are the brightest surfaces in the scene: lit from above by the sun.
-  const roof = polygon(diamondPoints(top, footprintWidth, footprintDepth), sunlitColor(roofColor, "top"), 0.99, outline, hovered || selected ? 0.92 : activeStrokeAlpha);
+  // 0.68H — brightest but still pigmented: the building-face top curve keeps
+  // roof color identity instead of riding the rolloff into paper white.
+  const roof = polygon(diamondPoints(top, footprintWidth, footprintDepth), buildingFaceColor(roofColor, "top"), 0.99, outline, hovered || selected ? 0.46 : activeStrokeAlpha);
   layer.addChild(roof);
 
   // Sun-facing upper-left roof edge catches a warm rim; the lower-right edge
@@ -3772,20 +3885,23 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   // the sun-side half lifts warm, the fall-away half cools, so every roof
   // reads directional under the same key light as the walls. Deliberately
   // faint — this is the ROOF light finish, not the 0.54E whole-canvas grade.
+  // 0.68H — the shade half firms up so the roof plane itself reads tilted
+  // toward the sun, and the sun rim derives from the roof pigment instead of
+  // a near-white stroke (white rims fed the milky highlight band).
   const roofLitHalf = new Graphics()
     .poly([top.x, top.y - halfD, top.x, top.y + halfD, top.x - halfW, top.y], true)
     .fill({ color: 0xfff3d2, alpha: 0.09 });
   const roofShadeHalf = new Graphics()
     .poly([top.x, top.y - halfD, top.x, top.y + halfD, top.x + halfW, top.y], true)
-    .fill({ color: 0x2c4a5e, alpha: 0.08 });
+    .fill({ color: 0x2c4a5e, alpha: 0.13 });
   const roofRim = new Graphics()
     .moveTo(top.x - halfW, top.y)
     .lineTo(top.x, top.y - halfD);
-  roofRim.stroke({ color: 0xfff3d2, alpha: 0.68, width: 1.8, cap: "round", join: "round" });
+  roofRim.stroke({ color: mixColor(shadeColor(roofColor, 50), SUN_WARM_TINT, 0.3), alpha: 0.62, width: 1.7, cap: "round", join: "round" });
   const roofFall = new Graphics()
     .moveTo(top.x, top.y - halfD)
     .lineTo(top.x + halfW, top.y);
-  roofFall.stroke({ color: shadeColor(roofColor, -52), alpha: 0.5, width: 1.4, cap: "round", join: "round" });
+  roofFall.stroke({ color: shadeColor(roofColor, -52), alpha: 0.58, width: 1.5, cap: "round", join: "round" });
   layer.addChild(roofLitHalf, roofShadeHalf, roofRim, roofFall);
 
   const lines = new Graphics();
@@ -3846,12 +3962,13 @@ function drawParapetCap(layer: Container, geometry: BuildingGeometry, building: 
   const right = { x: top.x + halfW, y: top.y };
 
   // Two lit-vs-shade parapet wall faces standing up from the front edges.
+  // 0.68H — parapet faces ride the building-face curve like the walls below.
   const litFace = new Graphics()
     .poly([left.x, left.y, front.x, front.y, front.x, front.y - lift, left.x, left.y - lift], true)
-    .fill({ color: sunlitColor(shadeColor(roofColor, -6), "sun"), alpha: 0.9 });
+    .fill({ color: buildingFaceColor(shadeColor(roofColor, -6), "sun"), alpha: 0.9 });
   const shadeFace = new Graphics()
     .poly([front.x, front.y, right.x, right.y, right.x, right.y - lift, front.x, front.y - lift], true)
-    .fill({ color: sunlitColor(shadeColor(roofColor, -6), "shade"), alpha: 0.92 });
+    .fill({ color: buildingFaceColor(shadeColor(roofColor, -6), "shade"), alpha: 0.92 });
   // Bright coping line along the top of the parapet + a warm sunlit front corner.
   const coping = new Graphics()
     .moveTo(left.x, left.y - lift)
@@ -3962,11 +4079,14 @@ function drawRoofMaterial(layer: Container, geometry: BuildingGeometry, building
   const dark = shadeColor(roofColor, -38);
   const light = shadeColor(roofColor, 24);
 
+  // 0.68H — the eave line where the roof meets the two front walls is the
+  // strongest top/left/right separator a box has; it darkens from a whisper
+  // to a firm contact stroke (still roof-pigment dark, never a white outline).
   detail
     .moveTo(top.x - footprintWidth * 0.5, top.y)
     .lineTo(top.x, top.y + footprintDepth * 0.5)
     .lineTo(top.x + footprintWidth * 0.5, top.y)
-    .stroke({ color: dark, alpha: 0.22, width: 2.2, cap: "round", join: "round" });
+    .stroke({ color: dark, alpha: 0.38, width: 2.2, cap: "round", join: "round" });
 
   if (roofShape === "gable") {
     detail
@@ -5338,7 +5458,7 @@ function drawDraftSoCalFacadeMaterial(layer: Container, geometry: BuildingGeomet
   layer.addChild(roofPanels, stuccoFacet, baseCourse);
 }
 
-function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarget[], atlas: CityWorldAtlasResolver) {
+function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarget[], atlas: CityWorldAtlasResolver, calm = 1) {
   const point = project(prop.position);
   const asset = atlas.resolveAsset(prop.spriteKey, prop.paletteKey, "prop");
   const baseColor = colorToNumber(asset.palette.colors.base);
@@ -5379,6 +5499,9 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
         .fill({ color: mixColor(highlight, SUN_WARM_TINT, 0.4), alpha: 0.3 });
     }
     tree.stroke({ color: 0x26332c, alpha: 0.26, width: 1 });
+    // Trees stay planted in the focal ring but yield opacity so they never
+    // obscure the hero building's face separation.
+    tree.alpha = Math.max(calm, 0.7);
     layer.addChild(tree);
     return;
   }
@@ -5390,7 +5513,7 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
       .stroke({ color: shade, alpha: 0.8, width: 2 })
       .circle(point.x, point.y - 14, 4)
       .fill({ color: highlight, alpha: 0.9 });
-    animated.push({ target: fountain, kind: "water", path: [], speed: 0.025, phase: prop.variant * 0.2, baseAlpha: 0.78, origin: point });
+    animated.push({ target: fountain, kind: "water", path: [], speed: 0.025, phase: prop.variant * 0.2, baseAlpha: 0.78 * calm, origin: point });
     layer.addChild(fountain);
     return;
   }
@@ -5402,14 +5525,13 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
       .moveTo(point.x - 18, point.y + 9)
       .lineTo(point.x + 22, point.y + 9);
     shimmer.stroke({ color: highlight, alpha: 0.54, width: 2, cap: "round" });
-    animated.push({ target: shimmer, kind: "water", path: [], speed: 0.02, phase: prop.variant * 0.35, baseAlpha: 0.52, origin: point });
+    animated.push({ target: shimmer, kind: "water", path: [], speed: 0.02, phase: prop.variant * 0.35, baseAlpha: 0.52 * calm, origin: point });
     layer.addChild(shimmer);
     return;
   }
 
   if (prop.kind === "streetlight") {
-    layer.addChild(
-      new Graphics()
+    const streetlight = new Graphics()
         .ellipse(point.x, point.y - 1, 6, 2.5)
         .fill({ color: 0x23342e, alpha: 0.16 })
         .rect(point.x - 1.2, point.y - 22, 2.4, 20)
@@ -5419,8 +5541,9 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
         .circle(point.x + 2, point.y - 24, 4)
         .fill({ color: highlight, alpha: 0.92 })
         .circle(point.x + 2, point.y - 24, 9)
-        .fill({ color: highlight, alpha: 0.08 }),
-    );
+        .fill({ color: highlight, alpha: 0.08 });
+    streetlight.alpha = calm;
+    layer.addChild(streetlight);
     return;
   }
 
@@ -5436,25 +5559,25 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
       .rect(point.x + 7, point.y - 5, 2, 6)
       .fill({ color: accent, alpha: 0.82 })
       .stroke({ color: 0x26332c, alpha: 0.28, width: 1 });
+    bench.alpha = calm;
     layer.addChild(bench);
     return;
   }
 
   if (prop.kind === "parked_car") {
-    layer.addChild(
-      drawSmallCarGraphic(point, PARKED_CAR_COLORS[prop.variant % PARKED_CAR_COLORS.length] ?? baseColor, prop.variant % 2 === 0 ? "east-west" : "north-south", {
-        windowColor: highlight,
-        lightColor: accent,
-        outlineColor: shade,
-      }),
-    );
+    const parkedCar = drawSmallCarGraphic(point, PARKED_CAR_COLORS[prop.variant % PARKED_CAR_COLORS.length] ?? baseColor, prop.variant % 2 === 0 ? "east-west" : "north-south", {
+      windowColor: highlight,
+      lightColor: accent,
+      outlineColor: shade,
+    });
+    parkedCar.alpha = calm;
+    layer.addChild(parkedCar);
     return;
   }
 
   if (prop.kind === "sign") {
     const boardColor = prop.variant % 3 === 0 ? baseColor : prop.variant % 3 === 1 ? accent : highlight;
-    layer.addChild(
-      new Graphics()
+    const signBoard = new Graphics()
         .ellipse(point.x, point.y - 1, 8, 3)
         .fill({ color: 0x23342e, alpha: 0.16 })
         .rect(point.x - 1, point.y - 20, 2, 20)
@@ -5463,8 +5586,9 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
         .fill({ color: boardColor, alpha: 0.95 })
         .moveTo(point.x - 8, point.y - 25)
         .lineTo(point.x + 8, point.y - 25)
-        .stroke({ color: 0x26332c, alpha: 0.65, width: 1.5 }),
-    );
+        .stroke({ color: 0x26332c, alpha: 0.65, width: 1.5 });
+    signBoard.alpha = calm;
+    layer.addChild(signBoard);
     return;
   }
 
@@ -5479,7 +5603,7 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
   }
 }
 
-function drawActor(layer: Container, actor: CityWorldActor, animated: AnimatedTarget[], atlas: CityWorldAtlasResolver) {
+function drawActor(layer: Container, actor: CityWorldActor, animated: AnimatedTarget[], atlas: CityWorldAtlasResolver, calm = 1) {
   if (actor.kind === "clawd") return;
 
   const point = project(actor.position);
@@ -5515,13 +5639,18 @@ function drawActor(layer: Container, actor: CityWorldActor, animated: AnimatedTa
       .stroke({ color: shade, alpha: 0.64, width: 1.5, cap: "round" });
   }
 
+  // 0.67H — actors are ambience, not focal objects: knock the whole graphic
+  // below full opacity so walkers and cars never compete with building faces,
+  // and dim further inside the focal anchor's calm ring.
+  graphic.alpha = 0.8 * calm;
+
   animated.push({
     target: graphic,
     kind: actor.kind,
     path: actor.path,
     speed: actor.speed,
     phase: actor.phase,
-    baseAlpha: 0.92,
+    baseAlpha: 0.8 * calm,
     origin: point,
   });
   layer.addChild(graphic);
@@ -5580,12 +5709,17 @@ function drawPlaceMarker(
   const hovered = place.id === hoverPlaceId;
   const landmarkFocus = selected && place.kind === "landmark";
   const markerPoint = landmarkFocus ? { x: point.x, y: point.y + 20 } : point;
-  const radius = selected ? (landmarkFocus ? 24 : 30) : hovered ? 27 : 22;
+  // 0.67H marker quieting — the ring is a ground-contact indicator, not a
+  // glow: smaller, warm-neutral, and held near the shadow floor so the
+  // building silhouette stays the loudest thing at the anchor. The pulse
+  // baseAlpha drives the visible intensity every frame, so it is the value
+  // that must stay low.
+  const radius = selected ? (landmarkFocus ? 18 : 22) : hovered ? 20 : 16;
   const ring = new Graphics()
     .ellipse(markerPoint.x, markerPoint.y - 4, radius, radius * 0.48)
-    .fill({ color: selected ? 0xfff2a6 : 0xffffff, alpha: landmarkFocus ? 0.2 : selected ? 0.26 : hovered ? 0.2 : 0.04 })
-    .stroke({ color: selected ? 0xffe16c : hovered ? 0xffffff : 0x1f362f, alpha: selected || hovered ? 0.8 : 0.12, width: landmarkFocus ? 2.2 : selected ? 3 : 2 });
-  animated.push({ target: ring, kind: "pulse", path: [], speed: 0.02, phase: place.activity, baseAlpha: selected || hovered ? 0.72 : 0.22, origin: markerPoint });
+    .fill({ color: selected ? 0xe9d9ac : 0xf3ecd8, alpha: selected ? 0.12 : hovered ? 0.09 : 0.03 })
+    .stroke({ color: selected ? 0xb99c5f : hovered ? 0xcdbf9c : 0x33443b, alpha: selected || hovered ? 0.44 : 0.08, width: selected ? 1.4 : 1.2 });
+  animated.push({ target: ring, kind: "pulse", path: [], speed: 0.02, phase: place.activity, baseAlpha: selected || hovered ? 0.32 : 0.07, origin: markerPoint });
   layer.addChild(ring);
 
   const hit = new Graphics().circle(markerPoint.x, markerPoint.y - 12, place.hitRadius * 13).fill({ color: 0xffffff, alpha: 0.001 });
@@ -5601,10 +5735,13 @@ function drawPin(layer: Container, pin: CityWorldPin, atlas: CityWorldAtlasResol
   const point = project(pin.anchor);
   const pinPoint = offsetPinPoint(point, pin);
   const asset = atlas.resolveAsset(pin.spriteKey, pin.paletteKey, "marker");
+  // 0.67H — pins on the focal landmark shrink so the sticker never owns the
+  // silhouette it annotates.
+  const focalPin = pin.placeId === "place-eastvale-core";
   if (asset.mode === "sprite") {
     const sprite = new Sprite(asset.texture);
     sprite.anchor.set(asset.anchor.x, asset.anchor.y);
-    sprite.scale.set(asset.scale);
+    sprite.scale.set(asset.scale * (focalPin ? 0.8 : 1));
     sprite.position.set(pinPoint.x, pinPoint.y + 1);
     sprite.label = `sprite-${pin.id}`;
     layer.addChild(sprite);
@@ -5614,28 +5751,31 @@ function drawPin(layer: Container, pin: CityWorldPin, atlas: CityWorldAtlasResol
   const shade = colorToNumber(asset.palette.colors.shade);
   const highlight = colorToNumber(asset.palette.colors.highlight);
   const badge = new Graphics()
-    .poly([pinPoint.x, pinPoint.y - 2, pinPoint.x - 6, pinPoint.y - 10, pinPoint.x + 6, pinPoint.y - 10], true)
+    .poly([pinPoint.x, pinPoint.y - 2, pinPoint.x - 5, pinPoint.y - 8, pinPoint.x + 5, pinPoint.y - 8], true)
     .fill({ color: shade, alpha: 0.86 })
-    .circle(pinPoint.x, pinPoint.y - 18, 11)
+    .circle(pinPoint.x, pinPoint.y - 15, 9)
     .fill({ color, alpha: 0.98 })
-    .circle(pinPoint.x - 3.5, pinPoint.y - 22, 2.4)
+    .circle(pinPoint.x - 3, pinPoint.y - 18.5, 2)
     .fill({ color: highlight, alpha: 0.34 })
-    .stroke({ color: shade, alpha: 0.75, width: 1.8 });
+    .stroke({ color: shade, alpha: 0.7, width: 1.5 });
   const label = new Text({
     text: pin.kind === "note" ? "N" : stickerGlyph(pin.kind),
-    style: { fill: shade, fontFamily: "Arial", fontSize: 10, fontWeight: "900" },
+    style: { fill: shade, fontFamily: "Arial", fontSize: 9, fontWeight: "900" },
   });
   label.anchor.set(0.5);
-  label.position.set(pinPoint.x, pinPoint.y - 18);
+  label.position.set(pinPoint.x, pinPoint.y - 15);
   layer.addChild(badge, label);
 }
 
+// 0.67H — focal-landmark pins slide off the facade toward the plinth apron:
+// lower and further out than before, so the badge reads as a ground sticker
+// beside the building instead of landing on the landmark silhouette.
 function offsetPinPoint(point: ProjectedPoint, pin: CityWorldPin): ProjectedPoint {
   if (pin.placeId !== "place-eastvale-core") return point;
 
-  if (pin.kind === "note") return { x: point.x + 28, y: point.y + 2 };
-  if (pin.kind === "favorite") return { x: point.x - 24, y: point.y + 5 };
-  return { x: point.x + 4, y: point.y + 22 };
+  if (pin.kind === "note") return { x: point.x + 30, y: point.y + 14 };
+  if (pin.kind === "favorite") return { x: point.x - 30, y: point.y + 16 };
+  return { x: point.x + 6, y: point.y + 26 };
 }
 
 // 0.56E — a place label must never erase the architecture it names: the lift
@@ -5652,28 +5792,42 @@ function placeCrownLiftMap(buildings: CityWorldBuilding[]): Map<string, number> 
   return lift;
 }
 
-function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId: string, hoverPlaceId: string | undefined, crownLift?: number) {
+function drawPlaceLabel(
+  layer: Container,
+  place: CityWorldPlace,
+  selectedPlaceId: string,
+  hoverPlaceId: string | undefined,
+  ambientLabelIds: ReadonlySet<string>,
+  crownLift?: number,
+) {
   const selected = place.id === selectedPlaceId;
   const hovered = place.id === hoverPlaceId;
-  if (!selected && !hovered && place.labelPriority < 7) return;
+  // 0.67H label demotion — a board of always-on pills read as a debug map.
+  // Only the selected/hovered place plus the capped ambient allowance (none on
+  // mobile, two on desktop) keep a label, and every label is smaller and
+  // quieter so building crowns own the frame.
+  if (!selected && !hovered && !ambientLabelIds.has(place.id)) return;
 
   const point = project(place.anchor);
   const landmarkFocus = selected && place.kind === "landmark";
   const text = new Text({
     text: place.label,
     style: {
-      fill: 0x1f2d28,
+      fill: 0x2c3a33,
       fontFamily: "Arial",
-      fontSize: landmarkFocus ? 12 : selected || hovered ? 13 : 11,
-      fontWeight: "900",
-      stroke: { color: 0xfff8e7, width: 4 },
+      fontSize: landmarkFocus ? 10 : selected || hovered ? 11 : 10,
+      fontWeight: "700",
+      stroke: { color: 0xfff8e7, width: 3 },
     },
   });
   text.anchor.set(0.5);
-  const baseLift = landmarkFocus ? 70 : selected || hovered ? 55 : 44;
-  text.position.set(point.x + (landmarkFocus ? -28 : 0), point.y - Math.max(baseLift, crownLift ?? 0));
-  const paddingX = landmarkFocus ? 8 : 7;
-  const paddingY = landmarkFocus ? 3 : 4;
+  // Selected landmark labels slide further off the roof axis instead of
+  // rising higher; the crown clearance gets a small margin so the backing
+  // never touches the crown cap.
+  const baseLift = landmarkFocus ? 70 : selected || hovered ? 52 : 44;
+  text.position.set(point.x + (landmarkFocus ? -44 : 0), point.y - Math.max(baseLift, (crownLift ?? 0) + 6));
+  const paddingX = landmarkFocus ? 6 : 5;
+  const paddingY = landmarkFocus ? 2.5 : 3;
   const backing = new Graphics()
     .roundRect(
       text.position.x - text.width / 2 - paddingX,
@@ -5682,8 +5836,8 @@ function drawPlaceLabel(layer: Container, place: CityWorldPlace, selectedPlaceId
       text.height + paddingY * 2,
       4,
     )
-    .fill({ color: 0xfff7df, alpha: selected || hovered ? 0.78 : 0.58 })
-    .stroke({ color: 0x26332c, alpha: selected || hovered ? 0.24 : 0.14, width: 1 });
+    .fill({ color: 0xfff7df, alpha: selected || hovered ? 0.5 : 0.34 })
+    .stroke({ color: 0x26332c, alpha: selected || hovered ? 0.12 : 0.08, width: 1 });
   layer.addChild(backing, text);
 }
 
@@ -5705,7 +5859,7 @@ function animateTargets(targets: AnimatedTarget[], delta: number) {
     } else if (item.kind === "walker") {
       item.target.y += Math.sin(elapsed * 4 + item.phase * 5) * 0.05;
     } else if (item.kind === "pulse") {
-      item.target.alpha = item.baseAlpha + Math.sin(elapsed * 2 + item.phase * 4) * 0.1;
+      item.target.alpha = item.baseAlpha + Math.sin(elapsed * 2 + item.phase * 4) * 0.05;
     }
   }
 }
@@ -5782,6 +5936,19 @@ function sunlitColor(color: number, face: SunFace): number {
   if (face === "top") return mixColor(scaleColor(color, 1.22), SUN_WARM_TINT, 0.15);
   if (face === "sun") return mixColor(scaleColor(color, 1.12), SUN_WARM_TINT, 0.12);
   return mixColor(scaleColor(color, 0.4), SUN_COOL_TINT, 0.32);
+}
+
+// 0.68H face/material read — building faces get their own light response,
+// separate from terrain/props (sunlitColor). The global curve pushed lit walls
+// and roofs to near-white luma, where the 0.54E highlight rolloff grades them
+// into one milky paper tone — that is the "flat/milky planes" read. Building
+// faces keep more of their own pigment: a bright-but-saturated top, a warm mid
+// sun wall, and a firmly darker cool shade wall — three distinct values per
+// box, separated by tone instead of outlines.
+function buildingFaceColor(color: number, face: SunFace): number {
+  if (face === "top") return mixColor(scaleColor(color, 1.12), SUN_WARM_TINT, 0.08);
+  if (face === "sun") return mixColor(scaleColor(color, 1.04), SUN_WARM_TINT, 0.09);
+  return mixColor(scaleColor(color, 0.52), SUN_COOL_TINT, 0.24);
 }
 
 function stickerGlyph(kind: CityWorldPin["kind"]): string {

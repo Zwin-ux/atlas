@@ -111,7 +111,7 @@ test("free Alpha stays session-only when persistence is off", async () => {
   });
   const context = service.getContext({});
   assert.equal(context.screenState, "waitlist");
-  assert.equal(context.sessionBoundary, "Session-only until Hosted Clawd is live.");
+  assert.equal(context.sessionBoundary, "This chat is temporary.");
   const response = await service.createOrAttachClawd({ businessName: "Test Gym" });
   assert.equal(response.status, "waitlist");
   assert.equal(response.reason, "persistence_not_enabled");

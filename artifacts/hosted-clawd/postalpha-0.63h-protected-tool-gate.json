@@ -1,0 +1,55 @@
+{
+  "update": "postalpha-0.63h-hosted-clawd-protected-tool-gate",
+  "decision": "PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION",
+  "branch": "codex/integrate-hosted-clawd-fable-058e",
+  "inputUpdate": "postalpha-0.62h-hosted-clawd-stripe-test-billing",
+  "protectedGate": {
+    "protectedOperations": [
+      "promote_session",
+      "save_campaign_artifact"
+    ],
+    "setupOperationStillOpen": "create_or_attach_clawd",
+    "checkoutOperationStillOpen": "start_checkout",
+    "subscriptionTruth": "repository_webhook_state",
+    "clientSubscriptionStatusTrusted": false,
+    "activeStatusRequiredForPaidWrites": true,
+    "returnUrlGrantsAccess": false,
+    "inactiveStates": [
+      "none",
+      "activating",
+      "inactive",
+      "payment_failed"
+    ]
+  },
+  "toolSurface": {
+    "publicToolCount": 7,
+    "newMcpTools": 0,
+    "publicToolsRemain": [
+      "select_county",
+      "ask_county_question",
+      "render_voxel_county",
+      "lookup_world_places",
+      "preview_scout_drop",
+      "preview_campaign_engine",
+      "get_upgrade_options"
+    ]
+  },
+  "proof": {
+    "service": "server/src/hostedClawd/service.ts",
+    "repository": "server/src/hostedClawd/repository.ts",
+    "types": "server/src/hostedClawd/types.ts",
+    "tests": "server/test/hosted-clawd-protected-tool-gate.test.ts",
+    "verifier": "scripts/verify-hosted-clawd-protected-tool-gate.mjs"
+  },
+  "antiScope": [
+    "No new public MCP tools",
+    "No client-trusted subscriptionStatus",
+    "No access grant from Stripe return URLs",
+    "No public paid launch claims",
+    "No pricing page or dashboard shell",
+    "No evidence, XP, reports, exports, or automation",
+    "No public Anaheim/Ontario exposure",
+    "No provider-created geometry or renderer geometry changes"
+  ],
+  "nextQuest": "0.64H Saved Hosted Clawd Read Surface"
+}

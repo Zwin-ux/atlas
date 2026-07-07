@@ -3,6 +3,7 @@ import {
   CALIFORNIA_COUNTY_INDEX,
   CALIFORNIA_DISTRICT_CANDIDATE_PACK,
   FIRST_CALIFORNIA_SECOND_DISTRICT_CANDIDATE,
+  US_COUNTY_INDEX,
   createNationalWorldService,
   futureHostedClawdBoundaryDto,
   hiddenDraftEvidenceBoundaryDto,
@@ -19,9 +20,20 @@ describe("NationalWorldService", () => {
 
     expect(country.type).toBe("usWorldCountry");
     expect(country.country).toMatchObject({ id: "us", scope: "country" });
-    expect(country.states).toHaveLength(1);
-    expect(country.states[0]).toMatchObject({ stateCode: "CA", indexedCountyCount: 58, supportedCountyCount: 58, playableCountyCount: 1 });
-    expect(country.cache.sourceNotes[0]?.source).toBe("curated");
+    expect(country.states).toHaveLength(52);
+    expect(country.states.find((state) => state.stateCode === "CA")).toMatchObject({
+      label: "California",
+      indexedCountyCount: 58,
+      supportedCountyCount: 58,
+      playableCountyCount: 1,
+    });
+    expect(country.states.find((state) => state.stateCode === "IL")).toMatchObject({
+      label: "Illinois",
+      indexedCountyCount: 102,
+      supportedCountyCount: 102,
+      playableCountyCount: 0,
+    });
+    expect(country.cache.sourceNotes[0]?.source).toBe("census");
   });
 
   it("lists the California county coverage index", () => {
@@ -54,20 +66,20 @@ describe("NationalWorldService", () => {
 
     expect(directory.type).toBe("usWorldCoverageDirectory");
     expect(directory.totals).toMatchObject({
-      stateCount: 1,
-      indexedCountyCount: 58,
-      supportedCountyCount: 58,
+      stateCount: 52,
+      indexedCountyCount: 3222,
+      supportedCountyCount: 3222,
       playableCountyCount: 1,
-      shellCountyCount: 57,
+      shellCountyCount: 3221,
       providerNormalizedCountyCount: 0,
       publicQualityCountyCount: 0,
       indexedUnsupportedCountyCount: 0,
     });
-    expect(directory.tiers.find((tier) => tier.coverageTier === "L1_COUNTY_SHELL")).toMatchObject({ countyCount: 57 });
+    expect(directory.tiers.find((tier) => tier.coverageTier === "L1_COUNTY_SHELL")).toMatchObject({ countyCount: 3221 });
     expect(directory.tiers.find((tier) => tier.coverageTier === "L2_CURATED_DISTRICT")).toMatchObject({ countyCount: 1 });
     expect(directory.playableCounties.map((county) => county.countySlug)).toEqual(["riverside-ca"]);
     expect(directory.suggestedNextCountySlug).toBe("riverside-ca");
-    expect(directory.limitations.join(" ")).toContain("Only Riverside County");
+    expect(directory.limitations.join(" ")).toContain("Non-Riverside counties are browse-only shells");
     expect(directory.cache.sourceNotes[0]?.source).toBe("census");
   });
 
@@ -124,6 +136,27 @@ describe("NationalWorldService", () => {
       }),
     ]);
     expect(orange.cache.sourceNotes[0]?.source).toBe("census");
+  });
+
+  it("returns national shell counties without Riverside data bleed", () => {
+    const samples = [
+      service.getCounty("cook-il"),
+      service.getCounty("miami-dade-fl"),
+      service.getCounty("maricopa-az"),
+    ];
+
+    for (const county of samples) {
+      expect(county.type).toBe("usWorldCounty");
+      expect(county.county).toMatchObject({
+        supported: true,
+        coverageTier: "L1_COUNTY_SHELL",
+        playableDistrictCount: 0,
+        placeCount: 0,
+      });
+      expect(county.districts).toEqual([]);
+      expect(county.cache.sourceNotes[0]?.source).toBe("census");
+    }
+    expect(samples.map((county) => county.county.countySlug)).toEqual(["cook-il", "miami-dade-fl", "maricopa-az"]);
   });
 
   it("keeps California candidate districts non-playable until curated", () => {
@@ -283,6 +316,12 @@ describe("NationalWorldService", () => {
     expect(CALIFORNIA_COUNTY_INDEX).toHaveLength(58);
     expect(new Set(CALIFORNIA_COUNTY_INDEX.map((county) => county.geoid)).size).toBe(58);
     expect(CALIFORNIA_COUNTY_INDEX.every((county) => county.stateCode === "CA")).toBe(true);
+    expect(US_COUNTY_INDEX).toHaveLength(3222);
+    expect(new Set(US_COUNTY_INDEX.map((county) => county.geoid)).size).toBe(3222);
+    expect(new Set(US_COUNTY_INDEX.map((county) => county.stateCode)).size).toBe(52);
+    expect(US_COUNTY_INDEX.find((county) => county.countySlug === "riverside-ca")).toMatchObject({
+      coverageTier: "L2_CURATED_DISTRICT",
+    });
   });
 
   it("normalizes curated and unknown place categories safely", () => {

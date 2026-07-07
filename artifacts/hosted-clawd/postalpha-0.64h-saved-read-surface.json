@@ -1,0 +1,79 @@
+{
+  "update": "postalpha-0.64h-hosted-clawd-saved-read-surface",
+  "quest": "0.64H Saved Hosted Clawd Read Surface",
+  "branch": "codex/integrate-hosted-clawd-fable-058e",
+  "inputUpdate": "postalpha-0.63h-hosted-clawd-protected-tool-gate",
+  "decision": "SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS",
+  "savedReadSurface": {
+    "internalHttpRoute": "/api/hosted-clawd/saved",
+    "trayQa": "hosted-clawd-saved-shelf",
+    "ownerScopedReads": true,
+    "readRequiresAuth": true,
+    "readScope": "atlas:hosted_clawd.read",
+    "writeScopeCanRead": true,
+    "readRequiresActiveSubscription": false,
+    "readsCreateRows": false,
+    "paymentFailedReadsRemainAvailable": true,
+    "publicToolCount": 7,
+    "newMcpTools": 0
+  },
+  "proof": {
+    "server": [
+      "server/src/hostedClawd/auth.ts",
+      "server/src/hostedClawd/types.ts",
+      "server/src/hostedClawd/repository.ts",
+      "server/src/hostedClawd/postgres.ts",
+      "server/src/hostedClawd/service.ts",
+      "server/src/index.ts"
+    ],
+    "web": [
+      "web/src/App.tsx",
+      "web/src/HostedClawdTray.tsx",
+      "web/src/styles.css",
+      "web/src/types.ts"
+    ],
+    "tests": [
+      "server/test/hosted-clawd-saved-read-surface.test.ts"
+    ],
+    "verifiers": [
+      "scripts/verify-hosted-clawd-saved-read-surface.mjs",
+      "scripts/verify-hosted-clawd-saved-read-browser.mjs",
+      "scripts/verify-alpha-rc-split.mjs",
+      "scripts/verify-atlas-source-of-truth-drift.mjs"
+    ],
+    "fableSidecar": "Claude Code fable read-only product/UI review aligned on one tray shelf, HTTP-only read route, no rows created by reads, and no eighth MCP tool.",
+    "stubAudit": "docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md",
+    "browserScreenshots": [
+      "artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/hosted-clawd-saved-read-desktop-1280x720.png",
+      "artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/hosted-clawd-saved-read-mobile-390x844.png"
+    ],
+    "humanReviewPacket": "artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/HUMAN_REVIEW_PACKET.md",
+    "inventory": "artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/inventory.json"
+  },
+  "scope": {
+    "readOnlySurface": true,
+    "persistedWritesAdded": false,
+    "newMcpTools": 0,
+    "publicPaidClaim": false,
+    "publicAnaheimPromotion": false,
+    "providerGeometry": false,
+    "rendererGeometryChanges": false,
+    "dashboardShell": false,
+    "pricingPage": false,
+    "reportsExportsEvidenceXpAutomation": false
+  },
+  "verification": [
+    "pnpm test:hosted-clawd-saved-read-surface",
+    "pnpm test:hosted-clawd-protected-tool-gate",
+    "pnpm test:hosted-clawd-billing",
+    "pnpm test:hosted-clawd",
+    "pnpm typecheck:starter",
+    "node scripts/verify-hosted-clawd-saved-read-surface.mjs",
+    "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-saved-read-surface --json-only",
+    "node scripts/verify-provider-boundaries.mjs --json-only",
+    "node scripts/verify-tool-result-shape.mjs --json-only",
+    "pnpm build:starter"
+  ],
+  "nextQuest": "0.65H Hosted Clawd Browser Proof"
+}

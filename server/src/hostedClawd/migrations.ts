@@ -63,9 +63,9 @@ export async function runHostedClawdMigrations(
   return result;
 }
 
-const isDirectRun = Boolean(
-  process.argv[1] && /migrations\.(ts|js|mjs|cjs)$/.test(process.argv[1].replaceAll("\\", "/")),
-);
+const isDirectRun = process.argv[1]
+  ? resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+  : false;
 
 if (isDirectRun) {
   const databaseUrl = process.env.DATABASE_URL?.trim();

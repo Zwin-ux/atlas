@@ -7,6 +7,8 @@ import {
   type HostedClawdClawdRecord,
   type HostedClawdRepository,
   type HostedClawdScoutDropRecord,
+  type HostedClawdStripeSubscriptionStatus,
+  type HostedClawdSubscriptionRecord,
   type HostedClawdUserRecord,
 } from "./repository.js";
 import type { HostedClawdSavedRecord } from "./types.js";
@@ -29,8 +31,43 @@ export function createPostgresHostedClawdRepository(pool: PoolLike): HostedClawd
          VALUES ($1, $2, $3)
          ON CONFLICT (oidc_subject)
          DO UPDATE SET email = COALESCE(EXCLUDED.email, users.email), updated_at = now()
-         RETURNING id, oidc_subject, email`,
+         RETURNING id, oidc_subject, email, stripe_customer_id`,
         [randomUUID(), oidcSubject, email ?? null],
+      );
+      return userFromRow(requireRow(rows[0], "users"));
+    },
+
+    async findUserByOidcSubject(oidcSubject) {
+      const { rows } = await pool.query(
+        `SELECT id, oidc_subject, email, stripe_customer_id FROM users WHERE oidc_subject = $1`,
+        [oidcSubject],
+      );
+      return rows[0] ? userFromRow(rows[0]) : null;
+    },
+
+    async findUserById(ownerUserId) {
+      const { rows } = await pool.query(
+        `SELECT id, oidc_subject, email, stripe_customer_id FROM users WHERE id = $1`,
+        [ownerUserId],
+      );
+      return rows[0] ? userFromRow(rows[0]) : null;
+    },
+
+    async findUserByStripeCustomerId(stripeCustomerId) {
+      const { rows } = await pool.query(
+        `SELECT id, oidc_subject, email, stripe_customer_id FROM users WHERE stripe_customer_id = $1`,
+        [stripeCustomerId],
+      );
+      return rows[0] ? userFromRow(rows[0]) : null;
+    },
+
+    async attachStripeCustomerToUser(ownerUserId, stripeCustomerId) {
+      const { rows } = await pool.query(
+        `UPDATE users
+         SET stripe_customer_id = $2, updated_at = now()
+         WHERE id = $1
+         RETURNING id, oidc_subject, email, stripe_customer_id`,
+        [ownerUserId, stripeCustomerId],
       );
       return userFromRow(requireRow(rows[0], "users"));
     },
@@ -159,6 +196,18 @@ export function createPostgresHostedClawdRepository(pool: PoolLike): HostedClawd
       return { record: scoutDropFromRow(requireRow(raced.rows[0], "scout_drops")), reused: true };
     },
 
+    async listScoutDropsForClawd(ownerUserId, clawdId) {
+      const { rows } = await pool.query(
+        `SELECT id, owner_user_id, clawd_id, business_profile_id, scout_preview_id, county_slug, source_note
+         FROM scout_drops
+         WHERE owner_user_id = $1 AND clawd_id = $2
+         ORDER BY created_at DESC, id DESC
+         LIMIT 8`,
+        [ownerUserId, clawdId],
+      );
+      return rows.map(scoutDropFromRow);
+    },
+
     async findScoutDropByPreviewId(ownerUserId, scoutPreviewId) {
       const { rows } = await pool.query(
         `SELECT id, owner_user_id, clawd_id, business_profile_id, scout_preview_id, county_slug, source_note
@@ -206,6 +255,18 @@ export function createPostgresHostedClawdRepository(pool: PoolLike): HostedClawd
       return { record: campaignFromRow(requireRow(raced.rows[0], "campaigns")), reused: true };
     },
 
+    async listCampaignDraftsForClawd(ownerUserId, clawdId) {
+      const { rows } = await pool.query(
+        `SELECT id, owner_user_id, clawd_id, business_profile_id, scout_drop_id, campaign_preview_id, summary, status
+         FROM campaigns
+         WHERE owner_user_id = $1 AND clawd_id = $2
+         ORDER BY created_at DESC, id DESC
+         LIMIT 8`,
+        [ownerUserId, clawdId],
+      );
+      return rows.map(campaignFromRow);
+    },
+
     async recordUsageEvent(ownerUserId, eventType, detail) {
       await pool.query(
         `INSERT INTO usage_events (id, owner_user_id, event_type, detail) VALUES ($1, $2, $3, $4)`,
@@ -234,6 +295,145 @@ export function createPostgresHostedClawdRepository(pool: PoolLike): HostedClawd
         [ownerUserId, operation, clientRequestId, JSON.stringify(records)],
       );
     },
+
+    async findSubscriptionForOwner(ownerUserId) {
+      const { rows } = await pool.query(
+        `SELECT id, owner_user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
+                stripe_product_id, status, current_period_start, current_period_end,
+                cancel_at_period_end, trial_end, last_invoice_id, last_payment_status,
+                updated_from_event_id
+         FROM hosted_clawd_subscriptions
+         WHERE owner_user_id = $1
+         ORDER BY updated_at DESC
+         LIMIT 1`,
+        [ownerUserId],
+      );
+      return rows[0] ? subscriptionFromRow(rows[0]) : null;
+    },
+
+    async findSubscriptionByStripeSubscriptionId(stripeSubscriptionId) {
+      const { rows } = await pool.query(
+        `SELECT id, owner_user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
+                stripe_product_id, status, current_period_start, current_period_end,
+                cancel_at_period_end, trial_end, last_invoice_id, last_payment_status,
+                updated_from_event_id
+         FROM hosted_clawd_subscriptions
+         WHERE stripe_subscription_id = $1`,
+        [stripeSubscriptionId],
+      );
+      return rows[0] ? subscriptionFromRow(rows[0]) : null;
+    },
+
+    async upsertSubscription(input) {
+      const { rows } = await pool.query(
+        `INSERT INTO hosted_clawd_subscriptions (
+           id, owner_user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
+           stripe_product_id, status, current_period_start, current_period_end,
+           cancel_at_period_end, trial_end, last_invoice_id, last_payment_status,
+           updated_from_event_id
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz, $9::timestamptz, $10, $11::timestamptz, $12, $13, $14)
+         ON CONFLICT (stripe_subscription_id)
+         DO UPDATE SET
+           owner_user_id = EXCLUDED.owner_user_id,
+           stripe_customer_id = EXCLUDED.stripe_customer_id,
+           stripe_price_id = EXCLUDED.stripe_price_id,
+           stripe_product_id = EXCLUDED.stripe_product_id,
+           status = EXCLUDED.status,
+           current_period_start = EXCLUDED.current_period_start,
+           current_period_end = EXCLUDED.current_period_end,
+           cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+           trial_end = EXCLUDED.trial_end,
+           last_invoice_id = COALESCE(EXCLUDED.last_invoice_id, hosted_clawd_subscriptions.last_invoice_id),
+           last_payment_status = COALESCE(EXCLUDED.last_payment_status, hosted_clawd_subscriptions.last_payment_status),
+           updated_from_event_id = EXCLUDED.updated_from_event_id,
+           updated_at = now()
+         RETURNING id, owner_user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
+                   stripe_product_id, status, current_period_start, current_period_end,
+                   cancel_at_period_end, trial_end, last_invoice_id, last_payment_status,
+                   updated_from_event_id`,
+        [
+          randomUUID(),
+          input.ownerUserId,
+          input.stripeCustomerId,
+          input.stripeSubscriptionId,
+          input.stripePriceId ?? null,
+          input.stripeProductId ?? null,
+          input.status,
+          input.currentPeriodStart ?? null,
+          input.currentPeriodEnd ?? null,
+          input.cancelAtPeriodEnd,
+          input.trialEnd ?? null,
+          input.lastInvoiceId ?? null,
+          input.lastPaymentStatus ?? null,
+          input.updatedFromEventId ?? null,
+        ],
+      );
+      return subscriptionFromRow(requireRow(rows[0], "hosted_clawd_subscriptions"));
+    },
+
+    async updateSubscriptionInvoice(input) {
+      const { rows } = await pool.query(
+        `UPDATE hosted_clawd_subscriptions
+         SET
+           status = COALESCE($3, status),
+           last_invoice_id = COALESCE($4, last_invoice_id),
+           last_payment_status = COALESCE($5, last_payment_status),
+           updated_from_event_id = $6,
+           updated_at = now()
+         WHERE stripe_customer_id = $1 AND stripe_subscription_id = $2
+         RETURNING id, owner_user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
+                   stripe_product_id, status, current_period_start, current_period_end,
+                   cancel_at_period_end, trial_end, last_invoice_id, last_payment_status,
+                   updated_from_event_id`,
+        [
+          input.stripeCustomerId,
+          input.stripeSubscriptionId,
+          input.status ?? null,
+          input.lastInvoiceId ?? null,
+          input.lastPaymentStatus ?? null,
+          input.updatedFromEventId,
+        ],
+      );
+      return rows[0] ? subscriptionFromRow(rows[0]) : null;
+    },
+
+    async recordStripeWebhookEventStarted(stripeEventId, eventType, livemode) {
+      const inserted = await pool.query(
+        `INSERT INTO stripe_webhook_events (id, stripe_event_id, event_type, livemode, processing_status)
+         VALUES ($1, $2, $3, $4, 'processing')
+         ON CONFLICT (stripe_event_id) DO NOTHING
+         RETURNING processing_status`,
+        [randomUUID(), stripeEventId, eventType, livemode],
+      );
+      if (inserted.rows[0]) return { reused: false, status: "processing" };
+      const existing = await pool.query(
+        `SELECT processing_status FROM stripe_webhook_events WHERE stripe_event_id = $1`,
+        [stripeEventId],
+      );
+      return {
+        reused: true,
+        status: webhookStatusFromRow(requireRow(existing.rows[0], "stripe_webhook_events")),
+      };
+    },
+
+    async markStripeWebhookEventProcessed(stripeEventId) {
+      await pool.query(
+        `UPDATE stripe_webhook_events
+         SET processing_status = 'processed', processed_at = now(), error_summary = NULL
+         WHERE stripe_event_id = $1`,
+        [stripeEventId],
+      );
+    },
+
+    async markStripeWebhookEventFailed(stripeEventId, errorSummary) {
+      await pool.query(
+        `UPDATE stripe_webhook_events
+         SET processing_status = 'failed', error_summary = $2
+         WHERE stripe_event_id = $1`,
+        [stripeEventId, errorSummary.slice(0, 500)],
+      );
+    },
   };
 }
 
@@ -242,6 +442,7 @@ function userFromRow(row: QueryRow): HostedClawdUserRecord {
     id: String(row.id),
     oidcSubject: String(row.oidc_subject),
     email: row.email == null ? undefined : String(row.email),
+    stripeCustomerId: optionalString(row.stripe_customer_id),
   };
 }
 
@@ -293,6 +494,59 @@ function campaignFromRow(row: QueryRow): HostedClawdCampaignRecord {
     summary: optionalString(row.summary),
     status: "draft",
   };
+}
+
+function subscriptionFromRow(row: QueryRow): HostedClawdSubscriptionRecord {
+  return {
+    id: String(row.id),
+    ownerUserId: String(row.owner_user_id),
+    stripeCustomerId: String(row.stripe_customer_id),
+    stripeSubscriptionId: String(row.stripe_subscription_id),
+    stripePriceId: optionalString(row.stripe_price_id),
+    stripeProductId: optionalString(row.stripe_product_id),
+    status: subscriptionStatusFromValue(row.status),
+    currentPeriodStart: timestampString(row.current_period_start),
+    currentPeriodEnd: timestampString(row.current_period_end),
+    cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
+    trialEnd: timestampString(row.trial_end),
+    lastInvoiceId: optionalString(row.last_invoice_id),
+    lastPaymentStatus: optionalString(row.last_payment_status),
+    updatedFromEventId: optionalString(row.updated_from_event_id),
+  };
+}
+
+function subscriptionStatusFromValue(value: unknown): HostedClawdStripeSubscriptionStatus {
+  const status = String(value);
+  switch (status) {
+    case "incomplete":
+    case "incomplete_expired":
+    case "trialing":
+    case "active":
+    case "past_due":
+    case "canceled":
+    case "unpaid":
+    case "paused":
+      return status;
+    default:
+      return "incomplete";
+  }
+}
+
+function timestampString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (value instanceof Date) return value.toISOString();
+  return String(value);
+}
+
+function webhookStatusFromRow(row: QueryRow): "processing" | "processed" | "failed" {
+  switch (String(row.processing_status)) {
+    case "processed":
+      return "processed";
+    case "failed":
+      return "failed";
+    default:
+      return "processing";
+  }
 }
 
 function optionalString(value: unknown): string | undefined {

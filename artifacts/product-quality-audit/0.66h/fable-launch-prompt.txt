@@ -1,0 +1,10 @@
+﻿Read docs/design/fable-prompts/PRODUCT_QUALITY_PROFESSOR_AUDIT_0.66H.md and execute it against the live local app at http://127.0.0.1:8787/preview.
+
+Hard rules:
+- Do not edit product code.
+- Do not modify C:\Users\mzwin\Documents\atlas-53e-fable. You may read it only for context if useful.
+- Write the final audit to artifacts/product-quality-audit/0.66h/FABLE_PRODUCT_QUALITY_AUDIT.md.
+- Write measured numbers to artifacts/product-quality-audit/0.66h/metrics.json.
+- If browser automation is unavailable, state the gap.
+- Be neutral and blunt. Accept that verifier-green is not product-green.
+- Return a short summary with the grade, top 5 blockers, artifact paths, and next implementation slice.

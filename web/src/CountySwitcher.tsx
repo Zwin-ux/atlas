@@ -21,7 +21,7 @@ const PRODUCT_PATH_STEPS: Array<{
   countySlug?: CountySwitchSlug;
 }> = [
   { label: "Play", detail: "Riverside now", action: "play", countySlug: "riverside-ca" },
-  { label: "Browse", detail: "CA shells", action: "browse", countySlug: "orange-ca" },
+  { label: "Browse", detail: "browse-only", action: "browse", countySlug: "orange-ca" },
   { label: "Lookup", detail: "not saved", action: "lookup" },
 ];
 
@@ -58,10 +58,10 @@ export function CountySwitcher({ activeCountySlug, onSelectCounty }: CountySwitc
           </button>
         ))}
       </div>
-      <p data-qa="county-switcher-summary">Play Riverside now. Browse CA shells. Lookup without saving.</p>
+      <p data-qa="county-switcher-summary">Riverside is playable. Orange is browse-only. Lookups stay temporary.</p>
       <div
         className="city-world-product-path"
-        aria-label="Play Riverside now. Browse California shells. Lookup places: not saved, not coverage proof."
+        aria-label="Riverside is playable. Orange is browse-only. Lookup places without saving."
         data-qa="public-product-path"
       >
         {PRODUCT_PATH_STEPS.map((step) => (

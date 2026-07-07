@@ -21,7 +21,7 @@ import type {
   WorldPlaceLookupResponse,
   WorldSourceKind,
 } from "./types.js";
-import { CALIFORNIA_COUNTY_INDEX, californiaCountyIndexSourceNotes } from "./californiaCountyIndex.js";
+import { US_COUNTY_INDEX, US_STATE_LABEL_BY_CODE, usCountyIndexSourceNotes } from "./usCountyIndex.js";
 
 const USA_ID = "us";
 const USA_LABEL = "United States";
@@ -30,7 +30,7 @@ const CURATED_TTL_SECONDS = 60 * 60 * 24;
 export class NationalWorldService {
   constructor(
     private readonly scenes: VoxelScene[],
-    private readonly countyIndex: NationalCountyIndexEntry[] = CALIFORNIA_COUNTY_INDEX,
+    private readonly countyIndex: NationalCountyIndexEntry[] = US_COUNTY_INDEX,
   ) {}
 
   listCountry(): UsCountryResponse {
@@ -44,7 +44,7 @@ export class NationalWorldService {
         slug: "united-states",
       },
       states,
-      cache: curatedCache("country:us"),
+      cache: censusCache("country:us"),
     };
   }
 
@@ -94,9 +94,9 @@ export class NationalWorldService {
       playableCounties,
       suggestedNextCountySlug: "riverside-ca",
       limitations: [
-        "California county identity is indexed from Census gazetteer data.",
+        "US county identity is indexed from 2024 Census national county gazetteer data.",
         "Only Riverside County has a curated playable district in this Engine Beta slice.",
-        "Shell counties are not local playable worlds until a district is curated or provider-normalized.",
+        "Non-Riverside counties are browse-only shells until a district is curated or provider-normalized.",
       ],
       cache: censusCache("country:us:coverage-directory"),
     };
@@ -372,7 +372,7 @@ function censusCache(key: string): WorldCachePolicy {
   return {
     key,
     ttlSeconds: CURATED_TTL_SECONDS,
-    sourceNotes: californiaCountyIndexSourceNotes(),
+    sourceNotes: usCountyIndexSourceNotes(),
   };
 }
 
@@ -383,7 +383,7 @@ function worldCache(key: string, coverageTier: CountyCoverageTier): WorldCachePo
   return {
     key,
     ttlSeconds: CURATED_TTL_SECONDS,
-    sourceNotes: [...californiaCountyIndexSourceNotes(), ...curatedCache(key).sourceNotes],
+    sourceNotes: [...usCountyIndexSourceNotes(), ...curatedCache(key).sourceNotes],
   };
 }
 
@@ -524,7 +524,7 @@ function normalizeStateCode(state: string): string {
 }
 
 function stateLabel(stateCode: string): string {
-  return stateCode === "CA" ? "California" : stateCode;
+  return US_STATE_LABEL_BY_CODE[stateCode] ?? stateCode;
 }
 
 function slugify(value: string): string {

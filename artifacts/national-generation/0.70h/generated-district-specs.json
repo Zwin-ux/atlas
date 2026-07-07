@@ -1,0 +1,188 @@
+{
+  "ok": true,
+  "update": "postalpha-0.70h-deterministic-generated-district-specs",
+  "artifactPath": "artifacts/national-generation/0.70h/generated-district-specs.json",
+  "checkedFiles": [
+    "packages/core/src/voxel/cityWorldGeneratedDistrict.ts",
+    "packages/core/src/voxel/cityWorldGeneratedDistrictTypes.ts",
+    "packages/core/src/voxel/cityWorldGeneratedDistrictSeed.ts",
+    "packages/core/src/voxel/cityWorldGeneratedDistrictArchetypes.ts",
+    "packages/core/src/voxel/cityWorldSceneWindow.ts",
+    "packages/core/src/world/nationalGenerationProduction.ts",
+    "packages/core/src/index.ts",
+    "packages/core/src/voxel/index.ts",
+    "packages/core/test/city-world-generated-district.test.ts",
+    "package.json"
+  ],
+  "runtime": {
+    "directoryTotals": {
+      "stateCount": 52,
+      "indexedCountyCount": 3222,
+      "supportedCountyCount": 3222,
+      "playableCountyCount": 1,
+      "shellCountyCount": 3221,
+      "providerNormalizedCountyCount": 0,
+      "publicQualityCountyCount": 0,
+      "indexedUnsupportedCountyCount": 0
+    },
+    "samples": [
+      {
+        "countySlug": "cook-il",
+        "geoid": "17031",
+        "stateCode": "IL",
+        "seed": 2696450625,
+        "archetype": "metro_grid",
+        "zones": 10,
+        "roads": 7,
+        "sceneCounts": {
+          "terrainTiles": 1485,
+          "roads": 7,
+          "lots": 54,
+          "buildings": 53,
+          "props": 4,
+          "places": 10,
+          "pins": 0,
+          "actors": 0
+        },
+        "windows": [
+          {
+            "cameraId": "desktop",
+            "visibleCommandCount": 401,
+            "visibleBudgetWeight": 504,
+            "chunkCoverageRatio": 0.4
+          },
+          {
+            "cameraId": "mobile",
+            "visibleCommandCount": 592,
+            "visibleBudgetWeight": 703,
+            "chunkCoverageRatio": 0.667
+          }
+        ]
+      },
+      {
+        "countySlug": "miami-dade-fl",
+        "geoid": "12086",
+        "stateCode": "FL",
+        "seed": 2368776709,
+        "archetype": "coastal_grid",
+        "zones": 10,
+        "roads": 7,
+        "sceneCounts": {
+          "terrainTiles": 1485,
+          "roads": 7,
+          "lots": 55,
+          "buildings": 53,
+          "props": 7,
+          "places": 10,
+          "pins": 0,
+          "actors": 0
+        },
+        "windows": [
+          {
+            "cameraId": "desktop",
+            "visibleCommandCount": 393,
+            "visibleBudgetWeight": 504,
+            "chunkCoverageRatio": 0.4
+          },
+          {
+            "cameraId": "mobile",
+            "visibleCommandCount": 627,
+            "visibleBudgetWeight": 744,
+            "chunkCoverageRatio": 0.5
+          }
+        ]
+      },
+      {
+        "countySlug": "maricopa-az",
+        "geoid": "04013",
+        "stateCode": "AZ",
+        "seed": 1155256855,
+        "archetype": "desert_basin",
+        "zones": 10,
+        "roads": 7,
+        "sceneCounts": {
+          "terrainTiles": 1485,
+          "roads": 7,
+          "lots": 50,
+          "buildings": 49,
+          "props": 4,
+          "places": 9,
+          "pins": 0,
+          "actors": 0
+        },
+        "windows": [
+          {
+            "cameraId": "desktop",
+            "visibleCommandCount": 410,
+            "visibleBudgetWeight": 502,
+            "chunkCoverageRatio": 0.4
+          },
+          {
+            "cameraId": "mobile",
+            "visibleCommandCount": 620,
+            "visibleBudgetWeight": 721,
+            "chunkCoverageRatio": 0.5
+          }
+        ]
+      },
+      {
+        "countySlug": "riverside-ca",
+        "geoid": "06065",
+        "stateCode": "CA",
+        "seed": 407517026,
+        "archetype": "desert_basin",
+        "zones": 10,
+        "roads": 7,
+        "sceneCounts": {
+          "terrainTiles": 1485,
+          "roads": 7,
+          "lots": 56,
+          "buildings": 55,
+          "props": 4,
+          "places": 9,
+          "pins": 0,
+          "actors": 0
+        },
+        "windows": [
+          {
+            "cameraId": "desktop",
+            "visibleCommandCount": 387,
+            "visibleBudgetWeight": 480,
+            "chunkCoverageRatio": 0.4
+          },
+          {
+            "cameraId": "mobile",
+            "visibleCommandCount": 629,
+            "visibleBudgetWeight": 747,
+            "chunkCoverageRatio": 0.5
+          }
+        ]
+      }
+    ],
+    "readiness": {
+      "type": "nationalGenerationProductionReadiness",
+      "productionReady": false,
+      "currentStage": "P3_PROVIDER_NORMALIZED_LOCAL_ANCHORS",
+      "nextStage": "P4_PUBLIC_QUALITY_PLAYABLE_COUNTIES",
+      "blockers": [
+        "Provider-normalized local anchors need category, attribution, cache, and policy gates before generated districts can be promoted."
+      ],
+      "guarantees": [
+        "Playable claims remain gated by coverage tier and proof.",
+        "Shell counties are browse-only and do not invent local places.",
+        "Provider lookup is not coverage readiness and cannot create renderer geometry.",
+        "Generated scenes must use typed specs, deterministic seeds, and windowed renderer packets."
+      ],
+      "counts": {
+        "stateCount": 52,
+        "indexedCountyCount": 3222,
+        "shellCountyCount": 3221,
+        "playableCountyCount": 1,
+        "publicQualityCountyCount": 0
+      }
+    }
+  },
+  "blockerCount": 0,
+  "blockers": [],
+  "warnings": []
+}

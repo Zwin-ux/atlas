@@ -101,6 +101,10 @@ export function hasWriteScope(auth: HostedClawdAuthContext): boolean {
   return auth.scopes.includes(HOSTED_CLAWD_WRITE_SCOPE);
 }
 
+export function hasReadScope(auth: HostedClawdAuthContext): boolean {
+  return auth.scopes.includes(HOSTED_CLAWD_READ_SCOPE) || hasWriteScope(auth);
+}
+
 function bearerTokenFromHeader(header: string | undefined): string | undefined {
   if (!header) return undefined;
   const match = /^Bearer\s+(.+)$/i.exec(header.trim());

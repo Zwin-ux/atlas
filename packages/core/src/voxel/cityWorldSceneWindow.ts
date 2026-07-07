@@ -25,7 +25,11 @@ import {
   type CityWorldRenderLayerId,
 } from "./cityWorldRenderCommands.js";
 
-export type CityWorldSceneWindowBudgetProfileId = "public_playable_window" | "shell_empty_window" | "hidden_draft_window";
+export type CityWorldSceneWindowBudgetProfileId =
+  | "public_playable_window"
+  | "shell_empty_window"
+  | "hidden_draft_window"
+  | "generated_draft_window";
 
 export type CityWorldSceneChunk = {
   id: string;
@@ -146,6 +150,23 @@ export const CITY_WORLD_SCENE_WINDOW_BUDGETS: Record<CityWorldSceneWindowBudgetP
     maxActorCommands: 0,
     maxPropCommands: 0,
     minTerrainCommands: 40,
+    minRoadCommands: 1,
+    minLotCommands: 1,
+    minBuildingCommands: 1,
+    minMarkerCommands: 0,
+    requireNonPlayable: true,
+    forbidPins: true,
+    forbidActors: true,
+  },
+  generated_draft_window: {
+    profileId: "generated_draft_window",
+    maxVisibleCommandRatio: 0.82,
+    maxVisibleBudgetWeight: 1200,
+    maxPublicClutterCommands: 0,
+    maxDebugCommands: 0,
+    maxActorCommands: 0,
+    maxPropCommands: 12,
+    minTerrainCommands: 50,
     minRoadCommands: 1,
     minLotCommands: 1,
     minBuildingCommands: 1,

@@ -6,34 +6,43 @@ proof packet.
 
 ## Current Update
 
-### Post-Alpha 0.61H - Invite Beta Save UX
+### Post-Alpha 0.72B - Redis Scene Packet Cache / Job Spine
 
-Player-facing promise: Atlas keeps the voxel map as the product surface while
-making owned local state understandable: business/location, local notes, Scout
-Drop, and campaign draft show as the memory Clawdbot could read later.
+Player-facing promise: Atlas can prepare generated draft scene packets for
+indexed shell counties without making map pan/zoom depend on Railway or
+claiming those drafts are public playable local truth.
 
-Engineering promise: Keep the Superior grey setup console, add compact
-claymation save slots inside the Hosted Clawd tray, and prove the result on
-desktop and 390x844 mobile. Stripe, public paid claims, new MCP tools,
-dashboards, and renderer geometry stay closed.
+Engineering promise: Move generated draft packet work onto a memory-or-Redis
+cache spine with compile locks, queued-safe metadata, a worker entrypoint, safe
+status/readiness output, request IDs, structured backend logs, and first-pass
+rate limits.
 
 Spec:
-Use `postalpha-0.60h-hosted-clawd-persistence-foundation` as the input update.
-Keep `scripts/verify-hosted-clawd-save-ux.mjs`,
-`scripts/verify-hosted-clawd-save-ux-browser.mjs`,
+Use `postalpha-0.71h-scene-packet-service-boundary` as the input update. Keep
+`server/src/scenePacketMemoryAdapter.ts`, `server/src/scenePacketWorker.ts`,
+`server/src/index.ts`, `.env.example`, `package.json`,
+`scripts/verify-production-backend-spine.mjs`,
+`docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md`,
+`scripts/verify-generated-draft-scene-packet.mjs`,
 `scripts/verify-atlas-source-of-truth-drift.mjs`, and strict
-`hosted-clawd-save-ux` split mode as the 0.61H guard.
+`national-generation-contract` split mode as the 0.72B guard.
 
 Status:
 Local green. Branch `codex/integrate-hosted-clawd-fable-058e` is the local
-canonical candidate. Decision is
-`MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED`; selected axis is
-`hosted_clawd_invite_beta_save_ux`. The memory layer from 0.60H stays
-owner-protected, and the 0.61H tray makes that future Clawdbot memory legible
-without leaving the map. Stripe, public paid claims, evidence, XP, reports,
-exports, automation, public Anaheim/Ontario, renderer geometry, and new public
-MCP tools remain closed. The public MCP tool surface remains the seven existing
-tools.
+canonical candidate. Decision is `REDIS_PACKET_SPINE_NOT_RENDER_LOOP`;
+selected axis is `backend_production_spine`. Local/dev falls back to memory.
+Railway production requires Redis for generated draft packet cache/job
+readiness. Lock contention returns queued-safe `_meta.generatedDraftPacket`
+metadata with no scene payload. Existing MCP tools can explicitly request
+`_meta.generatedDraftScene` / `_meta.generatedDraftPacket`;
+`structuredContent` remains the coverage summary. The status and ready routes
+expose safe summaries/booleans only. Railway/server may compile/cache packets,
+but Railway is not in the frame loop. Live public paid launch, scene packet DB
+persistence, evidence, XP, reports, exports, automation, public
+Anaheim/Ontario, provider geometry, dashboard shells, all-US playable claims,
+browser HTTP generated-scene routes, and new public MCP tools remain closed.
+Proof is captured in
+`artifacts/national-generation/0.72b/production-backend-spine.json`.
 
 ## Parked Owner-Gate Ladder
 
@@ -55,14 +64,15 @@ Anaheim/Ontario stay hidden.
 
 ## Next Updates
 
-### Post-Alpha 0.62H - Stripe Test Billing
+### Post-Alpha 0.72H - Fable Generated Draft Visual Quality Gate
 
-Next named quest: `0.62H Stripe Test Billing`.
+Next named quest: `0.72H Fable Generated Draft Visual Quality Gate`.
 
-Attach Stripe only after 0.60H ownership and idempotency pass: test Checkout,
-Customer Portal, webhook replay protection, active subscription writes,
-inactive read-only state, and proof that the success URL grants nothing by
-itself.
+Use the 0.72B packet path to judge generated draft visuals. Add measurable
+quality gates for silhouettes, object grammar, density, material discipline,
+contact shadows, and desktop/mobile proof. Do not add service routes,
+persistence, money, provider geometry, public promotion, or new public MCP
+tools.
 
 ### Post-Alpha 0.46E - Owner Gate Review Packet
 

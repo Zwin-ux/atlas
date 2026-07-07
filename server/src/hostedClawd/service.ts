@@ -6,12 +6,14 @@ import {
   HUMAN_APPROVAL_BEFORE_PERSISTENCE,
   HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM,
 } from "./gates.js";
-import { hasWriteScope, type HostedClawdAuthContext } from "./auth.js";
+import { hasReadScope, hasWriteScope, type HostedClawdAuthContext } from "./auth.js";
 import type {
   HostedClawdActionKind,
   HostedClawdActionOperation,
   HostedClawdActionResponse,
+  HostedClawdBillingActionResult,
   HostedClawdBillingPort,
+  HostedClawdBillingSummary,
   HostedClawdCampaignArtifactInput,
   HostedClawdContext,
   HostedClawdContextInput,
@@ -23,7 +25,9 @@ import type {
   HostedClawdPrimaryAction,
   HostedClawdPromotionInput,
   HostedClawdSavePreviewItem,
+  HostedClawdSavedStateSummary,
   HostedClawdScreenState,
+  HostedClawdSubscriptionAccessStatus,
   HostedClawdTrigger,
 } from "./types.js";
 
@@ -60,16 +64,16 @@ export class HostedClawdService {
       primaryCopy: primaryCopyForState(screenState),
       secondaryCopy: secondaryCopyForState(screenState),
       sessionBoundary: sessionBoundaryForState(screenState),
-      paymentCopy: this.flags.moneyEnabled
-        ? "Checkout stays behind server-confirmed subscription state."
-        : "Payment is not live in Alpha.",
+      paymentCopy: this.flags.moneyEnabled ? "Atlas checks billing before saving." : "Billing is off in Alpha.",
+      billing: billingSummaryForState(screenState, this.flags.moneyEnabled),
       primaryAction,
       savePreview: savePreviewForInput(input),
+      savedState: input.savedState,
       flags: this.flags,
       gates: gateStatuses(this.flags),
       canPersist: this.flags.persistenceEnabled && Boolean(this.persistence),
       canStartCheckout: this.flags.moneyEnabled && Boolean(this.billing),
-      canUsePaidWrites: screenState === "active" && this.flags.persistenceEnabled && this.flags.moneyEnabled,
+      canUsePaidWrites: screenState === "active" && this.flags.persistenceEnabled && this.flags.moneyEnabled && Boolean(this.persistence),
     };
   }
 
@@ -119,8 +123,11 @@ export class HostedClawdService {
     const denied = this.writeAuthDenial("promote_session", input, auth);
     if (denied) return denied;
 
+    const paidWriteGate = await this.protectedPaidWriteGate("promote_session", input, auth as HostedClawdAuthContext);
+    if (paidWriteGate.response) return paidWriteGate.response;
+
     const result = await this.persistence.promoteSession(auth as HostedClawdAuthContext, input);
-    return this.acceptedResponse("promote_session", input, result);
+    return this.acceptedResponse("promote_session", inputWithSubscription(input, paidWriteGate.subscriptionStatus), result);
   }
 
   async saveCampaignArtifact(
@@ -144,11 +151,53 @@ export class HostedClawdService {
     const denied = this.writeAuthDenial("save_campaign_artifact", input, auth);
     if (denied) return denied;
 
+    const paidWriteGate = await this.protectedPaidWriteGate("save_campaign_artifact", input, auth as HostedClawdAuthContext);
+    if (paidWriteGate.response) return paidWriteGate.response;
+
     const result = await this.persistence.saveCampaignArtifact(auth as HostedClawdAuthContext, input);
-    return this.acceptedResponse("save_campaign_artifact", input, result);
+    return this.acceptedResponse("save_campaign_artifact", inputWithSubscription(input, paidWriteGate.subscriptionStatus), result);
   }
 
-  async startCheckout(input: HostedClawdContextInput = {}): Promise<HostedClawdActionResponse> {
+  async readSavedState(
+    input: HostedClawdContextInput = {},
+    auth?: HostedClawdAuthContext,
+  ): Promise<HostedClawdActionResponse> {
+    if (!this.flags.persistenceEnabled) {
+      return this.closedGateResponse("read_saved_state", input, "persistence_not_enabled", "join_waitlist");
+    }
+
+    if (!this.persistence) {
+      return this.scaffoldResponse(
+        "read_saved_state",
+        input,
+        "persistence_adapter_not_configured",
+        "create_hosted_clawd",
+        "Saved-state reads are defined, but no auth or database adapter is active in this scaffold.",
+      );
+    }
+
+    const denied = this.readAuthDenial("read_saved_state", input, auth);
+    if (denied) return denied;
+
+    const savedState = await this.persistence.readSavedState(auth as HostedClawdAuthContext);
+    const context = this.getContext({ ...input, subscriptionStatus: savedState.subscriptionStatus, savedState });
+    return {
+      type: "hostedClawdAction",
+      operation: "read_saved_state",
+      status: "accepted",
+      reason: "ready",
+      screenState: context.screenState,
+      message: savedStateMessage(savedState),
+      nextAction: savedStateNextAction(savedState),
+      savedState,
+      context,
+    };
+  }
+
+  async startCheckout(
+    input: HostedClawdContextInput = {},
+    auth?: HostedClawdAuthContext,
+  ): Promise<HostedClawdActionResponse> {
     if (!this.flags.moneyEnabled) {
       return this.closedGateResponse("start_checkout", input, "money_not_enabled", "join_waitlist");
     }
@@ -163,10 +212,17 @@ export class HostedClawdService {
       );
     }
 
-    return this.billing.startCheckout(input);
+    const denied = this.writeAuthDenial("start_checkout", input, auth);
+    if (denied) return denied;
+
+    const result = await this.billing.startCheckout(auth as HostedClawdAuthContext, input);
+    return this.billingActionResponse("start_checkout", input, result);
   }
 
-  async openBillingPortal(input: HostedClawdContextInput = {}): Promise<HostedClawdActionResponse> {
+  async openBillingPortal(
+    input: HostedClawdContextInput = {},
+    auth?: HostedClawdAuthContext,
+  ): Promise<HostedClawdActionResponse> {
     if (!this.flags.moneyEnabled) {
       return this.closedGateResponse("open_billing_portal", input, "money_not_enabled", "join_waitlist");
     }
@@ -181,7 +237,11 @@ export class HostedClawdService {
       );
     }
 
-    return this.billing.openBillingPortal(input);
+    const denied = this.writeAuthDenial("open_billing_portal", input, auth);
+    if (denied) return denied;
+
+    const result = await this.billing.openBillingPortal(auth as HostedClawdAuthContext, input);
+    return this.billingActionResponse("open_billing_portal", input, result);
   }
 
   private screenState(input: HostedClawdContextInput): HostedClawdScreenState {
@@ -206,7 +266,7 @@ export class HostedClawdService {
   private primaryActionForState(screenState: HostedClawdScreenState): HostedClawdPrimaryAction {
     switch (screenState) {
       case "waitlist":
-        return { kind: "join_waitlist", label: "Join Hosted Clawd waitlist", enabled: true };
+        return { kind: "join_waitlist", label: "Join waitlist", enabled: true };
       case "confirm_save":
         return { kind: "create_hosted_clawd", label: "Create Hosted Clawd", enabled: this.flags.persistenceEnabled };
       case "checkout_pending":
@@ -214,7 +274,7 @@ export class HostedClawdService {
       case "activating":
         return { kind: "refresh_status", label: "Refresh status", enabled: true };
       case "active":
-        return { kind: "open_saved_campaign", label: "Open saved campaign", enabled: true };
+        return { kind: "open_saved_campaign", label: "Open saved state", enabled: true };
       case "inactive_payment_failed":
         return { kind: "open_billing_portal", label: "Open billing portal", enabled: this.flags.moneyEnabled };
     }
@@ -257,6 +317,68 @@ export class HostedClawdService {
     return undefined;
   }
 
+  private readAuthDenial(
+    operation: HostedClawdActionOperation,
+    input: HostedClawdContextInput,
+    auth: HostedClawdAuthContext | undefined,
+  ): HostedClawdActionResponse | undefined {
+    if (!auth) {
+      const context = this.getContext(input);
+      return {
+        type: "hostedClawdAction",
+        operation,
+        status: "blocked",
+        reason: "auth_required",
+        screenState: context.screenState,
+        message: "Connect ChatGPT to load saved items.",
+        nextAction: "create_hosted_clawd",
+        context,
+      };
+    }
+
+    if (!hasReadScope(auth)) {
+      const context = this.getContext(input);
+      return {
+        type: "hostedClawdAction",
+        operation,
+        status: "blocked",
+        reason: "read_scope_required",
+        screenState: context.screenState,
+        message: "This account is linked, but Atlas still needs permission to read saved Clawd items.",
+        nextAction: "refresh_status",
+        context,
+      };
+    }
+
+    return undefined;
+  }
+
+  private async protectedPaidWriteGate(
+    operation: "promote_session" | "save_campaign_artifact",
+    input: HostedClawdContextInput,
+    auth: HostedClawdAuthContext,
+  ): Promise<{ subscriptionStatus?: HostedClawdSubscriptionAccessStatus; response?: HostedClawdActionResponse }> {
+    if (!this.flags.moneyEnabled) return {};
+    if (!this.persistence) return {};
+
+    const subscriptionStatus = await this.persistence.getSubscriptionStatus(auth);
+    if (subscriptionStatus === "active") return { subscriptionStatus };
+
+    const context = this.getContext({ ...input, subscriptionStatus });
+    return {
+      response: {
+        type: "hostedClawdAction",
+        operation,
+        status: "blocked",
+        reason: "billing_subscription_not_active",
+        screenState: context.screenState,
+        message: "New saves need confirmed billing. Returning from Checkout is not enough.",
+        nextAction: nextActionForProtectedPaidWrite(subscriptionStatus),
+        context,
+      },
+    };
+  }
+
   private acceptedResponse(
     operation: HostedClawdActionOperation,
     input: HostedClawdContextInput,
@@ -279,6 +401,26 @@ export class HostedClawdService {
     };
   }
 
+  private billingActionResponse(
+    operation: "start_checkout" | "open_billing_portal",
+    input: HostedClawdContextInput,
+    result: HostedClawdBillingActionResult,
+  ): HostedClawdActionResponse {
+    const context = this.getContext({ ...input, subscriptionStatus: result.subscriptionStatus });
+    return {
+      type: "hostedClawdAction",
+      operation,
+      status: result.status,
+      reason: result.reason,
+      screenState: context.screenState,
+      message: result.message,
+      nextAction: result.nextAction,
+      redirectUrl: result.redirectUrl,
+      billing: result.billing,
+      context,
+    };
+  }
+
   private closedGateResponse(
     operation: HostedClawdActionOperation,
     input: HostedClawdContextInput,
@@ -294,8 +436,8 @@ export class HostedClawdService {
       screenState: context.screenState,
       message:
         reason === "money_not_enabled"
-          ? "Payment is not live in Alpha. Keep this as a session preview or join the Hosted Clawd waitlist."
-          : "Hosted Clawd is not live yet. Join the waitlist to save this business when Beta opens.",
+          ? "Payment is not live in Alpha. Keep this as a session preview or join the save waitlist."
+          : "Saving is not live yet. Join the waitlist to save this business later.",
       nextAction,
       context,
     };
@@ -400,17 +542,17 @@ function savePreviewForInput(input: HostedClawdContextInput): HostedClawdSavePre
 function primaryCopyForState(screenState: HostedClawdScreenState): string {
   switch (screenState) {
     case "waitlist":
-      return "Hosted Clawd is not live yet. Join the waitlist to save this business when Beta opens.";
+      return "Join the waitlist to save this setup later.";
     case "confirm_save":
-      return "Save this business, scout report, and campaign draft to Hosted Clawd.";
+      return "Save this business, scout report, and campaign draft.";
     case "checkout_pending":
-      return "Hosted Clawd needs an active subscription before it can save new campaign work.";
+      return "Test Checkout can open after setup is confirmed.";
     case "activating":
-      return "Activating Hosted Clawd. Saved writes unlock after billing is confirmed.";
+      return "Return received. Checking billing.";
     case "active":
-      return "Hosted Clawd is saving this business.";
+      return "Saved state is active.";
     case "inactive_payment_failed":
-      return "Hosted Clawd is read-only until billing is fixed.";
+      return "Billing needs attention. Saved items stay readable.";
   }
 }
 
@@ -419,22 +561,22 @@ function secondaryCopyForState(screenState: HostedClawdScreenState): string {
     case "waitlist":
       return "This map, pins, notes, Scout Drop, and campaign preview remain temporary.";
     case "confirm_save":
-      return "Session stickers and demo XP stay temporary unless you choose what to save.";
+      return "Stickers and notes stay temporary until you choose what to save.";
     case "checkout_pending":
-      return "Business context is confirmed before checkout. Stripe access is granted only after the server confirms billing.";
+      return "A browser return does not turn on saving.";
     case "activating":
-      return "Keep working in the map while Atlas waits for subscription status to sync.";
+      return "Keep working in the map while Atlas checks the server event.";
     case "active":
-      return "Saved state is tied to the confirmed business profile and owned Hosted Clawd.";
+      return "Saves are tied to this business profile.";
     case "inactive_payment_failed":
-      return "Saved history can remain readable, but new paid writes stay blocked.";
+      return "New saves are paused until billing is fixed.";
   }
 }
 
 function sessionBoundaryForState(screenState: HostedClawdScreenState): string {
-  if (screenState === "active") return "Saved-state mode.";
-  if (screenState === "inactive_payment_failed") return "Read-only Hosted Clawd state.";
-  return "Session-only until Hosted Clawd is live.";
+  if (screenState === "active") return "Saved state on.";
+  if (screenState === "inactive_payment_failed") return "Saved items are read only.";
+  return "This chat is temporary.";
 }
 
 function statusLabelForState(screenState: HostedClawdScreenState): string {
@@ -444,14 +586,136 @@ function statusLabelForState(screenState: HostedClawdScreenState): string {
     case "confirm_save":
       return "Beta Invite";
     case "checkout_pending":
-      return "Checkout pending";
+      return "Test billing";
     case "activating":
       return "Activating";
     case "active":
       return "Active";
     case "inactive_payment_failed":
-      return "Payment attention";
+      return "Billing issue";
   }
+}
+
+function billingSummaryForState(screenState: HostedClawdScreenState, moneyEnabled: boolean): HostedClawdBillingSummary {
+  if (!moneyEnabled) {
+    return {
+      state: "off",
+      subscriptionStatus: "none",
+      confirmationSource: "none",
+      returnUrlGrantsAccess: false,
+      paidWrites: "read_only",
+      title: "Billing off",
+      detail: "Billing is not live in Alpha.",
+      checkoutLabel: "Checkout off",
+      webhookLabel: "Idle",
+      returnLabel: "No return",
+      portalLabel: "Portal off",
+    };
+  }
+
+  switch (screenState) {
+    case "active":
+      return {
+        state: "webhook_confirmed",
+        subscriptionStatus: "active",
+        confirmationSource: "webhook",
+        returnUrlGrantsAccess: false,
+        paidWrites: "enabled",
+        title: "Confirmed",
+        detail: "Saving is on for this Clawd.",
+        checkoutLabel: "Checkout done",
+        webhookLabel: "Confirmed",
+        returnLabel: "Checked",
+        portalLabel: "Billing portal",
+      };
+    case "activating":
+      return {
+        state: "return_pending",
+        subscriptionStatus: "activating",
+        confirmationSource: "none",
+        returnUrlGrantsAccess: false,
+        paidWrites: "read_only",
+        title: "Return received",
+        detail: "Waiting for server confirmation. New saves stay paused.",
+        checkoutLabel: "Checkout started",
+        webhookLabel: "Pending",
+        returnLabel: "Pending",
+        portalLabel: "Portal waits",
+      };
+    case "inactive_payment_failed":
+      return {
+        state: "payment_attention",
+        subscriptionStatus: "payment_failed",
+        confirmationSource: "none",
+        returnUrlGrantsAccess: false,
+        paidWrites: "read_only",
+        title: "Billing issue",
+        detail: "Saved items are readable. New saves are paused.",
+        checkoutLabel: "Checkout paused",
+        webhookLabel: "Not active",
+        returnLabel: "Not confirmed",
+        portalLabel: "Billing portal",
+      };
+    case "checkout_pending":
+    default:
+      return {
+        state: "test_ready",
+        subscriptionStatus: "none",
+        confirmationSource: "none",
+        returnUrlGrantsAccess: false,
+        paidWrites: "read_only",
+        title: "Test billing ready",
+        detail: "Checkout opens only after setup is confirmed. Stripe test mode.",
+        checkoutLabel: "Test Checkout",
+        webhookLabel: "Confirmation required",
+        returnLabel: "Not confirmed",
+        portalLabel: "Portal checked",
+      };
+  }
+}
+
+function inputWithSubscription<T extends HostedClawdContextInput>(
+  input: T,
+  subscriptionStatus: HostedClawdSubscriptionAccessStatus | undefined,
+): T {
+  return subscriptionStatus ? ({ ...input, subscriptionStatus } as T) : input;
+}
+
+function nextActionForProtectedPaidWrite(subscriptionStatus: HostedClawdSubscriptionAccessStatus): HostedClawdActionKind {
+  switch (subscriptionStatus) {
+    case "activating":
+      return "refresh_status";
+    case "inactive":
+    case "payment_failed":
+      return "open_billing_portal";
+    case "none":
+    case "active":
+    default:
+      return "continue_to_stripe";
+  }
+}
+
+function savedStateMessage(savedState: HostedClawdSavedStateSummary): string {
+  const savedCount =
+    (savedState.clawd ? 1 : 0) +
+    (savedState.businessProfile ? 1 : 0) +
+    savedState.scoutDrops.length +
+    savedState.campaignDrafts.length;
+  if (!savedState.clawd) return "No saved items yet. Start from the map.";
+  if (savedState.readOnlyReason === "billing_attention") {
+    return `Loaded ${savedCount} saved item${savedCount === 1 ? "" : "s"}. Billing needs attention, so new saves stay paused.`;
+  }
+  if (savedState.paidWrites === "read_only") {
+    return `Loaded ${savedCount} saved item${savedCount === 1 ? "" : "s"}. Saved history is readable; new saves stay locked.`;
+  }
+  return `Loaded ${savedCount} saved item${savedCount === 1 ? "" : "s"}.`;
+}
+
+function savedStateNextAction(savedState: HostedClawdSavedStateSummary): HostedClawdActionKind {
+  if (!savedState.clawd) return "create_hosted_clawd";
+  if (savedState.readOnlyReason === "billing_attention") return "open_billing_portal";
+  if (savedState.paidWrites === "read_only") return "continue_to_stripe";
+  return "open_saved_campaign";
 }
 
 function cleanText(value: string | undefined): string | undefined {

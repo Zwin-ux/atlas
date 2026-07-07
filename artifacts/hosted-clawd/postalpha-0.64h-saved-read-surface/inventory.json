@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-07-05T20:41:21-07:00",
+  "branch": "codex/integrate-hosted-clawd-fable-058e",
+  "currentUpdate": "postalpha-0.64h-hosted-clawd-saved-read-surface",
+  "nextQuest": "0.65H Hosted Clawd Browser Proof",
+  "status": "human_review_ready",
+  "workingTree": {
+    "modifiedTrackedCount": 25,
+    "strictSelectedRcFileCount": 43,
+    "strictSelectedRcMode": "hosted-clawd-saved-read-surface",
+    "strictSelectedRcBlockers": 0
+  },
+  "featureInventory": {
+    "dbAuthFoundation": "local_green",
+    "stripeTestBilling": "local_green",
+    "webhookConfirmedPaidWriteGate": "local_green",
+    "savedReadSurface": "local_green",
+    "savedShelfBrowserProof": "desktop_and_mobile_green",
+    "publicMcpToolCount": 7,
+    "newPublicMcpTools": 0,
+    "dashboardShell": false,
+    "pricingPage": false,
+    "publicPaidClaim": false
+  },
+  "humanReviewQueue": [
+    {
+      "id": "accept_0_64h_local_candidate",
+      "question": "Can the 0.62H-0.64H Hosted Clawd stack become the local canonical candidate for 0.65H?",
+      "recommendation": "approve",
+      "risk": "Large dirty branch; keep strict split and source-of-truth verifiers in the staging path."
+    },
+    {
+      "id": "choose_widget_saved_read_auth_path",
+      "question": "How should the widget get authorization for GET /api/hosted-clawd/saved?",
+      "recommendation": "0.65H should first prove the current auth-required state, then wire host bearer passthrough only if verified.",
+      "risk": "Inventing a custom token bridge too early could leak secrets or create a parallel auth system."
+    },
+    {
+      "id": "copy_truth_cleanup",
+      "question": "Should 0.65H include narrow copy cleanup for waitlist, demo XP, and open_saved_campaign naming?",
+      "recommendation": "allow only if it reduces false promises and does not alter capability.",
+      "risk": "Copy drift can imply features that are still parked."
+    },
+    {
+      "id": "fallback_context_cleanup",
+      "question": "Should client-fabricated Hosted Clawd fallback context be replaced by GET /api/hosted-clawd/state?",
+      "recommendation": "schedule soon after the auth-path proof.",
+      "risk": "Current fallback is display-only but duplicates server gate copy."
+    }
+  ],
+  "openStubInventory": [
+    "Widget bearer-token/account-link path for saved reads remains undecided for 0.65H.",
+    "Waitlist copy does not create a real waitlist record.",
+    "Demo XP copy references parked XP scope.",
+    "Client fallback Hosted Clawd context duplicates server copy.",
+    "open_saved_campaign name over-promises a campaign document view.",
+    "Historical prompt-pack docs describe stale tool names.",
+    "Submission build needs explicit hosted persistence/money flag-state proof."
+  ],
+  "evidence": [
+    "artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface.json",
+    "artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/hosted-clawd-saved-read-desktop-1280x720.png",
+    "artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/hosted-clawd-saved-read-mobile-390x844.png",
+    "artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/HUMAN_REVIEW_PACKET.md",
+    "docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md"
+  ]
+}

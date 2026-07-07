@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "update": "postalpha-0.69h-us-county-index-nationwide-shells",
+  "artifactPath": "artifacts/national-generation/0.69h/production-contract.json",
+  "checkedFiles": [
+    "packages/core/src/world/nationalGenerationProduction.ts",
+    "packages/core/src/world/usCountyIndex.ts",
+    "packages/core/src/world/index.ts",
+    "packages/core/src/index.ts",
+    "packages/core/test/national-generation-production.test.ts",
+    "docs/NATIONAL_ENGINE_PRODUCTION_CONTRACT.md",
+    "packages/core/src/voxel/cityWorldParametricGenerator.ts",
+    "scripts/verify-county-index-source.mjs",
+    "server/src/index.ts"
+  ],
+  "readiness": {
+    "type": "nationalGenerationProductionReadiness",
+    "productionReady": false,
+    "currentStage": "P2_DETERMINISTIC_GENERATED_DISTRICTS",
+    "nextStage": "P3_PROVIDER_NORMALIZED_LOCAL_ANCHORS",
+    "blockers": [
+      "A production US engine needs a deterministic generated-district compiler for counties without curated packs.",
+      "Provider-normalized local anchors need category, attribution, cache, and policy gates before generated districts can be promoted."
+    ],
+    "guarantees": [
+      "Playable claims remain gated by coverage tier and proof.",
+      "Shell counties are browse-only and do not invent local places.",
+      "Provider lookup is not coverage readiness and cannot create renderer geometry.",
+      "Generated scenes must use typed specs, deterministic seeds, and windowed renderer packets."
+    ],
+    "counts": {
+      "stateCount": 52,
+      "indexedCountyCount": 3222,
+      "shellCountyCount": 3221,
+      "playableCountyCount": 1,
+      "publicQualityCountyCount": 0
+    }
+  },
+  "blockerCount": 0,
+  "blockers": [],
+  "warnings": [
+    "nationalGenerationProduction.ts mentions provider boundaries; verify it did not import provider geometry."
+  ]
+}

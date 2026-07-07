@@ -1,5 +1,449 @@
 # Decisions
 
+## Decision 099: 0.72H-b fixes generated labels but is still a review candidate
+
+The sibling Fable worktree now has a stronger generated-draft visual candidate:
+`artifacts/0.72h-b-roof-label-cleanup/FABLE_RESULT.md`.
+
+Decision:
+Treat 0.72H-b as the current review candidate for the generated draft visual
+quality gate. It resolves the visible generated-place label blocker by routing
+generated preview mode through explicit label suppression and by gating
+`data-qa-place-labels="suppressed"` in the browser verifier. It is not merge
+acceptance.
+
+Decision id:
+`FABLE_072H_B_REVIEW_CANDIDATE_NOT_MERGE_ACCEPTANCE`.
+
+Reason:
+The browser proof and screenshots now show a no-label generated district at
+desktop and 390x844 mobile sizes, and the parity gate adds residential roof
+safety checks. The remaining product-quality weakness is not another backend
+service problem: the preview banner still covers part of the scene, and some
+residential detail still reads procedural. The next useful visual slice is a
+bounded residential object-kit authorship pass, not more labels, scope, or
+platform work.
+
+Allowed next:
+- File-by-file Codex review of the five 0.72H-b source files in the Fable
+  worktree.
+- `0.72H-c Residential Object-Kit Authorship Pass` if the 0.72H-b source review
+  holds.
+
+Still blocked:
+- Blind merge of the sibling worktree, public generated-district playability,
+  provider-created geometry, public Anaheim/Ontario, new MCP tools, backend
+  service routing changes, DB/Auth/Stripe expansion, public paid claims,
+  dashboards, evidence, XP, reports, exports, and automation.
+
+## Decision 098: Production stack is green, Auth remains the launch switch
+
+0.72B now has live Railway production proof in addition to local backend-spine
+proof.
+
+Decision:
+Atlas may run Redis, Postgres, Stripe test configuration, and the private scene
+packet worker in Railway production, but Hosted Clawd is still owner-gated until
+OAuth/OIDC account linking is configured and proven. Public paid access remains
+off.
+
+Decision id:
+`PRODUCTION_STACK_GREEN_AUTH_REMAINS_LAUNCH_SWITCH`.
+
+Reason:
+The platform pieces are real now: Redis is reachable, Postgres is reachable,
+Stripe test config is present, `/ready` is green, and generated draft packets
+hit Redis through `_meta` without putting Railway in the browser pan/zoom loop.
+That still is not a public paid launch because saved owner state must derive
+from verified OIDC subject identity, not client copy, iframe state, or a Stripe
+return URL.
+
+Allowed next:
+- `0.72H Fable Generated Draft Visual Quality Gate` in the existing Fable
+  worktree.
+- Auth/OIDC production wiring with `ATLAS_OIDC_ISSUER`,
+  `ATLAS_OIDC_AUDIENCE`, `ATLAS_OIDC_JWKS_URL`, and optional
+  `ATLAS_OIDC_RESOURCE` once a real provider is selected/configured.
+
+Still blocked:
+- Public paid claims, live billing launch copy, account-less Hosted Clawd
+  writes, provider-created geometry, scene packet DB persistence, public
+  Anaheim/Ontario, evidence, XP, reports, exports, automation, and any backend
+  call in the browser pan/zoom loop.
+
+## Decision 097: Generated drafts travel through meta, not the frame loop
+
+0.71H accepts the generated draft scene packet service boundary as local-green.
+
+Decision:
+Generated draft district scenes may be compiled and cached server-side, but they
+must be delivered through existing MCP tool `_meta` only when explicitly
+requested. They are not public playable coverage, not public HTTP render-route
+payloads, not DB-persisted scene packets, and not model-visible
+`structuredContent`.
+
+Decision id:
+`GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP`.
+
+Reason:
+Atlas needs a production path for generated county scenes without making mobile
+pan/zoom feel broken. Railway is the right place to compile/cache scene packets,
+cache keys, source policy, and future background jobs. The browser is the right
+place for retained Pixi pan/zoom after the packet arrives. Putting Railway in
+the render loop would make the map feel slow on phones and would blur the
+boundary between scene generation and interaction.
+
+Allowed next:
+- `0.72H Fable Generated Draft Visual Quality Gate`: use the packet path to
+  judge generated draft visuals and add measurable gates for geometry grammar,
+  density, silhouettes, contact, material discipline, and desktop/mobile proof.
+
+Still blocked:
+- New public MCP tools, browser HTTP generated-scene routes, DB-persisted scene
+  packets, provider-created geometry, public all-US playable claims, public
+  Anaheim/Ontario, DB/Auth/Stripe expansion, public paid claims, dashboard
+  shells, evidence, XP, reports, exports, and automation unless their own gates
+  open.
+
+## Decision 096: Deterministic specs are not local promotion
+
+0.70H accepts deterministic generated district specs as local-green.
+
+Decision:
+Atlas may generate bounded provider-free district drafts from sourced Census
+county identity, but those drafts are not public playable local coverage. They
+remain `L1_COUNTY_SHELL`, non-playable, and promotion-blocked until provider-
+normalized local anchors, desktop/mobile proof, and owner acceptance pass.
+Railway may compile/cache scene packets, but Railway must not be required for
+pan/zoom frame-loop interaction.
+
+Decision id:
+`DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION`.
+
+Reason:
+The user is correct that a production Atlas engine needs to work nationally and
+that giant generator files are a real risk. The right move is to split
+generation into small pure modules and define a service boundary: backend
+compiles/caches scene packets, browser keeps retained rendering local, and
+provider lookup never becomes geometry by accident.
+
+Allowed next:
+- `0.71H Scene Packet Service Boundary / Railway Cache Plan`: define and
+  verify the Railway scene packet service contract without adding public tools
+  or network-bound map motion.
+
+Still blocked:
+- New public MCP tools, public all-US playable claims, provider-created
+  geometry, provider-normalized anchor promotion, public Anaheim/Ontario,
+  DB/Auth/Stripe expansion, public paid claims, dashboard shells, evidence, XP,
+  reports, exports, and automation unless their own gates open.
+
+## Decision 095: Census-indexed shells do not equal playable coverage
+
+0.69H accepts the US county index import and nationwide shell behavior as
+local-green.
+
+Decision:
+Atlas can now know and browse every 2024 Census county/equivalent row, but that
+identity coverage must not be marketed or routed as playable voxel coverage.
+Only counties with curated/generated proof and promotion gates may become
+playable. Non-Riverside indexed counties are `L1_COUNTY_SHELL` and cannot
+borrow Riverside places, Scout context, campaigns, pins, actors, or local
+claims.
+
+Decision id:
+`CENSUS_INDEXED_SHELLS_NO_PLAYABLE_CLAIM`.
+
+Reason:
+The user is correct that production Atlas needs to work anywhere in the US.
+The first production move is not to fake generated cities everywhere; it is to
+make national identity complete and prevent the app from lying about coverage.
+The verifier proves 3,222 sourced rows, 3,221 shell counties, and only one
+playable county.
+
+Allowed next:
+- `0.70H Deterministic Generated District Specs`: convert sourced county
+  identity into bounded, typed, deterministic generated district specs without
+  provider geometry or public playable promotion.
+
+Still blocked:
+- New public MCP tools, public all-US playable claims, provider-created
+  geometry, public Anaheim/Ontario, DB/Auth/Stripe expansion, public paid
+  claims, dashboard shells, evidence, XP, reports, exports, and automation
+  unless their own gates open.
+
+## Decision 094: Nationwide generation requires source tiers
+
+0.68H accepts the national generation production contract as local-green.
+
+Decision:
+Atlas cannot be called production-ready for every US county until the engine has
+sourced national county identity, honest non-playable shells for indexed
+counties, deterministic generated district specs, provider-normalized anchors
+behind policy, and public-quality promotion gates.
+
+Decision id:
+`NATIONWIDE_GENERATION_REQUIRES_SOURCE_TIERS`.
+
+Reason:
+The user is correct that production Atlas is not just an Eastvale visual pass.
+The current app is still a Riverside/Eastvale public proof cell with a
+California-only county index. The product needs a national contract before
+agents start claiming "anywhere in the US" or turning provider lookup into
+renderer geometry.
+
+Allowed next:
+- `0.69H US County Index Import / Nationwide Shells`: import or generate a
+  Census-backed national county index and prove non-Riverside indexed counties
+  return honest browse-only shells without Riverside data bleed.
+
+Still blocked:
+- New public MCP tools, public all-US playable claims, provider-created
+  geometry, public Anaheim/Ontario, DB/Auth/Stripe expansion, public paid
+  claims, dashboard shells, evidence, XP, reports, exports, and automation
+  unless their own gates open.
+
+## Decision 093: Visual chrome yields to object identity
+
+0.67H accepts the product feel cleanup pass as local-green.
+
+Decision:
+Labels, halos, pins, props, and actors are annotation layers. They must yield to
+building silhouette, face separation, contact shadow, and object-kit grammar.
+Mobile labels are selected/hovered only, desktop ambient labels are capped, pins
+sit off landmark facades, and near-focal decoration dims before it competes
+with the building read.
+
+Decision id:
+`GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST`.
+
+Reason:
+The 0.66H interaction work made the map usable, but screenshots still read too
+busy: labels looked like a debug overlay, marker halos were too loud, stickers
+landed on the hero silhouette, and commerce/gym translucent details added haze.
+This decision converts that critique into renderer rules Fable can enforce.
+
+Allowed next:
+- `0.68H Face Separation / Sprite Tint Pass`: improve actual object read
+  through face planes, roof/facade material separation, sprite tint discipline,
+  and cleaner massing.
+
+Still blocked:
+- New public MCP tools, DB/Auth/Stripe expansion, public paid claims, pricing
+  pages, dashboard shells, provider-created geometry, public Anaheim/Ontario,
+  evidence, XP, reports, exports, and automation unless their own gates open.
+
+## Decision 092: Map interaction is retained graph, saved state is bottom chrome
+
+0.66H accepts mobile interaction hardening as local-green.
+
+Decision:
+Pan and zoom must move retained renderer containers, not rebuild scene graphs.
+Saved Hosted Clawd state must sit in native map chrome as a collapsed-first
+bottom sheet, not a separate modal product surface. The ChatGPT widget shell may
+load small eager JS/CSS and defer Pixi renderer chunks behind a first-paint map
+fallback.
+
+Decision id:
+`RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD`.
+
+Reason:
+Fable's professor audit correctly called the app verifier-green but not
+product-green. The biggest felt-quality blockers were interaction rebuild
+pressure, a modal save surface that fought the map, and a 1MB inline iframe
+payload. This decision turns those into measured product gates: rebuild delta
+0 during scripted pan, collapsed sheet under 96px, expanded sheet under 45dvh,
+and eager JS under 400KB.
+
+Allowed next:
+- `0.67H Product Feel Cleanup`: continue from measured product quality, mainly
+  stale CSS deletion, visible map-chrome density, and remaining total-JS diet.
+
+Still blocked:
+- New public MCP tools, DB/Auth/Stripe expansion, public paid claims, pricing
+  pages, dashboard shells, renderer-geometry expansion, provider-created
+  geometry, public Anaheim/Ontario, evidence, XP, reports, exports, and
+  automation unless their own gates open.
+
+## Decision 091: Browser proof before saved memory claim
+
+0.65H accepts the Hosted Clawd browser proof as local-green.
+
+Decision:
+Do not claim saved Hosted Clawd state is available in the widget until the
+browser path proves account-linked read access. When no widget bearer token is
+available, Atlas must show the auth-required state, return a scoped OAuth
+challenge, render no saved shelf, expose no widget token, and keep the tray
+touch-accessible.
+
+Decision id:
+`BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN`.
+
+Reason:
+The saved read route exists, but the ChatGPT widget must prove how saved state
+loads in a real browser before product copy implies saved memory is ready.
+This keeps the map honest, protects account boundaries, and turns mobile/touch
+accessibility into a verifier contract instead of a design note.
+
+Allowed next:
+- `0.66H Mobile Interaction Hardening`: harden the existing map/tray surfaces
+  for touch, keyboard, reduced motion, and screen-reader parity.
+
+Still blocked:
+- New public MCP tools, public paid claims, pricing pages, dashboard shells,
+  renderer geometry, provider-created geometry, public Anaheim/Ontario,
+  evidence, XP, reports, exports, automation, and live billing expansion unless
+  their own gates open.
+
+## Decision 090: Track screens as map states, not pages
+
+Decision id:
+`MAP_STATE_SCREEN_BOARD`.
+
+Decision:
+Atlas product planning should track screen completeness as states of the
+full-screen map app: playable map, shell state, place tray, Scout preview,
+Campaign preview, Hosted Clawd setup, auth-required, saved shelf, billing, and
+parked future states. Each state must map to a backend owner, data contract,
+proof requirement, and safety boundary. Do not reorganize Atlas into a routed
+dashboard or generic SaaS page set.
+
+Reason:
+The product is a ChatGPT app and voxel county engine. Treating screens as map
+states keeps frontend, backend, Fable visual work, and Hosted Clawd paid work
+aligned without drifting into website/product-management clutter.
+
+Allowed next:
+- Use `docs/ATLAS_FRONTEND_BACKEND_SCREEN_PLAN.md` as the Scrum board for
+  0.65H browser proof, Fable generated-district parity, and app submission
+  hardening.
+
+Still blocked:
+- Dashboard shells, public pricing pages, new public MCP tools, runtime 3D,
+  provider-created geometry, public Anaheim/Ontario, evidence, XP, reports,
+  exports, automation, and public paid claims unless their own gates open.
+
+## Decision 089: Visual leaps use owned grammar before decoration
+
+Decision id:
+`VOXEL_LEAP_OWNED_GRAMMAR_FIRST`.
+
+Decision:
+The next big Atlas voxel quality jump should come from generated district
+parity, owned sprite/object-kit intake, material grammar, depth ordering, and
+contact shadows. External CC0 asset packs may be used as reference or raw
+source, but runtime Atlas output must stay manifest-backed, provenance-tracked,
+and visually Atlas-owned. Do not patch generated-district weakness with cars,
+humans, labels, panels, glows, stock assets, runtime 3D, or dashboard UI.
+
+Reason:
+Curated Riverside/Eastvale has a map-first identity, but generated districts
+still expose procedural weakness through sparse frames, empty pads, toy
+commercial rows, roof registration drift, and apartment facade drift. The
+product thesis depends on generated counties reaching the curated bar.
+
+Allowed next:
+- Parallel Fable lane `0.58E Generated District Parity + Asset Intake Plan`
+  after the active Hosted Clawd proof is not at risk.
+
+Still blocked:
+- Runtime 3D, new renderer dependencies, provider-to-geometry, public
+  Anaheim/Ontario, persistence, Stripe, reports, exports, XP, evidence,
+  automation, dashboard shells, and new MCP tools unless their own gates open.
+
+## Decision 088: Saved reads stay owner-scoped and HTTP-only
+
+0.64H accepts the saved Hosted Clawd read surface as local-green.
+
+Decision:
+Add a compact read-only saved shelf inside the existing Hosted Clawd tray.
+Expose it through an internal HTTP route, not a public MCP tool. Saved reads
+derive owner from verified OIDC auth, accept read or write scope, and must not
+upsert users, save rows, record usage, or trust client `subscriptionStatus`.
+`refresh_status` is treated as the same read surface. The 0.64H stub audit is
+kept in `docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md`; fixed items stay in this
+slice, while widget bearer-token proof moves to 0.65H.
+
+Decision id:
+`SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS`.
+
+Reason:
+Hosted Clawd needs visible owned memory before the product feels real, but the
+map remains the product surface. Reading saved state should be boring,
+owner-scoped, and reversible. Payment failure pauses new paid writes; it should
+not hide already saved history from the owner.
+
+Allowed next:
+- `0.65H Hosted Clawd Browser Proof`: verify the saved shelf inside the
+  ChatGPT-style widget surface on desktop and `390x844` mobile.
+
+Still blocked:
+- New public MCP tools, live public paid claims, pricing pages, plan
+  comparisons, dashboards, reports, exports, evidence, XP, automation,
+  provider-created geometry, public Anaheim/Ontario, and renderer geometry
+  changes until their own gates open.
+
+## Decision 087: Protected paid writes require stored subscription state
+
+0.63H accepts the protected Hosted Clawd tool gate as local-green.
+
+Decision:
+Do not trust client-supplied `subscriptionStatus` for protected Hosted Clawd
+writes. `promote_session` and `save_campaign_artifact` can write only after the
+repository reports an active subscription from Stripe webhook state. Keep
+`create_or_attach_clawd` available before subscription so an owner can create
+the Clawd needed to start Checkout.
+
+Decision id:
+`PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION`.
+
+Reason:
+Stripe return URLs and map-tray state are UI signals, not authorization. Hosted
+Clawd is becoming the paid neighborhood operator, so write access must come
+from owner auth plus stored subscription truth before any protected behavior
+opens.
+
+Allowed next:
+- `0.64H Saved Hosted Clawd Read Surface`: show owned saved Clawd state in the
+  map tray without adding public tools, reports, evidence, XP, exports, or
+  automation.
+
+Still blocked:
+- New public MCP tools, live billing, public paid claims, pricing pages, plan
+  comparisons, evidence, XP, reports, exports, automation, provider-created
+  geometry, public Anaheim/Ontario, and dashboard shells until their own gates
+  open.
+
+## Decision 086: Stripe return is not access
+
+0.62H accepts Hosted Clawd Stripe test billing as local-green.
+
+Decision id:
+`STRIPE_TEST_BILLING_WEBHOOK_GATED`.
+
+Decision:
+Use Stripe only on the server for test-mode Checkout and Customer Portal.
+Return URLs can update UI copy, but they do not unlock paid writes. Access comes
+from owned subscription rows updated by verified Stripe webhooks with replay
+protection.
+
+Reason:
+Atlas is still a ChatGPT map app, not a billing dashboard. Hosted Clawd needs a
+boring, auditable money boundary before public paid language or protected tool
+behavior can be honest. The user should see billing state in the map tray, but
+the browser should never become the source of payment truth.
+
+Allowed next:
+- `0.63H Protected Hosted Clawd Tool Gate`, only after the seven public MCP
+  tools remain stable and protected Hosted Clawd behavior derives ownership from
+  auth plus webhook-confirmed state.
+
+Still blocked:
+- Live billing, public paid claims, pricing pages, plan comparisons, evidence,
+  XP, reports, exports, automation, provider-created geometry, public
+  Anaheim/Ontario, dashboard shells, and new public MCP tools until their own
+  gates open.
+
 ## Decision 085: Keep saved state in the map, not a dashboard
 
 0.61H accepts the Hosted Clawd save UX as local-green.
@@ -1549,3 +1993,13 @@ blocked because promotion readiness is false and the owner cutline is still
 `BLOCK_PROMOTION`. Since the visual and product proof are already present,
 Atlas should not continue hidden art work without an owner-named blocker. The
 next step is a 0.46E owner review packet for Lumen, Mira, Forge, and Axiom.
+
+## Decision 068: Redis caches scene packets, not map interaction
+
+`REDIS_PACKET_SPINE_NOT_RENDER_LOOP`: 0.72B introduces Redis as the production
+scene packet cache, compile-lock, and job-queue spine. Railway may compile/cache
+deterministic generated draft packets and warm them through a worker, but it is
+not in the browser pan/zoom render loop. Generated drafts still travel through
+`_meta`, remain non-playable, non-public, provider-free, and DB-unpersisted, and
+the seven public MCP tools remain unchanged. Production Redis config must be
+explicit; local/dev may fall back to memory.

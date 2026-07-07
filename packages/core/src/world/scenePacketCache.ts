@@ -7,6 +7,7 @@ export type ScenePacketCacheStorageMode = "runtime_memory" | "future_persistent"
 
 export type ScenePacketGenerationMode =
   | "curated_static"
+  | "deterministic_generated_draft"
   | "provider_normalized_future"
   | "background_generation_future";
 
@@ -15,6 +16,7 @@ export type ScenePacketGenerationJobStatus = "not_queued" | "blocked" | "queued"
 export type ScenePacketReadiness =
   | "public_playable"
   | "shell_only"
+  | "generated_draft"
   | "hidden_draft"
   | "unsupported"
   | "blocked";
@@ -179,6 +181,16 @@ export function scenePacketCachePolicyForReadiness(readiness: ScenePacketReadine
         liveProviderAllowed: false,
         reason: "Hidden draft packets are internal proof artifacts and must not become public routes.",
       };
+    case "generated_draft":
+      return {
+        storageMode: "runtime_memory",
+        ttlSeconds: 1800,
+        staleWhileRevalidateSeconds: 0,
+        canPersist: false,
+        providerGeometryAllowed: false,
+        liveProviderAllowed: false,
+        reason: "Generated draft packets may cache deterministic server-compiled scenes in process, but remain non-public and non-playable.",
+      };
     case "unsupported":
       return {
         storageMode: "none",
@@ -255,12 +267,19 @@ export function assertScenePacketCachePlanSafe(plan: ScenePacketCachePlan): Scen
     if (!plan.packet.metaOnlyScene) blockers.push("Hidden draft scene packets must stay in meta/evidence channels.");
   }
 
+  if (plan.readiness === "generated_draft") {
+    if (!plan.packet.containsScene) blockers.push("Generated draft packets must contain a bounded scene.");
+    if (plan.packet.playable) blockers.push("Generated draft packets must not be playable.");
+    if (plan.packet.publicRouteAllowed) blockers.push("Generated draft packets must not be public routes.");
+    if (!plan.packet.metaOnlyScene) blockers.push("Generated draft scene packets must stay in meta channels.");
+  }
+
   if (plan.readiness === "unsupported") {
     if (plan.packet.containsScene) blockers.push("Unsupported counties must not receive scene packets.");
     if (plan.packet.publicRouteAllowed) blockers.push("Unsupported packets must not be route-allowed as scenes.");
   }
 
-  if (plan.generation.mode !== "curated_static" && plan.generation.status !== "blocked") {
+  if (!["curated_static", "deterministic_generated_draft"].includes(plan.generation.mode) && plan.generation.status !== "blocked") {
     blockers.push("Future provider/background generation modes must stay blocked until live generation gates reopen.");
   }
 
@@ -302,6 +321,16 @@ function packetBoundaryForReadiness(readiness: ScenePacketReadiness, sceneId: st
         structuredContentSafe: true,
         metaOnlyScene: true,
       };
+    case "generated_draft":
+      return {
+        sceneId: sceneId || "scene:generated-draft",
+        containsScene: true,
+        playable: false,
+        publicRouteAllowed: false,
+        containsProviderGeometry: false,
+        structuredContentSafe: true,
+        metaOnlyScene: true,
+      };
     case "unsupported":
     case "blocked":
       return {
@@ -318,6 +347,7 @@ function packetBoundaryForReadiness(readiness: ScenePacketReadiness, sceneId: st
 
 function generationBlockersForMode(mode: ScenePacketGenerationMode): string[] {
   if (mode === "curated_static") return [];
+  if (mode === "deterministic_generated_draft") return [];
   if (mode === "provider_normalized_future") {
     return [
       "provider_normalization_not_enabled",

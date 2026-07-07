@@ -4,10 +4,30 @@ Status: **ACTIVE product track** (human-directed, 2026-07-03). This is the live 
 The owner-gate / second-district promotion ceremony (0.44E-0.47E) is **parked**:
 its selector artifacts stay anchored at `0.45E`, the source-of-truth drift
 checker stays green, and Anaheim/Ontario stay hidden and non-public. The active
-manifest is now the 0.61H Hosted Clawd invite beta save UX, using the 0.60H
-persistence foundation as its input.
+manifest is now the 0.72B Redis Scene Packet Cache / Job Spine proof, using
+the 0.71H Scene Packet Service Boundary proof as its input.
 We are shipping a fully high-quality,
 submittable ChatGPT app.
+
+Current backend production note (2026-07-06):
+`0.72B Redis Scene Packet Cache / Job Spine`.
+
+0.72B keeps the 0.71H `_meta` generated draft delivery path but moves the
+backend toward production: memory-or-Redis cache store, Redis compile locks,
+Redis-backed job queue readiness, a separate scene packet worker, safe
+`/api/engine/scene-packets/status`, `/ready`, request IDs, structured logs, and
+first-pass rate limits. Local/dev defaults to memory when Redis is not
+configured. Railway production requires Redis. Browser Pixi pan/zoom remains
+local after packet delivery; Railway is not in the frame loop.
+
+Generated draft packets remain non-playable, non-public, provider-free,
+DB-unpersisted, and delivered through `_meta.generatedDraftScene` /
+`_meta.generatedDraftPacket`, not `structuredContent` or a browser HTTP render
+route. The next named slice is `0.72H Fable Generated Draft Visual Quality
+Gate`. Provider-normalized local anchors, public playable promotion, all-US
+playable claims, new public MCP tools, browser HTTP generated-scene routes,
+scene packet DB persistence, public paid claims, and public Anaheim/Ontario
+remain closed.
 
 Current integration note (2026-07-05):
 `codex/integrate-hosted-clawd-fable-058e` is the local canonical candidate that
@@ -51,6 +71,115 @@ business/location, local notes, Scout Drop, and campaign draft state. The next
 named slice is `0.62H Stripe Test Billing`. Stripe/money, public paid claims,
 evidence, XP, reports, exports, automation, provider geometry, renderer
 geometry, dashboard shells, and public Anaheim/Ontario remain closed.
+
+Current Stripe test billing note (2026-07-05):
+`0.62H Stripe Test Billing`.
+
+0.62H adds server-side Stripe test Checkout, Customer Portal, raw-body Stripe
+webhook verification, webhook replay protection, subscription rows, and a
+compact billing rail inside the Hosted Clawd map tray. Stripe webhook state is
+the only confirmation source for paid writes; success and portal return URLs
+grant no access. The next named slice is `0.63H Protected Hosted Clawd Tool
+Gate`. Live billing, public paid claims remain closed, pricing pages, plan
+comparisons, evidence, XP, reports, exports, automation, provider geometry,
+renderer geometry, dashboard shells, and public Anaheim/Ontario remain closed.
+
+Current protected tool gate note (2026-07-05):
+`0.63H Protected Hosted Clawd Tool Gate`.
+
+0.63H makes protected Hosted Clawd writes depend on repository webhook state,
+not client state. `promote_session` and `save_campaign_artifact` require an
+active subscription stored from Stripe webhook events; client-supplied
+`subscriptionStatus` is ignored for write authorization. `create_or_attach` and
+test Checkout remain available so owners can reach billing. The next named
+slice is `0.64H Saved Hosted Clawd Read Surface`. Public paid claims, new
+public MCP tools, evidence, XP, reports, exports, automation, provider
+geometry, renderer geometry, dashboard shells, and public Anaheim/Ontario
+remain closed.
+
+Current saved read surface note (2026-07-05):
+`0.64H Saved Hosted Clawd Read Surface`.
+
+0.64H adds an owner-scoped saved state shelf inside the existing Hosted Clawd map
+tray. The shelf reads owned Clawd, business, Scout Drop, campaign draft, and
+stored subscription state through an HTTP-only route. Reads require verified
+account scope, create no rows, and do not require an active subscription;
+payment-failed owners can still read saved history while paid writes stay
+paused. `refresh_status` is a read action on the saved-state route, not a
+create-or-attach write. The next named slice is `0.65H Hosted Clawd Browser
+Proof`, which must prove the widget bearer-token/account-link path or the
+honest blocked auth state. Public paid claims, new public MCP tools, evidence,
+XP, reports, exports, automation, provider geometry, renderer geometry,
+dashboard shells, pricing pages, and public Anaheim/Ontario remain closed.
+
+Current browser proof note (2026-07-05):
+`0.65H Hosted Clawd Browser Proof`.
+
+0.65H proves the saved read browser path in the ChatGPT-style widget. With no
+widget bearer token, `/api/hosted-clawd/saved` returns a `401 OAuth resource
+challenge` with `atlas:hosted_clawd.read`, no saved shelf renders before
+account linking, and no widget token is exposed. The Hosted Clawd tray keeps
+dialog semantics, status semantics, simplified user-facing copy, visible
+primary action, and `44px touch targets` on desktop and `390x844` mobile. The
+next named slice is `0.66H Mobile Interaction Hardening`. Public paid claims,
+new public MCP tools, evidence, XP, reports, exports, automation, provider
+geometry, renderer geometry, dashboard shells, pricing pages, and public
+Anaheim/Ontario remain closed.
+
+Current mobile hardening note (2026-07-05):
+`0.66H Mobile Interaction Hardening`.
+
+0.66H fixes the product-quality defects called out by the Fable professor
+audit: pan/zoom no longer rebuilds the retained Pixi scene graph, the saved
+state surface is collapsed-first bottom map chrome instead of a modal, and the
+widget payload is split so `/preview` serves a small shell with deferred Pixi
+chunks. The measured local proof shows zero scene rebuilds during scripted
+desktop/mobile pan, collapsed save sheet under 96px, expanded sheet under
+45dvh, eager JS under 400KB, and no new MCP tools. The next named slice is
+`0.67H Product Feel Cleanup`. Public paid claims, DB/Auth/Stripe expansion,
+evidence, XP, reports, exports, automation, provider geometry, new renderer
+geometry, dashboard shells, pricing pages, and public Anaheim/Ontario remain
+closed.
+
+Current product feel cleanup note (2026-07-05):
+`0.67H Product Feel Cleanup`.
+
+0.67H accepts that labels, halos, pins, props, and actors are annotation layers,
+not the product identity. The Fable renderer pass demotes ambient labels
+(mobile labels are selected/hovered only, desktop gets a two-label cap), quiets
+marker rings, moves pins off landmark facades, calms decoration around the
+focal anchor, and reduces commerce/gym translucent clutter so building massing
+reads first. The next named slice is `0.68H National Generation Production Contract`.
+Public paid claims, DB/Auth/Stripe expansion, evidence, XP, reports, exports,
+automation, provider geometry, new geography, dashboard shells, pricing pages,
+and public Anaheim/Ontario remain closed.
+
+Current national generation contract note (2026-07-05):
+`0.68H National Generation Production Contract`.
+
+0.68H records that current Atlas is not production-ready for every US county.
+The current fixture is California-only: 1 indexed state, 58 indexed counties,
+and 1 playable county. Production US generation requires sourced national county
+identity, honest county shells, deterministic generated districts,
+provider-normalized local anchors behind policy, and public-quality promotion
+gates. The next named slice is `0.69H US County Index Import / Nationwide
+Shells`. Public paid claims, DB/Auth/Stripe expansion, evidence, XP, reports,
+exports, automation, provider geometry, new geography, dashboard shells, pricing
+pages, and public Anaheim/Ontario remain closed.
+
+Current national shell note (2026-07-05):
+`0.69H US County Index Import / Nationwide Shells`.
+
+US county identity is now national: `US_COUNTY_INDEX` is generated from the
+2024 Census national county gazetteer and covers 3,222 county/equivalent rows
+across 52 state/territory codes. Non-Riverside indexed counties return honest
+`L1_COUNTY_SHELL` browse states and shell scenes with no invented local places,
+roads, lots, buildings, pins, actors, Scout context, campaign context, or
+provider geometry. Riverside/Eastvale remains the only public playable proof
+cell. The next named slice is `0.70H Deterministic Generated District Specs`.
+Public paid claims, DB/Auth/Stripe expansion, evidence, XP, reports, exports,
+automation, provider geometry, playable all-US claims, new geography promotion,
+dashboard shells, pricing pages, and public Anaheim/Ontario remain closed.
 
 Why this exists: the previous stretch (0.24E→0.46E) was decision machinery circling one blocked
 question ("promote hidden Anaheim?"). This spec replaces that with product-quality gates that
@@ -154,11 +283,13 @@ server, and browser proofs. Fable is spent once, on the working UI, where qualit
   remain hidden and non-public; owner-gate selector artifacts stay anchored at `0.45E`; drift
   checker stays green. Re-open only if a human calls for a controlled public second-district spike.
 - **Paid / backend.** Hosted Clawd now has a local-green DB/Auth foundation for
-  owner-protected rows, and 0.61H makes future saved state legible in the map
-  tray. Stripe/checkout, public paid claims, XP, evidence, automation, reports,
+  owner-protected rows, 0.61H makes future saved state legible in the map tray,
+  0.62H adds test-mode Stripe billing behind webhook-confirmed state, and
+  0.63H gates protected writes on repository webhook state. Live billing,
+  public paid claims, pricing pages, XP, evidence, automation, reports,
   exports, and public saved-state launch claims stay parked until a later named
-  slice opens them. The next backend/product gate is 0.62H: test billing only
-  after the save UX proof is boring.
+  slice opens them. The next backend/product gate is 0.64H: a saved read
+  surface inside the map tray.
 - **Provider-created geometry, live provider→scene normalization, renderer/UI redesign.**
 
 ## 8. What already exists (reused, not rebuilt)

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const UPDATE = "postalpha-0.32e-runtime-scene-packet-memory-adapter";
+const UPDATE = "postalpha-0.72b-redis-scene-packet-cache-job-spine";
 const args = new Set(process.argv.slice(2));
 const jsonOnly = args.has("--json-only");
 const url = readArg("--url");
@@ -89,13 +89,13 @@ async function runBuiltAdapterChecks() {
     SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
   } = await import(toFileUrl(distPath));
   addCheck("runtime-update-id", SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID === UPDATE, {
-    blocker: "Built adapter exposes the wrong 0.32E update id.",
+    blocker: "Built adapter exposes the wrong 0.72B update id.",
   });
 
   let now = 1_000;
   let sceneBuilds = 0;
   const memory = createScenePacketMemoryAdapter({ maxEntries: 2, nowMs: () => now });
-  const first = memory.getOrCreatePlayableScenePacket({
+  const first = await memory.getOrCreatePlayableScenePacket({
     stateCode: "CA",
     countySlug: "riverside-ca",
     districtSlug: "eastvale",
@@ -106,7 +106,7 @@ async function runBuiltAdapterChecks() {
     },
     sceneIdForPayload: (scene) => scene.id,
   });
-  const second = memory.getOrCreatePlayableScenePacket({
+  const second = await memory.getOrCreatePlayableScenePacket({
     stateCode: "CA",
     countySlug: "riverside-ca",
     districtSlug: "eastvale",
@@ -124,7 +124,7 @@ async function runBuiltAdapterChecks() {
     blocker: "Playable scene packet summary must remain runtime-only and provider-safe.",
   });
 
-  const alternate = memory.getOrCreatePlayableScenePacket({
+  const alternate = await memory.getOrCreatePlayableScenePacket({
     stateCode: "CA",
     countySlug: "riverside-ca",
     districtSlug: "eastvale",
@@ -140,7 +140,7 @@ async function runBuiltAdapterChecks() {
   });
 
   now += 3_600_001;
-  const expired = memory.getOrCreatePlayableScenePacket({
+  const expired = await memory.getOrCreatePlayableScenePacket({
     stateCode: "CA",
     countySlug: "riverside-ca",
     districtSlug: "eastvale",
@@ -157,7 +157,7 @@ async function runBuiltAdapterChecks() {
 
   const evicting = createScenePacketMemoryAdapter({ maxEntries: 2, nowMs: () => now });
   for (const selectedNodeId of ["a", "b", "c"]) {
-    evicting.getOrCreatePlayableScenePacket({
+    await evicting.getOrCreatePlayableScenePacket({
       stateCode: "CA",
       countySlug: "riverside-ca",
       districtSlug: "eastvale",
@@ -167,18 +167,18 @@ async function runBuiltAdapterChecks() {
     });
     now += 10;
   }
-  const evictingStatus = evicting.status();
+  const evictingStatus = await evicting.status();
   addCheck("runtime-max-entry-eviction", evictingStatus.entryCount === 2 && !evictingStatus.entries.some((entry) => entry.key.includes("selected-a")), {
     blocker: "Memory adapter must evict older entries when maxEntries is reached.",
   });
 
-  const shell = memory.describeCoverageStatus({
+  const shell = await memory.describeCoverageStatus({
     stateCode: "CA",
     countySlug: "orange-ca",
     coverageTier: "L1_COUNTY_SHELL",
     sourceNotes: [{ source: "census", label: "Census county gazetteer", attribution: "US Census", ttlSeconds: 31_536_000 }],
   });
-  const unsupported = memory.describeCoverageStatus({
+  const unsupported = await memory.describeCoverageStatus({
     stateCode: "CA",
     countySlug: "made-up-ca",
     coverageTier: "L0_UNSUPPORTED",

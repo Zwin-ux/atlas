@@ -113,7 +113,7 @@ export function VoxelSceneView({
               className="voxel-map"
               viewBox={`0 0 ${scene.viewport.width} ${scene.viewport.height}`}
               role="img"
-              aria-label={`${scene.county.name} cozy voxel district map`}
+              aria-label={`${scene.county.name} voxel district map`}
             >
               <rect className="voxel-map-bg" width={scene.viewport.width} height={scene.viewport.height} rx="0" />
               <g className="voxel-tiles">
@@ -209,7 +209,7 @@ export function VoxelSceneView({
           <div className="voxel-place-tray-stats" aria-label="Map collection">
             <span>{collectedCount} stickers</span>
             <span>{sessionNotes.length} notes</span>
-            <span>{selectedPlace ? `${Math.round(selectedPlace.activity * 100)}% active` : "city live"}</span>
+            <span>{selectedPlace ? `${Math.round(selectedPlace.activity * 100)}% active` : "Pick a place"}</span>
           </div>
           <div className="voxel-map-note-row">
             <input

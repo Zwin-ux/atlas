@@ -10,6 +10,8 @@ Use when the user opens Atlas for a supported county.
 
 Inputs:
 - countySlug optional, Alpha supports `riverside-ca`
+- includeGeneratedDraft optional boolean, only meaningful for indexed shell
+  counties
 
 Model-visible output:
 - compact scene summary
@@ -21,11 +23,20 @@ Model-visible output:
 
 Widget-only `_meta`:
 - full compiled `VoxelScene`
+- for indexed shell counties, optional `generatedDraftScene` when a draft
+  payload is ready and optional `generatedDraftPacket` when
+  `includeGeneratedDraft` is true
 
 Rules:
 - Compiles from the curated county pack.
 - Does not expose raw Google or provider payloads.
 - Does not save state.
+- Default shell behavior is unchanged. Generated drafts are non-playable,
+  non-public, provider-free, memory-or-Redis cached, and meta-only.
+- If a generated draft compile is already running elsewhere,
+  `generatedDraftPacket.generationStatus` may be `queued` with no
+  `generatedDraftScene` payload.
+- Generated draft scene data must not appear in `structuredContent`.
 - Widget-only `_meta.hostedClawd` may include gated Hosted Clawd context for the
   map tray. It is not a persisted object and does not add a public tool.
 
@@ -60,6 +71,8 @@ Use when the user wants to see the voxel map.
 Inputs:
 - countySlug
 - selectedNodeId optional
+- includeGeneratedDraft optional boolean, only meaningful for indexed shell
+  counties
 
 Model-visible output:
 - compact scene summary
@@ -73,6 +86,17 @@ Model-visible output:
 Widget-only `_meta`:
 - full `VoxelScene`
 - gated Hosted Clawd context for the map tray
+- for indexed shell counties, optional `generatedDraftScene` when a draft
+  payload is ready and optional `generatedDraftPacket` when
+  `includeGeneratedDraft` is true
+
+Rules:
+- Default shell behavior is unchanged.
+- Generated draft scenes are delivered through `_meta` only.
+- Queued generated draft packets may return `generatedDraftPacket` without a
+  `generatedDraftScene` payload.
+- Generated draft scenes are not public playable coverage, not DB persisted, not
+  provider geometry, and not exposed from a browser HTTP render route.
 
 ### lookup_world_places
 Use when the user asks to look up real nearby places or place categories for a location.
@@ -158,6 +182,39 @@ Rules:
   access.
 - Payment and persistence remain off unless the server gates and adapters are
   explicitly enabled.
+
+## 0.63H protected gate
+
+No new public MCP tools are exposed in `0.63H Protected Hosted Clawd Tool Gate`.
+Protected Hosted Clawd writes use the existing server action route behind the
+map tray. `create_or_attach_clawd` can create an owned Clawd for an
+authenticated owner before Checkout. `promote_session` and
+`save_campaign_artifact` require repository webhook state with an active
+subscription. client-supplied subscriptionStatus is not trusted, and Stripe
+return URLs do not grant write access.
+
+## 0.64H saved read surface
+
+No new public MCP tools are exposed in `0.64H Saved Hosted Clawd Read Surface`.
+Saved Hosted Clawd state is read through an HTTP-only widget route:
+`/api/hosted-clawd/saved`.
+
+Rules:
+- Reads require verified `atlas:hosted_clawd.read` or write scope.
+- Owner identity comes from the verified OIDC subject, not client ids.
+- Reads do not upsert users, save rows, record usage, or trust
+  `subscriptionStatus` from the client.
+- `refresh_status` uses the saved-state GET route. It must not create or attach
+  a Clawd row.
+- Active subscription is not required to read saved history. Payment failure
+  keeps paid writes paused but saved history readable.
+- The tray shelf may show owned Clawd, business profile, Scout Drop summary,
+  campaign draft summary, and stored subscription status only.
+- `get_upgrade_options` must use closed-gate copy when gates are off and
+  owner-gated test copy when persistence/Checkout adapters are active. It must
+  not claim public paid access.
+- No reports, evidence, XP, exports, automation, dashboard shell, pricing page,
+  provider geometry, renderer geometry, or public Anaheim/Ontario state.
 
 ## Future paid/hosted tools
 

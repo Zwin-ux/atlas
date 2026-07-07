@@ -1,0 +1,138 @@
+{
+  "ok": true,
+  "update": "postalpha-0.71h-scene-packet-service-boundary",
+  "artifactPath": "artifacts/national-generation/0.71h/generated-draft-scene-packet.json",
+  "checkedFiles": [
+    "packages/core/src/world/scenePacketCache.ts",
+    "packages/core/test/scene-packet-cache.test.ts",
+    "server/src/scenePacketMemoryAdapter.ts",
+    "server/src/index.ts",
+    "web/src/App.tsx",
+    "package.json"
+  ],
+  "runtime": {
+    "firstSummary": {
+      "update": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
+      "key": "atlas:scene-packet:v1:us:il:cook-il:cook-il-generated-district:generated-draft:generated-initial-window:city-world-v1:postalpha-0-70h-deterministic-generated-district-specs",
+      "readiness": "generated_draft",
+      "payloadKind": "generated_draft_scene",
+      "sceneId": "generated-cook-il-generated-district",
+      "cacheHit": false,
+      "hitCount": 1,
+      "createdAt": "2026-07-06T09:00:00.000Z",
+      "expiresAt": "2026-07-06T09:30:00.000Z",
+      "lastAccessedAt": "2026-07-06T09:00:00.000Z",
+      "ttlSeconds": 1800,
+      "generationStatus": "not_queued",
+      "generationMode": "deterministic_generated_draft",
+      "generationBlockers": [],
+      "packet": {
+        "containsScene": true,
+        "playable": false,
+        "publicRouteAllowed": false,
+        "metaOnlyScene": true
+      },
+      "policy": {
+        "storageMode": "runtime_memory",
+        "canPersist": false,
+        "providerGeometryAllowed": false,
+        "liveProviderAllowed": false
+      },
+      "safety": {
+        "passed": true,
+        "blockerCount": 0,
+        "blockers": []
+      }
+    },
+    "secondSummary": {
+      "update": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
+      "key": "atlas:scene-packet:v1:us:il:cook-il:cook-il-generated-district:generated-draft:generated-initial-window:city-world-v1:postalpha-0-70h-deterministic-generated-district-specs",
+      "readiness": "generated_draft",
+      "payloadKind": "generated_draft_scene",
+      "sceneId": "generated-cook-il-generated-district",
+      "cacheHit": true,
+      "hitCount": 2,
+      "createdAt": "2026-07-06T09:00:00.000Z",
+      "expiresAt": "2026-07-06T09:30:00.000Z",
+      "lastAccessedAt": "2026-07-06T09:00:00.000Z",
+      "ttlSeconds": 1800,
+      "generationStatus": "not_queued",
+      "generationMode": "deterministic_generated_draft",
+      "generationBlockers": [],
+      "packet": {
+        "containsScene": true,
+        "playable": false,
+        "publicRouteAllowed": false,
+        "metaOnlyScene": true
+      },
+      "policy": {
+        "storageMode": "runtime_memory",
+        "canPersist": false,
+        "providerGeometryAllowed": false,
+        "liveProviderAllowed": false
+      },
+      "safety": {
+        "passed": true,
+        "blockerCount": 0,
+        "blockers": []
+      }
+    },
+    "sceneBuilds": 1,
+    "status": {
+      "update": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
+      "cacheBackend": "memory",
+      "maxEntries": 4,
+      "entryCount": 1,
+      "hitCount": 1,
+      "missCount": 2,
+      "hitRate": 0.3333,
+      "queueDepth": 0,
+      "oldestQueuedMs": null,
+      "lockTtlSeconds": 30,
+      "redisConfigured": false,
+      "redisReachable": null,
+      "entries": [
+        {
+          "update": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
+          "key": "atlas:scene-packet:v1:us:il:cook-il:cook-il-generated-district:generated-draft:generated-initial-window:city-world-v1:postalpha-0-70h-deterministic-generated-district-specs",
+          "readiness": "generated_draft",
+          "payloadKind": "generated_draft_scene",
+          "sceneId": "generated-cook-il-generated-district",
+          "cacheHit": false,
+          "hitCount": 2,
+          "createdAt": "2026-07-06T09:00:00.000Z",
+          "expiresAt": "2026-07-06T09:30:00.000Z",
+          "lastAccessedAt": "2026-07-06T09:00:00.000Z",
+          "ttlSeconds": 1800,
+          "generationStatus": "not_queued",
+          "generationMode": "deterministic_generated_draft",
+          "generationBlockers": [],
+          "packet": {
+            "containsScene": true,
+            "playable": false,
+            "publicRouteAllowed": false,
+            "metaOnlyScene": true
+          },
+          "policy": {
+            "storageMode": "runtime_memory",
+            "canPersist": false,
+            "providerGeometryAllowed": false,
+            "liveProviderAllowed": false
+          },
+          "safety": {
+            "passed": true,
+            "blockerCount": 0,
+            "blockers": []
+          }
+        }
+      ]
+    },
+    "safety": {
+      "passed": true,
+      "blockers": []
+    }
+  },
+  "blockerCount": 0,
+  "blockers": [],
+  "warnings": []
+}

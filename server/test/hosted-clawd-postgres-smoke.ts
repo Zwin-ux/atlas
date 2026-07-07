@@ -8,7 +8,7 @@ import { createPostgresHostedClawdRepository } from "../src/hostedClawd/postgres
 import { createHostedClawdRepositoryPersistence } from "../src/hostedClawd/repository.js";
 import { HOSTED_CLAWD_READ_SCOPE, HOSTED_CLAWD_WRITE_SCOPE } from "../src/hostedClawd/auth.js";
 
-const databaseUrl = process.env.DATABASE_URL?.trim();
+const databaseUrl = (process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL)?.trim();
 
 if (!databaseUrl) {
   console.log(JSON.stringify({ ok: true, ran: false, reason: "DATABASE_URL is not configured; smoke skipped." }));

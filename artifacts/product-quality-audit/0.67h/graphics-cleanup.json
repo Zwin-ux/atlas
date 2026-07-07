@@ -1,0 +1,55 @@
+{
+  "ok": true,
+  "update": "postalpha-0.67h-product-feel-cleanup",
+  "decision": "GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST",
+  "previewUrl": "http://127.0.0.1:8787/preview",
+  "chromePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "static": {
+    "sourceContracts": "mobile selected-only labels, desktop ambient label cap, quiet focus rings, off-facade pins, focal calm for props/actors, reduced commerce/gym detail",
+    "rendererPath": "web/src/CityWorldRenderer.tsx"
+  },
+  "browser": [
+    {
+      "label": "desktop-1280x720",
+      "viewport": {
+        "label": "desktop-1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "ok": true,
+      "viewportState": {
+        "hostVisible": true,
+        "canvasVisible": true,
+        "fallbackVisible": false,
+        "rebuildCount": 1,
+        "horizontalOverflow": false,
+        "bodyText": "Riverside County\nEastvale\nRiverside\nPlayable\nOrange\nShell\nUnknown\nNot indexed\n\nRiverside is playable. Orange is browse-only. Lookups stay temporary.\n\nLOOKUP\nnot saved\nTurn to a new district\ngenerated · session-only\nPin\nLANDMARK\nEastvale Cor"
+      },
+      "consoleErrors": [],
+      "screenshotPath": "C:\\Users\\mzwin\\Documents\\Atlas\\artifacts\\product-quality-audit\\0.67h\\screens\\graphics-cleanup-desktop-1280x720.png",
+      "blockers": []
+    },
+    {
+      "label": "mobile-390x844",
+      "viewport": {
+        "label": "mobile-390x844",
+        "width": 390,
+        "height": 844
+      },
+      "ok": true,
+      "viewportState": {
+        "hostVisible": true,
+        "canvasVisible": true,
+        "fallbackVisible": false,
+        "rebuildCount": 1,
+        "horizontalOverflow": false,
+        "bodyText": "Riverside County\nEastvale\nRiverside\nPlayable\nOrange\nShell\nUnknown\nNot indexed\n\nRiverside is playable. Orange is browse-only. Lookups stay temporary.\n\nLOOKUP\nnot saved\nTurn to a new district\ngenerated · session-only\nPin\nLANDMARK\nEastvale Cor"
+      },
+      "consoleErrors": [],
+      "screenshotPath": "C:\\Users\\mzwin\\Documents\\Atlas\\artifacts\\product-quality-audit\\0.67h\\screens\\graphics-cleanup-mobile-390x844.png",
+      "blockers": []
+    }
+  ],
+  "blockerCount": 0,
+  "blockers": []
+}

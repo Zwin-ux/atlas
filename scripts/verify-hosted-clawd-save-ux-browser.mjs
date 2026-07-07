@@ -190,8 +190,8 @@ function assertState(label, state, errors) {
   if (!state.localView) failures.push("local view missing");
   if (state.slotCount < 4) failures.push(`expected at least 4 save slots, got ${state.slotCount}`);
   if (state.readyCount < 1) failures.push("expected at least one ready save slot");
-  if (!state.text.includes("Local view") && !state.text.includes("Local memory")) failures.push("local/memory label missing");
-  if (!state.text.includes("Clawdbot") && !state.text.includes("owned memory")) failures.push("Clawdbot/owned-memory copy missing");
+  if (!state.text.includes("Local view") && !state.text.includes("Saved setup")) failures.push("local/setup label missing");
+  if (!state.text.includes("This chat is temporary") && !state.text.includes("Save with Clawd")) failures.push("temporary-save copy missing");
   if (!state.clayAnimation.includes("city-world-hosted-clawd-rail-tick")) failures.push(`clay animation missing: ${state.clayAnimation}`);
   if (state.horizontalOverflow) failures.push("horizontal overflow detected");
   if (!state.trayWithinViewport) failures.push("tray is not fully inside viewport");

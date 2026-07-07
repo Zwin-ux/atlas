@@ -1,0 +1,42 @@
+{
+  "ok": true,
+  "update": "postalpha-0.68h-national-generation-production-contract",
+  "artifactPath": "artifacts/national-generation/0.68h/production-contract.json",
+  "checkedFiles": [
+    "packages/core/src/world/nationalGenerationProduction.ts",
+    "packages/core/src/world/index.ts",
+    "packages/core/src/index.ts",
+    "packages/core/test/national-generation-production.test.ts",
+    "docs/NATIONAL_ENGINE_PRODUCTION_CONTRACT.md",
+    "packages/core/src/voxel/cityWorldParametricGenerator.ts",
+    "scripts/verify-county-index-source.mjs",
+    "server/src/index.ts"
+  ],
+  "readiness": {
+    "type": "nationalGenerationProductionReadiness",
+    "productionReady": false,
+    "currentStage": "P0_US_COUNTY_IDENTITY",
+    "nextStage": "P1_HONEST_COUNTY_SHELLS",
+    "blockers": [
+      "US county identity is not nationwide: 1 state(s), 58 indexed county row(s)."
+    ],
+    "guarantees": [
+      "Playable claims remain gated by coverage tier and proof.",
+      "Shell counties are browse-only and do not invent local places.",
+      "Provider lookup is not coverage readiness and cannot create renderer geometry.",
+      "Generated scenes must use typed specs, deterministic seeds, and windowed renderer packets."
+    ],
+    "counts": {
+      "stateCount": 1,
+      "indexedCountyCount": 58,
+      "shellCountyCount": 57,
+      "playableCountyCount": 1,
+      "publicQualityCountyCount": 0
+    }
+  },
+  "blockerCount": 0,
+  "blockers": [],
+  "warnings": [
+    "nationalGenerationProduction.ts mentions provider boundaries; verify it did not import provider geometry."
+  ]
+}

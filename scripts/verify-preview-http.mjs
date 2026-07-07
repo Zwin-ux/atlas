@@ -10,7 +10,10 @@ const response = await fetch(previewUrl);
 const html = await response.text();
 
 assert(response.ok, `/preview returned HTTP ${response.status}.`);
-assert(html.includes("city-world") || html.includes("Atlas"), "/preview did not include Atlas city-world markup.");
+assert(html.includes("Atlas City Map"), "/preview did not include Atlas title markup.");
+assert(html.includes('/widget/component.js'), "/preview must load the eager widget script by reference.");
+assert(html.includes('/widget/component.css'), "/preview must load widget CSS by reference.");
+assert(!html.includes("pixi.js"), "/preview should not inline Pixi or renderer code.");
 assert(!/Scout Drop report|dashboard shell/i.test(html), "/preview contains old report/dashboard shell copy.");
 if (/Campaign Preview/i.test(html)) {
   assert(
@@ -18,7 +21,7 @@ if (/Campaign Preview/i.test(html)) {
     "/preview contains campaign preview copy without the accepted session-only in-widget panel contract.",
   );
 }
-assert(html.length > 10_000, "/preview response is unexpectedly small.");
+assert(html.length < 300_000, `/preview response is too large for the split widget shell: ${html.length} bytes.`);
 
 console.log(
   JSON.stringify(
@@ -26,7 +29,7 @@ console.log(
       ok: true,
       previewUrl: previewUrl.toString(),
       bytes: html.length,
-      hasCityWorldMarkup: html.includes("city-world"),
+      externalWidgetAssets: true,
     },
     null,
     2,

@@ -1,102 +1,131 @@
 {
-  "id": "postalpha-0.61h-hosted-clawd-invite-beta-save-ux",
-  "name": "Post-Alpha 0.61H - Hosted Clawd Invite Beta Save UX",
+  "id": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
+  "name": "Post-Alpha 0.72B - Redis Scene Packet Cache / Job Spine",
   "status": "local_green",
-  "playerPromise": "Atlas keeps the map as the product surface while making owned local state legible: the user can see which business, place, notes, Scout Drop, and campaign draft are ready for future Clawdbot memory without leaving the voxel world.",
-  "engineeringPromise": "Add a compact map tray save-readiness strip to the Hosted Clawd UI, preserving the Superior grey setup console and adding claymation save slots with desktop and 390x844 browser proof. Stripe, new MCP tools, and renderer geometry stay closed.",
-  "inputUpdate": "postalpha-0.60h-hosted-clawd-persistence-foundation",
-  "selectedAxis": "hosted_clawd_invite_beta_save_ux",
-  "recommendedNextQuest": "0.62H Stripe Test Billing",
-  "decision": "MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED",
+  "playerPromise": "Atlas can prepare generated draft scene packets for indexed shell counties without making map pan/zoom depend on Railway or claiming those drafts are public playable local truth.",
+  "engineeringPromise": "Move generated draft packet work onto a memory-or-Redis cache spine with compile locks, queued-safe metadata, a worker entrypoint, safe status/readiness output, request IDs, structured backend logs, and first-pass rate limits.",
+  "inputUpdate": "postalpha-0.71h-scene-packet-service-boundary",
+  "selectedAxis": "backend_production_spine",
+  "recommendedNextQuest": "0.72H Fable Generated Draft Visual Quality Gate",
+  "decision": "REDIS_PACKET_SPINE_NOT_RENDER_LOOP",
   "metricResult": {
-    "hostedClawdSaveUx": {
+    "scenePacketBackendSpine": {
       "branch": "codex/integrate-hosted-clawd-fable-058e",
-      "sourceFoundation": "postalpha-0.60h-hosted-clawd-persistence-foundation",
-      "artifactPath": "artifacts/hosted-clawd/postalpha-0.61h-save-ux.json",
-      "visualSource": "Superior grey setup console plus claymation save slots",
-      "surface": "Hosted Clawd map tray overlay",
-      "primaryQaHook": "hosted-clawd-save-strip",
-      "localViewQaHook": "hosted-clawd-local-view",
-      "saveSlotQaPrefix": "hosted-clawd-save-slot-",
-      "browserProofViewports": [
-        "desktop-1280x720",
-        "mobile-390x844"
+      "artifactPath": "artifacts/national-generation/0.72b/production-backend-spine.json",
+      "cacheBackends": [
+        "memory",
+        "redis"
       ],
-      "desktopScreenshot": "artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-desktop-1280x720.png",
-      "mobileScreenshot": "artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-mobile-390x844.png",
-      "publicToolCount": 7,
-      "newMcpTools": 0,
-      "firstSavedArtifactExplained": "Business/location context plus session notes, Scout Drop, and campaign draft are shown as what Clawdbot could read after paid gates open.",
-      "mobileProofRequired": true,
-      "stripeTiming": "0.62H Stripe Test Billing after save UX proof"
+      "devMemoryFallback": true,
+      "productionRedisRequired": true,
+      "redisCompileLock": true,
+      "queuedSafeGeneratedDraftPacket": true,
+      "workerEntrypoint": "server/src/scenePacketWorker.ts",
+      "statusSafeSummariesOnly": true,
+      "readyEndpoint": true,
+      "requestIds": true,
+      "structuredBackendLogs": true,
+      "rateLimits": true,
+      "railwayRuntimeRequiredForPanZoom": false,
+      "nextRequiredSlice": "0.72H Fable Generated Draft Visual Quality Gate"
+    },
+    "productionRailwayStack": {
+      "artifactPath": "artifacts/ops/production-railway-stack.json",
+      "baseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
+      "backendService": "atlas-backend",
+      "workerService": "atlas-scene-packet-worker",
+      "cacheBackend": "redis",
+      "redisReachable": true,
+      "databaseReachable": true,
+      "persistenceEnabled": true,
+      "stripeConfigured": true,
+      "authConfigured": false,
+      "publicPaidClaimEnabled": false,
+      "statusSafeSummariesOnly": true,
+      "generatedDraftMetaOnly": true,
+      "generatedDraftRedisHitAfterFirst": true,
+      "launchSwitch": "Auth/OIDC account linking plus webhook-confirmed owner state"
+    },
+    "parallelFableCandidate": {
+      "worktree": "C:\\Users\\mzwin\\Documents\\atlas-53e-fable",
+      "artifactPath": "artifacts/0.72h-b-roof-label-cleanup/FABLE_RESULT.md",
+      "priorArtifactPath": "artifacts/0.72h-fable-generated-draft-visual-quality/FABLE_RESULT.md",
+      "status": "review_candidate_not_merged_no_label_cleanup",
+      "coreBuild": true,
+      "starterTypecheck": true,
+      "starterBuild": true,
+      "generatedDistrictParity": true,
+      "desktopMobileScreenshotProof": true,
+      "generatedPlaceLabelsSuppressed": true,
+      "knownCaveat": "preview banner still covers part of the top-left scene; residential detail still reads procedural at close inspection",
+      "recommendedNextVisualSlice": "0.72H-c Residential Object-Kit Authorship Pass"
     },
     "scope": {
-      "docsOnly": false,
-      "verifierAdded": true,
-      "dbMigrations": 1,
-      "persistedWrites": true,
-      "protectedWritesOnly": true,
-      "liveCheckout": false,
-      "authProviderMutation": false,
-      "packageDepsAdded": 0,
-      "stripeDepsAdded": 0,
-      "stripeTablesAdded": 0,
       "newMcpTools": 0,
-      "uiSurfaceChanges": true,
-      "rendererGeometryChanges": false,
+      "publicHttpRenderRoute": false,
+      "browserHttpRenderRouteAdded": false,
+      "scenePacketDbPersistence": false,
+      "authScopeAdded": false,
+      "stripePublicLaunch": false,
+      "publicPaidClaim": false,
       "publicAnaheimPromotion": false,
-      "providerGeometry": false
+      "providerGeometry": false,
+      "nationwidePlayableClaim": false,
+      "railwayRuntimeRequiredForPanZoom": false
     }
   },
   "verification": {
-    "starterTypecheck": "pnpm typecheck:starter",
-    "saveUxGuard": "node scripts/verify-hosted-clawd-save-ux.mjs",
-    "browserSaveUxGuard": "node scripts/verify-hosted-clawd-save-ux-browser.mjs --url http://127.0.0.1:8790/preview --screenshots artifacts/hosted-clawd/postalpha-0.61h-save-ux",
-    "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
-    "saveUxSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-save-ux --json-only",
-    "providerBoundary": "node scripts/verify-provider-boundaries.mjs --json-only",
-    "toolResultShape": "node scripts/verify-tool-result-shape.mjs --json-only",
-    "starterBuild": "pnpm build:starter"
+    "serverBuild": "pnpm build:server",
+    "productionBackendSpine": "pnpm verify:production-backend-spine",
+    "generatedDraftScenePacket": "pnpm verify:generated-draft-scene-packet",
+    "scenePacketMemoryAdapter": "node scripts/verify-scene-packet-memory-adapter.mjs --json-only",
+    "railwayProductionStack": "pnpm verify:railway-production-stack",
+    "publicMcp": "ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp pnpm verify:mcp",
+    "publicSubmission": "ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp pnpm verify:submission",
+    "strictSplit": "node scripts\\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode national-generation-contract --json-only",
+    "remainingGateLadder": "run build:core, typecheck:starter, build:starter, provider boundary, tool-result shape, source-of-truth drift, strict split guard, and preview HTTP before release handoff"
   },
-  "nextCodeStep": "0.62H Stripe Test Billing",
+  "nextCodeStep": "0.72H Fable Generated Draft Visual Quality Gate",
   "forbiddenScope": [
-    "Stripe Checkout, Billing Portal, webhook endpoint, product, price, customer, or subscription mutation before 0.62H",
-    "public paid pricing or saved-state launch claims",
-    "evidence uploads",
-    "XP grants or XP ledger",
-    "weekly reports",
-    "exports",
-    "automation, auto-posting, DMs, ads, scraping, or scheduled outreach",
-    "new public MCP tools before protected Hosted Clawd tools are separately approved",
-    "public Anaheim/Ontario exposure",
+    "new public MCP tools before an explicit tool-surface gate",
+    "browser HTTP generated-scene render routes",
+    "Railway or any backend call in the pan/zoom frame loop",
+    "DB persistence for generated draft scene packets",
     "provider-created geometry or readiness promotion",
-    "generic SaaS pricing page, dashboard shell, or long setup wizard",
-    "voxel renderer geometry changes inside the save UX slice"
+    "public paid launch claims",
+    "pricing page, dashboard shell, plan table, report surface, export, evidence, XP, automation, or scheduled outreach",
+    "public Anaheim/Ontario exposure",
+    "all-US playable claims before provider-normalized anchor and public-quality gates pass"
   ],
   "gates": [
     {
-      "id": "persistence-gate",
-      "label": "0.60H owner-protected DB/Auth foundation remains the only reopened persistence implementation",
+      "id": "dev-memory-fallback-gate",
+      "label": "Local/dev can run without Redis and uses memory cache",
       "required": true
     },
     {
-      "id": "money-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_MONEY remains closed until 0.62H opens test billing explicitly",
+      "id": "production-redis-config-gate",
+      "label": "Production Redis backend and URL are required for generated draft packet cache readiness",
       "required": true
     },
     {
-      "id": "map-first-gate",
-      "label": "Save UX lives inside the map tray and must not become a dashboard shell or pricing page",
+      "id": "compile-lock-gate",
+      "label": "Redis compile locks prevent duplicate generated draft compiles across Railway instances",
       "required": true
     },
     {
-      "id": "mobile-gate",
-      "label": "390x844 browser proof is required for the Hosted Clawd save tray",
+      "id": "queued-safe-meta-gate",
+      "label": "Lock contention returns queued-safe generatedDraftPacket metadata with no scene payload",
       "required": true
     },
     {
-      "id": "public-claim-gate",
-      "label": "HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM remains closed until pricing and saved-state claims are approved",
+      "id": "status-summary-gate",
+      "label": "Scene packet status exposes safe summaries only, not payload or scene geometry",
+      "required": true
+    },
+    {
+      "id": "no-render-loop-gate",
+      "label": "Railway is reserved for compile/cache/job work and never participates in browser pan/zoom",
       "required": true
     }
   ]

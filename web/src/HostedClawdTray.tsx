@@ -1,5 +1,4 @@
-import hostedClawdBadge from "../../assets/generated/placeholders/svg/hosted-clawd-badge.svg";
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { HostedClawdContext } from "./types";
 
 export type HostedClawdTrayProps = {
@@ -10,160 +9,62 @@ export type HostedClawdTrayProps = {
 };
 
 export function HostedClawdTray({ context, actionMessage, onClose, onPrimaryAction }: HostedClawdTrayProps) {
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const expandButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const closedGateCount = context.gates.filter((gate) => !gate.approved).length;
   const setupSteps = setupStepsForContext(context, closedGateCount);
   const activeSetupStepId = setupSteps.find((step) => step.status !== "ready")?.id ?? setupSteps[setupSteps.length - 1]?.id;
-  const recoveryCues = recoveryCuesForContext(context, closedGateCount);
   const saveReadiness = saveReadinessForContext(context, closedGateCount);
+  const savedShelf = savedShelfForContext(context);
+  const visibleSetupSteps = setupSteps.filter((step) => ["wake", "target", "scout", "campaign"].includes(step.id));
+
+  useEffect(() => {
+    if (expanded) closeButtonRef.current?.focus();
+  }, [expanded]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    if (expanded) {
+      setExpanded(false);
+      window.requestAnimationFrame(() => expandButtonRef.current?.focus());
+      return;
+    }
+    onClose();
+  };
 
   return (
     <section
-      className="city-world-hosted-clawd"
-      aria-label="Hosted Clawd upgrade"
+      className={expanded ? "city-world-hosted-clawd is-expanded" : "city-world-hosted-clawd is-collapsed"}
+      role={expanded ? "dialog" : "region"}
+      aria-modal={expanded ? "true" : undefined}
+      aria-labelledby="hosted-clawd-title"
+      aria-describedby="hosted-clawd-summary"
       data-qa="hosted-clawd-tray"
+      data-qa-sheet-state={expanded ? "expanded" : "collapsed"}
       data-qa-hosted-state={context.screenState}
       data-qa-hosted-mode={context.mode}
+      data-qa-no-pricing-page="true"
+      data-qa-dashboard-shell="false"
+      data-qa-save-surface-count="1"
+      data-qa-paid-writes={context.canUsePaidWrites ? "enabled" : "read-only"}
+      data-qa-return-url-access="false"
+      onKeyDown={handleKeyDown}
     >
-      <div className="city-world-hosted-clawd-windowbar" aria-hidden="true">
-        <span>CLAWD SETUP</span>
-        <i />
-        <i />
-      </div>
-
-      <header className="city-world-hosted-clawd-head">
-        <img src={hostedClawdBadge} alt="" aria-hidden="true" />
-        <div>
-          <span>{context.statusLabel}</span>
-          <strong>Hosted Clawd bench</strong>
-          <p>{context.contextLabel}</p>
-        </div>
-        <button type="button" className="city-world-hosted-clawd-close" aria-label="Close Hosted Clawd tray" onClick={onClose}>
-          <CloseIcon />
-        </button>
-      </header>
-
-      <div className="city-world-hosted-clawd-state" data-qa="hosted-clawd-session-state">
-        <span>{context.sessionBoundary}</span>
-        <span>{context.paymentCopy}</span>
-      </div>
-
-      <section
-        className="city-world-hosted-clawd-save-strip"
-        aria-label="Hosted Clawd save readiness"
-        data-qa="hosted-clawd-save-strip"
-        data-qa-save-readiness={saveReadiness.status}
-        data-qa-save-ready-count={saveReadiness.readyCount}
-      >
-        <div className="city-world-hosted-clawd-local" data-qa="hosted-clawd-local-view">
-          <span>{saveReadiness.kicker}</span>
-          <strong>{saveReadiness.title}</strong>
-          <p>{saveReadiness.detail}</p>
-        </div>
-        <ol className="city-world-hosted-clawd-save-slots" aria-label="Save slots">
-          {saveReadiness.slots.map((slot, index) => (
-            <li
-              key={`${slot.id}-${index}`}
-              aria-label={`${slot.label}: ${saveSlotStatusLabel(slot.status)}. ${slot.detail}`}
-              data-status={slot.status}
-              data-qa={`hosted-clawd-save-slot-${slot.id}`}
-              style={{ "--slot-index": index } as CSSProperties}
-            >
-              <span aria-hidden="true">{index + 1}</span>
-              <div>
-                <strong title={`${slot.label}: ${saveSlotStatusLabel(slot.status)}`}>{slot.label}</strong>
-                <p title={slot.detail}>{slot.detail}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div
-          className="city-world-hosted-clawd-motion-rail"
-          aria-hidden="true"
-          style={{ "--save-slot-count": saveReadiness.slots.length } as CSSProperties}
+      <div className="city-world-hosted-clawd-peek" data-qa="hosted-clawd-bottom-sheet-peek">
+        <button
+          ref={expandButtonRef}
+          type="button"
+          className="city-world-hosted-clawd-peek-copy"
+          aria-expanded={expanded}
+          aria-controls="hosted-clawd-sheet-body"
+          onClick={() => setExpanded((value) => !value)}
         >
-          {saveReadiness.slots.map((slot, index) => (
-            <span
-              key={`${slot.id}-${index}-rail`}
-              data-status={slot.status}
-              style={{ "--slot-index": index } as CSSProperties}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section
-        className="city-world-hosted-clawd-setup"
-        aria-label="Hosted Clawd setup console"
-        data-qa="hosted-clawd-setup-rail"
-        data-qa-setup-console="grey"
-      >
-        <div className="city-world-hosted-clawd-section-head">
-          <h3>Setup bench</h3>
-          <span>Beta writes locked</span>
-        </div>
-
-        <div className="city-world-hosted-clawd-stage-buttons" aria-label="Hosted Clawd setup stages">
-          {setupSteps.map((step, index) => (
-            <span
-              key={step.id}
-              className="city-world-hosted-clawd-stage-button"
-              aria-current={step.id === activeSetupStepId ? "step" : undefined}
-              data-status={step.status}
-              data-qa={`hosted-clawd-setup-${step.id}`}
-            >
-              <span aria-hidden="true">{index + 1}</span>
-              {step.label}
-            </span>
-          ))}
-        </div>
-
-        <div className="city-world-hosted-clawd-recovery" data-qa="hosted-clawd-recovery">
-          <div>
-            <span>RECOVERY</span>
-            <strong>{context.canPersist ? "Save adapter ready" : "Session bench only"}</strong>
-            <p>{context.canPersist ? "Hosted writes can run after user confirmation." : "No writes leave this chat while the gates are closed."}</p>
-          </div>
-          <ul>
-            {recoveryCues.map((cue) => (
-              <li key={cue.label} data-status={cue.status}>
-                <span aria-hidden="true" />
-                <strong>{cue.label}</strong>
-                <p>{cue.detail}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      <div className="city-world-hosted-clawd-copy">
-        <p>{context.primaryCopy}</p>
-        <p>{context.secondaryCopy}</p>
-      </div>
-
-      <div className="city-world-hosted-clawd-save" aria-label="Hosted Clawd save preview">
-        <div className="city-world-hosted-clawd-section-head">
-          <h3>What would be saved</h3>
-          <span>{context.savePreview.length}</span>
-        </div>
-        <ul>
-          {context.savePreview.map((item) => (
-            <li key={`${item.label}-${item.value}`}>
-              <span className={`city-world-hosted-clawd-dot status-${item.status}`} aria-hidden="true" />
-              <div>
-                <strong>{item.label}</strong>
-                <p>{item.value}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <footer className="city-world-hosted-clawd-foot">
-        {actionMessage ? (
-          <p className="city-world-hosted-clawd-action-message" data-qa="hosted-clawd-action-message">
-            {actionMessage}
-          </p>
-        ) : null}
+          <span id="hosted-clawd-title">Atlas save</span>
+          <strong>Status: {saveReadiness.readyCount}/{saveReadiness.slots.length} ready</strong>
+          <small id="hosted-clawd-summary">{context.contextLabel}</small>
+        </button>
         <button
           type="button"
           className="city-world-recovery-action city-world-hosted-clawd-primary"
@@ -173,12 +74,112 @@ export function HostedClawdTray({ context, actionMessage, onClose, onPrimaryActi
         >
           {context.primaryAction.label}
         </button>
-        <div className="city-world-hosted-clawd-gates" aria-label="Hosted Clawd gates" data-qa="hosted-clawd-gates">
-          <span>{formatCount(closedGateCount, "gate")} closed</span>
-          <span>{context.canPersist ? "Persistence ready" : "Persistence off"}</span>
-          <span>{context.canStartCheckout ? "Checkout ready" : "Checkout off"}</span>
+        <button type="button" className="city-world-hosted-clawd-close" aria-label="Close Atlas save panel" onClick={onClose}>
+          <CloseIcon />
+        </button>
+      </div>
+
+      {expanded ? (
+        <div id="hosted-clawd-sheet-body" className="city-world-hosted-clawd-body" data-qa="hosted-clawd-sheet-body">
+          <header className="city-world-hosted-clawd-head">
+            <div>
+              <strong>Save with ChatGPT</strong>
+              <p>{saveReadiness.detail}</p>
+            </div>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="city-world-hosted-clawd-collapse"
+              aria-label="Collapse Atlas save panel"
+              onClick={() => {
+                setExpanded(false);
+                window.requestAnimationFrame(() => expandButtonRef.current?.focus());
+              }}
+            >
+              Collapse
+            </button>
+          </header>
+
+          <div className="city-world-hosted-clawd-state" role="status" aria-live="polite" data-qa="hosted-clawd-session-state">
+            <span>{saveReadiness.title}</span>
+          </div>
+
+          <section
+            className="city-world-hosted-clawd-save-strip"
+            aria-label="Saved workflow items"
+            data-qa="hosted-clawd-save-strip"
+            data-qa-save-readiness={saveReadiness.status}
+            data-qa-save-ready-count={saveReadiness.readyCount}
+          >
+            <ol className="city-world-hosted-clawd-save-slots" aria-label="Saved items">
+              {saveReadiness.slots.map((slot, index) => (
+                <li key={`${slot.id}-${index}`} aria-label={`${slot.label}: ${saveSlotValue(slot)}`} data-status={slot.status} data-qa={`hosted-clawd-save-slot-${slot.id}`}>
+                  <span aria-hidden="true" />
+                  <div>
+                    <strong title={slot.label}>{slot.label}</strong>
+                    <p title={saveSlotValue(slot)}>{saveSlotValue(slot)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {savedShelf ? (
+            <section
+              className="city-world-hosted-clawd-saved-shelf"
+              aria-label="Saved Atlas state"
+              data-qa="hosted-clawd-saved-shelf"
+              data-qa-saved-read-only={savedShelf.readOnly ? "true" : "false"}
+              data-qa-saved-record-count={savedShelf.recordCount}
+            >
+              <div className="city-world-hosted-clawd-saved-head">
+                <span>Saved items</span>
+                <strong>{savedShelf.title}</strong>
+                <p>{savedShelf.detail}</p>
+              </div>
+              <ul className="city-world-hosted-clawd-saved-list">
+                {savedShelf.rows.map((row) => (
+                  <li key={row.id} data-kind={row.kind}>
+                    <span aria-hidden="true" />
+                    <div>
+                      <strong>{row.label}</strong>
+                      <p>{row.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <section className="city-world-hosted-clawd-setup" aria-label="Atlas workflow steps" data-qa="hosted-clawd-setup-rail" data-qa-setup-console="grey">
+            <ol className="city-world-hosted-clawd-stage-buttons" aria-label="Workflow steps">
+              {visibleSetupSteps.map((step, index) => (
+                <li
+                  key={step.id}
+                  className="city-world-hosted-clawd-stage-button"
+                  aria-current={step.id === activeSetupStepId ? "step" : undefined}
+                  aria-label={`${step.label}: ${step.statusLabel}. ${step.detail}`}
+                  data-status={step.status}
+                  data-qa={`hosted-clawd-setup-${step.id}`}
+                >
+                  <span aria-hidden="true">{index + 1}</span>
+                  {step.label}
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {actionMessage ? (
+            <p className="city-world-hosted-clawd-action-message" role="status" aria-live="polite" data-qa="hosted-clawd-action-message">
+              {actionMessage}
+            </p>
+          ) : null}
         </div>
-      </footer>
+      ) : actionMessage ? (
+        <p className="city-world-hosted-clawd-action-message" role="status" aria-live="polite" data-qa="hosted-clawd-action-message">
+          {actionMessage}
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -212,9 +213,9 @@ function saveReadinessForContext(context: HostedClawdContext, closedGateCount: n
   if (context.canPersist) {
     return {
       status,
-      kicker: "Local memory",
-      title: `${readyCount}/${slots.length} ready to own`,
-      detail: "Save only what is confirmed for this map, business, and local campaign draft.",
+      kicker: "Saved setup",
+      title: `${readyCount}/${slots.length} ready`,
+      detail: "Save confirmed business, map, Scout Drop, and campaign draft.",
       readyCount,
       slots,
     };
@@ -226,8 +227,8 @@ function saveReadinessForContext(context: HostedClawdContext, closedGateCount: n
     title: `${readyCount}/${slots.length} ready in this chat`,
     detail:
       closedGateCount > 0
-        ? "Clawdbot can read this setup later; today the map, notes, and campaign stay session-only."
-        : "Connect an account before this local setup becomes owned memory.",
+        ? "This chat is temporary. Connect an account before anything can be saved."
+        : "Connect an account to save this setup.",
     readyCount,
     slots,
   };
@@ -237,10 +238,100 @@ function saveSlotId(label: string): string {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "slot";
 }
 
-function saveSlotStatusLabel(status: HostedClawdSaveSlot["status"]): string {
-  if (status === "ready") return "ready";
-  if (status === "pending") return "needs confirmation";
-  return "locked until Hosted Clawd opens";
+function saveSlotValue(slot: HostedClawdSaveSlot): string {
+  if (slot.status === "locked") return "Not ready";
+  if (slot.status === "pending") return slot.detail;
+  if (slot.label === "Scout report" || slot.label === "Campaign draft") return "Saved";
+  return slot.detail;
+}
+
+type HostedClawdSavedShelfRow = {
+  id: string;
+  kind: "clawd" | "business" | "scout" | "campaign" | "empty";
+  label: string;
+  detail: string;
+};
+
+type HostedClawdSavedShelf = {
+  title: string;
+  detail: string;
+  recordCount: number;
+  readOnly: boolean;
+  rows: HostedClawdSavedShelfRow[];
+};
+
+function savedShelfForContext(context: HostedClawdContext): HostedClawdSavedShelf | null {
+  const savedState = context.savedState;
+  if (!savedState) return null;
+
+  const rows: HostedClawdSavedShelfRow[] = [];
+  if (savedState.clawd) {
+    rows.push({
+      id: `clawd-${savedState.clawd.id}`,
+      kind: "clawd",
+      label: savedState.clawd.name,
+      detail: "Saved assistant",
+    });
+  }
+  if (savedState.businessProfile) {
+    const place = savedState.businessProfile.placeLabel ?? savedState.businessProfile.countyLabel ?? savedState.businessProfile.countySlug;
+    rows.push({
+      id: `business-${savedState.businessProfile.id}`,
+      kind: "business",
+      label: savedState.businessProfile.name,
+      detail: `${savedState.businessProfile.businessType ?? "Business profile"} - ${place}`,
+    });
+  }
+  if (savedState.scoutDrops.length > 0) {
+    const latest = savedState.scoutDrops[0];
+    if (latest) {
+      rows.push({
+        id: `scout-${latest.id}`,
+        kind: "scout",
+        label: `${savedState.scoutDrops.length} saved Scout Drop${savedState.scoutDrops.length === 1 ? "" : "s"}`,
+        detail: `Latest preview ${latest.scoutPreviewId}`,
+      });
+    }
+  }
+  if (savedState.campaignDrafts.length > 0) {
+    const latest = savedState.campaignDrafts[0];
+    if (latest) {
+      rows.push({
+        id: `campaign-${latest.id}`,
+        kind: "campaign",
+        label: `${savedState.campaignDrafts.length} campaign draft${savedState.campaignDrafts.length === 1 ? "" : "s"}`,
+        detail: latest.summary ?? `Preview ${latest.campaignPreviewId}`,
+      });
+    }
+  }
+
+  const recordCount =
+    (savedState.clawd ? 1 : 0) +
+    (savedState.businessProfile ? 1 : 0) +
+    savedState.scoutDrops.length +
+    savedState.campaignDrafts.length;
+
+  if (rows.length === 0) {
+    rows.push({
+      id: "empty",
+      kind: "empty",
+      label: "Nothing saved yet",
+      detail: "Start from this map.",
+    });
+  }
+
+  return {
+    title: recordCount === 0 ? "No saved state yet" : `${recordCount} saved in ChatGPT`,
+    detail:
+      savedState.readOnlyReason === "billing_attention"
+        ? "Saved history is readable. New saves are paused."
+        : savedState.paidWrites === "enabled"
+          ? "Saved history is loaded. New saves are on."
+          : "Saved history is readable. New saves are locked.",
+    recordCount,
+    readOnly: savedState.paidWrites === "read_only",
+    rows,
+  };
 }
 
 function CloseIcon() {
@@ -267,8 +358,8 @@ function setupStepsForContext(context: HostedClawdContext, closedGateCount: numb
   return [
     {
       id: "wake",
-      label: "Wake",
-      detail: "Open the Hosted Clawd bench on this map",
+      label: "Open",
+      detail: "Open setup on this map",
       status: "ready",
       statusLabel: "Ready",
     },
@@ -277,48 +368,17 @@ function setupStepsForContext(context: HostedClawdContext, closedGateCount: numb
     setupStepFromPreview("campaign", "Campaign", campaign, "Preview the first campaign"),
     {
       id: "gate",
-      label: "Gate",
-      detail: closedGateCount > 0 ? `${formatCount(closedGateCount, "approval gate")} closed` : "Persistence and payment gates are open",
+      label: "Account",
+      detail: closedGateCount > 0 ? `${formatCount(closedGateCount, "setup step")} locked` : "Account ready",
       status: closedGateCount > 0 ? "blocked" : "ready",
       statusLabel: closedGateCount > 0 ? "Locked" : "Ready",
     },
     {
       id: "proof",
-      label: "Proof",
-      detail: context.canPersist ? "Save after confirmation" : "Proof waits for Hosted Clawd approval",
+      label: "Save",
+      detail: context.canPersist ? "Confirm before saving" : "Saving is not live yet",
       status: context.canPersist ? "ready" : "blocked",
       statusLabel: context.canPersist ? "Ready" : "Locked",
-    },
-  ];
-}
-
-type HostedClawdRecoveryCue = {
-  label: string;
-  detail: string;
-  status: "ready" | "missing" | "locked";
-};
-
-function recoveryCuesForContext(context: HostedClawdContext, closedGateCount: number): HostedClawdRecoveryCue[] {
-  return [
-    {
-      label: "Power",
-      detail: context.mode === "alpha_free" ? "Alpha bench awake" : context.mode.replace("_", " "),
-      status: "ready",
-    },
-    {
-      label: "Target",
-      detail: context.contextLabel,
-      status: findSavePreviewItem(context, "Business")?.status === "ready" ? "ready" : "missing",
-    },
-    {
-      label: "Save",
-      detail: context.canPersist ? "adapter ready" : "persistence off",
-      status: context.canPersist ? "ready" : "locked",
-    },
-    {
-      label: "Gate",
-      detail: closedGateCount > 0 ? `${formatCount(closedGateCount, "approval")} closed` : "approvals open",
-      status: closedGateCount > 0 ? "locked" : "ready",
     },
   ];
 }

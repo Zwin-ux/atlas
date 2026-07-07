@@ -329,12 +329,23 @@ try {
     "get_upgrade_options",
   );
   assert(upgrade.type === "upgradeOptions", "get_upgrade_options returned the wrong structured type.");
-  assert(upgrade.hosted?.status === "planned_beta", "Hosted Clawd status must be planned_beta in Alpha.");
   assert(
-    Array.isArray(upgrade.unavailableActions) &&
-      upgrade.unavailableActions.some((item) => item.includes("Stripe checkout")),
-    "Upgrade options must clearly say checkout is unavailable in Alpha.",
+    upgrade.hosted?.status === "planned_beta" || upgrade.hosted?.status === "owner_gated_test",
+    "Hosted Clawd status must be planned_beta or owner_gated_test.",
   );
+  if (upgrade.hosted?.status === "planned_beta") {
+    assert(
+      Array.isArray(upgrade.unavailableActions) &&
+        upgrade.unavailableActions.some((item) => item.includes("Stripe checkout")),
+      "Upgrade options must clearly say checkout is unavailable in Alpha.",
+    );
+  } else {
+    assert(
+      Array.isArray(upgrade.unavailableActions) &&
+        upgrade.unavailableActions.some((item) => /Public paid access is not live/i.test(item)),
+      "Owner-gated Hosted Clawd output must clearly keep public paid access closed.",
+    );
+  }
 
   console.log(
     JSON.stringify(
@@ -350,6 +361,7 @@ try {
         unsupportedCountyQuestion: unsupportedCountyQuestion.supported,
         scoutPreviewId: scout.id,
         campaignPreviewId: campaign.id,
+        hostedClawdStatus: upgrade.hosted.status,
       },
       null,
       2,

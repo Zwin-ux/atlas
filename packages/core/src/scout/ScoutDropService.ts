@@ -56,7 +56,7 @@ export class ScoutDropService {
       risks,
       channels,
       nextActions,
-      upgradePrompt: "Host Clawd to save the route, track follow-ups, and attach proof when the campaign starts.",
+      upgradePrompt: "Save this route with ChatGPT when saving opens.",
       limitations: [
         "Alpha uses curated Riverside demo signals, not live market claims.",
         "No posting, DM automation, or ad execution is performed.",
@@ -227,7 +227,7 @@ function buildScoutScene(
       { label: "Route drag", value: "Low", tone: "good" },
       { label: "Watch", value: "Access gates", tone: "watch" },
     ],
-    upgradePrompt: "Host Clawd to save this Scout Drop and track follow-ups.",
+    upgradePrompt: "Save this Scout Drop with ChatGPT when saving opens.",
   };
 
   return {

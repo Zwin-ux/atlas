@@ -19,54 +19,493 @@ reliability sweep, `0.50P` submission packet.
 The owner-gate / second-district ceremony below is **parked** but kept honest: `0.46E Owner Gate
 Review Packet` remains the recorded next quest for that parked ladder, its selector artifacts
 remain anchored at `0.45E`, and Anaheim/Ontario stay hidden and non-public. The active manifest
-is now the 0.61H Hosted Clawd Invite Beta Save UX, using the 0.60H persistence
-foundation as its input update. Re-open the owner-gate ladder only on human
-request.
+is now the 0.72B Redis Scene Packet Cache / Job Spine proof, using the 0.71H
+Scene Packet Service Boundary proof as its input update. Re-open the
+owner-gate ladder only on human request.
 
-## Current save UX slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+## Current backend production slice (2026-07-06, `codex/integrate-hosted-clawd-fable-058e`)
 
 Current quest:
-`0.61H Invite Beta Save UX`.
+`0.72B Redis Scene Packet Cache / Job Spine`.
 
 Player-facing promise:
-Atlas keeps the voxel map as the product surface while making owned local state
-understandable: business/location, local notes, Scout Drop, and campaign draft
-show as the memory Clawdbot could read later.
+Atlas can prepare generated draft scene packets without making map pan/zoom
+depend on Railway or pretending shell counties are public playable worlds.
 
 Engineering promise:
-Keep the Superior grey setup console, add compact claymation save slots inside
-the Hosted Clawd tray, and prove the result on desktop and 390x844 mobile.
-Stripe, public paid claims, new MCP tools, dashboards, and renderer geometry
-stay closed.
+Move generated draft packet work onto a memory-or-Redis cache spine with compile
+locks, a Redis-backed job queue path, safe readiness/status output, request IDs,
+structured logs, `/ready`, and first-pass backend rate limits.
+
+Decision:
+`REDIS_PACKET_SPINE_NOT_RENDER_LOOP`.
+
+Selected axis:
+`backend_production_spine`.
+
+Contract:
+- Local/dev defaults to memory when Redis is not configured.
+- Railway production requires Redis for generated draft packet cache/job
+  readiness.
+- `ScenePacketCacheStore`, `ScenePacketCompileLock`, and
+  `ScenePacketJobQueue` are internal service contracts, not new public tools.
+- Redis compile locks use `SET NX EX` semantics to prevent duplicate generated
+  draft compiles across Railway instances.
+- If another instance holds the compile lock, Atlas waits briefly for cache,
+  then returns `_meta.generatedDraftPacket` marked `queued` with no scene
+  payload.
+- A separate worker entrypoint can claim generated draft jobs, compile
+  deterministic `CityWorldScene` packets, and write them to Redis with TTL.
+- Cache keys include county slug, generated district slug, camera/window
+  profile, scene schema version, and generator update id.
+- Generated draft delivery remains `_meta.generatedDraftScene` /
+  `_meta.generatedDraftPacket`; `structuredContent` stays a concise county
+  coverage summary.
+- `/api/engine/scene-packets/status` may expose `cacheBackend`, `entryCount`,
+  `hitRate`, `queueDepth`, and `oldestQueuedMs`, but never payloads, terrain,
+  roads, buildings, places, provider data, or generated district bodies.
+- `/ready` exposes safe booleans and counts only.
+- Browser Pixi pan/zoom remains retained and local after the packet arrives.
+- Public MCP tool surface remains the seven Alpha tools.
+- No DB persistence for scene packets, public renderer route, browser HTTP
+  generated-scene route, public paid launch, provider geometry, evidence, XP,
+  reports, exports, automation, all-US playable claim, or public
+  Anaheim/Ontario.
+
+Proof:
+- `server/src/scenePacketMemoryAdapter.ts`
+- `server/src/scenePacketWorker.ts`
+- `server/src/index.ts`
+- `.env.example`
+- `package.json`
+- `scripts/verify-production-backend-spine.mjs`
+- `scripts/verify-generated-draft-scene-packet.mjs`
+- `docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md`
+- `artifacts/national-generation/0.72b/production-backend-spine.json`
+- `artifacts/national-generation/0.71h/generated-draft-scene-packet.json`
+
+Metric:
+- Dev/local memory fallback is accepted.
+- Production Redis config without `ATLAS_REDIS_URL` is blocked.
+- Generated draft cache miss compiles once; repeat request hits cache.
+- Lock contention returns queued-safe metadata and enqueues one job.
+- Scene packet status route does not leak payload, scene geometry, or provider
+  data.
+- Railway production proof is green for Redis, Postgres reachability, Stripe
+  test config, private scene packet worker presence, `/ready`, and scene packet
+  status safety.
+- Hosted Clawd Auth/OIDC is not configured yet; it remains the public paid
+  launch switch before any owner-gated test can become public access.
+- Production proof artifact:
+  `artifacts/ops/production-railway-stack.json`.
+- New public MCP tools: `0`.
+- Browser HTTP generated-scene routes: `0`.
+- Railway runtime dependency for pan/zoom: `false`.
+
+Next quest:
+`0.72H Fable Generated Draft Visual Quality Gate`.
+
+0.72H should use the packet path to inspect generated draft visuals and add
+measurable quality gates for silhouettes, object grammar, density, material
+discipline, contact shadows, and desktop/mobile proof. Do not reopen service
+routing, persistence, money, provider geometry, or public promotion.
+
+Parallel Fable note:
+`C:\Users\mzwin\Documents\atlas-53e-fable` now contains a stronger 0.72H-b
+review candidate at
+`artifacts/0.72h-b-roof-label-cleanup/FABLE_RESULT.md`. The candidate passed
+core build, generated-district parity, starter typecheck/build, and
+desktop/mobile generated-widget screenshot proof. Generated place labels are
+now suppressed and gated in the browser verifier. It is still not merge-ready
+until Codex reviews the five source files file-by-file; the remaining visual
+weakness is procedural residential detail plus the generated-preview banner
+covering part of the top-left scene. Next visual-engine move:
+`0.72H-c Residential Object-Kit Authorship Pass`.
+
+Parallel production axis:
+`0.73P Auth/OIDC Owner Gate Smoke` after the current proof ladder stays green.
+Use Auth0-compatible OIDC by default. Configure
+`ATLAS_OIDC_ISSUER`, `ATLAS_OIDC_AUDIENCE`,
+`ATLAS_OIDC_JWKS_URL`, and optional `ATLAS_OIDC_RESOURCE`; keep
+`ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED=false` until ChatGPT OAuth,
+webhook-confirmed subscription state, and browser proof all pass.
+
+## Completed scene packet service-boundary slice (2026-07-06, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.71H Scene Packet Service Boundary / Railway Cache Plan`.
+
+Decision:
+`GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP`.
+
+Proof:
+- `packages/core/src/world/scenePacketCache.ts`
+- `packages/core/test/scene-packet-cache.test.ts`
+- `server/src/scenePacketMemoryAdapter.ts`
+- `server/src/index.ts`
+- `web/src/App.tsx`
+- `scripts/verify-generated-draft-scene-packet.mjs`
+- `docs/SCENE_PACKET_SERVICE_BOUNDARY_0.71H.md`
+- `artifacts/national-generation/0.71h/generated-draft-scene-packet.json`
+
+Result:
+Generated draft packets are delivered through `_meta` only, never
+`structuredContent`, and remain non-playable, non-public, provider-free, and
+safe for retained local browser pan/zoom.
+
+## Completed generated district slice (2026-07-06, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.70H Deterministic Generated District Specs`.
+
+Decision:
+`DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION`.
+
+Proof:
+- `packages/core/src/voxel/cityWorldGeneratedDistrict.ts`
+- `packages/core/src/voxel/cityWorldGeneratedDistrictTypes.ts`
+- `packages/core/src/voxel/cityWorldGeneratedDistrictSeed.ts`
+- `packages/core/src/voxel/cityWorldGeneratedDistrictArchetypes.ts`
+- `packages/core/src/voxel/cityWorldSceneWindow.ts`
+- `packages/core/test/city-world-generated-district.test.ts`
+- `packages/core/test/national-generation-production.test.ts`
+- `scripts/verify-deterministic-generated-district-specs.mjs`
+- `docs/VOXEL_ENGINE_DELIVERY_ARCHITECTURE_0.70H.md`
+- `artifacts/national-generation/0.70h/generated-district-specs.json`
+
+Result:
+Cook IL, Miami-Dade FL, Maricopa AZ, and Riverside CA compile deterministic
+generated district specs from Census identity only. Generated scenes remain
+`L1_COUNTY_SHELL`, non-playable, provider-free, promotion-blocked, and bounded
+by the generated draft window budget.
+
+## Completed national shell slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.69H US County Index Import / Nationwide Shells`.
+
+Decision:
+`CENSUS_INDEXED_SHELLS_NO_PLAYABLE_CLAIM`.
+
+Proof:
+- `artifacts/national-generation/0.69h/nationwide-shells.json`
+- `artifacts/national-generation/0.69h/production-contract.json`
+
+Result:
+US county identity is national: 52 state/territory codes, 3,222 county/equivalent
+rows, 3,221 browse-only shells, and one public playable county: `riverside-ca`.
+
+## Completed national generation production contract slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.68H National Generation Production Contract`.
+
+Player-facing promise:
+Atlas stops hand-waving "anywhere in the US" and states the real production
+engine contract: which counties exist, which render shells, which generate
+districts, and which are actually public-quality playable.
+
+Engineering promise:
+Add a source-tiered national generation readiness contract and verifier that
+prove the current California fixture is not a production US engine, then name
+the next build slice for national county identity and honest shells.
+
+Decision:
+`NATIONWIDE_GENERATION_REQUIRES_SOURCE_TIERS`.
+
+Selected axis:
+`national_generation_production_contract`.
+
+Contract:
+- Atlas stays a ChatGPT App and high-quality voxel engine first.
+- Atlas cannot be called production-ready for anywhere in the US until sourced
+  county identity, honest shells, deterministic generated districts,
+  provider-normalized anchors, and public-quality promotion gates all exist.
+- The current fixture is California-only: 1 indexed state, 58 indexed counties,
+  and 1 playable county.
+- Provider lookup remains normalized read-only data, not scene geometry.
+- Shell counties cannot borrow Riverside/Eastvale places, Scout context, pins,
+  notes, or campaign data.
+- Public MCP tool surface remains the seven Alpha tools.
+- No DB/Auth/Stripe expansion, public paid claims, dashboard shell, new
+  renderer geography, provider geometry, evidence, XP, reports, exports,
+  automation, or public Anaheim/Ontario.
+
+Proof:
+- `packages/core/src/world/nationalGenerationProduction.ts`
+- `packages/core/test/national-generation-production.test.ts`
+- `docs/NATIONAL_ENGINE_PRODUCTION_CONTRACT.md`
+- `scripts/verify-national-generation-production-contract.mjs`
+- `artifacts/national-generation/0.68h/production-contract.json`
+
+Metric:
+- Current production readiness is `false`.
+- Current stage is `P0_US_COUNTY_IDENTITY`.
+- Current indexed state count is `1`; current indexed county count is `58`.
+- Production ladder has 5 stages.
+- Public playable claim for all US counties is `false`.
+
+Next quest:
+`0.69H US County Index Import / Nationwide Shells`.
+
+0.69H should import or generate a Census-backed national county index and prove
+that every indexed non-Riverside county returns an honest browse-only shell
+without borrowing Riverside data.
+
+## Completed product feel cleanup slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.67H Product Feel Cleanup`.
+
+Decision:
+`GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST`.
+
+Selected axis:
+`product_feel_cleanup`.
+
+Proof:
+- `web/src/CityWorldRenderer.tsx`
+- `scripts/verify-city-world-graphics-cleanup.mjs`
+- `artifacts/product-quality-audit/0.67h/graphics-cleanup.json`
+- `artifacts/product-quality-audit/0.67h/screens/graphics-cleanup-desktop-1280x720.png`
+- `artifacts/product-quality-audit/0.67h/screens/graphics-cleanup-mobile-390x844.png`
+
+## Completed mobile hardening slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.66H Mobile Interaction Hardening`.
+
+Decision:
+`RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD`.
+
+Selected axis:
+`mobile_interaction_hardening`.
+
+Proof:
+- `web/src/PixiVoxelSceneView.tsx`
+- `web/src/CityWorldRenderer.tsx`
+- `web/src/CityWorldView.tsx`
+- `web/src/HostedClawdTray.tsx`
+- `web/src/styles.css`
+- `scripts/build-web.mjs`
+- `server/src/index.ts`
+- `scripts/verify-mobile-interaction-hardening.mjs`
+- `scripts/verify-web-bundle-budget.mjs`
+- `scripts/verify-preview-http.mjs`
+- `artifacts/product-quality-audit/0.66h/mobile-interaction-hardening.json`
+- `artifacts/product-quality-audit/0.66h/metrics.json`
+- `artifacts/product-quality-audit/0.66h/screens/mobile-hardening-desktop-1280x720.png`
+- `artifacts/product-quality-audit/0.66h/screens/mobile-hardening-mobile-390x844.png`
+
+## Completed browser proof slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.65H Hosted Clawd Browser Proof`.
+
+Player-facing promise:
+Atlas remains a ChatGPT App with the voxel map as the product surface. When the
+widget has no account-linked bearer token, the Hosted Clawd tray blocks saved
+reads honestly, keeps the user on the map, and uses simple touch-friendly copy.
+
+Engineering promise:
+Prove the saved-state browser path on desktop and `390x844` mobile. Missing
+bearer reads return a `401 OAuth resource challenge` with read scope, no saved
+shelf renders, no widget token is exposed, and the tray remains touch-accessible.
+
+Decision:
+`BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN`.
+
+Selected axis:
+`hosted_clawd_browser_proof`.
+
+Contract:
+- Atlas stays a ChatGPT App and high-quality voxel engine first.
+- Saved Hosted Clawd state remains an HTTP-only widget read surface, not a new
+  public MCP tool.
+- Browser proof must show the ChatGPT account linking boundary when the widget
+  has no bearer token.
+- The auth-required tray must render as a dialog, announce async status, avoid
+  internal owner/webhook/write copy, and keep `44px touch targets`.
+- No saved shelf renders before account linking.
+- No widget bearer token is exposed to the page.
+- No dashboard, pricing page, table, report, export, evidence, XP, automation,
+  renderer geometry, provider geometry, or public Anaheim/Ontario.
+
+Proof:
+- `web/src/HostedClawdTray.tsx`
+- `web/src/App.tsx`
+- `web/src/styles.css`
+- `server/src/index.ts`
+- `server/src/hostedClawd/service.ts`
+- `server/src/hostedClawd/billing.ts`
+- `packages/core/src/scout/ScoutDropService.ts`
+- `packages/core/src/scout/CampaignPreviewService.ts`
+- `web/src/CityWorldView.tsx`
+- `web/src/CountyCoverageView.tsx`
+- `web/src/CountySwitcher.tsx`
+- `web/src/PreviewPanel.tsx`
+- `scripts/verify-hosted-clawd-browser-proof.mjs`
+- `artifacts/hosted-clawd/postalpha-0.65h-browser-proof.json`
+- `artifacts/hosted-clawd/postalpha-0.65h-browser-proof/hosted-clawd-auth-required-desktop-1280x720.png`
+- `artifacts/hosted-clawd/postalpha-0.65h-browser-proof/hosted-clawd-auth-required-mobile-390x844.png`
+
+Next quest:
+`0.66H Mobile Interaction Hardening`.
+
+0.66H should harden the existing map/tray surfaces for touch, keyboard,
+reduced-motion, and screen-reader parity. It should not add commerce, new tools,
+new backend scope, renderer geometry, or dashboard screens.
+
+Support plan:
+`docs/ATLAS_FRONTEND_BACKEND_SCREEN_PLAN.md` now organizes the Atlas UI as one
+map-first ChatGPT app with stateful screens. Use it as the Scrum board for
+frontend/backend pairing: every screen needs a backend owner, data contract,
+completion tier, safety boundary, verifier, and desktop/mobile proof.
+
+Fable audit input:
+`docs/design/fable-prompts/PRODUCT_QUALITY_PROFESSOR_AUDIT_0.66H.md` captures
+the human D+ grade on the running preview. Use it before 0.66H implementation
+to inspect the live app neutrally, measure lag/felt quality, and convert the
+critique into executable mobile/performance slices. Passing verifiers from
+0.65H are not enough evidence that the app feels product-ready.
+
+## Completed saved read surface slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.64H Saved Hosted Clawd Read Surface`.
+
+Decision:
+`SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS`.
+
+Selected axis:
+`hosted_clawd_saved_read_surface`.
+
+Proof:
+- `server/src/hostedClawd/auth.ts`
+- `server/src/hostedClawd/service.ts`
+- `server/src/hostedClawd/repository.ts`
+- `server/src/hostedClawd/postgres.ts`
+- `server/src/hostedClawd/types.ts`
+- `server/src/index.ts`
+- `web/src/App.tsx`
+- `web/src/HostedClawdTray.tsx`
+- `web/src/styles.css`
+- `server/test/hosted-clawd-saved-read-surface.test.ts`
+- `scripts/verify-hosted-clawd-saved-read-surface.mjs`
+- `scripts/verify-hosted-clawd-saved-read-browser.mjs`
+- `artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface.json`
+- `artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/HUMAN_REVIEW_PACKET.md`
+- `artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/inventory.json`
+- `docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md`
+
+## Parallel visual-engine research queue (human-directed 2026-07-05)
+
+This queue does not replace `0.65H Hosted Clawd Browser Proof`. It prepares the
+next Fable visual lane so the model can execute without rediscovery when rate
+limits clear.
+
+Next visual lane:
+`0.58E Generated District Parity + Asset Intake Plan`.
+
+Packet:
+`docs/design/fable-prompts/VOXEL_GRAPHICAL_LEAP_RESEARCH_0.58E.md`.
+
+Promise:
+Generated districts should stop reading as procedural placeholders. The jump
+must come from compiler grammar, object-kit metadata, owned sprite/asset intake,
+depth/contact shadows, material grammar, and camera composition, not decorative
+UI or clutter props.
+
+Verifier requirement:
+The slice should add a generated-district parity verifier with numeric gates for
+parcel/building fill ratio, facade element bounds, roof/eave footprint
+registration, and lower-frame density. Screenshots still matter, but they should
+not be the only pass/fail signal.
+
+Anti-scope:
+No runtime 3D, new renderer dependency, cars, humans, labels as camouflage,
+glows, dashboard UI, public Anaheim/Ontario, provider geometry, persistence,
+Stripe, reports, exports, XP, evidence, automation, or new MCP tools.
+
+Human review preference:
+Future visual proof packets should be emailed to `mzwin3545@gmail.com` with
+desktop and 390x844 mobile screenshots plus the exact blocker list.
+
+## Completed protected tool gate slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Current quest:
+`0.63H Protected Hosted Clawd Tool Gate`.
+
+Player-facing promise:
+Atlas remains a ChatGPT App with the voxel map as the surface. After an owner
+creates Hosted Clawd and completes test billing, saved Scout and Campaign
+writes open only when Stripe webhook state is stored as an active subscription.
+
+Engineering promise:
+Gate protected Hosted Clawd writes on repository-backed webhook-confirmed
+subscription state. Keep create-or-attach and Checkout setup available, reject
+client-supplied `subscriptionStatus`, and keep the public MCP tool surface
+stable.
+
+Decision:
+`PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION`.
+
+Selected axis:
+`hosted_clawd_protected_tool_gate`.
+
+Contract:
+- Atlas stays a ChatGPT App and high-quality voxel engine first.
+- Hosted Clawd / Clawdbot is the paid neighborhood operator layer, but 0.63H
+  only opens the protected paid-write gate.
+- Public MCP tool surface remains the seven Alpha tools.
+- `create_or_attach_clawd` stays open to authenticated owners so Checkout can
+  start from an owned Clawd.
+- `promote_session` and `save_campaign_artifact` require stored active
+  subscription state from the repository.
+- Client-supplied `subscriptionStatus` and Stripe return URLs grant nothing.
+- Public paid claims remain closed.
+
+Proof:
+- `server/src/hostedClawd/service.ts`
+- `server/src/hostedClawd/repository.ts`
+- `server/src/hostedClawd/types.ts`
+- `server/test/hosted-clawd-protected-tool-gate.test.ts`
+- `scripts/verify-hosted-clawd-protected-tool-gate.mjs`
+- `artifacts/hosted-clawd/postalpha-0.63h-protected-tool-gate.json`
+
+Next quest:
+`0.64H Saved Hosted Clawd Read Surface`.
+
+## Completed Stripe test billing slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Completed quest:
+`0.62H Stripe Test Billing`.
+
+Decision:
+`STRIPE_TEST_BILLING_WEBHOOK_GATED`.
+
+Proof:
+- `server/src/hostedClawd/billing.ts`
+- `migrations/hosted-clawd/002_stripe_test_billing.sql`
+- `server/test/hosted-clawd-stripe-test-billing.test.ts`
+- `scripts/verify-hosted-clawd-stripe-billing.mjs`
+- `assets/generated/placeholders/svg/hosted-clawd-clay-bg.svg`
+- `web/src/HostedClawdTray.tsx`
+- `web/src/styles.css`
+- `artifacts/hosted-clawd/postalpha-0.62h-stripe-test-billing.json`
+
+## Completed save UX slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
+
+Completed quest:
+`0.61H Invite Beta Save UX`.
 
 Decision:
 `MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED`.
 
-Selected axis:
-`hosted_clawd_invite_beta_save_ux`.
-
-Contract:
-- Atlas stays a map/chat app and high-quality voxel engine first.
-- Hosted Clawd / Clawdbot is the paid neighborhood operator layer, but 0.61H
-  only makes its future owned memory readable in the map tray.
-- Public MCP tool surface remains the seven Alpha tools.
-- Save UX stays as a compact tray/status strip over the map, not a dashboard,
-  pricing page, or long setup wizard.
-- The 0.60H DB/Auth foundation remains owner-protected; no new persistence
-  capability is opened in this UI slice.
-- Stripe/money remains closed until `0.62H Stripe Test Billing`.
-
 Proof:
-- `web/src/HostedClawdTray.tsx`
-- `web/src/styles.css`
 - `scripts/verify-hosted-clawd-save-ux.mjs`
 - `scripts/verify-hosted-clawd-save-ux-browser.mjs`
 - `artifacts/hosted-clawd/postalpha-0.61h-save-ux.json`
-- `artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-desktop-1280x720.png`
-- `artifacts/hosted-clawd/postalpha-0.61h-save-ux/hosted-clawd-save-ux-mobile-390x844.png`
-
-Next quest:
-`0.62H Stripe Test Billing`.
 
 ## Completed persistence foundation slice (2026-07-05, `codex/integrate-hosted-clawd-fable-058e`)
 

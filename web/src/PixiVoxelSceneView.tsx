@@ -18,6 +18,31 @@ type AnimatedTarget = {
   baseAlpha: number;
 };
 
+type CameraState = {
+  zoom: number;
+  panX: number;
+  panY: number;
+};
+
+type ViewportState = {
+  width: number;
+  height: number;
+  baseScale: number;
+  compactMap: boolean;
+};
+
+type PlaceVisualTarget = {
+  place: VoxelPlace;
+  container: Container;
+  halo: Graphics;
+  dot: Graphics;
+  point: ProjectedPoint;
+  color: number;
+  selected: boolean;
+  labelsVisible: boolean;
+  label?: Container | undefined;
+};
+
 const TILE_COLORS = {
   open: { top: 0xdfe8c3, left: 0xadc08a, right: 0x94a874 },
   residential: { top: 0xd8efcf, left: 0xa8c99d, right: 0x8fb681 },
@@ -53,12 +78,16 @@ export function PixiVoxelSceneView({
   const selectNodeRef = useRef(onSelectNode);
   const selectPlaceRef = useRef(onSelectPlace);
   const dragRef = useRef<{ active: boolean; x: number; y: number }>({ active: false, x: 0, y: 0 });
+  const cameraRef = useRef<CameraState>({ zoom: scene.camera?.initialZoom ?? 1, panX: 0, panY: 0 });
+  const viewportRef = useRef<ViewportState | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const hoverPlaceIdRef = useRef<string | undefined>();
+  const placeVisualsRef = useRef<Map<string, PlaceVisualTarget>>(new Map());
+  const rebuildCountRef = useRef(0);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [zoom, setZoom] = useState(scene.camera?.initialZoom ?? 1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [labelsVisible, setLabelsVisible] = useState(true);
-  const [hoverPlaceId, setHoverPlaceId] = useState<string | undefined>();
+  const [viewportVersion, setViewportVersion] = useState(0);
 
   const renderable = useMemo(() => isRenderableScene(scene), [scene]);
 
@@ -68,28 +97,45 @@ export function PixiVoxelSceneView({
   }, [onSelectNode, onSelectPlace]);
 
   useEffect(() => {
+    cameraRef.current = { zoom: scene.camera?.initialZoom ?? 1, panX: 0, panY: 0 };
+    hoverPlaceIdRef.current = undefined;
+    placeVisualsRef.current.clear();
+    scheduleViewportTransform();
+  }, [scene.id, scene.camera?.initialZoom]);
+
+  useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
       const direction = event.deltaY > 0 ? -0.08 : 0.08;
-      setZoom((value) => clamp(value + direction, scene.camera?.minZoom ?? 0.8, scene.camera?.maxZoom ?? 1.45));
+      setCameraZoom(cameraRef.current.zoom + direction);
     };
     const handlePointerDown = (event: PointerEvent) => {
       dragRef.current = { active: true, x: event.clientX, y: event.clientY };
-      mount.setPointerCapture?.(event.pointerId);
+      try {
+        mount.setPointerCapture?.(event.pointerId);
+      } catch {
+        // Synthetic browser-proof events may not register as active pointers.
+      }
     };
     const handlePointerMove = (event: PointerEvent) => {
       if (!dragRef.current.active) return;
       const dx = event.clientX - dragRef.current.x;
       const dy = event.clientY - dragRef.current.y;
       dragRef.current = { active: true, x: event.clientX, y: event.clientY };
-      setPan((value) => ({ x: clamp(value.x + dx, -180, 180), y: clamp(value.y + dy, -120, 120) }));
+      cameraRef.current.panX = clamp(cameraRef.current.panX + dx, -180, 180);
+      cameraRef.current.panY = clamp(cameraRef.current.panY + dy, -120, 120);
+      scheduleViewportTransform();
     };
     const handlePointerUp = (event: PointerEvent) => {
       dragRef.current.active = false;
-      mount.releasePointerCapture?.(event.pointerId);
+      try {
+        mount.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // Ignore release calls for synthetic or already-released pointers.
+      }
     };
 
     mount.addEventListener("wheel", handleWheel, { passive: false });
@@ -153,9 +199,30 @@ export function PixiVoxelSceneView({
       animatedRef.current = [];
       worldRef.current = null;
       appRef.current = null;
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
       app.destroy({ removeView: true }, { children: true });
     };
   }, [renderable]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    let lastWidth = mount.clientWidth;
+    let lastHeight = mount.clientHeight;
+    const observer = new ResizeObserver(() => {
+      if (mount.clientWidth === lastWidth && mount.clientHeight === lastHeight) return;
+      lastWidth = mount.clientWidth;
+      lastHeight = mount.clientHeight;
+      setViewportVersion((value) => value + 1);
+    });
+    observer.observe(mount);
+    return () => observer.disconnect();
+  }, [ready]);
 
   useEffect(() => {
     const app = appRef.current;
@@ -163,7 +230,7 @@ export function PixiVoxelSceneView({
     const mount = mountRef.current;
     if (!ready || !app || !world || !mount || !renderable) return;
 
-    drawScene({
+    viewportRef.current = drawScene({
       app,
       world,
       mount,
@@ -172,37 +239,80 @@ export function PixiVoxelSceneView({
       selectedDistrictId,
       selectedPlaceId,
       stickers,
-      hoverPlaceId,
+      hoverPlaceId: hoverPlaceIdRef.current,
       activeStepId,
-      zoom,
-      pan,
       labelsVisible,
       animated: animatedRef.current,
+      placeVisuals: placeVisualsRef.current,
       onSelectNode: (nodeId) => selectNodeRef.current(nodeId),
       onSelectPlace: (placeId) => selectPlaceRef.current?.(placeId),
-      onHoverPlace: setHoverPlaceId,
+      onHoverPlace: setHoveredPlaceId,
     });
-  }, [activeStepId, hoverPlaceId, labelsVisible, pan, ready, renderable, scene, selectedDistrictId, selectedNodeId, selectedPlaceId, stickers, zoom]);
+    const nextRebuildCount = rebuildCountRef.current + 1;
+    rebuildCountRef.current = nextRebuildCount;
+    mount.dataset.qaPixiRebuildCount = String(nextRebuildCount);
+    (window as Window & { __atlasPixiVoxelRebuildCount?: number }).__atlasPixiVoxelRebuildCount = nextRebuildCount;
+    applyViewportTransform();
+  }, [activeStepId, labelsVisible, ready, renderable, scene, selectedDistrictId, selectedNodeId, selectedPlaceId, stickers, viewportVersion]);
+
+  function setCameraZoom(nextZoom: number) {
+    cameraRef.current.zoom = clamp(nextZoom, scene.camera?.minZoom ?? 0.8, scene.camera?.maxZoom ?? 1.45);
+    scheduleViewportTransform();
+  }
+
+  function resetCamera() {
+    cameraRef.current = { zoom: scene.camera?.initialZoom ?? 1, panX: 0, panY: 0 };
+    scheduleViewportTransform();
+  }
+
+  function scheduleViewportTransform() {
+    if (frameRef.current !== null) return;
+    frameRef.current = window.requestAnimationFrame(() => {
+      frameRef.current = null;
+      applyViewportTransform();
+    });
+  }
+
+  function applyViewportTransform() {
+    const world = worldRef.current;
+    const viewport = viewportRef.current;
+    if (!world || !viewport) return;
+
+    const camera = cameraRef.current;
+    const sceneScale = viewport.baseScale * camera.zoom;
+    const basePosition = {
+      x: (viewport.width - scene.viewport.width * sceneScale) / 2,
+      y: (viewport.height - scene.viewport.height * sceneScale) / 2,
+    };
+    const focusOffset = scene.world
+      ? getMapFocusOffset(scene, selectedDistrictId, selectedPlaceId, sceneScale, viewport.width, viewport.height, basePosition, viewport.compactMap)
+      : { x: 0, y: 0 };
+    world.scale.set(sceneScale);
+    world.position.set(basePosition.x + focusOffset.x + camera.panX, basePosition.y + focusOffset.y + camera.panY);
+  }
+
+  function setHoveredPlaceId(nextPlaceId: string | undefined) {
+    const currentPlaceId = hoverPlaceIdRef.current;
+    if (currentPlaceId === nextPlaceId) return;
+    const visuals = placeVisualsRef.current;
+    if (currentPlaceId) paintPlaceVisual(visuals.get(currentPlaceId), false);
+    if (nextPlaceId) paintPlaceVisual(visuals.get(nextPlaceId), true);
+    hoverPlaceIdRef.current = nextPlaceId;
+  }
 
   if (!renderable || failed) return <>{fallback}</>;
 
   return (
     <div className="pixi-map-shell">
-      <div ref={mountRef} className="pixi-map-host" aria-label={`${scene.county.name} cozy voxel city map`} />
+      <div ref={mountRef} className="pixi-map-host" aria-label={`${scene.county.name} voxel city map`} />
       <div className="pixi-map-controls" aria-label="Map controls">
-        <button type="button" onClick={() => setZoom((value) => clamp(value - 0.1, scene.camera?.minZoom ?? 0.8, scene.camera?.maxZoom ?? 1.35))}>
+        <button type="button" onClick={() => setCameraZoom(cameraRef.current.zoom - 0.1)}>
           -
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setPan({ x: 0, y: 0 });
-            setZoom(scene.camera?.initialZoom ?? 1);
-          }}
-        >
+        <button type="button" onClick={resetCamera}>
           Center
         </button>
-        <button type="button" onClick={() => setZoom((value) => clamp(value + 0.1, scene.camera?.minZoom ?? 0.8, scene.camera?.maxZoom ?? 1.35))}>
+        <button type="button" onClick={() => setCameraZoom(cameraRef.current.zoom + 0.1)}>
           +
         </button>
         <button type="button" aria-pressed={labelsVisible} onClick={() => setLabelsVisible((value) => !value)}>
@@ -230,10 +340,9 @@ function drawScene({
   stickers,
   hoverPlaceId,
   activeStepId,
-  zoom,
-  pan,
   labelsVisible,
   animated,
+  placeVisuals,
   onSelectNode,
   onSelectPlace,
   onHoverPlace,
@@ -248,29 +357,23 @@ function drawScene({
   stickers: VoxelSticker[];
   hoverPlaceId: string | undefined;
   activeStepId: string | undefined;
-  zoom: number;
-  pan: { x: number; y: number };
   labelsVisible: boolean;
   animated: AnimatedTarget[];
+  placeVisuals: Map<string, PlaceVisualTarget>;
   onSelectNode: (nodeId: string) => void;
   onSelectPlace: (placeId: string) => void;
   onHoverPlace: (placeId: string | undefined) => void;
-}) {
+}): ViewportState {
   const width = Math.max(320, mount.clientWidth || scene.viewport.width);
   const height = Math.max(260, mount.clientHeight || Math.round((width * scene.viewport.height) / scene.viewport.width));
   app.renderer.resize(width, height);
-  world.removeChildren();
+  const previousChildren = world.removeChildren();
+  for (const child of previousChildren) child.destroy({ children: true });
   animated.length = 0;
+  placeVisuals.clear();
 
-  const sceneScale = Math.min(width / scene.viewport.width, height / scene.viewport.height) * zoom;
+  const baseScale = Math.min(width / scene.viewport.width, height / scene.viewport.height);
   const compactMap = width < 620;
-  const basePosition = {
-    x: (width - scene.viewport.width * sceneScale) / 2,
-    y: (height - scene.viewport.height * sceneScale) / 2,
-  };
-  const focusOffset = scene.world ? getMapFocusOffset(scene, selectedDistrictId, selectedPlaceId, sceneScale, width, height, basePosition, compactMap) : { x: 0, y: 0 };
-  world.scale.set(sceneScale);
-  world.position.set(basePosition.x + focusOffset.x + pan.x, basePosition.y + focusOffset.y + pan.y);
 
   world.addChild(new Graphics().rect(0, 0, scene.viewport.width, scene.viewport.height).fill({ color: 0xf7efd8 }));
   drawGrid(world, scene);
@@ -285,12 +388,13 @@ function drawScene({
   }
   drawObjects(world, scene, !scene.world && labelsVisible && width >= 900, animated);
   drawAmbientLife(world, scene, animated);
-  drawPlaces(world, scene, selectedDistrictId, selectedPlaceId, hoverPlaceId, labelsVisible, onSelectNode, onSelectPlace, onHoverPlace, animated);
+  drawPlaces(world, scene, selectedDistrictId, selectedPlaceId, hoverPlaceId, labelsVisible, onSelectNode, onSelectPlace, onHoverPlace, animated, placeVisuals);
   drawStickers(world, scene, stickers);
   if (!scene.world) {
     drawNodes(world, scene, selectedNodeId, labelsVisible, compactMap, onSelectNode);
     drawPhaseStamp(world, scene, activeStepId);
   }
+  return { width, height, baseScale, compactMap };
 }
 
 function getMapFocusOffset(
@@ -565,6 +669,7 @@ function drawPlaces(
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
   animated: AnimatedTarget[],
+  placeVisuals: Map<string, PlaceVisualTarget>,
 ) {
   const places = scene.world?.places.filter((place) => !selectedDistrictId || place.districtId === selectedDistrictId) ?? [];
   for (const place of places) {
@@ -582,23 +687,41 @@ function drawPlaces(
     container.on("pointerout", () => onHoverPlace(undefined));
 
     const color = placeColor(place);
-    const halo = new Graphics()
-      .circle(point.x, point.y, selected ? 31 : hovered ? 27 : 23)
-      .fill({ color: 0xffffff, alpha: selected ? 0.52 : hovered ? 0.42 : 0.24 })
-      .stroke({ color: selected ? 0x242017 : color, alpha: selected ? 0.95 : 0.55, width: selected ? 3 : 2 });
-    const dot = new Graphics()
-      .circle(point.x, point.y, selected ? 14 : 11)
-      .fill({ color, alpha: 0.98 })
-      .stroke({ color: 0x242017, width: 2 });
+    const halo = new Graphics();
+    const dot = new Graphics();
     const activity = new Graphics().circle(point.x, point.y, 18 + place.activity * 9).stroke({ color, alpha: 0.22 + place.activity * 0.24, width: 2 });
     animated.push({ target: activity, mode: "pulse", baseAlpha: 0.48 });
     container.addChild(activity, halo, dot);
-
-    if (labelsVisible || selected || hovered) {
-      container.addChild(makeLabel(place.label, point.x, point.y + 30, 10));
-    }
+    const visual = { place, container, halo, dot, point, color, selected, labelsVisible };
+    placeVisuals.set(place.id, visual);
+    paintPlaceVisual(visual, hovered);
 
     world.addChild(container);
+  }
+}
+
+function paintPlaceVisual(target: PlaceVisualTarget | undefined, hovered: boolean) {
+  if (!target) return;
+  const { color, container, dot, halo, labelsVisible, place, point, selected } = target;
+  halo
+    .clear()
+    .circle(point.x, point.y, selected ? 31 : hovered ? 27 : 23)
+    .fill({ color: 0xffffff, alpha: selected ? 0.52 : hovered ? 0.42 : 0.24 })
+    .stroke({ color: selected ? 0x242017 : color, alpha: selected ? 0.95 : 0.55, width: selected ? 3 : 2 });
+  dot
+    .clear()
+    .circle(point.x, point.y, selected ? 14 : 11)
+    .fill({ color, alpha: 0.98 })
+    .stroke({ color: 0x242017, width: 2 });
+
+  const shouldShowLabel = labelsVisible || selected || hovered;
+  if (shouldShowLabel && !target.label) {
+    target.label = makeLabel(place.label, point.x, point.y + 30, 10);
+    container.addChild(target.label);
+  } else if (!shouldShowLabel && target.label) {
+    container.removeChild(target.label);
+    target.label.destroy({ children: true });
+    target.label = undefined;
   }
 }
 

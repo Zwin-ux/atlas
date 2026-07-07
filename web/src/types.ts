@@ -20,6 +20,7 @@ export type WidgetState = {
   noteDraft?: string | undefined;
   hostedClawdOpen?: boolean | undefined;
   hostedClawdActionMessage?: string | undefined;
+  hostedClawdContext?: HostedClawdContext | undefined;
 };
 
 export type HostedClawdScreenState =
@@ -49,6 +50,19 @@ export type HostedClawdContext = {
   secondaryCopy: string;
   sessionBoundary: string;
   paymentCopy: string;
+  billing: {
+    state: "off" | "test_ready" | "return_pending" | "webhook_confirmed" | "payment_attention";
+    subscriptionStatus: "none" | "activating" | "active" | "inactive" | "payment_failed";
+    confirmationSource: "none" | "webhook";
+    returnUrlGrantsAccess: false;
+    paidWrites: "enabled" | "read_only";
+    title: string;
+    detail: string;
+    checkoutLabel: string;
+    webhookLabel: string;
+    returnLabel: string;
+    portalLabel: string;
+  };
   primaryAction: {
     kind: HostedClawdActionKind;
     label: string;
@@ -59,6 +73,36 @@ export type HostedClawdContext = {
     value: string;
     status: "ready" | "needs_confirmation" | "planned";
   }>;
+  savedState?: {
+    type: "hostedClawdSavedState";
+    clawd?: {
+      id: string;
+      name: string;
+      status: "active";
+    };
+    businessProfile?: {
+      id: string;
+      name: string;
+      businessType?: string;
+      countySlug: string;
+      countyLabel?: string;
+      placeLabel?: string;
+    };
+    scoutDrops: Array<{
+      id: string;
+      scoutPreviewId: string;
+      countySlug: string;
+    }>;
+    campaignDrafts: Array<{
+      id: string;
+      campaignPreviewId: string;
+      summary?: string;
+      status: "draft";
+    }>;
+    subscriptionStatus: "none" | "activating" | "active" | "inactive" | "payment_failed";
+    paidWrites: "enabled" | "read_only";
+    readOnlyReason: "none" | "no_saved_clawd" | "billing_attention" | "subscription_inactive";
+  };
   flags: {
     persistenceEnabled: boolean;
     moneyEnabled: boolean;

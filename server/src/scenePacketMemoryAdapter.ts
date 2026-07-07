@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   assertScenePacketCachePlanSafe,
   createScenePacketCachePlan,
@@ -8,10 +10,13 @@ import {
 } from "@atlas/core";
 
 export const SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID =
-  "postalpha-0.32e-runtime-scene-packet-memory-adapter" as const;
+  "postalpha-0.72b-redis-scene-packet-cache-job-spine" as const;
+
+export type ScenePacketCacheBackend = "memory" | "redis";
 
 export type ScenePacketMemoryPayloadKind =
   | "voxel_scene"
+  | "generated_draft_scene"
   | "coverage_shell_metadata"
   | "unsupported_status";
 
@@ -47,8 +52,17 @@ export type ScenePacketMemorySummary = {
 
 export type ScenePacketMemoryStatus = {
   update: typeof SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID;
+  cacheBackend: ScenePacketCacheBackend;
   maxEntries: number;
   entryCount: number;
+  hitCount: number;
+  missCount: number;
+  hitRate: number;
+  queueDepth: number;
+  oldestQueuedMs: number | null;
+  lockTtlSeconds: number;
+  redisConfigured: boolean;
+  redisReachable: boolean | null;
   entries: ScenePacketMemorySummary[];
 };
 
@@ -66,6 +80,43 @@ export type PlayableScenePacketInput<TScene> = {
   sceneIdForPayload: (scene: TScene) => string;
 };
 
+export type ScenePacketGeneratedDraftJob = {
+  id: string;
+  kind: "generated_draft_scene";
+  enqueuedAtMs: number;
+  countryCode?: string;
+  stateCode: string;
+  countySlug: string;
+  countyName?: string;
+  geoid?: string;
+  centroid?: {
+    latitude: number;
+    longitude: number;
+  };
+  districtSlug: string;
+  cameraPresetId: string;
+  windowHash: string;
+  sceneSchemaVersion: string;
+  engineUpdateId: string;
+  sourceNotes?: WorldSourceNote[];
+};
+
+export type GeneratedDraftScenePacketInput<TScene> = {
+  countryCode?: string;
+  stateCode: string;
+  countySlug: string;
+  districtSlug: string;
+  cameraPresetId?: string;
+  windowHash?: string;
+  sceneSchemaVersion?: string;
+  engineUpdateId?: string;
+  sourceNotes?: WorldSourceNote[];
+  createScene: () => TScene;
+  sceneIdForPayload: (scene: TScene) => string;
+  job?: ScenePacketGeneratedDraftJob;
+  enqueueOnLockContention?: boolean;
+};
+
 export type ScenePacketCoverageStatusInput = {
   countryCode?: string;
   stateCode: string;
@@ -74,7 +125,7 @@ export type ScenePacketCoverageStatusInput = {
   sourceNotes?: WorldSourceNote[];
 };
 
-type ScenePacketMemoryEntry<TScene> = {
+export type ScenePacketCacheStoreEntry<TScene> = {
   plan: ScenePacketCachePlan;
   payload: TScene;
   payloadKind: ScenePacketMemoryPayloadKind;
@@ -90,32 +141,167 @@ export type ScenePacketMemoryResult<TScene> = {
   summary: ScenePacketMemorySummary;
 };
 
-export type ScenePacketMemoryAdapterOptions = {
+export type ScenePacketCacheStoreStatus = {
+  backend: ScenePacketCacheBackend;
+  maxEntries: number;
+  entryCount: number;
+  hitCount: number;
+  missCount: number;
+  hitRate: number;
+  redisConfigured: boolean;
+  redisReachable: boolean | null;
+};
+
+export type ScenePacketCacheStore<TScene> = {
+  backend: ScenePacketCacheBackend;
+  get(key: string, nowMs: number): Promise<ScenePacketCacheStoreEntry<TScene> | undefined>;
+  set(key: string, entry: ScenePacketCacheStoreEntry<TScene>, nowMs: number): Promise<void>;
+  delete(key: string): Promise<void>;
+  values(nowMs: number): Promise<ScenePacketCacheStoreEntry<TScene>[]>;
+  clearExpired(nowMs: number): Promise<number>;
+  size(nowMs: number): Promise<number>;
+  status(nowMs: number): Promise<ScenePacketCacheStoreStatus>;
+};
+
+export type ScenePacketCompileLock = {
+  acquire(
+    key: string,
+    ttlSeconds: number,
+  ): Promise<{
+    acquired: boolean;
+    token: string;
+    release: () => Promise<void>;
+  }>;
+};
+
+export type ScenePacketJobQueue<TJob extends { id: string; enqueuedAtMs: number }> = {
+  enqueue(job: TJob): Promise<void>;
+  claim(nowMs: number): Promise<TJob | undefined>;
+  complete(jobId: string): Promise<void>;
+  fail(jobId: string, error: string): Promise<void>;
+  status(nowMs: number): Promise<{
+    queueDepth: number;
+    oldestQueuedMs: number | null;
+  }>;
+};
+
+export type ScenePacketRuntimeConfig = {
+  requestedBackend: ScenePacketCacheBackend;
+  effectiveBackend: ScenePacketCacheBackend;
+  redisUrl?: string;
+  redisRequired: boolean;
+  workerEnabled: boolean;
+  lockTtlSeconds: number;
+  lockWaitMs: number;
+  production: boolean;
+  blockers: string[];
+};
+
+export type ScenePacketMemoryAdapterOptions<TScene = unknown> = {
   maxEntries?: number;
   nowMs?: () => number;
+  cacheBackend?: ScenePacketCacheBackend;
+  redisUrl?: string;
+  lockTtlSeconds?: number;
+  lockWaitMs?: number;
+  store?: ScenePacketCacheStore<TScene>;
+  compileLock?: ScenePacketCompileLock;
+  jobQueue?: ScenePacketJobQueue<ScenePacketGeneratedDraftJob>;
 };
 
 export type ScenePacketMemoryAdapter<TScene> = {
-  getOrCreatePlayableScenePacket(input: PlayableScenePacketInput<TScene>): ScenePacketMemoryResult<TScene>;
-  describeCoverageStatus(input: ScenePacketCoverageStatusInput): ScenePacketMemorySummary;
-  status(): ScenePacketMemoryStatus;
-  clearExpired(): number;
-  size(): number;
+  getOrCreatePlayableScenePacket(input: PlayableScenePacketInput<TScene>): Promise<ScenePacketMemoryResult<TScene>>;
+  getOrCreateGeneratedDraftScenePacket(
+    input: GeneratedDraftScenePacketInput<TScene>,
+  ): Promise<ScenePacketMemoryResult<TScene>>;
+  describeCoverageStatus(input: ScenePacketCoverageStatusInput): Promise<ScenePacketMemorySummary>;
+  status(): Promise<ScenePacketMemoryStatus>;
+  clearExpired(): Promise<number>;
+  size(): Promise<number>;
+  claimGeneratedDraftJob(): Promise<ScenePacketGeneratedDraftJob | undefined>;
+  completeGeneratedDraftJob(jobId: string): Promise<void>;
+  failGeneratedDraftJob(jobId: string, error: string): Promise<void>;
 };
 
 const DEFAULT_MAX_ENTRIES = 32;
+const DEFAULT_LOCK_TTL_SECONDS = 30;
+const DEFAULT_LOCK_WAIT_MS = 2_000;
 const PLAYABLE_RUNTIME_TTL_MS = 60 * 60 * 1000;
+const REDIS_CACHE_PREFIX = "atlas:scene-packet-cache:";
+const REDIS_LOCK_PREFIX = "atlas:scene-packet-lock:";
+const REDIS_JOB_QUEUE_KEY = "atlas:scene-packet-jobs:pending";
+const REDIS_JOB_DONE_PREFIX = "atlas:scene-packet-jobs:done:";
+const REDIS_JOB_FAILED_PREFIX = "atlas:scene-packet-jobs:failed:";
+
+export function readScenePacketRuntimeConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): ScenePacketRuntimeConfig {
+  const requestedBackend =
+    normalizeBackend(env.ATLAS_SCENE_PACKET_CACHE_BACKEND) ?? "memory";
+  const redisUrl = env.ATLAS_REDIS_URL?.trim() || undefined;
+  const production =
+    env.NODE_ENV === "production" ||
+    env.RAILWAY_ENVIRONMENT === "production" ||
+    env.RAILWAY_ENVIRONMENT_NAME === "production";
+  const workerEnabled = parseBooleanEnv(env.ATLAS_SCENE_PACKET_WORKER_ENABLED, false);
+  const lockTtlSeconds = parsePositiveIntegerEnv(
+    env.ATLAS_SCENE_PACKET_LOCK_TTL_SECONDS,
+    DEFAULT_LOCK_TTL_SECONDS,
+  );
+  const lockWaitMs = parsePositiveIntegerEnv(env.ATLAS_SCENE_PACKET_LOCK_WAIT_MS, DEFAULT_LOCK_WAIT_MS);
+  const redisRequired = production || requestedBackend === "redis" || workerEnabled;
+  const effectiveBackend = requestedBackend === "redis" && redisUrl ? "redis" : "memory";
+  const blockers: string[] = [];
+
+  if (redisRequired && !redisUrl) {
+    blockers.push("ATLAS_REDIS_URL is required for production, Redis cache mode, or the scene packet worker.");
+  }
+  if (production && requestedBackend !== "redis") {
+    blockers.push("Production scene packet cache must set ATLAS_SCENE_PACKET_CACHE_BACKEND=redis.");
+  }
+
+  return {
+    requestedBackend,
+    effectiveBackend,
+    ...(redisUrl ? { redisUrl } : {}),
+    redisRequired,
+    workerEnabled,
+    lockTtlSeconds,
+    lockWaitMs,
+    production,
+    blockers,
+  };
+}
 
 export function createScenePacketMemoryAdapter<TScene>(
-  options: ScenePacketMemoryAdapterOptions = {},
+  options: ScenePacketMemoryAdapterOptions<TScene> = {},
 ): ScenePacketMemoryAdapter<TScene> {
   const maxEntries = Math.max(1, Math.floor(options.maxEntries ?? DEFAULT_MAX_ENTRIES));
   const nowMs = options.nowMs ?? Date.now;
-  const entries = new Map<string, ScenePacketMemoryEntry<TScene>>();
+  const lockTtlSeconds = Math.max(1, Math.floor(options.lockTtlSeconds ?? DEFAULT_LOCK_TTL_SECONDS));
+  const lockWaitMs = Math.max(0, Math.floor(options.lockWaitMs ?? DEFAULT_LOCK_WAIT_MS));
+  const cacheBackend = options.cacheBackend === "redis" && options.redisUrl ? "redis" : "memory";
+  const redisConnector =
+    cacheBackend === "redis" && options.redisUrl ? createLazyRedisConnector(options.redisUrl) : undefined;
+  const store =
+    options.store ??
+    (redisConnector
+      ? createRedisScenePacketCacheStore<TScene>({ connector: redisConnector, maxEntries })
+      : createMemoryScenePacketCacheStore<TScene>({ maxEntries }));
+  const compileLock =
+    options.compileLock ??
+    (redisConnector ? createRedisScenePacketCompileLock(redisConnector) : createMemoryScenePacketCompileLock());
+  const jobQueue =
+    options.jobQueue ??
+    (redisConnector
+      ? createRedisScenePacketJobQueue<ScenePacketGeneratedDraftJob>(redisConnector)
+      : createMemoryScenePacketJobQueue<ScenePacketGeneratedDraftJob>());
 
-  function getOrCreatePlayableScenePacket(input: PlayableScenePacketInput<TScene>): ScenePacketMemoryResult<TScene> {
+  async function getOrCreatePlayableScenePacket(
+    input: PlayableScenePacketInput<TScene>,
+  ): Promise<ScenePacketMemoryResult<TScene>> {
     const now = nowMs();
-    clearExpired();
+    await store.clearExpired(now);
     const planInput = {
       countryCode: input.countryCode ?? "US",
       stateCode: input.stateCode,
@@ -131,19 +317,13 @@ export function createScenePacketMemoryAdapter<TScene>(
       sceneId: null,
     };
     const preliminaryPlan = createScenePacketCachePlan(planInput);
-    const cached = entries.get(preliminaryPlan.key.key);
+    const cached = await store.get(preliminaryPlan.key.key, now);
 
-    if (cached && !isExpired(cached, now)) {
-      cached.hitCount += 1;
-      cached.lastAccessedAtMs = now;
+    if (cached) {
       return {
         payload: cached.payload,
         summary: summarizeEntry(cached, true),
       };
-    }
-
-    if (cached) {
-      entries.delete(preliminaryPlan.key.key);
     }
 
     const payload = input.createScene();
@@ -157,8 +337,7 @@ export function createScenePacketMemoryAdapter<TScene>(
       throw new Error(`Unsafe scene packet cache plan: ${safety.blockers.join("; ")}`);
     }
 
-    evictIfNeeded(now);
-    const entry: ScenePacketMemoryEntry<TScene> = {
+    const entry: ScenePacketCacheStoreEntry<TScene> = {
       plan,
       payload,
       payloadKind: "voxel_scene",
@@ -168,7 +347,7 @@ export function createScenePacketMemoryAdapter<TScene>(
       hitCount: 1,
       safety,
     };
-    entries.set(plan.key.key, entry);
+    await store.set(plan.key.key, entry, now);
 
     return {
       payload,
@@ -176,7 +355,116 @@ export function createScenePacketMemoryAdapter<TScene>(
     };
   }
 
-  function describeCoverageStatus(input: ScenePacketCoverageStatusInput): ScenePacketMemorySummary {
+  async function getOrCreateGeneratedDraftScenePacket(
+    input: GeneratedDraftScenePacketInput<TScene>,
+  ): Promise<ScenePacketMemoryResult<TScene>> {
+    const now = nowMs();
+    await store.clearExpired(now);
+    const planInput = {
+      countryCode: input.countryCode ?? "US",
+      stateCode: input.stateCode,
+      countySlug: input.countySlug,
+      districtSlug: input.districtSlug,
+      cameraPresetId: input.cameraPresetId ?? "generated-draft",
+      windowHash: input.windowHash ?? "generated-initial-window",
+      sceneSchemaVersion: input.sceneSchemaVersion ?? "city-world-v1",
+      engineUpdateId: input.engineUpdateId,
+      readiness: "generated_draft" as const,
+      sourceNotes: input.sourceNotes,
+      generationMode: "deterministic_generated_draft" as const,
+      sceneId: null,
+    };
+    const preliminaryPlan = createScenePacketCachePlan(planInput);
+    const cached = await store.get(preliminaryPlan.key.key, now);
+
+    if (cached) {
+      return {
+        payload: cached.payload,
+        summary: summarizeEntry(cached, true),
+      };
+    }
+
+    const lock = await compileLock.acquire(preliminaryPlan.key.key, lockTtlSeconds);
+    if (!lock.acquired) {
+      if (input.enqueueOnLockContention !== false && input.job) {
+        await jobQueue.enqueue(input.job);
+      }
+      const waited = await waitForCachedPacket(preliminaryPlan.key.key);
+      if (waited) {
+        return {
+          payload: waited.payload,
+          summary: summarizeEntry(waited, true),
+        };
+      }
+      const safety = assertScenePacketCachePlanSafe(preliminaryPlan);
+      return {
+        summary: summarizePlan(preliminaryPlan, {
+          payloadKind: "generated_draft_scene",
+          cacheHit: false,
+          createdAtMs: now,
+          expiresAtMs: preliminaryPlan.policy.ttlSeconds > 0 ? now + preliminaryPlan.policy.ttlSeconds * 1000 : null,
+          lastAccessedAtMs: now,
+          hitCount: 0,
+          safety,
+          generationStatus: "queued",
+        }),
+      };
+    }
+
+    try {
+      const lockCached = await store.get(preliminaryPlan.key.key, nowMs());
+      if (lockCached) {
+        return {
+          payload: lockCached.payload,
+          summary: summarizeEntry(lockCached, true),
+        };
+      }
+
+      const payload = input.createScene();
+      const sceneId = input.sceneIdForPayload(payload);
+      const plan = createScenePacketCachePlan({
+        ...planInput,
+        sceneId,
+      });
+      const safety = assertScenePacketCachePlanSafe(plan);
+      if (!safety.passed) {
+        throw new Error(`Unsafe generated draft scene packet cache plan: ${safety.blockers.join("; ")}`);
+      }
+
+      const compileNow = nowMs();
+      const entry: ScenePacketCacheStoreEntry<TScene> = {
+        plan,
+        payload,
+        payloadKind: "generated_draft_scene",
+        createdAtMs: compileNow,
+        expiresAtMs: plan.policy.ttlSeconds > 0 ? compileNow + plan.policy.ttlSeconds * 1000 : null,
+        lastAccessedAtMs: compileNow,
+        hitCount: 1,
+        safety,
+      };
+      await store.set(plan.key.key, entry, compileNow);
+
+      return {
+        payload,
+        summary: summarizeEntry(entry, false),
+      };
+    } finally {
+      await lock.release();
+    }
+  }
+
+  async function waitForCachedPacket(key: string): Promise<ScenePacketCacheStoreEntry<TScene> | undefined> {
+    if (lockWaitMs <= 0) return undefined;
+    const startedAt = nowMs();
+    while (nowMs() - startedAt < lockWaitMs) {
+      await delay(100);
+      const cached = await store.get(key, nowMs());
+      if (cached) return cached;
+    }
+    return undefined;
+  }
+
+  async function describeCoverageStatus(input: ScenePacketCoverageStatusInput): Promise<ScenePacketMemorySummary> {
     const readiness = readinessForCoverageTier(input.coverageTier);
     const plan = createScenePacketCachePlan({
       countryCode: input.countryCode ?? "US",
@@ -201,32 +489,59 @@ export function createScenePacketMemoryAdapter<TScene>(
     });
   }
 
-  function status(): ScenePacketMemoryStatus {
-    clearExpired();
+  async function status(): Promise<ScenePacketMemoryStatus> {
+    const now = nowMs();
+    await store.clearExpired(now);
+    const [cacheStatus, queueStatus, entries] = await Promise.all([
+      store.status(now),
+      jobQueue.status(now),
+      store.values(now),
+    ]);
     return {
       update: SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
-      maxEntries,
-      entryCount: entries.size,
-      entries: [...entries.values()].map((entry) => summarizeEntry(entry, false)),
+      cacheBackend: cacheStatus.backend,
+      maxEntries: cacheStatus.maxEntries,
+      entryCount: cacheStatus.entryCount,
+      hitCount: cacheStatus.hitCount,
+      missCount: cacheStatus.missCount,
+      hitRate: cacheStatus.hitRate,
+      queueDepth: queueStatus.queueDepth,
+      oldestQueuedMs: queueStatus.oldestQueuedMs,
+      lockTtlSeconds,
+      redisConfigured: cacheStatus.redisConfigured,
+      redisReachable: cacheStatus.redisReachable,
+      entries: entries.map((entry) => summarizeEntry(entry, false)),
     };
   }
 
-  function clearExpired(): number {
-    const now = nowMs();
-    let removed = 0;
-    for (const [key, entry] of entries) {
-      if (isExpired(entry, now)) {
-        entries.delete(key);
-        removed += 1;
-      }
-    }
-    return removed;
+  async function clearExpired(): Promise<number> {
+    return store.clearExpired(nowMs());
   }
 
-  function size(): number {
-    clearExpired();
-    return entries.size;
+  async function size(): Promise<number> {
+    return store.size(nowMs());
   }
+
+  return {
+    getOrCreatePlayableScenePacket,
+    getOrCreateGeneratedDraftScenePacket,
+    describeCoverageStatus,
+    status,
+    clearExpired,
+    size,
+    claimGeneratedDraftJob: () => jobQueue.claim(nowMs()),
+    completeGeneratedDraftJob: (jobId: string) => jobQueue.complete(jobId),
+    failGeneratedDraftJob: (jobId: string, error: string) => jobQueue.fail(jobId, error),
+  };
+}
+
+export function createMemoryScenePacketCacheStore<TScene>(options: {
+  maxEntries?: number;
+} = {}): ScenePacketCacheStore<TScene> {
+  const maxEntries = Math.max(1, Math.floor(options.maxEntries ?? DEFAULT_MAX_ENTRIES));
+  const entries = new Map<string, ScenePacketCacheStoreEntry<TScene>>();
+  let hitCount = 0;
+  let missCount = 0;
 
   function evictIfNeeded(now: number): void {
     if (entries.size < maxEntries) return;
@@ -246,15 +561,344 @@ export function createScenePacketMemoryAdapter<TScene>(
   }
 
   return {
-    getOrCreatePlayableScenePacket,
-    describeCoverageStatus,
-    status,
-    clearExpired,
-    size,
+    backend: "memory",
+    async get(key, now) {
+      const entry = entries.get(key);
+      if (!entry) {
+        missCount += 1;
+        return undefined;
+      }
+      if (isExpired(entry, now)) {
+        entries.delete(key);
+        missCount += 1;
+        return undefined;
+      }
+      hitCount += 1;
+      entry.hitCount += 1;
+      entry.lastAccessedAtMs = now;
+      return entry;
+    },
+    async set(key, entry, now) {
+      evictIfNeeded(now);
+      entries.set(key, entry);
+    },
+    async delete(key) {
+      entries.delete(key);
+    },
+    async values(now) {
+      await this.clearExpired(now);
+      return [...entries.values()];
+    },
+    async clearExpired(now) {
+      let removed = 0;
+      for (const [key, entry] of entries) {
+        if (isExpired(entry, now)) {
+          entries.delete(key);
+          removed += 1;
+        }
+      }
+      return removed;
+    },
+    async size(now) {
+      await this.clearExpired(now);
+      return entries.size;
+    },
+    async status(now) {
+      await this.clearExpired(now);
+      return {
+        backend: "memory",
+        maxEntries,
+        entryCount: entries.size,
+        hitCount,
+        missCount,
+        hitRate: hitRate(hitCount, missCount),
+        redisConfigured: false,
+        redisReachable: null,
+      };
+    },
   };
 }
 
-function summarizeEntry<TScene>(entry: ScenePacketMemoryEntry<TScene>, cacheHit: boolean): ScenePacketMemorySummary {
+export function createMemoryScenePacketCompileLock(): ScenePacketCompileLock {
+  const locks = new Map<string, { token: string; expiresAtMs: number }>();
+
+  return {
+    async acquire(key, ttlSeconds) {
+      const now = Date.now();
+      const existing = locks.get(key);
+      if (existing && existing.expiresAtMs > now) {
+        return {
+          acquired: false,
+          token: randomUUID(),
+          release: async () => undefined,
+        };
+      }
+      if (existing) locks.delete(key);
+      const token = randomUUID();
+      locks.set(key, { token, expiresAtMs: now + ttlSeconds * 1000 });
+      return {
+        acquired: true,
+        token,
+        release: async () => {
+          const current = locks.get(key);
+          if (current?.token === token) locks.delete(key);
+        },
+      };
+    },
+  };
+}
+
+export function createMemoryScenePacketJobQueue<TJob extends { id: string; enqueuedAtMs: number }>(): ScenePacketJobQueue<TJob> {
+  const pending = new Map<string, TJob>();
+  const completed = new Set<string>();
+  const failed = new Map<string, string>();
+
+  return {
+    async enqueue(job) {
+      if (completed.has(job.id)) return;
+      pending.set(job.id, job);
+    },
+    async claim() {
+      let oldest: TJob | undefined;
+      for (const job of pending.values()) {
+        if (!oldest || job.enqueuedAtMs < oldest.enqueuedAtMs) oldest = job;
+      }
+      if (oldest) pending.delete(oldest.id);
+      return oldest;
+    },
+    async complete(jobId) {
+      pending.delete(jobId);
+      failed.delete(jobId);
+      completed.add(jobId);
+    },
+    async fail(jobId, error) {
+      pending.delete(jobId);
+      failed.set(jobId, error);
+    },
+    async status(now) {
+      let oldestQueuedMs: number | null = null;
+      for (const job of pending.values()) {
+        const age = Math.max(0, now - job.enqueuedAtMs);
+        oldestQueuedMs = oldestQueuedMs === null ? age : Math.max(oldestQueuedMs, age);
+      }
+      return {
+        queueDepth: pending.size,
+        oldestQueuedMs,
+      };
+    },
+  };
+}
+
+export function createRedisScenePacketCacheStore<TScene>(options: {
+  connector: LazyRedisConnector;
+  maxEntries?: number;
+}): ScenePacketCacheStore<TScene> {
+  const maxEntries = Math.max(1, Math.floor(options.maxEntries ?? DEFAULT_MAX_ENTRIES));
+  let hitCount = 0;
+  let missCount = 0;
+
+  return {
+    backend: "redis",
+    async get(key, now) {
+      const client = await options.connector.client();
+      const redisKey = REDIS_CACHE_PREFIX + key;
+      const raw = await client.get(redisKey);
+      if (!raw) {
+        missCount += 1;
+        return undefined;
+      }
+      const entry = parseJson<ScenePacketCacheStoreEntry<TScene>>(raw);
+      if (!entry || isExpired(entry, now)) {
+        await client.del(redisKey);
+        missCount += 1;
+        return undefined;
+      }
+      hitCount += 1;
+      entry.hitCount += 1;
+      entry.lastAccessedAtMs = now;
+      await writeRedisEntry(client, redisKey, entry, now);
+      return entry;
+    },
+    async set(key, entry, now) {
+      const client = await options.connector.client();
+      await writeRedisEntry(client, REDIS_CACHE_PREFIX + key, entry, now);
+    },
+    async delete(key) {
+      const client = await options.connector.client();
+      await client.del(REDIS_CACHE_PREFIX + key);
+    },
+    async values(now) {
+      const client = await options.connector.client();
+      const keys = await listRedisKeys(client, `${REDIS_CACHE_PREFIX}*`);
+      const entries: ScenePacketCacheStoreEntry<TScene>[] = [];
+      for (const key of keys.slice(0, maxEntries)) {
+        const raw = await client.get(key);
+        const entry = raw ? parseJson<ScenePacketCacheStoreEntry<TScene>>(raw) : undefined;
+        if (!entry) continue;
+        if (isExpired(entry, now)) {
+          await client.del(key);
+          continue;
+        }
+        entries.push(entry);
+      }
+      return entries;
+    },
+    async clearExpired(now) {
+      const client = await options.connector.client();
+      const keys = await listRedisKeys(client, `${REDIS_CACHE_PREFIX}*`);
+      let removed = 0;
+      for (const key of keys) {
+        const raw = await client.get(key);
+        const entry = raw ? parseJson<ScenePacketCacheStoreEntry<TScene>>(raw) : undefined;
+        if (!entry || isExpired(entry, now)) {
+          await client.del(key);
+          removed += 1;
+        }
+      }
+      return removed;
+    },
+    async size() {
+      const client = await options.connector.client();
+      return (await listRedisKeys(client, `${REDIS_CACHE_PREFIX}*`)).length;
+    },
+    async status(now) {
+      const redisReachable = await options.connector.ping();
+      const entryCount = redisReachable ? await this.size(now) : 0;
+      return {
+        backend: "redis",
+        maxEntries,
+        entryCount,
+        hitCount,
+        missCount,
+        hitRate: hitRate(hitCount, missCount),
+        redisConfigured: true,
+        redisReachable,
+      };
+    },
+  };
+}
+
+export function createRedisScenePacketCompileLock(connector: LazyRedisConnector): ScenePacketCompileLock {
+  return {
+    async acquire(key, ttlSeconds) {
+      const client = await connector.client();
+      const token = randomUUID();
+      const redisKey = REDIS_LOCK_PREFIX + key;
+      // Redis SET NX EX keeps duplicate compiles from racing across Railway instances.
+      const result = await client.set(redisKey, token, { NX: true, EX: ttlSeconds });
+      const acquired = result === "OK";
+      return {
+        acquired,
+        token,
+        release: async () => {
+          if (!acquired) return;
+          await client.eval(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+            {
+              keys: [redisKey],
+              arguments: [token],
+            },
+          );
+        },
+      };
+    },
+  };
+}
+
+export function createRedisScenePacketJobQueue<TJob extends { id: string; enqueuedAtMs: number }>(
+  connector: LazyRedisConnector,
+): ScenePacketJobQueue<TJob> {
+  return {
+    async enqueue(job) {
+      const client = await connector.client();
+      await client.zAdd(REDIS_JOB_QUEUE_KEY, {
+        score: job.enqueuedAtMs,
+        value: JSON.stringify(job),
+      });
+    },
+    async claim() {
+      const client = await connector.client();
+      const values = await client.zRange(REDIS_JOB_QUEUE_KEY, 0, 0);
+      const raw = values[0];
+      if (!raw) return undefined;
+      const removed = await client.zRem(REDIS_JOB_QUEUE_KEY, raw);
+      if (!removed) return undefined;
+      return parseJson<TJob>(raw);
+    },
+    async complete(jobId) {
+      const client = await connector.client();
+      await client.set(`${REDIS_JOB_DONE_PREFIX}${jobId}`, "1", { EX: 3_600 });
+    },
+    async fail(jobId, error) {
+      const client = await connector.client();
+      await client.set(`${REDIS_JOB_FAILED_PREFIX}${jobId}`, JSON.stringify({ error, failedAt: new Date().toISOString() }), {
+        EX: 86_400,
+      });
+    },
+    async status(now) {
+      const client = await connector.client();
+      const queueDepth = await client.zCard(REDIS_JOB_QUEUE_KEY);
+      const values = await client.zRange(REDIS_JOB_QUEUE_KEY, 0, 0);
+      const oldest = values[0] ? parseJson<TJob>(values[0]) : undefined;
+      return {
+        queueDepth,
+        oldestQueuedMs: oldest ? Math.max(0, now - oldest.enqueuedAtMs) : null,
+      };
+    },
+  };
+}
+
+type LazyRedisClient = {
+  isOpen?: boolean;
+  connect(): Promise<unknown>;
+  ping(): Promise<string>;
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, options?: Record<string, unknown>): Promise<string | null>;
+  del(key: string): Promise<number>;
+  keys(pattern: string): Promise<string[]>;
+  scanIterator?(options: { MATCH: string; COUNT: number }): AsyncIterable<string>;
+  eval(script: string, options: { keys: string[]; arguments: string[] }): Promise<unknown>;
+  zAdd(key: string, value: { score: number; value: string }): Promise<number>;
+  zRange(key: string, start: number, stop: number): Promise<string[]>;
+  zRem(key: string, value: string): Promise<number>;
+  zCard(key: string): Promise<number>;
+};
+
+export type LazyRedisConnector = {
+  client(): Promise<LazyRedisClient>;
+  ping(): Promise<boolean>;
+};
+
+export function createLazyRedisConnector(url: string): LazyRedisConnector {
+  let client: LazyRedisClient | undefined;
+  let connectPromise: Promise<void> | undefined;
+
+  async function getClient(): Promise<LazyRedisClient> {
+    if (!client) {
+      const redis = await import("redis");
+      client = redis.createClient({ url }) as unknown as LazyRedisClient;
+    }
+    if (!client.isOpen) {
+      connectPromise ??= client.connect().then(() => undefined);
+      await connectPromise;
+    }
+    return client;
+  }
+
+  return {
+    client: getClient,
+    async ping() {
+      try {
+        const redisClient = await getClient();
+        return (await redisClient.ping()) === "PONG";
+      } catch {
+        return false;
+      }
+    },
+  };
+}
+
+function summarizeEntry<TScene>(entry: ScenePacketCacheStoreEntry<TScene>, cacheHit: boolean): ScenePacketMemorySummary {
   return summarizePlan(entry.plan, {
     payloadKind: entry.payloadKind,
     cacheHit,
@@ -276,6 +920,7 @@ function summarizePlan(
     lastAccessedAtMs: number;
     hitCount: number;
     safety: ScenePacketCacheSafetyResult;
+    generationStatus?: ScenePacketCachePlan["generation"]["status"];
   },
 ): ScenePacketMemorySummary {
   return {
@@ -290,7 +935,7 @@ function summarizePlan(
     expiresAt: input.expiresAtMs === null ? null : toIso(input.expiresAtMs),
     lastAccessedAt: toIso(input.lastAccessedAtMs),
     ttlSeconds: plan.policy.ttlSeconds,
-    generationStatus: plan.generation.status,
+    generationStatus: input.generationStatus ?? plan.generation.status,
     generationMode: plan.generation.mode,
     generationBlockers: [...plan.generation.blockers],
     packet: {
@@ -313,14 +958,71 @@ function summarizePlan(
   };
 }
 
+async function writeRedisEntry<TScene>(
+  client: LazyRedisClient,
+  key: string,
+  entry: ScenePacketCacheStoreEntry<TScene>,
+  now: number,
+): Promise<void> {
+  const serialized = JSON.stringify(entry);
+  if (entry.expiresAtMs !== null) {
+    const ttlSeconds = Math.max(1, Math.ceil((entry.expiresAtMs - now) / 1000));
+    await client.set(key, serialized, { EX: ttlSeconds });
+    return;
+  }
+  await client.set(key, serialized);
+}
+
+async function listRedisKeys(client: LazyRedisClient, pattern: string): Promise<string[]> {
+  if (client.scanIterator) {
+    const keys: string[] = [];
+    for await (const key of client.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+      keys.push(String(key));
+    }
+    return keys;
+  }
+  return client.keys(pattern);
+}
+
 function readinessForCoverageTier(coverageTier: string): ScenePacketReadiness {
   if (coverageTier === "L1_COUNTY_SHELL") return "shell_only";
   if (coverageTier === "L0_UNSUPPORTED") return "unsupported";
   return "blocked";
 }
 
-function isExpired<TScene>(entry: ScenePacketMemoryEntry<TScene>, now: number): boolean {
+function isExpired<TScene>(entry: ScenePacketCacheStoreEntry<TScene>, now: number): boolean {
   return entry.expiresAtMs !== null && entry.expiresAtMs <= now;
+}
+
+function hitRate(hitCount: number, missCount: number): number {
+  const total = hitCount + missCount;
+  if (total === 0) return 0;
+  return Number((hitCount / total).toFixed(4));
+}
+
+function normalizeBackend(value: string | undefined): ScenePacketCacheBackend | undefined {
+  if (!value) return undefined;
+  return value.trim().toLowerCase() === "redis" ? "redis" : "memory";
+}
+
+function parseBooleanEnv(value: string | undefined, fallback: boolean): boolean {
+  if (!value) return fallback;
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+}
+
+function parsePositiveIntegerEnv(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.floor(parsed);
+}
+
+function parseJson<T>(raw: string): T | undefined {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return undefined;
+  }
 }
 
 function toIso(ms: number): string {

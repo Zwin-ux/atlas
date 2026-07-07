@@ -246,7 +246,17 @@ try {
     "get_upgrade_options",
   );
   assert(upgrade.type === "upgradeOptions", "get_upgrade_options returned wrong type.");
-  assert(upgrade.hosted?.status === "planned_beta", "Hosted Clawd must remain planned_beta.");
+  assert(
+    upgrade.hosted?.status === "planned_beta" || upgrade.hosted?.status === "owner_gated_test",
+    "Hosted Clawd must remain planned_beta or owner_gated_test.",
+  );
+  if (upgrade.hosted?.status === "owner_gated_test") {
+    assert(
+      Array.isArray(upgrade.unavailableActions) &&
+        upgrade.unavailableActions.some((item) => /Public paid access is not live/i.test(item)),
+      "Owner-gated Hosted Clawd output must clearly keep public paid access closed.",
+    );
+  }
 
   console.log(
     JSON.stringify(
@@ -260,6 +270,7 @@ try {
         countyQuestionTopic: countyQuestion.topic,
         unsupportedCountyQuestion: unsupportedQuestion.supported,
         sceneMetaPlaces: countyResult._meta.scene.world.places.length,
+        hostedClawdStatus: upgrade.hosted.status,
       },
       null,
       2,

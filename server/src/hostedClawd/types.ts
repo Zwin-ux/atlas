@@ -65,12 +65,73 @@ export type HostedClawdContextInput = {
   campaignPreviewId?: string;
   selectedNoteCount?: number;
   subscriptionStatus?: "none" | "activating" | "active" | "inactive" | "payment_failed";
+  savedState?: HostedClawdSavedStateSummary;
+};
+
+export type HostedClawdSubscriptionAccessStatus = NonNullable<HostedClawdContextInput["subscriptionStatus"]>;
+
+export type HostedClawdBillingUiState =
+  | "off"
+  | "test_ready"
+  | "return_pending"
+  | "webhook_confirmed"
+  | "payment_attention";
+
+export type HostedClawdBillingSummary = {
+  state: HostedClawdBillingUiState;
+  subscriptionStatus: HostedClawdSubscriptionAccessStatus;
+  confirmationSource: "none" | "webhook";
+  returnUrlGrantsAccess: false;
+  paidWrites: "enabled" | "read_only";
+  title: string;
+  detail: string;
+  checkoutLabel: string;
+  webhookLabel: string;
+  returnLabel: string;
+  portalLabel: string;
 };
 
 export type HostedClawdSavePreviewItem = {
   label: string;
   value: string;
   status: "ready" | "needs_confirmation" | "planned";
+};
+
+export type HostedClawdSavedStateBusinessSummary = {
+  id: string;
+  name: string;
+  businessType?: string;
+  countySlug: string;
+  countyLabel?: string;
+  placeLabel?: string;
+};
+
+export type HostedClawdSavedStateScoutSummary = {
+  id: string;
+  scoutPreviewId: string;
+  countySlug: string;
+};
+
+export type HostedClawdSavedStateCampaignSummary = {
+  id: string;
+  campaignPreviewId: string;
+  summary?: string;
+  status: "draft";
+};
+
+export type HostedClawdSavedStateSummary = {
+  type: "hostedClawdSavedState";
+  clawd?: {
+    id: string;
+    name: string;
+    status: "active";
+  };
+  businessProfile?: HostedClawdSavedStateBusinessSummary;
+  scoutDrops: HostedClawdSavedStateScoutSummary[];
+  campaignDrafts: HostedClawdSavedStateCampaignSummary[];
+  subscriptionStatus: HostedClawdSubscriptionAccessStatus;
+  paidWrites: "enabled" | "read_only";
+  readOnlyReason: "none" | "no_saved_clawd" | "billing_attention" | "subscription_inactive";
 };
 
 export type HostedClawdPrimaryAction = {
@@ -90,8 +151,10 @@ export type HostedClawdContext = {
   secondaryCopy: string;
   sessionBoundary: string;
   paymentCopy: string;
+  billing: HostedClawdBillingSummary;
   primaryAction: HostedClawdPrimaryAction;
   savePreview: HostedClawdSavePreviewItem[];
+  savedState?: HostedClawdSavedStateSummary;
   flags: HostedClawdFeatureFlags;
   gates: HostedClawdGateStatus[];
   canPersist: boolean;
@@ -103,6 +166,7 @@ export type HostedClawdActionOperation =
   | "create_or_attach_clawd"
   | "promote_session"
   | "save_campaign_artifact"
+  | "read_saved_state"
   | "start_checkout"
   | "open_billing_portal";
 
@@ -126,15 +190,42 @@ export type HostedClawdActionResponse = {
     | "money_not_enabled"
     | "auth_not_configured"
     | "auth_required"
+    | "read_scope_required"
     | "write_scope_required"
     | "persistence_adapter_not_configured"
     | "billing_adapter_not_configured"
+    | "account_setup_required"
+    | "billing_customer_not_found"
+    | "billing_subscription_not_active"
     | "ready";
   screenState: HostedClawdScreenState;
   message: string;
   nextAction: HostedClawdActionKind;
   saved?: HostedClawdSavedRecord[];
+  savedState?: HostedClawdSavedStateSummary;
+  redirectUrl?: string;
+  billing?: {
+    checkoutSessionId?: string;
+    portalSessionId?: string;
+    subscriptionStatus?: HostedClawdSubscriptionAccessStatus;
+    confirmationSource: "none" | "webhook";
+    returnUrlGrantsAccess: false;
+  };
   context: HostedClawdContext;
+};
+
+export type HostedClawdBillingActionResult = {
+  status: "blocked" | "accepted";
+  reason:
+    | "account_setup_required"
+    | "billing_customer_not_found"
+    | "billing_subscription_not_active"
+    | "ready";
+  message: string;
+  nextAction: HostedClawdActionKind;
+  subscriptionStatus: HostedClawdSubscriptionAccessStatus;
+  redirectUrl?: string;
+  billing?: HostedClawdActionResponse["billing"];
 };
 
 export type HostedClawdCreateOrAttachInput = HostedClawdContextInput & {
@@ -157,6 +248,8 @@ export type HostedClawdCampaignArtifactInput = HostedClawdContextInput & {
 // Every write requires a verified OIDC account context; there is no
 // unauthenticated persisted write path.
 export type HostedClawdPersistencePort = {
+  getSubscriptionStatus(auth: HostedClawdAuthContext): Promise<HostedClawdSubscriptionAccessStatus>;
+  readSavedState(auth: HostedClawdAuthContext): Promise<HostedClawdSavedStateSummary>;
   createOrAttachClawd(
     auth: HostedClawdAuthContext,
     input: HostedClawdCreateOrAttachInput,
@@ -169,8 +262,15 @@ export type HostedClawdPersistencePort = {
 };
 
 export type HostedClawdBillingPort = {
-  // TODO(gate: HUMAN_APPROVAL_BEFORE_MONEY): create Stripe-hosted Checkout
-  // only after subscription access is backed by verified webhook state.
-  startCheckout(input: HostedClawdContextInput): Promise<HostedClawdActionResponse>;
-  openBillingPortal(input: HostedClawdContextInput): Promise<HostedClawdActionResponse>;
+  // HUMAN_APPROVAL_BEFORE_MONEY is reopened for the named 0.62H test-billing
+  // slice only. Checkout can redirect; access still comes only from stored
+  // webhook-confirmed subscription state.
+  startCheckout(
+    auth: HostedClawdAuthContext,
+    input: HostedClawdContextInput,
+  ): Promise<HostedClawdBillingActionResult>;
+  openBillingPortal(
+    auth: HostedClawdAuthContext,
+    input: HostedClawdContextInput,
+  ): Promise<HostedClawdBillingActionResult>;
 };

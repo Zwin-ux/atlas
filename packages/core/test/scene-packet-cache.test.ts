@@ -130,6 +130,69 @@ describe("scene packet cache contract", () => {
     expect(assertScenePacketCachePlanSafe(plan).passed).toBe(true);
   });
 
+  it("keeps generated draft packets runtime-only, non-public, and provider-free", () => {
+    const plan = createScenePacketCachePlan({
+      countryCode: "US",
+      stateCode: "IL",
+      countySlug: "cook-il",
+      districtSlug: "cook-il-generated-district",
+      cameraPresetId: "mobile",
+      windowHash: "generated-initial-window",
+      sceneSchemaVersion: "city-world-v1",
+      engineUpdateId: "postalpha-0.70h-deterministic-generated-district-specs",
+      readiness: "generated_draft",
+      generationMode: "deterministic_generated_draft",
+      sceneId: "generated-cook-il-generated-district",
+    });
+
+    expect(plan.packet).toMatchObject({
+      sceneId: "generated-cook-il-generated-district",
+      containsScene: true,
+      playable: false,
+      publicRouteAllowed: false,
+      containsProviderGeometry: false,
+      structuredContentSafe: true,
+      metaOnlyScene: true,
+    });
+    expect(plan.policy).toMatchObject({
+      storageMode: "runtime_memory",
+      canPersist: false,
+      providerGeometryAllowed: false,
+      liveProviderAllowed: false,
+    });
+    expect(plan.generation.status).toBe("not_queued");
+    expect(assertScenePacketCachePlanSafe(plan).passed).toBe(true);
+  });
+
+  it("separates generated draft cache keys by district window and generator version", () => {
+    const base = {
+      countryCode: "US",
+      stateCode: "IL",
+      countySlug: "cook-il",
+      districtSlug: "cook-il-generated-district",
+      cameraPresetId: "mobile",
+      sceneSchemaVersion: "city-world-v1",
+    };
+    const first = createScenePacketCacheKey({
+      ...base,
+      windowHash: "window-a",
+      engineUpdateId: "postalpha-0.70h-deterministic-generated-district-specs",
+    });
+    const second = createScenePacketCacheKey({
+      ...base,
+      windowHash: "window-b",
+      engineUpdateId: "postalpha-0.70h-deterministic-generated-district-specs",
+    });
+    const third = createScenePacketCacheKey({
+      ...base,
+      windowHash: "window-a",
+      engineUpdateId: "postalpha-0.71h-scene-packet-service-boundary",
+    });
+
+    expect(first.key).not.toBe(second.key);
+    expect(first.key).not.toBe(third.key);
+  });
+
   it("blocks future provider and background generation until DB/provider gates reopen", () => {
     const providerPlan = createScenePacketCachePlan({
       countryCode: "US",
@@ -210,6 +273,7 @@ describe("scene packet cache contract", () => {
   it("keeps storage policy explicit for every readiness state", () => {
     expect(scenePacketCachePolicyForReadiness("public_playable").ttlSeconds).toBeGreaterThan(0);
     expect(scenePacketCachePolicyForReadiness("shell_only").ttlSeconds).toBeGreaterThan(0);
+    expect(scenePacketCachePolicyForReadiness("generated_draft").ttlSeconds).toBeGreaterThan(0);
     expect(scenePacketCachePolicyForReadiness("hidden_draft").ttlSeconds).toBeGreaterThan(0);
     expect(scenePacketCachePolicyForReadiness("unsupported").storageMode).toBe("none");
     expect(scenePacketCachePolicyForReadiness("blocked").storageMode).toBe("none");

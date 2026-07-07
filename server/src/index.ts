@@ -1,7 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { brotliCompressSync, gzipSync, constants as zlibConstants } from "node:zlib";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   registerAppResource,
@@ -21,7 +22,10 @@ import {
   CountyQuestionService,
   compileCountyShellCityWorldScene,
   compileVoxelSceneFromCountyPack,
+  createDeterministicGeneratedDistrictScene,
+  createDeterministicGeneratedDistrictSpec,
   createNationalWorldService,
+  DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
   type UsCountyWorldResponse,
   type UsUnsupportedWorldResponse,
   type CityWorldScene,
@@ -35,18 +39,26 @@ import { createGeoDataAdapter, isGoogleMapsConfigured, readGeoAdapterConfig } fr
 import { z } from "zod";
 import {
   createScenePacketMemoryAdapter,
+  readScenePacketRuntimeConfig,
   SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
+  type ScenePacketGeneratedDraftJob,
   type ScenePacketMemorySummary,
 } from "./scenePacketMemoryAdapter.js";
 import {
   buildAuthChallengeHeader,
   buildOAuthProtectedResourceMetadata,
+  constructHostedClawdStripeEvent,
   createHostedClawdPool,
   createHostedClawdRepositoryPersistence,
   createPostgresHostedClawdRepository,
+  createStripeHostedClawdBillingPort,
+  createStripeHostedClawdClient,
+  handleHostedClawdStripeWebhook,
+  HOSTED_CLAWD_READ_SCOPE,
   HOSTED_CLAWD_WRITE_SCOPE,
   HostedClawdAuthenticator,
   HostedClawdService,
+  readHostedClawdBillingConfig,
   readHostedClawdAuthConfig,
   readHostedClawdFeatureFlags,
   type HostedClawdAuthContext,
@@ -70,28 +82,55 @@ const MCP_PATH = process.env.MCP_PATH ?? "/mcp";
 const countyPackService = new CountyPackService(resolve(ROOT_DIR, "data", "county_packs"));
 const countyQuestionService = new CountyQuestionService(countyPackService);
 const worldService = createNationalWorldService([riversideDemoVoxelScene]);
-const scenePacketMemory = createScenePacketMemoryAdapter<ScoutPreviewState["scene"]>({
+const scenePacketRuntimeConfig = readScenePacketRuntimeConfig(process.env);
+if (scenePacketRuntimeConfig.production && scenePacketRuntimeConfig.blockers.length > 0) {
+  throw new Error(`Atlas production scene packet config is invalid: ${scenePacketRuntimeConfig.blockers.join("; ")}`);
+}
+const scenePacketMemory = createScenePacketMemoryAdapter<ScoutPreviewState["scene"] | CityWorldScene>({
   maxEntries: MAX_SCENE_PACKET_MEMORY_ENTRIES,
+  cacheBackend: scenePacketRuntimeConfig.effectiveBackend,
+  redisUrl: scenePacketRuntimeConfig.redisUrl,
+  lockTtlSeconds: scenePacketRuntimeConfig.lockTtlSeconds,
+  lockWaitMs: scenePacketRuntimeConfig.lockWaitMs,
 });
-// Hosted Clawd persistence foundation (0.60H). Everything stays OFF unless the
-// persistence flag is enabled AND DATABASE_URL and OIDC auth are configured.
-// Protected writes require OAuth/OIDC bearer tokens; iframe cookies and model
-// text are never identity.
+// Hosted Clawd persistence foundation (0.60H). Persistence stays OFF unless
+// the flag and DATABASE_URL are configured. Protected user writes still require
+// OAuth/OIDC bearer tokens; iframe cookies and model text are never identity.
+// The repository is intentionally independent from auth so webhooks and
+// readiness can use the database before the public account-linking gate opens.
 const hostedClawdFlags = readHostedClawdFeatureFlags(process.env);
 const hostedClawdAuthConfig = readHostedClawdAuthConfig(process.env);
 const hostedClawdAuthenticator = hostedClawdAuthConfig
   ? new HostedClawdAuthenticator(hostedClawdAuthConfig)
   : undefined;
 const hostedClawdDatabaseUrl = process.env.DATABASE_URL?.trim() || undefined;
+const hostedClawdPool =
+  hostedClawdFlags.persistenceEnabled && hostedClawdDatabaseUrl
+    ? createHostedClawdPool(hostedClawdDatabaseUrl)
+    : undefined;
+const hostedClawdRepository =
+  hostedClawdPool
+    ? createPostgresHostedClawdRepository(hostedClawdPool)
+    : undefined;
 const hostedClawdPersistence =
-  hostedClawdFlags.persistenceEnabled && hostedClawdDatabaseUrl && hostedClawdAuthenticator
-    ? createHostedClawdRepositoryPersistence(
-        createPostgresHostedClawdRepository(createHostedClawdPool(hostedClawdDatabaseUrl)),
-      )
+  hostedClawdRepository
+    ? createHostedClawdRepositoryPersistence(hostedClawdRepository)
+    : undefined;
+const hostedClawdBillingConfig = hostedClawdFlags.moneyEnabled
+  ? readHostedClawdBillingConfig(process.env)
+  : undefined;
+const hostedClawdBilling =
+  hostedClawdFlags.moneyEnabled && hostedClawdRepository && hostedClawdBillingConfig
+    ? createStripeHostedClawdBillingPort({
+        stripe: createStripeHostedClawdClient(hostedClawdBillingConfig),
+        repository: hostedClawdRepository,
+        config: hostedClawdBillingConfig,
+      })
     : undefined;
 const hostedClawdService = new HostedClawdService({
   flags: hostedClawdFlags,
   persistence: hostedClawdPersistence,
+  billing: hostedClawdBilling,
 });
 
 type WorldLookupCacheEntry = {
@@ -100,6 +139,17 @@ type WorldLookupCacheEntry = {
 };
 
 const worldLookupCache = new Map<string, WorldLookupCacheEntry>();
+
+type RateLimitBucket = {
+  resetAtMs: number;
+  count: number;
+};
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const WORLD_LOOKUP_RATE_LIMIT = 30;
+const HOSTED_CLAWD_WRITE_RATE_LIMIT = 20;
+const GENERATED_DRAFT_RATE_LIMIT = 20;
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
   sceneId: string;
@@ -583,6 +633,45 @@ const hostedClawdScreenStateSchema = z.enum([
   "inactive_payment_failed",
 ]);
 
+const hostedClawdSavedStateSchema = z.object({
+  type: z.literal("hostedClawdSavedState"),
+  clawd: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      status: z.literal("active"),
+    })
+    .optional(),
+  businessProfile: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      businessType: z.string().optional(),
+      countySlug: z.string(),
+      countyLabel: z.string().optional(),
+      placeLabel: z.string().optional(),
+    })
+    .optional(),
+  scoutDrops: z.array(
+    z.object({
+      id: z.string(),
+      scoutPreviewId: z.string(),
+      countySlug: z.string(),
+    }),
+  ),
+  campaignDrafts: z.array(
+    z.object({
+      id: z.string(),
+      campaignPreviewId: z.string(),
+      summary: z.string().optional(),
+      status: z.literal("draft"),
+    }),
+  ),
+  subscriptionStatus: z.enum(["none", "activating", "active", "inactive", "payment_failed"]),
+  paidWrites: z.enum(["enabled", "read_only"]),
+  readOnlyReason: z.enum(["none", "no_saved_clawd", "billing_attention", "subscription_inactive"]),
+});
+
 const hostedClawdContextSchema = z.object({
   type: z.literal("hostedClawdContext"),
   mode: z.enum(["alpha_free", "beta_invite", "beta_paid"]),
@@ -594,6 +683,19 @@ const hostedClawdContextSchema = z.object({
   secondaryCopy: z.string(),
   sessionBoundary: z.string(),
   paymentCopy: z.string(),
+  billing: z.object({
+    state: z.enum(["off", "test_ready", "return_pending", "webhook_confirmed", "payment_attention"]),
+    subscriptionStatus: z.enum(["none", "activating", "active", "inactive", "payment_failed"]),
+    confirmationSource: z.enum(["none", "webhook"]),
+    returnUrlGrantsAccess: z.literal(false),
+    paidWrites: z.enum(["enabled", "read_only"]),
+    title: z.string(),
+    detail: z.string(),
+    checkoutLabel: z.string(),
+    webhookLabel: z.string(),
+    returnLabel: z.string(),
+    portalLabel: z.string(),
+  }),
   primaryAction: z.object({
     kind: z.enum([
       "join_waitlist",
@@ -613,6 +715,7 @@ const hostedClawdContextSchema = z.object({
       status: z.enum(["ready", "needs_confirmation", "planned"]),
     }),
   ),
+  savedState: hostedClawdSavedStateSchema.optional(),
   flags: z.object({
     persistenceEnabled: z.boolean(),
     moneyEnabled: z.boolean(),
@@ -649,7 +752,7 @@ const upgradeOptionsOutputSchema = {
   }),
   hosted: z.object({
     label: z.string(),
-    status: z.literal("planned_beta"),
+    status: z.enum(["planned_beta", "owner_gated_test"]),
     included: z.array(z.string()),
   }),
   unavailableActions: z.array(z.string()),
@@ -896,11 +999,11 @@ function compileCountyScene(countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG, selec
   return compileVoxelSceneFromCountyPack(pack, { selectedNodeId });
 }
 
-function getOrCreatePlayableScenePacket(
+async function getOrCreatePlayableScenePacket(
   countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
   selectedNodeId = "eastvale",
-): { scene: ScoutPreviewState["scene"]; scenePacket: ScenePacketMemorySummary } {
-  const packet = scenePacketMemory.getOrCreatePlayableScenePacket({
+): Promise<{ scene: ScoutPreviewState["scene"]; scenePacket: ScenePacketMemorySummary }> {
+  const packet = await scenePacketMemory.getOrCreatePlayableScenePacket({
     stateCode: "CA",
     countySlug,
     districtSlug: "eastvale",
@@ -916,12 +1019,79 @@ function getOrCreatePlayableScenePacket(
   }
 
   return {
-    scene: packet.payload,
+    scene: packet.payload as ScoutPreviewState["scene"],
     scenePacket: packet.summary,
   };
 }
 
-function scenePacketStatusForCoverage(coverage: CountyCoverageStructuredContent): ScenePacketMemorySummary {
+async function getOrCreateGeneratedDraftScenePacket(
+  coverage: CountyCoverageStructuredContent,
+): Promise<{ generatedDraftScene?: CityWorldScene; generatedDraftPacket: ScenePacketMemorySummary } | undefined> {
+  if (coverage.coverageTier !== "L1_COUNTY_SHELL" || !coverage.stateCode || !coverage.geoid) {
+    return undefined;
+  }
+  if (!consumeRateLimit(`generated_draft:${coverage.countySlug}`, GENERATED_DRAFT_RATE_LIMIT)) {
+    logBackendEvent("generated_draft_rate_limited", {
+      countySlug: coverage.countySlug,
+      coverageTier: coverage.coverageTier,
+    });
+    return undefined;
+  }
+
+  const countyResponse = worldService.getCounty(coverage.countySlug);
+  const county = {
+    geoid: countyResponse.county.geoid ?? coverage.geoid,
+    stateCode: countyResponse.county.stateCode,
+    name: countyResponse.county.label,
+    countySlug: countyResponse.county.countySlug,
+    ...(countyResponse.county.centroid ? { centroid: countyResponse.county.centroid } : {}),
+  };
+  const generated = createDeterministicGeneratedDistrictSpec({ county });
+  const job: ScenePacketGeneratedDraftJob = {
+    id: `${coverage.countySlug}:${generated.districtSlug}:generated-initial-window:${DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID}`,
+    kind: "generated_draft_scene",
+    enqueuedAtMs: Date.now(),
+    stateCode: county.stateCode,
+    countySlug: county.countySlug,
+    countyName: county.name,
+    geoid: county.geoid,
+    ...(county.centroid ? { centroid: county.centroid } : {}),
+    districtSlug: generated.districtSlug,
+    cameraPresetId: "generated-draft",
+    windowHash: "generated-initial-window",
+    sceneSchemaVersion: "city-world-v1",
+    engineUpdateId: DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
+    sourceNotes: coverage.sourceNotes.map(toWorldSourceNote),
+  };
+  const packet = await scenePacketMemory.getOrCreateGeneratedDraftScenePacket({
+    stateCode: county.stateCode,
+    countySlug: county.countySlug,
+    districtSlug: generated.districtSlug,
+    cameraPresetId: "generated-draft",
+    windowHash: "generated-initial-window",
+    sceneSchemaVersion: "city-world-v1",
+    engineUpdateId: DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
+    sourceNotes: coverage.sourceNotes.map(toWorldSourceNote),
+    createScene: () => createDeterministicGeneratedDistrictScene({ county }).result.scene,
+    sceneIdForPayload: (scene) => scene.id,
+    job,
+  });
+  logBackendEvent("generated_draft_packet_result", {
+    countySlug: county.countySlug,
+    districtSlug: generated.districtSlug,
+    cacheBackend: scenePacketRuntimeConfig.effectiveBackend,
+    cacheHit: packet.summary.cacheHit,
+    generationStatus: packet.summary.generationStatus,
+    sceneReturned: Boolean(packet.payload),
+  });
+
+  return {
+    ...(packet.payload ? { generatedDraftScene: packet.payload as CityWorldScene } : {}),
+    generatedDraftPacket: packet.summary,
+  };
+}
+
+async function scenePacketStatusForCoverage(coverage: CountyCoverageStructuredContent): Promise<ScenePacketMemorySummary> {
   return scenePacketMemory.describeCoverageStatus({
     stateCode: coverage.stateCode ?? "CA",
     countySlug: coverage.countySlug,
@@ -951,6 +1121,32 @@ function upgradeOptionsStructuredContent(trigger?: string) {
     countyLabel: "Riverside County",
     placeLabel: "Eastvale",
   });
+  const ownerGatedTest = hostedClawd.canPersist || hostedClawd.canStartCheckout;
+  const hostedIncluded = ownerGatedTest
+    ? [
+        "Saved business profile, Scout Drop history, and campaign drafts.",
+        "Test-mode Checkout after account linking.",
+        "Saved history stays readable when billing needs attention.",
+      ]
+    : [
+        "Saved business profile and Scout Drop history.",
+        "Campaign drafts after Beta storage is approved.",
+        "New saves after account and billing approval.",
+      ];
+  const unavailableActions = ownerGatedTest
+    ? [
+        "Public paid access is not live.",
+        "Returning from Checkout does not turn on saving by itself.",
+        "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
+      ]
+    : [
+        "Stripe checkout is not available in Alpha.",
+        "Atlas cannot create an account or persist campaign history yet.",
+        "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
+      ];
+  const nextStep = ownerGatedTest
+    ? "Use Hosted Clawd as a closed test surface only; public paid access stays closed."
+    : "Use the free Alpha preview now; Hosted Clawd adds saving after the next approval gate.";
 
   return {
     type: "upgradeOptions" as const,
@@ -970,19 +1166,11 @@ function upgradeOptionsStructuredContent(trigger?: string) {
     },
     hosted: {
       label: "Hosted Clawd Daemon",
-      status: "planned_beta" as const,
-      included: [
-        "Saved business profile and Scout Drop history.",
-        "Persistent campaigns, quest tracking, evidence, and XP.",
-        "Weekly progress summaries and exports after Beta storage is live.",
-      ],
+      status: ownerGatedTest ? ("owner_gated_test" as const) : ("planned_beta" as const),
+      included: hostedIncluded,
     },
-    unavailableActions: [
-      "Stripe checkout is not available in Alpha.",
-      "Atlas cannot create an account or persist campaign history yet.",
-      "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
-    ],
-    nextStep: "Use the free Alpha preview now; Hosted Clawd becomes the persistence layer in Beta.",
+    unavailableActions,
+    nextStep,
     hostedClawd,
   };
 }
@@ -1023,44 +1211,45 @@ function hostedClawdContextForCampaign(preview: CampaignPreviewState): HostedCla
   });
 }
 
-// The built widget inlines the whole ~1MB JS/CSS bundle into a single HTML
-// document (self-contained for the ChatGPT widget sandbox, which forbids
-// sibling chunk fetches). The bundle is immutable for the life of the process,
-// so read + build it exactly once.
+// The widget shell is intentionally small; Pixi and renderer code live in lazy
+// chunks served from /widget/* so the iframe can paint chrome/fallback first.
 let builtWidgetCache: string | null = null;
 
 function readBuiltWidget(): string {
   if (builtWidgetCache !== null) return builtWidgetCache;
 
-  const jsPath = resolve(WEB_DIST, "component.js");
-  const cssPath = resolve(WEB_DIST, "component.css");
-
-  if (!existsSync(jsPath) || !existsSync(cssPath)) {
+  if (!existsSync(resolve(WEB_DIST, "component.js")) || !existsSync(resolve(WEB_DIST, "component.css"))) {
     throw new Error("Widget bundle not found. Run `pnpm build:web` before starting the MCP server.");
   }
 
-  const js = readFileSync(jsPath, "utf8");
-  const css = readFileSync(cssPath, "utf8");
-
+  const assetBase = widgetAssetBase();
   builtWidgetCache = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Atlas City Map</title>
-    <style>${css}</style>
+    <link rel="stylesheet" href="${assetBase}/component.css" />
   </head>
   <body>
     <div id="root"></div>
-    <script type="module">${js}</script>
+    <script type="module" src="${assetBase}/component.js"></script>
   </body>
 </html>`;
   return builtWidgetCache;
 }
 
-// Pre-compressed variants of the preview HTML. The inlined bundle is highly
-// compressible (~1MB -> ~250KB brotli), and it never changes at runtime, so we
-// pay the (high-quality) compression cost once and serve the buffer directly.
+function widgetAssetBase(): string {
+  const configuredDomain = process.env.WIDGET_DOMAIN?.replace(/\/+$/, "");
+  return configuredDomain ? `${configuredDomain}/widget` : "/widget";
+}
+
+function widgetResourceDomains(): string[] {
+  return process.env.WIDGET_DOMAIN ? [process.env.WIDGET_DOMAIN.replace(/\/+$/, "")] : [];
+}
+
+// Pre-compressed variants of the preview HTML. The shell is small now, but it is
+// immutable for the process lifetime, so serve the cached compressed buffers.
 type WidgetPayload = { html: string; brotli: Buffer; gzip: Buffer };
 let widgetPayloadCache: WidgetPayload | null = null;
 
@@ -1111,6 +1300,87 @@ function sendPreviewResponse(req: IncomingMessage, res: ServerResponse): void {
 
   res.writeHead(200, headers);
   res.end(payload.html);
+}
+
+function sendWidgetAssetResponse(res: ServerResponse, assetPath: string): void {
+  const normalizedAssetPath = decodeURIComponent(assetPath).replace(/^\/+/, "");
+  const absolutePath = resolve(WEB_DIST, normalizedAssetPath);
+  const relativePath = relative(WEB_DIST, absolutePath);
+  if (relativePath.startsWith("..") || resolve(WEB_DIST, relativePath) !== absolutePath || !existsSync(absolutePath)) {
+    textResponse(res, 404, "Not Found");
+    return;
+  }
+
+  const body = readFileSync(absolutePath);
+  const immutable = /\/chunks\//.test(`/${relativePath.replace(/\\/g, "/")}`);
+  res.writeHead(200, {
+    "content-type": contentTypeForWidgetAsset(absolutePath),
+    "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache",
+  });
+  res.end(body);
+}
+
+function contentTypeForWidgetAsset(path: string): string {
+  if (path.endsWith(".js")) return "text/javascript; charset=utf-8";
+  if (path.endsWith(".css")) return "text/css; charset=utf-8";
+  if (path.endsWith(".map")) return "application/json; charset=utf-8";
+  if (path.endsWith(".svg")) return "image/svg+xml";
+  return "application/octet-stream";
+}
+
+function requestIdFor(req: IncomingMessage): string {
+  const header = req.headers["x-request-id"];
+  const raw = Array.isArray(header) ? header[0] : header;
+  const normalized = raw?.trim().replace(/[^a-zA-Z0-9_.:-]/g, "").slice(0, 96);
+  return normalized || randomUUID();
+}
+
+function clientAddressFor(req: IncomingMessage): string {
+  const forwardedFor = req.headers["x-forwarded-for"];
+  const raw = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+  return raw?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
+}
+
+function logBackendEvent(event: string, fields: Record<string, unknown> = {}): void {
+  console.log(
+    JSON.stringify({
+      ts: new Date().toISOString(),
+      level: "info",
+      event,
+      ...fields,
+    }),
+  );
+}
+
+function consumeRateLimit(key: string, limit: number, now = Date.now()): boolean {
+  const current = rateLimitBuckets.get(key);
+  if (!current || current.resetAtMs <= now) {
+    rateLimitBuckets.set(key, { resetAtMs: now + RATE_LIMIT_WINDOW_MS, count: 1 });
+    return true;
+  }
+
+  if (current.count >= limit) return false;
+  current.count += 1;
+  return true;
+}
+
+function enforceRateLimit(
+  req: IncomingMessage,
+  res: ServerResponse,
+  scope: string,
+  limit: number,
+  discriminator = "",
+): boolean {
+  const requestId = String(res.getHeader("x-request-id") ?? "");
+  const key = `${scope}:${clientAddressFor(req)}:${discriminator}`;
+  if (consumeRateLimit(key, limit)) return true;
+
+  logBackendEvent("rate_limit_denied", { requestId, scope, discriminator });
+  jsonResponse(res, 429, {
+    ok: false,
+    error: "Too many requests. Try again shortly.",
+  });
+  return false;
 }
 
 function textResponse(res: ServerResponse, status: number, body: string): void {
@@ -1271,6 +1541,71 @@ function geoStatusPayload(): unknown {
   };
 }
 
+async function readyPayload(): Promise<unknown> {
+  const scenePacketStatus = await scenePacketMemory.status();
+  const geoStatus = geoStatusPayload() as {
+    mode: string;
+    googleMapsConfigured: boolean;
+    liveApiCallsEnabled: boolean;
+  };
+  const webDistPresent = existsSync(WEB_DIST);
+  const redisReady =
+    scenePacketStatus.cacheBackend === "memory" || scenePacketStatus.redisReachable === true;
+  const hostedClawdDatabaseReachable = await hostedClawdDatabaseReachablePayload();
+  const hostedClawdDatabaseReady =
+    !hostedClawdFlags.persistenceEnabled || hostedClawdDatabaseReachable === true;
+  const ok =
+    webDistPresent &&
+    redisReady &&
+    hostedClawdDatabaseReady &&
+    scenePacketRuntimeConfig.blockers.length === 0;
+
+  return {
+    ok,
+    version: SERVER_VERSION,
+    serverUp: true,
+    webDistPresent,
+    scenePacketCache: {
+      cacheBackend: scenePacketStatus.cacheBackend,
+      redisConfigured: scenePacketStatus.redisConfigured,
+      redisReachable: scenePacketStatus.redisReachable,
+      entryCount: scenePacketStatus.entryCount,
+      hitRate: scenePacketStatus.hitRate,
+      queueDepth: scenePacketStatus.queueDepth,
+      oldestQueuedMs: scenePacketStatus.oldestQueuedMs,
+    },
+    hostedClawd: {
+      persistenceEnabled: hostedClawdFlags.persistenceEnabled,
+      databaseConfigured: Boolean(hostedClawdDatabaseUrl),
+      databaseReachable: hostedClawdDatabaseReachable,
+      authConfigured: Boolean(hostedClawdAuthenticator),
+      moneyEnabled: hostedClawdFlags.moneyEnabled,
+      stripeConfigured: Boolean(hostedClawdBillingConfig),
+    },
+    providerLookup: {
+      mode: geoStatus.mode,
+      googleMapsConfigured: geoStatus.googleMapsConfigured,
+      liveApiCallsEnabled: geoStatus.liveApiCallsEnabled,
+    },
+    configBlockerCount: scenePacketRuntimeConfig.blockers.length,
+    configBlockers: scenePacketRuntimeConfig.blockers,
+  };
+}
+
+async function hostedClawdDatabaseReachablePayload(): Promise<boolean | null> {
+  if (!hostedClawdFlags.persistenceEnabled) return null;
+  if (!hostedClawdPool) return false;
+  try {
+    await hostedClawdPool.query("SELECT 1");
+    return true;
+  } catch (error) {
+    logBackendEvent("hosted_clawd_database_ready_failed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
 function handleWorldRoute(url: URL, res: ServerResponse): boolean {
   if (url.pathname === "/api/world/us/coverage") {
     jsonResponse(res, 200, worldService.listCoverageDirectory());
@@ -1331,7 +1666,8 @@ function handleWorldRoute(url: URL, res: ServerResponse): boolean {
   return false;
 }
 
-async function handleWorldLookup(url: URL, res: ServerResponse): Promise<void> {
+async function handleWorldLookup(req: IncomingMessage, url: URL, res: ServerResponse): Promise<void> {
+  if (!enforceRateLimit(req, res, "world_lookup", WORLD_LOOKUP_RATE_LIMIT)) return;
   const query = url.searchParams.get("query")?.trim();
   if (!query) {
     jsonResponse(res, 400, { ok: false, error: "Missing query." });
@@ -1345,7 +1681,7 @@ async function handleWorldLookup(url: URL, res: ServerResponse): Promise<void> {
   }
 
   try {
-    jsonResponse(res, 200, await performWorldLookup(query, radiusMeters));
+    jsonResponse(res, 200, await performWorldLookup(query, radiusMeters, String(res.getHeader("x-request-id") ?? "")));
   } catch (error) {
     jsonResponse(res, 500, {
       ok: false,
@@ -1354,7 +1690,8 @@ async function handleWorldLookup(url: URL, res: ServerResponse): Promise<void> {
   }
 }
 
-async function handleGeoGeocode(url: URL, res: ServerResponse): Promise<void> {
+async function handleGeoGeocode(req: IncomingMessage, url: URL, res: ServerResponse): Promise<void> {
+  if (!enforceRateLimit(req, res, "geo_geocode", WORLD_LOOKUP_RATE_LIMIT)) return;
   const query = url.searchParams.get("query")?.trim();
   if (!query) {
     jsonResponse(res, 400, { ok: false, error: "Missing query." });
@@ -1381,14 +1718,30 @@ function parseRadiusMeters(value: string | null): number | undefined {
   return radius;
 }
 
-async function performWorldLookup(query: string, radiusMeters: number): Promise<WorldPlaceLookupResponse> {
+async function performWorldLookup(
+  query: string,
+  radiusMeters: number,
+  requestId?: string,
+): Promise<WorldPlaceLookupResponse> {
   const config = readGeoAdapterConfig(process.env);
   const cacheKey = worldLookupCacheKey(query, radiusMeters, config.mode);
   const cached = getWorldLookupCache(cacheKey);
   if (cached) {
+    logBackendEvent("provider_lookup_cache_hit", {
+      requestId,
+      mode: config.mode,
+      radiusMeters,
+      queryLength: query.length,
+    });
     return withLookupRuntime(cached.response, true, cached.expiresAtMs);
   }
 
+  logBackendEvent("provider_lookup_cache_miss", {
+    requestId,
+    mode: config.mode,
+    radiusMeters,
+    queryLength: query.length,
+  });
   const adapter = createGeoDataAdapter(config);
   const resolvedLocation = await adapter.geocode({ query });
   const places = await adapter.nearbySearch({
@@ -1565,10 +1918,14 @@ function hostedClawdProtectedResourceUrl(req: IncomingMessage): string {
   return `${protocol}://${host}${MCP_PATH}`;
 }
 
-function setHostedClawdAuthChallenge(req: IncomingMessage, res: ServerResponse): void {
+function setHostedClawdAuthChallenge(
+  req: IncomingMessage,
+  res: ServerResponse,
+  requiredScope: string = HOSTED_CLAWD_WRITE_SCOPE,
+): void {
   res.setHeader(
     "WWW-Authenticate",
-    buildAuthChallengeHeader(hostedClawdResourceMetadataUrl(req), HOSTED_CLAWD_WRITE_SCOPE),
+    buildAuthChallengeHeader(hostedClawdResourceMetadataUrl(req), requiredScope),
   );
 }
 
@@ -1585,6 +1942,10 @@ async function verifiedHostedClawdAuth(
 
   const verdict = await hostedClawdAuthenticator.verifyAuthorizationHeader(header);
   if (!verdict.ok) {
+    logBackendEvent("hosted_clawd_auth_denied", {
+      requestId: String(res.getHeader("x-request-id") ?? ""),
+      reason: verdict.reason,
+    });
     setHostedClawdAuthChallenge(req, res);
     jsonResponse(res, 401, { ok: false, reason: verdict.reason, error: verdict.detail });
     return { ok: false };
@@ -1599,6 +1960,7 @@ async function handleHostedClawdAction(
   operation: "create_or_attach_clawd" | "promote_session" | "save_campaign_artifact" | "start_checkout" | "open_billing_portal",
 ): Promise<void> {
   try {
+    const requestId = String(res.getHeader("x-request-id") ?? "");
     const verified = await verifiedHostedClawdAuth(req, res);
     if (!verified.ok) return;
 
@@ -1612,17 +1974,34 @@ async function handleHostedClawdAction(
           : operation === "save_campaign_artifact"
             ? await hostedClawdService.saveCampaignArtifact(input, verified.auth)
             : operation === "start_checkout"
-              ? await hostedClawdService.startCheckout(input)
-              : await hostedClawdService.openBillingPortal(input);
+              ? await hostedClawdService.startCheckout(input, verified.auth)
+              : await hostedClawdService.openBillingPortal(input, verified.auth);
+    logBackendEvent("hosted_clawd_write_result", {
+      requestId,
+      operation,
+      reason: result.reason,
+      status: result.status,
+      persistenceEnabled: hostedClawdFlags.persistenceEnabled,
+      moneyEnabled: hostedClawdFlags.moneyEnabled,
+    });
 
     if (result.reason === "auth_required") {
+      logBackendEvent("hosted_clawd_auth_denied", { requestId, operation, reason: result.reason });
       setHostedClawdAuthChallenge(req, res);
       jsonResponse(res, 401, { ok: false, result });
       return;
     }
 
     if (result.reason === "write_scope_required") {
+      logBackendEvent("hosted_clawd_auth_denied", { requestId, operation, reason: result.reason });
       setHostedClawdAuthChallenge(req, res);
+      jsonResponse(res, 403, { ok: false, result });
+      return;
+    }
+
+    if (result.reason === "read_scope_required") {
+      logBackendEvent("hosted_clawd_auth_denied", { requestId, operation, reason: result.reason });
+      setHostedClawdAuthChallenge(req, res, HOSTED_CLAWD_READ_SCOPE);
       jsonResponse(res, 403, { ok: false, result });
       return;
     }
@@ -1633,6 +2012,107 @@ async function handleHostedClawdAction(
       ok: false,
       error: error instanceof Error ? error.message : "Hosted Clawd action failed.",
     });
+  }
+}
+
+async function handleHostedClawdSavedState(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+): Promise<void> {
+  try {
+    const input = hostedClawdInputFromUrl(url);
+    if (hostedClawdAuthenticator && !req.headers.authorization) {
+      const context = hostedClawdService.getContext(input);
+      const result = {
+        type: "hostedClawdAction" as const,
+        operation: "read_saved_state" as const,
+        status: "blocked" as const,
+        reason: "auth_required" as const,
+        screenState: context.screenState,
+        message: "Connect ChatGPT to load saved items.",
+        nextAction: "create_hosted_clawd" as const,
+        context,
+      };
+      setHostedClawdAuthChallenge(req, res, HOSTED_CLAWD_READ_SCOPE);
+      jsonResponse(res, 401, { ok: false, result, hostedClawd: context });
+      return;
+    }
+
+    const verified = await verifiedHostedClawdAuth(req, res);
+    if (!verified.ok) return;
+
+    const result = await hostedClawdService.readSavedState(input, verified.auth);
+    if (result.reason === "auth_required") {
+      setHostedClawdAuthChallenge(req, res, HOSTED_CLAWD_READ_SCOPE);
+      jsonResponse(res, 401, { ok: false, result });
+      return;
+    }
+
+    if (result.reason === "read_scope_required") {
+      setHostedClawdAuthChallenge(req, res, HOSTED_CLAWD_READ_SCOPE);
+      jsonResponse(res, 403, { ok: false, result });
+      return;
+    }
+
+    jsonResponse(res, 200, {
+      ok: true,
+      result,
+      hostedClawd: result.context,
+      savedState: result.savedState,
+    });
+  } catch (error) {
+    jsonResponse(res, 400, {
+      ok: false,
+      error: error instanceof Error ? error.message : "Hosted Clawd saved-state read failed.",
+    });
+  }
+}
+
+async function handleHostedClawdStripeWebhookRoute(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const requestId = String(res.getHeader("x-request-id") ?? "");
+  if (!hostedClawdRepository || !hostedClawdBillingConfig) {
+    logBackendEvent("stripe_webhook_decision", {
+      requestId,
+      decision: "blocked",
+      reason: "billing_not_configured",
+    });
+    jsonResponse(res, 503, {
+      ok: false,
+      error: "Hosted Clawd Stripe billing is not configured on this deployment.",
+    });
+    return;
+  }
+
+  try {
+    const rawBody = await readRawBody(req);
+    const signature = Array.isArray(req.headers["stripe-signature"])
+      ? req.headers["stripe-signature"][0]
+      : req.headers["stripe-signature"];
+    const event = constructHostedClawdStripeEvent({
+      stripe: createStripeHostedClawdClient(hostedClawdBillingConfig),
+      rawBody,
+      signature,
+      webhookSecret: hostedClawdBillingConfig.webhookSecret,
+    });
+    const result = await handleHostedClawdStripeWebhook(hostedClawdRepository, event);
+    logBackendEvent("stripe_webhook_decision", {
+      requestId,
+      decision: "accepted",
+      eventType: event.type,
+      reused: result.reused,
+      subscriptionStatus: result.subscriptionStatus ?? null,
+    });
+    jsonResponse(res, 200, { ok: true, result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Stripe webhook failed.";
+    const signatureFailure = /signature|stripe-signature|webhook payload|constructEvent/i.test(message);
+    logBackendEvent("stripe_webhook_decision", {
+      requestId,
+      decision: "blocked",
+      reason: signatureFailure ? "signature_or_payload_failed" : "handler_failed",
+    });
+    jsonResponse(res, signatureFailure ? 400 : 500, { ok: false, error: message });
   }
 }
 
@@ -1656,6 +2136,24 @@ async function readJsonObjectBody(req: IncomingMessage): Promise<Record<string, 
     throw new Error("Expected a JSON object body.");
   }
   return parsed as Record<string, unknown>;
+}
+
+async function readRawBody(req: IncomingMessage): Promise<Buffer> {
+  return await new Promise<Buffer>((resolveBody, rejectBody) => {
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    req.on("data", (chunk: Buffer | string) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      totalBytes += buffer.length;
+      if (totalBytes > 256_000) {
+        rejectBody(new Error("Request body is too large."));
+        return;
+      }
+      chunks.push(buffer);
+    });
+    req.on("end", () => resolveBody(Buffer.concat(chunks)));
+    req.on("error", rejectBody);
+  });
 }
 
 function hostedClawdInputFromObject(value: Record<string, unknown>): HostedClawdContextInput & {
@@ -1743,7 +2241,7 @@ function createAtlasServer(): McpServer {
             ...(process.env.WIDGET_DOMAIN ? { domain: process.env.WIDGET_DOMAIN } : {}),
             csp: {
               connectDomains: [],
-              resourceDomains: [],
+              resourceDomains: widgetResourceDomains(),
             },
           },
           "openai/widgetDescription": "Shows the Atlas Riverside voxel city map with places, stickers, notes, and temporary Alpha planning previews.",
@@ -1802,9 +2300,13 @@ function createAtlasServer(): McpServer {
     {
       title: "Select county",
       description:
-        "Use this when the user asks to open Atlas or switch to a California county. Riverside returns the playable Eastvale voxel city map in the widget; any other county returns its honest browse-only coverage state. Not for refreshing an already-open map — use render_voxel_county for that.",
+        "Use this when the user asks to open Atlas or switch to a US county. Riverside returns the playable Eastvale voxel city map in the widget; any other indexed county returns its honest browse-only coverage state. Not for refreshing an already-open map — use render_voxel_county for that.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca and shells indexed California counties."),
+        countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca and browse-only shells for indexed US counties."),
+        includeGeneratedDraft: z
+          .boolean()
+          .optional()
+          .describe("When true for an indexed shell county, attach a non-playable generated draft scene packet in widget-only _meta."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -1819,11 +2321,17 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "Riverside County ready.",
       },
     },
-    async ({ countySlug }) => {
+    async ({ countySlug, includeGeneratedDraft }) => {
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const coverageShellScene = coverageShellSceneForSummary(coverage);
-        const scenePacket = scenePacketStatusForCoverage(coverage);
+        const scenePacket = await scenePacketStatusForCoverage(coverage);
+        const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
+        const generatedDraftCopy = generatedDraft
+          ? generatedDraft.generatedDraftScene
+            ? " A generated draft packet is attached for the widget only: session-only, non-playable, provider-free, and not local truth."
+            : " The generated draft is preparing; the widget can keep the county shell while the packet cache warms."
+          : "";
         return {
           structuredContent: coverage,
           _meta: {
@@ -1834,17 +2342,18 @@ function createAtlasServer(): McpServer {
               countyLabel: coverage.countyLabel,
             }),
             ...(coverageShellScene ? { coverageShellScene } : {}),
+            ...(generatedDraft ?? {}),
           },
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties.`,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties.${generatedDraftCopy}`,
             },
           ],
         };
       }
 
-      const { scene, scenePacket } = getOrCreatePlayableScenePacket(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG, "eastvale");
+      const { scene, scenePacket } = await getOrCreatePlayableScenePacket(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG, "eastvale");
       return {
         structuredContent: voxelSceneStructuredContent(scene),
         _meta: {
@@ -1913,8 +2422,12 @@ function createAtlasServer(): McpServer {
       description:
         "Use this when the user asks to refresh, re-render, or focus the county map that is already open. Renders the Riverside/Eastvale playable scene in the widget, or honest coverage state for non-playable counties. To open Atlas or switch counties, use select_county instead.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca; other slugs return honest coverage shells."),
+        countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca; other indexed US slugs return honest coverage shells."),
         selectedNodeId: z.string().optional().describe("Atlas node id to focus, such as eastvale."),
+        includeGeneratedDraft: z
+          .boolean()
+          .optional()
+          .describe("When true for an indexed shell county, attach a non-playable generated draft scene packet in widget-only _meta."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -1929,11 +2442,17 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "City map ready.",
       },
     },
-    async ({ countySlug, selectedNodeId }) => {
+    async ({ countySlug, selectedNodeId, includeGeneratedDraft }) => {
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const coverageShellScene = coverageShellSceneForSummary(coverage);
-        const scenePacket = scenePacketStatusForCoverage(coverage);
+        const scenePacket = await scenePacketStatusForCoverage(coverage);
+        const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
+        const generatedDraftCopy = generatedDraft
+          ? generatedDraft.generatedDraftScene
+            ? " A generated draft packet is attached for the widget only: session-only, non-playable, provider-free, and not local truth."
+            : " The generated draft is preparing; the widget can keep the county shell while the packet cache warms."
+          : "";
         return {
           structuredContent: coverage,
           _meta: {
@@ -1944,17 +2463,18 @@ function createAtlasServer(): McpServer {
               countyLabel: coverage.countyLabel,
             }),
             ...(coverageShellScene ? { coverageShellScene } : {}),
+            ...(generatedDraft ?? {}),
           },
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is browse-only in Atlas right now. Atlas only draws a local world after a curated playable district exists. Open Riverside/Eastvale for the playable map.`,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is browse-only in Atlas right now. Atlas only draws a local world after a curated playable district exists. Open Riverside/Eastvale for the playable map.${generatedDraftCopy}`,
             },
           ],
         };
       }
 
-      const { scene, scenePacket } = getOrCreatePlayableScenePacket(
+      const { scene, scenePacket } = await getOrCreatePlayableScenePacket(
         countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
         selectedNodeId ?? "eastvale",
       );
@@ -2131,7 +2651,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `${options.hosted.label} is planned for Beta. Alpha supports temporary previews only; it does not save campaigns, track evidence, or start checkout.`,
+            text: `${options.hosted.label}: ${options.nextStep}`,
           },
         ],
       };
@@ -2172,6 +2692,14 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
 }
 
 const httpServer = createServer(async (req, res) => {
+  const requestId = requestIdFor(req);
+  res.setHeader("x-request-id", requestId);
+  logBackendEvent("http_request_started", {
+    requestId,
+    method: req.method,
+    path: req.url?.split("?")[0] ?? "",
+  });
+
   if (!req.url) {
     textResponse(res, 400, "Missing URL");
     return;
@@ -2189,6 +2717,13 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/ready" && req.method === "GET") {
+    const payload = await readyPayload();
+    const status = typeof payload === "object" && payload !== null && "ok" in payload && payload.ok === true ? 200 : 503;
+    jsonResponse(res, status, payload);
+    return;
+  }
+
   if (url.pathname === "/favicon.ico" && req.method === "GET") {
     res.writeHead(204);
     res.end();
@@ -2201,12 +2736,12 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/geo/geocode" && req.method === "GET") {
-    await handleGeoGeocode(url, res);
+    await handleGeoGeocode(req, url, res);
     return;
   }
 
   if (url.pathname === "/api/world/lookup" && req.method === "GET") {
-    await handleWorldLookup(url, res);
+    await handleWorldLookup(req, url, res);
     return;
   }
 
@@ -2214,7 +2749,7 @@ const httpServer = createServer(async (req, res) => {
     jsonResponse(res, 200, {
       ok: true,
       update: SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
-      cache: scenePacketMemory.status(),
+      cache: await scenePacketMemory.status(),
     });
     return;
   }
@@ -2246,27 +2781,42 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/api/hosted-clawd/saved" && req.method === "GET") {
+    await handleHostedClawdSavedState(req, res, url);
+    return;
+  }
+
+  if (url.pathname === "/api/stripe/webhook" && req.method === "POST") {
+    await handleHostedClawdStripeWebhookRoute(req, res);
+    return;
+  }
+
   if (url.pathname === "/api/hosted-clawd/create-or-attach" && req.method === "POST") {
+    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "create_or_attach_clawd")) return;
     await handleHostedClawdAction(req, res, "create_or_attach_clawd");
     return;
   }
 
   if (url.pathname === "/api/hosted-clawd/promote-session" && req.method === "POST") {
+    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "promote_session")) return;
     await handleHostedClawdAction(req, res, "promote_session");
     return;
   }
 
   if (url.pathname === "/api/hosted-clawd/saved-artifacts/campaigns" && req.method === "POST") {
+    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "save_campaign_artifact")) return;
     await handleHostedClawdAction(req, res, "save_campaign_artifact");
     return;
   }
 
   if (url.pathname === "/api/hosted-clawd/checkout" && req.method === "POST") {
+    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "start_checkout")) return;
     await handleHostedClawdAction(req, res, "start_checkout");
     return;
   }
 
   if (url.pathname === "/api/hosted-clawd/billing-portal" && req.method === "POST") {
+    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "open_billing_portal")) return;
     await handleHostedClawdAction(req, res, "open_billing_portal");
     return;
   }
@@ -2292,6 +2842,11 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/terms" && req.method === "GET") {
     htmlResponse(res, 200, termsPageHtml());
+    return;
+  }
+
+  if (url.pathname.startsWith("/widget/") && req.method === "GET") {
+    sendWidgetAssetResponse(res, url.pathname.slice("/widget/".length));
     return;
   }
 

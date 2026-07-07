@@ -8,8 +8,16 @@ export {
 } from "./gates.js";
 export { HostedClawdService, readHostedClawdFeatureFlags } from "./service.js";
 export {
+  constructHostedClawdStripeEvent,
+  createStripeHostedClawdBillingPort,
+  createStripeHostedClawdClient,
+  handleHostedClawdStripeWebhook,
+  readHostedClawdBillingConfig,
+} from "./billing.js";
+export {
   buildAuthChallengeHeader,
   buildOAuthProtectedResourceMetadata,
+  hasReadScope,
   hasWriteScope,
   HOSTED_CLAWD_READ_SCOPE,
   HOSTED_CLAWD_WRITE_SCOPE,
@@ -27,6 +35,7 @@ export {
   isSessionOnlyId,
 } from "./repository.js";
 export type { HostedClawdRepository } from "./repository.js";
+export type { HostedClawdBillingConfig, HostedClawdStripeWebhookResult } from "./billing.js";
 export { createHostedClawdPool, createPostgresHostedClawdRepository } from "./postgres.js";
 export { runHostedClawdMigrations, HOSTED_CLAWD_MIGRATIONS_DIR } from "./migrations.js";
 export type {
@@ -39,6 +48,7 @@ export type {
   HostedClawdPersistencePort,
   HostedClawdPersistResult,
   HostedClawdSavedRecord,
+  HostedClawdSavedStateSummary,
   HostedClawdScreenState,
   HostedClawdTrigger,
 } from "./types.js";

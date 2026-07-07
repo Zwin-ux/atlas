@@ -10,6 +10,15 @@ const SETUP_UI_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port";
 const STORAGE_AUTH_UPDATE = "postalpha-0.59h-hosted-clawd-storage-auth-decision";
 const PERSISTENCE_FOUNDATION_UPDATE = "postalpha-0.60h-hosted-clawd-persistence-foundation";
 const SAVE_UX_UPDATE = "postalpha-0.61h-hosted-clawd-invite-beta-save-ux";
+const STRIPE_BILLING_UPDATE = "postalpha-0.62h-hosted-clawd-stripe-test-billing";
+const PROTECTED_TOOL_GATE_UPDATE = "postalpha-0.63h-hosted-clawd-protected-tool-gate";
+const SAVED_READ_SURFACE_UPDATE = "postalpha-0.64h-hosted-clawd-saved-read-surface";
+const BROWSER_PROOF_UPDATE = "postalpha-0.65h-hosted-clawd-browser-proof";
+const MOBILE_HARDENING_UPDATE = "postalpha-0.66h-mobile-interaction-hardening";
+const PRODUCT_FEEL_UPDATE = "postalpha-0.67h-product-feel-cleanup";
+const NATIONAL_GENERATION_UPDATE = "postalpha-0.70h-deterministic-generated-district-specs";
+const SCENE_PACKET_UPDATE = "postalpha-0.71h-scene-packet-service-boundary";
+const BACKEND_SPINE_UPDATE = "postalpha-0.72b-redis-scene-packet-cache-job-spine";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
@@ -17,6 +26,15 @@ const SETUP_UI_INPUT_UPDATE = "postalpha-0.58i-integration-canonicalization-rele
 const STORAGE_AUTH_INPUT_UPDATE = "postalpha-0.58j-hosted-clawd-setup-ui-port+human-reopened-db-auth-2026-07-05";
 const PERSISTENCE_FOUNDATION_INPUT_UPDATE = "postalpha-0.59h-hosted-clawd-storage-auth-decision+claude-fable-5";
 const SAVE_UX_INPUT_UPDATE = PERSISTENCE_FOUNDATION_UPDATE;
+const STRIPE_BILLING_INPUT_UPDATE = SAVE_UX_UPDATE;
+const PROTECTED_TOOL_GATE_INPUT_UPDATE = STRIPE_BILLING_UPDATE;
+const SAVED_READ_SURFACE_INPUT_UPDATE = PROTECTED_TOOL_GATE_UPDATE;
+const BROWSER_PROOF_INPUT_UPDATE = SAVED_READ_SURFACE_UPDATE;
+const MOBILE_HARDENING_INPUT_UPDATE = BROWSER_PROOF_UPDATE;
+const PRODUCT_FEEL_INPUT_UPDATE = MOBILE_HARDENING_UPDATE;
+const NATIONAL_GENERATION_INPUT_UPDATE = "postalpha-0.69h-us-county-index-nationwide-shells";
+const SCENE_PACKET_INPUT_UPDATE = NATIONAL_GENERATION_UPDATE;
+const BACKEND_SPINE_INPUT_UPDATE = SCENE_PACKET_UPDATE;
 const EXPECTED_SELECTOR_NEXT_QUEST = "0.44E Hidden Second-District Visual/Product Proof Packet";
 const OWNER_GATE_NEXT_QUEST = "0.46E Owner Gate Review Packet";
 const OWNER_GATE_SELECTED_AXIS = "owner_gate_review";
@@ -32,6 +50,24 @@ const PERSISTENCE_FOUNDATION_NEXT_QUEST = "0.61H Invite Beta Save UX";
 const PERSISTENCE_FOUNDATION_SELECTED_AXIS = "hosted_clawd_persistence_foundation";
 const SAVE_UX_NEXT_QUEST = "0.62H Stripe Test Billing";
 const SAVE_UX_SELECTED_AXIS = "hosted_clawd_invite_beta_save_ux";
+const STRIPE_BILLING_NEXT_QUEST = "0.63H Protected Hosted Clawd Tool Gate";
+const STRIPE_BILLING_SELECTED_AXIS = "hosted_clawd_stripe_test_billing";
+const PROTECTED_TOOL_GATE_NEXT_QUEST = "0.64H Saved Hosted Clawd Read Surface";
+const PROTECTED_TOOL_GATE_SELECTED_AXIS = "hosted_clawd_protected_tool_gate";
+const SAVED_READ_SURFACE_NEXT_QUEST = "0.65H Hosted Clawd Browser Proof";
+const SAVED_READ_SURFACE_SELECTED_AXIS = "hosted_clawd_saved_read_surface";
+const BROWSER_PROOF_NEXT_QUEST = "0.66H Mobile Interaction Hardening";
+const BROWSER_PROOF_SELECTED_AXIS = "hosted_clawd_browser_proof";
+const MOBILE_HARDENING_NEXT_QUEST = "0.67H Product Feel Cleanup";
+const MOBILE_HARDENING_SELECTED_AXIS = "mobile_interaction_hardening";
+const PRODUCT_FEEL_NEXT_QUEST = "0.68H National Generation Production Contract";
+const PRODUCT_FEEL_SELECTED_AXIS = "product_feel_cleanup";
+const NATIONAL_GENERATION_NEXT_QUEST = "0.71H Scene Packet Service Boundary / Railway Cache Plan";
+const NATIONAL_GENERATION_SELECTED_AXIS = "national_generation_generated_district_specs";
+const SCENE_PACKET_NEXT_QUEST = "0.72H Fable Generated Draft Visual Quality Gate";
+const SCENE_PACKET_SELECTED_AXIS = "scene_packet_service_boundary";
+const BACKEND_SPINE_NEXT_QUEST = "0.72H Fable Generated Draft Visual Quality Gate";
+const BACKEND_SPINE_SELECTED_AXIS = "backend_production_spine";
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -110,6 +146,24 @@ const result = {
       ? "postalpha-0.60h-persistence-foundation-source-of-truth-drift-check"
       : currentUpdate?.id === SAVE_UX_UPDATE
       ? "postalpha-0.61h-save-ux-source-of-truth-drift-check"
+      : currentUpdate?.id === STRIPE_BILLING_UPDATE
+      ? "postalpha-0.62h-stripe-test-billing-source-of-truth-drift-check"
+      : currentUpdate?.id === PROTECTED_TOOL_GATE_UPDATE
+      ? "postalpha-0.63h-protected-tool-gate-source-of-truth-drift-check"
+      : currentUpdate?.id === SAVED_READ_SURFACE_UPDATE
+      ? "postalpha-0.64h-saved-read-surface-source-of-truth-drift-check"
+      : currentUpdate?.id === BROWSER_PROOF_UPDATE
+      ? "postalpha-0.65h-browser-proof-source-of-truth-drift-check"
+      : currentUpdate?.id === MOBILE_HARDENING_UPDATE
+      ? "postalpha-0.66h-mobile-interaction-hardening-source-of-truth-drift-check"
+      : currentUpdate?.id === PRODUCT_FEEL_UPDATE
+      ? "postalpha-0.67h-product-feel-cleanup-source-of-truth-drift-check"
+      : currentUpdate?.id === NATIONAL_GENERATION_UPDATE
+      ? "postalpha-0.70h-generated-district-specs-source-of-truth-drift-check"
+      : currentUpdate?.id === SCENE_PACKET_UPDATE
+      ? "postalpha-0.71h-scene-packet-service-boundary-source-of-truth-drift-check"
+      : currentUpdate?.id === BACKEND_SPINE_UPDATE
+      ? "postalpha-0.72b-redis-scene-packet-backend-spine-source-of-truth-drift-check"
       : currentUpdate?.id === INTEGRATION_UPDATE
       ? "postalpha-0.58i-integration-source-of-truth-drift-check"
       : "postalpha-0.45e-source-of-truth-drift-check",
@@ -179,7 +233,43 @@ function checkCurrentUpdate(update) {
     checkSaveUxCurrentUpdate(update);
     return;
   }
-  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, ${SETUP_UI_UPDATE}, ${STORAGE_AUTH_UPDATE}, ${PERSISTENCE_FOUNDATION_UPDATE}, or ${SAVE_UX_UPDATE}; got ${update.id ?? "missing"}.`);
+  if (update.id === STRIPE_BILLING_UPDATE) {
+    checkStripeBillingCurrentUpdate(update);
+    return;
+  }
+  if (update.id === PROTECTED_TOOL_GATE_UPDATE) {
+    checkProtectedToolGateCurrentUpdate(update);
+    return;
+  }
+  if (update.id === SAVED_READ_SURFACE_UPDATE) {
+    checkSavedReadSurfaceCurrentUpdate(update);
+    return;
+  }
+  if (update.id === BROWSER_PROOF_UPDATE) {
+    checkBrowserProofCurrentUpdate(update);
+    return;
+  }
+  if (update.id === MOBILE_HARDENING_UPDATE) {
+    checkMobileHardeningCurrentUpdate(update);
+    return;
+  }
+  if (update.id === PRODUCT_FEEL_UPDATE) {
+    checkProductFeelCurrentUpdate(update);
+    return;
+  }
+  if (update.id === NATIONAL_GENERATION_UPDATE) {
+    checkNationalGenerationCurrentUpdate(update);
+    return;
+  }
+  if (update.id === SCENE_PACKET_UPDATE) {
+    checkScenePacketCurrentUpdate(update);
+    return;
+  }
+  if (update.id === BACKEND_SPINE_UPDATE) {
+    checkBackendSpineCurrentUpdate(update);
+    return;
+  }
+  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, ${SETUP_UI_UPDATE}, ${STORAGE_AUTH_UPDATE}, ${PERSISTENCE_FOUNDATION_UPDATE}, ${SAVE_UX_UPDATE}, ${STRIPE_BILLING_UPDATE}, ${PROTECTED_TOOL_GATE_UPDATE}, ${SAVED_READ_SURFACE_UPDATE}, ${BROWSER_PROOF_UPDATE}, ${MOBILE_HARDENING_UPDATE}, ${PRODUCT_FEEL_UPDATE}, ${NATIONAL_GENERATION_UPDATE}, ${SCENE_PACKET_UPDATE}, or ${BACKEND_SPINE_UPDATE}; got ${update.id ?? "missing"}.`);
 }
 
 function checkOwnerGateCurrentUpdate(update) {
@@ -438,6 +528,583 @@ function checkSaveUxCurrentUpdate(update) {
   }
   if (scope?.stripeDepsAdded !== 0 || scope?.stripeTablesAdded !== 0 || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false) {
     blockers.push("0.61H must record no Stripe deps/tables, no public Anaheim promotion, and no provider geometry.");
+  }
+}
+
+function checkStripeBillingCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== STRIPE_BILLING_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${STRIPE_BILLING_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== STRIPE_BILLING_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${STRIPE_BILLING_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== STRIPE_BILLING_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${STRIPE_BILLING_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "STRIPE_TEST_BILLING_WEBHOOK_GATED") {
+    blockers.push(`artifacts/current-update.json decision must be STRIPE_TEST_BILLING_WEBHOOK_GATED; got ${update.decision ?? "missing"}.`);
+  }
+  if (!update.verification?.stripeBillingGuard || !update.verification?.billingTests || !update.verification?.stripeBillingSplitGuard) {
+    blockers.push("artifacts/current-update.json must record the 0.62H Stripe billing guard, billing tests, and split guard.");
+  }
+  const billing = update.metricResult?.hostedClawdStripeTestBilling;
+  const scope = update.metricResult?.scope;
+  if (billing?.confirmationSource !== "stripe_webhook" || billing?.returnUrlGrantsAccess !== false) {
+    blockers.push("0.62H must record webhook-only confirmation and returnUrlGrantsAccess false.");
+  }
+  if (billing?.publicToolCount !== 7 || billing?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.62H must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (scope?.stripeDepsAdded !== 1 || scope?.stripeTablesAdded !== 2 || scope?.liveCheckout !== true || scope?.protectedWritesOnly !== true) {
+    blockers.push("0.62H must record one Stripe dep, two Stripe tables, test Checkout enabled, and protected writes only.");
+  }
+  if (scope?.publicPaidClaim !== false || scope?.publicAnaheimPromotion !== false || scope?.providerGeometry !== false || scope?.rendererGeometryChanges !== false) {
+    blockers.push("0.62H must record no public paid claim, no public Anaheim/Ontario, no provider geometry, and no renderer geometry.");
+  }
+}
+
+function checkProtectedToolGateCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== PROTECTED_TOOL_GATE_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${PROTECTED_TOOL_GATE_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== PROTECTED_TOOL_GATE_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${PROTECTED_TOOL_GATE_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== PROTECTED_TOOL_GATE_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${PROTECTED_TOOL_GATE_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION") {
+    blockers.push(`artifacts/current-update.json decision must be PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION; got ${update.decision ?? "missing"}.`);
+  }
+  if (
+    !update.verification?.protectedToolGateGuard ||
+    !update.verification?.protectedToolGateTests ||
+    !update.verification?.protectedToolGateSplitGuard
+  ) {
+    blockers.push("artifacts/current-update.json must record the 0.63H protected tool gate guard, tests, and split guard.");
+  }
+  const gate = update.metricResult?.hostedClawdProtectedToolGate;
+  const scope = update.metricResult?.scope;
+  if (gate?.subscriptionTruth !== "repository_webhook_state" || gate?.clientSubscriptionStatusTrusted !== false) {
+    blockers.push("0.63H must record repository webhook state as subscription truth and reject client subscription trust.");
+  }
+  if (gate?.publicToolCount !== 7 || gate?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.63H must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (
+    scope?.paidWriteRequiresActiveSubscription !== true ||
+    scope?.clientStatusTrusted !== false ||
+    scope?.protectedWritesOnly !== true
+  ) {
+    blockers.push("0.63H must record active-subscription paid-write gate, client status untrusted, and protected writes only.");
+  }
+  if (
+    scope?.publicPaidClaim !== false ||
+    scope?.publicAnaheimPromotion !== false ||
+    scope?.providerGeometry !== false ||
+    scope?.rendererGeometryChanges !== false
+  ) {
+    blockers.push("0.63H must record no public paid claim, no public Anaheim/Ontario, no provider geometry, and no renderer geometry.");
+  }
+}
+
+function checkSavedReadSurfaceCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== SAVED_READ_SURFACE_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${SAVED_READ_SURFACE_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== SAVED_READ_SURFACE_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${SAVED_READ_SURFACE_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== SAVED_READ_SURFACE_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${SAVED_READ_SURFACE_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS") {
+    blockers.push(`artifacts/current-update.json decision must be SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS; got ${update.decision ?? "missing"}.`);
+  }
+  if (
+    !update.verification?.savedReadSurfaceGuard ||
+    !update.verification?.savedReadSurfaceBrowser ||
+    !update.verification?.savedReadSurfaceTests ||
+    !update.verification?.savedReadSurfaceSplitGuard
+  ) {
+    blockers.push("artifacts/current-update.json must record the 0.64H saved read surface guard, browser guard, tests, and split guard.");
+  }
+  const savedRead = update.metricResult?.hostedClawdSavedReadSurface;
+  const scope = update.metricResult?.scope;
+  if (
+    savedRead?.ownerScopedReads !== true ||
+    savedRead?.readRequiresAuth !== true ||
+    savedRead?.refreshStatusReadOnly !== true ||
+    savedRead?.readRequiresActiveSubscription !== false ||
+    savedRead?.readsCreateRows !== false
+  ) {
+    blockers.push("0.64H must record owner-scoped auth reads, read-only refresh status, no active-subscription read requirement, and no row creation on read.");
+  }
+  if (savedRead?.stubAuditPath !== "docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md") {
+    blockers.push("0.64H must record the Hosted Clawd stub audit path.");
+  }
+  if (savedRead?.publicToolCount !== 7 || savedRead?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.64H must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (
+    scope?.readOnlySurface !== true ||
+    scope?.persistedWritesAdded !== false ||
+    scope?.readRequiresActiveSubscription !== false ||
+    scope?.uiSurfaceChanges !== true
+  ) {
+    blockers.push("0.64H must record one read-only UI surface with no new persisted write expansion.");
+  }
+  if (
+    scope?.publicPaidClaim !== false ||
+    scope?.publicAnaheimPromotion !== false ||
+    scope?.providerGeometry !== false ||
+    scope?.rendererGeometryChanges !== false
+  ) {
+    blockers.push("0.64H must record no public paid claim, no public Anaheim/Ontario, no provider geometry, and no renderer geometry.");
+  }
+}
+
+function checkBrowserProofCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== BROWSER_PROOF_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${BROWSER_PROOF_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== BROWSER_PROOF_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${BROWSER_PROOF_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== BROWSER_PROOF_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${BROWSER_PROOF_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN") {
+    blockers.push(`artifacts/current-update.json decision must be BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN; got ${update.decision ?? "missing"}.`);
+  }
+  if (!update.verification?.browserProofGuard || !update.verification?.browserProofSplitGuard || !update.verification?.starterTypecheck) {
+    blockers.push("artifacts/current-update.json must record the 0.65H browser proof guard, split guard, and starter typecheck.");
+  }
+  const proof = update.metricResult?.hostedClawdBrowserProof;
+  const scope = update.metricResult?.scope;
+  if (
+    proof?.browserAuthRequired !== true ||
+    proof?.httpStatus !== 401 ||
+    proof?.readScopeChallenge !== true ||
+    proof?.resourceMetadataChallenge !== true ||
+    proof?.savedShelfNotRendered !== true ||
+    proof?.widgetBearerTokenExposed !== false
+  ) {
+    blockers.push("0.65H must record missing-bearer saved reads as a 401 read-scope challenge with no saved shelf and no widget bearer token.");
+  }
+  if (
+    proof?.dialogSemantics !== true ||
+    proof?.statusLiveRegion !== true ||
+    proof?.primaryActionVisible !== true ||
+    proof?.touchTargets44 !== true ||
+    proof?.desktopNoOverflow !== true ||
+    proof?.mobile390NoOverflow !== true
+  ) {
+    blockers.push("0.65H must record dialog/status semantics, visible primary action, 44px touch targets, and no desktop/mobile overflow.");
+  }
+  if (proof?.publicToolCount !== 7 || proof?.newMcpTools !== 0 || scope?.newMcpTools !== 0) {
+    blockers.push("0.65H must keep the seven-tool public MCP surface and zero new MCP tools.");
+  }
+  if (
+    scope?.readOnlySurface !== true ||
+    scope?.persistedWritesAdded !== false ||
+    scope?.uiSurfaceChanges !== true ||
+    scope?.rendererGeometryChanges !== false
+  ) {
+    blockers.push("0.65H must record browser/UI proof only, with no persisted write or renderer geometry expansion.");
+  }
+  if (
+    scope?.publicPaidClaim !== false ||
+    scope?.publicAnaheimPromotion !== false ||
+    scope?.providerGeometry !== false
+  ) {
+    blockers.push("0.65H must record no public paid claim, no public Anaheim/Ontario, and no provider geometry.");
+  }
+  for (const path of [proof?.artifactPath, proof?.desktopScreenshot, proof?.mobileScreenshot]) {
+    if (!path || !existsSync(resolve(path))) {
+      blockers.push(`0.65H proof path is missing: ${path ?? "missing"}.`);
+    }
+  }
+}
+
+function checkMobileHardeningCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== MOBILE_HARDENING_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${MOBILE_HARDENING_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== MOBILE_HARDENING_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${MOBILE_HARDENING_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== MOBILE_HARDENING_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${MOBILE_HARDENING_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD") {
+    blockers.push(`artifacts/current-update.json decision must be RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD; got ${update.decision ?? "missing"}.`);
+  }
+  if (
+    !update.verification?.mobileInteractionHardening ||
+    !update.verification?.webBundleBudget ||
+    !update.verification?.previewHttp ||
+    !update.verification?.starterTypecheck ||
+    !update.verification?.mobileInteractionSplitGuard
+  ) {
+    blockers.push("artifacts/current-update.json must record the 0.66H mobile hardening guard, payload budget, preview HTTP guard, split guard, and starter typecheck.");
+  }
+
+  const proof = update.metricResult?.mobileInteractionHardening;
+  const scope = update.metricResult?.scope;
+  if (
+    proof?.desktopPanRebuildDelta !== 0 ||
+    proof?.mobilePanRebuildDelta !== 0 ||
+    proof?.touchTargets44 !== true ||
+    proof?.horizontalOverflow !== false ||
+    typeof proof?.previewHtmlBytes !== "number" ||
+    proof.previewHtmlBytes > 300_000 ||
+    typeof proof?.eagerJsBytes !== "number" ||
+    proof.eagerJsBytes > 400_000 ||
+    typeof proof?.deferredChunkCount !== "number" ||
+    proof.deferredChunkCount <= 0
+  ) {
+    blockers.push("0.66H must record zero pan rebuilds, 44px touch targets, no overflow, preview shell under 300KB, eager JS under 400KB, and at least one deferred chunk.");
+  }
+  if (
+    proof?.collapsedSheetMaxHeightPx !== 96 ||
+    typeof proof?.desktopCollapsedSheetHeightPx !== "number" ||
+    proof.desktopCollapsedSheetHeightPx > 96 ||
+    typeof proof?.mobileCollapsedSheetHeightPx !== "number" ||
+    proof.mobileCollapsedSheetHeightPx > 96 ||
+    proof?.expandedSheetMaxViewportShare !== 0.45
+  ) {
+    blockers.push("0.66H must record collapsed bottom sheet under 96px and expanded sheet capped at 45dvh.");
+  }
+  if (
+    scope?.newMcpTools !== 0 ||
+    scope?.retainedSceneGraph !== true ||
+    scope?.bottomSheetSaveChrome !== true ||
+    scope?.externalWidgetAssets !== true ||
+    scope?.pixiDeferred !== true ||
+    scope?.rendererGeometryChanges !== false
+  ) {
+    blockers.push("0.66H must record retained graph, bottom-sheet chrome, external widget assets, deferred Pixi, zero new tools, and no renderer geometry expansion.");
+  }
+  if (
+    scope?.dbMigrationsAdded !== 0 ||
+    scope?.authScopeAdded !== false ||
+    scope?.stripeScopeAdded !== false ||
+    scope?.publicPaidClaim !== false ||
+    scope?.publicAnaheimPromotion !== false ||
+    scope?.providerGeometry !== false
+  ) {
+    blockers.push("0.66H must record no DB/Auth/Stripe scope expansion, no public paid claim, no public Anaheim/Ontario, and no provider geometry.");
+  }
+  for (const path of [proof?.artifactPath, proof?.metricsPath, proof?.desktopScreenshot, proof?.mobileScreenshot]) {
+    if (!path || !existsSync(resolve(path))) {
+      blockers.push(`0.66H proof path is missing: ${path ?? "missing"}.`);
+    }
+  }
+}
+
+function checkProductFeelCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== PRODUCT_FEEL_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${PRODUCT_FEEL_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== PRODUCT_FEEL_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${PRODUCT_FEEL_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== PRODUCT_FEEL_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${PRODUCT_FEEL_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST") {
+    blockers.push(`artifacts/current-update.json decision must be GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST; got ${update.decision ?? "missing"}.`);
+  }
+  if (
+    !update.verification?.graphicsCleanup ||
+    !update.verification?.starterTypecheck ||
+    !update.verification?.starterBuild ||
+    !update.verification?.sourceOfTruthDrift ||
+    !update.verification?.productFeelSplitGuard
+  ) {
+    blockers.push("artifacts/current-update.json must record the 0.67H graphics cleanup guard, starter typecheck/build, source drift guard, and product-feel split guard.");
+  }
+
+  const proof = update.metricResult?.cityWorldGraphicsCleanup;
+  const scope = update.metricResult?.scope;
+  if (
+    proof?.desktopCanvasVisible !== true ||
+    proof?.mobileCanvasVisible !== true ||
+    proof?.desktopHorizontalOverflow !== false ||
+    proof?.mobileHorizontalOverflow !== false ||
+    proof?.consoleErrors !== 0 ||
+    proof?.mobileAmbientLabels !== 0 ||
+    proof?.desktopAmbientLabelCap !== 2 ||
+    proof?.selectedRingBaseAlpha !== 0.32
+  ) {
+    blockers.push("0.67H must record visible desktop/mobile map proof, no overflow/errors, zero mobile ambient labels, two desktop ambient labels, and quiet selected ring alpha.");
+  }
+  if (
+    proof?.fableRendererPass !== true ||
+    proof?.offFacadePins !== true ||
+    proof?.focalPropActorCalm !== true ||
+    proof?.commerceGymDetailDemoted !== true
+  ) {
+    blockers.push("0.67H must record the Fable renderer pass: off-facade pins, focal prop/actor calm, and commerce/gym detail demotion.");
+  }
+  if (
+    scope?.newMcpTools !== 0 ||
+    scope?.rendererVisualChanges !== true ||
+    scope?.rendererGeometryChanges !== false ||
+    scope?.dbMigrationsAdded !== 0 ||
+    scope?.authScopeAdded !== false ||
+    scope?.stripeScopeAdded !== false ||
+    scope?.publicPaidClaim !== false ||
+    scope?.publicAnaheimPromotion !== false ||
+    scope?.providerGeometry !== false
+  ) {
+    blockers.push("0.67H must record renderer visual cleanup only: zero new tools, no renderer geometry expansion, no DB/Auth/Stripe expansion, no public paid claim, no public Anaheim/Ontario, and no provider geometry.");
+  }
+  for (const path of [proof?.artifactPath, proof?.desktopScreenshot, proof?.mobileScreenshot]) {
+    if (!path || !existsSync(resolve(path))) {
+      blockers.push(`0.67H proof path is missing: ${path ?? "missing"}.`);
+    }
+  }
+}
+
+function checkNationalGenerationCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== NATIONAL_GENERATION_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${NATIONAL_GENERATION_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== NATIONAL_GENERATION_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${NATIONAL_GENERATION_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== NATIONAL_GENERATION_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${NATIONAL_GENERATION_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION") {
+    blockers.push(`artifacts/current-update.json decision must be DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION; got ${update.decision ?? "missing"}.`);
+  }
+  if (
+    !update.verification?.generatedDistrictCoreTests ||
+    !update.verification?.deterministicGeneratedDistricts ||
+    !update.verification?.starterTypecheck ||
+    !update.verification?.starterBuild ||
+    !update.verification?.sourceOfTruthDrift ||
+    !update.verification?.nationalGenerationSplitGuard
+  ) {
+    blockers.push("artifacts/current-update.json must record the 0.70H generated-district core tests, deterministic verifier, starter typecheck/build, source drift guard, and national split guard.");
+  }
+
+  const proof = update.metricResult?.generatedDistrictSpecs;
+  const scope = update.metricResult?.scope;
+  if (
+    proof?.currentProductionReady !== false ||
+    proof?.currentStage !== "P3_PROVIDER_NORMALIZED_LOCAL_ANCHORS" ||
+    proof?.currentIndexedStateCount !== 52 ||
+    proof?.currentIndexedCountyCount !== 3222 ||
+    proof?.currentShellCountyCount !== 3221 ||
+    proof?.currentPlayableCountyCount !== 1 ||
+    proof?.onlyPublicPlayableCounty !== "riverside-ca" ||
+    proof?.nextRequiredSlice !== NATIONAL_GENERATION_NEXT_QUEST
+  ) {
+    blockers.push("0.70H must record generated district truth and the next scene packet service boundary slice.");
+  }
+  if (
+    proof?.sourceBasis !== "census_identity_only" ||
+    proof?.deterministicGeneratorAvailable !== true ||
+    proof?.providerGeometryBlocked !== true ||
+    proof?.providerNormalizedLocalAnchors !== false ||
+    proof?.generatedDistrictsPublicPlayable !== false ||
+    proof?.railwayFrameLoopDependency !== false ||
+    proof?.publicPlayableClaimForAllUs !== false ||
+    !Array.isArray(proof?.sampleGeneratedDistricts) ||
+    !proof.sampleGeneratedDistricts.includes("cook-il") ||
+    !proof.sampleGeneratedDistricts.includes("miami-dade-fl") ||
+    !proof.sampleGeneratedDistricts.includes("maricopa-az")
+  ) {
+    blockers.push("0.70H must record Census-identity generation, deterministic availability, provider boundary, no Railway frame-loop dependency, no all-US playable claim, and generated district samples.");
+  }
+  if (
+    scope?.newMcpTools !== 0 ||
+    scope?.rendererVisualChanges !== false ||
+    scope?.publicRendererRouteChanges !== false ||
+    scope?.dbMigrationsAdded !== 0 ||
+    scope?.authScopeAdded !== false ||
+    scope?.stripeScopeAdded !== false ||
+    scope?.publicPaidClaim !== false ||
+    scope?.publicAnaheimPromotion !== false ||
+    scope?.providerGeometry !== false ||
+    scope?.nationwidePlayableClaim !== false ||
+    scope?.railwayRuntimeRequiredForPanZoom !== false
+  ) {
+    blockers.push("0.70H must be a generated-district contract slice: zero new tools, no public renderer route, no DB/Auth/Stripe expansion, no public paid claim, no public Anaheim/Ontario, no provider geometry, no nationwide playable claim, and no Railway pan/zoom dependency.");
+  }
+  for (const path of [proof?.artifactPath, "docs/VOXEL_ENGINE_DELIVERY_ARCHITECTURE_0.70H.md", "docs/NATIONAL_ENGINE_PRODUCTION_CONTRACT.md"]) {
+    if (!path || !existsSync(resolve(path))) {
+      blockers.push(`0.70H proof path is missing: ${path ?? "missing"}.`);
+    }
+  }
+}
+
+function checkScenePacketCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== SCENE_PACKET_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${SCENE_PACKET_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== SCENE_PACKET_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${SCENE_PACKET_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== SCENE_PACKET_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${SCENE_PACKET_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP") {
+    blockers.push(`artifacts/current-update.json decision must be GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP; got ${update.decision ?? "missing"}.`);
+  }
+  if (
+    !update.verification?.generatedDraftScenePacket ||
+    !update.verification?.generatedDraftCoreTests ||
+    !update.verification?.starterTypecheck ||
+    !update.verification?.starterBuild ||
+    !update.verification?.sourceOfTruthDrift ||
+    !update.verification?.nationalGenerationSplitGuard
+  ) {
+    blockers.push("artifacts/current-update.json must record the 0.71H generated draft verifier, core tests, starter typecheck/build, source drift guard, and national split guard.");
+  }
+
+  const proof = update.metricResult?.scenePacketService;
+  const scope = update.metricResult?.scope;
+  if (
+    proof?.generatedDraftReadiness !== true ||
+    proof?.generatedDraftPlayable !== false ||
+    proof?.generatedDraftPublicRouteAllowed !== false ||
+    proof?.generatedDraftContainsProviderGeometry !== false ||
+    proof?.generatedDraftMetaOnlyScene !== true ||
+    proof?.runtimeMemoryCacheOnly !== true ||
+    proof?.mcpMetaDelivery !== true ||
+    proof?.structuredContentCarriesGeneratedScene !== false ||
+    proof?.statusRouteSafeSummariesOnly !== true ||
+    proof?.railwayRuntimeRequiredForPanZoom !== false ||
+    proof?.cacheMissCompilesOnce !== true ||
+    proof?.cacheHitReturnsPayload !== true ||
+    proof?.artifactPath !== "artifacts/national-generation/0.71h/generated-draft-scene-packet.json"
+  ) {
+    blockers.push("0.71H must record generated draft packet truth: meta-only, non-playable, non-public, provider-free, runtime cache only, status-safe, miss-then-hit, and no Railway pan/zoom dependency.");
+  }
+  if (
+    scope?.newMcpTools !== 0 ||
+    scope?.publicHttpRenderRoute !== false ||
+    scope?.browserHttpRenderRouteAdded !== false ||
+    scope?.rendererVisualChanges !== false ||
+    scope?.dbMigrationsAdded !== 0 ||
+    scope?.authScopeAdded !== false ||
+    scope?.stripeScopeAdded !== false ||
+    scope?.publicPaidClaim !== false ||
+    scope?.publicAnaheimPromotion !== false ||
+    scope?.providerGeometry !== false ||
+    scope?.nationwidePlayableClaim !== false ||
+    scope?.railwayRuntimeRequiredForPanZoom !== false
+  ) {
+    blockers.push("0.71H must be a service-boundary slice: zero new tools, no HTTP render route, no renderer visual change, no DB/Auth/Stripe expansion, no public claims, no provider geometry, no all-US playable claim, and no Railway pan/zoom dependency.");
+  }
+  for (const path of [
+    proof?.artifactPath,
+    "docs/SCENE_PACKET_SERVICE_BOUNDARY_0.71H.md",
+    "scripts/verify-generated-draft-scene-packet.mjs",
+  ]) {
+    if (!path || !existsSync(resolve(path))) {
+      blockers.push(`0.71H proof path is missing: ${path ?? "missing"}.`);
+    }
+  }
+}
+
+function checkBackendSpineCurrentUpdate(update) {
+  if (update.status !== "local_green") {
+    blockers.push(`artifacts/current-update.json status must be local_green; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== BACKEND_SPINE_SELECTED_AXIS) {
+    blockers.push(`artifacts/current-update.json selectedAxis must be ${BACKEND_SPINE_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== BACKEND_SPINE_NEXT_QUEST) {
+    blockers.push(`Current update recommendedNextQuest must be ${BACKEND_SPINE_NEXT_QUEST}; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.inputUpdate !== BACKEND_SPINE_INPUT_UPDATE) {
+    blockers.push(`artifacts/current-update.json inputUpdate must be ${BACKEND_SPINE_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "REDIS_PACKET_SPINE_NOT_RENDER_LOOP") {
+    blockers.push(`artifacts/current-update.json decision must be REDIS_PACKET_SPINE_NOT_RENDER_LOOP; got ${update.decision ?? "missing"}.`);
+  }
+  if (
+    !update.verification?.serverBuild ||
+    !update.verification?.productionBackendSpine ||
+    !update.verification?.generatedDraftScenePacket ||
+    !update.verification?.scenePacketMemoryAdapter
+  ) {
+    blockers.push("artifacts/current-update.json must record the 0.72B server build, backend spine verifier, generated draft verifier, and memory adapter verifier.");
+  }
+
+  const proof = update.metricResult?.scenePacketBackendSpine;
+  const scope = update.metricResult?.scope;
+  if (
+    proof?.artifactPath !== "artifacts/national-generation/0.72b/production-backend-spine.json" ||
+    proof?.devMemoryFallback !== true ||
+    proof?.productionRedisRequired !== true ||
+    proof?.redisCompileLock !== true ||
+    proof?.queuedSafeGeneratedDraftPacket !== true ||
+    proof?.workerEntrypoint !== "server/src/scenePacketWorker.ts" ||
+    proof?.statusSafeSummariesOnly !== true ||
+    proof?.readyEndpoint !== true ||
+    proof?.requestIds !== true ||
+    proof?.structuredBackendLogs !== true ||
+    proof?.rateLimits !== true ||
+    proof?.railwayRuntimeRequiredForPanZoom !== false
+  ) {
+    blockers.push("0.72B must record memory/Redis cache spine truth: dev fallback, production Redis requirement, compile lock, queued-safe metadata, worker, safe status/ready, logs, rate limits, and no Railway pan/zoom dependency.");
+  }
+  if (
+    scope?.newMcpTools !== 0 ||
+    scope?.publicHttpRenderRoute !== false ||
+    scope?.browserHttpRenderRouteAdded !== false ||
+    scope?.scenePacketDbPersistence !== false ||
+    scope?.authScopeAdded !== false ||
+    scope?.stripePublicLaunch !== false ||
+    scope?.publicPaidClaim !== false ||
+    scope?.publicAnaheimPromotion !== false ||
+    scope?.providerGeometry !== false ||
+    scope?.nationwidePlayableClaim !== false ||
+    scope?.railwayRuntimeRequiredForPanZoom !== false
+  ) {
+    blockers.push("0.72B must be a backend spine slice: zero new tools, no HTTP render route, no scene packet DB persistence, no public paid launch, no public claims, no provider geometry, no all-US playable claim, and no Railway pan/zoom dependency.");
+  }
+  for (const path of [
+    proof?.artifactPath,
+    "docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md",
+    "server/src/scenePacketWorker.ts",
+    "scripts/verify-production-backend-spine.mjs",
+    "scripts/verify-generated-draft-scene-packet.mjs",
+  ]) {
+    if (!path || !existsSync(resolve(path))) {
+      blockers.push(`0.72B proof path is missing: ${path ?? "missing"}.`);
+    }
   }
 }
 
@@ -732,6 +1399,354 @@ function checkIntegrationReleaseDocs(update, docs) {
     };
   }
 
+  if (update?.id === STRIPE_BILLING_UPDATE) {
+    label = "0.62H stripe-test-billing";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.62H Hosted Clawd Stripe test billing",
+        "STRIPE_TEST_BILLING_WEBHOOK_GATED",
+        STRIPE_BILLING_NEXT_QUEST,
+        "Stripe webhook",
+        "dark maroon clay",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current Stripe test billing slice",
+        "0.62H Stripe Test Billing",
+        "STRIPE_TEST_BILLING_WEBHOOK_GATED",
+        STRIPE_BILLING_NEXT_QUEST,
+        "ChatGPT App",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 201",
+        "0.62H Stripe Test Billing",
+        "webhook replay guard",
+        "dark maroon clay",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 086",
+        "Stripe return is not access",
+        "STRIPE_TEST_BILLING_WEBHOOK_GATED",
+        STRIPE_BILLING_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current Stripe test billing note (2026-07-05)",
+        "0.62H Stripe Test Billing",
+        "Stripe webhook",
+        "public paid claims remain closed",
+      ],
+    };
+  }
+
+  if (update?.id === PROTECTED_TOOL_GATE_UPDATE) {
+    label = "0.63H protected-tool-gate";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.63H Hosted Clawd protected tool gate",
+        "PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION",
+        PROTECTED_TOOL_GATE_NEXT_QUEST,
+        "Client-supplied `subscriptionStatus` is not trusted",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current protected tool gate slice",
+        "0.63H Protected Hosted Clawd Tool Gate",
+        "PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION",
+        PROTECTED_TOOL_GATE_NEXT_QUEST,
+        "Client-supplied `subscriptionStatus`",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 202",
+        "0.63H Protected Hosted Clawd Tool Gate",
+        "client-supplied subscriptionStatus is not trusted",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 087",
+        "Protected paid writes require stored subscription state",
+        "PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION",
+        PROTECTED_TOOL_GATE_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current protected tool gate note (2026-07-05)",
+        "0.63H Protected Hosted Clawd Tool Gate",
+        "repository webhook state",
+      ],
+    };
+  }
+
+  if (update?.id === SAVED_READ_SURFACE_UPDATE) {
+    label = "0.64H saved-read-surface";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.64H Hosted Clawd saved read surface",
+        "SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS",
+        SAVED_READ_SURFACE_NEXT_QUEST,
+        "0.64H stub audit",
+        "creates no rows",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current saved read surface slice",
+        "0.64H Saved Hosted Clawd Read Surface",
+        "SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS",
+        SAVED_READ_SURFACE_NEXT_QUEST,
+        "docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md",
+        "Reads do not upsert users",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 203",
+        "0.64H Saved Hosted Clawd Read Surface",
+        "read-only saved shelf",
+        "Rewired `refresh_status`",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 088",
+        "Saved reads stay owner-scoped and HTTP-only",
+        "SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS",
+        "docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md",
+        SAVED_READ_SURFACE_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current saved read surface note (2026-07-05)",
+        "0.64H Saved Hosted Clawd Read Surface",
+        "owner-scoped saved state",
+      ],
+    };
+  }
+
+  if (update?.id === BROWSER_PROOF_UPDATE) {
+    label = "0.65H browser-proof";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.65H Hosted Clawd browser proof",
+        "BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN",
+        BROWSER_PROOF_NEXT_QUEST,
+        "401 OAuth resource challenge",
+        "44px touch targets",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current browser proof slice",
+        "0.65H Hosted Clawd Browser Proof",
+        "BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN",
+        BROWSER_PROOF_NEXT_QUEST,
+        "ChatGPT account linking",
+        "44px touch targets",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 205",
+        "0.65H Hosted Clawd Browser Proof",
+        "BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN",
+        "44px touch targets",
+        "dialog semantics",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 091",
+        "Browser proof before saved memory claim",
+        "BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN",
+        BROWSER_PROOF_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current browser proof note (2026-07-05)",
+        "0.65H Hosted Clawd Browser Proof",
+        "401 OAuth resource challenge",
+        "44px touch targets",
+      ],
+    };
+  }
+
+  if (update?.id === MOBILE_HARDENING_UPDATE) {
+    label = "0.66H mobile-interaction-hardening";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.66H Mobile Interaction Hardening",
+        "RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD",
+        MOBILE_HARDENING_NEXT_QUEST,
+        "zero scene rebuilds",
+        "bottom-sheet save chrome",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current mobile hardening slice",
+        "0.66H Mobile Interaction Hardening",
+        "RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD",
+        MOBILE_HARDENING_NEXT_QUEST,
+        "Retain Pixi scene graphs",
+        "payload diet",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 206",
+        "0.66H Mobile Interaction Hardening",
+        "RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD",
+        "Desktop scripted pan rebuild delta: 0",
+        "Eager JS: 210,920 bytes",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 092",
+        "Map interaction is retained graph, saved state is bottom chrome",
+        "RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD",
+        MOBILE_HARDENING_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current mobile hardening note (2026-07-05)",
+        "0.66H Mobile Interaction Hardening",
+        "bottom map chrome",
+        "eager JS under 400KB",
+      ],
+    };
+  }
+
+  if (update?.id === PRODUCT_FEEL_UPDATE) {
+    label = "0.67H product-feel-cleanup";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.67H Product Feel Cleanup",
+        "GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST",
+        PRODUCT_FEEL_NEXT_QUEST,
+        "desktop ambient label cap",
+        "off-facade pins",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current product feel cleanup slice",
+        "0.67H Product Feel Cleanup",
+        "GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST",
+        PRODUCT_FEEL_NEXT_QUEST,
+        "Mobile labels are selected/hovered only",
+        "Fable edited the renderer",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 207",
+        "0.67H Product Feel Cleanup",
+        "GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST",
+        "Fable renderer pass",
+        "graphics-cleanup-desktop-1280x720.png",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 093",
+        "Visual chrome yields to object identity",
+        "GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST",
+        PRODUCT_FEEL_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current product feel cleanup note (2026-07-05)",
+        "0.67H Product Feel Cleanup",
+        "labels, halos, pins, props, and actors are annotation layers",
+        PRODUCT_FEEL_NEXT_QUEST,
+      ],
+    };
+  }
+
+  if (update?.id === NATIONAL_GENERATION_UPDATE) {
+    label = "0.70H deterministic-generated-district-specs";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.70H Deterministic Generated District Specs",
+        "DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION",
+        NATIONAL_GENERATION_NEXT_QUEST,
+        "provider-normalized local anchors",
+        "Railway should compile/cache scene packets",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current generated district slice",
+        "0.70H Deterministic Generated District Specs",
+        "DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION",
+        NATIONAL_GENERATION_NEXT_QUEST,
+        "Cook IL, Miami-Dade FL, Maricopa AZ, and Riverside CA",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 210",
+        "0.70H Deterministic Generated District Specs",
+        "DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION",
+        "generated-district-specs.json",
+        "Railway is not in the frame loop",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 096",
+        "Deterministic specs are not local promotion",
+        "DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION",
+        NATIONAL_GENERATION_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current generated district note (2026-07-06)",
+        "0.70H Deterministic Generated District Specs",
+        "Railway should compile/cache scene packets",
+        NATIONAL_GENERATION_NEXT_QUEST,
+      ],
+    };
+  }
+
+  if (update?.id === SCENE_PACKET_UPDATE) {
+    label = "0.71H scene-packet-service-boundary";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.71H Scene Packet Service Boundary / Railway Cache Plan",
+        "GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP",
+        SCENE_PACKET_NEXT_QUEST,
+        "generatedDraftScene",
+        "Railway is not in the frame loop",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current scene packet service-boundary slice",
+        "0.71H Scene Packet Service Boundary / Railway Cache Plan",
+        "GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP",
+        SCENE_PACKET_NEXT_QUEST,
+        "_meta.generatedDraftScene",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 211",
+        "0.71H Scene Packet Service Boundary / Railway Cache Plan",
+        "GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP",
+        "generated-draft-scene-packet.json",
+        "Railway is not in the frame loop",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 097",
+        "Generated drafts travel through meta, not the frame loop",
+        "GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP",
+        SCENE_PACKET_NEXT_QUEST,
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current scene packet service note (2026-07-06)",
+        "0.71H Scene Packet Service Boundary / Railway Cache Plan",
+        "generated draft scene packets travel through `_meta`",
+        SCENE_PACKET_NEXT_QUEST,
+      ],
+    };
+  }
+
+  if (update?.id === BACKEND_SPINE_UPDATE) {
+    label = "0.72B redis-scene-packet-backend-spine";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.72B Redis Scene Packet Cache / Job Spine",
+        "REDIS_PACKET_SPINE_NOT_RENDER_LOOP",
+        BACKEND_SPINE_NEXT_QUEST,
+        "Railway production requires Redis",
+        "Railway is not in the frame loop",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current backend production slice",
+        "0.72B Redis Scene Packet Cache / Job Spine",
+        "REDIS_PACKET_SPINE_NOT_RENDER_LOOP",
+        BACKEND_SPINE_NEXT_QUEST,
+        "queued-safe",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 212",
+        "0.72B Redis Scene Packet Cache / Job Spine",
+        "REDIS_PACKET_SPINE_NOT_RENDER_LOOP",
+        "production-backend-spine.json",
+        "Railway dependency in browser pan/zoom",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 068",
+        "Redis caches scene packets, not map interaction",
+        "REDIS_PACKET_SPINE_NOT_RENDER_LOOP",
+      ],
+      "docs/PRODUCT_SPEC_AND_GATES.md": [
+        "Current backend production note (2026-07-06)",
+        "0.72B Redis Scene Packet Cache / Job Spine",
+        "Railway production requires Redis",
+        BACKEND_SPINE_NEXT_QUEST,
+      ],
+    };
+  }
+
   if (!requiredSnippetsByFile) return;
 
   for (const [path, snippets] of Object.entries(requiredSnippetsByFile)) {
@@ -794,10 +1809,10 @@ function checkAgentsDoctrine(agents) {
     "Hosted Clawd DB/Auth persistence is now local-green only for owner-protected rows",
     "The human explicitly reopened DB/Auth preparation on 2026-07-05",
     "If the human says \"continue,\" continue only the named next quest",
-    "Current human-directed local-green slice is `0.61H Invite Beta Save UX`",
-    "0.61H decision is `MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED`",
-    "Default next slice after 0.61H is `0.62H Stripe Test Billing`",
-    "Stripe/money remains downstream of 0.60H and 0.61H",
+    "Current human-directed local-green slice is `0.72B Redis Scene Packet Cache / Job Spine`",
+    "0.72B decision is `REDIS_PACKET_SPINE_NOT_RENDER_LOOP`",
+    "Default next slice after 0.72B is `0.72H Fable Generated Draft Visual Quality Gate`",
+    "Stripe/money is open only for test-mode billing behind webhook-confirmed state",
     "The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`",
     "Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`",
     "Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`",
@@ -806,7 +1821,7 @@ function checkAgentsDoctrine(agents) {
     "Put large widget-only or renderer-only scene data in `_meta`",
     "Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays",
     "Do not add new MCP tools casually",
-    "Use `hosted-clawd-save-ux` for strict split checks on the 0.61H save UX branch",
+    "Use `national-generation-contract` for strict split checks on the 0.72B Redis scene packet backend spine branch",
   ];
   for (const snippet of requiredSnippets) {
     if (!agents.includes(snippet)) {
@@ -864,6 +1879,20 @@ function checkPublicCandidateClaims(files) {
 }
 
 function checkDbDrift(packageJson, serverIndex, envExample) {
+  if (
+    currentUpdate?.id === STRIPE_BILLING_UPDATE ||
+    currentUpdate?.id === PROTECTED_TOOL_GATE_UPDATE ||
+    currentUpdate?.id === SAVED_READ_SURFACE_UPDATE ||
+    currentUpdate?.id === BROWSER_PROOF_UPDATE ||
+    currentUpdate?.id === MOBILE_HARDENING_UPDATE ||
+    currentUpdate?.id === PRODUCT_FEEL_UPDATE ||
+    currentUpdate?.id === NATIONAL_GENERATION_UPDATE ||
+    currentUpdate?.id === SCENE_PACKET_UPDATE ||
+    currentUpdate?.id === BACKEND_SPINE_UPDATE
+  ) {
+    checkStripeBillingDbEnvelope(packageJson, serverIndex, envExample);
+    return;
+  }
   if (currentUpdate?.id === PERSISTENCE_FOUNDATION_UPDATE || currentUpdate?.id === SAVE_UX_UPDATE) {
     checkPersistenceFoundationDbEnvelope(packageJson, serverIndex, envExample);
     return;
@@ -910,6 +1939,48 @@ function checkPersistenceFoundationDbEnvelope(packageJson, serverIndex, envExamp
   }
   if (!existsSync(resolve("migrations/hosted-clawd/001_persistence_foundation.sql"))) {
     blockers.push("0.60H migration file is missing.");
+  }
+}
+
+function checkStripeBillingDbEnvelope(packageJson, serverIndex, envExample) {
+  const dependencies = {
+    ...(packageJson?.dependencies ?? {}),
+    ...(packageJson?.devDependencies ?? {}),
+  };
+  for (const dep of ["pg", "jose", "@types/pg", "stripe"]) {
+    if (!Object.prototype.hasOwnProperty.call(dependencies, dep)) {
+      blockers.push(`0.62H Stripe billing requires dependency ${dep}.`);
+    }
+  }
+  for (const dep of ["@stripe/stripe-js", "@supabase/supabase-js", "prisma", "@prisma/client", "drizzle-orm", "auth0", "next-auth"]) {
+    if (Object.prototype.hasOwnProperty.call(dependencies, dep)) {
+      blockers.push(`0.62H Stripe billing must not add blocked dependency ${dep}.`);
+    }
+  }
+  for (const token of [
+    "DATABASE_URL",
+    "ATLAS_OIDC_ISSUER",
+    "ATLAS_OIDC_AUDIENCE",
+    "ATLAS_OIDC_JWKS_URL",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_HOSTED_CLAWD_PRICE_ID",
+    "APP_BASE_URL",
+  ]) {
+    if (!envExample.includes(token)) {
+      blockers.push(`0.62H .env.example is missing ${token}.`);
+    }
+  }
+  for (const token of ["DATABASE_URL", "readHostedClawdBillingConfig", "/api/stripe/webhook", "readRawBody"]) {
+    if (!serverIndex.includes(token)) {
+      blockers.push(`0.62H server runtime must include ${token}.`);
+    }
+  }
+  if (!existsSync(resolve("migrations/hosted-clawd/001_persistence_foundation.sql"))) {
+    blockers.push("0.62H migration base file 001 is missing.");
+  }
+  if (!existsSync(resolve("migrations/hosted-clawd/002_stripe_test_billing.sql"))) {
+    blockers.push("0.62H Stripe billing migration file 002 is missing.");
   }
 }
 

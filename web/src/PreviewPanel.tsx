@@ -183,7 +183,7 @@ function CampaignPanel({ preview, onAdvance }: { preview: CampaignPreviewState; 
         </PreviewSections>
       </PreviewBody>
 
-      <SessionFooter advanceLabel="See hosting options" {...(onAdvance ? { onAdvance } : {})} />
+      <SessionFooter advanceLabel="Save options" {...(onAdvance ? { onAdvance } : {})} />
     </section>
   );
 }

@@ -48,7 +48,7 @@ export class CampaignPreviewService {
         grantsXp: false,
         requiresHostedClawdForSave: true,
         nextTool: "get_upgrade_options",
-        userActionLabel: "Host Clawd to save and track this campaign",
+        userActionLabel: "Save this campaign with ChatGPT",
       },
       scene,
     };
@@ -249,7 +249,7 @@ function buildCampaignScene(
       { label: "Automation", value: "None", tone: "good" },
       { label: "First route", value: "Eastvale", tone: "neutral" },
     ],
-    upgradePrompt: "Host Clawd to save this campaign, attach proof, and track follow-ups.",
+    upgradePrompt: "Save this campaign with ChatGPT when saving opens.",
   };
 
   return {

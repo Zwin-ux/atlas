@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "update": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
+  "artifactPath": "artifacts/national-generation/0.72b/production-backend-spine.json",
+  "checkedFiles": [
+    "package.json",
+    ".env.example",
+    "server/src/scenePacketMemoryAdapter.ts",
+    "server/src/scenePacketWorker.ts",
+    "server/src/index.ts"
+  ],
+  "runtime": {
+    "updateId": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
+    "sceneBuilds": 2,
+    "cacheHitAfterFirst": true,
+    "expiredCacheHit": false,
+    "queuedGenerationStatus": "queued",
+    "queuedStatus": {
+      "update": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
+      "cacheBackend": "memory",
+      "maxEntries": 4,
+      "entryCount": 0,
+      "hitCount": 0,
+      "missCount": 1,
+      "hitRate": 0,
+      "queueDepth": 1,
+      "oldestQueuedMs": 0,
+      "lockTtlSeconds": 30,
+      "redisConfigured": false,
+      "redisReachable": null,
+      "entries": []
+    },
+    "devFallback": {
+      "requestedBackend": "memory",
+      "effectiveBackend": "memory",
+      "redisRequired": false,
+      "workerEnabled": false,
+      "lockTtlSeconds": 30,
+      "lockWaitMs": 2000,
+      "production": false,
+      "blockers": []
+    },
+    "prodBlockerCount": 2,
+    "redisEffectiveBackend": "redis"
+  },
+  "blockerCount": 0,
+  "blockers": [],
+  "warnings": []
+}

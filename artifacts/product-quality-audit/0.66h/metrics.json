@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-07-05T23:56:00-07:00",
+  "status": "measured_local_green",
+  "previewUrl": "http://127.0.0.1:8787/preview",
+  "payload": {
+    "previewHtmlBytes": 386,
+    "eagerComponentJsBytes": 210920,
+    "deferredChunkCount": 25,
+    "deferredJsBytes": 785029,
+    "totalJsBytes": 995949,
+    "componentCssBytes": 82172,
+    "eagerBrotliBytes": 67968,
+    "notes": [
+      "The previous preview HTML was 1082674 bytes because the widget inlined the whole JS and CSS bundle.",
+      "The 0.66H preview shell now references /widget/component.js and /widget/component.css; Pixi and renderer code are deferred chunks.",
+      "The eager JavaScript parse path is now about 211 KB. Total JavaScript is still about 996 KB and remains a future diet target."
+    ]
+  },
+  "sourcePressure": {
+    "stylesCssBytes": 82172,
+    "stylesCssLines": 3113,
+    "hostedClawdRuleMentions": 262,
+    "backdropFilterMentions": 11,
+    "boxShadowMentions": 58,
+    "gradientMentions": 18,
+    "rendererBytes": 298099,
+    "rendererLines": 5820,
+    "requestAnimationFrameMentions": 5,
+    "pointerMoveMentions": 5,
+    "pixiFilterMentions": 17
+  },
+  "screenshots": {
+    "desktopRest": {
+      "path": "artifacts/product-quality-audit/0.66h/screens/desktop-1280x720-rest.png",
+      "bytes": 931902
+    },
+    "mobileRest": {
+      "path": "artifacts/product-quality-audit/0.66h/screens/mobile-390x844-rest.png",
+      "bytes": 269021
+    },
+    "desktopMobileHardening": {
+      "path": "artifacts/product-quality-audit/0.66h/screens/mobile-hardening-desktop-1280x720.png",
+      "bytes": 858603
+    },
+    "mobileMobileHardening": {
+      "path": "artifacts/product-quality-audit/0.66h/screens/mobile-hardening-mobile-390x844.png",
+      "bytes": 236565
+    }
+  },
+  "browserTiming": {
+    "status": "measured",
+    "artifact": "artifacts/product-quality-audit/0.66h/mobile-interaction-hardening.json",
+    "desktopPan": {
+      "p50FrameMs": 50,
+      "p95FrameMs": 66.7,
+      "rebuildDelta": 0
+    },
+    "mobilePan": {
+      "p50FrameMs": 33.4,
+      "p95FrameMs": 50,
+      "rebuildDelta": 0
+    },
+    "note": "Headless Chrome frame cadence is coarse on this Windows host. The hard 0.66H gate is no scene rebuild during the scripted in-window pan; p50/p95 are recorded for trend monitoring."
+  },
+  "bottomSheet": {
+    "desktopCollapsedHeightPx": 77.25,
+    "desktopExpandedHeightPx": 324,
+    "mobileCollapsedHeightPx": 76,
+    "mobileExpandedHeightPx": 379.8,
+    "mobileExpandedViewportShare": 0.45,
+    "collapsedRole": "region",
+    "expandedRole": "dialog",
+    "expandedAriaModal": true,
+    "touchTargets44": true,
+    "horizontalOverflow": false
+  },
+  "knownRisks": [
+    "Total JavaScript remains about 996 KB because the full Pixi renderer still exists as deferred chunks.",
+    "CSS still contains historical Hosted Clawd rules; 0.66H overrides the visible layer and removes modal-era DOM, but a future cleanup should delete stale earlier rules.",
+    "Headless browser frame cadence is not a phone GPU benchmark. Real-device touch profiling remains needed before launch claims."
+  ]
+}

@@ -1,5 +1,671 @@
 # Build Log
 
+## Entry 214
+
+Quest:
+Axiom 0.72H-b Fable candidate reconciliation.
+
+What changed:
+- Read the sibling Fable worktree packet
+  `C:\Users\mzwin\Documents\atlas-53e-fable\artifacts\0.72h-b-roof-label-cleanup\FABLE_RESULT.md`.
+- Corrected canonical source-of-truth docs and `artifacts/current-update.json`
+  to point at the stronger 0.72H-b review candidate, not the older 0.72H packet
+  with visible generated-place labels.
+- Recorded that generated labels are now suppressed and browser-gated, while
+  keeping the candidate unmerged pending file-by-file source review.
+
+Decision:
+`FABLE_072H_B_REVIEW_CANDIDATE_NOT_MERGE_ACCEPTANCE`.
+
+Measured proof:
+- 0.72B loop readiness, Big 4 artifact packet sentinel, generated draft scene
+  packet, production backend spine, source-of-truth drift, provider boundary,
+  tool-result shape, and strict `national-generation-contract` split guard
+  were green in the canonical tree.
+- The sibling Fable 0.72H-b packet reports green core build, generated-district
+  parity, starter typecheck/build, and desktop/mobile generated-widget proof
+  with `data-qa-place-labels="suppressed"`.
+- Axiom visually inspected the 0.72H-b desktop and mobile screenshots.
+
+Skipped:
+No Fable code was merged, no worker state was invented, no real-thread
+assignment was sent while the thread bridge was unavailable, no Railway/GitHub
+mutation happened, and no public playable/paid/provider scope changed.
+
+Next:
+Review the five 0.72H-b source files file-by-file, then route the next visual
+slice as `0.72H-c Residential Object-Kit Authorship Pass`.
+
+## Entry 213
+
+Quest:
+0.72B production stack stabilization and 0.72H Fable launch.
+
+What changed:
+- Launched Claude/Fable background session `2d2e65c1` in the existing
+  `C:\Users\mzwin\Documents\atlas-53e-fable` worktree for
+  `0.72H Fable Generated Draft Visual Quality Gate`.
+- Fable hit an API drop mid-pass; Codex relaunched it, stopped the stale
+  workers, finished verification, and left a separate review candidate in
+  `C:\Users\mzwin\Documents\atlas-53e-fable\artifacts\0.72h-fable-generated-draft-visual-quality\FABLE_RESULT.md`.
+- Kept the Fable lane scoped to generated-district visual grammar: houses,
+  row buildings, storefront strips, apartments, roof/eave depth, face ramps,
+  contact shadows, density, and silhouette read.
+- Kept main/Codex scope on platform proof and production readiness, not visual
+  renderer edits.
+- Verified live Railway production has Redis scene packet cache, Redis
+  reachability, Postgres reachability, Hosted Clawd persistence flag on,
+  Stripe test config present, and public paid claim still off.
+- Kept `artifacts/current-update.json` status as `local_green` because the
+  source-of-truth drift verifier uses that lifecycle status as the selector
+  contract; recorded live production proof as `productionRailwayStack`.
+- Updated submission/MCP verifiers to allow `owner_gated_test` only when the
+  tool copy explicitly says public paid access is not live.
+
+Decision:
+`PRODUCTION_STACK_GREEN_AUTH_REMAINS_LAUNCH_SWITCH`.
+
+Measured proof:
+- `/ready` returned ok with Redis, Postgres, and Stripe configured.
+- `/api/engine/scene-packets/status` returned Redis cache status without scene
+  payload or provider data.
+- `select_county` with `includeGeneratedDraft: true` returned generated draft
+  data in `_meta` only; repeat request hit Redis.
+- `pnpm verify:railway-production-stack` passed and wrote
+  `artifacts/ops/production-railway-stack.json`.
+- Fable candidate proof passed core build, generated-district parity, and
+  desktop/mobile generated-widget screenshots, but remains unmerged because
+  generated-place labels are still visible.
+
+Skipped:
+No Auth/OIDC provider variables were invented, no public paid launch claim was
+enabled, no live billing claim was made, no Fable output was merged into main,
+no provider geometry was promoted, and no Railway dependency was added to
+browser pan/zoom.
+
+Verification:
+- `pnpm typecheck:starter`
+- `pnpm build:starter`
+- `pnpm verify:railway-production-stack`
+- `ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp pnpm verify:mcp`
+- `ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp pnpm verify:submission`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode national-generation-contract --json-only`
+
+## Entry 212
+
+Quest:
+0.72B Redis Scene Packet Cache / Job Spine.
+
+What changed:
+- Replaced the in-process-only scene packet adapter with an async cache spine
+  that supports memory or Redis backends behind the existing adapter factory.
+- Added internal `ScenePacketCacheStore`, `ScenePacketCompileLock`, and
+  `ScenePacketJobQueue` contracts with memory and Redis implementations.
+- Added Redis `SET NX EX` compile locking so Railway instances do not duplicate
+  generated draft compiles for the same deterministic packet key.
+- Added queued-safe generated draft behavior: on lock contention, Atlas waits
+  briefly for the cache, then returns `_meta.generatedDraftPacket` marked
+  `queued` with no scene payload.
+- Added `server/src/scenePacketWorker.ts` so a separate Railway worker can
+  claim generated draft jobs, compile deterministic `CityWorldScene` packets,
+  and write them to Redis.
+- Added `/ready`, request IDs, structured JSON backend logs, and first-pass
+  rate limits for provider lookup, generated draft requests, and Hosted Clawd
+  write routes.
+- Added Redis env knobs and `start:scene-packet-worker`.
+- Added `scripts/verify-production-backend-spine.mjs`.
+
+Decision:
+`REDIS_PACKET_SPINE_NOT_RENDER_LOOP`.
+
+Measured proof:
+- Dev/local defaults to memory when Redis is not configured.
+- Production config blocks when Redis is required but missing.
+- Generated draft cache miss compiles once; repeat request hits cache.
+- Lock contention returns queued-safe metadata and enqueues one job.
+- Scene packet status exposes cache backend, hit rate, queue depth, and safe
+  summaries only; it does not expose payloads, scene geometry, or provider data.
+- Worker compiles deterministic generated drafts only; no provider, DB, or
+  browser render route is added.
+- Existing public MCP tool surface remains unchanged.
+- Proof artifact:
+  `artifacts/national-generation/0.72b/production-backend-spine.json`.
+
+Skipped:
+No DB persistence for scene packets, no new public MCP tools, no browser HTTP
+generated-scene route, no provider anchor geometry, no Hosted Clawd public paid
+launch, no evidence/XP/reports/exports/automation, no public Anaheim/Ontario,
+and no Railway dependency in browser pan/zoom.
+
+Verification:
+- `pnpm build:server`
+- `pnpm verify:production-backend-spine`
+- `pnpm verify:generated-draft-scene-packet`
+- `node scripts/verify-scene-packet-memory-adapter.mjs --json-only`
+
+## Entry 211
+
+Quest:
+0.71H Scene Packet Service Boundary / Railway Cache Plan.
+
+What changed:
+- Extended the scene packet cache contract with `generated_draft` readiness and
+  `deterministic_generated_draft` generation mode.
+- Added generated draft runtime-memory support to
+  `server/src/scenePacketMemoryAdapter.ts`; cache keys include county,
+  generated district, camera/window profile, scene schema version, and
+  generator update id.
+- Added `includeGeneratedDraft?: boolean` to `select_county` and
+  `render_voxel_county`. Default shell behavior remains unchanged.
+- Delivered generated draft scene packets through `_meta.generatedDraftScene`
+  and `_meta.generatedDraftPacket`; `structuredContent` remains the county
+  coverage summary.
+- Updated the widget so generated previews request the existing MCP tool path
+  instead of compiling a local synthetic scene.
+- Added `scripts/verify-generated-draft-scene-packet.mjs` and
+  `docs/SCENE_PACKET_SERVICE_BOUNDARY_0.71H.md`.
+
+Decision:
+`GENERATED_DRAFT_PACKETS_META_ONLY_NO_FRAME_LOOP`.
+
+Measured proof:
+- Generated draft packets are non-playable, non-public, provider-free, and
+  meta-only.
+- Runtime memory cache miss compiles once; repeat request hits the cache.
+- Generated draft data never appears in `structuredContent`.
+- `/api/engine/scene-packets/status` exposes safe summaries only.
+- No browser HTTP generated-scene route was added.
+- Railway is not in the frame loop for pan/zoom.
+- Proof artifact:
+  `artifacts/national-generation/0.71h/generated-draft-scene-packet.json`.
+
+Skipped:
+No DB/Auth/Stripe changes, no public MCP tools, no HTTP render route, no
+provider geometry, no renderer visual overhaul, no public paid claim, no public
+Anaheim/Ontario, and no all-US playable claim.
+
+Verification:
+- `node --check scripts/verify-generated-draft-scene-packet.mjs`
+- `pnpm --dir packages/core test -- scene-packet-cache.test.ts city-world-generated-district.test.ts`
+- `pnpm build:core`
+- `pnpm typecheck:starter`
+- `pnpm build:starter`
+- `pnpm verify:generated-draft-scene-packet`
+- `node scripts/verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode national-generation-contract --json-only`
+- `node scripts/verify-provider-boundaries.mjs --json-only`
+- `node scripts/verify-tool-result-shape.mjs --json-only`
+
+## Entry 210
+
+Quest:
+0.70H Deterministic Generated District Specs.
+
+What changed:
+- Added a split deterministic generated-district seam:
+  `cityWorldGeneratedDistrictTypes.ts`, `cityWorldGeneratedDistrictSeed.ts`,
+  `cityWorldGeneratedDistrictArchetypes.ts`, and
+  `cityWorldGeneratedDistrict.ts`.
+- Added `createDeterministicGeneratedDistrictSpec` and
+  `createDeterministicGeneratedDistrictScene` exports through core.
+- Added the `generated_draft_window` budget so generated draft scenes can have
+  bounded park/water detail without loosening shell-scene rules.
+- Added `packages/core/test/city-world-generated-district.test.ts` and
+  `scripts/verify-deterministic-generated-district-specs.mjs`.
+- Updated the national production ladder so deterministic generation advances
+  to `P3_PROVIDER_NORMALIZED_LOCAL_ANCHORS`, not public readiness.
+- Added `docs/VOXEL_ENGINE_DELIVERY_ARCHITECTURE_0.70H.md` to state that
+  Railway should compile/cache scene packets, while Railway is not in the
+  frame loop for pan/zoom.
+
+Decision:
+`DETERMINISTIC_DISTRICT_SPECS_BEFORE_LOCAL_PROMOTION`.
+
+Measured proof:
+- Cook IL, Miami-Dade FL, Maricopa AZ, and Riverside CA generate stable specs
+  from Census identity only.
+- Generated scenes remain `L1_COUNTY_SHELL`, non-playable, promotion-blocked,
+  and have zero pins/actors.
+- Desktop and mobile scene windows pass `generated_draft_window`.
+- Current production readiness remains `false`.
+- Current stage is `P3_PROVIDER_NORMALIZED_LOCAL_ANCHORS`.
+- Proof artifact:
+  `artifacts/national-generation/0.70h/generated-district-specs.json`.
+
+Skipped:
+No Railway packet endpoint yet, no public renderer route, no provider geometry,
+no provider-normalized anchor promotion, no new public MCP tools, no DB/Auth/
+Stripe expansion, no public paid claim, no public Anaheim/Ontario, and no
+nationwide playable claim.
+
+Verification:
+- `node --check scripts/verify-deterministic-generated-district-specs.mjs`
+- `pnpm --dir packages/core test -- city-world-generated-district.test.ts national-generation-production.test.ts`
+- `pnpm build:core`
+- `pnpm verify:deterministic-generated-districts`
+- `pnpm typecheck:starter`
+- `pnpm build:starter`
+- `node scripts/verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode national-generation-contract --json-only`
+
+## Entry 209
+
+Quest:
+0.69H US County Index Import / Nationwide Shells.
+
+What changed:
+- Added `scripts/generate-us-county-index.mjs` and generated
+  `packages/core/src/world/usCountyIndex.ts` from the cached 2024 Census
+  national county gazetteer.
+- Switched `NationalWorldService` to default to `US_COUNTY_INDEX` instead of
+  the California-only fixture, while preserving California overrides for
+  Riverside/Eastvale and hidden Anaheim/Ontario candidate metadata.
+- Exported `US_COUNTY_INDEX`, source metadata, state labels, and source notes
+  through core.
+- Updated server tool copy so `select_county` and `render_voxel_county` describe
+  indexed US county shells, not California-only shells.
+- Added `scripts/verify-national-shells.mjs` and `verify:national-shells` to
+  prove national identity, honest shell behavior, and the next production
+  blocker.
+- Extended tests to cover nationwide coverage totals and Cook IL, Miami-Dade
+  FL, and Maricopa AZ shell behavior.
+
+Decision:
+`CENSUS_INDEXED_SHELLS_NO_PLAYABLE_CLAIM`.
+
+Measured proof:
+- National index contains 3,222 county/equivalent rows across 52 state/territory
+  codes.
+- Shell county count is 3,221.
+- Playable county count remains exactly 1: `riverside-ca`.
+- Sample shells `cook-il`, `miami-dade-fl`, and `maricopa-az` return zero
+  districts, zero places, and shell scenes with no roads, lots, buildings,
+  places, pins, or actors.
+- Current production readiness remains `false`.
+- Current stage is `P2_DETERMINISTIC_GENERATED_DISTRICTS`.
+- Proof artifacts:
+  `artifacts/national-generation/0.69h/nationwide-shells.json` and
+  `artifacts/national-generation/0.69h/production-contract.json`.
+
+Skipped:
+No generated playable districts, no provider geometry, no new public MCP tools,
+no DB/Auth/Stripe expansion, no renderer geometry, no public paid claims, no
+public Anaheim/Ontario, and no "all US counties are playable" claim.
+
+Verification:
+- `pnpm --dir packages/core test -- national-world-service.test.ts national-generation-production.test.ts`
+- `pnpm build:core`
+- `pnpm verify:national-shells`
+- `pnpm verify:national-generation-production`
+
+## Entry 208
+
+Quest:
+0.68H National Generation Production Contract.
+
+What changed:
+- Added `packages/core/src/world/nationalGenerationProduction.ts` with a
+  five-stage production ladder: sourced US county identity, honest county
+  shells, deterministic generated districts, provider-normalized local anchors,
+  and public-quality playable counties.
+- Added `packages/core/test/national-generation-production.test.ts` to prove
+  the current California fixture is not a production US engine.
+- Added `docs/NATIONAL_ENGINE_PRODUCTION_CONTRACT.md` to state the national
+  engine requirements plainly.
+- Added `scripts/verify-national-generation-production-contract.mjs` and
+  `verify:national-generation-production` to write
+  `artifacts/national-generation/0.68h/production-contract.json`.
+- Extended strict split and source-of-truth checks with the
+  `national-generation-contract` lane.
+- Folded the read-only architecture audit into the source of truth: MCP
+  currently routes playable scenes through Riverside/Eastvale, shell counties
+  through coverage shells, and provider lookup remains non-geometry.
+
+Decision:
+`NATIONWIDE_GENERATION_REQUIRES_SOURCE_TIERS`.
+
+Measured proof:
+- The verifier records current production readiness as `false`.
+- Current stage is `P0_US_COUNTY_IDENTITY`.
+- Current indexed state count is `1`; current indexed county count is `58`.
+- Current playable county count is `1`.
+- Production stage count is `5`.
+- Proof artifact:
+  `artifacts/national-generation/0.68h/production-contract.json`.
+
+Skipped:
+No national county import yet, no new public MCP tools, no DB/Auth/Stripe
+expansion, no provider geometry, no renderer geometry, no public paid claims,
+no public Anaheim/Ontario, and no "all US counties are playable" claim.
+
+Verification:
+- `pnpm --dir packages/core test -- national-generation-production.test.ts`
+- `pnpm build:starter`
+- `pnpm verify:national-generation-production`
+- `node scripts/verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode national-generation-contract --json-only`
+
+## Entry 207
+
+Quest:
+0.67H Product Feel Cleanup.
+
+What changed:
+- Ran a Fable renderer pass on `web/src/CityWorldRenderer.tsx` for the graphics
+  cleanup lane.
+- Demoted labels so mobile renders selected/hovered labels only and desktop
+  caps ambient labels at two high-priority anchors.
+- Quieted place marker rings and selected pulse alpha so markers read as
+  ground-contact indicators, not glows.
+- Moved and shrank Eastvale Core pins so badges sit beside the landmark facade
+  instead of covering the silhouette.
+- Added focal prop/actor calm around the selected landmark and reduced
+  commerce/gym translucent detail so object massing reads first.
+- Added `scripts/verify-city-world-graphics-cleanup.mjs` and
+  `verify:graphics-cleanup` to capture desktop and `390x844` screenshots.
+- Added strict `product-feel-cleanup` split mode and source-of-truth checks for
+  the 0.67H manifest.
+
+Decision:
+`GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST`.
+
+Measured proof:
+- Fable renderer pass: labels, pins, markers, props/actors, commerce detail,
+  and gym detail changed in `web/src/CityWorldRenderer.tsx`.
+- Browser proof artifact:
+  `artifacts/product-quality-audit/0.67h/graphics-cleanup.json`.
+- Desktop screenshot:
+  `artifacts/product-quality-audit/0.67h/screens/graphics-cleanup-desktop-1280x720.png`.
+- Mobile screenshot:
+  `artifacts/product-quality-audit/0.67h/screens/graphics-cleanup-mobile-390x844.png`.
+
+Skipped:
+No new MCP tools, DB/Auth/Stripe expansion, public paid claims, dashboard shell,
+provider geometry, new geography, evidence, XP, reports, exports, automation,
+or public Anaheim/Ontario work. This pass cleans visual chrome and clutter; it
+does not finish the deeper face-ramp, material, or sprite-tint problem.
+
+Verification:
+- `pnpm typecheck:starter`
+- `pnpm build:starter`
+- `pnpm verify:preview:http`
+- `pnpm verify:graphics-cleanup -- --url http://127.0.0.1:8787/preview --screenshots artifacts\product-quality-audit\0.67h\screens`
+
+## Entry 206
+
+Quest:
+0.66H Mobile Interaction Hardening.
+
+What changed:
+- Refactored `web/src/PixiVoxelSceneView.tsx` so pan/zoom use refs and a
+  retained Pixi world transform instead of React `pan`/`zoom` state. Hover now
+  mutates the affected place visuals instead of rebuilding the scene graph.
+- Hardened `web/src/CityWorldRenderer.tsx` with rAF-coalesced camera transforms,
+  pointer-capture guards, and `data-qa-city-world-rebuild-count` proof.
+- Converted `web/src/HostedClawdTray.tsx` from a focus-stealing modal into a
+  collapsed-first bottom sheet. Collapsed state is a native map region with the
+  primary action visible; expanded state is the only `aria-modal` dialog.
+- Removed the clay background import and motion-rail DOM from the tray.
+- Added a `CityWorldScene` SVG fallback in `web/src/CityWorldView.tsx` so the
+  map has a first paint before the deferred Pixi chunk loads.
+- Split `web/dist/component.js` with esbuild dynamic chunks and served
+  `/widget/*` assets from `server/src/index.ts`; `/preview` is now a small shell
+  instead of an inlined 1MB document.
+- Added `scripts/verify-mobile-interaction-hardening.mjs` and updated
+  `scripts/verify-web-bundle-budget.mjs` / `scripts/verify-preview-http.mjs`
+  to enforce the split payload, retained pan path, and bottom-sheet geometry.
+
+Decision:
+`RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD`.
+
+Measured proof:
+- `/preview` shell: 386 bytes.
+- Eager JS: 210,920 bytes; deferred JS: 785,029 bytes across 25 chunks.
+- Desktop scripted pan rebuild delta: 0; mobile scripted pan rebuild delta: 0.
+- Desktop sheet: 77.25px collapsed, 324px expanded.
+- Mobile sheet: 76px collapsed, 379.8px expanded at 390x844.
+- No horizontal overflow or console errors in the 0.66H browser proof.
+
+Skipped:
+No new MCP tools, DB/Auth/Stripe scope, public paid claims, dashboard shell,
+renderer geometry changes, provider geometry, evidence, XP, reports, exports,
+automation, or public Anaheim/Ontario work. Total JS is still about 996 KB as
+deferred chunks; that remains a later diet target.
+
+Verification:
+- `pnpm typecheck:starter`
+- `pnpm build:starter`
+- `pnpm verify:preview:http`
+- `pnpm verify:web-bundle-budget`
+- `pnpm verify:mobile-interaction-hardening -- --url http://127.0.0.1:8787/preview --screenshots artifacts\product-quality-audit\0.66h\screens`
+
+## Entry 205
+
+Quest:
+0.65H Hosted Clawd Browser Proof.
+
+What changed:
+- Added `scripts/verify-hosted-clawd-browser-proof.mjs` and
+  `artifacts/hosted-clawd/postalpha-0.65h-browser-proof.json` to prove the
+  saved-read browser path.
+- Proved the missing-token browser state returns a `401 OAuth resource
+  challenge`, renders no saved shelf, exposes no widget bearer token, and keeps
+  the public MCP surface at seven tools.
+- Hardened the Hosted Clawd tray with dialog semantics, focus entry, Escape
+  close, status live regions, `44px touch targets`, and a compact mobile footer
+  so the primary action is visible at `390x844`.
+- Simplified the visible save surface to ChatGPT-facing copy: "Save with
+  ChatGPT", "Open saved state", "Connect ChatGPT to load saved items", and the
+  four-item saved-state checklist replace internal owner/webhook/write language.
+- Added `docs/ATLAS_FRONTEND_BACKEND_SCREEN_PLAN.md` as the product Scrum board
+  for Atlas screen states, backend contracts, asset lanes, completion tiers,
+  UML flow, and Fable/main-branch ownership.
+- Organized Atlas as one map-first ChatGPT app with stateful screen surfaces:
+  map, county shell, place tray, Scout, Campaign, Hosted Clawd setup,
+  auth-required, saved shelf, billing, and parked future states.
+- Added the screen plan to the strict Hosted Clawd browser-proof allowlist so
+  0.65H can carry product organization without appearing as random doc drift.
+- Completed the Claude/Fable sidecar in the isolated
+  `C:/Users/mzwin/Documents/atlas-53e-fable` worktree: 0.58E generated-district
+  parity now has a numeric verifier with 9 gates and 5 detection proofs.
+- Added
+  `docs/design/fable-prompts/PRODUCT_QUALITY_PROFESSOR_AUDIT_0.66H.md` after
+  the human graded the running preview as D+. This prompt asks Fable to inspect
+  the live app neutrally, measure lag/felt quality, and convert the critique
+  into the next executable 0.66H slices.
+
+Decision:
+`BROWSER_PROVES_ACCOUNT_LINK_REQUIRED_NO_WIDGET_TOKEN`.
+
+Skipped:
+No new public MCP tools, dashboard shell, public paid claims, renderer geometry
+in the main tree, live billing expansion, provider geometry, evidence, XP,
+reports, exports, or public Anaheim/Ontario work.
+
+Verification:
+- `pnpm typecheck:starter`
+- `pnpm build:starter`
+- `pnpm test:hosted-clawd-saved-read-surface`
+- `pnpm test:hosted-clawd-protected-tool-gate`
+- `pnpm test:hosted-clawd-billing`
+- `pnpm test:hosted-clawd`
+- `node scripts\verify-hosted-clawd-browser-proof.mjs --url http://127.0.0.1:8787/preview --screenshots artifacts\hosted-clawd\postalpha-0.65h-browser-proof`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-browser-proof --json-only`
+- `node scripts\verify-provider-boundaries.mjs --json-only`
+- `node scripts\verify-tool-result-shape.mjs --json-only`
+- `git diff --check` clean except standard Windows LF-to-CRLF warnings.
+- Fable sidecar: `node scripts\verify-generated-district-parity.mjs --json-only`
+  in `C:/Users/mzwin/Documents/atlas-53e-fable`.
+
+## Entry 204
+
+Quest:
+0.58E+ Voxel Graphical Leap Research.
+
+What changed:
+- Added `docs/design/fable-prompts/VOXEL_GRAPHICAL_LEAP_RESEARCH_0.58E.md`
+  as the next visual-engine research and Claude/Fable launch packet.
+- Ranked the next big visual jumps: generated district parity first, owned
+  sprite/asset intake second, then depth/contact shadows, roof/material atlas,
+  and camera composition.
+- Captured current visual blockers from the 0.57E generated parity proof:
+  sparse lower frame, empty pads, toy commercial rows, roof/eave
+  misregistration, and apartment facade drift.
+- Recorded an asset policy: CC0 or owned sources only, provenance tracked even
+  for CC0, no runtime 3D dependency, and no Google/city-specific copyrighted
+  asset leakage.
+- Added the research packet to the strict split allowlist for the existing
+  Hosted Clawd/Fable integration mode.
+- Recorded email as the preferred review path for future screenshot packets.
+- Ran a read-only Claude/Fable critique against the packet and folded in its
+  strongest blocker: the next visual slice needs measurable generated-district
+  parity gates, not only screenshot taste calls.
+
+Skipped:
+No renderer code, compiler code, runtime asset import, new dependency, public
+Anaheim/Ontario, provider geometry, persistence, Stripe, dashboard, reports,
+exports, XP, evidence, automation, or new MCP tools.
+
+Verification:
+- `git diff --check` clean, with only Windows LF-to-CRLF warnings.
+- `node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-saved-read-surface --json-only`
+  returned `ok: true`, `blockerCount: 0`, and `strictUnexpectedPaths: []`.
+- `claude -p --model fable ...` succeeded in read-only critique mode and did
+  not edit files.
+
+## Entry 203
+
+Quest:
+0.64H Saved Hosted Clawd Read Surface.
+
+What changed:
+- Added an owner-scoped, read-only saved-state route at
+  `/api/hosted-clawd/saved`.
+- Added read-scope auth for Hosted Clawd saved reads. Write scope can read, but
+  reads do not require write scope.
+- Added repository and Postgres read methods for owned Clawd, business profile,
+  Scout Drop summaries, campaign draft summaries, and stored subscription
+  status.
+- Proved saved reads do not create owner rows and do not expose another owner's
+  saved state.
+- Added a compact read-only saved shelf inside the existing Hosted Clawd tray
+  using the grey setup console and dark maroon clay UI language.
+- Kept `open_saved_campaign` as a read action instead of reusing the campaign
+  save POST route.
+- Rewired `refresh_status` to the saved-state GET route instead of
+  create-or-attach.
+- Updated `get_upgrade_options` so model-visible copy reflects closed Alpha
+  gates or owner-gated test persistence/Checkout without making public paid
+  claims.
+- Added `docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md` to log fixed stubs and queued
+  PRD cleanup items.
+- Added a human review packet and machine-readable inventory under
+  `artifacts/hosted-clawd/postalpha-0.64h-saved-read-surface/` so 0.65H starts
+  from explicit review asks instead of rediscovery.
+- Kept the public MCP surface at the existing seven tools.
+
+Decision:
+`SAVED_READS_OWNER_SCOPED_NO_NEW_TOOLS`.
+
+Skipped:
+No new public MCP tools, saved-state dashboard, pricing page, public paid
+claims, evidence, XP, reports, exports, automation, provider geometry, renderer
+geometry, new migrations, new dependencies, or public Anaheim/Ontario exposure.
+
+Verification:
+- `pnpm test:hosted-clawd-saved-read-surface`
+- `pnpm test:hosted-clawd-protected-tool-gate`
+- `pnpm test:hosted-clawd-billing`
+- `pnpm test:hosted-clawd`
+- `pnpm typecheck:starter`
+- `node scripts\verify-hosted-clawd-saved-read-surface.mjs`
+- `node scripts\verify-hosted-clawd-saved-read-browser.mjs --screenshots artifacts\hosted-clawd\postalpha-0.64h-saved-read-surface`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-saved-read-surface --json-only`
+- `node scripts\verify-provider-boundaries.mjs --json-only`
+- `node scripts\verify-tool-result-shape.mjs --json-only`
+- `pnpm build:starter`
+
+## Entry 202
+
+Quest:
+0.63H Protected Hosted Clawd Tool Gate.
+
+What changed:
+- Added a repository-backed protected paid-write gate for Hosted Clawd.
+- Kept `create_or_attach_clawd` open for authenticated owners so a Clawd can be
+  owned before Checkout starts.
+- Blocked `promote_session` and `save_campaign_artifact` unless the repository
+  reports an active subscription from Stripe webhook state.
+- Proved client-supplied subscriptionStatus is not trusted; return URLs and UI
+  state cannot unlock saved Scout or Campaign writes.
+- Added `server/test/hosted-clawd-protected-tool-gate.test.ts` and
+  `scripts/verify-hosted-clawd-protected-tool-gate.mjs`.
+- Kept the public MCP surface at the existing seven tools.
+
+Decision:
+`PROTECTED_PAID_WRITES_REQUIRE_WEBHOOK_CONFIRMED_SUBSCRIPTION`.
+
+Skipped:
+No new public MCP tools, live paid launch, public paid claims, pricing page,
+dashboard shell, evidence, XP, reports, exports, automation, provider geometry,
+renderer geometry, or public Anaheim/Ontario exposure.
+
+Verification:
+- `pnpm test:hosted-clawd-protected-tool-gate`
+- `pnpm test:hosted-clawd-billing`
+- `pnpm test:hosted-clawd`
+- `pnpm typecheck:starter`
+- `node scripts\verify-hosted-clawd-protected-tool-gate.mjs`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-protected-tool-gate --json-only`
+- `node scripts\verify-provider-boundaries.mjs --json-only`
+- `node scripts\verify-tool-result-shape.mjs --json-only`
+- `pnpm build:starter`
+
+## Entry 201
+
+Quest:
+0.62H Stripe Test Billing.
+
+What changed:
+- Added server-side Stripe test billing for Hosted Clawd: Checkout Session,
+  Customer Portal, raw-body webhook signature verification, and a webhook replay guard.
+- Added the second Hosted Clawd migration for Stripe customer ids,
+  subscription rows, and webhook event rows.
+- Kept Checkout server-owned: the browser never supplies price, amount,
+  customer, or subscription truth.
+- Kept return URLs powerless. The map tray can show return pending, but paid
+  writes unlock only after stored subscription state is updated by a verified
+  Stripe webhook.
+- Added a compact billing rail to the Hosted Clawd tray and a dark maroon clay
+  background asset for the UI shell.
+- Kept the public MCP surface at the existing seven tools and avoided a pricing
+  page, dashboard shell, plan comparison, or new renderer geometry.
+
+Decision:
+`STRIPE_TEST_BILLING_WEBHOOK_GATED`. Stripe test billing is local-green only as
+webhook-confirmed state behind owner auth. Live billing and public paid claims
+remain closed.
+
+Skipped:
+No live-mode Stripe, public paid launch, public pricing page, public paid claim,
+evidence, XP, reports, exports, automation, new public MCP tools, provider
+geometry, renderer geometry, dashboard shell, or public Anaheim/Ontario
+exposure.
+
+Verification:
+- `pnpm test:hosted-clawd-billing`
+- `pnpm typecheck:starter`
+- `node scripts\verify-hosted-clawd-stripe-billing.mjs`
+- `node scripts\verify-atlas-source-of-truth-drift.mjs --json-only`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-stripe-billing --json-only`
+- `node scripts\verify-provider-boundaries.mjs --json-only`
+- `node scripts\verify-tool-result-shape.mjs --json-only`
+- `pnpm build:starter`
+- Browser proof for the dark maroon clay billing tray at desktop and 390x844.
+
 ## Entry 200
 
 Quest:

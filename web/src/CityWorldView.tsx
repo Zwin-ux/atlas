@@ -1,18 +1,26 @@
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
 import {
+  CITY_WORLD_TILE_BASIS,
   compileCityWorldScene,
+  cityWorldDiamondPoints,
+  projectCityWorldPoint,
   type CityWorldScene,
   type VoxelNote,
   type VoxelScene,
   type VoxelSticker,
   type VoxelStickerKind,
 } from "@atlas/core/voxel";
-import { CityWorldRenderer, type CityWorldRendererHandle } from "./CityWorldRenderer";
+import type { CityWorldRendererHandle } from "./CityWorldRenderer";
 import { HostedClawdTray } from "./HostedClawdTray";
 import { MapChrome, readRequestedCameraPreset, readRequestedDebugMode } from "./MapChrome";
 import { PreviewPanel } from "./PreviewPanel";
 import type { HostedClawdContext } from "./types";
+
+const CityWorldRenderer = lazy(async () => {
+  const module = await import("./CityWorldRenderer");
+  return { default: module.CityWorldRenderer };
+});
 
 export type CityWorldViewProps = {
   scene: VoxelScene;
@@ -119,7 +127,7 @@ export function CityWorldView({
 
   return (
     <main
-      className={hasPreview || hasHostedClawdTray ? "city-world-shell has-preview" : "city-world-shell"}
+      className={hasPreview ? "city-world-shell has-preview" : hasHostedClawdTray ? "city-world-shell has-save-sheet" : "city-world-shell"}
       data-qa="alpha-city-world"
       data-qa-selected-place={activePlace?.id ?? ""}
       data-qa-pin-count={stickerCount}
@@ -129,20 +137,22 @@ export function CityWorldView({
       data-qa-camera-preset={cameraPresetId ?? ""}
       data-qa-generated={isGeneratedMode ? "true" : undefined}
     >
-      <CityWorldRenderer
-        ref={rendererRef}
-        scene={cityScene}
-        selectedPlaceId={activePlace?.id}
-        cameraPresetId={cameraPresetId}
-        debugMode={debugMode}
-        onSelectPlace={isGeneratedMode ? () => undefined : onSelectPlace}
-      />
+      <Suspense fallback={<CityWorldSceneFallback scene={cityScene} selectedPlaceId={activePlace?.id} />}>
+        <CityWorldRenderer
+          ref={rendererRef}
+          scene={cityScene}
+          selectedPlaceId={activePlace?.id}
+          cameraPresetId={cameraPresetId}
+          debugMode={debugMode}
+          onSelectPlace={isGeneratedMode ? () => undefined : onSelectPlace}
+        />
+      </Suspense>
 
       {isGeneratedMode ? (
         <div className="city-world-generated-boundary" data-qa="generated-boundary">
           <div>
             <span>GENERATED PREVIEW</span>
-            <strong>Synthetic district built by the Atlas engine. Not a real place, not real coverage. Session-only.</strong>
+            <strong>Generated district. Not real coverage. Nothing is saved.</strong>
           </div>
           <button type="button" data-qa="exit-generated" onClick={onExitGeneratedPreview}>
             Exit preview
@@ -235,7 +245,7 @@ export function CityWorldView({
         </div>
         {hostedClawdContext && onOpenHostedClawd ? (
           <button type="button" className="city-world-hosted-clawd-open" data-qa="hosted-clawd-open" onClick={onOpenHostedClawd}>
-            Host Clawd
+            Save with ChatGPT
             <span>{hostedClawdContext.sessionBoundary}</span>
           </button>
         ) : null}
@@ -275,6 +285,71 @@ function PinIcon() {
     <svg className="city-world-pin-icon" viewBox="0 0 20 20" aria-hidden="true">
       <path d="M10 3.5c-2.7 0-4.8 2-4.8 4.6 0 3.4 4.8 8.4 4.8 8.4s4.8-5 4.8-8.4c0-2.6-2.1-4.6-4.8-4.6Z" />
       <circle cx="10" cy="8.1" r="1.6" />
+    </svg>
+  );
+}
+
+function CityWorldSceneFallback({ scene, selectedPlaceId }: { scene: CityWorldScene; selectedPlaceId?: string | undefined }) {
+  const terrainTiles = scene.terrainTiles.slice(0, 260);
+  const lots = scene.lots.slice(0, 80);
+  const projected = [
+    ...terrainTiles.map((tile) => projectCityWorldPoint(tile.position)),
+    ...lots.map((lot) => projectCityWorldPoint(lot.position)),
+    ...scene.places.map((place) => projectCityWorldPoint(place.anchor)),
+  ];
+  const bounds = projected.reduce(
+    (box, point) => ({
+      minX: Math.min(box.minX, point.x),
+      minY: Math.min(box.minY, point.y),
+      maxX: Math.max(box.maxX, point.x),
+      maxY: Math.max(box.maxY, point.y),
+    }),
+    { minX: 0, minY: 0, maxX: 1, maxY: 1 },
+  );
+  const pad = 96;
+  const viewBox = `${bounds.minX - pad} ${bounds.minY - pad} ${Math.max(320, bounds.maxX - bounds.minX + pad * 2)} ${Math.max(260, bounds.maxY - bounds.minY + pad * 2)}`;
+
+  return (
+    <svg
+      className="city-world-renderer city-world-renderer-fallback"
+      viewBox={viewBox}
+      role="img"
+      aria-label={`${scene.region.district} voxel city map loading`}
+      data-qa="city-world-renderer-fallback"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <rect className="city-world-renderer-fallback-bg" x={bounds.minX - pad} y={bounds.minY - pad} width={bounds.maxX - bounds.minX + pad * 2} height={bounds.maxY - bounds.minY + pad * 2} />
+      <g>
+        {terrainTiles.map((tile) => {
+          const point = projectCityWorldPoint(tile.position);
+          return (
+            <polygon
+              key={tile.id}
+              className={`city-world-renderer-fallback-tile terrain-${tile.kind}`}
+              points={cityWorldDiamondPoints(point, tile.width * CITY_WORLD_TILE_BASIS.tileWidth, tile.depth * CITY_WORLD_TILE_BASIS.tileHeight).join(" ")}
+            />
+          );
+        })}
+      </g>
+      <g>
+        {lots.map((lot) => {
+          const point = projectCityWorldPoint(lot.position);
+          return (
+            <polygon
+              key={lot.id}
+              className={`city-world-renderer-fallback-lot lot-${lot.kind}`}
+              points={cityWorldDiamondPoints(point, lot.width * CITY_WORLD_TILE_BASIS.tileWidth, lot.depth * CITY_WORLD_TILE_BASIS.tileHeight).join(" ")}
+            />
+          );
+        })}
+      </g>
+      <g>
+        {scene.places.map((place) => {
+          const point = projectCityWorldPoint(place.anchor);
+          const selected = place.id === selectedPlaceId;
+          return <circle key={place.id} className={selected ? "city-world-renderer-fallback-place is-selected" : "city-world-renderer-fallback-place"} cx={point.x} cy={point.y} r={selected ? 13 : 9} />;
+        })}
+      </g>
     </svg>
   );
 }

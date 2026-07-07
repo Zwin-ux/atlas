@@ -13,6 +13,18 @@ export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistric
 export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./cityWorldCompiler.js";
 export { generateParametricCityWorldScene, exampleParametricDistrictSpec } from "./cityWorldParametricGenerator.js";
 export type { CityWorldParametricSpec, CityWorldParametricResult, CityWorldZoneSpec, CityWorldZoneKind, CityWorldRoadSeed } from "./cityWorldParametricGenerator.js";
+export {
+  DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
+  createDeterministicGeneratedDistrictScene,
+  createDeterministicGeneratedDistrictSpec,
+  deterministicGeneratedDistrictSeedForCounty,
+} from "./cityWorldGeneratedDistrict.js";
+export type {
+  DeterministicGeneratedDistrictInput,
+  DeterministicGeneratedDistrictSceneResult,
+  DeterministicGeneratedDistrictSpec,
+  GeneratedDistrictArchetype,
+} from "./cityWorldGeneratedDistrict.js";
 export { compileVoxelSceneFromCountyPack } from "./VoxelSceneCompiler.js";
 export type { CompileVoxelSceneOptions } from "./VoxelSceneCompiler.js";
 export * from "./mapSession.js";

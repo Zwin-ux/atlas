@@ -20,7 +20,7 @@ const requiredFiles = [
 
 const blockers = [];
 const warnings = [];
-const expectedCurrentUpdateId = "postalpha-0.33e-db-scene-packet-persistence-plan";
+const expectedCurrentUpdateId = "postalpha-0.72b-redis-scene-packet-cache-job-spine";
 
 function read(path) {
   if (!existsSync(path)) {
@@ -42,14 +42,14 @@ function warnIfMissing(path, needle, message) {
 
 requireText("LOOP.md", "L2 assisted", "LOOP.md must declare Atlas as L2 assisted, not unattended.");
 requireText("LOOP.md", "APPROVE_CONTROLLED_PUBLIC_SPIKE", "LOOP.md must name the public Anaheim cutline.");
-requireText("STATE.md", "High Priority", "STATE.md must contain a High Priority queue.");
-requireText("STATE.md", "BLOCK_PROMOTION", "STATE.md must preserve the current Anaheim block.");
+requireText("STATE.md", "Current Slice", "STATE.md must contain the current loop slice.");
+requireText("STATE.md", "Keep Anaheim/Ontario hidden and non-public", "STATE.md must preserve the current Anaheim/Ontario block.");
 requireText("loop-budget.md", "Kill Switch", "loop-budget.md must define a kill switch.");
 requireText("loop-constraints.md", "Forbidden Scope", "loop-constraints.md must define forbidden scope.");
 requireText("loop-constraints.md", "package/lock/env", "loop-constraints.md must block package/lock/env drift.");
 requireText("docs/ATLAS_FULL_PROJECT_LOOP_SPEC.md", "country -> state -> county -> district -> place", "Full project loop spec must preserve the USA-scale hierarchy.");
 requireText("docs/ATLAS_FULL_PROJECT_LOOP_SPEC.md", "Atlas is currently L2 assisted", "Full project loop spec must state the current loop level.");
-requireText("docs/NEXT_QUESTS.md", "0.33E DB Scene Packet Persistence Plan", "NEXT_QUESTS must point at the current 0.33E pass.");
+requireText("docs/NEXT_QUESTS.md", "0.72B Redis Scene Packet Cache / Job Spine", "NEXT_QUESTS must point at the current 0.72B backend spine pass.");
 requireText("scripts/verify-alpha-rc-split.mjs", "scripts/verify-atlas-loop-readiness.mjs", "Split guard must allow the Atlas loop readiness verifier.");
 requireText("scripts/verify-alpha-rc-split.mjs", "LOOP.md", "Split guard must allow LOOP.md.");
 
@@ -84,27 +84,29 @@ if (existsSync(cutlinePath)) {
 }
 
 let dirtyForbiddenPaths = [];
+let splitGuard = null;
 try {
-  dirtyForbiddenPaths = execFileSync("git", ["status", "--short", "--untracked-files=all"], { encoding: "utf8" })
-    .split(/\r?\n/)
-    .map((line) => line.slice(3).trim().replaceAll("\\", "/"))
-    .filter(Boolean)
-    .filter((path) => {
-      return (
-        path === "package.json" ||
-        path === "pnpm-lock.yaml" ||
-        path.startsWith(".env") ||
-        path.startsWith("migrations/") ||
-        path.startsWith("server/src/hostedClawd/") ||
-        path.toLowerCase().includes("stripe") ||
-        path.toLowerCase().includes("oauth")
-      );
-    });
-  if (dirtyForbiddenPaths.length > 0) {
-    blockers.push(`Forbidden dirty paths present: ${dirtyForbiddenPaths.join(", ")}`);
+  const splitGuardOutput = execFileSync(
+    "node",
+    [
+      "scripts/verify-alpha-rc-split.mjs",
+      "--working-tree",
+      "--strict-selected-rc",
+      "--rc-mode",
+      "national-generation-contract",
+      "--json-only",
+    ],
+    { encoding: "utf8" },
+  );
+  splitGuard = JSON.parse(splitGuardOutput);
+  dirtyForbiddenPaths = splitGuard.strictUnexpectedPaths ?? [];
+  if (splitGuard.ok !== true || splitGuard.blockerCount !== 0 || dirtyForbiddenPaths.length > 0) {
+    blockers.push(
+      `national-generation-contract split guard must pass with 0 blockers / 0 unknowns; got blockers=${splitGuard.blockerCount ?? "unknown"}, unknown=${dirtyForbiddenPaths.length}.`,
+    );
   }
 } catch (error) {
-  warnings.push(`Unable to inspect git status: ${error instanceof Error ? error.message : String(error)}`);
+  blockers.push(`Unable to run national-generation-contract split guard: ${error instanceof Error ? error.message : String(error)}`);
 }
 
 const result = {
@@ -115,6 +117,7 @@ const result = {
   currentUpdateId: currentUpdate.id ?? null,
   requiredFiles,
   dirtyForbiddenPaths,
+  splitGuard,
   blockers,
   warnings,
   nextLoopAction:

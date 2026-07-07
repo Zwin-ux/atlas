@@ -21,9 +21,9 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
   const cameraPresetId = shellScene ? readRequestedCameraPreset(shellScene) : undefined;
   const debugMode = readRequestedDebugMode();
   const boundaryCopy = isShell
-    ? "Indexed only. No saves, XP, evidence, or automation."
-    : "Not indexed yet. No saves, XP, evidence, or automation.";
-  const recoveryText = "Open Riverside/Eastvale playable Alpha";
+    ? "Browse-only. Nothing is saved."
+    : "Not indexed yet. Nothing is saved.";
+  const recoveryText = "Open Riverside";
 
   useEffect(() => {
     const openaiWindow = window as Window & {
@@ -33,7 +33,7 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
   }, []);
 
   const openPlayableSlice = () => {
-    void sendUserMessage("Open Riverside/Eastvale playable Alpha in Atlas.");
+    void sendUserMessage("Open Riverside/Eastvale in Atlas.");
   };
 
   return (

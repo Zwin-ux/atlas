@@ -1,0 +1,79 @@
+{
+  "update": "postalpha-0.62h-hosted-clawd-stripe-test-billing",
+  "status": "local_green",
+  "decision": "STRIPE_TEST_BILLING_WEBHOOK_GATED",
+  "chatgptAppBoundary": {
+    "surface": "Hosted Clawd map tray inside the Atlas ChatGPT App widget",
+    "publicMcpTools": 7,
+    "newMcpTools": 0,
+    "largeStatePolicy": "Widget state and server-owned billing state stay out of transcript-sized payloads",
+    "clientTrustBoundary": "The iframe can open a server-returned Stripe URL but cannot assert paid access"
+  },
+  "billing": {
+    "stripeMode": "test_only",
+    "checkoutMode": "subscription",
+    "priceSource": "STRIPE_HOSTED_CLAWD_PRICE_ID",
+    "customerSource": "server-owned users.stripe_customer_id",
+    "portalAccess": "owner_checked",
+    "confirmationSource": "stripe_webhook",
+    "returnUrlGrantsAccess": false,
+    "webhookRoute": "/api/stripe/webhook",
+    "rawBodyRequired": true,
+    "signatureHeader": "Stripe-Signature",
+    "replayGuard": "stripe_webhook_events.stripe_event_id",
+    "activeLikeStatuses": [
+      "active",
+      "trialing"
+    ],
+    "readOnlyStatuses": [
+      "incomplete",
+      "incomplete_expired",
+      "past_due",
+      "canceled",
+      "unpaid",
+      "paused"
+    ]
+  },
+  "dataModel": {
+    "migration": "migrations/hosted-clawd/002_stripe_test_billing.sql",
+    "userField": "users.stripe_customer_id",
+    "subscriptionTable": "hosted_clawd_subscriptions",
+    "webhookTable": "stripe_webhook_events"
+  },
+  "ui": {
+    "surface": "Hosted Clawd tray",
+    "billingRailQa": "hosted-clawd-billing-rail",
+    "confirmationQa": "data-qa-checkout-confirmation-source",
+    "returnQa": "hosted-clawd-billing-return",
+    "readonlyQa": "hosted-clawd-billing-readonly",
+    "saveSurfaceCount": 1,
+    "visualSource": "generated dark maroon clay texture plus grey setup console",
+    "clayBackgroundAsset": "assets/generated/placeholders/svg/hosted-clawd-clay-bg.svg",
+    "copy": {
+      "testReady": "Checkout opens only from an owned Clawd. Stripe test mode.",
+      "returnPending": "Return received. Waiting for Stripe webhook.",
+      "active": "Stripe webhook confirmed this Hosted Clawd.",
+      "paymentAttention": "Billing needs attention. Saves stay readable; paid writes are paused."
+    }
+  },
+  "verification": {
+    "billingTests": "pnpm test:hosted-clawd-billing",
+    "starterTypecheck": "pnpm typecheck:starter",
+    "stripeBillingGuard": "node scripts/verify-hosted-clawd-stripe-billing.mjs",
+    "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "stripeBillingSplitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-stripe-billing --json-only"
+  },
+  "antiScope": [
+    "No live-mode Stripe keys",
+    "No public paid launch claim",
+    "No public pricing page or dashboard shell",
+    "No new public MCP tools",
+    "No browser Stripe JS",
+    "No access from return URLs",
+    "No evidence, XP, reports, exports, or automation",
+    "No public Anaheim/Ontario exposure",
+    "No provider-created geometry",
+    "No voxel renderer geometry changes"
+  ],
+  "recommendedNextQuest": "0.63H Protected Hosted Clawd Tool Gate"
+}

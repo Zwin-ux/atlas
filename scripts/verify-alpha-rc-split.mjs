@@ -20,6 +20,13 @@ const RC_MODES = new Set([
   "hosted-clawd-fable-integration",
   "hosted-clawd-persistence-foundation",
   "hosted-clawd-save-ux",
+  "hosted-clawd-stripe-billing",
+  "hosted-clawd-protected-tool-gate",
+  "hosted-clawd-saved-read-surface",
+  "hosted-clawd-browser-proof",
+  "mobile-interaction-hardening",
+  "product-feel-cleanup",
+  "national-generation-contract",
 ]);
 
 const SAFE_FUNCTIONAL_RC_DOCS = new Set([
@@ -223,6 +230,7 @@ const HOSTED_CLAWD_FABLE_INTEGRATION_FILES = new Set([
   "docs/design/fable-prompts/BUILDING_FIDELITY_SUPERPASS.md",
   "docs/design/fable-prompts/DECAL_DISCIPLINE_SUPERPASS.md",
   "docs/design/fable-prompts/FABLE_LAUNCH_0.53E.md",
+  "docs/design/fable-prompts/VOXEL_GRAPHICAL_LEAP_RESEARCH_0.58E.md",
   "packages/core/src/voxel/cityWorldParametricGenerator.ts",
   "scripts/verify-fable-prop-cleanup.mjs",
   "web/src/CityWorldRenderer.tsx",
@@ -252,6 +260,145 @@ const HOSTED_CLAWD_SAVE_UX_FILES = new Set([
   "scripts/verify-hosted-clawd-save-ux.mjs",
   "scripts/verify-hosted-clawd-save-ux-browser.mjs",
 ]);
+
+const HOSTED_CLAWD_STRIPE_BILLING_FILES = new Set([
+  "assets/generated/placeholders/svg/hosted-clawd-clay-bg.svg",
+  "migrations/hosted-clawd/002_stripe_test_billing.sql",
+  "scripts/verify-hosted-clawd-stripe-billing.mjs",
+  "server/test/hosted-clawd-stripe-test-billing.test.ts",
+]);
+
+const HOSTED_CLAWD_PROTECTED_TOOL_GATE_FILES = new Set([
+  "scripts/verify-hosted-clawd-protected-tool-gate.mjs",
+  "server/test/hosted-clawd-protected-tool-gate.test.ts",
+]);
+
+const HOSTED_CLAWD_SAVED_READ_SURFACE_FILES = new Set([
+  "docs/HOSTED_CLAWD_STUB_AUDIT_0.64H.md",
+  "scripts/verify-hosted-clawd-saved-read-browser.mjs",
+  "scripts/verify-hosted-clawd-saved-read-surface.mjs",
+  "server/test/hosted-clawd-saved-read-surface.test.ts",
+]);
+
+const HOSTED_CLAWD_BROWSER_PROOF_FILES = new Set([
+  "docs/ATLAS_FRONTEND_BACKEND_SCREEN_PLAN.md",
+  "packages/core/src/scout/CampaignPreviewService.ts",
+  "packages/core/src/scout/ScoutDropService.ts",
+  "scripts/verify-hosted-clawd-browser-proof.mjs",
+  "web/src/CountyCoverageView.tsx",
+  "web/src/CountySwitcher.tsx",
+  "web/src/PreviewPanel.tsx",
+  "web/src/VoxelSceneView.tsx",
+]);
+
+const MOBILE_INTERACTION_HARDENING_FILES = new Set([
+  "AGENTS.md",
+  "STATE.md",
+  "artifacts/current-update.json",
+  "docs/BUILD_LOG.md",
+  "docs/DECISIONS.md",
+  "docs/NEXT_QUESTS.md",
+  "docs/PRODUCT_SPEC_AND_GATES.md",
+  "docs/design/fable-prompts/PRODUCT_QUALITY_PROFESSOR_AUDIT_0.66H.md",
+  "package.json",
+  "scripts/build-web.mjs",
+  "scripts/verify-alpha-rc-split.mjs",
+  "scripts/verify-atlas-source-of-truth-drift.mjs",
+  "scripts/verify-mobile-interaction-hardening.mjs",
+  "scripts/verify-preview-http.mjs",
+  "scripts/verify-web-bundle-budget.mjs",
+  "server/src/index.ts",
+  "web/src/CityWorldRenderer.tsx",
+  "web/src/CityWorldView.tsx",
+  "web/src/HostedClawdTray.tsx",
+  "web/src/PixiVoxelSceneView.tsx",
+  "web/src/styles.css",
+]);
+
+const MOBILE_INTERACTION_HARDENING_PREFIXES = [
+  "artifacts/product-quality-audit/0.66h/",
+];
+
+const PRODUCT_FEEL_CLEANUP_FILES = new Set([
+  "artifacts/current-update.json",
+  "AGENTS.md",
+  "STATE.md",
+  "docs/BUILD_LOG.md",
+  "docs/DECISIONS.md",
+  "docs/NEXT_QUESTS.md",
+  "docs/PRODUCT_SPEC_AND_GATES.md",
+  "docs/updates/ATLAS_RELEASE_LADDER.md",
+  "package.json",
+  "scripts/verify-alpha-rc-split.mjs",
+  "scripts/verify-atlas-source-of-truth-drift.mjs",
+  "scripts/verify-city-world-graphics-cleanup.mjs",
+  "web/src/CityWorldRenderer.tsx",
+]);
+
+const PRODUCT_FEEL_CLEANUP_PREFIXES = [
+  "artifacts/product-quality-audit/0.67h/",
+];
+
+const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
+  "artifacts/current-update.json",
+  "AGENTS.md",
+  "STATE.md",
+  "docs/BUILD_LOG.md",
+  "docs/DECISIONS.md",
+  "docs/NATIONAL_ENGINE_PRODUCTION_CONTRACT.md",
+  "docs/NEXT_QUESTS.md",
+  "docs/PRODUCT_SPEC_AND_GATES.md",
+  "docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md",
+  "docs/SCENE_PACKET_SERVICE_BOUNDARY_0.71H.md",
+  "docs/TOOL_CONTRACTS.md",
+  "docs/VOXEL_ENGINE_DELIVERY_ARCHITECTURE_0.70H.md",
+  "docs/updates/ATLAS_RELEASE_LADDER.md",
+  "package.json",
+  "packages/core/src/index.ts",
+  "packages/core/src/voxel/cityWorldGeneratedDistrict.ts",
+  "packages/core/src/voxel/cityWorldGeneratedDistrictArchetypes.ts",
+  "packages/core/src/voxel/cityWorldGeneratedDistrictSeed.ts",
+  "packages/core/src/voxel/cityWorldGeneratedDistrictTypes.ts",
+  "packages/core/src/voxel/cityWorldSceneWindow.ts",
+  "packages/core/src/voxel/index.ts",
+  "packages/core/src/world/NationalWorldService.ts",
+  "packages/core/src/world/index.ts",
+  "packages/core/src/world/nationalGenerationProduction.ts",
+  "packages/core/src/world/scenePacketCache.ts",
+  "packages/core/src/world/usCountyIndex.ts",
+  "packages/core/test/city-world-generated-district.test.ts",
+  "packages/core/test/national-generation-production.test.ts",
+  "packages/core/test/national-world-service.test.ts",
+  "packages/core/test/scene-packet-cache.test.ts",
+  "server/src/index.ts",
+  "server/src/scenePacketMemoryAdapter.ts",
+  "server/src/scenePacketWorker.ts",
+  "scripts/verify-deterministic-generated-district-specs.mjs",
+  "scripts/verify-generated-draft-scene-packet.mjs",
+  "scripts/generate-us-county-index.mjs",
+  "scripts/verify-alpha-rc-split.mjs",
+  "scripts/verify-atlas-loop-readiness.mjs",
+  "scripts/verify-atlas-source-of-truth-drift.mjs",
+  "scripts/verify-mcp-flow.mjs",
+  "scripts/verify-submission.mjs",
+  "scripts/verify-national-generation-production-contract.mjs",
+  "scripts/verify-national-shells.mjs",
+  "scripts/verify-production-backend-spine.mjs",
+  "scripts/railway-start.mjs",
+  "scripts/run-hosted-clawd-migrations.mjs",
+  "scripts/verify-railway-production-stack.mjs",
+  "scripts/verify-scene-packet-memory-adapter.mjs",
+  "web/src/App.tsx",
+  "artifacts/ops/production-railway-stack.json",
+]);
+
+const NATIONAL_GENERATION_CONTRACT_PREFIXES = [
+  "artifacts/national-generation/0.68h/",
+  "artifacts/national-generation/0.69h/",
+  "artifacts/national-generation/0.70h/",
+  "artifacts/national-generation/0.71h/",
+  "artifacts/national-generation/0.72b/",
+];
 
 const EXACT_RULES = [
   ["hosted-clawd-parked", ".env.example", "DB and invite-token env placeholders are not part of public Alpha RC."],
@@ -332,6 +479,27 @@ for the selected RC mode. Use this before staging/deploy claims.
   hosted-clawd-save-ux
                          Allows 0.61H map-first Hosted Clawd save UX over the
                          integrated persistence foundation. Billing stays out.
+  hosted-clawd-stripe-billing
+                         Allows 0.62H Stripe test billing, webhook replay
+                         state, and the compact clay billing rail only.
+  hosted-clawd-protected-tool-gate
+                         Allows 0.63H repository-backed protected paid-write
+                         gating without adding public MCP tools.
+  hosted-clawd-saved-read-surface
+                         Allows 0.64H owner-scoped saved read surface and tray
+                         shelf without adding public MCP tools.
+  hosted-clawd-browser-proof
+                         Allows 0.65H desktop/mobile browser proof for account
+                         linking and no widget bearer token exposure.
+  mobile-interaction-hardening
+                         Allows 0.66H retained scene graph, bottom-sheet save
+                         chrome, and split widget payload hardening.
+  product-feel-cleanup
+                         Allows 0.67H map graphics cleanup: label demotion,
+                         quiet markers, off-facade pins, and visual proof.
+  national-generation-contract
+                         Allows 0.69H nationwide county identity and honest
+                         shell files and proof artifacts.
 
 The check is conservative. Parked runtime/backend/visual paths, shared docs
 that require hunk review, and unknown paths block a Functional Alpha RC.`);
@@ -501,6 +669,55 @@ function classifyPath(path) {
     };
   }
 
+  if (rcMode === "hosted-clawd-stripe-billing" && isHostedClawdStripeBillingPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.62H Hosted Clawd Stripe test billing RC mode.",
+    };
+  }
+
+  if (rcMode === "hosted-clawd-protected-tool-gate" && isHostedClawdProtectedToolGatePath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.63H Hosted Clawd protected tool gate RC mode.",
+    };
+  }
+
+  if (rcMode === "hosted-clawd-saved-read-surface" && isHostedClawdSavedReadSurfacePath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.64H Hosted Clawd saved read surface RC mode.",
+    };
+  }
+
+  if (rcMode === "hosted-clawd-browser-proof" && isHostedClawdBrowserProofPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.65H Hosted Clawd browser proof RC mode.",
+    };
+  }
+
+  if (rcMode === "mobile-interaction-hardening" && isMobileInteractionHardeningPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.66H mobile interaction hardening RC mode.",
+    };
+  }
+
+  if (rcMode === "product-feel-cleanup" && isProductFeelCleanupPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.67H product feel cleanup RC mode.",
+    };
+  }
+
+  if (rcMode === "national-generation-contract" && isNationalGenerationContractPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.70H national generation contract RC mode.",
+    };
+  }
+
   for (const [classification, exactPath, reason] of EXACT_RULES) {
     if (path === exactPath) {
       return { classification, reason };
@@ -592,6 +809,188 @@ function getSelectedRcAllowedPaths(modeName) {
       paths.add(path);
     }
   }
+  if (modeName === "hosted-clawd-stripe-billing") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVE_UX_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_STRIPE_BILLING_FILES) {
+      paths.add(path);
+    }
+  }
+  if (modeName === "hosted-clawd-protected-tool-gate") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVE_UX_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_STRIPE_BILLING_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PROTECTED_TOOL_GATE_FILES) {
+      paths.add(path);
+    }
+  }
+  if (modeName === "hosted-clawd-saved-read-surface") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVE_UX_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_STRIPE_BILLING_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PROTECTED_TOOL_GATE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVED_READ_SURFACE_FILES) {
+      paths.add(path);
+    }
+  }
+  if (modeName === "hosted-clawd-browser-proof") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVE_UX_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_STRIPE_BILLING_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PROTECTED_TOOL_GATE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVED_READ_SURFACE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_BROWSER_PROOF_FILES) {
+      paths.add(path);
+    }
+  }
+  if (modeName === "mobile-interaction-hardening") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVE_UX_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_STRIPE_BILLING_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PROTECTED_TOOL_GATE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVED_READ_SURFACE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_BROWSER_PROOF_FILES) {
+      paths.add(path);
+    }
+    for (const path of MOBILE_INTERACTION_HARDENING_FILES) {
+      paths.add(path);
+    }
+  }
+  if (modeName === "product-feel-cleanup") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVE_UX_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_STRIPE_BILLING_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PROTECTED_TOOL_GATE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVED_READ_SURFACE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_BROWSER_PROOF_FILES) {
+      paths.add(path);
+    }
+    for (const path of MOBILE_INTERACTION_HARDENING_FILES) {
+      paths.add(path);
+    }
+    for (const path of PRODUCT_FEEL_CLEANUP_FILES) {
+      paths.add(path);
+    }
+  }
+  if (modeName === "national-generation-contract") {
+    for (const path of HOSTED_CLAWD_SCAFFOLD_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_FABLE_INTEGRATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PERSISTENCE_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVE_UX_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_STRIPE_BILLING_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_PROTECTED_TOOL_GATE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_SAVED_READ_SURFACE_FILES) {
+      paths.add(path);
+    }
+    for (const path of HOSTED_CLAWD_BROWSER_PROOF_FILES) {
+      paths.add(path);
+    }
+    for (const path of MOBILE_INTERACTION_HARDENING_FILES) {
+      paths.add(path);
+    }
+    for (const path of PRODUCT_FEEL_CLEANUP_FILES) {
+      paths.add(path);
+    }
+    for (const path of NATIONAL_GENERATION_CONTRACT_FILES) {
+      paths.add(path);
+    }
+  }
   return paths;
 }
 
@@ -619,6 +1018,27 @@ function isSelectedRcAllowedPath(path) {
   }
   if (rcMode === "hosted-clawd-save-ux") {
     return isHostedClawdSaveUxPath(path);
+  }
+  if (rcMode === "hosted-clawd-stripe-billing") {
+    return isHostedClawdStripeBillingPath(path);
+  }
+  if (rcMode === "hosted-clawd-protected-tool-gate") {
+    return isHostedClawdProtectedToolGatePath(path);
+  }
+  if (rcMode === "hosted-clawd-saved-read-surface") {
+    return isHostedClawdSavedReadSurfacePath(path);
+  }
+  if (rcMode === "hosted-clawd-browser-proof") {
+    return isHostedClawdBrowserProofPath(path);
+  }
+  if (rcMode === "mobile-interaction-hardening") {
+    return isMobileInteractionHardeningPath(path);
+  }
+  if (rcMode === "product-feel-cleanup") {
+    return isProductFeelCleanupPath(path);
+  }
+  if (rcMode === "national-generation-contract") {
+    return isNationalGenerationContractPath(path);
   }
   return false;
 }
@@ -665,6 +1085,46 @@ function isHostedClawdSaveUxPath(path) {
   return isHostedClawdPersistenceFoundationPath(path) || HOSTED_CLAWD_SAVE_UX_FILES.has(path);
 }
 
+function isHostedClawdStripeBillingPath(path) {
+  return isHostedClawdSaveUxPath(path) || HOSTED_CLAWD_STRIPE_BILLING_FILES.has(path);
+}
+
+function isHostedClawdProtectedToolGatePath(path) {
+  return isHostedClawdStripeBillingPath(path) || HOSTED_CLAWD_PROTECTED_TOOL_GATE_FILES.has(path);
+}
+
+function isHostedClawdSavedReadSurfacePath(path) {
+  return isHostedClawdProtectedToolGatePath(path) || HOSTED_CLAWD_SAVED_READ_SURFACE_FILES.has(path);
+}
+
+function isHostedClawdBrowserProofPath(path) {
+  return isHostedClawdSavedReadSurfacePath(path) || HOSTED_CLAWD_BROWSER_PROOF_FILES.has(path);
+}
+
+function isMobileInteractionHardeningPath(path) {
+  return (
+    isHostedClawdBrowserProofPath(path) ||
+    MOBILE_INTERACTION_HARDENING_FILES.has(path) ||
+    MOBILE_INTERACTION_HARDENING_PREFIXES.some((prefix) => path.startsWith(prefix))
+  );
+}
+
+function isProductFeelCleanupPath(path) {
+  return (
+    isMobileInteractionHardeningPath(path) ||
+    PRODUCT_FEEL_CLEANUP_FILES.has(path) ||
+    PRODUCT_FEEL_CLEANUP_PREFIXES.some((prefix) => path.startsWith(prefix))
+  );
+}
+
+function isNationalGenerationContractPath(path) {
+  return (
+    isProductFeelCleanupPath(path) ||
+    NATIONAL_GENERATION_CONTRACT_FILES.has(path) ||
+    NATIONAL_GENERATION_CONTRACT_PREFIXES.some((prefix) => path.startsWith(prefix))
+  );
+}
+
 function getSelectedRcAllowlistSummary(modeName) {
   const exact = [...selectedRcAllowedPaths];
   if (modeName === "engine-beta-renderer") {
@@ -702,6 +1162,61 @@ function getSelectedRcAllowlistSummary(modeName) {
       ...exact,
       ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
       ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "hosted-clawd-stripe-billing") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "hosted-clawd-protected-tool-gate") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "hosted-clawd-saved-read-surface") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "hosted-clawd-browser-proof") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "mobile-interaction-hardening") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+      ...MOBILE_INTERACTION_HARDENING_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "product-feel-cleanup") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+      ...MOBILE_INTERACTION_HARDENING_PREFIXES.map((prefix) => `${prefix}*`),
+      ...PRODUCT_FEEL_CLEANUP_PREFIXES.map((prefix) => `${prefix}*`),
+    ];
+  }
+  if (modeName === "national-generation-contract") {
+    return [
+      ...exact,
+      ...HOSTED_CLAWD_SCAFFOLD_PREFIXES.map((prefix) => `${prefix}*`),
+      ...HOSTED_CLAWD_FABLE_INTEGRATION_PREFIXES.map((prefix) => `${prefix}*`),
+      ...MOBILE_INTERACTION_HARDENING_PREFIXES.map((prefix) => `${prefix}*`),
+      ...PRODUCT_FEEL_CLEANUP_PREFIXES.map((prefix) => `${prefix}*`),
+      ...NATIONAL_GENERATION_CONTRACT_PREFIXES.map((prefix) => `${prefix}*`),
     ];
   }
   return exact;

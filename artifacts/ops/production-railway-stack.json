@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "baseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
+  "checkedAt": "2026-07-06T14:54:58.070Z",
+  "railway": {
+    "serviceCount": 5,
+    "hasRedisService": true,
+    "postgresServiceCount": 4,
+    "hasScenePacketWorker": true,
+    "backendVarNames": [
+      "APP_BASE_URL",
+      "ATLAS_HOSTED_CLAWD_MONEY_ENABLED",
+      "ATLAS_HOSTED_CLAWD_PERSISTENCE_ENABLED",
+      "ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED",
+      "ATLAS_REDIS_URL",
+      "ATLAS_SCENE_PACKET_CACHE_BACKEND",
+      "ATLAS_SCENE_PACKET_LOCK_TTL_SECONDS",
+      "ATLAS_SCENE_PACKET_LOCK_WAIT_MS",
+      "ATLAS_SCENE_PACKET_WORKER_ENABLED",
+      "DATABASE_URL",
+      "GEO_DATA_ADAPTER",
+      "GOOGLE_MAPS_API_KEY",
+      "GOOGLE_MAPS_LANGUAGE",
+      "GOOGLE_MAPS_REGION",
+      "HOSTED_CLAWD_INVITE_TOKEN",
+      "MCP_PATH",
+      "NODE_ENV",
+      "RAILWAY_ENVIRONMENT",
+      "RAILWAY_ENVIRONMENT_ID",
+      "RAILWAY_ENVIRONMENT_NAME",
+      "RAILWAY_PRIVATE_DOMAIN",
+      "RAILWAY_PROJECT_ID",
+      "RAILWAY_PROJECT_NAME",
+      "RAILWAY_PUBLIC_DOMAIN",
+      "RAILWAY_SERVICE_ATLAS_BACKEND_URL",
+      "RAILWAY_SERVICE_ID",
+      "RAILWAY_SERVICE_NAME",
+      "RAILWAY_STATIC_URL",
+      "STRIPE_API_VERSION",
+      "STRIPE_HOSTED_CLAWD_PRICE_ID",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "WIDGET_DOMAIN"
+    ]
+  },
+  "liveReady": {
+    "ok": true,
+    "cacheBackend": "redis",
+    "redisConfigured": true,
+    "redisReachable": true,
+    "databaseConfigured": true,
+    "databaseReachable": true,
+    "persistenceEnabled": true,
+    "authConfigured": false,
+    "moneyEnabled": true,
+    "stripeConfigured": true,
+    "configBlockerCount": 0
+  },
+  "liveScenePacketStatus": {
+    "cacheBackend": "redis",
+    "redisConfigured": true,
+    "redisReachable": true,
+    "queueDepth": 0,
+    "statusSafe": true
+  },
+  "launchReadiness": {
+    "authConfigured": false,
+    "stripeConfigured": true,
+    "publicPaidClaimEnabled": false
+  },
+  "blockerCount": 0,
+  "blockers": [],
+  "warnings": [
+    "Production has multiple Postgres DATABASE_URL services; confirm atlas-backend points at the intended prod DB."
+  ]
+}

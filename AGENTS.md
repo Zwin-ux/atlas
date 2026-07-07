@@ -12,22 +12,23 @@ Current phase is Engine Beta, not Paid Beta.
 
 Alpha Path B is accepted. Riverside/Eastvale is the only public playable district. Anaheim/Ontario remain hidden and non-public until owner-gate approval explicitly allows controlled public promotion.
 
-Hosted Clawd DB/Auth persistence is now local-green only for owner-protected rows. Atlas remains the map/chat app and voxel world engine; Hosted Clawd / Clawdbot is the paid neighborhood operator layered on top of owned Atlas state. Stripe/money, public paid claims, XP, evidence, automation, reports, and exports remain parked.
+Hosted Clawd DB/Auth persistence is now local-green only for owner-protected rows. Atlas remains the map/chat app and voxel world engine; Hosted Clawd / Clawdbot is the paid neighborhood operator layered on top of owned Atlas state. Stripe/money is open only for test-mode billing behind webhook-confirmed state. Public paid claims, live billing, XP, evidence, automation, reports, and exports remain parked.
 The human explicitly reopened DB/Auth preparation on 2026-07-05.
+The human explicitly reopened test-mode Stripe billing on 2026-07-05.
 
-Current human-directed local-green slice is `0.61H Invite Beta Save UX`. It uses `postalpha-0.60h-hosted-clawd-persistence-foundation` as input, keeps branch `codex/integrate-hosted-clawd-fable-058e` as the local canonical candidate, and makes owned local state understandable inside the Hosted Clawd map tray.
+Current human-directed local-green slice is `0.72B Redis Scene Packet Cache / Job Spine`. It uses `postalpha-0.71h-scene-packet-service-boundary` as input, keeps branch `codex/integrate-hosted-clawd-fable-058e` as the local canonical candidate, and moves generated draft packet work onto a memory-or-Redis cache spine with widget-only `_meta` delivery.
 
-0.61H decision is `MAP_FIRST_SAVE_UX_LOCAL_GREEN_STRIPE_CLOSED` with selected axis `hosted_clawd_invite_beta_save_ux`. It keeps the Superior grey setup console and adds claymation save slots for business/location, local notes, Scout Drop, and campaign draft state. The 0.60H Railway Postgres/OAuth/OIDC owner-protected persistence foundation remains local-green.
+0.72B decision is `REDIS_PACKET_SPINE_NOT_RENDER_LOOP` with selected axis `backend_production_spine`. `select_county` and `render_voxel_county` may accept `includeGeneratedDraft?: boolean`; default behavior remains shell-only. When explicitly requested for an indexed shell county, `structuredContent` stays the county coverage summary and `_meta.generatedDraftScene` / `_meta.generatedDraftPacket` carry widget-only generated draft state. Generated drafts stay non-playable, non-public, provider-free, DB-unpersisted, and meta-only. Local/dev may fall back to memory, but Railway production requires Redis for generated draft packet cache/job readiness. Railway/server may compile/cache scene packets, but browser retained Pixi pan/zoom must not wait on Railway.
 
-Default next slice after 0.61H is `0.62H Stripe Test Billing`. It may attach test-mode Stripe only after ownership, idempotency, and the map-first save UX are boring: Checkout, Customer Portal, webhook replay protection, inactive read-only state, and proof that success URLs grant nothing by themselves.
+Default next slice after 0.72B is `0.72H Fable Generated Draft Visual Quality Gate`. It should use the packet path to inspect generated draft visuals and set measurable gates for object grammar, density, contact shadows, silhouettes, and desktop/mobile proof without reopening service routing, persistence, money, provider geometry, or public promotion.
 
-Stripe/money remains downstream of 0.60H and 0.61H. Do not implement Stripe Checkout, Billing Portal, webhooks, public paid claims, evidence, XP, reports, exports, automation, or public Anaheim/Ontario unless a later named gate explicitly opens that scope.
+Live Stripe billing, new public MCP tools, public paid claims, pricing pages, evidence, XP, reports, exports, automation, and public Anaheim/Ontario remain blocked unless a later named gate explicitly opens that scope.
 
-Use `hosted-clawd-save-ux` for strict split checks on the 0.61H save UX branch.
+Use `national-generation-contract` for strict split checks on the 0.72B Redis scene packet backend spine branch.
 
 The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly. Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
 
-Do not continue commerce, terrain, mobile, Anaheim, paid, or Stripe implementation unless a new verifier or selector names a real blocker that changes the axis. DB/Auth persistence and map-first save UX are now local-green; continue into `0.62H Stripe Test Billing` only as a named test-billing slice. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted provider data, or playable county claims.
+Do not continue commerce, terrain, Anaheim, paid public launch, or live Stripe implementation unless a new verifier or selector names a real blocker that changes the axis. DB/Auth persistence, map-first save UX, test-mode Stripe billing, protected paid-write gating, saved reads, browser proof, mobile interaction hardening, product feel cleanup, national generation production contract, nationwide shell coverage, deterministic generated district specs, scene packet service boundary, and Redis scene packet backend spine are now local-green only inside their named gates; continue into `0.72H Fable Generated Draft Visual Quality Gate` only as generated-draft visual-quality work. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted provider data, or playable county claims.
 
 ## Named-Slice Rule
 
@@ -61,6 +62,7 @@ The next quest is chosen from:
 - Google Maps and provider data stay behind `GeoDataAdapter` and provider policy.
 - Provider lookup is not coverage readiness and must not create scene geometry.
 - Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays.
+- Railway may compile/cache scene packets, but browser pan/zoom must not wait on Railway.
 - Use curated county and district packs first. Do not hallucinate live data.
 - Do not introduce unnecessary dependencies.
 - Do not overengineer.
@@ -82,6 +84,7 @@ The next quest is chosen from:
 - Improve identity through silhouettes, geometry, massing, roof/facade rhythm, contact shadows, object-kit metadata, and renderer/compiler grammar.
 - Map-first remains the product surface. No dashboard shell.
 - Desktop and mobile both matter; 390x844 mobile proof is required when the product surface changes.
+- Mobile is a primary interaction mode, especially inside ChatGPT on iPhone-sized screens. Use 44x44 CSS pixel targets for primary touch controls, keep one-tap alternatives for core map gestures, make trays/bottom sheets keyboard and screen-reader reachable, announce async Hosted Clawd states with status semantics, and honor reduced motion in Pixi as well as CSS.
 - Public Riverside quality beats hidden district polish unless a selector or owner gate changes the axis.
 
 ## Required Reading Before Product Patches
@@ -115,7 +118,7 @@ For Engine Beta source-of-truth and code slices, default to:
 - focused verifier for the slice
 - provider boundary guard
 - tool-result shape guard
-- strict `engine-beta-data` split guard, strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice, strict `hosted-clawd-fable-integration` split guard for the integrated local canonical candidate, strict `hosted-clawd-persistence-foundation` split guard for the 0.60H DB/Auth foundation, or strict `hosted-clawd-save-ux` split guard for the 0.61H save UX branch
+- strict `engine-beta-data` split guard, strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice, strict `hosted-clawd-fable-integration` split guard for the integrated local canonical candidate, strict `hosted-clawd-persistence-foundation` split guard for the 0.60H DB/Auth foundation, strict `hosted-clawd-save-ux` split guard for the 0.61H save UX branch, strict `hosted-clawd-stripe-billing` split guard for the 0.62H billing branch, strict `hosted-clawd-protected-tool-gate` split guard for the 0.63H protected gate branch, strict `hosted-clawd-saved-read-surface` split guard for the 0.64H saved read branch, strict `hosted-clawd-browser-proof` split guard for the 0.65H browser proof branch, strict `mobile-interaction-hardening` split guard for the 0.66H mobile hardening branch, strict `product-feel-cleanup` split guard for the 0.67H graphics cleanup branch, or strict `national-generation-contract` split guard for the 0.72B Redis scene packet backend spine branch
 
 Browser screenshot proof is required only when renderer or UI output changes.
 

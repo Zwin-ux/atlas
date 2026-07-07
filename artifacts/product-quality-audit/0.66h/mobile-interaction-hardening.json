@@ -1,0 +1,127 @@
+{
+  "ok": true,
+  "update": "postalpha-0.66h-mobile-interaction-hardening",
+  "decision": "RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD",
+  "previewUrl": "http://127.0.0.1:8787/preview",
+  "chromePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "static": {
+    "eagerJsBytes": 210920,
+    "cssBytes": 82172,
+    "chunkCount": 25,
+    "deferredJsBytes": 785029,
+    "totalJsBytes": 995949,
+    "previewHtmlBytes": 214,
+    "previewUsesExternalAssets": true,
+    "sourceContracts": "retained graph + bottom sheet + split payload"
+  },
+  "browser": [
+    {
+      "label": "desktop-1280x720",
+      "viewport": {
+        "label": "desktop-1280x720",
+        "width": 1280,
+        "height": 720,
+        "p95CeilingMs": 75
+      },
+      "ok": true,
+      "pan": {
+        "frameCount": 85,
+        "p50FrameMs": 50,
+        "p95FrameMs": 50.1,
+        "rebuildBefore": 1,
+        "rebuildAfter": 1,
+        "rebuildDelta": 0
+      },
+      "collapsed": {
+        "sheetState": "collapsed",
+        "role": "region",
+        "ariaModal": "",
+        "focusInsideTray": false,
+        "height": 77.25,
+        "width": 560,
+        "top": 628.75,
+        "bottom": 706,
+        "primaryTarget": {
+          "width": 132,
+          "height": 44
+        },
+        "mapCanvasVisible": true,
+        "horizontalOverflow": false
+      },
+      "expanded": {
+        "sheetState": "expanded",
+        "role": "dialog",
+        "ariaModal": "true",
+        "focusInsideTray": true,
+        "height": 324,
+        "width": 560,
+        "top": 382,
+        "bottom": 706,
+        "primaryTarget": {
+          "width": 132,
+          "height": 44
+        },
+        "mapCanvasVisible": true,
+        "horizontalOverflow": false
+      },
+      "consoleErrors": [],
+      "screenshotPath": "C:\\Users\\mzwin\\Documents\\Atlas\\artifacts\\product-quality-audit\\0.66h\\screens\\mobile-hardening-desktop-1280x720.png",
+      "blockers": []
+    },
+    {
+      "label": "mobile-390x844",
+      "viewport": {
+        "label": "mobile-390x844",
+        "width": 390,
+        "height": 844,
+        "p95CeilingMs": 75
+      },
+      "ok": true,
+      "pan": {
+        "frameCount": 87,
+        "p50FrameMs": 33.3,
+        "p95FrameMs": 50,
+        "rebuildBefore": 1,
+        "rebuildAfter": 1,
+        "rebuildDelta": 0
+      },
+      "collapsed": {
+        "sheetState": "collapsed",
+        "role": "region",
+        "ariaModal": "",
+        "focusInsideTray": false,
+        "height": 76,
+        "width": 366,
+        "top": 758,
+        "bottom": 834,
+        "primaryTarget": {
+          "width": 112,
+          "height": 44
+        },
+        "mapCanvasVisible": true,
+        "horizontalOverflow": false
+      },
+      "expanded": {
+        "sheetState": "expanded",
+        "role": "dialog",
+        "ariaModal": "true",
+        "focusInsideTray": true,
+        "height": 379.8,
+        "width": 366,
+        "top": 454.2,
+        "bottom": 834,
+        "primaryTarget": {
+          "width": 112,
+          "height": 44
+        },
+        "mapCanvasVisible": true,
+        "horizontalOverflow": false
+      },
+      "consoleErrors": [],
+      "screenshotPath": "C:\\Users\\mzwin\\Documents\\Atlas\\artifacts\\product-quality-audit\\0.66h\\screens\\mobile-hardening-mobile-390x844.png",
+      "blockers": []
+    }
+  ],
+  "blockerCount": 0,
+  "blockers": []
+}
