@@ -20,10 +20,45 @@ import {
 import {
   buildCityWorldRenderCommandBuffer,
   type CityWorldRenderCommand,
+  type CityWorldRenderCommandBuffer,
   type CityWorldRenderCommandBufferOptions,
   type CityWorldRenderCommandKind,
   type CityWorldRenderLayerId,
 } from "./cityWorldRenderCommands.js";
+
+/**
+ * Id-indexed lookup maps for every scene item collection. Frame culling and
+ * chunk anchoring resolve command sourceIds through this index in O(1) —
+ * the previous per-command `items.find` linear scans made every window
+ * compile O(commands × items).
+ */
+export type CityWorldSceneItemIndex = {
+  terrainTiles: Map<string, CityWorldTerrainTile>;
+  roadSegments: Map<string, CityWorldRoadSegment>;
+  lots: Map<string, CityWorldLot>;
+  buildings: Map<string, CityWorldBuilding>;
+  props: Map<string, CityWorldProp>;
+  actors: Map<string, CityWorldActor>;
+  places: Map<string, CityWorldPlace>;
+  pins: Map<string, CityWorldPin>;
+};
+
+export function buildCityWorldSceneItemIndex(scene: CityWorldScene): CityWorldSceneItemIndex {
+  return {
+    terrainTiles: byId(scene.terrainTiles),
+    roadSegments: byId(scene.roadSegments),
+    lots: byId(scene.lots),
+    buildings: byId(scene.buildings),
+    props: byId(scene.props),
+    actors: byId(scene.actors),
+    places: byId(scene.places),
+    pins: byId(scene.pins),
+  };
+}
+
+function byId<T extends { id: string }>(items: T[]): Map<string, T> {
+  return new Map(items.map((item) => [item.id, item]));
+}
 
 export type CityWorldSceneWindowBudgetProfileId = "public_playable_window" | "shell_empty_window" | "hidden_draft_window";
 
@@ -160,15 +195,36 @@ export function compileCityWorldSceneChunkIndex(
   scene: CityWorldScene,
   options: CityWorldSceneWindowOptions = {},
 ): CityWorldSceneChunkIndex {
-  const chunkSize = options.chunkSize ?? CITY_WORLD_SCENE_WINDOW_DEFAULT_CHUNK_SIZE;
-  const commandBuffer = buildCityWorldRenderCommandBuffer(scene, options);
+  return compileChunkIndexFromBuffer(
+    scene,
+    buildCityWorldRenderCommandBuffer(scene, options),
+    buildCityWorldSceneItemIndex(scene),
+    options.chunkSize ?? CITY_WORLD_SCENE_WINDOW_DEFAULT_CHUNK_SIZE,
+  );
+}
+
+function compileChunkIndexFromBuffer(
+  scene: CityWorldScene,
+  commandBuffer: CityWorldRenderCommandBuffer,
+  itemIndex: CityWorldSceneItemIndex,
+  chunkSize: number,
+): CityWorldSceneChunkIndex {
   const chunkMap = new Map<string, CityWorldSceneChunk>();
+  // Per-chunk membership Sets during the build; the public array shape is
+  // serialized at the end (Array.includes per insert was O(n²) per chunk).
+  const memberSets = new Map<string, Set<string>>();
 
   for (const command of commandBuffer.commands) {
-    for (const point of commandAnchorPoints(scene, command)) {
+    for (const point of commandAnchorPoints(itemIndex, scene, command)) {
       const id = chunkIdForPoint(scene, point, chunkSize);
       const chunk = getOrCreateChunk(chunkMap, scene, id, point, chunkSize);
-      if (!chunk.commandIds.includes(command.id)) {
+      let members = memberSets.get(id);
+      if (!members) {
+        members = new Set();
+        memberSets.set(id, members);
+      }
+      if (!members.has(command.id)) {
+        members.add(command.id);
         chunk.commandIds.push(command.id);
         chunk.layerCommandCounts[command.layerId] += 1;
         chunk.budgetWeight += command.budgetWeight;
@@ -193,7 +249,62 @@ export function compileCityWorldSceneWindow(
   cameraPresetOrId: CityWorldCameraPreset | CityWorldCameraPreset["id"],
   options: CityWorldSceneWindowOptions = {},
 ): CityWorldSceneWindow {
+  // One-shot path: build the shared artifacts once and compile. Callers that
+  // recompile the same scene repeatedly (viewport streaming) should hold a
+  // createCityWorldSceneWindowCompiler instead.
   const chunkSize = options.chunkSize ?? CITY_WORLD_SCENE_WINDOW_DEFAULT_CHUNK_SIZE;
+  const commandBuffer = buildCityWorldRenderCommandBuffer(scene, options);
+  const itemIndex = buildCityWorldSceneItemIndex(scene);
+  const chunkIndex = compileChunkIndexFromBuffer(scene, commandBuffer, itemIndex, chunkSize);
+  return compileWindowFromArtifacts(scene, cameraPresetOrId, options, { commandBuffer, itemIndex, chunkIndex, chunkSize });
+}
+
+type SceneWindowArtifacts = {
+  commandBuffer: CityWorldRenderCommandBuffer;
+  itemIndex: CityWorldSceneItemIndex;
+  chunkIndex: CityWorldSceneChunkIndex;
+  chunkSize: number;
+};
+
+/**
+ * Frame-independent compile artifacts (command buffer, item index, chunk
+ * index) are memoized per scene; `windowFor` only re-runs the frame filter.
+ * This is what makes streaming-window pan refreshes cheap.
+ */
+export function createCityWorldSceneWindowCompiler(
+  scene: CityWorldScene,
+  options: CityWorldSceneWindowOptions = {},
+): {
+  windowFor: (
+    cameraPresetOrId: CityWorldCameraPreset | CityWorldCameraPreset["id"],
+    viewportFrame?: CityWorldViewportFrame,
+  ) => CityWorldSceneWindow;
+  itemIndex: CityWorldSceneItemIndex;
+} {
+  const chunkSize = options.chunkSize ?? CITY_WORLD_SCENE_WINDOW_DEFAULT_CHUNK_SIZE;
+  const commandBuffer = buildCityWorldRenderCommandBuffer(scene, options);
+  const itemIndex = buildCityWorldSceneItemIndex(scene);
+  const chunkIndex = compileChunkIndexFromBuffer(scene, commandBuffer, itemIndex, chunkSize);
+  const artifacts: SceneWindowArtifacts = { commandBuffer, itemIndex, chunkIndex, chunkSize };
+  return {
+    windowFor: (cameraPresetOrId, viewportFrame) =>
+      compileWindowFromArtifacts(
+        scene,
+        cameraPresetOrId,
+        viewportFrame ? { ...options, viewportFrame } : options,
+        artifacts,
+      ),
+    itemIndex,
+  };
+}
+
+function compileWindowFromArtifacts(
+  scene: CityWorldScene,
+  cameraPresetOrId: CityWorldCameraPreset | CityWorldCameraPreset["id"],
+  options: CityWorldSceneWindowOptions,
+  artifacts: SceneWindowArtifacts,
+): CityWorldSceneWindow {
+  const { commandBuffer, itemIndex, chunkIndex, chunkSize } = artifacts;
   const preset = typeof cameraPresetOrId === "string"
     ? scene.cameraPresets.find((item) => item.id === cameraPresetOrId)
     : cameraPresetOrId;
@@ -201,10 +312,8 @@ export function compileCityWorldSceneWindow(
     throw new Error(`Unknown CityWorld camera preset: ${String(cameraPresetOrId)}`);
   }
 
-  const commandBuffer = buildCityWorldRenderCommandBuffer(scene, options);
-  const chunkIndex = compileCityWorldSceneChunkIndex(scene, options);
   const frame = options.viewportFrame ?? cityWorldViewportFrameForCameraPreset(preset);
-  const visibleCommands = commandBuffer.commands.filter((command) => commandTouchesFrame(scene, command, frame));
+  const visibleCommands = commandBuffer.commands.filter((command) => commandTouchesFrame(itemIndex, command, frame));
   const layerCommandCounts = emptyLayerCounts();
   let visibleBudgetWeight = 0;
   for (const command of visibleCommands) {
@@ -287,62 +396,84 @@ export function evaluateCityWorldSceneWindowBudget(
   };
 }
 
-function commandTouchesFrame(scene: CityWorldScene, command: CityWorldRenderCommand, frame: CityWorldViewportFrame): boolean {
+function commandTouchesFrame(index: CityWorldSceneItemIndex, command: CityWorldRenderCommand, frame: CityWorldViewportFrame): boolean {
   switch (command.kind) {
-    case "terrain_tile":
-      return pointSource(scene.terrainTiles, command.sourceId, (item) => cityWorldPointInsideFrame(item.position, frame));
-    case "road_segment":
-      return pointSource(scene.roadSegments, command.sourceId, (item) => cityWorldSegmentTouchesFrame(item.from, item.to, frame));
-    case "lot":
-      return pointSource(scene.lots, command.sourceId, (item) => footprintTouchesFrame(item.position, item.width, item.depth, frame));
-    case "building":
-      return pointSource(scene.buildings, command.sourceId, (item) => footprintTouchesFrame(item.position, item.width, item.depth, frame));
-    case "prop":
-      return pointSource(scene.props, command.sourceId, (item) => cityWorldPointInsideFrame(item.position, frame));
-    case "actor":
-      return pointSource(scene.actors, command.sourceId, (item) => cityWorldPointInsideFrame(item.position, frame) || item.path.some((point) => cityWorldPointInsideFrame(point, frame)));
+    case "terrain_tile": {
+      const item = index.terrainTiles.get(command.sourceId);
+      return item ? cityWorldPointInsideFrame(item.position, frame) : false;
+    }
+    case "road_segment": {
+      const item = index.roadSegments.get(command.sourceId);
+      return item ? cityWorldSegmentTouchesFrame(item.from, item.to, frame) : false;
+    }
+    case "lot": {
+      const item = index.lots.get(command.sourceId);
+      return item ? footprintTouchesFrame(item.position, item.width, item.depth, frame) : false;
+    }
+    case "building": {
+      const item = index.buildings.get(command.sourceId);
+      return item ? footprintTouchesFrame(item.position, item.width, item.depth, frame) : false;
+    }
+    case "prop": {
+      const item = index.props.get(command.sourceId);
+      return item ? cityWorldPointInsideFrame(item.position, frame) : false;
+    }
+    case "actor": {
+      const item = index.actors.get(command.sourceId);
+      return item ? cityWorldPointInsideFrame(item.position, frame) || item.path.some((point) => cityWorldPointInsideFrame(point, frame)) : false;
+    }
     case "place_marker":
-    case "place_label":
-      return pointSource(scene.places, command.sourceId, (item) => cityWorldPointInsideFrame(item.anchor, frame));
-    case "pin":
-      return pointSource(scene.pins, command.sourceId, (item) => cityWorldPointInsideFrame(item.anchor, frame));
+    case "place_label": {
+      const item = index.places.get(command.sourceId);
+      return item ? cityWorldPointInsideFrame(item.anchor, frame) : false;
+    }
+    case "pin": {
+      const item = index.pins.get(command.sourceId);
+      return item ? cityWorldPointInsideFrame(item.anchor, frame) : false;
+    }
     case "engine_debug_overlay":
       return true;
   }
 }
 
-function commandAnchorPoints(scene: CityWorldScene, command: CityWorldRenderCommand): CityWorldPoint[] {
+function commandAnchorPoints(index: CityWorldSceneItemIndex, scene: CityWorldScene, command: CityWorldRenderCommand): CityWorldPoint[] {
   switch (command.kind) {
-    case "terrain_tile":
-      return sourcePoints(scene.terrainTiles, command.sourceId, (item) => [item.position]);
-    case "road_segment":
-      return sourcePoints(scene.roadSegments, command.sourceId, (item) => [item.from, item.to]);
-    case "lot":
-      return sourcePoints(scene.lots, command.sourceId, (item) => [item.position]);
-    case "building":
-      return sourcePoints(scene.buildings, command.sourceId, (item) => [item.position]);
-    case "prop":
-      return sourcePoints(scene.props, command.sourceId, (item) => [item.position]);
-    case "actor":
-      return sourcePoints(scene.actors, command.sourceId, (item) => [item.position, ...item.path]);
+    case "terrain_tile": {
+      const item = index.terrainTiles.get(command.sourceId);
+      return item ? [item.position] : [];
+    }
+    case "road_segment": {
+      const item = index.roadSegments.get(command.sourceId);
+      return item ? [item.from, item.to] : [];
+    }
+    case "lot": {
+      const item = index.lots.get(command.sourceId);
+      return item ? [item.position] : [];
+    }
+    case "building": {
+      const item = index.buildings.get(command.sourceId);
+      return item ? [item.position] : [];
+    }
+    case "prop": {
+      const item = index.props.get(command.sourceId);
+      return item ? [item.position] : [];
+    }
+    case "actor": {
+      const item = index.actors.get(command.sourceId);
+      return item ? [item.position, ...item.path] : [];
+    }
     case "place_marker":
-    case "place_label":
-      return sourcePoints(scene.places, command.sourceId, (item) => [item.anchor]);
-    case "pin":
-      return sourcePoints(scene.pins, command.sourceId, (item) => [item.anchor]);
+    case "place_label": {
+      const item = index.places.get(command.sourceId);
+      return item ? [item.anchor] : [];
+    }
+    case "pin": {
+      const item = index.pins.get(command.sourceId);
+      return item ? [item.anchor] : [];
+    }
     case "engine_debug_overlay":
       return [{ x: scene.bounds.minX, y: scene.bounds.minY, z: 0 }, { x: scene.bounds.maxX, y: scene.bounds.maxY, z: 0 }];
   }
-}
-
-function pointSource<T extends { id: string }>(items: T[], id: string, predicate: (item: T) => boolean): boolean {
-  const item = items.find((candidate) => candidate.id === id);
-  return item ? predicate(item) : false;
-}
-
-function sourcePoints<T extends { id: string }>(items: T[], id: string, mapper: (item: T) => CityWorldPoint[]): CityWorldPoint[] {
-  const item = items.find((candidate) => candidate.id === id);
-  return item ? mapper(item) : [];
 }
 
 function footprintTouchesFrame(center: CityWorldPoint, width: number, depth: number, frame: CityWorldViewportFrame): boolean {

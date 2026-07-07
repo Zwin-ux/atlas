@@ -8,6 +8,7 @@ import {
   compileCityWorldSceneWindow,
   compileCountyShellCityWorldScene,
   compileDistrictPlaceAnchorDraftCityWorldScene,
+  createCityWorldSceneWindowCompiler,
   evaluateCityWorldSceneWindowBudget,
   parseDistrictPlaceAnchorPack,
   riversideDemoVoxelScene,
@@ -65,6 +66,31 @@ describe("CityWorld scene windows", () => {
     expect(pannedWindow.metrics.visibleCommandCount).toBeGreaterThan(presetWindow.metrics.visibleCommandCount);
     expect(pannedWindow.metrics.visibleCommandCount).toBeLessThan(pannedWindow.metrics.totalSceneCommandCount);
     expect(pannedWindow.metrics.publicClutterCommandCount).toBe(0);
+  });
+
+  it("cached compiler produces windows identical to direct compiles across frames", () => {
+    const scene = compileCityWorldScene(riversideDemoVoxelScene);
+    const compiler = createCityWorldSceneWindowCompiler(scene);
+    const frames = [
+      undefined,
+      { minX: 0, maxX: 36, minY: 0, maxY: 30 },
+      { minX: 8, maxX: 24, minY: 4, maxY: 18 },
+    ] as const;
+
+    for (const frame of frames) {
+      const direct = frame
+        ? compileCityWorldSceneWindow(scene, "desktop", { viewportFrame: frame })
+        : compileCityWorldSceneWindow(scene, "desktop");
+      const cached = compiler.windowFor("desktop", frame ? { ...frame } : undefined);
+      expect(cached.frame).toEqual(direct.frame);
+      expect(cached.chunkIds).toEqual(direct.chunkIds);
+      expect(cached.metrics).toEqual(direct.metrics);
+      expect(cached.visibleCommands.map((command) => command.id)).toEqual(direct.visibleCommands.map((command) => command.id));
+    }
+
+    // The item index is shared and id-complete.
+    expect(compiler.itemIndex.buildings.size).toBe(scene.buildings.length);
+    expect(compiler.itemIndex.terrainTiles.size).toBe(scene.terrainTiles.length);
   });
 
   it("keeps shell windows terrain-only and non-playable", () => {

@@ -146,8 +146,10 @@ export {
   CITY_WORLD_SCENE_WINDOW_BUDGETS,
   CITY_WORLD_SCENE_WINDOW_DEFAULT_CHUNK_SIZE,
   buildCityWorldRenderCommandBuffer,
+  buildCityWorldSceneItemIndex,
   compileCityWorldSceneChunkIndex,
   compileCityWorldSceneWindow,
+  createCityWorldSceneWindowCompiler,
   deriveCityWorldMobileOcclusion,
   deriveCityWorldTerrainMap,
   evaluateCityWorldMobileLodBudget,
@@ -289,6 +291,7 @@ export type {
 export type {
   CityWorldSceneChunk,
   CityWorldSceneChunkIndex,
+  CityWorldSceneItemIndex,
   CityWorldSceneWindow,
   CityWorldSceneWindowBudget,
   CityWorldSceneWindowBudgetProfileId,
