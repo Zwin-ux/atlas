@@ -405,7 +405,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     requestAnimationFrame(renderFrame);
   }
 
-  function renderFrame(now: number) {
+  function renderFrame() {
     const loop = renderLoopRef.current;
     const app = appRef.current;
     if (!app || !app.renderer) {
@@ -413,6 +413,9 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       return;
     }
     const animating = animatedRef.current.length + focusAnimatedRef.current.length > 0 && !document.hidden;
+    // Wall-clock cap: rAF timestamps are virtualized in headless/BeginFrame
+    // environments, so the ambient 30fps gate keys off performance.now().
+    const now = performance.now();
     const animDue = animating && now - loop.lastAnimTick >= 33;
     if (loop.needsRender || animDue) {
       if (animating) {

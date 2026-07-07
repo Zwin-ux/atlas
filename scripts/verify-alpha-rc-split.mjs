@@ -88,6 +88,7 @@ const ENGINE_BETA_DATA_FILES = new Set([
   "scripts/verify-engine-beta-coverage.mjs",
   "scripts/verify-generated-district-parity.mjs",
   "scripts/verify-generated-district-widget.mjs",
+  "scripts/verify-widget-performance.mjs",
   "scripts/verify-preview-http.mjs",
   "scripts/verify-object-authorship-scene-grammar.mjs",
   "scripts/verify-roads-roofs-scene-grammar.mjs",
