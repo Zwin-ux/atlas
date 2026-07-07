@@ -370,7 +370,10 @@ export type CityWorldPropKind =
   | "sign"
   | "parked_car"
   | "water_shimmer"
-  | "cloud";
+  | "cloud"
+  | "dock"
+  | "boat"
+  | "water_tower";
 
 export type CityWorldProp = {
   id: string;

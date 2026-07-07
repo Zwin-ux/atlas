@@ -1058,6 +1058,24 @@ function createProps(): CityWorldProp[] {
       ...(index >= 2 && index <= 3 ? { placeId: "place-community-park" } : {}),
     });
   });
+
+  // 0.74F curated public kit: plaza furniture at the civic core, streetlights
+  // along Hamner Ave, a dock + moored boat on the river, and the water tower
+  // behind the gym block. No cars, no humans.
+  props.push(
+    { id: "prop-civic-fountain", kind: "fountain", position: { x: 21, y: 12.6, z: 0 }, variant: 0 },
+    { id: "prop-civic-bench-a", kind: "bench", position: { x: 19.9, y: 13.1, z: 0 }, variant: 0 },
+    { id: "prop-civic-bench-b", kind: "bench", position: { x: 22.1, y: 13.1, z: 0 }, variant: 1 },
+    { id: "prop-plaza-sign", kind: "sign", position: { x: 27.4, y: 13.9, z: 0 }, variant: 0 },
+    { id: "prop-hamner-light-a", kind: "streetlight", position: { x: 16, y: 12.2, z: 0 }, variant: 0 },
+    { id: "prop-hamner-light-b", kind: "streetlight", position: { x: 24, y: 12.2, z: 0 }, variant: 1 },
+    { id: "prop-hamner-light-c", kind: "streetlight", position: { x: 32, y: 12.2, z: 0 }, variant: 2 },
+    { id: "prop-limonite-light-a", kind: "streetlight", position: { x: 18, y: 20.2, z: 0 }, variant: 3 },
+    { id: "prop-limonite-light-b", kind: "streetlight", position: { x: 27, y: 20.2, z: 0 }, variant: 4 },
+    { id: "prop-river-dock", kind: "dock", position: { x: 35.2, y: 23.2, z: 0 }, variant: 0 },
+    { id: "prop-river-boat", kind: "boat", position: { x: 37.4, y: 24.6, z: 0 }, variant: 0 },
+    { id: "prop-gym-water-tower", kind: "water_tower", position: { x: 33.4, y: 16.4, z: 0 }, variant: 0 },
+  );
   return props.map(withPropMetadata);
 }
 

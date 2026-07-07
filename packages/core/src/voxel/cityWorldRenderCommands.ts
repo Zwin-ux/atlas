@@ -334,7 +334,11 @@ export function evaluateCityWorldRenderLayerBudget(
   };
 }
 
-const forbiddenPublicPropKinds = new Set<CityWorldProp["kind"]>(["bench", "streetlight", "fountain", "sign", "parked_car", "cloud"]);
+// 0.74F clutter-contract revision (user-approved): the curated prop kit
+// (bench, streetlight, fountain, sign, dock, boat, water tower) graduates to
+// public scenes — density is gated by the scene-window maxPropCommands cap
+// instead of a blanket kind ban. Cars and clouds stay forbidden.
+const forbiddenPublicPropKinds = new Set<CityWorldProp["kind"]>(["parked_car", "cloud"]);
 
 function renderCommand(
   layerId: CityWorldRenderLayerId,

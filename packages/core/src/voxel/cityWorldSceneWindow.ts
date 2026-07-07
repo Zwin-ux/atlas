@@ -149,6 +149,9 @@ export const CITY_WORLD_SCENE_WINDOW_BUDGETS: Record<CityWorldSceneWindowBudgetP
     maxPublicClutterCommands: 0,
     maxDebugCommands: 0,
     maxActorCommands: 1,
+    // 0.74F: the curated prop kit is public; density is capped instead of
+    // banned per kind.
+    maxPropCommands: 90,
     minTerrainCommands: 70,
     minRoadCommands: 1,
     minLotCommands: 1,

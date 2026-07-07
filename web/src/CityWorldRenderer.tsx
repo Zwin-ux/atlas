@@ -5854,39 +5854,96 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
   const accent = paletteColor(asset.palette.colors.accent, asset.palette.colors.highlight);
 
   if (prop.kind === "tree" || prop.kind === "bush") {
+    // Blocky voxel foliage: trunk cube + 2-3 stacked, shrinking canopy boxes
+    // (north-star stacked-cube grammar). Deterministic per-variant palette
+    // shift + silhouette so groves read varied without noise.
     const foliage = prop.variant % 2 === 0 ? baseColor : shadeColor(baseColor, 12);
-    // Directional cast shadow skewed along the scene sun vector (lower-right).
-    const shadowReach = prop.kind === "bush" ? 9 : 17;
+    const shadowReach = prop.kind === "bush" ? 8 : 14;
     const tree = new Graphics()
-      .ellipse(point.x + shadowReach, point.y - 1 + shadowReach * 0.24, prop.kind === "bush" ? 11 : 16, prop.kind === "bush" ? 3.8 : 5)
-      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.34 })
-      .ellipse(point.x + shadowReach * 0.4, point.y - 1.5, prop.kind === "bush" ? 7 : 10, 3.2)
-      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.18 });
+      .ellipse(point.x + shadowReach * 0.6, point.y - 1 + shadowReach * 0.18, prop.kind === "bush" ? 10 : 15, prop.kind === "bush" ? 3.6 : 4.6)
+      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.26 });
     if (prop.kind === "tree") {
-      tree
-        .rect(point.x - 2.4, point.y - 16, 4.8, 14)
-        .fill({ color: shade, alpha: 0.95 })
-        .circle(point.x - 6, point.y - 20, 8)
-        .circle(point.x + 5, point.y - 22, 9)
-        .circle(point.x, point.y - 29, 10)
-        .fill({ color: foliage, alpha: 0.96 })
-        .circle(point.x + 6, point.y - 20, 6.5)
-        .fill({ color: sunlitColor(foliage, "shade"), alpha: 0.4 })
-        .circle(point.x - 4, point.y - 30, 4.4)
-        .fill({ color: mixColor(highlight, SUN_WARM_TINT, 0.4), alpha: 0.44 });
+      const tall = prop.variant % 3 === 0;
+      voxelBox(tree, { x: point.x, y: point.y - 2 }, 5, 3, tall ? 13 : 10, shade);
+      voxelBox(tree, { x: point.x, y: point.y - (tall ? 13 : 10) }, 19, 11, 9, shadeColor(foliage, -8));
+      voxelBox(tree, { x: point.x, y: point.y - (tall ? 21 : 18) }, 14, 8, 7, foliage);
+      if (prop.variant % 2 === 0) {
+        voxelBox(tree, { x: point.x, y: point.y - (tall ? 27 : 24) }, 9, 5, 5, shadeColor(foliage, 14));
+      }
     } else {
-      tree
-        .circle(point.x - 5, point.y - 10, 6)
-        .circle(point.x + 2, point.y - 13, 8)
-        .circle(point.x + 8, point.y - 9, 5)
-        .fill({ color: foliage, alpha: 0.92 })
-        .circle(point.x + 7, point.y - 9, 4)
-        .fill({ color: sunlitColor(foliage, "shade"), alpha: 0.34 })
-        .circle(point.x - 3, point.y - 14, 3)
-        .fill({ color: mixColor(highlight, SUN_WARM_TINT, 0.4), alpha: 0.3 });
+      voxelBox(tree, { x: point.x, y: point.y - 1 }, 13, 8, 6, shadeColor(foliage, -6));
+      voxelBox(tree, { x: point.x, y: point.y - 6.5 }, 8, 5, 4, shadeColor(foliage, 10));
     }
-    tree.stroke({ color: 0x26332c, alpha: 0.26, width: 1 });
+    tree.stroke({ color: 0x26332c, alpha: 0.2, width: 1 });
     layer.addChild(tree);
+    return;
+  }
+
+  if (prop.kind === "dock") {
+    const dock = new Graphics()
+      .ellipse(point.x + 4, point.y + 2, 16, 4)
+      .fill({ color: 0x1d3a42, alpha: 0.2 });
+    // Plank boxes marching toward the water (SE), on two pile cubes.
+    voxelBox(dock, { x: point.x - 8, y: point.y - 1 }, 15, 9, 2.5, shade);
+    voxelBox(dock, { x: point.x + 3, y: point.y + 4 }, 15, 9, 2.5, baseColor);
+    voxelBox(dock, { x: point.x + 14, y: point.y + 9 }, 15, 9, 2.5, shadeColor(baseColor, -8));
+    voxelBox(dock, { x: point.x + 20, y: point.y + 14 }, 3, 2.5, 5, shadeColor(shade, -14));
+    voxelBox(dock, { x: point.x + 9, y: point.y + 12 }, 3, 2.5, 5, shadeColor(shade, -14));
+    dock.stroke({ color: 0x26332c, alpha: 0.22, width: 1 });
+    layer.addChild(dock);
+    return;
+  }
+
+  if (prop.kind === "boat") {
+    const hullColor = prop.variant % 2 === 0 ? 0xd8dee2 : accent;
+    const boat = new Graphics()
+      .ellipse(point.x, point.y + 2, 15, 4.5)
+      .fill({ color: 0x1d3a42, alpha: 0.24 });
+    voxelBox(boat, { x: point.x, y: point.y }, 22, 9, 4, hullColor);
+    voxelBox(boat, { x: point.x - 3, y: point.y - 4 }, 9, 6, 4.5, shadeColor(hullColor, 18));
+    boat
+      .moveTo(point.x + 6, point.y - 4)
+      .lineTo(point.x + 6, point.y - 16)
+      .stroke({ color: shade, alpha: 0.8, width: 1.4, cap: "round" });
+    boat.stroke({ color: 0x26332c, alpha: 0.24, width: 1 });
+    layer.addChild(boat);
+    return;
+  }
+
+  if (prop.kind === "water_tower") {
+    const tower = new Graphics()
+      .ellipse(point.x + 6, point.y + 1, 15, 4.5)
+      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.22 });
+    // Four leg strokes, tank cylinder, cone cap — the skyline landmark.
+    tower
+      .moveTo(point.x - 8, point.y)
+      .lineTo(point.x - 5, point.y - 22)
+      .moveTo(point.x + 8, point.y)
+      .lineTo(point.x + 5, point.y - 22)
+      .moveTo(point.x - 4, point.y + 3)
+      .lineTo(point.x - 2.5, point.y - 22)
+      .moveTo(point.x + 4, point.y + 3)
+      .lineTo(point.x + 2.5, point.y - 22)
+      .stroke({ color: shade, alpha: 0.9, width: 1.6, cap: "round" });
+    tower
+      .moveTo(point.x - 6.5, point.y - 8)
+      .lineTo(point.x + 6.5, point.y - 12)
+      .stroke({ color: shade, alpha: 0.6, width: 1, cap: "round" });
+    tower
+      .rect(point.x - 9, point.y - 36, 18, 14)
+      .fill({ color: sunlitColor(baseColor, "sun") })
+      .rect(point.x + 1, point.y - 36, 8, 14)
+      .fill({ color: sunlitColor(baseColor, "shade"), alpha: 0.6 })
+      .ellipse(point.x, point.y - 22, 9, 3)
+      .fill({ color: shadeColor(baseColor, -20) });
+    tower
+      .moveTo(point.x - 10, point.y - 35)
+      .lineTo(point.x, point.y - 42)
+      .lineTo(point.x + 10, point.y - 35)
+      .closePath()
+      .fill({ color: sunlitColor(accent, "top") });
+    tower.stroke({ color: 0x26332c, alpha: 0.3, width: 1 });
+    layer.addChild(tower);
     return;
   }
 
@@ -6324,6 +6381,30 @@ function diamondPoints(center: ProjectedPoint, width: number, height: number): n
 
 function polygon(points: number[], fill: number, alpha = 1, stroke = 0x26332c, strokeAlpha = 0.42): Graphics {
   return new Graphics().poly(points, true).fill({ color: fill, alpha }).stroke({ color: stroke, alpha: strokeAlpha, width: 1 });
+}
+
+// Iso voxel cube: top diamond + lit/shade faces appended into a Graphics.
+// The shared primitive behind the blocky prop kit and cliff courses — props
+// read as stacked cubes (north-star voxel grammar), not vector lollipops.
+function voxelBox(g: Graphics, base: ProjectedPoint, width: number, depth: number, height: number, color: number, alpha = 1): void {
+  const halfW = width / 2;
+  const halfD = depth / 2;
+  const topY = base.y - height;
+  g
+    .moveTo(base.x - halfW, topY)
+    .lineTo(base.x, topY + halfD)
+    .lineTo(base.x, base.y + halfD)
+    .lineTo(base.x - halfW, base.y)
+    .closePath()
+    .fill({ color: sunlitColor(color, "sun"), alpha });
+  g
+    .moveTo(base.x + halfW, topY)
+    .lineTo(base.x, topY + halfD)
+    .lineTo(base.x, base.y + halfD)
+    .lineTo(base.x + halfW, base.y)
+    .closePath()
+    .fill({ color: sunlitColor(color, "shade"), alpha });
+  g.poly(diamondPoints({ x: base.x, y: topY }, width, depth), true).fill({ color: sunlitColor(color, "top"), alpha });
 }
 
 // Append a filled/stroked polygon into a SHARED Graphics. Ground layers

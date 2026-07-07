@@ -211,12 +211,28 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     });
     placeIndex += 1;
 
-    if (zone.kind === "park" || zone.kind === "water") {
-      for (const prop of zoneNatureProps(zone, rng)) {
+    for (const prop of zonePropsForZone(zone, rng)) {
+      if (prop.kind !== "water_shimmer" && prop.kind !== "boat" && prop.kind !== "dock") {
         prop.position.z = elevationModel.tileZ(Math.round(prop.position.x), Math.round(prop.position.y));
-        props.push(prop);
       }
+      props.push(prop);
     }
+  }
+
+  // District landmark: one water tower on the highest non-water block corner.
+  const towerHost = spec.zones
+    .filter((zone) => zone.kind !== "water" && zone.kind !== "park")
+    .map((zone) => ({ zone, z: elevationModel.tileZ(Math.round(zone.rect.maxX - 1), Math.round(zone.rect.minY + 1)) }))
+    .sort((first, second) => second.z - first.z)[0];
+  if (towerHost) {
+    props.push(
+      withPropMetadata({
+        id: `gen-prop-water-tower`,
+        kind: "water_tower",
+        position: { x: towerHost.zone.rect.maxX - 1, y: towerHost.zone.rect.minY + 1, z: towerHost.z },
+        variant: 0,
+      }),
+    );
   }
 
   const scene: CityWorldScene = {
@@ -750,25 +766,83 @@ function parcelFootprint(kind: CityWorldZoneKind): { width: number; depth: numbe
   return { width: 3.4, depth: 2.6 };
 }
 
-function zoneNatureProps(zone: CityWorldZoneSpec, rng: () => number): CityWorldProp[] {
-  const props: CityWorldProp[] = [];
-  const center = zoneCenter(zone);
-  const count = zone.kind === "water" ? 3 : 4;
-  for (let index = 0; index < count; index += 1) {
-    const px = zone.rect.minX + rng() * (zone.rect.maxX - zone.rect.minX);
-    const py = zone.rect.minY + rng() * (zone.rect.maxY - zone.rect.minY);
-    props.push(
-      withPropMetadata({
-        id: `gen-prop-${zone.id}-${index}`,
-        kind: zone.kind === "water" ? "water_shimmer" : index % 3 === 0 ? "bush" : "tree",
-        position: { x: px, y: py, z: 0 },
-        variant: index % 5,
-      }),
+// 0.74F full prop kit — deterministic per-zone placement derived from zone-
+// rect fractions (stable, reads authored, never lands on a road: zone rects
+// already carry road clearance). Density stays under the scene-window
+// maxPropCommands cap. No cars, no humans.
+function zonePropsForZone(zone: CityWorldZoneSpec, rng: () => number): CityWorldProp[] {
+  const { rect } = zone;
+  const at = (fx: number, fy: number): CityWorldPoint => ({
+    x: rect.minX + (rect.maxX - rect.minX) * fx,
+    y: rect.minY + (rect.maxY - rect.minY) * fy,
+    z: 0,
+  });
+  const specs: Array<{ kind: CityWorldProp["kind"]; point: CityWorldPoint; variant?: number }> = [];
+
+  if (zone.kind === "residential") {
+    specs.push(
+      { kind: "tree", point: at(0.06, 0.14), variant: 1 },
+      { kind: "tree", point: at(0.92, 0.82), variant: 2 },
+      { kind: "bush", point: at(0.1, 0.9) },
+      { kind: "streetlight", point: at(0.94, 0.08) },
+    );
+  } else if (zone.kind === "commercial") {
+    specs.push(
+      { kind: "sign", point: at(0.08, 0.9), variant: Math.floor(rng() * 3) },
+      { kind: "streetlight", point: at(0.5, 0.94) },
+      { kind: "streetlight", point: at(0.92, 0.1) },
+      { kind: "bench", point: at(0.3, 0.08) },
+      { kind: "bench", point: at(0.7, 0.08) },
+    );
+  } else if (zone.kind === "civic") {
+    specs.push(
+      { kind: "fountain", point: at(0.5, 0.86) },
+      { kind: "bench", point: at(0.3, 0.9) },
+      { kind: "bench", point: at(0.7, 0.9) },
+      { kind: "tree", point: at(0.06, 0.5), variant: 3 },
+      { kind: "tree", point: at(0.94, 0.5), variant: 4 },
+    );
+  } else if (zone.kind === "gym") {
+    specs.push({ kind: "sign", point: at(0.9, 0.88), variant: 1 }, { kind: "streetlight", point: at(0.08, 0.1) });
+  } else if (zone.kind === "apartments") {
+    specs.push(
+      { kind: "bush", point: at(0.1, 0.08) },
+      { kind: "bush", point: at(0.9, 0.92) },
+      { kind: "bench", point: at(0.5, 0.06) },
+      { kind: "streetlight", point: at(0.08, 0.92) },
+    );
+  } else if (zone.kind === "park") {
+    const area = (rect.maxX - rect.minX) * (rect.maxY - rect.minY);
+    specs.push(
+      { kind: "tree", point: at(0.3, 0.28), variant: 0 },
+      { kind: "tree", point: at(0.55, 0.4), variant: 1 },
+      { kind: "tree", point: at(0.42, 0.58), variant: 2 },
+      { kind: "tree", point: at(0.7, 0.72), variant: 3 },
+      { kind: "tree", point: at(0.24, 0.78), variant: 4 },
+      { kind: "bush", point: at(0.8, 0.24) },
+      { kind: "bench", point: at(0.16, 0.46) },
+      { kind: "bench", point: at(0.62, 0.16) },
+    );
+    if (area >= 40) specs.push({ kind: "fountain", point: at(0.5, 0.5) });
+  } else if (zone.kind === "water") {
+    specs.push(
+      { kind: "water_shimmer", point: at(0.3, 0.3) },
+      { kind: "water_shimmer", point: at(0.6, 0.6) },
+      { kind: "water_shimmer", point: at(0.45, 0.82) },
+      // Dock reaches from the west shore; boat moored a tile off its head.
+      { kind: "dock", point: at(0.08, 0.4) },
+      { kind: "boat", point: at(0.4, 0.55), variant: Math.floor(rng() * 2) },
     );
   }
-  // keep center referenced so tree clusters lean inward
-  if (props[0]) props[0].position = { x: center.x, y: center.y, z: 0 };
-  return props;
+
+  return specs.map((entry, index) =>
+    withPropMetadata({
+      id: `gen-prop-${zone.id}-${index}`,
+      kind: entry.kind,
+      position: entry.point,
+      variant: entry.variant ?? index % 5,
+    }),
+  );
 }
 
 type ParametricCameraScenery = {
