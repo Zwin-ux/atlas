@@ -382,10 +382,51 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   // animations so the overlay can clear its own targets without touching the
   // scene's, and vice versa.
   const focusAnimatedRef = useRef<AnimatedTarget[]>([]);
-  const renderLoopRef = useRef({ active: true });
+  // Render-on-demand state: the loop runs only while a repaint is pending or
+  // animated targets exist, then parks at 0 fps. Ambient animation is capped
+  // at ~30fps (wall-clock driven, so speed is unchanged — only sample rate).
+  const renderLoopRef = useRef({ active: false, needsRender: true, lastAnimTick: 0 });
   const focusIndexRef = useRef<FocusIndex | null>(null);
   const focusLayerRef = useRef<Container | null>(null);
+  const focusPulseTimeoutRef = useRef<number | undefined>(undefined);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const visibilityCleanupRef = useRef<(() => void) | null>(null);
   const [focusEpoch, setFocusEpoch] = useState(0);
+
+  function invalidateRender() {
+    renderLoopRef.current.needsRender = true;
+    ensureRenderLoop();
+  }
+
+  function ensureRenderLoop() {
+    const loop = renderLoopRef.current;
+    if (loop.active) return;
+    loop.active = true;
+    requestAnimationFrame(renderFrame);
+  }
+
+  function renderFrame(now: number) {
+    const loop = renderLoopRef.current;
+    const app = appRef.current;
+    if (!app || !app.renderer) {
+      loop.active = false;
+      return;
+    }
+    const animating = animatedRef.current.length + focusAnimatedRef.current.length > 0 && !document.hidden;
+    const animDue = animating && now - loop.lastAnimTick >= 33;
+    if (loop.needsRender || animDue) {
+      if (animating) {
+        animateTargets(animatedRef.current, 2);
+        animateTargets(focusAnimatedRef.current, 2);
+        loop.lastAnimTick = now;
+      }
+      app.render();
+      loop.needsRender = false;
+      perfRef.current.renderedFrames += 1;
+    }
+    if (animating || loop.needsRender) requestAnimationFrame(renderFrame);
+    else loop.active = false;
+  }
 
   useImperativeHandle(ref, () => ({
     zoomIn: () => zoomBy(1.12),
@@ -478,11 +519,21 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       } catch (error) {
         console.warn("Atlas golden-hour grade filter unavailable. Continuing without post grade.", error);
       }
-      app.ticker.add((ticker) => {
-        animateTargets(animatedRef.current, ticker.deltaTime);
-        animateTargets(focusAnimatedRef.current, ticker.deltaTime);
-        perfRef.current.renderedFrames += 1;
+      // Render on demand: stop Pixi's always-on ticker render; the component-
+      // owned rAF loop repaints only when dirty or animating, then parks.
+      app.stop();
+      const resizeObserver = new ResizeObserver(() => {
+        app.resize();
+        invalidateRender();
       });
+      resizeObserver.observe(mountElement);
+      resizeObserverRef.current = resizeObserver;
+      const handleVisibility = () => {
+        if (!document.hidden) invalidateRender();
+      };
+      document.addEventListener("visibilitychange", handleVisibility);
+      visibilityCleanupRef.current = () => document.removeEventListener("visibilitychange", handleVisibility);
+      invalidateRender();
       setReady(true);
     }
 
@@ -494,6 +545,11 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       cancelled = true;
       setReady(false);
       animatedRef.current = [];
+      focusAnimatedRef.current = [];
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+      visibilityCleanupRef.current?.();
+      visibilityCleanupRef.current = null;
       worldRef.current = null;
       appRef.current = null;
       app.destroy({ removeView: true }, { children: true });
@@ -606,6 +662,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     focusLayerRef.current = (world.children.find((child) => child.label === "focusLayer") as Container | undefined) ?? null;
     setFocusEpoch((epoch) => epoch + 1);
     applyCamera();
+    invalidateRender();
     // Hover/selection deliberately absent: focus changes redraw ONLY the
     // focus overlay effect below, never this full scene rebuild.
   }, [atlasTextures, cameraPresetId, debugMode, ready, scene, suppressPlaceLabels, windowRefreshKey]);
@@ -637,6 +694,17 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       drawFocusOverlay(layer, place, focus, mode, focusAnimatedRef.current);
     }
     perfRef.current.overlayRedraws += 1;
+    // The focus pulse runs briefly, then freezes so the render loop can park:
+    // a permanent default selection must not pin the widget at 30fps forever.
+    if (focusPulseTimeoutRef.current !== undefined) window.clearTimeout(focusPulseTimeoutRef.current);
+    if (focusAnimatedRef.current.length > 0) {
+      focusPulseTimeoutRef.current = window.setTimeout(() => {
+        for (const item of focusAnimatedRef.current) item.target.alpha = item.baseAlpha;
+        focusAnimatedRef.current.length = 0;
+        invalidateRender();
+      }, 4000);
+    }
+    invalidateRender();
   }, [hoverPlaceId, selectedPlaceId, ready, focusEpoch]);
 
   function zoomBy(multiplier: number) {
@@ -673,6 +741,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     world.scale.set(camera.zoom);
     world.position.set(camera.x, camera.y);
     requestWindowRefreshIfNeeded();
+    invalidateRender();
   }
 
   function requestWindowRefreshIfNeeded() {
