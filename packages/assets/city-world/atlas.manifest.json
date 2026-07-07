@@ -18,107 +18,1097 @@
     "marker."
   ],
   "palettes": {
-    "terrain.grass": { "key": "terrain.grass", "colors": { "base": "#a3b877", "shade": "#7d9a62", "highlight": "#dde5b4", "accent": "#6d824f" } },
-    "terrain.park": { "key": "terrain.park", "colors": { "base": "#83aa64", "shade": "#648c52", "highlight": "#dde5b4", "accent": "#f1d9a5" } },
-    "terrain.plaza": { "key": "terrain.plaza", "colors": { "base": "#d8c79d", "shade": "#bda879", "highlight": "#f5e7c1", "accent": "#e8d4a8" } },
-    "terrain.sidewalk": { "key": "terrain.sidewalk", "colors": { "base": "#c2c7a0", "shade": "#9aa27e", "highlight": "#dde5b4", "accent": "#f5e7c1" } },
-    "terrain.water": { "key": "terrain.water", "colors": { "base": "#5fadc4", "shade": "#3a8ea1", "highlight": "#e9fbff", "accent": "#74bccb" } },
-    "road.asphalt": { "key": "road.asphalt", "colors": { "base": "#646f69", "shade": "#46534e", "highlight": "#f8e8a6", "accent": "#d3c28f" } },
-    "road.crosswalk": { "key": "road.crosswalk", "colors": { "base": "#efe2c8", "shade": "#c9b892", "highlight": "#ffffff", "accent": "#5f6963" } },
-    "road.driveway": { "key": "road.driveway", "colors": { "base": "#8d9486", "shade": "#6f776b", "highlight": "#e8dfbd", "accent": "#b7a782" } },
-    "lot.apartments": { "key": "lot.apartments", "colors": { "base": "#d9c5a8", "shade": "#bda887", "highlight": "#ead7bb", "accent": "#7ec36d" } },
-    "lot.civic": { "key": "lot.civic", "colors": { "base": "#e5d6b4", "shade": "#c8b688", "highlight": "#fff2d2", "accent": "#f0c451" } },
-    "lot.gym": { "key": "lot.gym", "colors": { "base": "#b8d3df", "shade": "#8ab5c6", "highlight": "#d7e7ef", "accent": "#c26a52" } },
-    "lot.home": { "key": "lot.home", "colors": { "base": "#bdcd90", "shade": "#97a874", "highlight": "#f5e6ca", "accent": "#c26a52" } },
-    "lot.park": { "key": "lot.park", "colors": { "base": "#84ad68", "shade": "#648c52", "highlight": "#dde5b4", "accent": "#f1d9a5" } },
-    "lot.shop": { "key": "lot.shop", "colors": { "base": "#e8d4a8", "shade": "#c4ad82", "highlight": "#fff4d8", "accent": "#5b9fcb" } },
-    "lot.waterfront": { "key": "lot.waterfront", "colors": { "base": "#93ccd4", "shade": "#4ba6b7", "highlight": "#e9fbff", "accent": "#5fadc4" } },
-    "building.apartment.4": { "key": "building.apartment.4", "colors": { "base": "#ead7bb", "shade": "#c7aa8a", "highlight": "#fff4d8", "roof": "#6d8f6f", "trim": "#26332c" } },
-    "building.apartment.5": { "key": "building.apartment.5", "colors": { "base": "#e7c9a8", "shade": "#bd9871", "highlight": "#fff4d8", "roof": "#567d8c", "trim": "#26332c" } },
-    "building.civic.1": { "key": "building.civic.1", "colors": { "base": "#f3dfbd", "shade": "#cdb283", "highlight": "#fff2d2", "roof": "#628fa3", "trim": "#f0c451" } },
-    "building.gym.2": { "key": "building.gym.2", "colors": { "base": "#d7e7ef", "shade": "#a8c5d3", "highlight": "#ffffff", "roof": "#c26a52", "trim": "#26332c" } },
-    "building.home.0": { "key": "building.home.0", "colors": { "base": "#f5e6ca", "shade": "#d6bd98", "highlight": "#fff1b5", "roof": "#c26a52", "trim": "#7e5b3b" } },
-    "building.home.1": { "key": "building.home.1", "colors": { "base": "#f1dcb9", "shade": "#cba981", "highlight": "#fff1b5", "roof": "#6b91a8", "trim": "#7e5b3b" } },
-    "building.home.2": { "key": "building.home.2", "colors": { "base": "#ecd1ae", "shade": "#c49d75", "highlight": "#fff1b5", "roof": "#7da172", "trim": "#7e5b3b" } },
-    "building.home.3": { "key": "building.home.3", "colors": { "base": "#fff0cf", "shade": "#d6bd98", "highlight": "#fff8da", "roof": "#cfae62", "trim": "#7e5b3b" } },
-    "building.home.4": { "key": "building.home.4", "colors": { "base": "#f5e6ca", "shade": "#d6bd98", "highlight": "#fff1b5", "roof": "#b98352", "trim": "#7e5b3b" } },
-    "building.home.5": { "key": "building.home.5", "colors": { "base": "#f1dcb9", "shade": "#cba981", "highlight": "#fff1b5", "roof": "#8b7295", "trim": "#7e5b3b" } },
-    "building.house.cottage.v1": { "key": "building.house.cottage.v1", "colors": { "base": "#f5e6ca", "shade": "#d6bd98", "highlight": "#fff8da", "roof": "#c26a52", "trim": "#7e5b3b" } },
-    "building.house.cottage.v2": { "key": "building.house.cottage.v2", "colors": { "base": "#efd9b8", "shade": "#cdb489", "highlight": "#fff2d6", "roof": "#7d9a86", "trim": "#7e5b3b" } },
-    "building.house.cottage.v3": { "key": "building.house.cottage.v3", "colors": { "base": "#f0dcc4", "shade": "#ccb489", "highlight": "#fff4da", "roof": "#6f8fa8", "trim": "#7e5b3b" } },
-    "building.house.cottage.v4": { "key": "building.house.cottage.v4", "colors": { "base": "#ecdcc0", "shade": "#c9b58c", "highlight": "#fff3d4", "roof": "#b08a5a", "trim": "#7e5b3b" } },
-    "building.house.ranch.v1": { "key": "building.house.ranch.v1", "colors": { "base": "#ecd1ae", "shade": "#c49d75", "highlight": "#fff1b5", "roof": "#7da172", "trim": "#7e5b3b" } },
-    "building.house.ranch.v2": { "key": "building.house.ranch.v2", "colors": { "base": "#e8cfad", "shade": "#c09a73", "highlight": "#fff0b8", "roof": "#a9704f", "trim": "#7e5b3b" } },
-    "building.house.ranch.v3": { "key": "building.house.ranch.v3", "colors": { "base": "#ecd6b6", "shade": "#c3a37b", "highlight": "#fff3c2", "roof": "#5f7f8e", "trim": "#7e5b3b" } },
-    "building.house.rowhome.flat_parapet.v1": { "key": "building.house.rowhome.flat_parapet.v1", "colors": { "base": "#f2dfc2", "shade": "#cdb18c", "highlight": "#fff4d8", "roof": "#8ab0c5", "trim": "#3f7596" } },
-    "building.house.rowhome.flat_parapet.v2": { "key": "building.house.rowhome.flat_parapet.v2", "colors": { "base": "#eed9c0", "shade": "#c9ac88", "highlight": "#fff2d4", "roof": "#6f7d8f", "trim": "#3f5566" } },
-    "building.apartment.lowrise.stepped.v1": { "key": "building.apartment.lowrise.stepped.v1", "colors": { "base": "#ead7bb", "shade": "#c7aa8a", "highlight": "#fff4d8", "roof": "#6d8f6f", "trim": "#26332c" } },
-    "building.apartment.lowrise.stepped.v2": { "key": "building.apartment.lowrise.stepped.v2", "colors": { "base": "#e7cfae", "shade": "#c3a37c", "highlight": "#fff1d0", "roof": "#587a8e", "trim": "#26332c" } },
-    "building.apartment.lowrise.stepped.v3": { "key": "building.apartment.lowrise.stepped.v3", "colors": { "base": "#e3d0b4", "shade": "#bfa47e", "highlight": "#fff1d2", "roof": "#8a6f95", "trim": "#26332c" } },
-    "building.store.strip.three_bay.v1": { "key": "building.store.strip.three_bay.v1", "colors": { "base": "#f2dfc2", "shade": "#cdb18c", "highlight": "#fff4d8", "roof": "#82a4c4", "trim": "#5b9fcb" } },
-    "building.store.strip.three_bay.v2": { "key": "building.store.strip.three_bay.v2", "colors": { "base": "#efdcc0", "shade": "#c9ac88", "highlight": "#fff2d4", "roof": "#c48a5a", "trim": "#a8703f" } },
-    "building.store.strip.three_bay.v3": { "key": "building.store.strip.three_bay.v3", "colors": { "base": "#eedcc4", "shade": "#c8b189", "highlight": "#fff3d6", "roof": "#6f9a86", "trim": "#4f7d6a" } },
-    "building.gym.sawtooth.v1": { "key": "building.gym.sawtooth.v1", "colors": { "base": "#d7e7ef", "shade": "#a8c5d3", "highlight": "#ffffff", "roof": "#c26a52", "trim": "#26332c" } },
-    "building.gym.sawtooth.v2": { "key": "building.gym.sawtooth.v2", "colors": { "base": "#d3e2ea", "shade": "#a3c0cf", "highlight": "#fbffff", "roof": "#5f8fa6", "trim": "#26332c" } },
-    "building.venue.anaheim_convention_center.v1": { "key": "building.venue.anaheim_convention_center.v1", "colors": { "base": "#f0d9ab", "shade": "#c8ae7c", "highlight": "#fff0c8", "roof": "#97bcc9", "trim": "#4e8298" } },
-    "building.shop.1": { "key": "building.shop.1", "colors": { "base": "#f2dfc2", "shade": "#cdb18c", "highlight": "#fff4d8", "roof": "#cfa057", "trim": "#5b9fcb" } },
-    "building.shop.2": { "key": "building.shop.2", "colors": { "base": "#f2dfc2", "shade": "#cdb18c", "highlight": "#fff4d8", "roof": "#c37481", "trim": "#cfa057" } },
-    "prop.bench": { "key": "prop.bench", "colors": { "base": "#9f6a3d", "shade": "#6c4a2c", "highlight": "#b47a48", "accent": "#42514b" } },
-    "prop.bush": { "key": "prop.bush", "colors": { "base": "#648c52", "shade": "#397f45", "highlight": "#dde5b4", "accent": "#72bc61" } },
-    "prop.cloud": { "key": "prop.cloud", "colors": { "base": "#ffffff", "shade": "#d9edf2", "highlight": "#ffffff", "accent": "#f5fbff" } },
-    "prop.fountain": { "key": "prop.fountain", "colors": { "base": "#74bccb", "shade": "#2b6f7c", "highlight": "#f6eee0", "accent": "#e9fbff" } },
-    "prop.parked_car": { "key": "prop.parked_car", "colors": { "base": "#c65a4e", "shade": "#26332c", "highlight": "#f5fbff", "accent": "#fff0a8" } },
-    "prop.sign": { "key": "prop.sign", "colors": { "base": "#fff4d8", "shade": "#384640", "highlight": "#ffe2ab", "accent": "#d7f0fb" } },
-    "prop.streetlight": { "key": "prop.streetlight", "colors": { "base": "#44524d", "shade": "#23342e", "highlight": "#ffef9a", "accent": "#fff4bd" } },
-    "prop.tree": { "key": "prop.tree", "colors": { "base": "#397f45", "shade": "#7a5a35", "highlight": "#72bc61", "accent": "#dde5b4" } },
-    "prop.water_shimmer": { "key": "prop.water_shimmer", "colors": { "base": "#e9fbff", "shade": "#5fadc4", "highlight": "#ffffff", "accent": "#74bccb" } },
-    "actor.car": { "key": "actor.car", "colors": { "base": "#c65a4e", "shade": "#26332c", "highlight": "#f5fbff", "accent": "#fff0a8" } },
-    "actor.clawd": { "key": "actor.clawd", "colors": { "base": "#2f2a24", "shade": "#15130f", "highlight": "#f7f0df", "accent": "#ffef9a" } },
-    "actor.walker": { "key": "actor.walker", "colors": { "base": "#426f9f", "shade": "#26332c", "highlight": "#f7f0df", "accent": "#9b5c74" } },
-    "pin.favorite": { "key": "pin.favorite", "colors": { "base": "#ffcf56", "shade": "#26332c", "highlight": "#fff3ba", "accent": "#ffe16c" } },
-    "pin.home": { "key": "pin.home", "colors": { "base": "#f0b45a", "shade": "#26332c", "highlight": "#fff3ba", "accent": "#c26a52" } },
-    "pin.idea": { "key": "pin.idea", "colors": { "base": "#ffcf56", "shade": "#26332c", "highlight": "#fff3ba", "accent": "#cfa057" } },
-    "pin.note": { "key": "pin.note", "colors": { "base": "#fff3ba", "shade": "#26332c", "highlight": "#ffffff", "accent": "#ffcf56" } },
-    "pin.park": { "key": "pin.park", "colors": { "base": "#69b95f", "shade": "#26332c", "highlight": "#dde5b4", "accent": "#648c52" } },
-    "pin.question": { "key": "pin.question", "colors": { "base": "#c89be4", "shade": "#26332c", "highlight": "#f7e7ff", "accent": "#8b7295" } },
-    "pin.shop": { "key": "pin.shop", "colors": { "base": "#5b9fcb", "shade": "#26332c", "highlight": "#d7f0fb", "accent": "#cfa057" } }
+    "terrain.grass": {
+      "key": "terrain.grass",
+      "colors": {
+        "base": "#a3b877",
+        "shade": "#7d9a62",
+        "highlight": "#dde5b4",
+        "accent": "#6d824f"
+      }
+    },
+    "terrain.park": {
+      "key": "terrain.park",
+      "colors": {
+        "base": "#83aa64",
+        "shade": "#648c52",
+        "highlight": "#dde5b4",
+        "accent": "#f1d9a5"
+      }
+    },
+    "terrain.plaza": {
+      "key": "terrain.plaza",
+      "colors": {
+        "base": "#d8c79d",
+        "shade": "#bda879",
+        "highlight": "#f5e7c1",
+        "accent": "#e8d4a8"
+      }
+    },
+    "terrain.sidewalk": {
+      "key": "terrain.sidewalk",
+      "colors": {
+        "base": "#c2c7a0",
+        "shade": "#9aa27e",
+        "highlight": "#dde5b4",
+        "accent": "#f5e7c1"
+      }
+    },
+    "terrain.water": {
+      "key": "terrain.water",
+      "colors": {
+        "base": "#5fadc4",
+        "shade": "#3a8ea1",
+        "highlight": "#e9fbff",
+        "accent": "#74bccb"
+      }
+    },
+    "road.asphalt": {
+      "key": "road.asphalt",
+      "colors": {
+        "base": "#646f69",
+        "shade": "#46534e",
+        "highlight": "#f8e8a6",
+        "accent": "#d3c28f"
+      }
+    },
+    "road.crosswalk": {
+      "key": "road.crosswalk",
+      "colors": {
+        "base": "#efe2c8",
+        "shade": "#c9b892",
+        "highlight": "#ffffff",
+        "accent": "#5f6963"
+      }
+    },
+    "road.driveway": {
+      "key": "road.driveway",
+      "colors": {
+        "base": "#8d9486",
+        "shade": "#6f776b",
+        "highlight": "#e8dfbd",
+        "accent": "#b7a782"
+      }
+    },
+    "lot.apartments": {
+      "key": "lot.apartments",
+      "colors": {
+        "base": "#d9c5a8",
+        "shade": "#bda887",
+        "highlight": "#ead7bb",
+        "accent": "#7ec36d"
+      }
+    },
+    "lot.civic": {
+      "key": "lot.civic",
+      "colors": {
+        "base": "#e5d6b4",
+        "shade": "#c8b688",
+        "highlight": "#fff2d2",
+        "accent": "#f0c451"
+      }
+    },
+    "lot.gym": {
+      "key": "lot.gym",
+      "colors": {
+        "base": "#b8d3df",
+        "shade": "#8ab5c6",
+        "highlight": "#d7e7ef",
+        "accent": "#c26a52"
+      }
+    },
+    "lot.home": {
+      "key": "lot.home",
+      "colors": {
+        "base": "#bdcd90",
+        "shade": "#97a874",
+        "highlight": "#f5e6ca",
+        "accent": "#c26a52"
+      }
+    },
+    "lot.park": {
+      "key": "lot.park",
+      "colors": {
+        "base": "#84ad68",
+        "shade": "#648c52",
+        "highlight": "#dde5b4",
+        "accent": "#f1d9a5"
+      }
+    },
+    "lot.shop": {
+      "key": "lot.shop",
+      "colors": {
+        "base": "#e8d4a8",
+        "shade": "#c4ad82",
+        "highlight": "#fff4d8",
+        "accent": "#5b9fcb"
+      }
+    },
+    "lot.waterfront": {
+      "key": "lot.waterfront",
+      "colors": {
+        "base": "#93ccd4",
+        "shade": "#4ba6b7",
+        "highlight": "#e9fbff",
+        "accent": "#5fadc4"
+      }
+    },
+    "building.apartment.4": {
+      "key": "building.apartment.4",
+      "colors": {
+        "base": "#ead7bb",
+        "shade": "#c7aa8a",
+        "highlight": "#fff4d8",
+        "roof": "#6d8f6f",
+        "trim": "#26332c"
+      }
+    },
+    "building.apartment.5": {
+      "key": "building.apartment.5",
+      "colors": {
+        "base": "#e7c9a8",
+        "shade": "#bd9871",
+        "highlight": "#fff4d8",
+        "roof": "#567d8c",
+        "trim": "#26332c"
+      }
+    },
+    "building.civic.1": {
+      "key": "building.civic.1",
+      "colors": {
+        "base": "#f3dfbd",
+        "shade": "#cdb283",
+        "highlight": "#fff2d2",
+        "roof": "#628fa3",
+        "trim": "#f0c451"
+      }
+    },
+    "building.gym.2": {
+      "key": "building.gym.2",
+      "colors": {
+        "base": "#d7e7ef",
+        "shade": "#a8c5d3",
+        "highlight": "#ffffff",
+        "roof": "#c26a52",
+        "trim": "#26332c"
+      }
+    },
+    "building.home.0": {
+      "key": "building.home.0",
+      "colors": {
+        "base": "#f5e6ca",
+        "shade": "#d6bd98",
+        "highlight": "#fff1b5",
+        "roof": "#c26a52",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.home.1": {
+      "key": "building.home.1",
+      "colors": {
+        "base": "#f1dcb9",
+        "shade": "#cba981",
+        "highlight": "#fff1b5",
+        "roof": "#6b91a8",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.home.2": {
+      "key": "building.home.2",
+      "colors": {
+        "base": "#ecd1ae",
+        "shade": "#c49d75",
+        "highlight": "#fff1b5",
+        "roof": "#7da172",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.home.3": {
+      "key": "building.home.3",
+      "colors": {
+        "base": "#fff0cf",
+        "shade": "#d6bd98",
+        "highlight": "#fff8da",
+        "roof": "#cfae62",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.home.4": {
+      "key": "building.home.4",
+      "colors": {
+        "base": "#f5e6ca",
+        "shade": "#d6bd98",
+        "highlight": "#fff1b5",
+        "roof": "#b98352",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.home.5": {
+      "key": "building.home.5",
+      "colors": {
+        "base": "#f1dcb9",
+        "shade": "#cba981",
+        "highlight": "#fff1b5",
+        "roof": "#8b7295",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.house.cottage.v1": {
+      "key": "building.house.cottage.v1",
+      "colors": {
+        "base": "#f5e6ca",
+        "shade": "#d6bd98",
+        "highlight": "#fff8da",
+        "roof": "#c26a52",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.house.cottage.v2": {
+      "key": "building.house.cottage.v2",
+      "colors": {
+        "base": "#efd9b8",
+        "shade": "#cdb489",
+        "highlight": "#fff2d6",
+        "roof": "#7d9a86",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.house.cottage.v3": {
+      "key": "building.house.cottage.v3",
+      "colors": {
+        "base": "#f0dcc4",
+        "shade": "#ccb489",
+        "highlight": "#fff4da",
+        "roof": "#6f8fa8",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.house.cottage.v4": {
+      "key": "building.house.cottage.v4",
+      "colors": {
+        "base": "#ecdcc0",
+        "shade": "#c9b58c",
+        "highlight": "#fff3d4",
+        "roof": "#b08a5a",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.house.ranch.v1": {
+      "key": "building.house.ranch.v1",
+      "colors": {
+        "base": "#ecd1ae",
+        "shade": "#c49d75",
+        "highlight": "#fff1b5",
+        "roof": "#7da172",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.house.ranch.v2": {
+      "key": "building.house.ranch.v2",
+      "colors": {
+        "base": "#e8cfad",
+        "shade": "#c09a73",
+        "highlight": "#fff0b8",
+        "roof": "#a9704f",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.house.ranch.v3": {
+      "key": "building.house.ranch.v3",
+      "colors": {
+        "base": "#ecd6b6",
+        "shade": "#c3a37b",
+        "highlight": "#fff3c2",
+        "roof": "#5f7f8e",
+        "trim": "#7e5b3b"
+      }
+    },
+    "building.house.rowhome.flat_parapet.v1": {
+      "key": "building.house.rowhome.flat_parapet.v1",
+      "colors": {
+        "base": "#f2dfc2",
+        "shade": "#cdb18c",
+        "highlight": "#fff4d8",
+        "roof": "#8ab0c5",
+        "trim": "#3f7596"
+      }
+    },
+    "building.house.rowhome.flat_parapet.v2": {
+      "key": "building.house.rowhome.flat_parapet.v2",
+      "colors": {
+        "base": "#eed9c0",
+        "shade": "#c9ac88",
+        "highlight": "#fff2d4",
+        "roof": "#6f7d8f",
+        "trim": "#3f5566"
+      }
+    },
+    "building.apartment.lowrise.stepped.v1": {
+      "key": "building.apartment.lowrise.stepped.v1",
+      "colors": {
+        "base": "#ead7bb",
+        "shade": "#c7aa8a",
+        "highlight": "#fff4d8",
+        "roof": "#6d8f6f",
+        "trim": "#26332c"
+      }
+    },
+    "building.apartment.lowrise.stepped.v2": {
+      "key": "building.apartment.lowrise.stepped.v2",
+      "colors": {
+        "base": "#e7cfae",
+        "shade": "#c3a37c",
+        "highlight": "#fff1d0",
+        "roof": "#587a8e",
+        "trim": "#26332c"
+      }
+    },
+    "building.apartment.lowrise.stepped.v3": {
+      "key": "building.apartment.lowrise.stepped.v3",
+      "colors": {
+        "base": "#e3d0b4",
+        "shade": "#bfa47e",
+        "highlight": "#fff1d2",
+        "roof": "#8a6f95",
+        "trim": "#26332c"
+      }
+    },
+    "building.store.strip.three_bay.v1": {
+      "key": "building.store.strip.three_bay.v1",
+      "colors": {
+        "base": "#f2dfc2",
+        "shade": "#cdb18c",
+        "highlight": "#fff4d8",
+        "roof": "#82a4c4",
+        "trim": "#5b9fcb"
+      }
+    },
+    "building.store.strip.three_bay.v2": {
+      "key": "building.store.strip.three_bay.v2",
+      "colors": {
+        "base": "#efdcc0",
+        "shade": "#c9ac88",
+        "highlight": "#fff2d4",
+        "roof": "#c48a5a",
+        "trim": "#a8703f"
+      }
+    },
+    "building.store.strip.three_bay.v3": {
+      "key": "building.store.strip.three_bay.v3",
+      "colors": {
+        "base": "#eedcc4",
+        "shade": "#c8b189",
+        "highlight": "#fff3d6",
+        "roof": "#6f9a86",
+        "trim": "#4f7d6a"
+      }
+    },
+    "building.gym.sawtooth.v1": {
+      "key": "building.gym.sawtooth.v1",
+      "colors": {
+        "base": "#d7e7ef",
+        "shade": "#a8c5d3",
+        "highlight": "#ffffff",
+        "roof": "#c26a52",
+        "trim": "#26332c"
+      }
+    },
+    "building.gym.sawtooth.v2": {
+      "key": "building.gym.sawtooth.v2",
+      "colors": {
+        "base": "#d3e2ea",
+        "shade": "#a3c0cf",
+        "highlight": "#fbffff",
+        "roof": "#5f8fa6",
+        "trim": "#26332c"
+      }
+    },
+    "building.venue.anaheim_convention_center.v1": {
+      "key": "building.venue.anaheim_convention_center.v1",
+      "colors": {
+        "base": "#f0d9ab",
+        "shade": "#c8ae7c",
+        "highlight": "#fff0c8",
+        "roof": "#97bcc9",
+        "trim": "#4e8298"
+      }
+    },
+    "building.shop.1": {
+      "key": "building.shop.1",
+      "colors": {
+        "base": "#f2dfc2",
+        "shade": "#cdb18c",
+        "highlight": "#fff4d8",
+        "roof": "#cfa057",
+        "trim": "#5b9fcb"
+      }
+    },
+    "building.shop.2": {
+      "key": "building.shop.2",
+      "colors": {
+        "base": "#f2dfc2",
+        "shade": "#cdb18c",
+        "highlight": "#fff4d8",
+        "roof": "#c37481",
+        "trim": "#cfa057"
+      }
+    },
+    "prop.bench": {
+      "key": "prop.bench",
+      "colors": {
+        "base": "#9f6a3d",
+        "shade": "#6c4a2c",
+        "highlight": "#b47a48",
+        "accent": "#42514b"
+      }
+    },
+    "prop.bush": {
+      "key": "prop.bush",
+      "colors": {
+        "base": "#648c52",
+        "shade": "#397f45",
+        "highlight": "#dde5b4",
+        "accent": "#72bc61"
+      }
+    },
+    "prop.cloud": {
+      "key": "prop.cloud",
+      "colors": {
+        "base": "#ffffff",
+        "shade": "#d9edf2",
+        "highlight": "#ffffff",
+        "accent": "#f5fbff"
+      }
+    },
+    "prop.fountain": {
+      "key": "prop.fountain",
+      "colors": {
+        "base": "#74bccb",
+        "shade": "#2b6f7c",
+        "highlight": "#f6eee0",
+        "accent": "#e9fbff"
+      }
+    },
+    "prop.parked_car": {
+      "key": "prop.parked_car",
+      "colors": {
+        "base": "#c65a4e",
+        "shade": "#26332c",
+        "highlight": "#f5fbff",
+        "accent": "#fff0a8"
+      }
+    },
+    "prop.sign": {
+      "key": "prop.sign",
+      "colors": {
+        "base": "#fff4d8",
+        "shade": "#384640",
+        "highlight": "#ffe2ab",
+        "accent": "#d7f0fb"
+      }
+    },
+    "prop.streetlight": {
+      "key": "prop.streetlight",
+      "colors": {
+        "base": "#44524d",
+        "shade": "#23342e",
+        "highlight": "#ffef9a",
+        "accent": "#fff4bd"
+      }
+    },
+    "prop.tree": {
+      "key": "prop.tree",
+      "colors": {
+        "base": "#397f45",
+        "shade": "#7a5a35",
+        "highlight": "#72bc61",
+        "accent": "#dde5b4"
+      }
+    },
+    "prop.water_shimmer": {
+      "key": "prop.water_shimmer",
+      "colors": {
+        "base": "#e9fbff",
+        "shade": "#5fadc4",
+        "highlight": "#ffffff",
+        "accent": "#74bccb"
+      }
+    },
+    "actor.car": {
+      "key": "actor.car",
+      "colors": {
+        "base": "#c65a4e",
+        "shade": "#26332c",
+        "highlight": "#f5fbff",
+        "accent": "#fff0a8"
+      }
+    },
+    "actor.clawd": {
+      "key": "actor.clawd",
+      "colors": {
+        "base": "#2f2a24",
+        "shade": "#15130f",
+        "highlight": "#f7f0df",
+        "accent": "#ffef9a"
+      }
+    },
+    "actor.walker": {
+      "key": "actor.walker",
+      "colors": {
+        "base": "#426f9f",
+        "shade": "#26332c",
+        "highlight": "#f7f0df",
+        "accent": "#9b5c74"
+      }
+    },
+    "pin.favorite": {
+      "key": "pin.favorite",
+      "colors": {
+        "base": "#ffcf56",
+        "shade": "#26332c",
+        "highlight": "#fff3ba",
+        "accent": "#ffe16c"
+      }
+    },
+    "pin.home": {
+      "key": "pin.home",
+      "colors": {
+        "base": "#f0b45a",
+        "shade": "#26332c",
+        "highlight": "#fff3ba",
+        "accent": "#c26a52"
+      }
+    },
+    "pin.idea": {
+      "key": "pin.idea",
+      "colors": {
+        "base": "#ffcf56",
+        "shade": "#26332c",
+        "highlight": "#fff3ba",
+        "accent": "#cfa057"
+      }
+    },
+    "pin.note": {
+      "key": "pin.note",
+      "colors": {
+        "base": "#fff3ba",
+        "shade": "#26332c",
+        "highlight": "#ffffff",
+        "accent": "#ffcf56"
+      }
+    },
+    "pin.park": {
+      "key": "pin.park",
+      "colors": {
+        "base": "#69b95f",
+        "shade": "#26332c",
+        "highlight": "#dde5b4",
+        "accent": "#648c52"
+      }
+    },
+    "pin.question": {
+      "key": "pin.question",
+      "colors": {
+        "base": "#c89be4",
+        "shade": "#26332c",
+        "highlight": "#f7e7ff",
+        "accent": "#8b7295"
+      }
+    },
+    "pin.shop": {
+      "key": "pin.shop",
+      "colors": {
+        "base": "#5b9fcb",
+        "shade": "#26332c",
+        "highlight": "#d7f0fb",
+        "accent": "#cfa057"
+      }
+    },
+    "prop.dock": {
+      "key": "prop.dock",
+      "colors": {
+        "base": "#b98f5e",
+        "shade": "#7c5a38",
+        "highlight": "#d8b183",
+        "accent": "#5b6a63"
+      }
+    },
+    "prop.boat": {
+      "key": "prop.boat",
+      "colors": {
+        "base": "#e4e9ea",
+        "shade": "#5f7076",
+        "highlight": "#f6f4e9",
+        "accent": "#c2543f"
+      }
+    },
+    "prop.water_tower": {
+      "key": "prop.water_tower",
+      "colors": {
+        "base": "#d8cfc0",
+        "shade": "#6e6558",
+        "highlight": "#efe8d9",
+        "accent": "#a9704f"
+      }
+    }
   },
   "tiles": {
-    "tile.grass.0": { "key": "tile.grass.0", "kind": "grass", "variant": 0, "anchor": { "x": 0.5, "y": 0.5 }, "tags": ["terrain:grass"] },
-    "tile.park.0": { "key": "tile.park.0", "kind": "park", "variant": 0, "anchor": { "x": 0.5, "y": 0.5 }, "tags": ["terrain:park"] },
-    "tile.plaza.0": { "key": "tile.plaza.0", "kind": "plaza", "variant": 0, "anchor": { "x": 0.5, "y": 0.5 }, "tags": ["terrain:plaza"] },
-    "tile.sidewalk.0": { "key": "tile.sidewalk.0", "kind": "sidewalk", "variant": 0, "anchor": { "x": 0.5, "y": 0.5 }, "tags": ["terrain:grass"] },
-    "tile.water.0": { "key": "tile.water.0", "kind": "water", "variant": 0, "anchor": { "x": 0.5, "y": 0.5 }, "tags": ["terrain:water"] }
+    "tile.grass.0": {
+      "key": "tile.grass.0",
+      "kind": "grass",
+      "variant": 0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "tags": [
+        "terrain:grass"
+      ]
+    },
+    "tile.park.0": {
+      "key": "tile.park.0",
+      "kind": "park",
+      "variant": 0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "tags": [
+        "terrain:park"
+      ]
+    },
+    "tile.plaza.0": {
+      "key": "tile.plaza.0",
+      "kind": "plaza",
+      "variant": 0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "tags": [
+        "terrain:plaza"
+      ]
+    },
+    "tile.sidewalk.0": {
+      "key": "tile.sidewalk.0",
+      "kind": "sidewalk",
+      "variant": 0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "tags": [
+        "terrain:grass"
+      ]
+    },
+    "tile.water.0": {
+      "key": "tile.water.0",
+      "kind": "water",
+      "variant": 0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "tags": [
+        "terrain:water"
+      ]
+    }
   },
   "sprites": {
-    "road.street.standard": { "key": "road.street.standard", "kind": "road", "anchor": { "x": 0.5, "y": 0.5 }, "fallback": "road", "tags": ["road:street"] },
-    "road.avenue.wide": { "key": "road.avenue.wide", "kind": "road", "anchor": { "x": 0.5, "y": 0.5 }, "fallback": "road", "tags": ["road:avenue"] },
-    "road.driveway.standard": { "key": "road.driveway.standard", "kind": "road", "anchor": { "x": 0.5, "y": 0.5 }, "fallback": "road", "tags": ["road:driveway"] },
-    "road.crosswalk.standard": { "key": "road.crosswalk.standard", "kind": "road", "anchor": { "x": 0.5, "y": 0.5 }, "fallback": "road", "tags": ["road:crosswalk"] },
-    "road.corner.two_lane.v1": { "key": "road.corner.two_lane.v1", "kind": "road", "frame": { "x": 0, "y": 0, "width": 330, "height": 250 }, "anchor": { "x": 0.5, "y": 0.56 }, "scale": 0.22, "fallback": "road", "tags": ["road:street", "road:corner"] },
-    "lot.park.large": { "key": "lot.park.large", "kind": "lot", "anchor": { "x": 0.5, "y": 0.5 }, "fallback": "lot", "tags": ["lot:park"] },
-    "building.home.gable.0": { "key": "building.home.gable.0", "kind": "building", "anchor": { "x": 0.5, "y": 1 }, "fallback": "building", "tags": ["building:home"] },
-    "building.house.cottage.front_gable.v1": { "key": "building.house.cottage.front_gable.v1", "kind": "building", "anchor": { "x": 0.5, "y": 1 }, "fallback": "building", "tags": ["building:home", "building:house", "building:cottage"] },
-    "building.house.ranch.low_gable.v1": { "key": "building.house.ranch.low_gable.v1", "kind": "building", "anchor": { "x": 0.5, "y": 1 }, "fallback": "building", "tags": ["building:home", "building:house", "building:ranch"] },
-    "building.house.rowhome.flat_parapet.v1": { "key": "building.house.rowhome.flat_parapet.v1", "kind": "building", "frame": { "x": 0, "y": 0, "width": 420, "height": 300 }, "anchor": { "x": 0.5, "y": 0.94 }, "scale": 0.35, "fallback": "building", "tags": ["building:home", "building:house", "building:rowhome"] },
-    "building.apartment.lowrise.stepped.v1": { "key": "building.apartment.lowrise.stepped.v1", "kind": "building", "anchor": { "x": 0.5, "y": 1 }, "fallback": "building", "tags": ["building:apartment", "building:lowrise"] },
-    "building.shop.flat.2": { "key": "building.shop.flat.2", "kind": "building", "anchor": { "x": 0.5, "y": 1 }, "fallback": "building", "tags": ["building:shop"] },
-    "building.store.strip.three_bay.v1": { "key": "building.store.strip.three_bay.v1", "kind": "building", "frame": { "x": 0, "y": 0, "width": 470, "height": 320 }, "anchor": { "x": 0.5, "y": 0.94 }, "scale": 0.46, "fallback": "building", "tags": ["building:shop", "building:store", "building:strip"] },
-    "building.venue.anaheim_convention_center.v1": { "key": "building.venue.anaheim_convention_center.v1", "kind": "building", "frame": { "x": 0, "y": 0, "width": 560, "height": 340 }, "anchor": { "x": 0.5, "y": 0.94 }, "scale": 0.32, "fallback": "building", "tags": ["building:civic", "building:venue", "building:convention"] },
-    "building.gym.sawtooth.2": { "key": "building.gym.sawtooth.2", "kind": "building", "anchor": { "x": 0.5, "y": 1 }, "fallback": "building", "tags": ["building:gym"] },
-    "building.apartment.hip.2": { "key": "building.apartment.hip.2", "kind": "building", "anchor": { "x": 0.5, "y": 1 }, "fallback": "building", "tags": ["building:apartment"] },
-    "building.civic.tower.1": { "key": "building.civic.tower.1", "kind": "building", "anchor": { "x": 0.5, "y": 1 }, "fallback": "building", "tags": ["building:civic"] },
-    "prop.tree.0": { "key": "prop.tree.0", "kind": "prop", "anchor": { "x": 0.5, "y": 1 }, "fallback": "prop", "tags": ["prop:tree"] },
-    "prop.water_shimmer.0": { "key": "prop.water_shimmer.0", "kind": "prop", "anchor": { "x": 0.5, "y": 0.5 }, "fallback": "prop", "tags": ["prop:water"] },
-    "actor.car.car-hamner": { "key": "actor.car.car-hamner", "kind": "actor", "anchor": { "x": 0.5, "y": 1 }, "fallback": "actor", "tags": ["actor:car"] },
-    "actor.walker.walker-park": { "key": "actor.walker.walker-park", "kind": "actor", "anchor": { "x": 0.5, "y": 1 }, "fallback": "actor", "tags": ["actor:walker"] },
-    "actor.clawd.clawd": { "key": "actor.clawd.clawd", "kind": "actor", "anchor": { "x": 0.5, "y": 1 }, "fallback": "actor", "tags": ["actor:clawd"] },
-    "pin.note.default": { "key": "pin.note.default", "kind": "marker", "anchor": { "x": 0.5, "y": 1 }, "fallback": "marker", "tags": ["marker:pin"] },
-    "pin.sticker.favorite": { "key": "pin.sticker.favorite", "kind": "marker", "frame": { "x": 0, "y": 0, "width": 32, "height": 42 }, "anchor": { "x": 0.5, "y": 1 }, "scale": 1, "fallback": "marker", "tags": ["marker:sticker"] },
-    "pin.sticker.home": { "key": "pin.sticker.home", "kind": "marker", "anchor": { "x": 0.5, "y": 1 }, "fallback": "marker", "tags": ["marker:sticker"] },
-    "pin.sticker.idea": { "key": "pin.sticker.idea", "kind": "marker", "anchor": { "x": 0.5, "y": 1 }, "fallback": "marker", "tags": ["marker:sticker"] },
-    "pin.sticker.park": { "key": "pin.sticker.park", "kind": "marker", "anchor": { "x": 0.5, "y": 1 }, "fallback": "marker", "tags": ["marker:sticker"] },
-    "pin.sticker.question": { "key": "pin.sticker.question", "kind": "marker", "anchor": { "x": 0.5, "y": 1 }, "fallback": "marker", "tags": ["marker:sticker"] },
-    "pin.sticker.shop": { "key": "pin.sticker.shop", "kind": "marker", "anchor": { "x": 0.5, "y": 1 }, "fallback": "marker", "tags": ["marker:sticker"] }
+    "road.street.standard": {
+      "key": "road.street.standard",
+      "kind": "road",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fallback": "road",
+      "tags": [
+        "road:street"
+      ]
+    },
+    "road.avenue.wide": {
+      "key": "road.avenue.wide",
+      "kind": "road",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fallback": "road",
+      "tags": [
+        "road:avenue"
+      ]
+    },
+    "road.driveway.standard": {
+      "key": "road.driveway.standard",
+      "kind": "road",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fallback": "road",
+      "tags": [
+        "road:driveway"
+      ]
+    },
+    "road.crosswalk.standard": {
+      "key": "road.crosswalk.standard",
+      "kind": "road",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fallback": "road",
+      "tags": [
+        "road:crosswalk"
+      ]
+    },
+    "road.corner.two_lane.v1": {
+      "key": "road.corner.two_lane.v1",
+      "kind": "road",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 330,
+        "height": 250
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.56
+      },
+      "scale": 0.22,
+      "fallback": "road",
+      "tags": [
+        "road:street",
+        "road:corner"
+      ]
+    },
+    "lot.park.large": {
+      "key": "lot.park.large",
+      "kind": "lot",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fallback": "lot",
+      "tags": [
+        "lot:park"
+      ]
+    },
+    "building.home.gable.0": {
+      "key": "building.home.gable.0",
+      "kind": "building",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "building",
+      "tags": [
+        "building:home"
+      ]
+    },
+    "building.house.cottage.front_gable.v1": {
+      "key": "building.house.cottage.front_gable.v1",
+      "kind": "building",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "building",
+      "tags": [
+        "building:home",
+        "building:house",
+        "building:cottage"
+      ]
+    },
+    "building.house.ranch.low_gable.v1": {
+      "key": "building.house.ranch.low_gable.v1",
+      "kind": "building",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "building",
+      "tags": [
+        "building:home",
+        "building:house",
+        "building:ranch"
+      ]
+    },
+    "building.house.rowhome.flat_parapet.v1": {
+      "key": "building.house.rowhome.flat_parapet.v1",
+      "kind": "building",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 420,
+        "height": 300
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "scale": 0.35,
+      "fallback": "building",
+      "tags": [
+        "building:home",
+        "building:house",
+        "building:rowhome"
+      ]
+    },
+    "building.apartment.lowrise.stepped.v1": {
+      "key": "building.apartment.lowrise.stepped.v1",
+      "kind": "building",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "building",
+      "tags": [
+        "building:apartment",
+        "building:lowrise"
+      ]
+    },
+    "building.shop.flat.2": {
+      "key": "building.shop.flat.2",
+      "kind": "building",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "building",
+      "tags": [
+        "building:shop"
+      ]
+    },
+    "building.store.strip.three_bay.v1": {
+      "key": "building.store.strip.three_bay.v1",
+      "kind": "building",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 470,
+        "height": 320
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "scale": 0.46,
+      "fallback": "building",
+      "tags": [
+        "building:shop",
+        "building:store",
+        "building:strip"
+      ]
+    },
+    "building.venue.anaheim_convention_center.v1": {
+      "key": "building.venue.anaheim_convention_center.v1",
+      "kind": "building",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 560,
+        "height": 340
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "scale": 0.32,
+      "fallback": "building",
+      "tags": [
+        "building:civic",
+        "building:venue",
+        "building:convention"
+      ]
+    },
+    "building.gym.sawtooth.2": {
+      "key": "building.gym.sawtooth.2",
+      "kind": "building",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "building",
+      "tags": [
+        "building:gym"
+      ]
+    },
+    "building.apartment.hip.2": {
+      "key": "building.apartment.hip.2",
+      "kind": "building",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "building",
+      "tags": [
+        "building:apartment"
+      ]
+    },
+    "building.civic.tower.1": {
+      "key": "building.civic.tower.1",
+      "kind": "building",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "building",
+      "tags": [
+        "building:civic"
+      ]
+    },
+    "prop.tree.0": {
+      "key": "prop.tree.0",
+      "kind": "prop",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "prop",
+      "tags": [
+        "prop:tree"
+      ]
+    },
+    "prop.water_shimmer.0": {
+      "key": "prop.water_shimmer.0",
+      "kind": "prop",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fallback": "prop",
+      "tags": [
+        "prop:water"
+      ]
+    },
+    "actor.car.car-hamner": {
+      "key": "actor.car.car-hamner",
+      "kind": "actor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "actor",
+      "tags": [
+        "actor:car"
+      ]
+    },
+    "actor.walker.walker-park": {
+      "key": "actor.walker.walker-park",
+      "kind": "actor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "actor",
+      "tags": [
+        "actor:walker"
+      ]
+    },
+    "actor.clawd.clawd": {
+      "key": "actor.clawd.clawd",
+      "kind": "actor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "actor",
+      "tags": [
+        "actor:clawd"
+      ]
+    },
+    "pin.note.default": {
+      "key": "pin.note.default",
+      "kind": "marker",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "marker",
+      "tags": [
+        "marker:pin"
+      ]
+    },
+    "pin.sticker.favorite": {
+      "key": "pin.sticker.favorite",
+      "kind": "marker",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 42
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "scale": 1,
+      "fallback": "marker",
+      "tags": [
+        "marker:sticker"
+      ]
+    },
+    "pin.sticker.home": {
+      "key": "pin.sticker.home",
+      "kind": "marker",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "marker",
+      "tags": [
+        "marker:sticker"
+      ]
+    },
+    "pin.sticker.idea": {
+      "key": "pin.sticker.idea",
+      "kind": "marker",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "marker",
+      "tags": [
+        "marker:sticker"
+      ]
+    },
+    "pin.sticker.park": {
+      "key": "pin.sticker.park",
+      "kind": "marker",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "marker",
+      "tags": [
+        "marker:sticker"
+      ]
+    },
+    "pin.sticker.question": {
+      "key": "pin.sticker.question",
+      "kind": "marker",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "marker",
+      "tags": [
+        "marker:sticker"
+      ]
+    },
+    "pin.sticker.shop": {
+      "key": "pin.sticker.shop",
+      "kind": "marker",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "fallback": "marker",
+      "tags": [
+        "marker:sticker"
+      ]
+    }
   }
 }

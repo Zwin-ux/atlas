@@ -7,7 +7,7 @@ import {
   cityWorldFrameContainsFrame,
   cityWorldScreenCenterForCamera,
   cityWorldViewportFrameForPreset,
-  compileCityWorldSceneWindow,
+  createCityWorldSceneWindowCompiler,
   projectCityWorldPoint,
 } from "@atlas/core/voxel";
 import type {
@@ -46,6 +46,7 @@ type CityWorldRendererProps = {
   selectedPlaceId?: string | undefined;
   cameraPresetId?: CityWorldCameraPresetId | undefined;
   debugMode?: CityWorldDebugMode | undefined;
+  suppressPlaceLabels?: boolean;
   onSelectPlace: (placeId: string) => void;
 };
 
@@ -73,7 +74,7 @@ type AnimatedTarget = {
 };
 
 type LayerMap = Record<
-  "terrainLayer" | "roadLayer" | "lotLayer" | "padLayer" | "shadowLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
+  "terrainLayer" | "roadLayer" | "lotLayer" | "padLayer" | "shadowLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "focusLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
   Container
 >;
 
@@ -354,7 +355,7 @@ function createAtlasGradeFilter(): Filter {
 }
 
 export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRendererProps>(function CityWorldRenderer(
-  { scene, selectedPlaceId, cameraPresetId, debugMode, onSelectPlace },
+  { scene, selectedPlaceId, cameraPresetId, debugMode, suppressPlaceLabels = false, onSelectPlace },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -370,12 +371,70 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   const selectPlaceRef = useRef(onSelectPlace);
   const activeWindowFrameRef = useRef<CityWorldViewportFrame | null>(null);
   const pendingWindowRefreshRef = useRef(false);
+  // 0.67H interaction hardening (ported through the 0.75R merge): camera
+  // applies coalesce to one rAF per frame, and the rebuild counter is exposed
+  // for the mobile-interaction browser proof.
   const cameraFrameRef = useRef<number | null>(null);
   const rebuildCountRef = useRef(0);
   const [ready, setReady] = useState(false);
   const [hoverPlaceId, setHoverPlaceId] = useState<string | undefined>();
   const [atlasTextures, setAtlasTextures] = useState<CityWorldTextureMap>({});
   const [windowRefreshKey, setWindowRefreshKey] = useState(0);
+  // Perf counters surfaced on __ATLAS_QA__.perf so browser verifiers can gate
+  // "hover must not rebuild the scene" and "idle must not render".
+  const perfRef = useRef({ sceneRebuilds: 0, lastRebuildMs: 0, overlayRedraws: 0, renderedFrames: 0 });
+  // Focus-overlay animations (selection pulse) live apart from scene ambient
+  // animations so the overlay can clear its own targets without touching the
+  // scene's, and vice versa.
+  const focusAnimatedRef = useRef<AnimatedTarget[]>([]);
+  // Render-on-demand state: the loop runs only while a repaint is pending or
+  // animated targets exist, then parks at 0 fps. Ambient animation is capped
+  // at ~30fps (wall-clock driven, so speed is unchanged — only sample rate).
+  const renderLoopRef = useRef({ active: false, needsRender: true, lastAnimTick: 0 });
+  const focusIndexRef = useRef<FocusIndex | null>(null);
+  const focusLayerRef = useRef<Container | null>(null);
+  const focusPulseTimeoutRef = useRef<number | undefined>(undefined);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const visibilityCleanupRef = useRef<(() => void) | null>(null);
+  const [focusEpoch, setFocusEpoch] = useState(0);
+
+  function invalidateRender() {
+    renderLoopRef.current.needsRender = true;
+    ensureRenderLoop();
+  }
+
+  function ensureRenderLoop() {
+    const loop = renderLoopRef.current;
+    if (loop.active) return;
+    loop.active = true;
+    requestAnimationFrame(renderFrame);
+  }
+
+  function renderFrame() {
+    const loop = renderLoopRef.current;
+    const app = appRef.current;
+    if (!app || !app.renderer) {
+      loop.active = false;
+      return;
+    }
+    const animating = animatedRef.current.length + focusAnimatedRef.current.length > 0 && !document.hidden;
+    // Wall-clock cap: rAF timestamps are virtualized in headless/BeginFrame
+    // environments, so the ambient 30fps gate keys off performance.now().
+    const now = performance.now();
+    const animDue = animating && now - loop.lastAnimTick >= 33;
+    if (loop.needsRender || animDue) {
+      if (animating) {
+        animateTargets(animatedRef.current, 2);
+        animateTargets(focusAnimatedRef.current, 2);
+        loop.lastAnimTick = now;
+      }
+      app.render();
+      loop.needsRender = false;
+      perfRef.current.renderedFrames += 1;
+    }
+    if (animating || loop.needsRender) requestAnimationFrame(renderFrame);
+    else loop.active = false;
+  }
 
   useImperativeHandle(ref, () => ({
     zoomIn: () => zoomBy(1.12),
@@ -444,13 +503,45 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       world.sortableChildren = true;
       worldRef.current = world;
       app.stage.addChild(world);
+      // QA hook: verifiers and browser QA sessions bisect draw layers through
+      // this handle (e.g. hide propLayer to attribute a visual artifact) and
+      // gate perf behavior through the counters.
+      const countGraphics = (container: Container): number =>
+        container.children.reduce((sum, child) => sum + 1 + (child instanceof Container ? countGraphics(child) : 0), 0);
+      (window as unknown as Record<string, unknown>).__ATLAS_QA__ = {
+        app,
+        world,
+        perf: {
+          get sceneRebuilds() { return perfRef.current.sceneRebuilds; },
+          get lastRebuildMs() { return perfRef.current.lastRebuildMs; },
+          get overlayRedraws() { return perfRef.current.overlayRedraws; },
+          get renderedFrames() { return perfRef.current.renderedFrames; },
+          animatedTargetCount: () => animatedRef.current.length + focusAnimatedRef.current.length,
+          loopParked: () => !renderLoopRef.current.active,
+          graphicsCount: () => countGraphics(world),
+        },
+      };
       try {
         app.stage.filters = [createAtlasGradeFilter()];
         app.stage.filterArea = app.screen;
       } catch (error) {
         console.warn("Atlas golden-hour grade filter unavailable. Continuing without post grade.", error);
       }
-      app.ticker.add((ticker) => animateTargets(animatedRef.current, ticker.deltaTime));
+      // Render on demand: stop Pixi's always-on ticker render; the component-
+      // owned rAF loop repaints only when dirty or animating, then parks.
+      app.stop();
+      const resizeObserver = new ResizeObserver(() => {
+        app.resize();
+        invalidateRender();
+      });
+      resizeObserver.observe(mountElement);
+      resizeObserverRef.current = resizeObserver;
+      const handleVisibility = () => {
+        if (!document.hidden) invalidateRender();
+      };
+      document.addEventListener("visibilitychange", handleVisibility);
+      visibilityCleanupRef.current = () => document.removeEventListener("visibilitychange", handleVisibility);
+      invalidateRender();
       setReady(true);
     }
 
@@ -462,6 +553,11 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       cancelled = true;
       setReady(false);
       animatedRef.current = [];
+      focusAnimatedRef.current = [];
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+      visibilityCleanupRef.current?.();
+      visibilityCleanupRef.current = null;
       worldRef.current = null;
       appRef.current = null;
       if (cameraFrameRef.current !== null) {
@@ -577,16 +673,68 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     if (!ready || !app || !world || !mount) return;
     const activeCameraPresetId = resolveCameraPresetId(scene, cameraPresetId, mount.clientWidth);
     const viewportFrame = rendererViewportFrame(mount, cameraRef.current, activeCameraPresetId, STREAMING_WINDOW_MARGIN_TILES);
-    const sceneWindowFrame = drawScene(world, scene, activeCameraPresetId, viewportFrame, selectedPlaceId ?? scene.hudDefaults.selectedPlaceId, hoverPlaceId, atlasTextures, debugMode, (placeId) => {
+    const rebuildStart = performance.now();
+    const drawn = drawScene(world, scene, activeCameraPresetId, viewportFrame, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
       if (!movedRef.current) selectPlaceRef.current(placeId);
     }, setHoverPlaceId, animatedRef.current);
-    activeWindowFrameRef.current = sceneWindowFrame;
+    perfRef.current.sceneRebuilds += 1;
+    perfRef.current.lastRebuildMs = Math.round((performance.now() - rebuildStart) * 10) / 10;
+    const qaHandle = (window as unknown as Record<string, unknown>).__ATLAS_QA__ as Record<string, unknown> | undefined;
+    if (qaHandle) qaHandle.scene = scene;
+    activeWindowFrameRef.current = drawn.frame;
+    focusIndexRef.current = drawn.focus;
+    focusLayerRef.current = (world.children.find((child) => child.label === "focusLayer") as Container | undefined) ?? null;
+    setFocusEpoch((epoch) => epoch + 1);
+    // 0.67H — expose the rebuild count for the mobile-interaction browser proof.
     const nextRebuildCount = rebuildCountRef.current + 1;
     rebuildCountRef.current = nextRebuildCount;
     mount.dataset.qaCityWorldRebuildCount = String(nextRebuildCount);
     (window as Window & { __atlasCityWorldRebuildCount?: number }).__atlasCityWorldRebuildCount = nextRebuildCount;
     applyCameraNow();
-  }, [atlasTextures, cameraPresetId, debugMode, hoverPlaceId, ready, scene, selectedPlaceId, windowRefreshKey]);
+    invalidateRender();
+    // Hover/selection deliberately absent: focus changes redraw ONLY the
+    // focus overlay effect below, never this full scene rebuild.
+  }, [atlasTextures, cameraPresetId, debugMode, ready, scene, suppressPlaceLabels, windowRefreshKey]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const layer = focusLayerRef.current;
+    if (!layer) return;
+    for (const child of layer.removeChildren()) child.destroy({ children: true });
+    focusAnimatedRef.current.length = 0;
+    const focus = focusIndexRef.current;
+    if (!focus) return;
+    const labelLayer = worldRef.current?.children.find((child) => child.label === "labelLayer") as Container | undefined;
+    if (labelLayer) for (const child of labelLayer.children) child.visible = true;
+    const effectiveSelected = selectedPlaceId ?? sceneRef.current.hudDefaults.selectedPlaceId;
+    const focusTargets: Array<{ placeId: string | undefined; mode: FocusMode }> = [
+      { placeId: effectiveSelected, mode: "selected" },
+    ];
+    if (hoverPlaceId && hoverPlaceId !== effectiveSelected) focusTargets.push({ placeId: hoverPlaceId, mode: "hovered" });
+    for (const { placeId, mode } of focusTargets) {
+      if (!placeId || !focus.drawnPlaceIds.has(placeId)) continue;
+      const place = focus.placesById.get(placeId);
+      if (!place) continue;
+      // The emphasized focus label replaces the neutral base label.
+      if (labelLayer) {
+        const baseLabel = labelLayer.children.find((child) => child.label === `place-label-${placeId}`);
+        if (baseLabel) baseLabel.visible = false;
+      }
+      drawFocusOverlay(layer, place, focus, mode, focusAnimatedRef.current);
+    }
+    perfRef.current.overlayRedraws += 1;
+    // The focus pulse runs briefly, then freezes so the render loop can park:
+    // a permanent default selection must not pin the widget at 30fps forever.
+    if (focusPulseTimeoutRef.current !== undefined) window.clearTimeout(focusPulseTimeoutRef.current);
+    if (focusAnimatedRef.current.length > 0) {
+      focusPulseTimeoutRef.current = window.setTimeout(() => {
+        for (const item of focusAnimatedRef.current) item.target.alpha = item.baseAlpha;
+        focusAnimatedRef.current.length = 0;
+        invalidateRender();
+      }, 4000);
+    }
+    invalidateRender();
+  }, [hoverPlaceId, selectedPlaceId, ready, focusEpoch]);
 
   function zoomBy(multiplier: number) {
     const camera = cameraRef.current;
@@ -615,6 +763,8 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     applyCameraNow();
   }
 
+  // 0.67H — pointer-driven camera changes coalesce to one apply per animation
+  // frame so a burst of pointermove events cannot stack synchronous work.
   function scheduleCameraApply() {
     if (cameraFrameRef.current !== null) return;
     cameraFrameRef.current = window.requestAnimationFrame(() => {
@@ -630,6 +780,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     world.scale.set(camera.zoom);
     world.position.set(camera.x, camera.y);
     requestWindowRefreshIfNeeded();
+    invalidateRender();
   }
 
   function requestWindowRefreshIfNeeded() {
@@ -669,7 +820,14 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     return nearest?.id;
   }
 
-  return <div ref={mountRef} className="city-world-renderer" aria-label={`${scene.region.district} voxel city map`} />;
+  return (
+    <div
+      ref={mountRef}
+      className="city-world-renderer"
+      aria-label={`${scene.region.district} voxel city map`}
+      data-qa-place-labels={suppressPlaceLabels ? "suppressed" : "visible"}
+    />
+  );
 });
 
 function pointerDistance(pointers: Map<number, { x: number; y: number }>): number | undefined {
@@ -681,19 +839,49 @@ function pointerDistance(pointers: Map<number, { x: number; y: number }>): numbe
   return Math.hypot(first.x - second.x, first.y - second.y);
 }
 
+// Everything the incremental focus overlay needs to redraw hover/selection
+// without touching the base scene: visible places, their anchored buildings,
+// and the label crown lifts, captured at scene-rebuild time.
+type FocusIndex = {
+  placesById: Map<string, CityWorldPlace>;
+  buildingsByPlaceId: Map<string, CityWorldBuilding[]>;
+  crownLift: Map<string, number>;
+  drawnPlaceIds: Set<string>;
+};
+
+// Frame-independent scene-window artifacts are memoized per scene object +
+// option set: createCityWorldSceneWindowCompiler wraps the same compile as
+// compileCityWorldSceneWindow but only re-runs the frame filter on streaming
+// pan refreshes.
+const sceneWindowCompilerCache = new WeakMap<CityWorldScene, Map<string, ReturnType<typeof createCityWorldSceneWindowCompiler>>>();
+
+function sceneWindowCompilerFor(scene: CityWorldScene, includeLabels: boolean, includeDebug: boolean) {
+  let byOptions = sceneWindowCompilerCache.get(scene);
+  if (!byOptions) {
+    byOptions = new Map();
+    sceneWindowCompilerCache.set(scene, byOptions);
+  }
+  const key = `${includeLabels}:${includeDebug}`;
+  let compiler = byOptions.get(key);
+  if (!compiler) {
+    compiler = createCityWorldSceneWindowCompiler(scene, { includeLabels, includeDebug });
+    byOptions.set(key, compiler);
+  }
+  return compiler;
+}
+
 function drawScene(
   world: Container,
   scene: CityWorldScene,
   cameraPresetId: CityWorldCameraPresetId,
   viewportFrame: CityWorldViewportFrame,
-  selectedPlaceId: string,
-  hoverPlaceId: string | undefined,
   atlasTextures: CityWorldTextureMap,
   debugMode: CityWorldDebugMode | undefined,
+  suppressPlaceLabels: boolean,
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
   animated: AnimatedTarget[],
-) {
+): { frame: CityWorldViewportFrame; focus: FocusIndex } {
   const previousChildren = world.removeChildren();
   for (const child of previousChildren) {
     child.destroy({ children: true });
@@ -703,43 +891,83 @@ function drawScene(
   const layers = createLayers();
   Object.values(layers).forEach((layer) => world.addChild(layer));
   const atlas = createCityWorldAtlasResolver(scene, atlasTextures);
-  const includeLabels = !shouldHideCityWorldLabels();
-  const sceneWindow = compileCityWorldSceneWindow(scene, cameraPresetId, {
-    includeLabels,
-    includeDebug: debugMode === "engine",
-    viewportFrame,
-  });
+  const includeLabels = !suppressPlaceLabels && !shouldHideCityWorldLabels();
+  const compiler = sceneWindowCompilerFor(scene, includeLabels, debugMode === "engine");
+  const sceneWindow = compiler.windowFor(cameraPresetId, viewportFrame);
+  const itemIndex = compiler.itemIndex;
   const renderCommands = sceneWindow.visibleCommands;
 
-  for (const tile of orderedSceneItems(renderCommands, "terrain_tile", scene.terrainTiles)) drawTerrainTile(layers.terrainLayer, tile);
-  drawRoadNetwork(layers.roadLayer, orderedSceneItems(renderCommands, "road_segment", scene.roadSegments));
-  for (const lot of orderedSceneItems(renderCommands, "lot", scene.lots)) drawLot(layers.lotLayer, lot);
+  // Ground layers merge into a few depth-band Graphics (band = floor((x+y)/4)):
+  // bands partition painter depth, so adding bands in ascending order with
+  // in-band call order preserved is exactly order-safe — and drops thousands
+  // of per-tile/per-lot Graphics to ~dozens.
+  drawBanded(layers.terrainLayer, orderedSceneItems(renderCommands, "terrain_tile", itemIndex.terrainTiles), (g, tile) => drawTerrainTile(g, tile));
+  drawRoadNetwork(layers.roadLayer, orderedSceneItems(renderCommands, "road_segment", itemIndex.roadSegments));
+  drawBanded(layers.lotLayer, orderedSceneItems(renderCommands, "lot", itemIndex.lots), (g, lot) => drawLot(g, lot));
 
-  const buildings = orderedSceneItems(renderCommands, "building", scene.buildings);
-  for (const building of buildings) drawBuilding(layers, building, building.placeId === selectedPlaceId, building.placeId === hoverPlaceId, atlas);
+  const buildings = orderedSceneItems(renderCommands, "building", itemIndex.buildings);
+  for (const building of buildings) drawBuilding(layers, building, atlas);
 
   // 0.67H focal calm — props/actors that sit inside the focal anchor's ring
   // dim toward ambience so the hero building's face separation stays the
-  // loudest read at the center of the frame.
-  const focalAnchor = focalPlaceAnchor(scene, selectedPlaceId);
-  const props = orderedSceneItems(renderCommands, "prop", scene.props);
+  // loudest read. The base scene is focus-agnostic (0.74F), so the focal
+  // anchor keys off the scene's default selection, not live hover state.
+  const focalAnchor = focalPlaceAnchor(scene, scene.hudDefaults.selectedPlaceId);
+  const props = orderedSceneItems(renderCommands, "prop", itemIndex.props);
   for (const prop of props) drawProp(layers.propLayer, prop, animated, atlas, focalCalm(prop.position, focalAnchor));
-  const actors = orderedSceneItems(renderCommands, "actor", scene.actors);
+  const actors = orderedSceneItems(renderCommands, "actor", itemIndex.actors);
   for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas, focalCalm(actor.position, focalAnchor));
-  for (const place of orderedSceneItems(renderCommands, "place_marker", scene.places)) drawPlaceMarker(layers.markerLayer, place, selectedPlaceId, hoverPlaceId, onSelectPlace, onHoverPlace, animated);
-  for (const pin of orderedSceneItems(renderCommands, "pin", scene.pins)) drawPin(layers.markerLayer, pin, atlas);
+  const visiblePlaces = orderedSceneItems(renderCommands, "place_marker", itemIndex.places);
+  for (const place of visiblePlaces) drawPlaceMarker(layers, place, onSelectPlace, onHoverPlace);
+  for (const pin of orderedSceneItems(renderCommands, "pin", itemIndex.pins)) drawPin(layers.markerLayer, pin, atlas);
+  // 0.56E — labels clear the architecture: each place's label lifts above
+  // the tallest structure anchored to it (plus crown allowance), instead of
+  // sitting at a fixed ground offset that erased landmark crowns.
+  const crownLift = placeCrownLiftMap(scene.buildings);
   if (includeLabels) {
-    // 0.56E — labels clear the architecture: each place's label lifts above
-    // the tallest structure anchored to it (plus crown allowance), instead of
-    // sitting at a fixed ground offset that erased landmark crowns.
-    const crownLift = placeCrownLiftMap(scene.buildings);
-    // 0.67H — mobile shows selected/hover labels only; desktop keeps at most
-    // two ambient anchors, so the frame never reads as a board of pills.
+    // 0.67H label demotion — ambient labels are a hard cap (none on mobile,
+    // two on desktop); selected/hover labels render from the focus overlay.
     const ambientLabelIds = ambientLabelAllowance(scene, cameraPresetId);
-    for (const place of orderedSceneItems(renderCommands, "place_label", scene.places)) drawPlaceLabel(layers.labelLayer, place, selectedPlaceId, hoverPlaceId, ambientLabelIds, crownLift.get(place.id));
+    for (const place of orderedSceneItems(renderCommands, "place_label", itemIndex.places)) drawPlaceLabel(layers.labelLayer, place, ambientLabelIds, crownLift.get(place.id));
   }
   if (debugMode === "engine") drawEngineDebugOverlay(layers.hudBridgeLayer, scene);
-  return sceneWindow.frame;
+
+  const focus: FocusIndex = {
+    placesById: new Map(visiblePlaces.map((place) => [place.id, place])),
+    buildingsByPlaceId: new Map(),
+    crownLift,
+    drawnPlaceIds: new Set(visiblePlaces.map((place) => place.id)),
+  };
+  for (const building of buildings) {
+    if (!building.placeId) continue;
+    const anchored = focus.buildingsByPlaceId.get(building.placeId);
+    if (anchored) anchored.push(building);
+    else focus.buildingsByPlaceId.set(building.placeId, [building]);
+  }
+  return { frame: sceneWindow.frame, focus };
+}
+
+const GROUND_BAND_TILES = 4;
+
+function drawBanded<T extends { position: CityWorldPoint }>(
+  layer: Container,
+  items: T[],
+  draw: (g: Graphics, item: T) => void,
+) {
+  const bands = new Map<number, Graphics>();
+  for (const item of items) {
+    const band = Math.floor((item.position.x + item.position.y) / GROUND_BAND_TILES);
+    let g = bands.get(band);
+    if (!g) {
+      g = new Graphics();
+      bands.set(band, g);
+    }
+    draw(g, item);
+  }
+  for (const band of [...bands.keys()].sort((a, b) => a - b)) {
+    const g = bands.get(band);
+    if (g) layer.addChild(g);
+  }
 }
 
 function shouldHideCityWorldLabels(): boolean {
@@ -747,9 +975,9 @@ function shouldHideCityWorldLabels(): boolean {
   return new URLSearchParams(window.location.search).get("atlasNoLabels") === "1";
 }
 
-// 0.67H label demotion — the ambient (non-selected, non-hovered) label budget
-// is a hard cap, not a priority threshold: mobile gets none, desktop gets the
-// two highest-priority anchors. Selected/hover labels render on top of this
+// 0.67H label demotion — the ambient (non-focused) label budget is a hard
+// cap, not a priority threshold: mobile gets none, desktop gets the two
+// highest-priority anchors. Focus-overlay labels render on top of this
 // allowance, so a desktop frame tops out at three label cards.
 function ambientLabelAllowance(scene: CityWorldScene, cameraPresetId: CityWorldCameraPresetId): Set<string> {
   if (cameraPresetId === "mobile") return new Set();
@@ -762,8 +990,8 @@ function ambientLabelAllowance(scene: CityWorldScene, cameraPresetId: CityWorldC
   );
 }
 
-// 0.67H focal calm — the selected place (or the first landmark as a fallback)
-// defines the focal ring where decoration must yield to architecture.
+// 0.67H focal calm — the default-selected place (or the first landmark as a
+// fallback) defines the focal ring where decoration must yield to architecture.
 function focalPlaceAnchor(scene: CityWorldScene, selectedPlaceId: string): CityWorldPoint | undefined {
   const focal = scene.places.find((place) => place.id === selectedPlaceId) ?? scene.places.find((place) => place.kind === "landmark");
   return focal?.anchor;
@@ -798,17 +1026,18 @@ function rendererViewportFrame(mount: HTMLDivElement, camera: CameraState, camer
 function orderedSceneItems<T extends { id: string }>(
   commands: readonly CityWorldRenderCommand[],
   kind: CityWorldRenderCommandKind,
-  items: T[],
+  itemById: ReadonlyMap<string, T>,
 ): T[] {
-  const itemById = new Map(items.map((item) => [item.id, item]));
-  return commands
-    .filter((command) => command.kind === kind)
-    .map((command) => itemById.get(command.sourceId))
-    .filter(isDefined);
-}
-
-function isDefined<T>(item: T | undefined): item is T {
-  return item !== undefined;
+  // Single pass over the visible commands resolving through the scene's
+  // shared id index — the old per-call Map rebuild scanned every item array
+  // nine times per scene rebuild.
+  const items: T[] = [];
+  for (const command of commands) {
+    if (command.kind !== kind) continue;
+    const item = itemById.get(command.sourceId);
+    if (item) items.push(item);
+  }
+  return items;
 }
 
 function drawEngineDebugOverlay(layer: Container, scene: CityWorldScene) {
@@ -910,13 +1139,20 @@ function debugText(text: string, x: number, y: number, color: number) {
 function createLayers(): LayerMap {
   return {
     terrainLayer: namedLayer("terrainLayer"),
-    roadLayer: namedLayer("roadLayer"),
+    // Lots under roads: both are ground material, but a road corridor crossing
+    // a lot (park loop, generated overlaps) must read as embedded asphalt
+    // cutting the lot, never as a lot sheet laid over the road.
     lotLayer: namedLayer("lotLayer"),
+    roadLayer: namedLayer("roadLayer"),
     padLayer: namedLayer("padLayer"),
     shadowLayer: namedLayer("shadowLayer"),
     buildingLayer: namedLayer("buildingLayer"),
     propLayer: namedLayer("propLayer"),
     actorLayer: namedLayer("actorLayer"),
+    // Hover/selection emphasis draws here alone — over the buildings it
+    // traces, under labels and hit targets — so focus changes never rebuild
+    // the base scene.
+    focusLayer: namedLayer("focusLayer"),
     labelLayer: namedLayer("labelLayer"),
     markerLayer: namedLayer("markerLayer"),
     hudBridgeLayer: namedLayer("hudBridgeLayer"),
@@ -929,7 +1165,7 @@ function namedLayer(label: keyof LayerMap): Container {
   return layer;
 }
 
-function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
+function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile) {
   const point = project(tile.position);
   const contact = resolveTerrainContact(tile);
   const draftTile = contact.tone === "draft";
@@ -953,9 +1189,12 @@ function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
   const alpha = shellTile ? (tile.kind === "grass" ? 0.86 : 0.9) : draftTile ? (tile.kind === "grass" ? 0.84 : 0.92) : tile.kind === "water" ? 0.97 : tile.kind === "grass" ? 0.92 : 0.94;
   const strokeAlpha = shellTile ? (tile.kind === "grass" ? 0.1 : 0.14) : draftTile ? (tile.kind === "grass" ? 0.018 : 0.1) : tile.kind === "grass" ? 0.026 : tile.kind === "water" ? 0.18 : 0.12;
   const strokeColor = tile.kind === "water" ? 0x3a8ea1 : shellTile ? 0x747965 : draftTile ? 0x7a8a58 : 0x6d824f;
-  const graphic = polygon(diamondPoints(point, TILE_WIDTH + 1, TILE_HEIGHT + 1), color, alpha, strokeColor, strokeAlpha);
-  drawTerrainChunkMassing(layer, tile, point, color);
-  drawTerrainElevationEdges(layer, tile, point, color);
+  // Massing/elevation extrusions first, then the tile face: within a shared
+  // Graphics, path order is z order (old per-object add order preserved).
+  drawTerrainChunkMassing(g, tile, point, color);
+  drawTerrainElevationEdges(g, tile, point, color);
+  drawTerrainCliffCourses(g, tile, point, color);
+  const graphic = appendPolygon(g, diamondPoints(point, TILE_WIDTH + 1, TILE_HEIGHT + 1), color, alpha, strokeColor, strokeAlpha);
 
   if (tile.kind === "water") {
     // Gentle depth gradient + sheen: lighter toward the sun edge, darker below.
@@ -987,7 +1226,53 @@ function drawTerrainTile(layer: Container, tile: CityWorldTerrainTile) {
   drawTerrainContactSeams(graphic, tile, point, contact, color);
   if (draftTile) drawDraftTerrainFacet(graphic, tile, point);
   if (shellTile) drawShellTerrainFacet(graphic, tile, point);
-  layer.addChild(graphic);
+}
+
+// 0.74F terrain relief: raised tiles extrude stacked voxel cliff courses on
+// every side that drops to a lower neighbor. South/east faces are the
+// sun-consistent visible cliff walls; north/west bands read as shadowed cuts
+// AND cover the projection gap a raised tile leaves over its back neighbors.
+// Authored by the generator as visualGrammar.elevation — no neighbor scans here.
+function drawTerrainCliffCourses(g: Graphics, tile: CityWorldTerrainTile, point: ProjectedPoint, color: number) {
+  const elevation = tile.visualGrammar?.elevation;
+  if (!elevation || elevation.dropDepth <= 0 || elevation.dropSides.length === 0) return;
+
+  const width = TILE_WIDTH + 1;
+  const height = TILE_HEIGHT + 1;
+  const courseZ = 0.5;
+  const courseCount = Math.max(1, Math.round(elevation.dropDepth / courseZ));
+  const coursePx = (elevation.dropDepth * TILE_DEPTH) / courseCount;
+  const cliffBase = shadeColor(color, -10);
+
+  for (const side of elevation.dropSides) {
+    const edge = tileEdgeSegment(point, width, height, side);
+    const frontFace = side === "south" || side === "east";
+    for (let course = 0; course < courseCount; course += 1) {
+      const topDrop = course * coursePx;
+      const bottomDrop = (course + 1) * coursePx + (course === courseCount - 1 ? 1.5 : 0);
+      const faceColor = frontFace
+        ? sunlitColor(shadeColor(cliffBase, -course * 9), side === "south" ? "sun" : "shade")
+        : shadeColor(cliffBase, -30 - course * 8);
+      g
+        .poly(
+          [
+            edge.from.x, edge.from.y + topDrop,
+            edge.to.x, edge.to.y + topDrop,
+            edge.to.x, edge.to.y + bottomDrop,
+            edge.from.x, edge.from.y + bottomDrop,
+          ],
+          true,
+        )
+        .fill({ color: faceColor, alpha: frontFace ? 0.98 : 0.92 });
+      if (frontFace) {
+        // Sunlit lip along the top of each course — the stacked-block read.
+        g
+          .moveTo(edge.from.x, edge.from.y + topDrop)
+          .lineTo(edge.to.x, edge.to.y + topDrop)
+          .stroke({ color: shadeColor(color, 26), alpha: course === 0 ? 0.5 : 0.3, width: 1.1, cap: "butt" });
+      }
+    }
+  }
 }
 
 // Material seams + water bank strands, authored by the compiler as
@@ -1022,7 +1307,16 @@ function drawTerrainContactSeams(graphic: Graphics, tile: CityWorldTerrainTile, 
   }
 
   if (waterEdgeSides.length > 0 && style.strandAlpha > 0) {
-    // Bank strand on the land side: a pale dry line above a darker wet line.
+    // Beach strand on the land side: a filled sand wedge between the tile
+    // edge and the dry line, then a pale dry line above a darker wet line —
+    // the shore reads as a beach, not a painted boundary.
+    for (const side of waterEdgeSides) {
+      const edge = tileEdgeSegment(point, width, height, side);
+      const inner = insetEdgeSegment(point, edge, 0.34);
+      graphic
+        .poly([edge.from.x, edge.from.y, edge.to.x, edge.to.y, inner.to.x, inner.to.y, inner.from.x, inner.from.y], true)
+        .fill({ color: 0xe8dcae, alpha: style.strandAlpha * 0.55 });
+    }
     for (const side of waterEdgeSides) {
       const strand = insetEdgeSegment(point, tileEdgeSegment(point, width, height, side), 0.1);
       graphic.moveTo(strand.from.x, strand.from.y).lineTo(strand.to.x, strand.to.y);
@@ -1036,7 +1330,7 @@ function drawTerrainContactSeams(graphic: Graphics, tile: CityWorldTerrainTile, 
   }
 }
 
-function drawTerrainChunkMassing(layer: Container, tile: CityWorldTerrainTile, point: ProjectedPoint, color: number) {
+function drawTerrainChunkMassing(g: Graphics, tile: CityWorldTerrainTile, point: ProjectedPoint, color: number) {
   const massing = tile.visualGrammar?.terrainChunkMassing ?? "none";
   if (massing === "none") return;
 
@@ -1045,7 +1339,8 @@ function drawTerrainChunkMassing(layer: Container, tile: CityWorldTerrainTile, p
   const width = TILE_WIDTH * config.widthScale;
   const height = TILE_HEIGHT * config.heightScale;
   const depth = config.depth;
-  const shadow = polygon(
+  appendPolygon(
+    g,
     diamondPoints({ x: point.x, y: point.y + depth + 3 }, width * 1.04, height * 1.02),
     0x1d2a22,
     config.shadowAlpha,
@@ -1056,37 +1351,35 @@ function drawTerrainChunkMassing(layer: Container, tile: CityWorldTerrainTile, p
   const massLit = sunlitColor(config.rightColor, "sun");
   const massShade = sunlitColor(config.leftColor, "shade");
   const massAlpha = Math.min(config.faceAlpha * 1.9, 0.5);
-  const leftFace = new Graphics()
+  g
     .moveTo(point.x - width * 0.5, point.y)
     .lineTo(point.x, point.y + height * 0.5)
     .lineTo(point.x, point.y + height * 0.5 + depth)
     .lineTo(point.x - width * 0.5, point.y + depth)
     .closePath()
     .fill({ color: massLit, alpha: massAlpha * 0.82 });
-  const rightFace = new Graphics()
+  g
     .moveTo(point.x, point.y + height * 0.5)
     .lineTo(point.x + width * 0.5, point.y)
     .lineTo(point.x + width * 0.5, point.y + depth)
     .lineTo(point.x, point.y + height * 0.5 + depth)
     .closePath()
     .fill({ color: massShade, alpha: massAlpha });
-  const underside = new Graphics()
+  g
     .moveTo(point.x - width * 0.5, point.y + depth)
     .lineTo(point.x, point.y + height * 0.5 + depth)
-    .lineTo(point.x + width * 0.5, point.y + depth);
-  underside.stroke({ color: config.rimColor, alpha: config.rimAlpha, width: config.rimWidth, cap: "round", join: "round" });
-  layer.addChild(shadow, leftFace, rightFace, underside);
+    .lineTo(point.x + width * 0.5, point.y + depth)
+    .stroke({ color: config.rimColor, alpha: config.rimAlpha, width: config.rimWidth, cap: "round", join: "round" });
 
   if (config.strataAlpha > 0) {
-    const strata = new Graphics()
+    g
       .moveTo(point.x - width * 0.38, point.y + depth * 0.52)
       .lineTo(point.x - width * 0.08, point.y + height * 0.18 + depth * 0.58)
       .lineTo(point.x + width * 0.28, point.y + depth * 0.5)
       .moveTo(point.x - width * 0.26, point.y + depth * 0.86)
       .lineTo(point.x, point.y + height * 0.28 + depth * 0.92)
-      .lineTo(point.x + width * 0.24, point.y + depth * 0.84);
-    strata.stroke({ color: config.strataColor, alpha: config.strataAlpha, width: 1.05, cap: "round", join: "round" });
-    layer.addChild(strata);
+      .lineTo(point.x + width * 0.24, point.y + depth * 0.84)
+      .stroke({ color: config.strataColor, alpha: config.strataAlpha, width: 1.05, cap: "round", join: "round" });
   }
 }
 
@@ -1224,7 +1517,7 @@ function terrainChunkMassingStyle(
   };
 }
 
-function drawTerrainElevationEdges(layer: Container, tile: CityWorldTerrainTile, point: ProjectedPoint, color: number) {
+function drawTerrainElevationEdges(g: Graphics, tile: CityWorldTerrainTile, point: ProjectedPoint, color: number) {
   const elevation = tile.visualGrammar?.terrainElevation;
   if (!elevation || elevation === "flat_field" || elevation === "shell_flat") return;
 
@@ -1237,7 +1530,7 @@ function drawTerrainElevationEdges(layer: Container, tile: CityWorldTerrainTile,
   const faceAlpha = cut ? 0.4 : elevation === "civic_plinth_shelf" ? 0.42 : 0.3;
 
   if (raised || cut || (basin && hash % 2 === 0)) {
-    const frontFace = new Graphics()
+    g
       .moveTo(point.x - TILE_WIDTH * 0.5, point.y)
       .lineTo(point.x, point.y + TILE_HEIGHT * 0.5)
       .lineTo(point.x + TILE_WIDTH * 0.5, point.y)
@@ -1246,16 +1539,14 @@ function drawTerrainElevationEdges(layer: Container, tile: CityWorldTerrainTile,
       .lineTo(point.x - TILE_WIDTH * 0.5, point.y + depth)
       .closePath()
       .fill({ color: sideColor, alpha: faceAlpha });
-    layer.addChild(frontFace);
   }
 
   if ((elevation === "civic_plinth_shelf" || cut || hash === 3 || hash === 11) && elevation !== "park_basin_shelf") {
-    const strata = new Graphics()
+    g
       .moveTo(point.x - TILE_WIDTH * 0.36, point.y + TILE_HEIGHT * 0.12 + depth * 0.55)
       .lineTo(point.x - TILE_WIDTH * 0.08, point.y + TILE_HEIGHT * 0.28 + depth * 0.55)
-      .lineTo(point.x + TILE_WIDTH * 0.28, point.y + TILE_HEIGHT * 0.1 + depth * 0.55);
-    strata.stroke({ color: cut ? 0xe9fbff : 0xf3dfb2, alpha: cut ? 0.16 : 0.12, width: 1, cap: "round", join: "round" });
-    layer.addChild(strata);
+      .lineTo(point.x + TILE_WIDTH * 0.28, point.y + TILE_HEIGHT * 0.1 + depth * 0.55)
+      .stroke({ color: cut ? 0xe9fbff : 0xf3dfb2, alpha: cut ? 0.16 : 0.12, width: 1, cap: "round", join: "round" });
   }
 }
 
@@ -1478,21 +1769,81 @@ function drawShellTerrainFacet(graphic: Graphics, tile: CityWorldTerrainTile, po
   }
 }
 
+// The road network renders as ~11 PASS Graphics instead of ~10 Graphics per
+// segment: every segment strokes into shared per-pass Graphics, added in pass
+// order. Cross-segment layering becomes seamless by construction — segment
+// N's shadow can no longer smear over segment N-1's finished surface, because
+// ALL shadows draw under ALL surfaces.
+type RoadPassSet = {
+  shadow: Graphics;
+  sideFace: Graphics;
+  curb: Graphics;
+  bed: Graphics;
+  surface: Graphics;
+  bevels: Graphics;
+  seams: Graphics;
+  material: Graphics;
+  dashes: Graphics;
+  joints: Graphics;
+  crosswalks: Graphics;
+};
+
 function drawRoadNetwork(layer: Container, roads: CityWorldRoadSegment[]) {
+  const passes: RoadPassSet = {
+    shadow: new Graphics(),
+    sideFace: new Graphics(),
+    curb: new Graphics(),
+    bed: new Graphics(),
+    surface: new Graphics(),
+    bevels: new Graphics(),
+    seams: new Graphics(),
+    material: new Graphics(),
+    dashes: new Graphics(),
+    joints: new Graphics(),
+    crosswalks: new Graphics(),
+  };
   const physicalRoads = roads.filter((road) => resolveRoadContact(road).profile !== "painted");
-  for (const road of physicalRoads) drawRoadSegmentModule(layer, road);
+  for (const road of physicalRoads) drawRoadSegmentModule(passes, road);
 
   const joints = collectRoadJoints(physicalRoads);
   for (const joint of joints.sort((a, b) => a.point.x + a.point.y - (b.point.x + b.point.y))) {
     if (joint.roads.length > 1 || joint.roads.some((road) => resolveRoadContact(road).profile === "apron")) {
-      drawRoadJointModule(layer, joint);
+      drawRoadJointModule(passes.joints, joint);
+    } else if (joint.roads.length === 1 && resolveRoadContact(joint.roads[0] as CityWorldRoadSegment).profile === "embedded") {
+      drawRoadEndCap(passes.joints, joint);
     }
   }
 
-  for (const road of roads.filter((road) => resolveRoadContact(road).profile === "painted")) drawCrosswalkRoad(layer, road);
+  for (const road of roads.filter((road) => resolveRoadContact(road).profile === "painted")) drawCrosswalkRoad(passes.crosswalks, road);
+
+  layer.addChild(
+    passes.shadow,
+    passes.sideFace,
+    passes.curb,
+    passes.bed,
+    passes.surface,
+    passes.bevels,
+    passes.seams,
+    passes.material,
+    passes.dashes,
+    passes.joints,
+    passes.crosswalks,
+  );
 }
 
-function drawRoadSegmentModule(layer: Container, road: CityWorldRoadSegment) {
+// Dead-end streets stop looking sheared: a rounded curb stub + surface disk
+// caps the open end.
+function drawRoadEndCap(g: Graphics, joint: RoadJoint) {
+  const road = joint.roads[0];
+  if (!road) return;
+  const point = project(joint.point);
+  const radius = road.width * 8.2;
+  g.ellipse(point.x, point.y + 1, radius, radius * 0.52).fill({ color: 0xd6c996, alpha: 0.72 });
+  g.ellipse(point.x, point.y, radius * 0.78, radius * 0.4).fill({ color: 0x58635f, alpha: 0.95 });
+  g.ellipse(point.x, point.y - 1, radius * 0.6, radius * 0.3).fill({ color: 0x68736d, alpha: 0.7 });
+}
+
+function drawRoadSegmentModule(passes: RoadPassSet, road: CityWorldRoadSegment) {
   const start = project(road.from);
   const end = project(road.to);
   const baseWidth = road.width * 15.2;
@@ -1501,58 +1852,67 @@ function drawRoadSegmentModule(layer: Container, road: CityWorldRoadSegment) {
   const shellRoad = contact.tone === "shell";
   const apron = contact.profile === "apron";
   const cap = apron ? "round" : "butt";
-  const shadow = new Graphics().moveTo(start.x, start.y + 7).lineTo(end.x, end.y + 7);
-  shadow.stroke({ color: 0x263a34, alpha: shellRoad ? 0.18 : draftRoad ? 0.2 : 0.16, width: baseWidth + (draftRoad || shellRoad ? 15 : 13), cap, join: "round" });
-  const sideFace = new Graphics().moveTo(start.x, start.y + 4).lineTo(end.x, end.y + 4);
-  sideFace.stroke({
-    color: shellRoad ? (apron ? 0x8d8c7d : 0x59615d) : draftRoad ? (apron ? 0x8b846d : 0x4d554d) : apron ? 0x7c806f : 0x46514c,
-    alpha: shellRoad ? (apron ? 0.48 : 0.62) : draftRoad ? (apron ? 0.44 : 0.56) : apron ? 0.34 : 0.48,
-    width: baseWidth + 8,
-    cap,
-    join: "round",
-  });
+  passes.shadow
+    .moveTo(start.x, start.y + 7)
+    .lineTo(end.x, end.y + 7)
+    .stroke({ color: 0x263a34, alpha: shellRoad ? 0.18 : draftRoad ? 0.2 : 0.16, width: baseWidth + (draftRoad || shellRoad ? 15 : 13), cap, join: "round" });
+  passes.sideFace
+    .moveTo(start.x, start.y + 4)
+    .lineTo(end.x, end.y + 4)
+    .stroke({
+      color: shellRoad ? (apron ? 0x8d8c7d : 0x59615d) : draftRoad ? (apron ? 0x8b846d : 0x4d554d) : apron ? 0x7c806f : 0x46514c,
+      alpha: shellRoad ? (apron ? 0.48 : 0.62) : draftRoad ? (apron ? 0.44 : 0.56) : apron ? 0.34 : 0.48,
+      width: baseWidth + 8,
+      cap,
+      join: "round",
+    });
 
-  const curb = new Graphics().moveTo(start.x, start.y).lineTo(end.x, end.y);
-  curb.stroke({
-    color: shellRoad ? (apron ? 0xc9c0a4 : 0xd4ceb2) : draftRoad ? (apron ? 0xc4b182 : 0xd8c28b) : apron ? 0xc1ae88 : 0xd6c996,
-    alpha: shellRoad ? (apron ? 0.58 : 0.76) : draftRoad ? (apron ? 0.58 : 0.82) : apron ? 0.48 : 0.78,
-    width: baseWidth + 7,
-    cap,
-    join: "round",
-  });
-  const bed = new Graphics().moveTo(start.x, start.y + 1).lineTo(end.x, end.y + 1);
-  bed.stroke({
-    color: shellRoad ? (apron ? 0x8f9185 : 0x646c67) : draftRoad ? (apron ? 0x8e8c7d : 0x555e58) : apron ? 0x858b7e : 0x58635f,
-    alpha: shellRoad ? (apron ? 0.76 : 0.88) : apron ? 0.82 : 0.98,
-    width: baseWidth + 1,
-    cap,
-    join: "round",
-  });
-  const surface = new Graphics().moveTo(start.x, start.y - 1).lineTo(end.x, end.y - 1);
-  surface.stroke({
-    color: shellRoad ? (apron ? 0xaaa58e : 0x7c8278) : draftRoad ? (apron ? 0xa09c87 : 0x697069) : apron ? 0x969b8b : 0x68736d,
-    alpha: shellRoad ? (apron ? 0.62 : 0.76) : draftRoad ? (apron ? 0.62 : 0.82) : apron ? 0.58 : 0.78,
-    width: Math.max(4, baseWidth - 6),
-    cap,
-    join: "round",
-  });
-  layer.addChild(shadow, sideFace, curb, bed, surface);
-  drawRoadEdgeBevels(layer, start, end, baseWidth, apron);
-  drawRoadModuleSeams(layer, start, end, baseWidth, apron);
-  if (draftRoad) drawDraftRoadMaterial(layer, start, end, baseWidth, contact);
-  else if (shellRoad) drawShellRoadMaterial(layer, start, end, baseWidth, contact);
-  else drawPublicRoadMaterial(layer, start, end, baseWidth, contact);
+  passes.curb
+    .moveTo(start.x, start.y)
+    .lineTo(end.x, end.y)
+    .stroke({
+      color: shellRoad ? (apron ? 0xc9c0a4 : 0xd4ceb2) : draftRoad ? (apron ? 0xc4b182 : 0xd8c28b) : apron ? 0xc1ae88 : 0xd6c996,
+      alpha: shellRoad ? (apron ? 0.58 : 0.76) : draftRoad ? (apron ? 0.58 : 0.82) : apron ? 0.48 : 0.78,
+      width: baseWidth + 7,
+      cap,
+      join: "round",
+    });
+  passes.bed
+    .moveTo(start.x, start.y + 1)
+    .lineTo(end.x, end.y + 1)
+    .stroke({
+      color: shellRoad ? (apron ? 0x8f9185 : 0x646c67) : draftRoad ? (apron ? 0x8e8c7d : 0x555e58) : apron ? 0x858b7e : 0x58635f,
+      alpha: shellRoad ? (apron ? 0.76 : 0.88) : apron ? 0.82 : 0.98,
+      width: baseWidth + 1,
+      cap,
+      join: "round",
+    });
+  passes.surface
+    .moveTo(start.x, start.y - 1)
+    .lineTo(end.x, end.y - 1)
+    .stroke({
+      color: shellRoad ? (apron ? 0xaaa58e : 0x7c8278) : draftRoad ? (apron ? 0xa09c87 : 0x697069) : apron ? 0x969b8b : 0x68736d,
+      alpha: shellRoad ? (apron ? 0.62 : 0.76) : draftRoad ? (apron ? 0.62 : 0.82) : apron ? 0.58 : 0.78,
+      width: Math.max(4, baseWidth - 6),
+      cap,
+      join: "round",
+    });
+  drawRoadEdgeBevels(passes.bevels, start, end, baseWidth, apron);
+  drawRoadModuleSeams(passes.seams, start, end, baseWidth, apron);
+  if (draftRoad) drawDraftRoadMaterial(passes.material, start, end, baseWidth, contact);
+  else if (shellRoad) drawShellRoadMaterial(passes.material, start, end, baseWidth, contact);
+  else drawPublicRoadMaterial(passes.material, start, end, baseWidth, contact);
 
   if (contact.laneMarking === "avenue_dash") {
-    drawDashedLine(layer, start, end, 9, 12, shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.45, shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
+    drawDashedLine(passes.dashes, start, end, 9, 12, shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.45, shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
   } else if (contact.laneMarking === "street_dash") {
-    drawDashedLine(layer, start, end, 6, 10, shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.1, shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
+    drawDashedLine(passes.dashes, start, end, 6, 10, shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.1, shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
   } else if (contact.laneMarking === "apron_dash") {
-    drawDashedLine(layer, start, end, 4, 12, 0xe8dfbd, 0.9, 0.18);
+    drawDashedLine(passes.dashes, start, end, 4, 12, 0xe8dfbd, 0.9, 0.18);
   }
 }
 
-function drawShellRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
+function drawShellRoadMaterial(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
@@ -1563,27 +1923,27 @@ function drawShellRoadMaterial(layer: Container, start: ProjectedPoint, end: Pro
   const nx = -dy / length;
   const ny = dx / length;
   const edgeInset = roadWidth * 0.45;
-  const blueprint = new Graphics()
+  g
     .moveTo(start.x + nx * edgeInset, start.y + ny * edgeInset - 1)
     .lineTo(end.x + nx * edgeInset, end.y + ny * edgeInset - 1)
     .moveTo(start.x - nx * edgeInset, start.y - ny * edgeInset + 2)
-    .lineTo(end.x - nx * edgeInset, end.y - ny * edgeInset + 2);
-  blueprint.stroke({ color: 0xf1ead2, alpha: 0.16, width: 1.2, cap: "butt" });
+    .lineTo(end.x - nx * edgeInset, end.y - ny * edgeInset + 2)
+    .stroke({ color: 0xf1ead2, alpha: 0.16, width: 1.2, cap: "butt" });
 
   const step = contact.profile === "apron" ? 34 : 44;
-  const ribs = new Graphics();
+  let ribCount = 0;
   for (let cursor = step * 0.65; cursor < length - step * 0.35; cursor += step) {
     const centerX = start.x + ux * cursor;
     const centerY = start.y + uy * cursor;
-    ribs
+    g
       .moveTo(centerX - nx * roadWidth * 0.22 - ux * 3, centerY - ny * roadWidth * 0.22 - uy * 3)
       .lineTo(centerX + nx * roadWidth * 0.22 + ux * 3, centerY + ny * roadWidth * 0.22 + uy * 3);
+    ribCount += 1;
   }
-  ribs.stroke({ color: 0x3f4945, alpha: 0.1, width: 1, cap: "round" });
-  layer.addChild(blueprint, ribs);
+  if (ribCount > 0) g.stroke({ color: 0x3f4945, alpha: 0.1, width: 1, cap: "round" });
 }
 
-function drawDraftRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
+function drawDraftRoadMaterial(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
@@ -1594,28 +1954,28 @@ function drawDraftRoadMaterial(layer: Container, start: ProjectedPoint, end: Pro
   const uy = dy / length;
   const nx = -dy / length;
   const ny = dx / length;
-  const grit = new Graphics();
   const step = apron ? 34 : 42;
+  let gritCount = 0;
   for (let cursor = step * 0.45; cursor < length - step * 0.2; cursor += step) {
     const side = Math.floor(cursor / step) % 2 === 0 ? 1 : -1;
     const centerX = start.x + ux * cursor + nx * roadWidth * 0.18 * side;
     const centerY = start.y + uy * cursor + ny * roadWidth * 0.18 * side;
-    grit
+    g
       .moveTo(centerX - ux * 7, centerY - uy * 7)
       .lineTo(centerX + ux * 8, centerY + uy * 8);
+    gritCount += 1;
   }
-  grit.stroke({ color: 0x3e4944, alpha: apron ? 0.08 : 0.12, width: 1.1, cap: "round" });
+  if (gritCount > 0) g.stroke({ color: 0x3e4944, alpha: apron ? 0.08 : 0.12, width: 1.1, cap: "round" });
 
-  const curbWear = new Graphics()
+  g
     .moveTo(start.x + nx * roadWidth * 0.48, start.y + ny * roadWidth * 0.48)
     .lineTo(end.x + nx * roadWidth * 0.48, end.y + ny * roadWidth * 0.48)
     .moveTo(start.x - nx * roadWidth * 0.48, start.y - ny * roadWidth * 0.48 + 2)
-    .lineTo(end.x - nx * roadWidth * 0.48, end.y - ny * roadWidth * 0.48 + 2);
-  curbWear.stroke({ color: 0xf1ddad, alpha: 0.18, width: 1.3, cap: "butt" });
-  layer.addChild(grit, curbWear);
+    .lineTo(end.x - nx * roadWidth * 0.48, end.y - ny * roadWidth * 0.48 + 2)
+    .stroke({ color: 0xf1ddad, alpha: 0.18, width: 1.3, cap: "butt" });
 }
 
-function drawPublicRoadMaterial(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
+function drawPublicRoadMaterial(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
@@ -1626,52 +1986,56 @@ function drawPublicRoadMaterial(layer: Container, start: ProjectedPoint, end: Pr
   const uy = dy / length;
   const nx = -dy / length;
   const ny = dx / length;
-  const curbLift = new Graphics();
-  const slabWear = new Graphics();
   const step = apron ? 38 : 50;
   const edgeInset = roadWidth * (apron ? 0.44 : 0.48);
 
-  curbLift
+  // Old child order preserved: bed face under curb lift under slab wear.
+  g
+    .moveTo(start.x - nx * roadWidth * 0.34, start.y - ny * roadWidth * 0.34 + 4)
+    .lineTo(end.x - nx * roadWidth * 0.34, end.y - ny * roadWidth * 0.34 + 4)
+    .stroke({ color: 0x253b35, alpha: apron ? 0.08 : 0.12, width: Math.max(2, roadWidth * 0.08), cap: "butt" });
+
+  g
     .moveTo(start.x + nx * edgeInset, start.y + ny * edgeInset - 1.5)
     .lineTo(end.x + nx * edgeInset, end.y + ny * edgeInset - 1.5)
     .moveTo(start.x - nx * edgeInset, start.y - ny * edgeInset + 2.5)
-    .lineTo(end.x - nx * edgeInset, end.y - ny * edgeInset + 2.5);
-  curbLift.stroke({ color: apron ? 0xf1ddb2 : 0xe8d49f, alpha: apron ? 0.12 : 0.16, width: 1.2, cap: "butt" });
+    .lineTo(end.x - nx * edgeInset, end.y - ny * edgeInset + 2.5)
+    .stroke({ color: apron ? 0xf1ddb2 : 0xe8d49f, alpha: apron ? 0.12 : 0.16, width: 1.2, cap: "butt" });
 
+  let wearCount = 0;
   for (let cursor = step * 0.7; cursor < length - step * 0.45; cursor += step) {
     const side = Math.floor(cursor / step) % 2 === 0 ? -1 : 1;
     const centerX = start.x + ux * cursor + nx * roadWidth * 0.16 * side;
     const centerY = start.y + uy * cursor + ny * roadWidth * 0.16 * side;
-    slabWear
+    g
       .moveTo(centerX - ux * 8, centerY - uy * 8)
       .lineTo(centerX + ux * 11, centerY + uy * 11);
+    wearCount += 1;
   }
-  slabWear.stroke({ color: 0x3f4d47, alpha: apron ? 0.055 : 0.075, width: 1.05, cap: "round" });
-
-  const roadBedFace = new Graphics()
-    .moveTo(start.x - nx * roadWidth * 0.34, start.y - ny * roadWidth * 0.34 + 4)
-    .lineTo(end.x - nx * roadWidth * 0.34, end.y - ny * roadWidth * 0.34 + 4);
-  roadBedFace.stroke({ color: 0x253b35, alpha: apron ? 0.08 : 0.12, width: Math.max(2, roadWidth * 0.08), cap: "butt" });
-
-  layer.addChild(roadBedFace, curbLift, slabWear);
+  if (wearCount > 0) g.stroke({ color: 0x3f4d47, alpha: apron ? 0.055 : 0.075, width: 1.05, cap: "round" });
 }
 
-function drawCrosswalkRoad(layer: Container, road: CityWorldRoadSegment) {
+function drawCrosswalkRoad(g: Graphics, road: CityWorldRoadSegment) {
   const start = project(road.from);
   const end = project(road.to);
   const baseWidth = road.width * 15.2;
   const draftRoad = resolveRoadContact(road).tone === "draft";
-  const shadow = new Graphics().moveTo(start.x, start.y + 5).lineTo(end.x, end.y + 5);
-  shadow.stroke({ color: 0x263a34, alpha: draftRoad ? 0.16 : 0.12, width: baseWidth + 8, cap: "butt", join: "round" });
-  const curb = new Graphics().moveTo(start.x, start.y + 1).lineTo(end.x, end.y + 1);
-  curb.stroke({ color: draftRoad ? 0xe3d2ad : 0xeadfc7, alpha: draftRoad ? 0.78 : 0.86, width: baseWidth + 4, cap: "butt", join: "round" });
-  const paver = new Graphics().moveTo(start.x, start.y).lineTo(end.x, end.y);
-  paver.stroke({ color: draftRoad ? 0xf0e4c6 : 0xf8f0df, alpha: draftRoad ? 0.72 : 0.84, width: Math.max(3, baseWidth - 1), cap: "butt", join: "round" });
-  layer.addChild(shadow, curb, paver);
-  drawCrosswalkStripes(layer, start, end, baseWidth);
+  g
+    .moveTo(start.x, start.y + 5)
+    .lineTo(end.x, end.y + 5)
+    .stroke({ color: 0x263a34, alpha: draftRoad ? 0.16 : 0.12, width: baseWidth + 8, cap: "butt", join: "round" });
+  g
+    .moveTo(start.x, start.y + 1)
+    .lineTo(end.x, end.y + 1)
+    .stroke({ color: draftRoad ? 0xe3d2ad : 0xeadfc7, alpha: draftRoad ? 0.78 : 0.86, width: baseWidth + 4, cap: "butt", join: "round" });
+  g
+    .moveTo(start.x, start.y)
+    .lineTo(end.x, end.y)
+    .stroke({ color: draftRoad ? 0xf0e4c6 : 0xf8f0df, alpha: draftRoad ? 0.72 : 0.84, width: Math.max(3, baseWidth - 1), cap: "butt", join: "round" });
+  drawCrosswalkStripes(g, start, end, baseWidth);
 }
 
-function drawCrosswalkStripes(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number) {
+function drawCrosswalkStripes(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy) || 1;
@@ -1680,21 +2044,19 @@ function drawCrosswalkStripes(layer: Container, start: ProjectedPoint, end: Proj
   const ny = dx / length;
   const ux = dx / length;
   const uy = dy / length;
-  const stripes = new Graphics();
 
   for (let index = 0; index <= stepCount; index += 1) {
     const centerX = start.x + ux * ((length / stepCount) * index);
     const centerY = start.y + uy * ((length / stepCount) * index);
-    stripes
+    g
       .moveTo(centerX - nx * roadWidth * 0.42, centerY - ny * roadWidth * 0.42)
       .lineTo(centerX + nx * roadWidth * 0.42, centerY + ny * roadWidth * 0.42);
   }
 
-  stripes.stroke({ color: 0xffffff, alpha: 0.62, width: 2.2, cap: "butt" });
-  layer.addChild(stripes);
+  g.stroke({ color: 0xffffff, alpha: 0.62, width: 2.2, cap: "butt" });
 }
 
-function drawRoadEdgeBevels(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, driveway: boolean) {
+function drawRoadEdgeBevels(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, driveway: boolean) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
@@ -1703,17 +2065,15 @@ function drawRoadEdgeBevels(layer: Container, start: ProjectedPoint, end: Projec
   const nx = -dy / length;
   const ny = dx / length;
   const inset = roadWidth * 0.42;
-  const edges = new Graphics();
-  edges
+  g
     .moveTo(start.x + nx * inset, start.y + ny * inset - 1)
     .lineTo(end.x + nx * inset, end.y + ny * inset - 1)
     .moveTo(start.x - nx * inset, start.y - ny * inset + 2)
-    .lineTo(end.x - nx * inset, end.y - ny * inset + 2);
-  edges.stroke({ color: driveway ? 0xd9d0ae : 0x87928a, alpha: driveway ? 0.2 : 0.24, width: 1.1, cap: "butt" });
-  layer.addChild(edges);
+    .lineTo(end.x - nx * inset, end.y - ny * inset + 2)
+    .stroke({ color: driveway ? 0xd9d0ae : 0x87928a, alpha: driveway ? 0.2 : 0.24, width: 1.1, cap: "butt" });
 }
 
-function drawRoadModuleSeams(layer: Container, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, driveway: boolean) {
+function drawRoadModuleSeams(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, driveway: boolean) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
@@ -1725,22 +2085,22 @@ function drawRoadModuleSeams(layer: Container, start: ProjectedPoint, end: Proje
   const ny = dx / length;
   const step = driveway ? 42 : 54;
   const seamHalf = roadWidth * (driveway ? 0.24 : 0.34);
-  const seams = new Graphics();
+  let seamCount = 0;
 
   for (let cursor = step; cursor < length - step * 0.55; cursor += step) {
     const centerX = start.x + ux * cursor;
     const centerY = start.y + uy * cursor;
-    seams
+    g
       .moveTo(centerX - nx * seamHalf, centerY - ny * seamHalf + 1)
       .lineTo(centerX + nx * seamHalf, centerY + ny * seamHalf + 1);
+    seamCount += 1;
   }
 
-  seams.stroke({ color: driveway ? 0xd9d0ae : 0x9aa49b, alpha: driveway ? 0.08 : 0.1, width: 1, cap: "butt" });
-  layer.addChild(seams);
+  if (seamCount > 0) g.stroke({ color: driveway ? 0xd9d0ae : 0x9aa49b, alpha: driveway ? 0.08 : 0.1, width: 1, cap: "butt" });
 }
 
 function drawDashedLine(
-  layer: Container,
+  g: Graphics,
   start: ProjectedPoint,
   end: ProjectedPoint,
   dashLength: number,
@@ -1756,19 +2116,19 @@ function drawDashedLine(
 
   const ux = dx / length;
   const uy = dy / length;
-  const graphic = new Graphics();
   let cursor = gapLength * 0.5;
+  let dashCount = 0;
 
   while (cursor < length) {
     const next = Math.min(cursor + dashLength, length);
-    graphic
+    g
       .moveTo(start.x + ux * cursor, start.y + uy * cursor)
       .lineTo(start.x + ux * next, start.y + uy * next);
     cursor = next + gapLength;
+    dashCount += 1;
   }
 
-  graphic.stroke({ color, alpha, width, cap: "round" });
-  layer.addChild(graphic);
+  if (dashCount > 0) g.stroke({ color, alpha, width, cap: "round" });
 }
 
 function collectRoadJoints(roads: CityWorldRoadSegment[]): RoadJoint[] {
@@ -1803,7 +2163,7 @@ function collectRoadJoints(roads: CityWorldRoadSegment[]): RoadJoint[] {
   return Array.from(joints.values());
 }
 
-function drawRoadJointModule(layer: Container, joint: RoadJoint) {
+function drawRoadJointModule(g: Graphics, joint: RoadJoint) {
   const point = project(joint.point);
   const maxWidth = Math.max(...joint.roads.map((road) => road.width));
   const directions = roadDirectionsAtJoint(joint);
@@ -1814,42 +2174,39 @@ function drawRoadJointModule(layer: Container, joint: RoadJoint) {
   const radius = maxWidth * (major ? 15 : 13.5) + (directions.size >= 3 ? 7 : 4);
   const width = drivewayOnly ? radius * 1.6 : radius * 1.9;
   const height = drivewayOnly ? radius * 0.88 : radius * 1.02;
-  const shadow = polygon(diamondPoints({ x: point.x, y: point.y + 5 }, width * 1.05, height * 1.08), 0x263a34, drivewayOnly ? 0.1 : draftJoint ? 0.18 : 0.15, 0x263a34, 0);
-  const curb = polygon(diamondPoints({ x: point.x, y: point.y + 2 }, width, height), drivewayOnly ? 0xc1ae88 : draftJoint ? 0xd5bf88 : 0xd6c996, drivewayOnly ? 0.62 : draftJoint ? 0.8 : 0.8, 0x6d684f, 0.18);
-  const bed = polygon(diamondPoints(point, width * 0.8, height * 0.7), drivewayOnly ? 0x858b7e : draftJoint ? 0x59635c : 0x5d6862, drivewayOnly ? 0.78 : 0.96, 0x3f4b46, 0.1);
-  const surface = polygon(diamondPoints({ x: point.x, y: point.y - 1 }, width * 0.58, height * 0.46), drivewayOnly ? 0x969b8b : draftJoint ? 0x71796f : 0x6b7670, drivewayOnly ? 0.34 : draftJoint ? 0.42 : 0.46, 0xffffff, 0);
-  layer.addChild(shadow, curb, bed, surface);
-  drawRoadJointBlockwork(layer, point, width, height, drivewayOnly, draftJoint);
-  drawDrivewayJoinThroats(layer, joint, point, maxWidth);
+  appendPolygon(g, diamondPoints({ x: point.x, y: point.y + 5 }, width * 1.05, height * 1.08), 0x263a34, drivewayOnly ? 0.1 : draftJoint ? 0.18 : 0.15, 0x263a34, 0);
+  appendPolygon(g, diamondPoints({ x: point.x, y: point.y + 2 }, width, height), drivewayOnly ? 0xc1ae88 : draftJoint ? 0xd5bf88 : 0xd6c996, drivewayOnly ? 0.62 : draftJoint ? 0.8 : 0.8, 0x6d684f, 0.18);
+  appendPolygon(g, diamondPoints(point, width * 0.8, height * 0.7), drivewayOnly ? 0x858b7e : draftJoint ? 0x59635c : 0x5d6862, drivewayOnly ? 0.78 : 0.96, 0x3f4b46, 0.1);
+  appendPolygon(g, diamondPoints({ x: point.x, y: point.y - 1 }, width * 0.58, height * 0.46), drivewayOnly ? 0x969b8b : draftJoint ? 0x71796f : 0x6b7670, drivewayOnly ? 0.34 : draftJoint ? 0.42 : 0.46, 0xffffff, 0);
+  drawRoadJointBlockwork(g, point, width, height, drivewayOnly, draftJoint);
+  drawDrivewayJoinThroats(g, joint, point, maxWidth);
 
   if (directions.size >= 3) {
-    const center = polygon(diamondPoints({ x: point.x, y: point.y - 2 }, width * 0.34, height * 0.25), draftJoint ? 0x858b7f : 0x818b83, draftJoint ? 0.22 : 0.26, 0xffffff, 0);
-    layer.addChild(center);
+    appendPolygon(g, diamondPoints({ x: point.x, y: point.y - 2 }, width * 0.34, height * 0.25), draftJoint ? 0x858b7f : 0x818b83, draftJoint ? 0.22 : 0.26, 0xffffff, 0);
   }
 }
 
-function drawRoadJointBlockwork(layer: Container, point: ProjectedPoint, width: number, height: number, drivewayOnly: boolean, draftJoint: boolean) {
+function drawRoadJointBlockwork(g: Graphics, point: ProjectedPoint, width: number, height: number, drivewayOnly: boolean, draftJoint: boolean) {
   const edgeAlpha = drivewayOnly ? 0.12 : draftJoint ? 0.18 : 0.15;
   const centerAlpha = drivewayOnly ? 0.08 : draftJoint ? 0.12 : 0.1;
-  const edge = new Graphics()
+  g
     .moveTo(point.x - width * 0.36, point.y + height * 0.08)
     .lineTo(point.x - width * 0.12, point.y + height * 0.22)
     .lineTo(point.x + width * 0.12, point.y + height * 0.1)
     .moveTo(point.x + width * 0.36, point.y + height * 0.08)
     .lineTo(point.x + width * 0.12, point.y + height * 0.22)
-    .lineTo(point.x - width * 0.12, point.y + height * 0.1);
-  edge.stroke({ color: 0xe6d09a, alpha: edgeAlpha, width: 1.15, cap: "round", join: "round" });
+    .lineTo(point.x - width * 0.12, point.y + height * 0.1)
+    .stroke({ color: 0xe6d09a, alpha: edgeAlpha, width: 1.15, cap: "round", join: "round" });
 
-  const plate = new Graphics()
+  g
     .moveTo(point.x - width * 0.14, point.y - height * 0.06)
     .lineTo(point.x + width * 0.12, point.y + height * 0.08)
     .moveTo(point.x + width * 0.15, point.y - height * 0.04)
-    .lineTo(point.x - width * 0.1, point.y + height * 0.1);
-  plate.stroke({ color: 0xf5e5bb, alpha: centerAlpha, width: 1, cap: "round", join: "round" });
-  layer.addChild(edge, plate);
+    .lineTo(point.x - width * 0.1, point.y + height * 0.1)
+    .stroke({ color: 0xf5e5bb, alpha: centerAlpha, width: 1, cap: "round", join: "round" });
 }
 
-function drawDrivewayJoinThroats(layer: Container, joint: RoadJoint, point: ProjectedPoint, maxRoadWidth: number) {
+function drawDrivewayJoinThroats(g: Graphics, joint: RoadJoint, point: ProjectedPoint, maxRoadWidth: number) {
   const hasMainRoad = joint.roads.some((road) => resolveRoadContact(road).profile === "embedded");
   if (!hasMainRoad) return;
 
@@ -1863,15 +2220,14 @@ function drawDrivewayJoinThroats(layer: Container, joint: RoadJoint, point: Proj
     const ux = dx / length;
     const uy = dy / length;
     const throatLength = Math.max(18, maxRoadWidth * 13);
-    const throat = new Graphics()
+    g
       .moveTo(point.x + ux * 2, point.y + uy * 2)
-      .lineTo(point.x + ux * throatLength, point.y + uy * throatLength);
-    throat.stroke({ color: 0xd8c79d, alpha: 0.28, width: 7, cap: "butt" });
-    const asphaltCut = new Graphics()
+      .lineTo(point.x + ux * throatLength, point.y + uy * throatLength)
+      .stroke({ color: 0xd8c79d, alpha: 0.28, width: 7, cap: "butt" });
+    g
       .moveTo(point.x + ux * 5, point.y + uy * 5 + 1)
-      .lineTo(point.x + ux * (throatLength - 2), point.y + uy * (throatLength - 2) + 1);
-    asphaltCut.stroke({ color: 0x737c74, alpha: 0.34, width: 3.5, cap: "butt" });
-    layer.addChild(throat, asphaltCut);
+      .lineTo(point.x + ux * (throatLength - 2), point.y + uy * (throatLength - 2) + 1)
+      .stroke({ color: 0x737c74, alpha: 0.34, width: 3.5, cap: "butt" });
   }
 }
 
@@ -1929,7 +2285,7 @@ function roadJointKey(point: CityWorldPoint) {
   return `${point.x.toFixed(2)}:${point.y.toFixed(2)}:${(point.z ?? 0).toFixed(2)}`;
 }
 
-function drawLot(layer: Container, lot: CityWorldLot) {
+function drawLot(g: Graphics, lot: CityWorldLot) {
   const point = project(lot.position);
   const width = lot.width * TILE_WIDTH;
   const height = lot.depth * TILE_HEIGHT;
@@ -1939,7 +2295,9 @@ function drawLot(layer: Container, lot: CityWorldLot) {
   const mutedLot = draftLot || shellLot;
   const quietPad = lotContact.profile === "foundation";
   const color = shellLot ? SHELL_LOT_COLORS[lot.kind] : draftLot ? DRAFT_LOT_COLORS[lot.kind] : LOT_COLORS[lot.kind];
-  const lotAlpha = shellLot ? (quietPad ? 0.56 : 0.62) : draftLot ? (quietPad ? 0.58 : 0.6) : lotContact.profile === "shore" ? 0.34 : quietPad ? 0.5 : 0.52;
+  // Lots are ground material, not tinted film: near-opaque so aprons and
+  // yards read as real surfaces instead of a translucent wash over grass.
+  const lotAlpha = shellLot ? (quietPad ? 0.82 : 0.86) : draftLot ? (quietPad ? 0.84 : 0.86) : lotContact.profile === "shore" ? 0.55 : quietPad ? 0.94 : 0.96;
   const lotContactProfile = lot.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
   const contactAlpha = shellLot
     ? lotContact.profile === "green"
@@ -1957,12 +2315,16 @@ function drawLot(layer: Container, lot: CityWorldLot) {
           ? 0.14
           : 0.13;
   const contactSpread = lotContactProfile === "landmark_base_shadow" ? 1.1 : lotContactProfile === "soft_ground_shadow" ? 1.12 : 1.04;
-  const contact = polygon(diamondPoints({ x: point.x, y: point.y + 6 }, width * contactSpread, height * (contactSpread + 0.04)), 0x23342e, contactAlpha, 0x23342e, 0);
+  // Waterfront lots have real water terrain beneath them; a lot slab on top
+  // reads as a glass sheet floating on the shore. Water carries the surface,
+  // the lot contributes nothing.
+  if (lotContact.profile === "shore") return;
+  appendPolygon(g, diamondPoints({ x: point.x, y: point.y + 6 }, width * contactSpread, height * (contactSpread + 0.04)), 0x23342e, contactAlpha, 0x23342e, 0);
   if (!mutedLot && lotContactProfile === "landmark_base_shadow") {
-    layer.addChild(polygon(diamondPoints({ x: point.x, y: point.y + 8 }, width * 0.86, height * 0.8), 0x1d2a24, 0.09, 0x1d2a24, 0));
+    appendPolygon(g, diamondPoints({ x: point.x, y: point.y + 8 }, width * 0.86, height * 0.8), 0x1d2a24, 0.09, 0x1d2a24, 0);
   }
-  const lotGraphic = polygon(diamondPoints(point, width, height), color, lotAlpha, shellLot ? 0x747965 : draftLot ? 0x7f6d4e : 0x28473f, shellLot ? 0.16 : draftLot ? 0.14 : quietPad ? 0.1 : 0.18);
-  const lowerLip = new Graphics()
+  appendPolygon(g, diamondPoints(point, width, height), color, lotAlpha, shellLot ? 0x747965 : draftLot ? 0x7f6d4e : 0x28473f, shellLot ? 0.16 : draftLot ? 0.14 : quietPad ? 0.1 : 0.18);
+  g
     .moveTo(point.x - width * 0.5, point.y)
     .lineTo(point.x, point.y + height * 0.5)
     .lineTo(point.x + width * 0.5, point.y)
@@ -1971,77 +2333,71 @@ function drawLot(layer: Container, lot: CityWorldLot) {
     .lineTo(point.x - width * 0.5, point.y + 4)
     .closePath()
     .fill({ color: shadeColor(color, -28), alpha: shellLot ? 0.24 : draftLot ? 0.3 : quietPad ? 0.18 : 0.24 });
-  const innerBevel = polygon(diamondPoints(point, width * 0.88, height * 0.82), shadeColor(color, mutedLot ? 7 : 10), shellLot ? 0.14 : draftLot ? 0.13 : quietPad ? 0.09 : 0.12, 0xffffff, 0);
-  layer.addChild(contact, lotGraphic, lowerLip, innerBevel);
-  drawParcelElevationShelf(layer, point, width, height, lot, color, mutedLot);
-  drawLotWorldComposition(layer, point, width, height, lot, color, mutedLot);
-  drawLotEdgeBlockwork(layer, point, width, height, lotContact, mutedLot);
-  drawParcelEdgeTicks(layer, point, width, height, lotContact);
-  drawParcelCompositionDetails(layer, point, width, height, lot);
-  drawLotCurbCut(layer, lotContact, point, width, height);
-  if (draftLot) drawDraftLotMaterial(layer, point, width, height, lot.kind);
-  if (shellLot) drawShellLotMaterial(layer, point, width, height, lot.kind);
+  appendPolygon(g, diamondPoints(point, width * 0.88, height * 0.82), shadeColor(color, mutedLot ? 7 : 10), shellLot ? 0.14 : draftLot ? 0.13 : quietPad ? 0.09 : 0.12, 0xffffff, 0);
+  drawParcelElevationShelf(g, point, width, height, lot, color, mutedLot);
+  drawLotWorldComposition(g, point, width, height, lot, color, mutedLot);
+  drawLotEdgeBlockwork(g, point, width, height, lotContact, mutedLot);
+  drawParcelEdgeTicks(g, point, width, height, lotContact);
+  drawParcelCompositionDetails(g, point, width, height, lot);
+  drawLotCurbCut(g, lotContact, point, width, height);
+  if (draftLot) drawDraftLotMaterial(g, point, width, height, lot.kind);
+  if (shellLot) drawShellLotMaterial(g, point, width, height, lot.kind);
 
   if (shellLot) {
     return;
   }
 
   if (lot.kind === "park") {
-    const path = new Graphics()
+    g
       .moveTo(point.x - width * 0.28, point.y - height * 0.08)
       .lineTo(point.x - width * 0.05, point.y + height * 0.12)
-      .lineTo(point.x + width * 0.25, point.y - height * 0.02);
-    path.stroke({ color: 0xf1d9a5, alpha: 0.72, width: 5, cap: "round", join: "round" });
-    const court = polygon(diamondPoints({ x: point.x + width * 0.14, y: point.y + height * 0.16 }, 34, 18), 0xc3d989, 0.72, 0x5b8b52, 0.28);
-    layer.addChild(path, court);
+      .lineTo(point.x + width * 0.25, point.y - height * 0.02)
+      .stroke({ color: 0xf1d9a5, alpha: 0.72, width: 5, cap: "round", join: "round" });
+    appendPolygon(g, diamondPoints({ x: point.x + width * 0.14, y: point.y + height * 0.16 }, 34, 18), 0xc3d989, 0.72, 0x5b8b52, 0.28);
   } else if (lot.kind === "home") {
-    drawHomeLotDetails(layer, point, width, height, color);
+    drawHomeLotDetails(g, point, width, height, color);
   } else if (lot.kind === "shop" || lot.kind === "civic") {
-    drawForecourtPad(layer, point, width, height, color, lot.kind === "civic");
-    if (lot.kind === "civic") drawCivicLotComposition(layer, point, width, height, color);
-    const lines = new Graphics();
+    drawForecourtPad(g, point, width, height, color, lot.kind === "civic");
+    if (lot.kind === "civic") drawCivicLotComposition(g, point, width, height, color);
     for (let i = -2; i <= 2; i += 1) {
-      lines
+      g
         .moveTo(point.x + i * 24 - width * 0.25, point.y + height * 0.16)
         .lineTo(point.x + i * 24 + width * 0.04, point.y - height * 0.08);
     }
-    lines.stroke({ color: 0xf4e8c7, alpha: 0.2, width: 1 });
-    layer.addChild(lines);
+    g.stroke({ color: 0xf4e8c7, alpha: 0.2, width: 1 });
   } else if (lot.kind === "gym" || lot.kind === "apartments") {
-    drawForecourtPad(layer, point, width, height, color, false);
+    drawForecourtPad(g, point, width, height, color, false);
   } else if (lot.kind === "waterfront") {
-    const edge = new Graphics()
+    g
       .moveTo(point.x - width * 0.38, point.y - height * 0.08)
       .lineTo(point.x - width * 0.02, point.y + height * 0.12)
-      .lineTo(point.x + width * 0.34, point.y - height * 0.04);
-    edge.stroke({ color: 0xe9fbff, alpha: 0.42, width: 3, cap: "round", join: "round" });
-    layer.addChild(edge);
+      .lineTo(point.x + width * 0.34, point.y - height * 0.04)
+      .stroke({ color: 0xe9fbff, alpha: 0.42, width: 3, cap: "round", join: "round" });
   }
 }
 
-function drawShellLotMaterial(layer: Container, point: ProjectedPoint, width: number, height: number, kind: CityWorldLot["kind"]) {
+function drawShellLotMaterial(g: Graphics, point: ProjectedPoint, width: number, height: number, kind: CityWorldLot["kind"]) {
   if (kind === "park" || kind === "waterfront") return;
 
-  const edge = new Graphics()
-    .moveTo(point.x - width * 0.4, point.y + height * 0.1)
-    .lineTo(point.x - width * 0.16, point.y + height * 0.23)
-    .lineTo(point.x + width * 0.08, point.y + height * 0.1)
-    .moveTo(point.x + width * 0.4, point.y + height * 0.08)
-    .lineTo(point.x + width * 0.16, point.y + height * 0.22)
-    .lineTo(point.x - width * 0.06, point.y + height * 0.1);
-  edge.stroke({ color: 0x6f7565, alpha: kind === "civic" ? 0.22 : 0.18, width: 1.15, cap: "round", join: "round" });
-
-  const facet = polygon(
+  appendPolygon(
+    g,
     diamondPoints({ x: point.x + width * 0.08, y: point.y - height * 0.08 }, width * 0.3, height * 0.18),
     0xd4d0b8,
     0.14,
     0xffffff,
     0,
   );
-  layer.addChild(facet, edge);
+  g
+    .moveTo(point.x - width * 0.4, point.y + height * 0.1)
+    .lineTo(point.x - width * 0.16, point.y + height * 0.23)
+    .lineTo(point.x + width * 0.08, point.y + height * 0.1)
+    .moveTo(point.x + width * 0.4, point.y + height * 0.08)
+    .lineTo(point.x + width * 0.16, point.y + height * 0.22)
+    .lineTo(point.x - width * 0.06, point.y + height * 0.1)
+    .stroke({ color: 0x6f7565, alpha: kind === "civic" ? 0.22 : 0.18, width: 1.15, cap: "round", join: "round" });
 }
 
-function drawLotWorldComposition(layer: Container, point: ProjectedPoint, width: number, height: number, lot: CityWorldLot, color: number, draftLot: boolean) {
+function drawLotWorldComposition(g: Graphics, point: ProjectedPoint, width: number, height: number, lot: CityWorldLot, color: number, draftLot: boolean) {
   if (draftLot || lot.kind === "park" || lot.kind === "waterfront") return;
 
   const profile = lot.visualGrammar?.lotProfile;
@@ -2049,45 +2405,47 @@ function drawLotWorldComposition(layer: Container, point: ProjectedPoint, width:
   if (profile === "residential_yard_grid") {
     const variant = objectVariant(lot.id, 4);
     const yardSide = variant % 2 === 0 ? -1 : 1;
-    const sideYard = polygon(
+    appendPolygon(
+      g,
       diamondPoints({ x: point.x + yardSide * width * 0.18, y: point.y - height * 0.08 }, width * 0.22, height * 0.22),
       shadeColor(color, variant === 3 ? -8 : 12),
       0.12,
       0xffffff,
       0,
     );
-    const frontSetback = polygon(
+    appendPolygon(
+      g,
       diamondPoints({ x: point.x - yardSide * width * 0.16, y: point.y + height * 0.27 }, width * 0.34, height * 0.13),
       shadeColor(color, 18),
       0.15,
       0xffffff,
       0,
     );
-    const parcelEdge = new Graphics()
+    g
       .moveTo(point.x - width * 0.42, point.y - height * 0.08)
       .lineTo(point.x - width * 0.12, point.y + height * 0.08)
       .lineTo(point.x + width * 0.2, point.y - height * 0.06)
       .moveTo(point.x + width * 0.42, point.y + height * 0.06)
       .lineTo(point.x + width * 0.12, point.y + height * 0.22)
-      .lineTo(point.x - width * 0.1, point.y + height * 0.1);
-    parcelEdge.stroke({ color: 0x557a4e, alpha: 0.16, width: 1.1, cap: "round", join: "round" });
-    const walkJoin = new Graphics()
+      .lineTo(point.x - width * 0.1, point.y + height * 0.1)
+      .stroke({ color: 0x557a4e, alpha: 0.16, width: 1.1, cap: "round", join: "round" });
+    g
       .moveTo(point.x - yardSide * width * 0.02, point.y + height * 0.08)
-      .lineTo(point.x - yardSide * width * 0.2, point.y + height * 0.42);
-    walkJoin.stroke({ color: 0xf1ddad, alpha: 0.26, width: Math.max(1.6, width * 0.026), cap: "round" });
-    layer.addChild(sideYard, frontSetback, parcelEdge, walkJoin);
+      .lineTo(point.x - yardSide * width * 0.2, point.y + height * 0.42)
+      .stroke({ color: 0xf1ddad, alpha: 0.26, width: Math.max(1.6, width * 0.026), cap: "round" });
     return;
   }
 
   if (profile === "landmark_civic_ground") {
-    const civicAxis = polygon(
+    appendPolygon(
+      g,
       diamondPoints({ x: point.x, y: point.y + height * 0.34 }, width * 0.38, height * 0.16),
       0xf2ddb3,
       0.28,
       0x7f6d4e,
       0.08,
     );
-    const terraceBands = new Graphics()
+    g
       .moveTo(point.x - width * 0.46, point.y + height * 0.1)
       .lineTo(point.x - width * 0.2, point.y + height * 0.24)
       .lineTo(point.x + width * 0.08, point.y + height * 0.12)
@@ -2095,34 +2453,32 @@ function drawLotWorldComposition(layer: Container, point: ProjectedPoint, width:
       .lineTo(point.x + width * 0.2, point.y + height * 0.23)
       .lineTo(point.x - width * 0.08, point.y + height * 0.11)
       .moveTo(point.x - width * 0.22, point.y - height * 0.18)
-      .lineTo(point.x + width * 0.18, point.y + height * 0.02);
-    terraceBands.stroke({ color: 0xf8eac7, alpha: 0.24, width: 1.45, cap: "round", join: "round" });
-    layer.addChild(civicAxis, terraceBands);
+      .lineTo(point.x + width * 0.18, point.y + height * 0.02)
+      .stroke({ color: 0xf8eac7, alpha: 0.24, width: 1.45, cap: "round", join: "round" });
     return;
   }
 
   if (profile === "commercial_forecourt" || profile === "apartment_court") {
-    const apron = polygon(
+    appendPolygon(
+      g,
       diamondPoints({ x: point.x, y: point.y + height * 0.36 }, width * 0.72, height * 0.16),
       profile === "apartment_court" ? 0xdac7a1 : 0xe8cf9f,
       0.18,
       0x7f6d4e,
       0.06,
     );
-    const baySeams = new Graphics();
     const count = profile === "apartment_court" ? 3 : 5;
     for (let index = 0; index < count; index += 1) {
       const offset = (index / Math.max(1, count - 1) - 0.5) * width * 0.54;
-      baySeams
+      g
         .moveTo(point.x + offset - width * 0.04, point.y + height * 0.24)
         .lineTo(point.x + offset + width * 0.06, point.y + height * 0.31);
     }
-    baySeams.stroke({ color: 0xf6e8c8, alpha: 0.16, width: 1, cap: "round" });
-    layer.addChild(apron, baySeams);
+    g.stroke({ color: 0xf6e8c8, alpha: 0.16, width: 1, cap: "round" });
   }
 }
 
-function drawParcelElevationShelf(layer: Container, point: ProjectedPoint, width: number, height: number, lot: CityWorldLot, color: number, draftLot: boolean) {
+function drawParcelElevationShelf(g: Graphics, point: ProjectedPoint, width: number, height: number, lot: CityWorldLot, color: number, draftLot: boolean) {
   const elevation = lot.visualGrammar?.parcelElevation;
   if (!elevation || elevation === "thin_pad_lip") return;
 
@@ -2141,72 +2497,68 @@ function drawParcelElevationShelf(layer: Container, point: ProjectedPoint, width
                 ? 3
                 : 4.5;
   const alpha = draftLot ? 0.34 : elevation === "civic_plinth_stack" ? 0.42 : 0.32;
-  const leftFace = new Graphics()
+  g
     .moveTo(point.x - width * 0.5, point.y)
     .lineTo(point.x, point.y + height * 0.5)
     .lineTo(point.x, point.y + height * 0.5 + depth)
     .lineTo(point.x - width * 0.5, point.y + depth)
     .closePath()
     .fill({ color: sunlitColor(shadeColor(color, -8), "sun"), alpha: alpha * 0.8 });
-  const rightFace = new Graphics()
+  g
     .moveTo(point.x, point.y + height * 0.5)
     .lineTo(point.x + width * 0.5, point.y)
     .lineTo(point.x + width * 0.5, point.y + depth)
     .lineTo(point.x, point.y + height * 0.5 + depth)
     .closePath()
     .fill({ color: sunlitColor(color, "shade"), alpha });
-  const shelfRim = new Graphics()
+  g
     .moveTo(point.x - width * 0.5, point.y + depth * 0.55)
     .lineTo(point.x, point.y + height * 0.5 + depth * 0.75)
-    .lineTo(point.x + width * 0.5, point.y + depth * 0.55);
-  shelfRim.stroke({ color: elevation === "waterfront_bank_cut" ? 0xe9fbff : 0xf1dfb7, alpha: elevation === "waterfront_bank_cut" ? 0.2 : 0.14, width: 1.2, cap: "round", join: "round" });
-  layer.addChild(leftFace, rightFace, shelfRim);
+    .lineTo(point.x + width * 0.5, point.y + depth * 0.55)
+    .stroke({ color: elevation === "waterfront_bank_cut" ? 0xe9fbff : 0xf1dfb7, alpha: elevation === "waterfront_bank_cut" ? 0.2 : 0.14, width: 1.2, cap: "round", join: "round" });
 
   if (elevation === "civic_plinth_stack") {
-    const step = new Graphics()
+    g
       .moveTo(point.x - width * 0.34, point.y + height * 0.2)
       .lineTo(point.x, point.y + height * 0.38)
       .lineTo(point.x + width * 0.34, point.y + height * 0.2)
       .moveTo(point.x - width * 0.24, point.y + height * 0.28)
       .lineTo(point.x, point.y + height * 0.42)
-      .lineTo(point.x + width * 0.24, point.y + height * 0.28);
-    step.stroke({ color: 0x8b7954, alpha: 0.22, width: 1.15, cap: "round", join: "round" });
-    layer.addChild(step);
+      .lineTo(point.x + width * 0.24, point.y + height * 0.28)
+      .stroke({ color: 0x8b7954, alpha: 0.22, width: 1.15, cap: "round", join: "round" });
   }
 }
 
-function drawLotEdgeBlockwork(layer: Container, point: ProjectedPoint, width: number, height: number, lotContact: CityWorldLotContactGrammar, draftLot: boolean) {
+function drawLotEdgeBlockwork(g: Graphics, point: ProjectedPoint, width: number, height: number, lotContact: CityWorldLotContactGrammar, draftLot: boolean) {
   if (lotContact.profile === "shore" || lotContact.profile === "green") return;
 
   const quiet = lotContact.profile === "foundation";
   const alpha = draftLot ? 0.16 : quiet ? 0.1 : 0.14;
   const edgeColor = quiet ? 0xe9ddb4 : 0xf0dfb7;
-  const curbFace = new Graphics()
+  g
     .moveTo(point.x - width * 0.46, point.y + height * 0.02)
     .lineTo(point.x - width * 0.18, point.y + height * 0.18)
     .lineTo(point.x + width * 0.08, point.y + height * 0.05)
     .moveTo(point.x + width * 0.46, point.y + height * 0.02)
     .lineTo(point.x + width * 0.18, point.y + height * 0.18)
-    .lineTo(point.x - width * 0.08, point.y + height * 0.05);
-  curbFace.stroke({ color: edgeColor, alpha, width: quiet ? 1 : 1.2, cap: "round", join: "round" });
+    .lineTo(point.x - width * 0.08, point.y + height * 0.05)
+    .stroke({ color: edgeColor, alpha, width: quiet ? 1 : 1.2, cap: "round", join: "round" });
 
-  const frontBlocks = new Graphics();
   const blockCount = quiet ? 3 : 5;
   for (let block = 0; block < blockCount; block += 1) {
     const t = block / (blockCount - 1);
     const x = point.x - width * 0.28 + t * width * 0.56;
-    frontBlocks
+    g
       .moveTo(x - width * 0.035, point.y + height * 0.26)
       .lineTo(x + width * 0.025, point.y + height * 0.3);
   }
-  frontBlocks.stroke({ color: 0x7f6d4e, alpha: draftLot ? 0.14 : quiet ? 0.08 : 0.12, width: 0.9, cap: "round" });
-  layer.addChild(curbFace, frontBlocks);
+  g.stroke({ color: 0x7f6d4e, alpha: draftLot ? 0.14 : quiet ? 0.08 : 0.12, width: 0.9, cap: "round" });
 }
 
 // Curb-cut / walk join toward the serving road, authored by the compiler as
 // lotContact.curbCutEdge. This is the driveway-mouth read that makes a parcel
 // look served by its street instead of floating beside it.
-function drawLotCurbCut(layer: Container, lotContact: CityWorldLotContactGrammar, point: ProjectedPoint, width: number, height: number) {
+function drawLotCurbCut(g: Graphics, lotContact: CityWorldLotContactGrammar, point: ProjectedPoint, width: number, height: number) {
   if (!lotContact.curbCutEdge || lotContact.profile === "shore") return;
 
   const draft = lotContact.tone === "draft";
@@ -2215,50 +2567,47 @@ function drawLotCurbCut(layer: Container, lotContact: CityWorldLotContactGrammar
   const edgePoint = lotCurbPoint(point, width, height, lotContact.curbCutEdge);
   const apronWidth = Math.max(quiet ? 12 : 20, width * (quiet ? 0.18 : 0.26));
   const apronHeight = Math.max(quiet ? 5 : 8, height * (quiet ? 0.08 : 0.12));
-  const apron = polygon(
+  appendPolygon(
+    g,
     diamondPoints(edgePoint, apronWidth, apronHeight),
     LOT_CURB_CUT_STYLE.apron,
     draft ? 0.16 : green ? 0.22 : quiet ? 0.3 : 0.4,
     LOT_CURB_CUT_STYLE.groove,
     draft ? 0.08 : 0.16,
   );
-  layer.addChild(apron);
 
   if (!green) {
-    const walk = new Graphics()
+    g
       .moveTo(point.x, point.y + height * 0.06)
-      .lineTo(edgePoint.x, edgePoint.y);
-    walk.stroke({ color: LOT_CURB_CUT_STYLE.walk, alpha: draft ? 0.14 : quiet ? 0.28 : 0.34, width: quiet ? 1.8 : 2.6, cap: "round" });
-    layer.addChild(walk);
+      .lineTo(edgePoint.x, edgePoint.y)
+      .stroke({ color: LOT_CURB_CUT_STYLE.walk, alpha: draft ? 0.14 : quiet ? 0.28 : 0.34, width: quiet ? 1.8 : 2.6, cap: "round" });
   }
 }
 
-function drawDraftLotMaterial(layer: Container, point: ProjectedPoint, width: number, height: number, kind: CityWorldLot["kind"]) {
+function drawDraftLotMaterial(g: Graphics, point: ProjectedPoint, width: number, height: number, kind: CityWorldLot["kind"]) {
   if (kind === "park" || kind === "waterfront") return;
 
-  const edge = new Graphics()
-    .moveTo(point.x - width * 0.44, point.y + height * 0.08)
-    .lineTo(point.x - width * 0.18, point.y + height * 0.23)
-    .lineTo(point.x + width * 0.06, point.y + height * 0.12)
-    .moveTo(point.x + width * 0.44, point.y + height * 0.06)
-    .lineTo(point.x + width * 0.18, point.y + height * 0.22)
-    .lineTo(point.x - width * 0.04, point.y + height * 0.1);
-  edge.stroke({ color: 0x8b7954, alpha: kind === "civic" ? 0.26 : 0.2, width: 1.25, cap: "round", join: "round" });
-
-  const warmFacet = polygon(
+  appendPolygon(
+    g,
     diamondPoints({ x: point.x + width * 0.12, y: point.y - height * 0.08 }, width * 0.32, height * 0.2),
     kind === "civic" ? 0xeadab8 : 0xe6d2a6,
     0.16,
     0xffffff,
     0,
   );
-  layer.addChild(warmFacet, edge);
+  g
+    .moveTo(point.x - width * 0.44, point.y + height * 0.08)
+    .lineTo(point.x - width * 0.18, point.y + height * 0.23)
+    .lineTo(point.x + width * 0.06, point.y + height * 0.12)
+    .moveTo(point.x + width * 0.44, point.y + height * 0.06)
+    .lineTo(point.x + width * 0.18, point.y + height * 0.22)
+    .lineTo(point.x - width * 0.04, point.y + height * 0.1)
+    .stroke({ color: 0x8b7954, alpha: kind === "civic" ? 0.26 : 0.2, width: 1.25, cap: "round", join: "round" });
 }
 
-function drawParcelEdgeTicks(layer: Container, point: ProjectedPoint, width: number, height: number, lotContact: CityWorldLotContactGrammar) {
+function drawParcelEdgeTicks(g: Graphics, point: ProjectedPoint, width: number, height: number, lotContact: CityWorldLotContactGrammar) {
   if (lotContact.profile === "shore" || lotContact.profile === "green") return;
 
-  const tick = new Graphics();
   const alpha = lotContact.profile === "foundation" ? 0.18 : 0.22;
   const color = lotContact.profile === "foundation" ? 0xf2e4b8 : 0xf4e8c7;
   const leftX = point.x - width * 0.5;
@@ -2266,7 +2615,7 @@ function drawParcelEdgeTicks(layer: Container, point: ProjectedPoint, width: num
   const topY = point.y - height * 0.5;
   const bottomY = point.y + height * 0.5;
 
-  tick
+  g
     .moveTo(leftX + width * 0.16, point.y + height * 0.16)
     .lineTo(leftX + width * 0.28, point.y + height * 0.28)
     .moveTo(rightX - width * 0.16, point.y + height * 0.16)
@@ -2274,17 +2623,16 @@ function drawParcelEdgeTicks(layer: Container, point: ProjectedPoint, width: num
     .moveTo(point.x - width * 0.16, topY + height * 0.16)
     .lineTo(point.x - width * 0.28, topY + height * 0.28)
     .moveTo(point.x + width * 0.16, bottomY - height * 0.16)
-    .lineTo(point.x + width * 0.28, bottomY - height * 0.28);
-  tick.stroke({ color, alpha, width: 1, cap: "round" });
-  layer.addChild(tick);
+    .lineTo(point.x + width * 0.28, bottomY - height * 0.28)
+    .stroke({ color, alpha, width: 1, cap: "round" });
 }
 
-function drawParcelCompositionDetails(layer: Container, point: ProjectedPoint, width: number, height: number, lot: CityWorldLot) {
+function drawParcelCompositionDetails(g: Graphics, point: ProjectedPoint, width: number, height: number, lot: CityWorldLot) {
   const composition = lot.visualGrammar?.parcelComposition;
   if (!composition) return;
 
   if (composition === "home_yard_grid") {
-    const yardGrid = new Graphics()
+    g
       .moveTo(point.x - width * 0.42, point.y - height * 0.03)
       .lineTo(point.x - width * 0.13, point.y + height * 0.13)
       .lineTo(point.x + width * 0.12, point.y + height * 0.02)
@@ -2292,183 +2640,179 @@ function drawParcelCompositionDetails(layer: Container, point: ProjectedPoint, w
       .lineTo(point.x + width * 0.13, point.y + height * 0.13)
       .lineTo(point.x - width * 0.12, point.y + height * 0.02)
       .moveTo(point.x - width * 0.18, point.y - height * 0.22)
-      .lineTo(point.x + width * 0.14, point.y - height * 0.04);
-    yardGrid.stroke({ color: 0xdbe8ab, alpha: 0.12, width: 1.1, cap: "round", join: "round" });
-    layer.addChild(yardGrid);
+      .lineTo(point.x + width * 0.14, point.y - height * 0.04)
+      .stroke({ color: 0xdbe8ab, alpha: 0.12, width: 1.1, cap: "round", join: "round" });
     return;
   }
 
   if (composition === "commercial_apron") {
-    const apron = new Graphics();
     for (let lane = -2; lane <= 2; lane += 1) {
-      apron
+      g
         .moveTo(point.x + lane * width * 0.08 - width * 0.18, point.y + height * 0.22)
         .lineTo(point.x + lane * width * 0.08 + width * 0.1, point.y + height * 0.06);
     }
-    apron
+    g
       .moveTo(point.x - width * 0.36, point.y + height * 0.3)
       .lineTo(point.x, point.y + height * 0.46)
-      .lineTo(point.x + width * 0.36, point.y + height * 0.3);
-    apron.stroke({ color: 0xffe9bf, alpha: 0.18, width: 1.15, cap: "round", join: "round" });
-    layer.addChild(apron);
+      .lineTo(point.x + width * 0.36, point.y + height * 0.3)
+      .stroke({ color: 0xffe9bf, alpha: 0.18, width: 1.15, cap: "round", join: "round" });
     return;
   }
 
   if (composition === "civic_landmark_plinth") {
-    const plinth = polygon(diamondPoints({ x: point.x, y: point.y + height * 0.26 }, width * 0.72, height * 0.2), 0xe7d4aa, 0.18, 0x8b7954, 0.08);
-    const axis = new Graphics()
+    appendPolygon(g, diamondPoints({ x: point.x, y: point.y + height * 0.26 }, width * 0.72, height * 0.2), 0xe7d4aa, 0.18, 0x8b7954, 0.08);
+    g
       .moveTo(point.x - width * 0.28, point.y + height * 0.16)
       .lineTo(point.x, point.y + height * 0.32)
       .lineTo(point.x + width * 0.28, point.y + height * 0.16)
       .moveTo(point.x - width * 0.16, point.y + height * 0.24)
       .lineTo(point.x, point.y + height * 0.34)
-      .lineTo(point.x + width * 0.16, point.y + height * 0.24);
-    axis.stroke({ color: 0x8b7954, alpha: 0.18, width: 1.2, cap: "round", join: "round" });
-    layer.addChild(plinth, axis);
+      .lineTo(point.x + width * 0.16, point.y + height * 0.24)
+      .stroke({ color: 0x8b7954, alpha: 0.18, width: 1.2, cap: "round", join: "round" });
     return;
   }
 
   if (composition === "apartment_court_grid") {
-    const court = polygon(diamondPoints({ x: point.x - width * 0.08, y: point.y + height * 0.03 }, width * 0.46, height * 0.28), 0xd7c59d, 0.14, 0xffffff, 0);
-    const bands = new Graphics()
+    appendPolygon(g, diamondPoints({ x: point.x - width * 0.08, y: point.y + height * 0.03 }, width * 0.46, height * 0.28), 0xd7c59d, 0.14, 0xffffff, 0);
+    g
       .moveTo(point.x - width * 0.34, point.y + height * 0.1)
       .lineTo(point.x - width * 0.05, point.y + height * 0.25)
       .lineTo(point.x + width * 0.26, point.y + height * 0.1)
       .moveTo(point.x - width * 0.2, point.y - height * 0.08)
-      .lineTo(point.x + width * 0.18, point.y + height * 0.1);
-    bands.stroke({ color: 0xf4e7c3, alpha: 0.18, width: 1, cap: "round", join: "round" });
-    layer.addChild(court, bands);
+      .lineTo(point.x + width * 0.18, point.y + height * 0.1)
+      .stroke({ color: 0xf4e7c3, alpha: 0.18, width: 1, cap: "round", join: "round" });
     return;
   }
 
   if (composition === "park_path_basin") {
-    const basin = new Graphics()
+    g
       .moveTo(point.x - width * 0.32, point.y - height * 0.1)
       .lineTo(point.x - width * 0.08, point.y + height * 0.08)
-      .lineTo(point.x + width * 0.28, point.y - height * 0.04);
-    basin.stroke({ color: 0xf1d9a5, alpha: 0.2, width: 2.2, cap: "round", join: "round" });
-    layer.addChild(basin);
+      .lineTo(point.x + width * 0.28, point.y - height * 0.04)
+      .stroke({ color: 0xf1d9a5, alpha: 0.2, width: 2.2, cap: "round", join: "round" });
     return;
   }
 
   if (composition === "waterfront_bank" || composition === "hidden_draft_anchor_pad") {
     const strataColor = composition === "hidden_draft_anchor_pad" ? 0x8b7954 : 0xe9fbff;
-    const strata = new Graphics()
+    g
       .moveTo(point.x - width * 0.42, point.y + height * 0.04)
       .lineTo(point.x - width * 0.12, point.y + height * 0.2)
       .lineTo(point.x + width * 0.2, point.y + height * 0.06)
       .moveTo(point.x + width * 0.42, point.y + height * 0.02)
       .lineTo(point.x + width * 0.14, point.y + height * 0.2)
-      .lineTo(point.x - width * 0.14, point.y + height * 0.08);
-    strata.stroke({ color: strataColor, alpha: composition === "hidden_draft_anchor_pad" ? 0.18 : 0.22, width: 1.25, cap: "round", join: "round" });
-    layer.addChild(strata);
+      .lineTo(point.x - width * 0.14, point.y + height * 0.08)
+      .stroke({ color: strataColor, alpha: composition === "hidden_draft_anchor_pad" ? 0.18 : 0.22, width: 1.25, cap: "round", join: "round" });
   }
 }
 
-function drawHomeLotDetails(layer: Container, point: ProjectedPoint, width: number, height: number, color: number) {
+function drawHomeLotDetails(g: Graphics, point: ProjectedPoint, width: number, height: number, color: number) {
   const variation = Math.abs(Math.round(point.x * 0.17 + point.y * 0.11)) % 3;
   const padOffset = variation === 0 ? -0.1 : variation === 1 ? 0 : 0.08;
-  const pad = polygon(diamondPoints({ x: point.x + width * padOffset, y: point.y - height * 0.06 }, width * 0.56, height * 0.42), shadeColor(color, 18), 0.17, 0xffffff, 0);
-  const yardFacet = polygon(diamondPoints({ x: point.x - width * (variation === 2 ? 0.02 : 0.13), y: point.y + height * 0.06 }, width * 0.34, height * 0.22), shadeColor(color, -10), 0.12, 0x28473f, 0);
-  const sideFacet = polygon(diamondPoints({ x: point.x + width * 0.19, y: point.y - height * 0.02 }, width * 0.18, height * 0.2), shadeColor(color, 6), 0.1, 0xffffff, 0);
-  const walk = new Graphics()
-    .moveTo(point.x + width * padOffset * 0.6, point.y + height * 0.02)
-    .lineTo(point.x + (variation === 1 ? width * 0.14 : 0), point.y + height * 0.38);
-  walk.stroke({ color: 0xf1ddad, alpha: 0.3, width: Math.max(2, width * 0.035), cap: "round" });
-  const lotSeam = new Graphics()
-    .moveTo(point.x - width * 0.36, point.y - height * 0.02)
-    .lineTo(point.x - width * 0.04, point.y + height * 0.16)
-    .moveTo(point.x + width * 0.36, point.y - height * 0.02)
-    .lineTo(point.x + width * 0.08, point.y + height * 0.16);
-  lotSeam.stroke({ color: 0xf2e4b8, alpha: 0.12, width: 1, cap: "round" });
-  const parcelRibs = new Graphics()
-    .moveTo(point.x - width * 0.43, point.y + height * 0.08)
-    .lineTo(point.x - width * 0.2, point.y + height * 0.22)
-    .lineTo(point.x - width * 0.02, point.y + height * 0.14)
-    .moveTo(point.x + width * 0.43, point.y + height * 0.07)
-    .lineTo(point.x + width * 0.2, point.y + height * 0.22)
-    .lineTo(point.x + width * 0.02, point.y + height * 0.13);
-  parcelRibs.stroke({ color: 0x6f8a59, alpha: 0.14, width: 1.1, cap: "round", join: "round" });
-  const frontSetback = polygon(
+  appendPolygon(g, diamondPoints({ x: point.x + width * padOffset, y: point.y - height * 0.06 }, width * 0.56, height * 0.42), shadeColor(color, 18), 0.17, 0xffffff, 0);
+  appendPolygon(g, diamondPoints({ x: point.x - width * (variation === 2 ? 0.02 : 0.13), y: point.y + height * 0.06 }, width * 0.34, height * 0.22), shadeColor(color, -10), 0.12, 0x28473f, 0);
+  appendPolygon(g, diamondPoints({ x: point.x + width * 0.19, y: point.y - height * 0.02 }, width * 0.18, height * 0.2), shadeColor(color, 6), 0.1, 0xffffff, 0);
+  appendPolygon(
+    g,
     diamondPoints({ x: point.x + width * (variation === 0 ? -0.18 : 0.18), y: point.y + height * 0.23 }, width * 0.24, height * 0.12),
     shadeColor(color, 10),
     0.12,
     0xffffff,
     0,
   );
-  layer.addChild(pad, yardFacet, sideFacet, frontSetback, walk, lotSeam, parcelRibs);
+  g
+    .moveTo(point.x + width * padOffset * 0.6, point.y + height * 0.02)
+    .lineTo(point.x + (variation === 1 ? width * 0.14 : 0), point.y + height * 0.38)
+    .stroke({ color: 0xf1ddad, alpha: 0.3, width: Math.max(2, width * 0.035), cap: "round" });
+  g
+    .moveTo(point.x - width * 0.36, point.y - height * 0.02)
+    .lineTo(point.x - width * 0.04, point.y + height * 0.16)
+    .moveTo(point.x + width * 0.36, point.y - height * 0.02)
+    .lineTo(point.x + width * 0.08, point.y + height * 0.16)
+    .stroke({ color: 0xf2e4b8, alpha: 0.12, width: 1, cap: "round" });
+  g
+    .moveTo(point.x - width * 0.43, point.y + height * 0.08)
+    .lineTo(point.x - width * 0.2, point.y + height * 0.22)
+    .lineTo(point.x - width * 0.02, point.y + height * 0.14)
+    .moveTo(point.x + width * 0.43, point.y + height * 0.07)
+    .lineTo(point.x + width * 0.2, point.y + height * 0.22)
+    .lineTo(point.x + width * 0.02, point.y + height * 0.13)
+    .stroke({ color: 0x6f8a59, alpha: 0.14, width: 1.1, cap: "round", join: "round" });
 }
 
-function drawForecourtPad(layer: Container, point: ProjectedPoint, width: number, height: number, color: number, civic: boolean) {
-  const pad = polygon(
+function drawForecourtPad(g: Graphics, point: ProjectedPoint, width: number, height: number, color: number, civic: boolean) {
+  appendPolygon(
+    g,
     diamondPoints({ x: point.x + width * 0.04, y: point.y + height * 0.14 }, width * (civic ? 0.72 : 0.62), height * 0.3),
     shadeColor(color, civic ? 12 : 8),
     civic ? 0.18 : 0.16,
     0xffffff,
     0,
   );
-  const frontEdge = new Graphics()
+  g
     .moveTo(point.x - width * 0.27, point.y + height * 0.28)
     .lineTo(point.x, point.y + height * 0.42)
-    .lineTo(point.x + width * 0.28, point.y + height * 0.28);
-  frontEdge.stroke({ color: 0xf6e8c8, alpha: civic ? 0.24 : 0.2, width: 1.1, cap: "round", join: "round" });
-  layer.addChild(pad, frontEdge);
+    .lineTo(point.x + width * 0.28, point.y + height * 0.28)
+    .stroke({ color: 0xf6e8c8, alpha: civic ? 0.24 : 0.2, width: 1.1, cap: "round", join: "round" });
 
   if (civic) {
-    const civicAxis = new Graphics()
+    appendPolygon(g, diamondPoints({ x: point.x, y: point.y + height * 0.1 }, width * 0.32, height * 0.16), 0xf3dfbd, 0.24, 0x7f6d4e, 0.08);
+    g
       .moveTo(point.x - width * 0.16, point.y + height * 0.04)
       .lineTo(point.x, point.y + height * 0.18)
       .lineTo(point.x + width * 0.16, point.y + height * 0.04)
       .moveTo(point.x, point.y + height * 0.18)
-      .lineTo(point.x, point.y + height * 0.43);
-    civicAxis.stroke({ color: 0xffefd1, alpha: 0.28, width: 3.2, cap: "round", join: "round" });
-    const landing = polygon(diamondPoints({ x: point.x, y: point.y + height * 0.1 }, width * 0.32, height * 0.16), 0xf3dfbd, 0.24, 0x7f6d4e, 0.08);
-    const sideTerraces = new Graphics()
+      .lineTo(point.x, point.y + height * 0.43)
+      .stroke({ color: 0xffefd1, alpha: 0.28, width: 3.2, cap: "round", join: "round" });
+    g
       .moveTo(point.x - width * 0.42, point.y + height * 0.04)
       .lineTo(point.x - width * 0.23, point.y + height * 0.15)
       .lineTo(point.x - width * 0.06, point.y + height * 0.06)
       .moveTo(point.x + width * 0.42, point.y + height * 0.04)
       .lineTo(point.x + width * 0.23, point.y + height * 0.15)
-      .lineTo(point.x + width * 0.06, point.y + height * 0.06);
-    sideTerraces.stroke({ color: 0xf6e8c8, alpha: 0.2, width: 1.4, cap: "round", join: "round" });
-    layer.addChild(landing, civicAxis, sideTerraces);
+      .lineTo(point.x + width * 0.06, point.y + height * 0.06)
+      .stroke({ color: 0xf6e8c8, alpha: 0.2, width: 1.4, cap: "round", join: "round" });
   }
 }
 
-function drawCivicLotComposition(layer: Container, point: ProjectedPoint, width: number, height: number, color: number) {
-  const civicGreen = polygon(
-    diamondPoints({ x: point.x - width * 0.18, y: point.y - height * 0.12 }, width * 0.32, height * 0.2),
-    0xaed08a,
-    0.18,
-    0x5d7a4f,
-    0.08,
-  );
-  const civicCourt = polygon(
-    diamondPoints({ x: point.x + width * 0.18, y: point.y - height * 0.1 }, width * 0.34, height * 0.22),
-    shadeColor(color, 18),
-    0.24,
-    0x8b7954,
-    0.1,
-  );
-  const plinthShadow = polygon(
+function drawCivicLotComposition(g: Graphics, point: ProjectedPoint, width: number, height: number, color: number) {
+  // Order preserved from the old child order: plinth shadow under the green/
+  // court fields, then the stroke systems.
+  appendPolygon(
+    g,
     diamondPoints({ x: point.x, y: point.y + height * 0.24 }, width * 0.78, height * 0.18),
     0x263a34,
     0.12,
     0x263a34,
     0,
   );
+  appendPolygon(
+    g,
+    diamondPoints({ x: point.x - width * 0.18, y: point.y - height * 0.12 }, width * 0.32, height * 0.2),
+    0xaed08a,
+    0.18,
+    0x5d7a4f,
+    0.08,
+  );
+  appendPolygon(
+    g,
+    diamondPoints({ x: point.x + width * 0.18, y: point.y - height * 0.1 }, width * 0.34, height * 0.22),
+    shadeColor(color, 18),
+    0.24,
+    0x8b7954,
+    0.1,
+  );
 
-  const paverGrid = new Graphics();
   for (let lane = -2; lane <= 2; lane += 1) {
-    paverGrid
+    g
       .moveTo(point.x + lane * width * 0.08 - width * 0.16, point.y + height * 0.02)
       .lineTo(point.x + lane * width * 0.08 + width * 0.06, point.y + height * 0.14)
       .moveTo(point.x + lane * width * 0.08 - width * 0.06, point.y + height * 0.24)
       .lineTo(point.x + lane * width * 0.08 + width * 0.16, point.y + height * 0.12);
   }
-  paverGrid.stroke({ color: 0xfff0cf, alpha: 0.18, width: 1, cap: "round", join: "round" });
+  g.stroke({ color: 0xfff0cf, alpha: 0.18, width: 1, cap: "round", join: "round" });
 
-  const civicSteps = new Graphics()
+  g
     .moveTo(point.x - width * 0.3, point.y + height * 0.18)
     .lineTo(point.x, point.y + height * 0.34)
     .lineTo(point.x + width * 0.3, point.y + height * 0.18)
@@ -2477,55 +2821,44 @@ function drawCivicLotComposition(layer: Container, point: ProjectedPoint, width:
     .lineTo(point.x + width * 0.22, point.y + height * 0.24)
     .moveTo(point.x - width * 0.13, point.y + height * 0.3)
     .lineTo(point.x, point.y + height * 0.38)
-    .lineTo(point.x + width * 0.13, point.y + height * 0.3);
-  civicSteps.stroke({ color: 0x8b7954, alpha: 0.24, width: 1.2, cap: "round", join: "round" });
+    .lineTo(point.x + width * 0.13, point.y + height * 0.3)
+    .stroke({ color: 0x8b7954, alpha: 0.24, width: 1.2, cap: "round", join: "round" });
 
-  const sideBlockwork = new Graphics()
+  g
     .moveTo(point.x - width * 0.48, point.y + height * 0.03)
     .lineTo(point.x - width * 0.32, point.y + height * 0.14)
     .lineTo(point.x - width * 0.16, point.y + height * 0.06)
     .moveTo(point.x + width * 0.48, point.y + height * 0.02)
     .lineTo(point.x + width * 0.32, point.y + height * 0.14)
-    .lineTo(point.x + width * 0.16, point.y + height * 0.06);
-  sideBlockwork.stroke({ color: 0x7f6d4e, alpha: 0.18, width: 1.2, cap: "round", join: "round" });
-
-  layer.addChild(plinthShadow, civicGreen, civicCourt, paverGrid, civicSteps, sideBlockwork);
+    .lineTo(point.x + width * 0.16, point.y + height * 0.06)
+    .stroke({ color: 0x7f6d4e, alpha: 0.18, width: 1.2, cap: "round", join: "round" });
 }
 
-function drawBuilding(layers: LayerMap, building: CityWorldBuilding, selected: boolean, hovered: boolean, atlas: CityWorldAtlasResolver) {
+function drawBuilding(layers: LayerMap, building: CityWorldBuilding, atlas: CityWorldAtlasResolver) {
   const layer = layers.buildingLayer;
-  const geometry = createBuildingGeometry(building, selected, hovered, atlas);
+  // The base scene is focus-agnostic: hover/selection emphasis draws in the
+  // focusLayer overlay so focus changes never rebuild these Graphics.
+  const geometry = createBuildingGeometry(building, atlas);
   // Foundation pads are ground decals: they live in a shared layer below every
   // cast shadow so shadows land ON pads instead of being washed out by them.
-  drawBuildingFootprint(layers.padLayer, geometry, building, selected, hovered);
+  drawBuildingFootprint(layers.padLayer, geometry, building);
   drawBuildingCastShadow(layers.shadowLayer, building);
 
   if (geometry.asset.mode === "sprite") {
-    drawSpriteObjectAuthorshipBase(layer, geometry, building);
-    if (isObjectKitCommerceStrip(building)) drawObjectKitCommerceStripRead(layer, geometry, building);
-    if (isObjectKitCivicLandmark(building)) drawObjectKitCivicLandmarkRead(layer, geometry, building);
-    if (isObjectKitServiceGym(building)) drawObjectKitServiceGymRead(layer, geometry, building);
-    drawSpriteBuilding(layer, geometry, building, selected, hovered);
+    drawSpriteBuilding(layer, geometry, building);
     return;
   }
 
-  drawBuildingShell(layer, geometry, building, selected, hovered);
-
-  if (building.kind === "home") drawHomeDetails(layer, geometry, building);
-  if (building.kind === "shop") drawShopDetails(layer, geometry, building);
-  if (building.kind === "gym") drawGymDetails(layer, geometry, building);
-  if (building.kind === "apartment") drawApartmentDetails(layer, geometry);
-  if (building.kind === "civic") drawCivicDetails(layer, geometry, building);
-  drawObjectAuthorshipDetails(layer, geometry, building);
-  if (isObjectKitCommerceStrip(building)) drawObjectKitCommerceStripRead(layer, geometry, building);
-  if (isObjectKitCivicLandmark(building)) drawObjectKitCivicLandmarkRead(layer, geometry, building);
-  if (isObjectKitServiceGym(building)) drawObjectKitServiceGymRead(layer, geometry, building);
-  if (building.id.startsWith("draft-building-")) drawDraftAnchorDetails(layer, geometry, building);
+  // One facade system draws every vector building: opaque walls, a roof, and
+  // a wall-plane window/storefront grid. The legacy per-kind + per-family
+  // "authorship" overlay stack (15 functions of translucent screen-space
+  // decals) is retired — misregistered decals were the ghost-facade defect.
+  drawBuildingShell(layer, geometry, building);
 }
 
-function createBuildingGeometry(building: CityWorldBuilding, selected: boolean, hovered: boolean, atlas: CityWorldAtlasResolver): BuildingGeometry {
+function createBuildingGeometry(building: CityWorldBuilding, atlas: CityWorldAtlasResolver): BuildingGeometry {
   const bottom = project(building.position);
-  const top = project({ x: building.position.x, y: building.position.y, z: building.height });
+  const top = project({ x: building.position.x, y: building.position.y, z: (building.position.z ?? 0) + building.height });
   const asset = atlas.resolveAsset(building.spriteKey, building.paletteKey, "building");
   const useAuthoredDraftColors = isDraftBuilding(building);
   const useShellColors = isShellBuilding(building);
@@ -2540,10 +2873,8 @@ function createBuildingGeometry(building: CityWorldBuilding, selected: boolean, 
     highlightColor: useShellColors ? 0xe4dec6 : useAuthoredDraftColors ? 0xf8e8ca : paletteColor(asset.palette.colors.highlight, "#fff4d8"),
     accentColor: useShellColors ? 0x80928c : useAuthoredDraftColors ? 0x5f8f8a : paletteColor(asset.palette.colors.accent, asset.palette.colors.roof ?? "#ffcf56"),
     trimColor: useShellColors ? 0x5f665b : useAuthoredDraftColors ? 0x5f5547 : paletteColor(asset.palette.colors.trim, "#26332c"),
-    // 0.67H — selection is a warm contact accent, not a white debug outline:
-    // the active stroke warms and firms slightly instead of flashing bright.
-    outline: selected ? 0x7a6238 : hovered ? 0x6f6544 : 0x26332c,
-    activeStrokeAlpha: hovered || selected ? 0.44 : 0.38,
+    outline: 0x26332c,
+    activeStrokeAlpha: 0.38,
     asset,
   };
 }
@@ -2576,7 +2907,7 @@ function objectVariant(id: string, modulo: number) {
   return hash % modulo;
 }
 
-function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
+function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { bottom, footprintDepth, asset } = geometry;
   if (asset.mode !== "sprite") return;
 
@@ -2613,11 +2944,9 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
     if (warmCool > 0) homeTint = mixColor(homeTint, SUN_WARM_TINT, 0.07);
     else if (warmCool < 0) homeTint = mixColor(homeTint, SUN_COOL_TINT, 0.06);
   }
-  // 0.68H sprite tint wash — the old wash (24–40% home, 30% commerce) pulled
-  // every authored SVG toward one body-color soup and blurred the art's own
-  // painted shading. Homes keep just enough wash to hold their palette-variant
-  // identity; commerce/civic/service sprites drop to a whisper so the authored
-  // art carries its own crisp material read.
+  // 0.68H sprite tint wash — homes keep just enough wash to hold their
+  // palette-variant identity; commerce sprites drop to a whisper so the
+  // authored art carries its own crisp material read.
   sprite.tint = mixColor(0xffffff, homeTint, home ? 0.14 + (variant % 7) * 0.018 : 0.12);
   sprite.label = `sprite-${building.id}`;
   layer.addChild(sprite);
@@ -2627,42 +2956,15 @@ function drawSpriteBuilding(layer: Container, geometry: BuildingGeometry, buildi
     drawHomeRoofAccent(layer, geometry, building, flip, variant);
   }
 
-  if (selected || hovered) {
-    // 0.67H — the active sprite reads through a low, warm contact accent at
-    // the foundation instead of a bright outline drawn over the art.
-    const ring = new Graphics()
-      .ellipse(bottom.x, bottom.y + footprintDepth * 0.4, geometry.footprintWidth * 0.5, footprintDepth * 0.5)
-      .fill({ color: 0xe8c98d, alpha: selected ? 0.1 : 0.06 })
-      .stroke({ color: selected ? 0xc2a05e : 0xcdb98a, alpha: selected ? 0.42 : 0.3, width: selected ? 1.4 : 1.2 });
-    layer.addChild(ring);
-  }
 }
 
 function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, bottom, footprintWidth, footprintDepth, roofColor, bodyColor, highlightColor, trimColor } = geometry;
+  const { top, bottom, footprintWidth, footprintDepth, trimColor } = geometry;
   const style = building.facadeStyle ?? building.kind;
-  const contactProfile = building.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
-
-  const contact = polygon(
-    diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.38 }, footprintWidth * 0.78, footprintDepth * 0.18),
-    0xd8bd8f,
-    style === "strip_store" ? 0.42 : 0.34,
-    0x7f6d4e,
-    0.12,
-  );
-  const baseShadow = new Graphics()
-    .moveTo(bottom.x - footprintWidth * 0.38, bottom.y + footprintDepth * 0.32)
-    .lineTo(bottom.x - footprintWidth * 0.06, bottom.y + footprintDepth * 0.47)
-    .lineTo(bottom.x + footprintWidth * 0.38, bottom.y + footprintDepth * 0.28)
-    .stroke({
-      color: 0x2d423b,
-      alpha: contactProfile === "landmark_base_shadow" ? 0.28 : contactProfile === "soft_ground_shadow" ? 0.13 : 0.2,
-      width: contactProfile === "landmark_base_shadow" ? 3.6 : 3,
-      cap: "round",
-      join: "round",
-    });
-  layer.addChild(baseShadow, contact);
-
+  // Ground contact for sprite buildings comes from the shared foundation pad
+  // + contact shadow in drawBuildingFootprint. The extra per-sprite contact
+  // diamond, base-shadow stroke, apron, and awning strokes stacked into the
+  // translucent smear ring around every sprite — removed.
   if (style === "rowhome") {
     const stoops = new Graphics();
     for (let bay = 0; bay < 3; bay += 1) {
@@ -2670,46 +2972,11 @@ function drawSpriteBuildingFitDetails(layer: Container, geometry: BuildingGeomet
       const yLift = bay === 1 ? -2 : 0;
       stoops
         .roundRect(top.x + offset - footprintWidth * 0.035, bottom.y + footprintDepth * 0.22 + yLift, footprintWidth * 0.07, 5.5, 1.5)
-        .fill({ color: 0xf2d8a6, alpha: 0.66 })
+        .fill({ color: 0xf2d8a6, alpha: 0.9 })
         .roundRect(top.x + offset - footprintWidth * 0.04, bottom.y + footprintDepth * 0.15 + yLift, footprintWidth * 0.08, 9, 1.5)
-        .stroke({ color: trimColor, alpha: 0.22, width: 0.9 });
+        .stroke({ color: trimColor, alpha: 0.3, width: 0.9 });
     }
-    const parapetRhythm = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.32, top.y - footprintDepth * 0.36)
-      .lineTo(top.x - footprintWidth * 0.12, top.y - footprintDepth * 0.44)
-      .lineTo(top.x + footprintWidth * 0.06, top.y - footprintDepth * 0.36)
-      .lineTo(top.x + footprintWidth * 0.3, top.y - footprintDepth * 0.43);
-    parapetRhythm.stroke({ color: shadeColor(roofColor, -30), alpha: 0.28, width: 1.7, cap: "round", join: "round" });
-    layer.addChild(stoops, parapetRhythm);
-    return;
-  }
-
-  if (style === "strip_store" || building.kind === "shop") {
-    // 0.55E — kit commerce strips get their apron from the object-kit read
-    // (sharedStorefrontApron); drawing a second one here doubled the pad.
-    const apron = isObjectKitCommerceStrip(building)
-      ? null
-      : polygon(
-          diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * 0.43 }, footprintWidth * 0.88, footprintDepth * 0.18),
-          0xe8d0a3,
-          0.3, // 0.68H — quieter apron wash; the crisp sprite carries the read
-          0x7f6d4e,
-          0.14,
-        );
-    const bayGrounding = new Graphics();
-    for (let bay = -1; bay <= 1; bay += 1) {
-      bayGrounding
-        .roundRect(top.x + bay * (footprintWidth * 0.2) - footprintWidth * 0.06, bottom.y + footprintDepth * 0.18, footprintWidth * 0.12, 5, 1.4)
-        .fill({ color: bay === 0 ? highlightColor : shadeColor(bodyColor, 12), alpha: bay === 0 ? 0.52 : 0.32 });
-    }
-    const awningUnderside = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.38, bottom.y - footprintDepth * 0.2)
-      .lineTo(top.x - footprintWidth * 0.1, bottom.y - footprintDepth * 0.06)
-      .lineTo(top.x + footprintWidth * 0.17, bottom.y - footprintDepth * 0.18)
-      .lineTo(top.x + footprintWidth * 0.4, bottom.y - footprintDepth * 0.05);
-    awningUnderside.stroke({ color: shadeColor(roofColor, -38), alpha: 0.34, width: 2.2, cap: "round", join: "round" });
-    if (apron) layer.addChild(apron);
-    layer.addChild(bayGrounding, awningUnderside);
+    layer.addChild(stoops);
   }
 }
 
@@ -3021,12 +3288,19 @@ function drawPublicServiceSilhouette(layer: Container, geometry: BuildingGeometr
     0x7f6d4e,
     0.1,
   );
+  // 0.57E parity — the zigzag's outer peaks sit where the roof diamond has
+  // almost no depth left; clamp each vertex under its local eave line so the
+  // profile never bleeds past the roof edge on generated footprints.
+  const sawHalfW = footprintWidth / 2;
+  const sawHalfD = footprintDepth / 2;
+  const sawEave = (dx: number, want: number) =>
+    Math.min(footprintDepth * want, sawHalfD * Math.max(0, 1 - Math.abs(dx) / sawHalfW) * 0.85);
   const sawtooth = new Graphics()
-    .moveTo(top.x - footprintWidth * 0.38, top.y - footprintDepth * 0.16)
-    .lineTo(top.x - footprintWidth * 0.18, top.y - footprintDepth * 0.02)
-    .lineTo(top.x, top.y - footprintDepth * 0.16)
-    .lineTo(top.x + footprintWidth * 0.2, top.y - footprintDepth * 0.02)
-    .lineTo(top.x + footprintWidth * 0.4, top.y - footprintDepth * 0.16);
+    .moveTo(top.x - footprintWidth * 0.38, top.y - sawEave(-footprintWidth * 0.38, 0.16))
+    .lineTo(top.x - footprintWidth * 0.18, top.y - sawEave(-footprintWidth * 0.18, 0.02))
+    .lineTo(top.x, top.y - sawEave(0, 0.16))
+    .lineTo(top.x + footprintWidth * 0.2, top.y - sawEave(footprintWidth * 0.2, 0.02))
+    .lineTo(top.x + footprintWidth * 0.4, top.y - sawEave(footprintWidth * 0.4, 0.16));
   sawtooth.stroke({ color: shadeColor(roofColor, -42), alpha: 0.34, width: 2, cap: "round", join: "round" });
   const serviceWindows = new Graphics();
   for (let bay = -1; bay <= 1; bay += 1) {
@@ -3100,12 +3374,10 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
   const signMountCount = Math.min(commerceGeometry?.signMountCount ?? bayCount, bayCount);
   const isPlazaRowFocus = commerceGeometry?.focusTarget === "plaza_row";
 
-  // 0.68H — the apron drops from a wide translucent wash to a quieter pad;
-  // the storefront read now comes from bay rhythm below, not a haze field.
   const sharedStorefrontApron = polygon(
     diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * (0.45 + apronDepth * 0.08) }, footprintWidth * 1.02, footprintDepth * apronDepth),
     0xe2c796,
-    isPlazaRowFocus ? 0.36 : 0.28,
+    isPlazaRowFocus ? 0.52 : 0.42,
     0x756947,
     isPlazaRowFocus ? 0.22 : 0.16,
   );
@@ -3116,10 +3388,7 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
     .moveTo(bottom.x + footprintWidth * 0.46, bottom.y + footprintDepth * 0.35)
     .lineTo(bottom.x + footprintWidth * 0.1, bottom.y + footprintDepth * 0.53)
     .lineTo(bottom.x - footprintWidth * 0.44, bottom.y + footprintDepth * 0.31);
-  // 0.67H — commerce detail reads as clean silhouette first: every translucent
-  // overlay (glass, sign mounts, thresholds, ribs) drops toward whisper alpha
-  // so the massing and parapet carry the read instead of milky clutter.
-  foundationShadow.stroke({ color: 0x24352f, alpha: isPlazaRowFocus ? 0.22 : 0.18, width: isPlazaRowFocus ? 2.6 : 2.2, cap: "round", join: "round" });
+  foundationShadow.stroke({ color: 0x24352f, alpha: isPlazaRowFocus ? 0.3 : 0.24, width: isPlazaRowFocus ? 3.6 : 2.8, cap: "round", join: "round" });
 
   const parapetCap = new Graphics()
     .moveTo(top.x - footprintWidth * 0.48, top.y - footprintDepth * 0.2)
@@ -3137,17 +3406,16 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
     const offset = (bay / Math.max(1, bayCount - 1) - 0.5) * footprintWidth * 0.76;
     const bayWidth = footprintWidth * (isPlazaRowFocus ? 0.082 : 0.095);
     const doorHeight = bay === Math.floor(bayCount / 2) ? 14 + glassRecessDepth * 5 : 10 + glassRecessDepth * 4;
-    // 0.68H — bays read as punched openings: firmer fill, darker frame stroke.
     glassRecesses
       .roundRect(top.x + offset - bayWidth * 0.5, bottom.y - footprintDepth * 0.23, bayWidth, doorHeight, 2)
-      .fill({ color: bay === Math.floor(bayCount / 2) ? 0xb9dfe7 : highlightColor, alpha: 0.5 })
+      .fill({ color: bay === Math.floor(bayCount / 2) ? 0xb9dfe7 : highlightColor, alpha: 0.6 })
       .roundRect(top.x + offset - bayWidth * 0.54, bottom.y - footprintDepth * 0.24, bayWidth * 1.08, doorHeight + 1.5, 2)
-      .stroke({ color: shadeColor(bodyColor, -40), alpha: 0.3, width: 1 });
+      .stroke({ color: shadeColor(bodyColor, -34), alpha: 0.18, width: 0.9 });
 
     if (bay < signMountCount) {
       signMounts
-        .roundRect(top.x + offset - bayWidth * 0.62, top.y + footprintDepth * 0.23, bayWidth * 1.24, isPlazaRowFocus ? 5 : 4.2, 1.2)
-        .fill({ color: bay % 2 === 0 ? accentColor : shadeColor(roofColor, 18), alpha: isPlazaRowFocus ? 0.42 : 0.32 });
+        .roundRect(top.x + offset - bayWidth * 0.62, top.y + footprintDepth * 0.23, bayWidth * 1.24, isPlazaRowFocus ? 5.8 : 4.8, 1.2)
+        .fill({ color: bay % 2 === 0 ? accentColor : shadeColor(roofColor, 18), alpha: isPlazaRowFocus ? 0.56 : 0.46 });
     }
 
     awningLip
@@ -3162,11 +3430,10 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
 
     storefrontThresholds
       .roundRect(top.x + offset - bayWidth * 0.64, bottom.y - footprintDepth * 0.025, bayWidth * 1.28, isPlazaRowFocus ? 3.8 : 2.8, 1.1)
-      .fill({ color: 0xc9a46f, alpha: isPlazaRowFocus ? 0.24 : 0.16 });
+      .fill({ color: 0xc9a46f, alpha: isPlazaRowFocus ? 0.38 : 0.24 });
   }
   awningLip.stroke({ color: shadeColor(roofColor, -46), alpha: 0.32, width: 2.1, cap: "round", join: "round" });
-  // 0.68H — pilasters firm up into the storefront's vertical rhythm.
-  bayPilasters.stroke({ color: shadeColor(trimColor, -18), alpha: isPlazaRowFocus ? 0.3 : 0.22, width: isPlazaRowFocus ? 1.3 : 1.1, cap: "round", join: "round" });
+  bayPilasters.stroke({ color: shadeColor(trimColor, -18), alpha: isPlazaRowFocus ? 0.28 : 0.18, width: isPlazaRowFocus ? 1.4 : 0.9, cap: "round", join: "round" });
 
   const sideFaceRibs = new Graphics()
     .moveTo(top.x - footprintWidth * 0.47, top.y + footprintDepth * 0.1)
@@ -3175,7 +3442,7 @@ function drawObjectKitCommerceStripRead(layer: Container, geometry: BuildingGeom
     .moveTo(top.x + footprintWidth * 0.47, top.y + footprintDepth * 0.1)
     .lineTo(bottom.x + footprintWidth * 0.45, bottom.y + footprintDepth * 0.14)
     .lineTo(bottom.x + footprintWidth * 0.31, bottom.y + footprintDepth * 0.21);
-  sideFaceRibs.stroke({ color: shadeColor(trimColor, -20), alpha: 0.14, width: 1.2, cap: "round", join: "round" });
+  sideFaceRibs.stroke({ color: shadeColor(trimColor, -20), alpha: 0.2, width: 1.2, cap: "round", join: "round" });
 
   const plazaRowFrontageDepth = isPlazaRowFocus
     ? polygon(
@@ -3323,12 +3590,10 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
   const roofMonitorWeight = serviceGeometry?.roofMonitorWeight ?? 0.82;
   const isEastvaleGym = serviceGeometry?.focusTarget === "eastvale_gym";
 
-  // 0.68H — utility apron quiets down; the warehouse read comes from the
-  // sawtooth roof and bay rhythm, not a translucent ground wash.
   const serviceApron = polygon(
     diamondPoints({ x: bottom.x, y: bottom.y + footprintDepth * (0.4 + utilityApronDepth * 0.06) }, footprintWidth * 0.86, footprintDepth * utilityApronDepth),
     0xd8bf90,
-    isEastvaleGym ? 0.28 : 0.2,
+    isEastvaleGym ? 0.4 : 0.28,
     0x756947,
     isEastvaleGym ? 0.18 : 0.1,
   );
@@ -3339,33 +3604,38 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
     .moveTo(bottom.x + footprintWidth * 0.42, bottom.y + footprintDepth * 0.31)
     .lineTo(bottom.x + footprintWidth * 0.08, bottom.y + footprintDepth * 0.49)
     .lineTo(bottom.x - footprintWidth * 0.4, bottom.y + footprintDepth * 0.29);
-  // 0.67H — the gym reads as a clean warehouse silhouette first: translucent
-  // bays, ribs, and heavy foundation lines all drop toward whisper alpha so
-  // the massing and sawtooth roof carry the read.
-  foundationLine.stroke({ color: 0x24352f, alpha: isEastvaleGym ? 0.2 : 0.14, width: isEastvaleGym ? 2.4 : 2, cap: "round", join: "round" });
+  foundationLine.stroke({ color: 0x24352f, alpha: isEastvaleGym ? 0.28 : 0.18, width: isEastvaleGym ? 3 : 2.2, cap: "round", join: "round" });
 
+  // 0.57E parity — monitors stay inside the roof diamond: the outer teeth sat
+  // at offsets where the eave allows far less rise than the fixed 0.23 depth,
+  // so the monitor strokes bled past the eaves on generated footprints.
   const roofMonitors = new Graphics();
+  const monitorHalfW = footprintWidth / 2;
+  const monitorHalfD = footprintDepth / 2;
+  const monitorRise = (dx: number, want: number) =>
+    Math.min(footprintDepth * want, monitorHalfD * Math.max(0, 1 - Math.abs(dx) / monitorHalfW) * 0.85);
   for (let tooth = 0; tooth < sawtoothCount; tooth += 1) {
-    const offset = (tooth / Math.max(1, sawtoothCount - 1) - 0.5) * footprintWidth * 0.74;
+    const offset = (tooth / Math.max(1, sawtoothCount - 1) - 0.5) * footprintWidth * 0.62;
+    const x0 = offset - footprintWidth * 0.045;
+    const x1 = offset + footprintWidth * 0.045;
+    const x2 = offset + footprintWidth * 0.12;
     roofMonitors
-      .moveTo(top.x + offset - footprintWidth * 0.045, top.y - footprintDepth * 0.23)
-      .lineTo(top.x + offset + footprintWidth * 0.045, top.y - footprintDepth * 0.1)
-      .lineTo(top.x + offset + footprintWidth * 0.12, top.y - footprintDepth * 0.2);
+      .moveTo(top.x + x0, top.y - monitorRise(x0, 0.23))
+      .lineTo(top.x + x1, top.y - monitorRise(x1, 0.1))
+      .lineTo(top.x + x2, top.y - monitorRise(x2, 0.2));
   }
-  roofMonitors.stroke({ color: shadeColor(roofColor, -46), alpha: 0.3 + roofMonitorWeight * 0.06, width: 1.5 + roofMonitorWeight * 0.5, cap: "round", join: "round" });
+  roofMonitors.stroke({ color: shadeColor(roofColor, -46), alpha: 0.38 + roofMonitorWeight * 0.08, width: 1.7 + roofMonitorWeight * 0.65, cap: "round", join: "round" });
 
   const serviceBays = new Graphics();
   const bayWidth = footprintWidth * 0.09;
   for (let bay = 0; bay < serviceBayCount; bay += 1) {
     const offset = (bay / Math.max(1, serviceBayCount - 1) - 0.5) * footprintWidth * 0.62;
     const isEntry = bay === 0;
-    // 0.68H — service bays commit to material: darker roller-door fill with a
-    // real frame stroke instead of a translucent smudge.
     serviceBays
       .roundRect(top.x + offset - bayWidth * 0.5, bottom.y - footprintDepth * 0.22, bayWidth, isEntry ? 15 : 10, 1.8)
-      .fill({ color: isEntry ? highlightColor : shadeColor(bodyColor, -24), alpha: isEntry ? 0.42 : 0.3 })
+      .fill({ color: isEntry ? highlightColor : shadeColor(bodyColor, -16), alpha: isEntry ? 0.5 : 0.27 })
       .roundRect(top.x + offset - bayWidth * 0.56, bottom.y - footprintDepth * (0.23 + entryRecessDepth * 0.03), bayWidth * 1.12, isEntry ? 16.5 : 11.5, 1.8)
-      .stroke({ color: trimColor, alpha: isEntry ? 0.24 : 0.16, width: 0.9 });
+      .stroke({ color: trimColor, alpha: isEntry ? 0.18 : 0.09, width: 0.8 });
   }
 
   const utilitySideRibs = new Graphics()
@@ -3375,7 +3645,7 @@ function drawObjectKitServiceGymRead(layer: Container, geometry: BuildingGeometr
     .moveTo(top.x + footprintWidth * 0.46, top.y + footprintDepth * 0.04)
     .lineTo(bottom.x + footprintWidth * 0.42, bottom.y + footprintDepth * 0.1)
     .lineTo(bottom.x + footprintWidth * 0.24, bottom.y + footprintDepth * 0.18);
-  utilitySideRibs.stroke({ color: shadeColor(trimColor, -22), alpha: isEastvaleGym ? 0.14 : 0.1, width: 1.15, cap: "round", join: "round" });
+  utilitySideRibs.stroke({ color: shadeColor(trimColor, -22), alpha: isEastvaleGym ? 0.22 : 0.14, width: 1.15, cap: "round", join: "round" });
 
   layer.addChild(serviceApron, foundationLine, roofMonitors, serviceBays, utilitySideRibs);
 }
@@ -3492,10 +3762,21 @@ function drawBuildingCastShadow(layer: Container, building: CityWorldBuilding) {
       .fill({ color: CAST_SHADOW_COLOR, alpha });
   };
 
-  layer.addChild(sweep(1, CAST_SHADOW_ALPHA), sweep(0.5, 0.12));
+  // Short, quiet sweep + a faint penumbra in ONE Graphics. The old 0.5-alpha
+  // full-height sweep painted half-black sheets across roads and pads.
+  const shadow = sweep(0.5, 0.14);
+  const vx = CAST_SHADOW_VECTOR.x * heightPx * 0.78;
+  const vy = CAST_SHADOW_VECTOR.y * heightPx * 0.78;
+  shadow
+    .poly(
+      [top.x, top.y, left.x, left.y, base.x, base.y, base.x + vx, base.y + vy, right.x + vx, right.y + vy, top.x + vx, top.y + vy],
+      true,
+    )
+    .fill({ color: CAST_SHADOW_COLOR, alpha: 0.05 });
+  layer.addChild(shadow);
 }
 
-function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
+function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { bottom, footprintWidth, footprintDepth, bodyColor, roofColor, trimColor } = geometry;
   const spriteBacked = geometry.asset.mode === "sprite";
   const style = building.facadeStyle ?? building.kind;
@@ -3506,21 +3787,31 @@ function drawBuildingFootprint(layer: Container, geometry: BuildingGeometry, bui
   const padColor = draftBuilding ? (building.kind === "civic" ? 0xe6cf9f : 0xe7c999) : style === "strip_store" || building.kind === "shop" || building.kind === "civic" ? 0xe7d0a2 : shadeColor(bodyColor, 18);
   const edgeColor = style === "rowhome" || style === "strip_store" ? shadeColor(trimColor, -14) : shadeColor(roofColor, -48);
 
-  const contactGraphics = buildingContactShadow(geometry, building, selected, hovered, padWidth, padDepth, draftBuilding);
-  const pad = polygon(diamondPoints(padCenter, padWidth, padDepth), padColor, draftBuilding ? 0.58 : spriteBacked ? 0.46 : 0.48, 0x6f7f55, selected || hovered ? 0.24 : draftBuilding ? 0.2 : 0.16);
-  const lowerLip = new Graphics()
+  // Foundation pads are physical slabs: an opaque top, a thin solid south lip
+  // for slab thickness, and one quiet contact shadow. Translucent cream pads
+  // read as cards floating on the grass — the 0.72 "cream card" defect.
+  const slabColor = mixColor(padColor, 0xffffff, 0.08);
+  const lipDrop = 2.5;
+  // One Graphics per pad: contact ellipse under slab top under lip.
+  const pad = new Graphics()
+    .ellipse(padCenter.x, padCenter.y + padDepth * 0.18, padWidth * 0.5, padDepth * 0.4)
+    .fill({ color: 0x23342e, alpha: 0.1 });
+  pad
+    .poly(diamondPoints(padCenter, padWidth, padDepth), true)
+    .fill({ color: slabColor })
+    .stroke({ color: shadeColor(slabColor, -42), alpha: 0.3, width: 1 });
+  pad
     .moveTo(padCenter.x - padWidth * 0.5, padCenter.y)
     .lineTo(padCenter.x, padCenter.y + padDepth * 0.5)
     .lineTo(padCenter.x + padWidth * 0.5, padCenter.y)
-    .lineTo(padCenter.x + padWidth * 0.5, padCenter.y + 5)
-    .lineTo(padCenter.x, padCenter.y + padDepth * 0.5 + 7)
-    .lineTo(padCenter.x - padWidth * 0.5, padCenter.y + 5)
+    .lineTo(padCenter.x + padWidth * 0.5, padCenter.y + lipDrop)
+    .lineTo(padCenter.x, padCenter.y + padDepth * 0.5 + lipDrop)
+    .lineTo(padCenter.x - padWidth * 0.5, padCenter.y + lipDrop)
     .closePath()
-    .fill({ color: shadeColor(padColor, draftBuilding ? -38 : -34), alpha: draftBuilding ? 0.42 : spriteBacked ? 0.42 : 0.32 })
-    .stroke({ color: edgeColor, alpha: 0.16, width: 1 });
+    .fill({ color: shadeColor(slabColor, -38) })
+    .stroke({ color: edgeColor, alpha: 0.2, width: 1 });
 
-  layer.addChild(...contactGraphics, pad, lowerLip);
-  if (draftBuilding) drawDraftFoundationMaterial(layer, padCenter, padWidth, padDepth, padColor);
+  layer.addChild(pad);
 }
 
 function buildingContactShadow(
@@ -3534,7 +3825,7 @@ function buildingContactShadow(
 ): Graphics[] {
   const { bottom, footprintDepth } = geometry;
   const profile = building.visualGrammar?.contactProfile ?? "parcel_pad_shadow";
-  const activeBoost = selected ? 0.06 : hovered ? 0.03 : 0;
+  const activeBoost = selected ? 0.09 : hovered ? 0.05 : 0;
   const draftBoost = draftBuilding ? 0.04 : 0;
   const centerY = bottom.y + footprintDepth * 0.38;
 
@@ -3593,12 +3884,11 @@ function drawDraftFoundationMaterial(layer: Container, center: ProjectedPoint, w
   layer.addChild(contactTile, stratum);
 }
 
-function drawBuildingShell(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
+function drawBuildingShell(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { bottom, top, footprintWidth, footprintDepth, bodyColor, outline, activeStrokeAlpha } = geometry;
   // Unified sun: lower-left wall faces the sun, lower-right wall falls into
   // cool shade. Same factors for every building in the scene.
-  // 0.68H — walls use the building-face curve so the lit wall stays pigmented
-  // (the old near-white lift is what the post-grade rolloff turned milky).
+  // 0.68H — walls use the building-face curve so the lit wall stays pigmented.
   const sideLeft = buildingFaceColor(bodyColor, "sun");
   const sideRight = buildingFaceColor(bodyColor, "shade");
   const topLeft = { x: top.x - footprintWidth / 2, y: top.y };
@@ -3610,16 +3900,196 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const leftSide = [topLeft.x, topLeft.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomLeft.x, bottomLeft.y];
   const rightSide = [topRight.x, topRight.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomRight.x, bottomRight.y];
 
-  const left = polygon(leftSide, sideLeft, 0.99, outline, activeStrokeAlpha);
-  const right = polygon(rightSide, sideRight, 0.99, outline, activeStrokeAlpha);
+  const left = polygon(leftSide, sideLeft, 1, outline, activeStrokeAlpha);
+  const right = polygon(rightSide, sideRight, 1, outline, activeStrokeAlpha);
   layer.addChild(left, right);
   drawBuildingShellLighting(layer, geometry);
-  drawWallDepthLines(layer, geometry, building);
-  drawAuthoredWallMaterial(layer, geometry, building);
-  drawStorefrontBase(layer, geometry, building);
+  drawWallBlockCourses(layer, geometry, building);
+  drawWallFacade(layer, geometry, building);
 
-  drawRoof(layer, geometry, building, selected, hovered);
+  drawRoof(layer, geometry, building);
   drawTieredMassing(layer, geometry, building);
+}
+
+// 0.74F chunky treatment — one horizontal course line per storey across each
+// wall, in wall-plane coordinates: the box reads as stacked voxel courses
+// instead of a single extrusion. Inset-only (lines live ON the wall quads).
+function drawWallBlockCourses(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const floors = Math.max(1, Math.round(building.height));
+  if (floors < 2 || geometry.height < 22) return;
+  const courses = new Graphics();
+  for (const side of ["sun", "shade"] as const) {
+    const surface = wallSurface(geometry, side);
+    for (let floor = 1; floor < floors; floor += 1) {
+      const v = (surface.heightPx / floors) * floor;
+      const from = wallPoint(surface, 0, v);
+      const to = wallPoint(surface, 1, v);
+      courses.moveTo(from.x, from.y).lineTo(to.x, to.y);
+    }
+  }
+  courses.stroke({ color: shadeColor(geometry.bodyColor, -26), alpha: 0.15, width: 1, cap: "butt" });
+  layer.addChild(courses);
+}
+
+// ---- Wall-plane facade system ----------------------------------------------
+// Every window, storefront, and door is authored in wall-plane coordinates:
+// u ∈ [0,1] runs along the wall's ground edge from the outer corner to the
+// shared front corner; v is height in screen pixels. Elements are projected
+// through the same corner math as the wall quads, so they register exactly on
+// the wall — they cannot float off the face or leak past the silhouette.
+
+type WallSide = "sun" | "shade";
+
+type WallSurface = {
+  groundCorner: ProjectedPoint;
+  groundFront: ProjectedPoint;
+  heightPx: number;
+  edgeLengthPx: number;
+};
+
+function wallSurface(geometry: BuildingGeometry, side: WallSide): WallSurface {
+  const { bottom, top, footprintWidth, footprintDepth } = geometry;
+  const halfW = footprintWidth / 2;
+  const halfD = footprintDepth / 2;
+  const groundCorner = side === "sun" ? { x: bottom.x - halfW, y: bottom.y } : { x: bottom.x + halfW, y: bottom.y };
+  const groundFront = { x: bottom.x, y: bottom.y + halfD };
+  const heightPx = Math.max(0, bottom.y - top.y);
+  const edgeLengthPx = Math.hypot(groundFront.x - groundCorner.x, groundFront.y - groundCorner.y);
+  return { groundCorner, groundFront, heightPx, edgeLengthPx };
+}
+
+function wallPoint(surface: WallSurface, u: number, v: number): ProjectedPoint {
+  return {
+    x: surface.groundCorner.x + (surface.groundFront.x - surface.groundCorner.x) * u,
+    y: surface.groundCorner.y + (surface.groundFront.y - surface.groundCorner.y) * u - v,
+  };
+}
+
+function wallQuadPoints(surface: WallSurface, u0: number, v0: number, u1: number, v1: number): number[] {
+  const a = wallPoint(surface, u0, v0);
+  const b = wallPoint(surface, u1, v0);
+  const c = wallPoint(surface, u1, v1);
+  const d = wallPoint(surface, u0, v1);
+  return [a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y];
+}
+
+function isCommerceFacade(building: CityWorldBuilding): boolean {
+  const family = building.visualGrammar?.objectFamily;
+  return (
+    building.kind === "shop" ||
+    building.kind === "gym" ||
+    building.kind === "civic" ||
+    family === "commerce_strip" ||
+    family === "civic_landmark" ||
+    family === "service_block" ||
+    family === "venue_anchor" ||
+    family === "transit_anchor"
+  );
+}
+
+function drawWallFacade(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const commerce = isCommerceFacade(building);
+  const variant = objectVariant(building.id, 977);
+  for (const side of ["sun", "shade"] as const) {
+    const surface = wallSurface(geometry, side);
+    if (surface.heightPx < 10 || surface.edgeLengthPx < 12) continue;
+    const storefront = commerce && surface.heightPx >= 24;
+    drawFacadeStorefront(layer, geometry, surface, side, storefront);
+    drawFacadeWindows(layer, geometry, surface, side, building, variant, storefront);
+  }
+  if (!commerce) drawFacadeDoor(layer, geometry, building, variant);
+}
+
+// Recessed ground-storey glass band with mullions and a canopy lip. Opaque:
+// the storefront is real material, not a wash over the wall.
+function drawFacadeStorefront(layer: Container, geometry: BuildingGeometry, surface: WallSurface, side: WallSide, enabled: boolean) {
+  if (!enabled) return;
+  const { bodyColor, trimColor } = geometry;
+  const bandTop = Math.min(16, surface.heightPx * 0.34);
+  const recess = new Graphics()
+    .poly(wallQuadPoints(surface, 0.06, 1, 0.94, bandTop), true)
+    .fill({ color: sunlitColor(shadeColor(bodyColor, -34), side) });
+  const glass = new Graphics()
+    .poly(wallQuadPoints(surface, 0.09, 2.5, 0.91, bandTop - 3), true)
+    .fill({ color: side === "sun" ? 0xbcd8de : 0x8fb0bd });
+  const mullions = new Graphics();
+  const bays = Math.max(2, Math.round(surface.edgeLengthPx / 18));
+  for (let bay = 1; bay < bays; bay += 1) {
+    const u = 0.09 + (0.82 * bay) / bays;
+    const lower = wallPoint(surface, u, 2.5);
+    const upper = wallPoint(surface, u, bandTop - 3);
+    mullions.moveTo(lower.x, lower.y).lineTo(upper.x, upper.y);
+  }
+  mullions.stroke({ color: shadeColor(trimColor, -8), alpha: 0.85, width: 1 });
+  const canopyA = wallPoint(surface, 0.04, bandTop + 1.5);
+  const canopyB = wallPoint(surface, 0.96, bandTop + 1.5);
+  const canopy = new Graphics().moveTo(canopyA.x, canopyA.y).lineTo(canopyB.x, canopyB.y);
+  canopy.stroke({ color: sunlitColor(shadeColor(geometry.roofColor, -8), side), alpha: 0.95, width: 2.2, cap: "butt" });
+  layer.addChild(recess, glass, mullions, canopy);
+}
+
+// Window grid: floors split the wall height, bays split the wall length.
+// Each window is a parallelogram in the wall plane — an opaque frame quad
+// with an opaque glass quad inside; a hashed minority of panes glow warm so
+// facades read inhabited without pattern noise.
+function drawFacadeWindows(
+  layer: Container,
+  geometry: BuildingGeometry,
+  surface: WallSurface,
+  side: WallSide,
+  building: CityWorldBuilding,
+  variant: number,
+  storefront: boolean,
+) {
+  const { bodyColor, trimColor } = geometry;
+  const baseV = storefront ? Math.min(16, surface.heightPx * 0.34) + 4 : 4;
+  const usableHeight = surface.heightPx - baseV - 4;
+  if (usableHeight < 7) return;
+  const floors = Math.max(1, Math.min(5, Math.floor(usableHeight / 12)));
+  const floorStep = usableHeight / floors;
+  const bays = Math.max(1, Math.min(6, Math.floor(surface.edgeLengthPx / 16)));
+  const bayStep = 0.84 / bays;
+  const windowH = Math.min(7.5, floorStep * 0.58);
+  const frames = new Graphics();
+  const panes = new Graphics();
+  const litPanes = new Graphics();
+  const frameColor = sunlitColor(shadeColor(bodyColor, -38), side);
+  const glassColor = side === "sun" ? 0xd7e9ea : 0x92aebc;
+  const litColor = 0xf7e3ae;
+  for (let floor = 0; floor < floors; floor += 1) {
+    const v0 = baseV + floor * floorStep + (floorStep - windowH) * 0.55;
+    for (let bay = 0; bay < bays; bay += 1) {
+      const u0 = 0.08 + bay * bayStep + bayStep * 0.18;
+      const u1 = 0.08 + (bay + 1) * bayStep - bayStep * 0.18;
+      frames.poly(wallQuadPoints(surface, u0 - 0.012, v0 - 0.8, u1 + 0.012, v0 + windowH + 0.8), true);
+      const lit = ((variant + floor * 7 + bay * 13 + (side === "sun" ? 3 : 0)) % 9) === 0;
+      const paneTarget = lit ? litPanes : panes;
+      paneTarget.poly(wallQuadPoints(surface, u0, v0, u1, v0 + windowH), true);
+    }
+  }
+  frames.fill({ color: frameColor });
+  panes.fill({ color: glassColor });
+  litPanes.fill({ color: litColor });
+  panes.stroke({ color: shadeColor(trimColor, -6), alpha: 0.4, width: 0.8 });
+  layer.addChild(frames, panes, litPanes);
+}
+
+// Homes get a door instead of a storefront: a dark recessed leaf with a
+// lintel shadow on the sun wall near the front corner.
+function drawFacadeDoor(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, variant: number) {
+  const surface = wallSurface(geometry, variant % 2 === 0 ? "sun" : "shade");
+  if (surface.heightPx < 14) return;
+  const doorH = Math.min(11, surface.heightPx * 0.5);
+  const u0 = 0.6;
+  const u1 = Math.min(0.78, u0 + 14 / Math.max(14, surface.edgeLengthPx));
+  const leaf = new Graphics()
+    .poly(wallQuadPoints(surface, u0, 0.5, u1, doorH), true)
+    .fill({ color: shadeColor(geometry.trimColor, 14) });
+  const lintelA = wallPoint(surface, u0 - 0.02, doorH + 1);
+  const lintelB = wallPoint(surface, u1 + 0.02, doorH + 1);
+  const lintel = new Graphics().moveTo(lintelA.x, lintelA.y).lineTo(lintelB.x, lintelB.y);
+  lintel.stroke({ color: shadeColor(geometry.bodyColor, -44), alpha: 0.8, width: 1.4, cap: "butt" });
+  layer.addChild(leaf, lintel);
 }
 
 // 0.53E Hero Silhouette — a setback upper tier for civic/venue/transit anchors,
@@ -3639,7 +4109,10 @@ function hasHeroTieredCrown(building: CityWorldBuilding): boolean {
 function drawTieredMassing(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const family = building.visualGrammar?.objectFamily;
   const isAnchor = family === "civic_landmark" || family === "venue_anchor" || family === "transit_anchor";
-  if (!isAnchor || building.height < 1.9) return;
+  // 0.74F chunky treatment — tall apartment slabs also get one restrained
+  // setback tier, so towers read stepped instead of extruded.
+  const tallLowrise = family === "lowrise_cluster" && building.height >= 2.4;
+  if ((!isAnchor && !tallLowrise) || building.height < 1.9) return;
 
   const { top, footprintWidth, footprintDepth, bodyColor, roofColor } = geometry;
   // 0.53E item C — the hero landmark (typed via civicGeometry.focusTarget) gets
@@ -3672,8 +4145,6 @@ function drawTieredMassing(layer: Container, geometry: BuildingGeometry, buildin
     const tF = { x: apex.x, y: apex.y + halfD };
     const tR = { x: apex.x + halfW, y: apex.y };
 
-    // 0.68H — crown tiers follow the building-face curve so they hold the
-    // same three-value read as the shell below them.
     const litWall = new Graphics()
       .poly([tL.x, tL.y, tF.x, tF.y, bF.x, bF.y, bL.x, bL.y], true)
       .fill({ color: buildingFaceColor(bodyColor, "sun"), alpha: 0.98 });
@@ -3719,34 +4190,22 @@ function drawStorefrontBase(layer: Container, geometry: BuildingGeometry, buildi
   const recess = shadeColor(bodyColor, -30);
 
   // Left (sun) + right (shade) lower-wall quads.
-  // 0.68H — the base storey commits to opaque recessed material (the old
-  // half-alpha bands averaged with the wall into haze), and the broad glazing
-  // sheen becomes a thin field plus dark mullion rhythm: material, not milk.
   const leftBand = new Graphics()
     .poly([top.x - halfW, bandY(top.y), top.x, bandY(top.y + halfD), top.x, bottom.y + halfD, top.x - halfW, bottom.y], true)
-    .fill({ color: buildingFaceColor(recess, "sun"), alpha: 0.68 });
+    .fill({ color: sunlitColor(recess, "sun"), alpha: 0.55 });
   const rightBand = new Graphics()
     .poly([top.x + halfW, bandY(top.y), top.x, bandY(top.y + halfD), top.x, bottom.y + halfD, top.x + halfW, bottom.y], true)
-    .fill({ color: buildingFaceColor(recess, "shade"), alpha: 0.72 });
+    .fill({ color: sunlitColor(recess, "shade"), alpha: 0.6 });
+  // Glazing sheen on the sun side + a canopy lip line where the band starts.
   const glazing = new Graphics()
     .poly([top.x - halfW * 0.9, bandY(top.y) + wallSpan * 0.06, top.x - halfW * 0.06, bandY(top.y + halfD * 0.9) + wallSpan * 0.06, top.x - halfW * 0.06, bottom.y + halfD * 0.86, top.x - halfW * 0.9, bottom.y - wallSpan * 0.02], true)
-    .fill({ color: glassTone, alpha: civic ? 0.1 : 0.12 });
-  const mullions = new Graphics();
-  for (let mullion = 1; mullion <= 3; mullion += 1) {
-    const u = mullion / 4;
-    const x = top.x - halfW * (0.9 - 0.84 * u);
-    const lift = halfD * 0.9 * u;
-    mullions
-      .moveTo(x, bandY(top.y) + wallSpan * 0.06 + lift)
-      .lineTo(x, bottom.y - wallSpan * 0.02 + lift * 0.96);
-  }
-  mullions.stroke({ color: shadeColor(recess, -22), alpha: 0.34, width: 1, cap: "round" });
+    .fill({ color: glassTone, alpha: civic ? 0.16 : 0.2 });
   const canopy = new Graphics()
     .moveTo(top.x - halfW, bandY(top.y))
     .lineTo(top.x, bandY(top.y + halfD))
     .lineTo(top.x + halfW, bandY(top.y));
   canopy.stroke({ color: mixColor(shadeColor(bodyColor, 30), SUN_WARM_TINT, 0.16), alpha: 0.7, width: 1.6, cap: "round", join: "round" });
-  layer.addChild(leftBand, rightBand, glazing, mullions, canopy);
+  layer.addChild(leftBand, rightBand, glazing, canopy);
 }
 
 // Ambient occlusion + rim light for the box shell: dark gradient bands where
@@ -3775,16 +4234,20 @@ function drawBuildingShellLighting(layer: Container, geometry: BuildingGeometry)
         true,
       )
       .fill({ color: 0x18262e, alpha });
-  // 0.68H — firmer ground-contact bands: the wall-to-ground seam is the cue
-  // that separates a standing mass from a flat decal, so it darkens slightly.
+  // 0.68H — firmer ground-contact bands.
   const aoTall = Math.max(4, Math.min(height * 0.22, 12));
   layer.addChild(aoBand(aoTall, 0.16), aoBand(aoTall * 0.5, 0.18));
 
   const cornerSeam = new Graphics().moveTo(topFront.x, topFront.y).lineTo(bottomFront.x, bottomFront.y);
   cornerSeam.stroke({ color: 0x18262e, alpha: 0.26, width: 1.2, cap: "round" });
+  // Sun-corner pillar: a vertical highlight on the sun-facing outer edge —
+  // the "lit block corner" cue that separates the box from its neighbors.
+  cornerSeam
+    .moveTo(bottom.x - halfW, bottom.y)
+    .lineTo(top.x - halfW, top.y)
+    .stroke({ color: 0xfff4d6, alpha: 0.32, width: 1.3, cap: "round" });
 
-  // 0.68H — the sun rim derives from the wall pigment instead of near-white,
-  // so the lit top edge reads warm without feeding the milky highlight band.
+  // 0.68H — the sun rim derives from the wall pigment instead of near-white.
   const rim = new Graphics().moveTo(top.x - halfW, top.y).lineTo(topFront.x, topFront.y);
   rim.stroke({ color: mixColor(shadeColor(bodyColor, 52), SUN_WARM_TINT, 0.34), alpha: 0.6, width: 1.6, cap: "round" });
   const shadeEdge = new Graphics().moveTo(topFront.x, topFront.y).lineTo(top.x + halfW, top.y);
@@ -3868,13 +4331,13 @@ function drawAuthoredWallMaterial(layer: Container, geometry: BuildingGeometry, 
   }
 }
 
-function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, selected: boolean, hovered: boolean) {
+function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const { top, footprintWidth, footprintDepth, roofColor, outline, activeStrokeAlpha } = geometry;
   const roofShape = building.roofShape ?? "flat";
   // Roofs are the brightest surfaces in the scene: lit from above by the sun.
   // 0.68H — brightest but still pigmented: the building-face top curve keeps
   // roof color identity instead of riding the rolloff into paper white.
-  const roof = polygon(diamondPoints(top, footprintWidth, footprintDepth), buildingFaceColor(roofColor, "top"), 0.99, outline, hovered || selected ? 0.46 : activeStrokeAlpha);
+  const roof = polygon(diamondPoints(top, footprintWidth, footprintDepth), buildingFaceColor(roofColor, "top"), 0.99, outline, activeStrokeAlpha);
   layer.addChild(roof);
 
   // Sun-facing upper-left roof edge catches a warm rim; the lower-right edge
@@ -3885,9 +4348,6 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   // the sun-side half lifts warm, the fall-away half cools, so every roof
   // reads directional under the same key light as the walls. Deliberately
   // faint — this is the ROOF light finish, not the 0.54E whole-canvas grade.
-  // 0.68H — the shade half firms up so the roof plane itself reads tilted
-  // toward the sun, and the sun rim derives from the roof pigment instead of
-  // a near-white stroke (white rims fed the milky highlight band).
   const roofLitHalf = new Graphics()
     .poly([top.x, top.y - halfD, top.x, top.y + halfD, top.x - halfW, top.y], true)
     .fill({ color: 0xfff3d2, alpha: 0.09 });
@@ -3897,6 +4357,7 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   const roofRim = new Graphics()
     .moveTo(top.x - halfW, top.y)
     .lineTo(top.x, top.y - halfD);
+  // 0.68H — the sun rim derives from roof pigment instead of near-white.
   roofRim.stroke({ color: mixColor(shadeColor(roofColor, 50), SUN_WARM_TINT, 0.3), alpha: 0.62, width: 1.7, cap: "round", join: "round" });
   const roofFall = new Graphics()
     .moveTo(top.x, top.y - halfD)
@@ -3905,31 +4366,87 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   layer.addChild(roofLitHalf, roofShadeHalf, roofRim, roofFall);
 
   const lines = new Graphics();
+  const generatedBuilding = building.id.startsWith("gen-building-");
   if (roofShape === "gable") {
-    lines
-      .moveTo(top.x - footprintWidth * 0.24, top.y - footprintDepth * 0.13)
-      .lineTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.13)
-      .moveTo(top.x - footprintWidth * 0.24, top.y - footprintDepth * 0.13)
-      .lineTo(top.x - footprintWidth * 0.5, top.y)
-      .moveTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.13)
-      .lineTo(top.x + footprintWidth * 0.5, top.y);
-  } else if (roofShape === "hip") {
-    lines
-      .poly(diamondPoints(top, footprintWidth * 0.54, footprintDepth * 0.5), true)
-      .moveTo(top.x, top.y - footprintDepth * 0.25)
-      .lineTo(top.x, top.y + footprintDepth * 0.25);
-  } else if (roofShape === "sawtooth") {
-    for (let i = -2; i <= 2; i += 1) {
+    const ridgeHalf = footprintWidth * 0.24;
+    const ridgeY = top.y - footprintDepth * 0.035;
+    if (generatedBuilding) {
       lines
-        .moveTo(top.x + i * (footprintWidth / 7) - 5, top.y - footprintDepth * 0.28)
-        .lineTo(top.x + i * (footprintWidth / 7) + 12, top.y + footprintDepth * 0.24);
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x + ridgeHalf, ridgeY)
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x - halfW, top.y)
+        .moveTo(top.x + ridgeHalf, ridgeY)
+        .lineTo(top.x + halfW, top.y);
+    } else {
+      lines
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x + ridgeHalf, ridgeY)
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x, top.y - halfD)
+        .moveTo(top.x + ridgeHalf, ridgeY)
+        .lineTo(top.x, top.y - halfD)
+        .moveTo(top.x - ridgeHalf, ridgeY)
+        .lineTo(top.x - halfW, top.y)
+        .moveTo(top.x + ridgeHalf, ridgeY)
+        .lineTo(top.x + halfW, top.y)
+        .moveTo(top.x, top.y + halfD * 0.82)
+        .lineTo(top.x - ridgeHalf * 0.9, ridgeY)
+        .moveTo(top.x, top.y + halfD * 0.82)
+        .lineTo(top.x + ridgeHalf * 0.9, ridgeY);
     }
+  } else if (roofShape === "hip") {
+    const inset = diamondPoints(top, footprintWidth * 0.44, footprintDepth * 0.38);
+    lines.poly(inset, true);
+    if (!generatedBuilding) {
+      lines
+        .moveTo(top.x, top.y - halfD)
+        .lineTo(top.x, top.y - footprintDepth * 0.19)
+        .moveTo(top.x + halfW, top.y)
+        .lineTo(top.x + footprintWidth * 0.22, top.y)
+        .moveTo(top.x, top.y + halfD)
+        .lineTo(top.x, top.y + footprintDepth * 0.19)
+        .moveTo(top.x - halfW, top.y)
+        .lineTo(top.x - footprintWidth * 0.22, top.y);
+    }
+  } else if (roofShape === "sawtooth") {
+    // Sawtooth reads as MATERIAL, not linework: alternating lit/shade tooth
+    // strips filled inside the roof diamond (the old naked diagonal strokes
+    // read as scribble). Strip extents follow the diamond edge so teeth can
+    // never bleed past the eaves on generated footprints.
+    const halfW = footprintWidth / 2;
+    const halfD = footprintDepth / 2;
+    const eaveRise = (dx: number) => halfD * Math.max(0, 1 - Math.abs(dx) / halfW) * 0.86;
+    const teeth = new Graphics();
+    const shadeTeeth = new Graphics();
+    const stripCount = 6;
+    for (let i = 0; i < stripCount; i += 1) {
+      const xa = -halfW * 0.86 + (i * (halfW * 1.72)) / stripCount;
+      const xb = xa + (halfW * 1.72) / stripCount;
+      const target = i % 2 === 0 ? teeth : shadeTeeth;
+      target.poly(
+        [top.x + xa, top.y - eaveRise(xa), top.x + xb, top.y - eaveRise(xb), top.x + xb, top.y + eaveRise(xb), top.x + xa, top.y + eaveRise(xa)],
+        true,
+      );
+    }
+    teeth.fill({ color: shadeColor(roofColor, 16) });
+    shadeTeeth.fill({ color: shadeColor(roofColor, -14) });
+    layer.addChild(teeth, shadeTeeth);
   } else if (roofShape === "tower") {
     lines
       .poly(diamondPoints({ x: top.x, y: top.y - 12 }, footprintWidth * 0.36, footprintDepth * 0.34), true)
       .moveTo(top.x, top.y - 24)
       .lineTo(top.x, top.y - 3);
   } else {
+    // 0.74F chunky treatment — flat roofs step: a darker inner well between
+    // the roof rim and a RAISED inset cap deck. The lid reads as stacked
+    // voxel slabs instead of a flush sticker. Inset-only (never past eaves).
+    lines
+      .poly(diamondPoints(top, footprintWidth * 0.86, footprintDepth * 0.82), true)
+      .fill({ color: shadeColor(sunlitColor(roofColor, "top"), -16) });
+    lines
+      .poly(diamondPoints({ x: top.x, y: top.y - 2.5 }, footprintWidth * 0.7, footprintDepth * 0.64), true)
+      .fill({ color: sunlitColor(shadeColor(roofColor, 8), "top") });
     lines.poly(diamondPoints(top, footprintWidth * 0.72, footprintDepth * 0.64), true);
   }
   lines.stroke({ color: shadeColor(roofColor, -44), alpha: 0.38, width: 1.5, cap: "round", join: "round" });
@@ -3962,7 +4479,6 @@ function drawParapetCap(layer: Container, geometry: BuildingGeometry, building: 
   const right = { x: top.x + halfW, y: top.y };
 
   // Two lit-vs-shade parapet wall faces standing up from the front edges.
-  // 0.68H — parapet faces ride the building-face curve like the walls below.
   const litFace = new Graphics()
     .poly([left.x, left.y, front.x, front.y, front.x, front.y - lift, left.x, left.y - lift], true)
     .fill({ color: buildingFaceColor(shadeColor(roofColor, -6), "sun"), alpha: 0.9 });
@@ -3988,16 +4504,9 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
     // eave-parallel course lines so tile separates from metal (smooth/cool)
     // and membrane (flat/dark) at a glance.
     const tileTint = profile === "terracotta_barrel_tile" ? 0xc4764e : profile === "cool_clay_tile" ? 0x7f9aa8 : 0x8ba372;
+    // Tile identity = tint + ridge barrel caps. The old chevron course strokes
+    // stacked with the gable ridge/eave linework into roof scribble.
     const tint = polygon(diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86), tileTint, profile === "sage_tile" ? 0.2 : 0.18, tileTint, 0);
-    const courses = new Graphics();
-    for (let course = 0; course < 3; course += 1) {
-      const inset = 0.72 - course * 0.2;
-      courses
-        .moveTo(top.x - footprintWidth * 0.5 * inset, top.y + footprintDepth * 0.5 * (1 - inset) * 0.5)
-        .lineTo(top.x, top.y + footprintDepth * 0.5 * (inset + (1 - inset) * 0.5))
-        .lineTo(top.x + footprintWidth * 0.5 * inset, top.y + footprintDepth * 0.5 * (1 - inset) * 0.5);
-    }
-    courses.stroke({ color: shadeColor(roofColor, -26), alpha: 0.2, width: 1, cap: "round", join: "round" });
     const ridgeStart = { x: top.x - footprintWidth * 0.24, y: top.y - footprintDepth * 0.13 };
     const ridgeEnd = { x: top.x + footprintWidth * 0.24, y: top.y + footprintDepth * 0.13 };
     const barrelCaps = new Graphics();
@@ -4014,7 +4523,7 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
       width: profile === "terracotta_barrel_tile" ? 1.7 : 1.3,
       cap: "round",
     });
-    layer.addChild(tint, courses, barrelCaps);
+    layer.addChild(tint, barrelCaps);
     return;
   }
 
@@ -4044,12 +4553,11 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
         .moveTo(top.x + offset - footprintWidth * 0.09, top.y - footprintDepth * 0.2)
         .lineTo(top.x + offset + footprintWidth * 0.09, top.y + footprintDepth * 0.2);
     }
-    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.4, width: 1.1, cap: "round" });
-    const sheen = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.3, top.y - footprintDepth * 0.06)
-      .lineTo(top.x + footprintWidth * 0.24, top.y + footprintDepth * 0.14);
-    sheen.stroke({ color: shadeColor(roofColor, 52), alpha: 0.36, width: 2, cap: "round" });
-    layer.addChild(panelField, seams, sheen);
+    // Parallel seams only. The old counter-diagonal sheen streak crossed the
+    // seams into an X-scribble at map zoom — metal identity is the cool panel
+    // field + quiet seams.
+    seams.stroke({ color: shadeColor(roofColor, -30), alpha: 0.22, width: 1, cap: "round" });
+    layer.addChild(panelField, seams);
     return;
   }
 
@@ -4079,23 +4587,13 @@ function drawRoofMaterial(layer: Container, geometry: BuildingGeometry, building
   const dark = shadeColor(roofColor, -38);
   const light = shadeColor(roofColor, 24);
 
-  // 0.68H — the eave line where the roof meets the two front walls is the
-  // strongest top/left/right separator a box has; it darkens from a whisper
-  // to a firm contact stroke (still roof-pigment dark, never a white outline).
   detail
     .moveTo(top.x - footprintWidth * 0.5, top.y)
     .lineTo(top.x, top.y + footprintDepth * 0.5)
     .lineTo(top.x + footprintWidth * 0.5, top.y)
     .stroke({ color: dark, alpha: 0.38, width: 2.2, cap: "round", join: "round" });
 
-  if (roofShape === "gable") {
-    detail
-      .moveTo(top.x - footprintWidth * 0.36, top.y - footprintDepth * 0.02)
-      .lineTo(top.x - footprintWidth * 0.12, top.y + footprintDepth * 0.1)
-      .moveTo(top.x + footprintWidth * 0.1, top.y - footprintDepth * 0.08)
-      .lineTo(top.x + footprintWidth * 0.34, top.y + footprintDepth * 0.04)
-      .stroke({ color: light, alpha: 0.18, width: 1.2, cap: "round" });
-  } else if (roofShape === "hip") {
+  if (roofShape === "hip") {
     detail
       .poly(diamondPoints(top, footprintWidth * 0.72, footprintDepth * 0.66), true)
       .stroke({ color: dark, alpha: 0.16, width: 1.2 })
@@ -4114,54 +4612,18 @@ function drawRoofMaterial(layer: Container, geometry: BuildingGeometry, building
 }
 
 function drawSoCalRoofCourses(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
-  const { top, footprintWidth, footprintDepth, roofColor, trimColor } = geometry;
+  const { top, footprintWidth, footprintDepth, roofColor } = geometry;
   const roofShape = building.roofShape ?? "flat";
-  const style = building.facadeStyle ?? building.kind;
-  const dark = shadeColor(roofColor, -36);
-  const light = shadeColor(roofColor, 26);
-
-  if (building.kind === "home" && (roofShape === "gable" || roofShape === "hip")) {
-    const courses = new Graphics();
-    const courseCount = style === "ranch" ? 4 : 3;
-    for (let course = 1; course <= courseCount; course += 1) {
-      const yOffset = -footprintDepth * 0.22 + course * (footprintDepth * 0.12);
-      courses
-        .moveTo(top.x - footprintWidth * 0.38, top.y + yOffset)
-        .lineTo(top.x - footprintWidth * 0.04, top.y + yOffset + footprintDepth * 0.16)
-        .lineTo(top.x + footprintWidth * 0.36, top.y + yOffset - footprintDepth * 0.02);
-    }
-    courses.stroke({ color: dark, alpha: style === "ranch" ? 0.17 : 0.14, width: 0.9, cap: "round", join: "round" });
-
-    const eaveLip = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.5, top.y + footprintDepth * 0.02)
-      .lineTo(top.x, top.y + footprintDepth * 0.31)
-      .lineTo(top.x + footprintWidth * 0.5, top.y + footprintDepth * 0.02);
-    eaveLip.stroke({ color: shadeColor(roofColor, -50), alpha: style === "ranch" ? 0.26 : 0.22, width: style === "ranch" ? 2.2 : 1.8, cap: "round", join: "round" });
-    layer.addChild(courses, eaveLip);
-    return;
-  }
-
-  if (roofShape === "flat" || style === "rowhome" || style === "strip_store") {
-    const parapet = new Graphics()
-      .moveTo(top.x - footprintWidth * 0.46, top.y - footprintDepth * 0.03)
-      .lineTo(top.x - footprintWidth * 0.13, top.y + footprintDepth * 0.12)
-      .lineTo(top.x + footprintWidth * 0.16, top.y - footprintDepth * 0.01)
-      .lineTo(top.x + footprintWidth * 0.46, top.y + footprintDepth * 0.13);
-    parapet.stroke({ color: dark, alpha: building.kind === "shop" ? 0.22 : 0.18, width: building.kind === "shop" ? 1.8 : 1.4, cap: "round", join: "round" });
-
-    const roofPads = new Graphics();
-    const padCount = building.kind === "apartment" ? 3 : building.kind === "shop" ? 4 : 2;
-    for (let pad = 0; pad < padCount; pad += 1) {
-      const position = pad / (padCount - 1);
-      const x = top.x - footprintWidth * 0.28 + position * footprintWidth * 0.56;
-      const y = top.y - footprintDepth * 0.12 + (pad % 2) * footprintDepth * 0.1;
-      roofPads
-        .poly(diamondPoints({ x, y }, footprintWidth * 0.08, footprintDepth * 0.07), true)
-        .fill({ color: pad % 2 === 0 ? light : dark, alpha: pad % 2 === 0 ? 0.11 : 0.08 });
-    }
-    roofPads.stroke({ color: trimColor, alpha: 0.05, width: 0.8 });
-    layer.addChild(parapet, roofPads);
-  }
+  // One eave shadow under pitched home roofs. The old wandering parapet
+  // squiggles, shingle-course strokes, and translucent roof pads were the
+  // scribble noise that made roofs read procedural.
+  if (building.kind !== "home" || (roofShape !== "gable" && roofShape !== "hip")) return;
+  const eaveLip = new Graphics()
+    .moveTo(top.x - footprintWidth * 0.5, top.y + footprintDepth * 0.02)
+    .lineTo(top.x, top.y + footprintDepth * 0.31)
+    .lineTo(top.x + footprintWidth * 0.5, top.y + footprintDepth * 0.02);
+  eaveLip.stroke({ color: shadeColor(roofColor, -50), alpha: 0.24, width: 1.8, cap: "round", join: "round" });
+  layer.addChild(eaveLip);
 }
 
 function drawWallDepthLines(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
@@ -4541,11 +5003,22 @@ function drawApartmentDetails(layer: Container, geometry: BuildingGeometry) {
   );
   layer.addChild(steppedWing, wingCap);
 
+  // 0.57E parity — window columns LIVE on the front-left wall face: each
+  // column starts under the eave line at its own horizontal offset (the face
+  // slopes down toward center) and rows divide the actual wall height. The
+  // old fixed-pixel grid floated columns off the face on generated widths.
   const windows = new Graphics();
-  for (let row = 0; row < 4; row += 1) {
-    for (let col = 0; col < 3; col += 1) {
-      const x = top.x - footprintWidth * 0.28 + col * (footprintWidth * 0.19);
-      const y = top.y + footprintDepth * 0.22 + row * 9;
+  const wallHalfW = footprintWidth / 2;
+  const wallHalfD = footprintDepth / 2;
+  const wallHeight = Math.max(0, bottom.y - top.y);
+  const windowRows = Math.min(4, Math.max(2, Math.floor((wallHeight - 8) / 9)));
+  const rowStep = (wallHeight - 10) / windowRows;
+  for (let col = 0; col < 3; col += 1) {
+    const dx = -footprintWidth * (0.34 - col * 0.13);
+    const eaveDrop = wallHalfD * (1 - Math.abs(dx) / wallHalfW);
+    for (let row = 0; row < windowRows; row += 1) {
+      const x = top.x + dx;
+      const y = top.y + eaveDrop + 4 + row * rowStep;
       windows
         .roundRect(x - 1, y - 1, 9, 7, 1.5)
         .fill({ color: shadeColor(bodyColor, -34), alpha: 0.22 })
@@ -5467,42 +5940,102 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
   const accent = paletteColor(asset.palette.colors.accent, asset.palette.colors.highlight);
 
   if (prop.kind === "tree" || prop.kind === "bush") {
+    // Blocky voxel foliage: trunk cube + 2-3 stacked, shrinking canopy boxes
+    // (north-star stacked-cube grammar). Deterministic per-variant palette
+    // shift + silhouette so groves read varied without noise.
     const foliage = prop.variant % 2 === 0 ? baseColor : shadeColor(baseColor, 12);
-    // Directional cast shadow skewed along the scene sun vector (lower-right).
-    const shadowReach = prop.kind === "bush" ? 9 : 17;
+    const shadowReach = prop.kind === "bush" ? 8 : 14;
     const tree = new Graphics()
-      .ellipse(point.x + shadowReach, point.y - 1 + shadowReach * 0.24, prop.kind === "bush" ? 11 : 16, prop.kind === "bush" ? 3.8 : 5)
-      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.34 })
-      .ellipse(point.x + shadowReach * 0.4, point.y - 1.5, prop.kind === "bush" ? 7 : 10, 3.2)
-      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.18 });
+      .ellipse(point.x + shadowReach * 0.6, point.y - 1 + shadowReach * 0.18, prop.kind === "bush" ? 10 : 15, prop.kind === "bush" ? 3.6 : 4.6)
+      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.26 });
     if (prop.kind === "tree") {
-      tree
-        .rect(point.x - 2.4, point.y - 16, 4.8, 14)
-        .fill({ color: shade, alpha: 0.95 })
-        .circle(point.x - 6, point.y - 20, 8)
-        .circle(point.x + 5, point.y - 22, 9)
-        .circle(point.x, point.y - 29, 10)
-        .fill({ color: foliage, alpha: 0.96 })
-        .circle(point.x + 6, point.y - 20, 6.5)
-        .fill({ color: sunlitColor(foliage, "shade"), alpha: 0.4 })
-        .circle(point.x - 4, point.y - 30, 4.4)
-        .fill({ color: mixColor(highlight, SUN_WARM_TINT, 0.4), alpha: 0.44 });
+      const tall = prop.variant % 3 === 0;
+      voxelBox(tree, { x: point.x, y: point.y - 2 }, 5, 3, tall ? 13 : 10, shade);
+      voxelBox(tree, { x: point.x, y: point.y - (tall ? 13 : 10) }, 19, 11, 9, shadeColor(foliage, -8));
+      voxelBox(tree, { x: point.x, y: point.y - (tall ? 21 : 18) }, 14, 8, 7, foliage);
+      if (prop.variant % 2 === 0) {
+        voxelBox(tree, { x: point.x, y: point.y - (tall ? 27 : 24) }, 9, 5, 5, shadeColor(foliage, 14));
+      }
     } else {
-      tree
-        .circle(point.x - 5, point.y - 10, 6)
-        .circle(point.x + 2, point.y - 13, 8)
-        .circle(point.x + 8, point.y - 9, 5)
-        .fill({ color: foliage, alpha: 0.92 })
-        .circle(point.x + 7, point.y - 9, 4)
-        .fill({ color: sunlitColor(foliage, "shade"), alpha: 0.34 })
-        .circle(point.x - 3, point.y - 14, 3)
-        .fill({ color: mixColor(highlight, SUN_WARM_TINT, 0.4), alpha: 0.3 });
+      voxelBox(tree, { x: point.x, y: point.y - 1 }, 13, 8, 6, shadeColor(foliage, -6));
+      voxelBox(tree, { x: point.x, y: point.y - 6.5 }, 8, 5, 4, shadeColor(foliage, 10));
     }
-    tree.stroke({ color: 0x26332c, alpha: 0.26, width: 1 });
+    tree.stroke({ color: 0x26332c, alpha: 0.2, width: 1 });
     // Trees stay planted in the focal ring but yield opacity so they never
     // obscure the hero building's face separation.
     tree.alpha = Math.max(calm, 0.7);
     layer.addChild(tree);
+    return;
+  }
+
+  if (prop.kind === "dock") {
+    const dock = new Graphics()
+      .ellipse(point.x + 4, point.y + 2, 16, 4)
+      .fill({ color: 0x1d3a42, alpha: 0.2 });
+    // Plank boxes marching toward the water (SE), on two pile cubes.
+    voxelBox(dock, { x: point.x - 8, y: point.y - 1 }, 15, 9, 2.5, shade);
+    voxelBox(dock, { x: point.x + 3, y: point.y + 4 }, 15, 9, 2.5, baseColor);
+    voxelBox(dock, { x: point.x + 14, y: point.y + 9 }, 15, 9, 2.5, shadeColor(baseColor, -8));
+    voxelBox(dock, { x: point.x + 20, y: point.y + 14 }, 3, 2.5, 5, shadeColor(shade, -14));
+    voxelBox(dock, { x: point.x + 9, y: point.y + 12 }, 3, 2.5, 5, shadeColor(shade, -14));
+    dock.stroke({ color: 0x26332c, alpha: 0.22, width: 1 });
+    dock.alpha = calm;
+    layer.addChild(dock);
+    return;
+  }
+
+  if (prop.kind === "boat") {
+    const hullColor = prop.variant % 2 === 0 ? 0xd8dee2 : accent;
+    const boat = new Graphics()
+      .ellipse(point.x, point.y + 2, 15, 4.5)
+      .fill({ color: 0x1d3a42, alpha: 0.24 });
+    voxelBox(boat, { x: point.x, y: point.y }, 22, 9, 4, hullColor);
+    voxelBox(boat, { x: point.x - 3, y: point.y - 4 }, 9, 6, 4.5, shadeColor(hullColor, 18));
+    boat
+      .moveTo(point.x + 6, point.y - 4)
+      .lineTo(point.x + 6, point.y - 16)
+      .stroke({ color: shade, alpha: 0.8, width: 1.4, cap: "round" });
+    boat.stroke({ color: 0x26332c, alpha: 0.24, width: 1 });
+    boat.alpha = calm;
+    layer.addChild(boat);
+    return;
+  }
+
+  if (prop.kind === "water_tower") {
+    const tower = new Graphics()
+      .ellipse(point.x + 6, point.y + 1, 15, 4.5)
+      .fill({ color: CAST_SHADOW_COLOR, alpha: 0.22 });
+    // Four leg strokes, tank cylinder, cone cap — the skyline landmark.
+    tower
+      .moveTo(point.x - 8, point.y)
+      .lineTo(point.x - 5, point.y - 22)
+      .moveTo(point.x + 8, point.y)
+      .lineTo(point.x + 5, point.y - 22)
+      .moveTo(point.x - 4, point.y + 3)
+      .lineTo(point.x - 2.5, point.y - 22)
+      .moveTo(point.x + 4, point.y + 3)
+      .lineTo(point.x + 2.5, point.y - 22)
+      .stroke({ color: shade, alpha: 0.9, width: 1.6, cap: "round" });
+    tower
+      .moveTo(point.x - 6.5, point.y - 8)
+      .lineTo(point.x + 6.5, point.y - 12)
+      .stroke({ color: shade, alpha: 0.6, width: 1, cap: "round" });
+    tower
+      .rect(point.x - 9, point.y - 36, 18, 14)
+      .fill({ color: sunlitColor(baseColor, "sun") })
+      .rect(point.x + 1, point.y - 36, 8, 14)
+      .fill({ color: sunlitColor(baseColor, "shade"), alpha: 0.6 })
+      .ellipse(point.x, point.y - 22, 9, 3)
+      .fill({ color: shadeColor(baseColor, -20) });
+    tower
+      .moveTo(point.x - 10, point.y - 35)
+      .lineTo(point.x, point.y - 42)
+      .lineTo(point.x + 10, point.y - 35)
+      .closePath()
+      .fill({ color: sunlitColor(accent, "top") });
+    tower.stroke({ color: 0x26332c, alpha: 0.3, width: 1 });
+    tower.alpha = calm;
+    layer.addChild(tower);
     return;
   }
 
@@ -5639,9 +6172,7 @@ function drawActor(layer: Container, actor: CityWorldActor, animated: AnimatedTa
       .stroke({ color: shade, alpha: 0.64, width: 1.5, cap: "round" });
   }
 
-  // 0.67H — actors are ambience, not focal objects: knock the whole graphic
-  // below full opacity so walkers and cars never compete with building faces,
-  // and dim further inside the focal anchor's calm ring.
+  // 0.67H — actors are ambience, not focal objects.
   graphic.alpha = 0.8 * calm;
 
   animated.push({
@@ -5696,39 +6227,121 @@ function drawSmallCarGraphic(
 }
 
 function drawPlaceMarker(
-  layer: Container,
+  layers: LayerMap,
   place: CityWorldPlace,
-  selectedPlaceId: string,
-  hoverPlaceId: string | undefined,
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
-  animated: AnimatedTarget[],
 ) {
-  const point = project(place.anchor);
-  const selected = place.id === selectedPlaceId;
-  const hovered = place.id === hoverPlaceId;
-  const landmarkFocus = selected && place.kind === "landmark";
-  const markerPoint = landmarkFocus ? { x: point.x, y: point.y + 20 } : point;
+  // Neutral, static marker only: emphasis rings + their pulse animation live
+  // in the focus overlay, so hover/selection never rebuilds the base scene
+  // and a scene with no focus has no perpetual marker animations.
   // 0.67H marker quieting — the ring is a ground-contact indicator, not a
-  // glow: smaller, warm-neutral, and held near the shadow floor so the
-  // building silhouette stays the loudest thing at the anchor. The pulse
-  // baseAlpha drives the visible intensity every frame, so it is the value
-  // that must stay low.
-  const radius = selected ? (landmarkFocus ? 18 : 22) : hovered ? 20 : 16;
+  // glow: small, warm-neutral, held near the shadow floor.
+  const point = project(place.anchor);
   const ring = new Graphics()
-    .ellipse(markerPoint.x, markerPoint.y - 4, radius, radius * 0.48)
-    .fill({ color: selected ? 0xe9d9ac : 0xf3ecd8, alpha: selected ? 0.12 : hovered ? 0.09 : 0.03 })
-    .stroke({ color: selected ? 0xb99c5f : hovered ? 0xcdbf9c : 0x33443b, alpha: selected || hovered ? 0.44 : 0.08, width: selected ? 1.4 : 1.2 });
-  animated.push({ target: ring, kind: "pulse", path: [], speed: 0.02, phase: place.activity, baseAlpha: selected || hovered ? 0.32 : 0.07, origin: markerPoint });
-  layer.addChild(ring);
+    .ellipse(point.x, point.y - 4, 16, 16 * 0.48)
+    .fill({ color: 0xf3ecd8, alpha: 0.03 })
+    .stroke({ color: 0x33443b, alpha: 0.08, width: 1.2 });
+  // The ring is ground furniture: it lives under shadows and buildings so it
+  // can never draw across a wall when the anchor sits inside a structure.
+  layers.padLayer.addChild(ring);
 
-  const hit = new Graphics().circle(markerPoint.x, markerPoint.y - 12, place.hitRadius * 13).fill({ color: 0xffffff, alpha: 0.001 });
+  const hit = new Graphics().circle(point.x, point.y - 12, place.hitRadius * 13).fill({ color: 0xffffff, alpha: 0.001 });
   hit.eventMode = "static";
   hit.cursor = "pointer";
   hit.on("pointertap", () => onSelectPlace(place.id));
   hit.on("pointerover", () => onHoverPlace(place.id));
   hit.on("pointerout", () => onHoverPlace(undefined));
-  layer.addChild(hit);
+  layers.markerLayer.addChild(hit);
+}
+
+type FocusMode = "selected" | "hovered";
+
+// Redraws ONLY the focus overlay: emphasized ring (with the pulse animation),
+// stroke-only silhouettes of the place's anchored buildings, and the
+// emphasized label. A hover change costs ~4-10 Graphics instead of a full
+// scene teardown.
+function drawFocusOverlay(
+  layer: Container,
+  place: CityWorldPlace,
+  focus: FocusIndex,
+  mode: FocusMode,
+  animated: AnimatedTarget[],
+) {
+  // 0.67H — selection is a warm contact accent, not a white debug glow: quiet
+  // warm ring near the shadow floor, warm-toned silhouette strokes.
+  const point = project(place.anchor);
+  const selected = mode === "selected";
+  const landmarkFocus = selected && place.kind === "landmark";
+  const markerPoint = landmarkFocus ? { x: point.x, y: point.y + 20 } : point;
+  const radius = selected ? (landmarkFocus ? 18 : 22) : 20;
+  const ring = new Graphics()
+    .ellipse(markerPoint.x, markerPoint.y - 4, radius, radius * 0.48)
+    .fill({ color: selected ? 0xe9d9ac : 0xf3ecd8, alpha: selected ? 0.12 : 0.09 })
+    .stroke({ color: selected ? 0xb99c5f : 0xcdbf9c, alpha: 0.44, width: selected ? 1.4 : 1.2 });
+  animated.push({ target: ring, kind: "pulse", path: [], speed: 0.02, phase: place.activity, baseAlpha: 0.32, origin: markerPoint });
+  layer.addChild(ring);
+
+  const outlineColor = selected ? 0xc2a05e : 0xcdb98a;
+  for (const building of focus.buildingsByPlaceId.get(place.id) ?? []) {
+    const bottom = project(building.position);
+    const top = project({ x: building.position.x, y: building.position.y, z: (building.position.z ?? 0) + building.height });
+    const halfW = (building.width * TILE_WIDTH) / 2;
+    const halfD = (building.depth * TILE_HEIGHT) / 2;
+    const silhouette = new Graphics()
+      .poly(
+        [
+          top.x - halfW, top.y,
+          top.x, top.y - halfD,
+          top.x + halfW, top.y,
+          bottom.x + halfW, bottom.y,
+          bottom.x, bottom.y + halfD,
+          bottom.x - halfW, bottom.y,
+        ],
+        true,
+      )
+      .stroke({ color: outlineColor, alpha: selected ? 0.5 : 0.4, width: selected ? 1.6 : 1.3, join: "round" });
+    const roofEdge = new Graphics()
+      .poly(diamondPoints(top, building.width * TILE_WIDTH, building.depth * TILE_HEIGHT), true)
+      .stroke({ color: outlineColor, alpha: selected ? 0.36 : 0.28, width: 1.1 });
+    layer.addChild(silhouette, roofEdge);
+  }
+
+  drawFocusPlaceLabel(layer, place, mode, focus.crownLift.get(place.id));
+}
+
+function drawFocusPlaceLabel(layer: Container, place: CityWorldPlace, mode: FocusMode, crownLift?: number) {
+  const point = project(place.anchor);
+  const selected = mode === "selected";
+  const landmarkFocus = selected && place.kind === "landmark";
+  // 0.67H — focus labels are smaller and quieter; the selected landmark label
+  // slides off the roof axis and clears the crown with a small margin.
+  const text = new Text({
+    text: place.label,
+    style: {
+      fill: 0x2c3a33,
+      fontFamily: "Arial",
+      fontSize: landmarkFocus ? 10 : 11,
+      fontWeight: "700",
+      stroke: { color: 0xfff8e7, width: 3 },
+    },
+  });
+  text.anchor.set(0.5);
+  const baseLift = landmarkFocus ? 70 : 52;
+  text.position.set(point.x + (landmarkFocus ? -44 : 0), point.y - Math.max(baseLift, (crownLift ?? 0) + 6));
+  const paddingX = landmarkFocus ? 6 : 5;
+  const paddingY = landmarkFocus ? 2.5 : 3;
+  const backing = new Graphics()
+    .roundRect(
+      text.position.x - text.width / 2 - paddingX,
+      text.position.y - text.height / 2 - paddingY,
+      text.width + paddingX * 2,
+      text.height + paddingY * 2,
+      4,
+    )
+    .fill({ color: 0xfff7df, alpha: 0.5 })
+    .stroke({ color: 0x26332c, alpha: 0.12, width: 1 });
+  layer.addChild(backing, text);
 }
 
 function drawPin(layer: Container, pin: CityWorldPin, atlas: CityWorldAtlasResolver) {
@@ -5767,12 +6380,10 @@ function drawPin(layer: Container, pin: CityWorldPin, atlas: CityWorldAtlasResol
   layer.addChild(badge, label);
 }
 
-// 0.67H — focal-landmark pins slide off the facade toward the plinth apron:
-// lower and further out than before, so the badge reads as a ground sticker
-// beside the building instead of landing on the landmark silhouette.
 function offsetPinPoint(point: ProjectedPoint, pin: CityWorldPin): ProjectedPoint {
   if (pin.placeId !== "place-eastvale-core") return point;
 
+  // 0.67H — focal-landmark pins slide off the facade toward the plinth apron.
   if (pin.kind === "note") return { x: point.x + 30, y: point.y + 14 };
   if (pin.kind === "favorite") return { x: point.x - 30, y: point.y + 16 };
   return { x: point.x + 6, y: point.y + 26 };
@@ -5792,53 +6403,40 @@ function placeCrownLiftMap(buildings: CityWorldBuilding[]): Map<string, number> 
   return lift;
 }
 
-function drawPlaceLabel(
-  layer: Container,
-  place: CityWorldPlace,
-  selectedPlaceId: string,
-  hoverPlaceId: string | undefined,
-  ambientLabelIds: ReadonlySet<string>,
-  crownLift?: number,
-) {
-  const selected = place.id === selectedPlaceId;
-  const hovered = place.id === hoverPlaceId;
-  // 0.67H label demotion — a board of always-on pills read as a debug map.
-  // Only the selected/hovered place plus the capped ambient allowance (none on
-  // mobile, two on desktop) keep a label, and every label is smaller and
-  // quieter so building crowns own the frame.
-  if (!selected && !hovered && !ambientLabelIds.has(place.id)) return;
+function drawPlaceLabel(layer: Container, place: CityWorldPlace, ambientLabelIds: ReadonlySet<string>, crownLift?: number) {
+  // Neutral base label only; the focus overlay draws the emphasized variant
+  // and hides this one (matched by container label) while the place is focused.
+  // 0.67H — ambient labels are a hard allowance, and every label is smaller
+  // and quieter so building crowns own the frame.
+  if (!ambientLabelIds.has(place.id)) return;
 
   const point = project(place.anchor);
-  const landmarkFocus = selected && place.kind === "landmark";
   const text = new Text({
     text: place.label,
     style: {
       fill: 0x2c3a33,
       fontFamily: "Arial",
-      fontSize: landmarkFocus ? 10 : selected || hovered ? 11 : 10,
+      fontSize: 10,
       fontWeight: "700",
       stroke: { color: 0xfff8e7, width: 3 },
     },
   });
   text.anchor.set(0.5);
-  // Selected landmark labels slide further off the roof axis instead of
-  // rising higher; the crown clearance gets a small margin so the backing
-  // never touches the crown cap.
-  const baseLift = landmarkFocus ? 70 : selected || hovered ? 52 : 44;
-  text.position.set(point.x + (landmarkFocus ? -44 : 0), point.y - Math.max(baseLift, (crownLift ?? 0) + 6));
-  const paddingX = landmarkFocus ? 6 : 5;
-  const paddingY = landmarkFocus ? 2.5 : 3;
+  text.position.set(point.x, point.y - Math.max(44, (crownLift ?? 0) + 6));
   const backing = new Graphics()
     .roundRect(
-      text.position.x - text.width / 2 - paddingX,
-      text.position.y - text.height / 2 - paddingY,
-      text.width + paddingX * 2,
-      text.height + paddingY * 2,
+      text.position.x - text.width / 2 - 5,
+      text.position.y - text.height / 2 - 3,
+      text.width + 10,
+      text.height + 6,
       4,
     )
-    .fill({ color: 0xfff7df, alpha: selected || hovered ? 0.5 : 0.34 })
-    .stroke({ color: 0x26332c, alpha: selected || hovered ? 0.12 : 0.08, width: 1 });
-  layer.addChild(backing, text);
+    .fill({ color: 0xfff7df, alpha: 0.34 })
+    .stroke({ color: 0x26332c, alpha: 0.08, width: 1 });
+  const group = new Container();
+  group.label = `place-label-${place.id}`;
+  group.addChild(backing, text);
+  layer.addChild(group);
 }
 
 function animateTargets(targets: AnimatedTarget[], delta: number) {
@@ -5891,6 +6489,40 @@ function diamondPoints(center: ProjectedPoint, width: number, height: number): n
 
 function polygon(points: number[], fill: number, alpha = 1, stroke = 0x26332c, strokeAlpha = 0.42): Graphics {
   return new Graphics().poly(points, true).fill({ color: fill, alpha }).stroke({ color: stroke, alpha: strokeAlpha, width: 1 });
+}
+
+// Iso voxel cube: top diamond + lit/shade faces appended into a Graphics.
+// The shared primitive behind the blocky prop kit and cliff courses — props
+// read as stacked cubes (north-star voxel grammar), not vector lollipops.
+function voxelBox(g: Graphics, base: ProjectedPoint, width: number, depth: number, height: number, color: number, alpha = 1): void {
+  const halfW = width / 2;
+  const halfD = depth / 2;
+  const topY = base.y - height;
+  g
+    .moveTo(base.x - halfW, topY)
+    .lineTo(base.x, topY + halfD)
+    .lineTo(base.x, base.y + halfD)
+    .lineTo(base.x - halfW, base.y)
+    .closePath()
+    .fill({ color: sunlitColor(color, "sun"), alpha });
+  g
+    .moveTo(base.x + halfW, topY)
+    .lineTo(base.x, topY + halfD)
+    .lineTo(base.x, base.y + halfD)
+    .lineTo(base.x + halfW, base.y)
+    .closePath()
+    .fill({ color: sunlitColor(color, "shade"), alpha });
+  g.poly(diamondPoints({ x: base.x, y: topY }, width, depth), true).fill({ color: sunlitColor(color, "top"), alpha });
+}
+
+// Append a filled/stroked polygon into a SHARED Graphics. Ground layers
+// (terrain, lots, roads) merge thousands of per-item Graphics into a few
+// depth-band / pass Graphics; within one Graphics, path order is z order, so
+// append order must match the old per-object add order.
+function appendPolygon(g: Graphics, points: number[], fill: number, alpha = 1, stroke = 0x26332c, strokeAlpha = 0.42): Graphics {
+  g.poly(points, true).fill({ color: fill, alpha });
+  if (strokeAlpha > 0) g.stroke({ color: stroke, alpha: strokeAlpha, width: 1 });
+  return g;
 }
 
 function colorToNumber(color: string): number {

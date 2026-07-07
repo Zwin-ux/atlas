@@ -26,6 +26,11 @@ Not deployed and not pushed by default. The integrated branch still needs live
 deploy proof before public promotion, but the human has explicitly reopened
 DB/Auth preparation for Hosted Clawd.
 
+Merge status (0.75R, 2026-07-06):
+`fable/0.58e-prop-cleanup` (0.57E parity + 0.72H-b/0.73F engine clarity +
+0.74F perf/voxel superpass) is merged into this branch. The engine history
+lives in BUILD_LOG (fable entries) and artifacts/0.73f-*/0.74f-*.
+
 ## Current Slice
 
 `0.72B Redis Scene Packet Cache / Job Spine` is local green.

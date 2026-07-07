@@ -37,9 +37,11 @@ describe("deterministic generated district specs", () => {
       });
       expect(scene.terrainTiles.length).toBeGreaterThan(1_200);
       expect(scene.roadSegments.length).toBeGreaterThanOrEqual(6);
-      expect(scene.lots.length).toBeGreaterThan(40);
-      expect(scene.buildings.length).toBeGreaterThan(35);
-      expect(scene.places.length).toBeGreaterThanOrEqual(8);
+      // 0.75R: floors rebased on the fable parametric generator (fewer,
+      // larger authored-mass lots: 18-21 lots / 17-19 buildings observed).
+      expect(scene.lots.length).toBeGreaterThan(15);
+      expect(scene.buildings.length).toBeGreaterThan(15);
+      expect(scene.places.length).toBeGreaterThanOrEqual(6);
       expect(scene.pins).toHaveLength(0);
       expect(scene.actors).toHaveLength(0);
       expect(scene.cameraPresets.map((preset) => preset.id)).toEqual(

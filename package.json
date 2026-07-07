@@ -45,6 +45,7 @@
     "verify:railway-production-stack": "node scripts/verify-railway-production-stack.mjs",
     "verify:submission": "node scripts/verify-submission.mjs",
     "verify:preview:http": "node scripts/verify-preview-http.mjs",
+    "verify:widget:perf": "node scripts/verify-widget-performance.mjs",
     "check": "pnpm env:check && pnpm typecheck && pnpm build",
     "dev:widget": "pnpm --dir apps/widget dev",
     "dev": "pnpm build:web && pnpm build:geo && tsx server/src/index.ts",

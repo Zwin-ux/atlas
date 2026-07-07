@@ -37,25 +37,25 @@
         "sceneCounts": {
           "terrainTiles": 1485,
           "roads": 7,
-          "lots": 54,
-          "buildings": 53,
-          "props": 4,
-          "places": 10,
+          "lots": 20,
+          "buildings": 19,
+          "props": 36,
+          "places": 7,
           "pins": 0,
           "actors": 0
         },
         "windows": [
           {
             "cameraId": "desktop",
-            "visibleCommandCount": 401,
-            "visibleBudgetWeight": 504,
+            "visibleCommandCount": 398,
+            "visibleBudgetWeight": 418,
             "chunkCoverageRatio": 0.4
           },
           {
             "cameraId": "mobile",
-            "visibleCommandCount": 592,
-            "visibleBudgetWeight": 703,
-            "chunkCoverageRatio": 0.667
+            "visibleCommandCount": 483,
+            "visibleBudgetWeight": 512,
+            "chunkCoverageRatio": 0.533
           }
         ]
       },
@@ -70,25 +70,25 @@
         "sceneCounts": {
           "terrainTiles": 1485,
           "roads": 7,
-          "lots": 55,
-          "buildings": 53,
-          "props": 7,
-          "places": 10,
+          "lots": 21,
+          "buildings": 19,
+          "props": 36,
+          "places": 7,
           "pins": 0,
           "actors": 0
         },
         "windows": [
           {
             "cameraId": "desktop",
-            "visibleCommandCount": 393,
-            "visibleBudgetWeight": 504,
+            "visibleCommandCount": 361,
+            "visibleBudgetWeight": 385,
             "chunkCoverageRatio": 0.4
           },
           {
             "cameraId": "mobile",
-            "visibleCommandCount": 627,
-            "visibleBudgetWeight": 744,
-            "chunkCoverageRatio": 0.5
+            "visibleCommandCount": 465,
+            "visibleBudgetWeight": 497,
+            "chunkCoverageRatio": 0.4
           }
         ]
       },
@@ -103,25 +103,25 @@
         "sceneCounts": {
           "terrainTiles": 1485,
           "roads": 7,
-          "lots": 50,
-          "buildings": 49,
-          "props": 4,
-          "places": 9,
+          "lots": 18,
+          "buildings": 17,
+          "props": 31,
+          "places": 6,
           "pins": 0,
           "actors": 0
         },
         "windows": [
           {
             "cameraId": "desktop",
-            "visibleCommandCount": 410,
-            "visibleBudgetWeight": 502,
+            "visibleCommandCount": 363,
+            "visibleBudgetWeight": 388,
             "chunkCoverageRatio": 0.4
           },
           {
             "cameraId": "mobile",
-            "visibleCommandCount": 620,
-            "visibleBudgetWeight": 721,
-            "chunkCoverageRatio": 0.5
+            "visibleCommandCount": 466,
+            "visibleBudgetWeight": 500,
+            "chunkCoverageRatio": 0.4
           }
         ]
       },
@@ -136,25 +136,25 @@
         "sceneCounts": {
           "terrainTiles": 1485,
           "roads": 7,
-          "lots": 56,
-          "buildings": 55,
-          "props": 4,
-          "places": 9,
+          "lots": 19,
+          "buildings": 18,
+          "props": 31,
+          "places": 6,
           "pins": 0,
           "actors": 0
         },
         "windows": [
           {
             "cameraId": "desktop",
-            "visibleCommandCount": 387,
-            "visibleBudgetWeight": 480,
+            "visibleCommandCount": 364,
+            "visibleBudgetWeight": 394,
             "chunkCoverageRatio": 0.4
           },
           {
             "cameraId": "mobile",
-            "visibleCommandCount": 629,
-            "visibleBudgetWeight": 747,
-            "chunkCoverageRatio": 0.5
+            "visibleCommandCount": 464,
+            "visibleBudgetWeight": 493,
+            "chunkCoverageRatio": 0.4
           }
         ]
       }

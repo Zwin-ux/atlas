@@ -124,14 +124,19 @@ function verifyStaticContracts() {
     "ambientLabelAllowance(scene, cameraPresetId)",
     "if (cameraPresetId === \"mobile\") return new Set();",
     ".slice(0, 2)",
-    "focalPlaceAnchor(scene, selectedPlaceId)",
+    // 0.75R: the fable focus-overlay architecture keeps the base scene
+    // focus-agnostic (hover/selection never rebuilds it), so the 0.67H
+    // conditional literals collapsed: the focal anchor pins to the HUD
+    // default place, non-focused places draw no ring at all, and emphasis
+    // strokes live in the focus overlay.
+    "focalPlaceAnchor(scene, scene.hudDefaults.selectedPlaceId)",
     "focalCalm(prop.position, focalAnchor)",
     "focalCalm(actor.position, focalAnchor)",
-    "baseAlpha: selected || hovered ? 0.32 : 0.07",
-    "const radius = selected ? (landmarkFocus ? 18 : 22) : hovered ? 20 : 16",
+    "baseAlpha: 0.32",
+    "const radius = selected ? (landmarkFocus ? 18 : 22) : 20",
     "sprite.scale.set(asset.scale * (focalPin ? 0.8 : 1))",
     "return { x: point.x + 30, y: point.y + 14 };",
-    "activeStrokeAlpha: hovered || selected ? 0.44 : 0.38",
+    "activeStrokeAlpha: 0.38",
     "glassRecesses",
     "serviceBays",
   ];

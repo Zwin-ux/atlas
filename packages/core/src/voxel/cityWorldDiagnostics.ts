@@ -280,8 +280,12 @@ function collectHardBoundaryIssues(scene: CityWorldScene, scenario: CityWorldEng
     }
   }
 
+  // 0.74F clutter-contract revision (user-approved): the curated prop kit
+  // (bench, streetlight, fountain, sign, dock, boat, water tower) is public;
+  // density is gated by the scene-window maxPropCommands cap. Cars and clouds
+  // stay forbidden.
   const propKinds = new Set(scene.props.map((prop) => prop.kind));
-  for (const forbiddenProp of ["bench", "streetlight", "fountain", "sign", "parked_car", "cloud"] as const) {
+  for (const forbiddenProp of ["parked_car", "cloud"] as const) {
     if (propKinds.has(forbiddenProp)) {
       hardBlockers.push({ axis: "boundary", code: `FORBIDDEN_${forbiddenProp.toUpperCase()}`, message: `Scene emits forbidden decorative prop ${forbiddenProp}.` });
     }

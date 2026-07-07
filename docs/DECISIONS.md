@@ -652,6 +652,32 @@ auth ownership, idempotency, and webhook-confirmed subscription state would
 turn a promising product idea into a fragile backend. The scaffold makes the
 map-first upgrade path real while preserving the hard gates.
 
+## Decision 079: Generated visual proof must pass without map labels
+
+Generated district previews now suppress rendered place labels through an
+explicit `CityWorldRenderer` prop in generated mode. Public Riverside keeps its
+current label behavior, but generated visual proof cannot depend on visible
+place names to explain object identity.
+
+Reason:
+The 0.72H candidate was numerically better but still showed labels such as
+"Neighborhood" and "Commercial row." That makes the art proof too easy to fake:
+the scene must read from silhouette, roof/eave grammar, material separation,
+lots, roads, and density before text explains it.
+
+Accepted consequence:
+Generated widget proof now asserts `data-qa-place-labels="suppressed"` and the
+generated parity verifier now includes residential roof safety. Tiny/tall hip
+cottages are blocked from the generated template pool because they create
+skewed roof reads at mobile scale.
+
+Still blocked:
+- Public Anaheim/Ontario promotion.
+- Provider-created geometry.
+- New MCP tools.
+- Hosted Clawd, DB persistence, Stripe, OAuth, XP, evidence, automation,
+  reports, or exports.
+- Cars, humans, decorative clutter, dashboard UI, or labels as art crutches.
 ## Decision 078: Clawd is product state, not a map mascot
 
 The Fable visual branch removes the Clawd panda/mascot from rendered map actor

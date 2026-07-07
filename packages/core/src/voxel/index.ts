@@ -11,8 +11,8 @@ export * from "./cityWorldPaletteRegistry.js";
 export * from "./cityWorldAtlas.js";
 export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistrictPlaceAnchorDraftCityWorldScene, withBuildingMetadata, withCityWorldTerrainContactMetadata, withLotMetadata, withRoadMetadata, withPropMetadata } from "./cityWorldCompiler.js";
 export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./cityWorldCompiler.js";
-export { generateParametricCityWorldScene, exampleParametricDistrictSpec } from "./cityWorldParametricGenerator.js";
-export type { CityWorldParametricSpec, CityWorldParametricResult, CityWorldZoneSpec, CityWorldZoneKind, CityWorldRoadSeed } from "./cityWorldParametricGenerator.js";
+export { generateParametricCityWorldScene, exampleParametricDistrictSpec, analyzeGeneratedDistrictParity } from "./cityWorldParametricGenerator.js";
+export type { CityWorldParametricSpec, CityWorldParametricResult, CityWorldZoneSpec, CityWorldZoneKind, CityWorldRoadSeed, CityWorldGeneratedDistrictParityReport, CityWorldGeneratedFrameBandDensity, CityWorldGeneratedPadMetric } from "./cityWorldParametricGenerator.js";
 export {
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
   createDeterministicGeneratedDistrictScene,

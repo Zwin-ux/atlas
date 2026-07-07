@@ -111,3 +111,19 @@ fills its authored 6.1-tile lot). The REMAINING parity gaps are all
 Acceptance: a generated district passes the same eyeball bar + diagnostics as
 curated Eastvale; the honesty banner stays; verifiers stay green. This is a
 core-package pass (compiler + tests), sized like 0.53E.
+
+### 0.57E resolution (2026-07-05, BUILD_LOG Entry 087)
+
+All five findings closed. (1) Commerce: generator authors road-facing strip
+ROWS (one wide elastic storefront strip per row segment, capped near Plaza
+Row's 6.1 tiles) instead of a shop grid — the toy-box read is gone. (2) Empty
+lot rings were the first-paint selection ringing a whole home_area place:
+CityWorldView now resolves selection against places in the ACTIVE scene and
+honors the generated scene's landmark HUD default; every grid parcel also
+authors a building (spec-first parcels), so only park/water soft lots are
+building-less. (3) Density: raised residential fill + east strip, south
+court, and south commons zones fill the frame. (4) Roof misregistration: the
+gym's three sawtooth stroke generations now clamp under the local eave line
+of the iso roof diamond. (5) Apartment windows: columns sit on the front-left
+face (per-column eave drop, rows divide real wall height). Evidence in
+`artifacts/0.57e-parity/` (iter1 before / final-generated after).

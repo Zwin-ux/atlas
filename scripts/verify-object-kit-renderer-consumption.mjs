@@ -4,7 +4,7 @@ import process from "node:process";
 
 const root = process.cwd();
 const jsonOnly = process.argv.includes("--json-only");
-const UPDATE = "postalpha-0.35e-object-kit-renderer-consumption-commerce-strip-fix";
+const UPDATE = "prealpha-0.74f-wall-plane-facade-consumption";
 const blockers = [];
 const warnings = [];
 
@@ -36,18 +36,22 @@ function rejectText(fileKey, pattern, message) {
   if (matched) blockers.push(message);
 }
 
-requireText("renderer", "building.objectKit?.prefabFamily === \"commerce_strip\"", "Renderer must key commerce-strip read from building.objectKit prefab metadata.");
-requireText("renderer", "function drawObjectKitCommerceStripRead", "Renderer must expose focused drawObjectKitCommerceStripRead helper.");
-requireText("renderer", "drawObjectKitCommerceStripRead(layer, geometry, building)", "Renderer must call drawObjectKitCommerceStripRead.");
-requireText("renderer", "sharedStorefrontApron", "Commerce helper must draw a shared storefront apron.");
-requireText("renderer", "glassRecesses", "Commerce helper must draw recessed storefront glass.");
-requireText("renderer", "signMounts", "Commerce helper must draw non-text sign-mount geometry.");
-requireText("renderer", "parapetCap", "Commerce helper must draw a thicker parapet/eave read.");
-requireText("renderer", "foundationShadow", "Commerce helper must ground the storefront with foundation/contact shadow.");
+// 0.74F contract revision: the per-family drawObjectKit*Read decal helpers
+// were retired in 0.73F (misregistered screen-space decals were the
+// ghost-facade defect). Commerce identity now renders through the wall-plane
+// facade system: isCommerceFacade routes commerce/civic/service families to a
+// registered storefront band + window grid drawn in wall-plane coordinates.
+requireText("renderer", "building.objectKit?.prefabFamily === \"commerce_strip\"", "Renderer must key commerce-strip detection from building.objectKit prefab metadata.");
+requireText("renderer", "function drawWallFacade", "Renderer must expose the wall-plane facade system.");
+requireText("renderer", "drawWallFacade(layer, geometry, building)", "Renderer must call drawWallFacade from the building shell path.");
+requireText("renderer", "function drawFacadeStorefront", "Facade system must draw a recessed ground-storey storefront band.");
+requireText("renderer", "function isCommerceFacade", "Facade system must route commerce/civic/service families to the storefront treatment.");
+requireText("renderer", "family === \"commerce_strip\"", "isCommerceFacade must include the commerce_strip object family.");
+requireText("renderer", "wallQuadPoints", "Facade elements must be authored in wall-plane coordinates (registration guarantee).");
 
-const helperCallCount = (source.renderer.match(/drawObjectKitCommerceStripRead\(layer, geometry, building\)/g) ?? []).length;
+const helperCallCount = (source.renderer.match(/drawFacadeStorefront\(/g) ?? []).length;
 if (helperCallCount < 2) {
-  blockers.push(`drawObjectKitCommerceStripRead must be used in sprite-backed and primitive paths; found ${helperCallCount} call(s).`);
+  blockers.push(`drawFacadeStorefront must be defined and called from the facade walls; found ${helperCallCount} reference(s).`);
 }
 
 requireText("objectKit", "weakestPrefabFamily", "Object-kit analyzer must still report weakest prefab family.");

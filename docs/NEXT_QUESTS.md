@@ -581,6 +581,46 @@ Proof:
 Next quest:
 `0.60H Persistence Foundation`.
 
+## Branch-local generated visual gate (2026-07-06, `fable/0.58e-prop-cleanup`)
+
+Current quest:
+`0.72H-b Fable Roof / No-Label Cleanup Gate`.
+
+Player-facing promise:
+Generated district previews stop leaning on visible place labels and house roofs
+read cleaner at desktop and 390x844 mobile scale.
+
+Engineering promise:
+Generated preview labels are suppressed through an explicit renderer prop,
+residential generation avoids roof-unsafe tiny/tall home specs, and generated
+parity/browser verifiers fail if labels or unsafe residential roofs return.
+
+Contract:
+- Generated mode passes `suppressPlaceLabels` to `CityWorldRenderer`.
+- Public Riverside label behavior is unchanged.
+- Generated homes stay non-playable, synthetic, provider-free, and
+  session-only.
+- Residential roof safety is checked numerically at the generated-scene seam.
+- Browser proof must show `data-qa-place-labels="suppressed"` in generated mode.
+
+Metric / verifier:
+- `node scripts\verify-generated-district-parity.mjs --json-only`
+- `node scripts\verify-generated-district-widget.mjs --url http://127.0.0.1:8793/preview --screenshots artifacts\0.72h-b-roof-label-cleanup\screens --json-only`
+
+Proof:
+`artifacts/0.72h-b-roof-label-cleanup/FABLE_RESULT.md`.
+
+Anti-scope:
+No backend, Railway, DB/Auth, Stripe, MCP tool surface, provider geometry,
+public paid claims, cars, humans, dashboards, broad UI, public Anaheim/Ontario,
+or public playable county promotion.
+
+Next visual-engine move:
+`0.72H-c Residential Object-Kit Authorship Pass`: replace the remaining
+procedural house-detail feel with a smaller set of authored cottage/ranch/
+rowhome modules and closer no-label desktop/mobile crops before broadening the
+district again.
+
 ## Engine track note (2026-07-04, `fable/0.52e-diorama-engine`)
 
 The 0.52E Diorama Engine super-pass ran (BUILD_LOG Entry 082). Atlas has ONE
@@ -742,6 +782,29 @@ provider, migration strategy, auth/account ownership model, idempotency tests,
 and first persisted object. Do not implement DB or Stripe until those choices
 are explicit.
 
+## Branch-local Fable pass (2026-07-05, `fable/0.58e-prop-cleanup`, second slice)
+
+`0.58E Generated District Parity + Numeric Proof` is locally green (BUILD_LOG
+Entry 088). Generated-district quality is now gated numerically, not by
+screenshot vibes: `node scripts\verify-generated-district-parity.mjs
+--json-only` runs 9 gates (pad honesty, footprint fill, roof/eave
+registration, apartment facade bounds, commerce strip routing/massing,
+desktop+mobile lower-frame density) plus a built-in detection proof that
+re-introduces each known 0.57E failure mode into a degraded scene and asserts
+its gate fires. Core seam API: `analyzeGeneratedDistrictParity` in
+`packages/core/src/voxel/cityWorldParametricGenerator.ts` (tests in
+`packages/core/test/city-world-parametric-parity.test.ts`). Evidence:
+`artifacts/0.58e-generated-parity-plus/`.
+
+Next visual-engine blocker (named by the curated reference readout): the
+generated commercial zones still paint bare plaza-apron terrain much larger
+than their strip rows (curated pad-fill mean 0.993 vs generated 0.719), and
+the generated palette leans on saturated rooftop units where curated
+Riverside reads calmer. A future slice should shrink commercial-zone apron
+terrain to hug the strip rows — and gate the apron-to-strip terrain ratio at
+the generator seam so it cannot regress.
+
+## Current phase
 Fable takeover status:
 - The Fable product-submission lane is now locally controlled by Axiom/Codex,
   with Claude stopped and the Fable commit preserved as

@@ -138,6 +138,7 @@ export {
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
   deterministicGeneratedDistrictSeedForCounty,
+  analyzeGeneratedDistrictParity,
   analyzeCityWorldScene,
   analyzeCityWorldObjectKit,
   assignCityWorldObjectKit,
@@ -160,8 +161,10 @@ export {
   CITY_WORLD_SCENE_WINDOW_BUDGETS,
   CITY_WORLD_SCENE_WINDOW_DEFAULT_CHUNK_SIZE,
   buildCityWorldRenderCommandBuffer,
+  buildCityWorldSceneItemIndex,
   compileCityWorldSceneChunkIndex,
   compileCityWorldSceneWindow,
+  createCityWorldSceneWindowCompiler,
   deriveCityWorldMobileOcclusion,
   deriveCityWorldTerrainMap,
   evaluateCityWorldMobileLodBudget,
@@ -190,6 +193,9 @@ export type {
   CityWorldZoneSpec,
   CityWorldZoneKind,
   CityWorldRoadSeed,
+  CityWorldGeneratedDistrictParityReport,
+  CityWorldGeneratedFrameBandDensity,
+  CityWorldGeneratedPadMetric,
 } from "./voxel/cityWorldParametricGenerator.js";
 export type {
   DeterministicGeneratedDistrictInput,
@@ -306,6 +312,7 @@ export type {
 export type {
   CityWorldSceneChunk,
   CityWorldSceneChunkIndex,
+  CityWorldSceneItemIndex,
   CityWorldSceneWindow,
   CityWorldSceneWindowBudget,
   CityWorldSceneWindowBudgetProfileId,

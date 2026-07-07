@@ -93,8 +93,14 @@ export function CityWorldView({
     },
     [generatedScene, notes, scene, selectedDistrictId, selectedPlaceId, stickers],
   );
-  const activePlaceId = selectedPlaceId ?? cityScene.hudDefaults.selectedPlaceId;
-  const activePlace = cityScene.places.find((place) => place.id === activePlaceId) ?? cityScene.places[0];
+  // 0.57E parity — resolve selection against places that exist in THIS scene:
+  // in generated mode the widget-state place id belongs to the county scene,
+  // and falling through to places[0] selected a many-building home_area that
+  // ringed every house on first paint. The authored HUD default (the landmark)
+  // is the scene's own first-paint choice.
+  const requestedPlace = cityScene.places.find((place) => place.id === selectedPlaceId);
+  const hudDefaultPlace = cityScene.places.find((place) => place.id === cityScene.hudDefaults.selectedPlaceId);
+  const activePlace = requestedPlace ?? hudDefaultPlace ?? cityScene.places[0];
   const placePins = activePlace ? cityScene.pins.filter((pin) => pin.placeId === activePlace.id) : [];
   const worldStickers = scene.world?.stickers ?? [];
   const worldNotes = scene.world?.notes ?? [];
@@ -144,6 +150,7 @@ export function CityWorldView({
           selectedPlaceId={activePlace?.id}
           cameraPresetId={cameraPresetId}
           debugMode={debugMode}
+          suppressPlaceLabels={isGeneratedMode}
           onSelectPlace={isGeneratedMode ? () => undefined : onSelectPlace}
         />
       </Suspense>

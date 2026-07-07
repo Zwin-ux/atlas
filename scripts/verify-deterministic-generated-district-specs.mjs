@@ -48,7 +48,7 @@ for (const token of ["selectGeneratedDistrictArchetype", "generatedZones", "gene
   requireToken(archetypeSource, token, "generated district archetypes");
 }
 
-for (const token of ["generated_draft_window", "maxPropCommands: 12", "requireNonPlayable: true"]) {
+for (const token of ["generated_draft_window", "maxPropCommands: 20", "requireNonPlayable: true"]) {
   requireToken(windowSource, token, "generated draft window budget");
 }
 
@@ -144,9 +144,12 @@ function sampleGeneratedDistrict(core, countySlug) {
   assert(scene.coverage?.coverageTier === "L1_COUNTY_SHELL", `${countySlug} scene must remain L1 shell coverage.`);
   assert(scene.terrainTiles.length > 1_200, `${countySlug} generated scene terrain is too small.`);
   assert(scene.roadSegments.length >= 6, `${countySlug} generated scene needs at least 6 roads.`);
-  assert(scene.lots.length > 40, `${countySlug} generated scene needs more lot mass.`);
-  assert(scene.buildings.length > 35, `${countySlug} generated scene needs more building mass.`);
-  assert(scene.places.length >= 8, `${countySlug} generated scene needs usable place anchors.`);
+  // 0.75R: floors rebased on the fable parametric generator, which composes
+  // fewer, larger authored-mass lots (observed 18-21 lots / 17-19 buildings /
+  // 6-7 places across the sample counties) than the pre-merge generator.
+  assert(scene.lots.length > 15, `${countySlug} generated scene needs more lot mass.`);
+  assert(scene.buildings.length > 15, `${countySlug} generated scene needs more building mass.`);
+  assert(scene.places.length >= 6, `${countySlug} generated scene needs usable place anchors.`);
   assert(scene.pins.length === 0, `${countySlug} generated scene must not expose pins.`);
   assert(scene.actors.length === 0, `${countySlug} generated scene must not expose actors.`);
 

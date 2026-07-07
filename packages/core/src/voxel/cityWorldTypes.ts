@@ -166,6 +166,19 @@ export type CityWorldTerrainContactGrammar = {
   waterEdgeSides?: CityWorldTileEdge[];
 };
 
+// ---- Terrain relief (0.74F) -------------------------------------------------
+// Continuous heightGrid relief quantized to block-granularity z levels,
+// authored by the GENERATOR. The renderer consumes dropSides/dropDepth to
+// extrude stacked cliff courses — it never scans neighbors itself.
+export type CityWorldTileElevationGrammar = {
+  /** Quantized tile elevation in z units (0, 0.5, 1). */
+  z: number;
+  /** Edges whose neighbor tile sits lower than this tile. */
+  dropSides: CityWorldTileEdge[];
+  /** Largest z drop across dropSides, in z units. */
+  dropDepth: number;
+};
+
 export type CityWorldObjectFamily =
   | "residential_kit"
   | "commerce_strip"
@@ -256,6 +269,7 @@ export type CityWorldVisualGrammar = {
   roadContact?: CityWorldRoadContactGrammar;
   lotContact?: CityWorldLotContactGrammar;
   terrainContact?: CityWorldTerrainContactGrammar;
+  elevation?: CityWorldTileElevationGrammar;
 };
 
 export type CityWorldRegion = {
@@ -356,7 +370,10 @@ export type CityWorldPropKind =
   | "sign"
   | "parked_car"
   | "water_shimmer"
-  | "cloud";
+  | "cloud"
+  | "dock"
+  | "boat"
+  | "water_tower";
 
 export type CityWorldProp = {
   id: string;
