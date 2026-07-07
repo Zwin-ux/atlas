@@ -3823,10 +3823,31 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const right = polygon(rightSide, sideRight, 1, outline, activeStrokeAlpha);
   layer.addChild(left, right);
   drawBuildingShellLighting(layer, geometry);
+  drawWallBlockCourses(layer, geometry, building);
   drawWallFacade(layer, geometry, building);
 
   drawRoof(layer, geometry, building);
   drawTieredMassing(layer, geometry, building);
+}
+
+// 0.74F chunky treatment — one horizontal course line per storey across each
+// wall, in wall-plane coordinates: the box reads as stacked voxel courses
+// instead of a single extrusion. Inset-only (lines live ON the wall quads).
+function drawWallBlockCourses(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const floors = Math.max(1, Math.round(building.height));
+  if (floors < 2 || geometry.height < 22) return;
+  const courses = new Graphics();
+  for (const side of ["sun", "shade"] as const) {
+    const surface = wallSurface(geometry, side);
+    for (let floor = 1; floor < floors; floor += 1) {
+      const v = (surface.heightPx / floors) * floor;
+      const from = wallPoint(surface, 0, v);
+      const to = wallPoint(surface, 1, v);
+      courses.moveTo(from.x, from.y).lineTo(to.x, to.y);
+    }
+  }
+  courses.stroke({ color: shadeColor(geometry.bodyColor, -26), alpha: 0.15, width: 1, cap: "butt" });
+  layer.addChild(courses);
 }
 
 // ---- Wall-plane facade system ----------------------------------------------
@@ -4007,7 +4028,10 @@ function hasHeroTieredCrown(building: CityWorldBuilding): boolean {
 function drawTieredMassing(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
   const family = building.visualGrammar?.objectFamily;
   const isAnchor = family === "civic_landmark" || family === "venue_anchor" || family === "transit_anchor";
-  if (!isAnchor || building.height < 1.9) return;
+  // 0.74F chunky treatment — tall apartment slabs also get one restrained
+  // setback tier, so towers read stepped instead of extruded.
+  const tallLowrise = family === "lowrise_cluster" && building.height >= 2.4;
+  if ((!isAnchor && !tallLowrise) || building.height < 1.9) return;
 
   const { top, footprintWidth, footprintDepth, bodyColor, roofColor } = geometry;
   // 0.53E item C — the hero landmark (typed via civicGeometry.focusTarget) gets
@@ -4134,6 +4158,12 @@ function drawBuildingShellLighting(layer: Container, geometry: BuildingGeometry)
 
   const cornerSeam = new Graphics().moveTo(topFront.x, topFront.y).lineTo(bottomFront.x, bottomFront.y);
   cornerSeam.stroke({ color: 0x18262e, alpha: 0.2, width: 1.2, cap: "round" });
+  // Sun-corner pillar: a vertical highlight on the sun-facing outer edge —
+  // the "lit block corner" cue that separates the box from its neighbors.
+  cornerSeam
+    .moveTo(bottom.x - halfW, bottom.y)
+    .lineTo(top.x - halfW, top.y)
+    .stroke({ color: 0xfff4d6, alpha: 0.32, width: 1.3, cap: "round" });
 
   const rim = new Graphics().moveTo(top.x - halfW, top.y).lineTo(topFront.x, topFront.y);
   rim.stroke({ color: 0xfff4d6, alpha: 0.7, width: 1.7, cap: "round" });
@@ -4322,6 +4352,15 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
       .moveTo(top.x, top.y - 24)
       .lineTo(top.x, top.y - 3);
   } else {
+    // 0.74F chunky treatment — flat roofs step: a darker inner well between
+    // the roof rim and a RAISED inset cap deck. The lid reads as stacked
+    // voxel slabs instead of a flush sticker. Inset-only (never past eaves).
+    lines
+      .poly(diamondPoints(top, footprintWidth * 0.86, footprintDepth * 0.82), true)
+      .fill({ color: shadeColor(sunlitColor(roofColor, "top"), -16) });
+    lines
+      .poly(diamondPoints({ x: top.x, y: top.y - 2.5 }, footprintWidth * 0.7, footprintDepth * 0.64), true)
+      .fill({ color: sunlitColor(shadeColor(roofColor, 8), "top") });
     lines.poly(diamondPoints(top, footprintWidth * 0.72, footprintDepth * 0.64), true);
   }
   lines.stroke({ color: shadeColor(roofColor, -44), alpha: 0.38, width: 1.5, cap: "round", join: "round" });
