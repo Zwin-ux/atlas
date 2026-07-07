@@ -375,6 +375,14 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   const [hoverPlaceId, setHoverPlaceId] = useState<string | undefined>();
   const [atlasTextures, setAtlasTextures] = useState<CityWorldTextureMap>({});
   const [windowRefreshKey, setWindowRefreshKey] = useState(0);
+  // Perf counters surfaced on __ATLAS_QA__.perf so browser verifiers can gate
+  // "hover must not rebuild the scene" and "idle must not render".
+  const perfRef = useRef({ sceneRebuilds: 0, lastRebuildMs: 0, overlayRedraws: 0, renderedFrames: 0 });
+  // Focus-overlay animations (selection pulse) live apart from scene ambient
+  // animations so the overlay can clear its own targets without touching the
+  // scene's, and vice versa.
+  const focusAnimatedRef = useRef<AnimatedTarget[]>([]);
+  const renderLoopRef = useRef({ active: true });
 
   useImperativeHandle(ref, () => ({
     zoomIn: () => zoomBy(1.12),
@@ -444,15 +452,34 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       worldRef.current = world;
       app.stage.addChild(world);
       // QA hook: verifiers and browser QA sessions bisect draw layers through
-      // this handle (e.g. hide propLayer to attribute a visual artifact).
-      (window as unknown as Record<string, unknown>).__ATLAS_QA__ = { app, world };
+      // this handle (e.g. hide propLayer to attribute a visual artifact) and
+      // gate perf behavior through the counters.
+      const countGraphics = (container: Container): number =>
+        container.children.reduce((sum, child) => sum + 1 + (child instanceof Container ? countGraphics(child) : 0), 0);
+      (window as unknown as Record<string, unknown>).__ATLAS_QA__ = {
+        app,
+        world,
+        perf: {
+          get sceneRebuilds() { return perfRef.current.sceneRebuilds; },
+          get lastRebuildMs() { return perfRef.current.lastRebuildMs; },
+          get overlayRedraws() { return perfRef.current.overlayRedraws; },
+          get renderedFrames() { return perfRef.current.renderedFrames; },
+          animatedTargetCount: () => animatedRef.current.length + focusAnimatedRef.current.length,
+          loopParked: () => !renderLoopRef.current.active,
+          graphicsCount: () => countGraphics(world),
+        },
+      };
       try {
         app.stage.filters = [createAtlasGradeFilter()];
         app.stage.filterArea = app.screen;
       } catch (error) {
         console.warn("Atlas golden-hour grade filter unavailable. Continuing without post grade.", error);
       }
-      app.ticker.add((ticker) => animateTargets(animatedRef.current, ticker.deltaTime));
+      app.ticker.add((ticker) => {
+        animateTargets(animatedRef.current, ticker.deltaTime);
+        animateTargets(focusAnimatedRef.current, ticker.deltaTime);
+        perfRef.current.renderedFrames += 1;
+      });
       setReady(true);
     }
 
@@ -563,9 +590,12 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     if (!ready || !app || !world || !mount) return;
     const activeCameraPresetId = resolveCameraPresetId(scene, cameraPresetId, mount.clientWidth);
     const viewportFrame = rendererViewportFrame(mount, cameraRef.current, activeCameraPresetId, STREAMING_WINDOW_MARGIN_TILES);
+    const rebuildStart = performance.now();
     const sceneWindowFrame = drawScene(world, scene, activeCameraPresetId, viewportFrame, selectedPlaceId ?? scene.hudDefaults.selectedPlaceId, hoverPlaceId, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
       if (!movedRef.current) selectPlaceRef.current(placeId);
     }, setHoverPlaceId, animatedRef.current);
+    perfRef.current.sceneRebuilds += 1;
+    perfRef.current.lastRebuildMs = Math.round((performance.now() - rebuildStart) * 10) / 10;
     const qaHandle = (window as unknown as Record<string, unknown>).__ATLAS_QA__ as Record<string, unknown> | undefined;
     if (qaHandle) qaHandle.scene = scene;
     activeWindowFrameRef.current = sceneWindowFrame;
