@@ -30,7 +30,7 @@ function parseSubmission() {
     typeof submission.app_info?.description === "string" &&
       submission.app_info.description.includes("voxel city map") &&
       submission.app_info.description.includes("session-only") &&
-      submission.app_info.description.includes("do not save state"),
+      submission.app_info.description.includes("saves no state"),
     "Submission description must explain map shape, session-only state, and Alpha limits.",
   );
 
