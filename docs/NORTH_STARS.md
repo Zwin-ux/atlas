@@ -172,25 +172,39 @@ richness — more camera intents wired to more question shapes.
 
 ---
 
-## NS-6 · Scale — one world model, every county
+## NS-6 · The USA Region — every county at the curated bar
 
-**Ideal:** the ladder county → state → country climbs without a quality cliff.
-Adding a county is data, not code — and it opens at NS-1 quality inside NS-2
-budgets on day one.
+**Ideal:** *(redefined by user directive, 2026-07-07: "we are making the USA
+region — everything high-quality curated, not just Riverside.")* All 3,222
+indexed counties open at the curated bar. Generated is not a second-class
+draft tier; Riverside is the reference implementation the generator must
+match, county by county.
 
 **You've hit it when:**
-- Any supported California county opens at parity-gate quality with zero
-  county-specific renderer code.
-- The Graphics ceiling and rebuild gate hold at the *largest* supported
-  county, not the average one.
-- Curated Riverside is the reference implementation, not a special case — the
-  generated path shares its compiler, grammar, and gates.
+- A generated county passes the NS-1 crop test against curated Eastvale —
+  "which one is curated?" has no reliable answer, for ANY county.
+- County identity reads through: coastal counties read coastal, desert reads
+  desert, metro reads metro — the archetype system (metro/coastal/river/
+  desert/mountain/prairie) carries region-true palettes, massing, landmarks,
+  and terrain, not six templates × jitter.
+- Parity gates are promoted from floors to curated-equivalence, and run as a
+  batch sweep across the full county index (the 120-county probe pattern:
+  generation 5.8ms mean, 0 window-budget failures — the infrastructure
+  already scales to all 3,222).
+- The Graphics ceiling and rebuild gate hold at the *largest* county, not the
+  average one; `_meta` transport (~780KB/scene) is profiled against real
+  ChatGPT host limits and mitigated (packet compression or window-on-demand)
+  if it pinches.
+- Honesty is unchanged: synthetic never claims real geometry (NS-4) — the
+  quality rises, the claim does not.
 
-**Enforced by:** parity verifier on generated output, deterministic fabric and
-diversity tests, the perf ceiling.
+**Enforced by:** parity verifier promoted to curated-equivalence thresholds,
+full-index batch sweep, deterministic fabric/diversity tests, the perf
+ceiling.
 
-**Current:** proof cell + parity-gated generation. The ladder's next rung
-(multi-county generated coverage) is product work, not engine work.
+**Current:** proof cell + parity-gated generation at draft bar. This north
+star is now the primary post-ship product program (0.76+ series): deepen the
+archetypes, raise the gates, batch-verify the index.
 
 ---
 
