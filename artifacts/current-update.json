@@ -1,29 +1,57 @@
 {
-  "id": "postalpha-0.75c-1-prop-building-depth-interleave",
-  "name": "Post-Alpha 0.75C-1 - Prop / Building Depth Interleave",
-  "status": "implemented_non_browser_green_build_blocked",
-  "playerPromise": "Allowed props respect building massing at detail zoom: props behind buildings draw behind them, and props in front remain visible.",
-  "engineeringPromise": "Buildings and props render through one shared Pixi depth stack keyed by existing iso depth helpers, while buildingLayer and propLayer remain QA-visible handles.",
-  "axis": "renderer_depth_order",
+  "id": "postalpha-0.75c-2-denser-residential-fabric",
+  "name": "Post-Alpha 0.75C-2 - Denser Residential Fabric",
+  "status": "implemented_core_green_browser_replay_pending",
+  "playerPromise": "Generated neighborhoods read as tighter small-house town fabric with more varied homes and fewer empty lot gaps.",
+  "engineeringPromise": "Residential parcel packing is denser through generator parameters and safer small-home templates, without renderer/compiler contract changes.",
+  "axis": "generated_residential_fabric",
   "contract": [
-    "Building and prop visual groups parent into buildingPropDepthLayer.",
-    "Building depth key is x + y + max(width, depth) * 0.001.",
-    "Prop depth key is anchor x + y.",
-    "Equal-depth ties draw buildings before props.",
-    "buildingLayer and propLayer remain discoverable from window.__ATLAS_QA__.world.children and hide their matching groups independently.",
-    "Hover and selection remain focusLayer-only and do not rebuild the base scene."
+    "Residential zones use a tighter parcel cell and a higher density floor.",
+    "Residential templates favor smaller cottages, compact ranches, and narrower rowhomes with palette and roof variation.",
+    "Generated home roof safety remains zero unsafe homes.",
+    "Home clone pressure remains <= 0.30.",
+    "Corner-store module code and thresholds remain unchanged.",
+    "Authored Riverside, curated props, forbidden prop kinds, maxPropCommands, and scene compiler contracts remain unchanged."
   ],
   "metricResult": {
-    "coreDepthOrderProof": {
-      "passed": true,
-      "test": "packages/core/test/city-world-render-commands.test.ts",
-      "assertion": "prop behind building sorts earlier; prop at equal depth sorts after building; prop in front sorts later"
+    "representativeGeneratedDistrict": {
+      "sceneId": "city-world-parametric-sample-district",
+      "before": {
+        "homes": 20,
+        "homesPerResidentialArea": 0.106,
+        "buildings": 31,
+        "lots": 33,
+        "homeClonePressure": 0.1,
+        "firstViewportComposition": 0.671,
+        "emptyBoardRatio": 0,
+        "buildingLotContactRatio": 1,
+        "unsafeHomeRoofs": 0,
+        "totalRenderCommands": 1315,
+        "residentialDetailVisibleCommands": 113
+      },
+      "after": {
+        "homes": 38,
+        "homesPerResidentialArea": 0.202,
+        "buildings": 51,
+        "lots": 53,
+        "homeClonePressure": 0.10526315789473684,
+        "firstViewportComposition": 0.688,
+        "emptyBoardRatio": 0,
+        "buildingLotContactRatio": 1,
+        "unsafeHomeRoofs": 0,
+        "totalRenderCommands": 1355,
+        "residentialDetailVisibleCommands": 131
+      }
     },
     "nonBrowserVerification": {
+      "focusedCoreTest": "passed_99_total_core_tests_when_vitest_ran_all",
       "typecheckStarter": "passed",
-      "coreTests": "passed_98",
+      "coreTests": "passed_99",
+      "generatedDistrictParityJsonOnly": "passed",
       "generatedDistrictParity": "passed",
       "renderCommandLayerBudget": "passed",
+      "sceneWindowCompiler": "passed",
+      "dynamicWindowRefresh": "passed",
       "fablePropCleanup": "passed",
       "mobileOcclusion": "passed",
       "providerBoundaries": "passed",
@@ -35,16 +63,16 @@
       "roadsRoofsSceneGrammar": "passed",
       "strictEngineBetaSplitGuard": "passed"
     },
-    "blockedVerification": {
-      "buildWeb": "blocked_in_sandbox",
-      "buildWebError": "Esbuild reported Cannot read directory \"../..\": Access is denied, then could not resolve web/src/main.tsx even though direct Node and PowerShell file reads succeeded.",
-      "generatedDistrictWidget": "not_run_requires_fresh_build",
-      "widgetPerformance": "not_run_requires_fresh_build"
+    "browserVerification": {
+      "buildWeb": "reviewer_run_sandbox_blocks_esbuild",
+      "generatedDistrictWidget": "reviewer_run_requires_fresh_bundle",
+      "widgetPerformance": "reviewer_run_requires_fresh_bundle"
     },
     "scope": {
       "newDependencies": 0,
       "threeJs": false,
-      "generatorContractChanges": 0,
+      "authoredRiversideChanged": false,
+      "curatedPropsChanged": false,
       "sceneCompilerContractChanges": 0,
       "forbiddenPropKindChanges": 0,
       "maxPropCommandsChanged": false,
@@ -57,9 +85,11 @@
   "verification": {
     "typecheckStarter": "pnpm typecheck:starter",
     "coreTests": "pnpm test:core",
-    "buildWeb": "pnpm build:web",
     "generatedDistrictParity": "node scripts/verify-generated-district-parity.mjs",
+    "focusedCoreDensityRegression": "pnpm --dir packages/core test -- city-world-parametric-parity.test.ts",
     "renderCommandLayerBudget": "node scripts/verify-render-command-layer-budget.mjs",
+    "sceneWindowCompiler": "node scripts/verify-scene-window-compiler.mjs",
+    "dynamicWindowRefresh": "node scripts/verify-dynamic-window-refresh.mjs",
     "fablePropCleanup": "node scripts/verify-fable-prop-cleanup.mjs",
     "mobileOcclusion": "node scripts/verify-cityworld-mobile-occlusion.mjs",
     "providerBoundaries": "node scripts/verify-provider-boundaries.mjs",
@@ -69,13 +99,18 @@
     "objectAuthorshipSceneGrammar": "node scripts/verify-object-authorship-scene-grammar.mjs",
     "publicObjectKitPrefabPalette": "node scripts/verify-public-object-kit-prefab-palette.mjs",
     "roadsRoofsSceneGrammar": "node scripts/verify-roads-roofs-scene-grammar.mjs",
-    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only"
+    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only",
+    "reviewerRunBuildWeb": "pnpm build:web",
+    "reviewerRunGeneratedDistrictWidget": "node scripts/verify-generated-district-widget.mjs",
+    "reviewerRunWidgetPerformance": "node scripts/verify-widget-performance.mjs"
   },
-  "nextCodeStep": "0.75C-2 Browser Bundle / QA Replay",
+  "nextCodeStep": "0.75C-3 Browser Bundle / QA Replay",
   "forbiddenScope": [
+    "authored Riverside scene changes",
+    "curated prop changes",
     "new dependencies",
     "Three.js",
-    "generator or scene compiler contract changes",
+    "scene compiler contract changes",
     "forbidden prop-kind changes",
     "maxPropCommands cap changes",
     "new MCP tools",
@@ -84,26 +119,32 @@
     "paid, Stripe, OAuth, Hosted Clawd, XP, evidence, automation, reports, or exports",
     "provider-created geometry",
     "public Anaheim/Ontario exposure",
-    "cars, humans, decorative clutter, panels, glows, or label crutches"
+    "cars, humans, decorative clutter, panels, glows, labels, or dashboard UI"
   ],
   "gates": [
     {
-      "id": "depth-interleave",
-      "label": "Buildings and props sort by one shared iso painter key",
+      "id": "residential-density",
+      "label": "Representative generated district has >= 36 homes and >= 0.19 homes per residential zone area",
       "required": true,
       "status": "passed"
     },
     {
-      "id": "qa-layer-handles",
-      "label": "buildingLayer and propLayer remain independently hideable QA handles",
+      "id": "clone-pressure",
+      "label": "Home clone pressure <= 0.30",
       "required": true,
-      "status": "implemented_browser_replay_pending"
+      "status": "passed"
+    },
+    {
+      "id": "parity",
+      "label": "Generated district parity gates pass",
+      "required": true,
+      "status": "passed"
     },
     {
       "id": "browser-replay",
       "label": "Fresh bundle passes generated widget and widget performance verifiers",
       "required": true,
-      "status": "blocked_by_sandbox_build"
+      "status": "reviewer_run"
     }
   ]
 }

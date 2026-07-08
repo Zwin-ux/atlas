@@ -1,5 +1,64 @@
 # Build Log
 
+## Entry 196
+
+Quest:
+`0.75C-2 Denser Residential Fabric`.
+
+What changed:
+- Generated residential parcel packing now uses a tighter residential grid
+  (`1.95` tile cell) and a `0.90` density floor, while keeping commerce and the
+  corner-store rule on their existing behavior.
+- The residential template pool now leans into smaller cottages, compact
+  ranches, and narrower rowhomes with more palette/roof variation.
+- Apartment packing gets a small cell tightening (`2.75`) without changing the
+  apartment facade contract.
+- Added a deterministic core regression for generated homes per residential
+  zone area, roof safety, and clone-pressure ceiling.
+
+Proof:
+- Result packet:
+  `artifacts/0.75c-residential-fabric/CODEX_RESULT.md`.
+- Representative generated sample moved from 20 homes to 38 homes.
+- Homes per residential zone area moved from `0.106` to `0.202`.
+- Home clone pressure moved from `0.100` to `0.105`, still below the `0.30`
+  gate.
+
+Verification:
+- `pnpm --dir packages/core test -- city-world-parametric-parity.test.ts`
+  passed: 20 files, 99 tests. Vitest ran the whole core suite despite the
+  filename filter.
+- `pnpm typecheck:starter` passed.
+- `pnpm test:core` passed: 20 files, 99 tests.
+- `node scripts\verify-generated-district-parity.mjs --json-only` passed.
+- `node scripts\verify-generated-district-parity.mjs` passed.
+- `node scripts\verify-render-command-layer-budget.mjs` passed.
+- `node scripts\verify-scene-window-compiler.mjs` passed.
+- `node scripts\verify-dynamic-window-refresh.mjs` passed.
+- `node scripts\verify-fable-prop-cleanup.mjs` passed.
+- `node scripts\verify-cityworld-mobile-occlusion.mjs` passed.
+- `node scripts\verify-provider-boundaries.mjs` passed.
+- `node scripts\verify-tool-result-shape.mjs` passed.
+- `node scripts\verify-no-google-in-renderer.mjs` passed.
+- `node scripts\verify-object-kit-renderer-consumption.mjs` passed.
+- `node scripts\verify-object-authorship-scene-grammar.mjs` passed.
+- `node scripts\verify-public-object-kit-prefab-palette.mjs` passed.
+- `node scripts\verify-roads-roofs-scene-grammar.mjs` passed.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed.
+
+Reviewer-run verification:
+- `pnpm build:web`
+- `node scripts\verify-generated-district-widget.mjs`
+- `node scripts\verify-widget-performance.mjs`
+
+Anti-scope:
+No authored Riverside scene changes, no curated prop edits, no new
+dependencies, no Three.js, no scene compiler contract changes, no MCP changes,
+no forbidden prop-kind changes, no `maxPropCommands` cap change, no Hosted
+Clawd, DB/Auth, Stripe, provider geometry, public Anaheim/Ontario, cars, humans,
+labels, glows, panels, or dashboard/product drift.
+
 ## Entry 195
 
 Quest:

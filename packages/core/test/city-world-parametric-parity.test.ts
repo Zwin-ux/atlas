@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  analyzeCityWorldScene,
   analyzeGeneratedDistrictParity,
   exampleParametricDistrictSpec,
   generateParametricCityWorldScene,
@@ -64,6 +65,21 @@ describe("generated district parity diagnostics (0.58E)", () => {
       expect(band!.lowerFrameOccupancyRatio).toBeGreaterThan(0);
       expect(band!.lowerFrameOccupancyRatio).toBeLessThanOrEqual(1);
     }
+  });
+
+  it("keeps generated residential zones packed as small-house fabric (0.75C-2)", () => {
+    const spec = exampleParametricDistrictSpec();
+    const scene = generateParametricCityWorldScene(spec).scene;
+    const report = analyzeGeneratedDistrictParity(scene);
+    const diagnostics = analyzeCityWorldScene(scene, "playable");
+    const residentialArea = spec.zones
+      .filter((zone) => zone.kind === "residential")
+      .reduce((sum, zone) => sum + (zone.rect.maxX - zone.rect.minX) * (zone.rect.maxY - zone.rect.minY), 0);
+
+    expect(report.residentialRoofMetrics.homeCount).toBeGreaterThanOrEqual(36);
+    expect(report.residentialRoofMetrics.homeCount / residentialArea).toBeGreaterThanOrEqual(0.19);
+    expect(report.residentialRoofMetrics.unsafeRoofCount).toBe(0);
+    expect(diagnostics.metrics.homeClonePressure).toBeLessThanOrEqual(0.3);
   });
 
   it("flags empty pad rings when buildings are stripped from buildable lots", () => {

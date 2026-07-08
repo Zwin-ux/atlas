@@ -1,5 +1,33 @@
 # Decisions
 
+## Decision 081: Generated residential fabric uses tighter small-house packing
+
+Generated residential zones now use a tighter parcel rhythm and a higher
+density floor, paired with smaller cottages, compact ranches, and narrower
+rowhome templates. The goal is continuous small-house frontage along the street
+grid, not a sparse field of oversized homes.
+
+Reason:
+The generated district was passing basic parity but still read thin at
+neighborhood zoom. More houses from the old larger pool would raise clone
+pressure and roof-risk, so density had to move together with safer, more varied
+small-home templates.
+
+Accepted consequence:
+The representative generated sample carries more residential parcels and can
+let an additional large residential block qualify for the existing corner-store
+rule. The corner-store module itself, prop policy, scene compiler contract, and
+renderer contract are unchanged.
+
+Still blocked:
+- Authored Riverside scene changes for this generator-only slice.
+- Curated prop edits, forbidden prop-kind changes, or `maxPropCommands`
+  changes.
+- Three.js, new dependencies, scene compiler contract changes, or new MCP
+  tools.
+- Hosted Clawd, DB persistence, Stripe, OAuth, XP, evidence, automation,
+  reports, exports, provider geometry, or public Anaheim/Ontario promotion.
+
 ## Decision 080: Buildings and props share one iso depth stack
 
 Buildings and props now render as grouped children of one shared Pixi depth

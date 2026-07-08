@@ -20,6 +20,60 @@ The owner-gate / second-district ceremony below is **parked** but kept honest: `
 Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`
 stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only on human request.
 
+## Branch-local generated fabric gate (2026-07-08, `fable/0.58e-prop-cleanup`)
+
+Current quest:
+`0.75C-2 Denser Residential Fabric`.
+
+Player-facing promise:
+Generated neighborhoods read as tighter small-house town fabric: more varied
+cottages/ranches/rowhomes along the street grid, fewer empty-looking gaps.
+
+Engineering promise:
+Residential parcel packing is denser through generator parameters and a safer
+small-home template pool, without changing renderer/compiler contracts,
+authored Riverside, curated props, forbidden prop policy, or `maxPropCommands`.
+
+Contract:
+- Residential zones use a tighter cell and a higher density floor.
+- Home templates stay roof-safe and varied enough to keep clone pressure under
+  `0.30`.
+- Apartments may tighten slightly, but apartment facade bounds stay safe.
+- Corner-store module code remains unchanged.
+- Generated buildings still render through existing `CityWorldScene` and
+  object-kit metadata only.
+
+Metric / verifier:
+- `pnpm typecheck:starter`
+- `pnpm test:core`
+- `node scripts\verify-generated-district-parity.mjs`
+- Relevant node-side scene grammar verifiers.
+- Reviewer-run: `pnpm build:web`,
+  `node scripts\verify-generated-district-widget.mjs`,
+  `node scripts\verify-widget-performance.mjs`.
+
+Proof:
+`artifacts/0.75c-residential-fabric/CODEX_RESULT.md`.
+
+Current status:
+Implemented locally with non-browser verifiers green. Generated sample homes
+increased from 20 to 38; clone pressure remains below the `0.30` gate. Browser
+bundle/widget/performance replay remains reviewer-run because this sandbox
+blocks the required esbuild path.
+
+Anti-scope:
+No authored Riverside scene changes, curated prop changes, new dependencies,
+Three.js, scene compiler contract changes, forbidden prop-kind changes,
+`maxPropCommands` changes, MCP tool changes, provider geometry, Hosted Clawd,
+DB/Auth, Stripe, public Anaheim/Ontario promotion, cars, humans, labels, panels,
+glows, dashboard UI, or generic SaaS/product drift.
+
+Next visual-engine move:
+`0.75C-3 Browser Bundle / QA Replay`: rerun `pnpm build:web`, then
+`verify-generated-district-widget` and `verify-widget-performance` against the
+fresh bundle. If those pass, use the latest selector or human packet for the
+next renderer-quality slice.
+
 ## Branch-local renderer depth gate (2026-07-08, `fable/0.58e-prop-cleanup`)
 
 Current quest:
