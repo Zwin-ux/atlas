@@ -1,5 +1,60 @@
 # Build Log
 
+## Entry 217
+
+Quest:
+0.76-P Parameter Model Spine.
+
+What changed:
+- Added typed `CountyGenerationParameters` and pure
+  `resolveCountyParameters(county, seed)`.
+- Moved generated archetype profiles, base height grids, bonus zone/road
+  profiles, Census division mapping, region profiles, climate bands, name
+  signal tokens, and palette variant clamps into typed config tables.
+- Routed `createDeterministicGeneratedDistrictSpec` through the parameter
+  resolver.
+- Phase A was behavior-preserving: parity metrics matched 0.76-1 exactly, and
+  the identity sweep kept the same distribution and worst-pair readout.
+- Phase B activated bounded region/climate/name/seed modulators for palette
+  variant bias, density, relief, height bias, water affinity, and envelope
+  clamps.
+- Fixed the CA desert classifier bug: coastal CA now wins over the old coarse
+  desert box; CA desert drops from 28 counties to 5 inland arid counties.
+- Added core tests for resolver determinism, coastal-CA regression,
+  within-archetype diversity, and envelope coherence.
+
+Measured proof:
+- Phase A `node scripts/verify-generated-district-parity.mjs` matched baseline
+  parity tails exactly, including palette distinctness min `0.161`.
+- Phase A `node scripts/verify-archetype-identity-sweep.mjs` matched baseline
+  counts (`coastal_grid 675`, `desert_basin 105`) and worst pair `n/a = 0`;
+  timing varied only by wall-clock (`4.58ms` baseline, `4.41ms` Phase A).
+- Phase B `pnpm typecheck:starter` passed.
+- Phase B `pnpm test:core` passed: 22 files, 114 tests.
+- Phase B `node scripts/verify-generated-district-parity.mjs` passed with
+  palette distinctness min `0.161` and per-archetype max clone pressure
+  `0.175`.
+- Phase B `node scripts/verify-archetype-identity-sweep.mjs` passed:
+  `coastal_grid 703`, `desert_basin 77`, worst pair `n/a = 0`, 120-county mean
+  `4.43ms`, 0 failures.
+- Within-archetype diversity proof: `bay-fl` and `king-wa` both resolve
+  `coastal_grid` but score `7` across region, climate, name, palette, density,
+  relief, and water-affinity differences.
+- Envelope proof across all 3,222 counties: coastal/arid forbidden combos `0`;
+  subtropical snow-roof combos `0`.
+- Curated Riverside byte-identical: `packages/core/src/voxel/riversideDemoScene.ts`
+  SHA-256 stayed
+  `26BD1F477A244803D6D4B9DD763B69B150E73D1A183DF5C7713C02C9F11AC429`, with no
+  file diff.
+
+Decision:
+`COUNTY_PARAMETER_MODEL_SPINE_CONFIG_DRIVEN`.
+
+Skipped:
+Sandbox blocks esbuild/Chrome gates here. Reviewer should run `pnpm build:web`,
+`verify-generated-district-widget.mjs`, `verify-widget-performance.mjs`, and
+browser/screenshot verifiers.
+
 ## Entry 216
 
 Quest:

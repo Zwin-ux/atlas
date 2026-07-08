@@ -13,6 +13,7 @@ export type RegionalPalette = {
   archetype: GeneratedDistrictArchetype;
   body: readonly [string, string, string];
   roof: readonly [string, string, string];
+  variantOffset?: 0 | 1 | 2;
   terrainTone: {
     paletteKey: string;
     base: string;
@@ -110,7 +111,7 @@ export function resolveRegionalBuildingPalette(
   bodyIndex: number,
   roofIndex: number,
 ): { bodyColor: string; roofColor: string; paletteKey: string; variant: number } {
-  const variant = (bodyIndex + roofIndex) % palette.body.length;
+  const variant = (bodyIndex + roofIndex + (palette.variantOffset ?? 0)) % palette.body.length;
   return {
     bodyColor: colorAt(palette.body, variant),
     roofColor: colorAt(palette.roof, variant),

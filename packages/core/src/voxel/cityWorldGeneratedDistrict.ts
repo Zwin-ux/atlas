@@ -6,6 +6,7 @@ import {
   generatedZones,
   selectGeneratedDistrictArchetype,
 } from "./cityWorldGeneratedDistrictArchetypes.js";
+import { resolveCountyParameters } from "./cityWorldCountyParameters.js";
 import { deterministicGeneratedDistrictSeedForCounty } from "./cityWorldGeneratedDistrictSeed.js";
 import {
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
@@ -13,7 +14,6 @@ import {
   type DeterministicGeneratedDistrictSceneResult,
   type DeterministicGeneratedDistrictSpec,
 } from "./cityWorldGeneratedDistrictTypes.js";
-import { REGIONAL_PALETTES } from "./cityWorldRegionalPalettes.js";
 
 export {
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
@@ -24,6 +24,7 @@ export {
 } from "./cityWorldGeneratedDistrictTypes.js";
 export { deterministicGeneratedDistrictSeedForCounty } from "./cityWorldGeneratedDistrictSeed.js";
 export { selectGeneratedDistrictArchetype } from "./cityWorldGeneratedDistrictArchetypes.js";
+export { resolveCountyParameters } from "./cityWorldCountyParameters.js";
 
 export function createDeterministicGeneratedDistrictSpec(
   input: DeterministicGeneratedDistrictInput,
@@ -31,7 +32,8 @@ export function createDeterministicGeneratedDistrictSpec(
   const districtSlug = normalizeDistrictSlug(input.districtSlug ?? `${input.county.countySlug}-generated-district`);
   const districtLabel = input.districtLabel ?? `${input.county.name} Generated District`;
   const seed = deterministicGeneratedDistrictSeedForCounty(input);
-  const archetype = selectGeneratedDistrictArchetype(input.county, seed);
+  const parameters = resolveCountyParameters(input.county, seed);
+  const archetype = parameters.archetype;
   const spec: CityWorldParametricSpec = {
     id: `generated-${districtSlug}`,
     label: districtLabel,
@@ -42,10 +44,10 @@ export function createDeterministicGeneratedDistrictSpec(
       district: districtLabel,
     },
     size: { width: 44, height: 32 },
-    heightGrid: generatedHeightGrid(archetype, seed),
-    zones: generatedZones(archetype, seed),
-    roadSeeds: generatedRoadSeeds(archetype, seed),
-    regionalPalette: REGIONAL_PALETTES[archetype],
+    heightGrid: generatedHeightGrid(parameters, seed),
+    zones: generatedZones(parameters, seed),
+    roadSeeds: generatedRoadSeeds(parameters, seed),
+    regionalPalette: parameters.palette,
     seed,
   };
 

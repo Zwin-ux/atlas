@@ -11,25 +11,25 @@ permanent gates, stop and report the conflict.
 ## Current 0.76 USA-region quality track (2026-07-08)
 
 Current packet:
-`0.76-1 Regional Palettes` is local-green and waiting for reviewer-run
+`0.76-P Parameter Model Spine` is local-green and waiting for reviewer-run
 web/Chrome proof.
 
 Decision:
-`GENERATED_DISTRICTS_USE_COMPILER_AUTHORED_REGIONAL_PALETTES`.
+`COUNTY_PARAMETER_MODEL_SPINE_CONFIG_DRIVEN`.
 
 Proof:
+- `packages/core/src/voxel/cityWorldCountyParameters.ts`
 - `packages/core/src/voxel/cityWorldRegionalPalettes.ts`
-- `packages/core/src/voxel/cityWorldParametricGenerator.ts`
 - `packages/core/src/voxel/cityWorldGeneratedDistrict.ts`
+- `packages/core/src/voxel/cityWorldGeneratedDistrictArchetypes.ts`
 - `packages/core/test/city-world-generated-district.test.ts`
-- `scripts/verify-generated-district-parity.mjs`
-- `artifacts/0.76-1-regional-palettes/CODEX_RESULT.md`
+- `artifacts/0.76-P-parameter-spine/CODEX_RESULT.md`
 
 Next READY packet:
-`0.76-2 Region-true landmarks`.
+`0.76-2 Region-aware landmarks`.
 
 Queue:
-- READY: `0.76-2 Region-true landmarks`
+- READY: `0.76-2 Region-aware landmarks`
 - QUEUED: `0.76-3 Massing & zone variants`
 - QUEUED: `0.76-4 Terrain features`
 - QUEUED: `0.76-5 Gate promotion + batch sweep`
@@ -37,7 +37,7 @@ Queue:
 Anti-scope remains:
 No new dependencies, Three.js, provider geometry, persistence, money, new MCP
 tools, public Anaheim/Ontario promotion, generated public-playable claims, or
-geometry additions from the palette packet.
+renderer seam changes from the parameter-spine packet.
 
 ## Active product track (human-directed 2026-07-03)
 

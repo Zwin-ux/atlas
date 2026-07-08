@@ -27,7 +27,26 @@ export {
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
   deterministicGeneratedDistrictSeedForCounty,
+  resolveCountyParameters,
 } from "./cityWorldGeneratedDistrict.js";
+export {
+  ARCHETYPE_PROFILES,
+  NAME_SIGNAL_TOKENS,
+  REGION_PROFILES,
+  STATE_TO_DIVISION,
+} from "./cityWorldCountyParameters.js";
+export type {
+  AridityBand,
+  ArchetypeProfile,
+  CensusDivision,
+  CountyGenerationClimate,
+  CountyGenerationEnvelope,
+  CountyGenerationModulation,
+  CountyGenerationParameters,
+  LatitudeBand,
+  NameSignal,
+  RegionProfile,
+} from "./cityWorldCountyParameters.js";
 export type {
   DeterministicGeneratedDistrictInput,
   DeterministicGeneratedDistrictSceneResult,

@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
+  ARCHETYPE_PROFILES,
   GENERATED_DISTRICT_ARCHETYPES,
+  REGION_PROFILES,
   REGIONAL_PALETTES,
+  STATE_TO_DIVISION,
   compileCityWorldSceneWindow,
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
+  deterministicGeneratedDistrictSeedForCounty,
   evaluateCityWorldSceneWindowBudget,
+  resolveCountyParameters,
   resolveEffectiveBuildingColors,
   US_COUNTY_INDEX,
 } from "../src/index.js";
-import type { CityWorldScene, GeneratedDistrictArchetype } from "../src/index.js";
+import type { CensusDivision, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
 
 const PALETTE_DISTINCTNESS_FLOOR = 0.16;
 
@@ -28,6 +33,29 @@ describe("deterministic generated district specs", () => {
     expect(first.promotionBlocked).toBe(true);
     expect(first.spec.roadSeeds.length).toBeGreaterThanOrEqual(6);
     expect(first.spec.zones.length).toBeGreaterThanOrEqual(9);
+  });
+
+  it("resolves county parameters deterministically across all Census divisions", () => {
+    const sampleByDivision = new Map<CensusDivision, ReturnType<typeof county>>();
+    for (const candidate of US_COUNTY_INDEX) {
+      const division = STATE_TO_DIVISION[candidate.stateCode];
+      if (division && !sampleByDivision.has(division)) sampleByDivision.set(division, candidate);
+    }
+
+    expect([...sampleByDivision.keys()].sort()).toEqual(Object.keys(REGION_PROFILES).sort());
+
+    for (const [division, sampleCounty] of sampleByDivision) {
+      const seed = deterministicGeneratedDistrictSeedForCounty({ county: sampleCounty });
+      const first = resolveCountyParameters(sampleCounty, seed);
+      const second = resolveCountyParameters(sampleCounty, seed);
+
+      expect(first).toEqual(second);
+      expect(first.seed).toBe(seed);
+      expect(first.region).toBe(division);
+      expect(first.regionProfile).toEqual(REGION_PROFILES[division]);
+      expect(first.archetypeProfile).toEqual(ARCHETYPE_PROFILES[first.archetype]);
+      expect(first.palette.archetype).toBe(first.archetype);
+    }
   });
 
   it("produces bounded non-playable scenes that pass generated draft window budgets", () => {
@@ -68,8 +96,12 @@ describe("deterministic generated district specs", () => {
 
     for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
       const { generated, result } = createDeterministicGeneratedDistrictScene({ county: countyForArchetype(archetype) });
+      const parameters = resolveCountyParameters(county(generated.countySlug), generated.seed);
       expect(generated.archetype).toBe(archetype);
-      expect(generated.spec.regionalPalette).toEqual(REGIONAL_PALETTES[archetype]);
+      expect(generated.spec.regionalPalette).toEqual(parameters.palette);
+      expect(generated.spec.regionalPalette?.archetype).toBe(REGIONAL_PALETTES[archetype].archetype);
+      expect(generated.spec.regionalPalette?.body).toEqual(REGIONAL_PALETTES[archetype].body);
+      expect(generated.spec.regionalPalette?.roof).toEqual(REGIONAL_PALETTES[archetype].roof);
 
       const signature = dominantRegionalPaletteSignature(result.scene, archetype);
       expect(signature.terrainPaletteKey).toBe(REGIONAL_PALETTES[archetype].terrainTone.paletteKey);
@@ -87,6 +119,68 @@ describe("deterministic generated district specs", () => {
       }
     }
   });
+
+  it("keeps coastal California out of the coarse desert box", () => {
+    const coastalCalifornia = [
+      "los-angeles-ca",
+      "monterey-ca",
+      "orange-ca",
+      "san-diego-ca",
+      "san-francisco-ca",
+      "san-luis-obispo-ca",
+      "san-mateo-ca",
+      "santa-barbara-ca",
+      "santa-cruz-ca",
+      "ventura-ca",
+    ];
+
+    for (const countySlug of coastalCalifornia) {
+      const parameters = parametersForCounty(countySlug);
+      expect(parameters.archetype).toBe("coastal_grid");
+      expect(parameters.climate.aridity).not.toBe("arid");
+      expect(parameters.climate.inlandAridProxy).toBe(false);
+    }
+
+    const californiaDesert = US_COUNTY_INDEX.filter((candidate) => candidate.stateCode === "CA")
+      .filter((candidate) => createDeterministicGeneratedDistrictSpec({ county: candidate }).archetype === "desert_basin")
+      .map((candidate) => candidate.countySlug)
+      .sort();
+
+    expect(californiaDesert).toEqual(["imperial-ca", "inyo-ca", "kern-ca", "riverside-ca", "san-bernardino-ca"]);
+    expect(californiaDesert.length).toBeLessThan(28);
+  });
+
+  it("resolves measurable diversity within the same archetype across region, climate, and name", () => {
+    const bayFlorida = parametersForCounty("bay-fl");
+    const kingWashington = parametersForCounty("king-wa");
+
+    expect(bayFlorida.archetype).toBe("coastal_grid");
+    expect(kingWashington.archetype).toBe("coastal_grid");
+    expect(bayFlorida.region).not.toBe(kingWashington.region);
+    expect(bayFlorida.climate.latitudeBand).not.toBe(kingWashington.climate.latitudeBand);
+    expect(bayFlorida.nameSignal).toContain("bay");
+    expect(kingWashington.nameSignal).not.toContain("bay");
+    expect(parameterDiversityScore(bayFlorida, kingWashington)).toBeGreaterThanOrEqual(5);
+  });
+
+  it("clamps incoherent parameter envelopes", () => {
+    const sample = [
+      ...US_COUNTY_INDEX.filter((_, index) => index % 41 === 0),
+      ...["orange-ca", "san-diego-ca", "bay-fl", "imperial-ca", "miami-dade-fl", "king-wa"].map(county),
+    ];
+
+    for (const sampleCounty of sample) {
+      const parameters = parametersForCounty(sampleCounty.countySlug);
+      if (parameters.archetype === "coastal_grid" || parameters.climate.coastalProximity !== "inland") {
+        expect(parameters.climate.aridity).not.toBe("arid");
+        expect(parameters.climate.aridityScore).toBeLessThanOrEqual(0.5);
+      }
+      if (parameters.climate.latitudeBand === "tropical" || parameters.climate.latitudeBand === "subtropical") {
+        expect(parameters.climate.snowRoofAllowed).toBe(false);
+        expect(parameters.envelope.snowRoofSuppressed).toBe(true);
+      }
+    }
+  });
 });
 
 function county(countySlug: string) {
@@ -101,6 +195,25 @@ function countyForArchetype(archetype: GeneratedDistrictArchetype) {
   );
   if (!entry) throw new Error(`Missing county fixture for generated archetype ${archetype}`);
   return entry;
+}
+
+function parametersForCounty(countySlug: string): CountyGenerationParameters {
+  const sampleCounty = county(countySlug);
+  const seed = deterministicGeneratedDistrictSeedForCounty({ county: sampleCounty });
+  return resolveCountyParameters(sampleCounty, seed);
+}
+
+function parameterDiversityScore(first: CountyGenerationParameters, second: CountyGenerationParameters): number {
+  let score = 0;
+  if (first.region !== second.region) score += 1;
+  if (first.climate.latitudeBand !== second.climate.latitudeBand) score += 1;
+  if (first.climate.aridity !== second.climate.aridity) score += 1;
+  if (first.nameSignal.join("|") !== second.nameSignal.join("|")) score += 1;
+  if ((first.palette.variantOffset ?? 0) !== (second.palette.variantOffset ?? 0)) score += 1;
+  if (Math.abs(first.modulation.densityScale - second.modulation.densityScale) >= 0.01) score += 1;
+  if (Math.abs(first.modulation.reliefScale - second.modulation.reliefScale) >= 0.01) score += 1;
+  if (Math.abs(first.modulation.waterAffinity - second.modulation.waterAffinity) >= 0.1) score += 1;
+  return score;
 }
 
 type RegionalPaletteSignature = {

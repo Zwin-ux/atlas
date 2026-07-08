@@ -1,5 +1,35 @@
 # Decisions
 
+## Decision 101: County generation uses a config-driven parameter spine
+
+0.76-P adds a typed county parameter model for deterministic generated
+districts.
+
+Decision:
+Generated county identity resolves through
+`resolveCountyParameters(county, seed)` before spec assembly. The resolver
+composes archetype profile, Census division region profile, climate band and
+aridity proxy, lexical name signals, bounded palette/density/relief modulators,
+and seed into `CountyGenerationParameters`.
+
+Decision id:
+`COUNTY_PARAMETER_MODEL_SPINE_CONFIG_DRIVEN`.
+
+Reason:
+NS-6 cannot scale from six flat buckets plus jitter. The reviewable surface is
+now typed config: `ARCHETYPE_PROFILES`, `STATE_TO_DIVISION`,
+`REGION_PROFILES`, and `NAME_SIGNAL_TOKENS`. The generator stays a deterministic
+interpreter of parameters, and renderer contracts stay unchanged.
+
+Allowed next:
+- `0.76-2 Region-aware landmarks` as the next READY 0.76 packet, using the
+  parameter spine instead of reopening classifier or palette plumbing.
+
+Still blocked:
+- New dependencies, provider geometry, new MCP tools, persistence, money,
+  public Anaheim/Ontario, generated public-playable claims, reports, exports,
+  evidence, XP, automation, and renderer seam changes.
+
 ## Decision 100: Generated districts carry compiler-authored regional palettes
 
 0.76-1 adds typed regional palette identity for generated district archetypes.
