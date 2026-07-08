@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   buildCityWorldRenderCommandBuffer,
+  cityWorldBuildingDepthKey,
+  cityWorldPropDepthKey,
+  compareCityWorldDepthInterleaveItems,
   compileCityWorldScene,
   compileCountyShellCityWorldScene,
   compileDistrictPlaceAnchorDraftCityWorldScene,
@@ -11,6 +14,7 @@ import {
   parseDistrictPlaceAnchorPack,
   riversideDemoVoxelScene,
   type CityWorldActor,
+  type CityWorldBuilding,
   type CityWorldProp,
 } from "../src/index.js";
 
@@ -101,5 +105,57 @@ describe("CityWorld render commands", () => {
     expect(buffer.metrics.publicClutterCommandCount).toBe(2);
     expect(budget.passed).toBe(false);
     expect(budget.blockers.join("\n")).toContain("publicClutterCommandCount");
+  });
+
+  it("orders building and prop draw groups by shared iso depth", () => {
+    const building: CityWorldBuilding = {
+      id: "test-building",
+      kind: "shop",
+      label: "Test building",
+      position: { x: 10, y: 10, z: 0 },
+      width: 4,
+      depth: 3,
+      height: 2,
+      bodyColor: "#d7c59a",
+      roofColor: "#8b5f44",
+    };
+    const propBehind: CityWorldProp = {
+      id: "test-prop-behind",
+      kind: "tree",
+      position: { x: 9, y: 9, z: 0 },
+      variant: 0,
+    };
+    const propInFront: CityWorldProp = {
+      id: "test-prop-front",
+      kind: "bench",
+      position: { x: 13, y: 13, z: 0 },
+      variant: 1,
+    };
+    const propTied: CityWorldProp = {
+      id: "test-prop-tied",
+      kind: "sign",
+      position: {
+        x: 10,
+        y: cityWorldBuildingDepthKey(building) - 10,
+        z: 0,
+      },
+      variant: 2,
+    };
+
+    const ordered = [
+      { id: building.id, kind: "building" as const, depthKey: cityWorldBuildingDepthKey(building), sourceIndex: 0 },
+      { id: propBehind.id, kind: "prop" as const, depthKey: cityWorldPropDepthKey(propBehind), sourceIndex: 0 },
+      { id: propInFront.id, kind: "prop" as const, depthKey: cityWorldPropDepthKey(propInFront), sourceIndex: 1 },
+      { id: propTied.id, kind: "prop" as const, depthKey: cityWorldPropDepthKey(propTied), sourceIndex: 2 },
+    ].sort(compareCityWorldDepthInterleaveItems);
+
+    expect(ordered.map((item) => item.id)).toEqual([
+      "test-prop-behind",
+      "test-building",
+      "test-prop-tied",
+      "test-prop-front",
+    ]);
+    expect(ordered.findIndex((item) => item.id === propBehind.id)).toBeLessThan(ordered.findIndex((item) => item.id === building.id));
+    expect(ordered.findIndex((item) => item.id === propInFront.id)).toBeGreaterThan(ordered.findIndex((item) => item.id === building.id));
   });
 });

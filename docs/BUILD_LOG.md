@@ -906,6 +906,65 @@ Claude/Fable returned `PASS` for handing this to `0.58K Human Visual Gate /
 Deploy Readiness Decision`, with only non-blocking nits. `0.59H Hosted Clawd
 Storage/Auth Decision Packet` remains behind that visual/deploy gate.
 
+## Entry 196
+
+Quest:
+`0.75C-2 Denser Residential Fabric`.
+
+What changed:
+- Generated residential parcel packing now uses a tighter residential grid
+  (`1.95` tile cell) and a `0.90` density floor, while keeping commerce and the
+  corner-store rule on their existing behavior.
+- The residential template pool now leans into smaller cottages, compact
+  ranches, and narrower rowhomes with more palette/roof variation.
+- Apartment packing gets a small cell tightening (`2.75`) without changing the
+  apartment facade contract.
+- Added a deterministic core regression for generated homes per residential
+  zone area, roof safety, and clone-pressure ceiling.
+
+Proof:
+- Result packet:
+  `artifacts/0.75c-residential-fabric/CODEX_RESULT.md`.
+- Representative generated sample moved from 20 homes to 38 homes.
+- Homes per residential zone area moved from `0.106` to `0.202`.
+- Home clone pressure moved from `0.100` to `0.105`, still below the `0.30`
+  gate.
+
+Verification:
+- `pnpm --dir packages/core test -- city-world-parametric-parity.test.ts`
+  passed: 20 files, 99 tests. Vitest ran the whole core suite despite the
+  filename filter.
+- `pnpm typecheck:starter` passed.
+- `pnpm test:core` passed: 20 files, 99 tests.
+- `node scripts\verify-generated-district-parity.mjs --json-only` passed.
+- `node scripts\verify-generated-district-parity.mjs` passed.
+- `node scripts\verify-render-command-layer-budget.mjs` passed.
+- `node scripts\verify-scene-window-compiler.mjs` passed.
+- `node scripts\verify-dynamic-window-refresh.mjs` passed.
+- `node scripts\verify-fable-prop-cleanup.mjs` passed.
+- `node scripts\verify-cityworld-mobile-occlusion.mjs` passed.
+- `node scripts\verify-provider-boundaries.mjs` passed.
+- `node scripts\verify-tool-result-shape.mjs` passed.
+- `node scripts\verify-no-google-in-renderer.mjs` passed.
+- `node scripts\verify-object-kit-renderer-consumption.mjs` passed.
+- `node scripts\verify-object-authorship-scene-grammar.mjs` passed.
+- `node scripts\verify-public-object-kit-prefab-palette.mjs` passed.
+- `node scripts\verify-roads-roofs-scene-grammar.mjs` passed.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed.
+
+Reviewer-run verification:
+- `pnpm build:web`
+- `node scripts\verify-generated-district-widget.mjs`
+- `node scripts\verify-widget-performance.mjs`
+
+Anti-scope:
+No authored Riverside scene changes, no curated prop edits, no new
+dependencies, no Three.js, no scene compiler contract changes, no MCP changes,
+no forbidden prop-kind changes, no `maxPropCommands` cap change, no Hosted
+Clawd, DB/Auth, Stripe, provider geometry, public Anaheim/Ontario, cars, humans,
+labels, glows, panels, or dashboard/product drift.
+
 ## Entry 195
 
 Quest:
@@ -977,6 +1036,60 @@ Verification:
 - `node scripts\verify-hosted-clawd-scaffold.mjs` passed.
 - `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode hosted-clawd-scaffold --json-only`
   passed with 0 blockers.
+
+## Entry 195 (fable engine line)
+
+Quest:
+`0.75C-1 Prop / Building Depth Interleave`.
+
+What changed:
+- Buildings and props now draw into one shared `buildingPropDepthLayer` in
+  `web/src/CityWorldRenderer.tsx`.
+- Each visible building/prop group gets the same iso depth key used by the core
+  render-command ordering helpers. Buildings use footprint depth
+  `x + y + max(width, depth) * 0.001`; props use anchor `x + y`.
+- Equal-depth ties keep buildings before props, so a plaza prop at the same
+  depth stays visible after the building body.
+- `buildingLayer` and `propLayer` remain resolvable from
+  `window.__ATLAS_QA__.world.children` as visibility proxies that hide their
+  depth-sorted groups independently.
+- `scripts/verify-widget-performance.mjs` now checks those QA handles before
+  running the hover/idle/rebuild performance gates.
+- Core render-command tests now include deterministic proof that a prop behind
+  a building draws earlier and a prop in front draws later.
+
+Verification:
+- `pnpm typecheck:starter` passed.
+- `pnpm test:core` passed: 20 files, 98 tests.
+- `node scripts\verify-generated-district-parity.mjs` passed.
+- `node scripts\verify-render-command-layer-budget.mjs` passed.
+- `node scripts\verify-fable-prop-cleanup.mjs` passed.
+- `node scripts\verify-cityworld-mobile-occlusion.mjs` passed.
+- `node scripts\verify-provider-boundaries.mjs` passed.
+- `node scripts\verify-tool-result-shape.mjs` passed.
+- `node scripts\verify-no-google-in-renderer.mjs` passed.
+- `node scripts\verify-object-kit-renderer-consumption.mjs` passed.
+- `node scripts\verify-object-authorship-scene-grammar.mjs` passed.
+- `node scripts\verify-public-object-kit-prefab-palette.mjs` passed.
+- `node scripts\verify-roads-roofs-scene-grammar.mjs` passed.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed after removing an accidental line-ending-only dirty state in
+  `scripts/build-web.mjs`.
+
+Blocked verification:
+- `pnpm build:web` could not complete in this sandbox. Esbuild reported
+  `Cannot read directory "../..": Access is denied.` and then could not resolve
+  `web/src/main.tsx`, even though direct Node and PowerShell reads of that file
+  succeeded.
+- `node scripts\verify-generated-district-widget.mjs` and
+  `node scripts\verify-widget-performance.mjs` were not run because the required
+  fresh web bundle was not produced.
+
+Anti-scope:
+No new dependencies, no Three.js, no generator/compiler contract changes, no
+MCP changes, no forbidden prop-kind changes, no `maxPropCommands` cap change,
+no Hosted Clawd, DB/Auth, Stripe, provider geometry, public Anaheim/Ontario, or
+dashboard/product drift.
 
 ## Entry 194
 
@@ -9140,3 +9253,69 @@ generated-district widget ok:true desktop+mobile (honesty banner, no console
 errors, fresh worktree bundle on :8791); product-loop ok:true desktop+mobile;
 verify-fable-prop-cleanup ok; git diff --check clean. Evidence:
 `artifacts/0.58e-generated-parity-plus/`.
+
+## Entry 089
+
+**0.75C-3 close-zoom material texture - complete, 2026-07-08, Codex.**
+Renderer-only material pass added to `web/src/CityWorldRenderer.tsx`: vector
+buildings now draw deterministic coarse wall courses, occasional offset block
+cells, roof seams, roof course cells, and pitched-roof ridge caps only when the
+live camera crosses `camera.zoom >= 1.55`. The pass stays inside the existing
+per-building group: one wall `Graphics` and one roof `Graphics` per vector
+building, never per face/course. Wall texture uses the 0.73F wall-plane seam
+(`wallSurface` / `wallPoint` / `wallQuadPoints`); roof texture clips to the roof
+diamond via local roof material coordinates. All shades derive from
+`bodyColor`/`roofColor` through `shadeColor`; no new hues, dependencies,
+Three.js, filters/shaders, bitmaps/textures, compiler/generator changes, or
+authored Riverside data changes.
+
+New verifier `scripts/verify-material-texture-grammar.mjs` proves the zoom gate
+and deterministic seed: below-threshold planned texture commands `0`;
+above-threshold sample commands `20`; repeated same-input run identical;
+sibling building id differs; `desktop` `1.46` and `mobile` `0.92` stay below
+threshold while `residential_detail` `1.74` and `commerce_detail` `1.62` cross
+it. The strict split guard now allows the verifier in the Engine Beta data
+envelope.
+
+Verified: `pnpm typecheck:starter`; `pnpm test:core` 99/99;
+`verify-generated-district-parity`; `verify-material-texture-grammar`;
+`verify-object-kit-renderer-consumption`; `verify-object-authorship-scene-grammar`;
+`verify-roads-roofs-scene-grammar`; public object-kit, terrain grammar, face
+orientation, commerce/plaza/civic object verifiers; provider/tool guards;
+render-command/window/dynamic refresh/fable/mobile guards; strict
+`engine-beta-data` split guard; `git diff --check`. Not run by packet
+instruction: `pnpm build:web`, generated district widget, widget performance.
+Evidence: `artifacts/0.75c-material-texture/CODEX_RESULT.md`.
+
+## Entry 090
+
+**0.75C-4 NS-3 presentation fixes - complete, 2026-07-08, Codex.**
+Executed Fable audit findings F1-F6 in scoped presentation files. Dark mode no
+longer veils the map as hard (`brightness(0.94) saturate(1)` in explicit dark
+theme and prefers-color fallback). The generate-district action now reads
+`Generate a district`, keeps `generated · session-only`, and uses a dark-native
+panel treatment instead of the white primary-card read. The coverage explainer
+is now: `Riverside is fully explorable. Other counties preview as outlines.
+Nothing saves between chats.` The visible `LOOKUP not saved` chip was removed.
+At `<=480px`, the coverage switcher collapses to a one-line chip by default and
+expands/collapses on tap. Bottom sticker buttons now use the zoom stack's
+rounded-square size/radius/border/background grammar. The selected-place
+activity metric was kept because it maps to curated Riverside place activity
+data and compiler-derived curated node scores; it now reads plainly with an
+accessible title.
+
+Generated-scene honesty was not weakened: the banner remains unchanged and
+`verify-generated-district-widget` still asserts synthetic / not-real /
+session-only language. `scripts/verify-county-switcher.mjs` now asserts the new
+coverage explainer exactly and fails if a lookup-not-saved chip returns.
+
+Verified: `pnpm typecheck:starter`; `pnpm test:core` 99/99;
+`node scripts/verify-tool-result-shape.mjs`; `node scripts/verify-provider-boundaries.mjs`;
+copy grep over changed widget/verifier files found no old presentation strings;
+`git diff --check`. Not run by packet instruction: `pnpm build:web`, generated
+district widget, widget performance, and both-theme screenshots. Attempted
+strict `engine-beta-data` split guard, but this sandbox cannot write the parent
+worktree `.git` index and `git status` reports unchanged
+`web/src/VoxelSceneView.tsx` as modified even though `git hash-object` matches
+HEAD (`ebe2ab11ad38222f3069aea04eea54f8ef641805`). Evidence:
+`artifacts/0.75c-presentation-audit/CODEX_RESULT.md`.

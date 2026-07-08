@@ -534,8 +534,16 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCent
   // next to curated Eastvale at the old fill rates.
   // 0.58E parity — apartment courts pack tighter (curated Eastvale's court is
   // a dense block, not scattered towers); they usually sit in the lower frame.
-  const density = zone.density ?? (zone.kind === "residential" ? 0.78 : zone.kind === "apartments" ? 0.74 : 0.62);
-  const cell = zone.kind === "residential" ? 2.4 : zone.kind === "apartments" ? 2.9 : 3.4;
+  // 0.75C fabric floor — residential/apartment zones clamp UP to these
+  // minimums; zone.density can only densify them further, never thin the
+  // small-house fabric below the north-star read.
+  const density =
+    zone.kind === "residential"
+      ? Math.max(zone.density ?? 0.9, 0.9)
+      : zone.kind === "apartments"
+        ? Math.max(zone.density ?? 0.78, 0.78)
+        : zone.density ?? 0.62;
+  const cell = zone.kind === "residential" ? 1.95 : zone.kind === "apartments" ? 2.75 : 3.4;
   const cols = Math.max(1, Math.floor(zoneWidth / cell));
   const rows = Math.max(1, Math.floor(zoneHeight / cell));
   const cellWidth = zoneWidth / cols;
@@ -663,11 +671,12 @@ type ZoneBuildingTemplate = Omit<ZoneBuildingSpec, "bodyColor" | "roofColor"> & 
 };
 
 const RESIDENTIAL_TEMPLATE_POOL: Array<{ weight: number; template: ZoneBuildingTemplate }> = [
-  { weight: 0.55, template: { kind: "home", width: 1.36, depth: 1.12, height: 1.12, facadeStyle: "cottage", roofShape: "gable", bodyColors: ["#f2dfc4", "#ead4b6", "#f6e7cf"], roofColors: ["#b86f4c", "#8a6a52", "#b99358"] } },
-  { weight: 0.35, template: { kind: "home", width: 1.48, depth: 1.16, height: 1.16, facadeStyle: "cottage", roofShape: "gable", bodyColors: ["#f0dcc4", "#ecdcc0"], roofColors: ["#a9704f", "#7d9a86"] } },
-  { weight: 0.7, template: { kind: "home", width: 2.05, depth: 1.26, height: 1.02, facadeStyle: "ranch", roofShape: "hip", bodyColors: ["#e8c9aa", "#ecd2b0"], roofColors: ["#7f9b6e", "#5f7f8e", "#a76f4e"] } },
-  { weight: 0.75, template: { kind: "home", width: 2.45, depth: 1.42, height: 1.08, facadeStyle: "ranch", roofShape: "gable", bodyColors: ["#ecd6b6", "#e8cfad"], roofColors: ["#a9704f", "#5f7f8e"] } },
-  { weight: 1, template: { kind: "home", width: 3.18, depth: 1.18, height: 1.36, facadeStyle: "rowhome", roofShape: "flat", bodyColors: ["#f2dfc2", "#eed9c0"], roofColors: ["#607d84", "#6f9ca7"] } },
+  { weight: 0.5, template: { kind: "home", width: 1.28, depth: 1.08, height: 1.02, facadeStyle: "cottage", roofShape: "gable", bodyColors: ["#f2dfc4", "#ead4b6", "#f6e7cf"], roofColors: ["#b86f4c", "#8a6a52", "#b99358"] } },
+  { weight: 0.48, template: { kind: "home", width: 1.52, depth: 1.12, height: 1.08, facadeStyle: "cottage", roofShape: "gable", bodyColors: ["#f0dcc4", "#ecdcc0", "#e7d4b8"], roofColors: ["#a9704f", "#7d9a86", "#5f7f8e"] } },
+  { weight: 0.52, template: { kind: "home", width: 2.0, depth: 1.18, height: 0.98, facadeStyle: "ranch", roofShape: "hip", bodyColors: ["#e8c9aa", "#ecd2b0", "#e7d6bd"], roofColors: ["#7f9b6e", "#5f7f8e", "#a76f4e"] } },
+  { weight: 0.52, template: { kind: "home", width: 2.18, depth: 1.28, height: 1.04, facadeStyle: "ranch", roofShape: "gable", bodyColors: ["#ecd6b6", "#e8cfad", "#f0ddc2"], roofColors: ["#a9704f", "#5f7f8e", "#8a6a52"] } },
+  { weight: 0.68, template: { kind: "home", width: 2.56, depth: 1.08, height: 1.26, facadeStyle: "rowhome", roofShape: "flat", bodyColors: ["#f2dfc2", "#eed9c0", "#ead2b4"], roofColors: ["#607d84", "#6f9ca7", "#7f9b6e"] } },
+  { weight: 0.46, template: { kind: "home", width: 1.72, depth: 1.06, height: 1.18, facadeStyle: "rowhome", roofShape: "flat", bodyColors: ["#eed8bd", "#f3e1c6"], roofColors: ["#587a8e", "#8a6a52"] } },
 ];
 
 // Strip templates stay flat/parapet; hip roofs make rows read as houses.

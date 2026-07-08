@@ -108,7 +108,7 @@ export function CityWorldView({
   const noteCount = notes.length + worldNotes.length;
   const placeNotes = activePlace ? [...worldNotes, ...notes].filter((note) => note.placeId === activePlace.id) : [];
   const latestPlaceNote = placeNotes[placeNotes.length - 1];
-  const activePlacePulse = activePlace ? `${Math.round(activePlace.activity * 100)}% active` : "Pick a place";
+  const activePlacePulse = activePlace ? `${Math.round(activePlace.activity * 100)}% of places active` : "Pick a place";
   const latestNoteBody = latestPlaceNote?.body ?? "";
   const cameraPresetId = readRequestedCameraPreset(cityScene);
   const debugMode = readRequestedDebugMode();
@@ -234,7 +234,9 @@ export function CityWorldView({
             <strong data-qa="selected-place-label">{activePlace?.label ?? "Pick a place"}</strong>
             <p>{activePlace?.description ?? "Drag around the map and click a place."}</p>
           </div>
-          <span className="city-world-place-pulse">{activePlacePulse}</span>
+          <span className="city-world-place-pulse" title={activePlacePulse} aria-label={activePlacePulse}>
+            {activePlacePulse}
+          </span>
         </div>
         <div className="city-world-tray-meta" aria-label="Map collection">
           <span data-qa="pin-count">

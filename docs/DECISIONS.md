@@ -652,6 +652,93 @@ auth ownership, idempotency, and webhook-confirmed subscription state would
 turn a promising product idea into a fragile backend. The scaffold makes the
 map-first upgrade path real while preserving the hard gates.
 
+## Decision 083: Retire the public product-path control (Fable, 0.75C-4)
+
+The coverage card's three-button "product path" strip (Play / Browse / Lookup)
+is removed, not restyled. Play and Browse duplicated the county chips directly
+above them; Lookup was a demo affordance that injected a canned conversation
+message. The coverage explainer is now one plain sentence that doubles as the
+mobile expand/collapse chip.
+
+Reason:
+NS-3 — the strip was chrome narrating what the chips already afford; NS-5 —
+lookups belong to the conversation, and the lookup honesty contract
+(lookup-only / not saved / not coverage proof) is asserted at the tool layer by
+five verifiers (mcp-flow, provider-boundaries, world-lookup-boundary,
+tool-result-shape, chatgpt-entry-surface), which is where it binds.
+
+Accepted consequence:
+verify-county-switcher drives county chips directly instead of product-path
+clicks and loses the UI-level lookup-boundary state test (the behavior remains
+verified at the MCP layer). Provenance note: the workhorse executed this
+removal beyond the literal packet spec without declaring the deviation; the
+retirement is ratified here as an explicit reviewer decision, and the
+undeclared-deviation process failure is logged against the delegation standard.
+
+## Decision 082: Close-zoom material stays vector, seeded, and zoom-gated
+
+0.75C-3 sets the material texture rule for vector buildings: wall and roof
+texture may enrich close zoom, but it must stay in deterministic vector
+`Graphics`, derive shades from the existing body/roof colors, and emit only
+when `camera.zoom >= 1.55`. Wall material must use the wall-plane facade seam
+(`wallSurface`, `wallPoint`, `wallQuadPoints`) so it foreshortens with the
+building face. Overview cameras must not emit the new texture pass. Future
+material work should tune alpha/course cadence before adding new geometry
+classes, dependencies, shaders, filters, bitmaps, or data/compiler changes.
+
+## Decision 081: Generated residential fabric uses tighter small-house packing
+
+Generated residential zones now use a tighter parcel rhythm and a higher
+density floor, paired with smaller cottages, compact ranches, and narrower
+rowhome templates. The goal is continuous small-house frontage along the street
+grid, not a sparse field of oversized homes.
+
+Reason:
+The generated district was passing basic parity but still read thin at
+neighborhood zoom. More houses from the old larger pool would raise clone
+pressure and roof-risk, so density had to move together with safer, more varied
+small-home templates.
+
+Accepted consequence:
+The representative generated sample carries more residential parcels and can
+let an additional large residential block qualify for the existing corner-store
+rule. The corner-store module itself, prop policy, scene compiler contract, and
+renderer contract are unchanged.
+
+Still blocked:
+- Authored Riverside scene changes for this generator-only slice.
+- Curated prop edits, forbidden prop-kind changes, or `maxPropCommands`
+  changes.
+- Three.js, new dependencies, scene compiler contract changes, or new MCP
+  tools.
+- Hosted Clawd, DB persistence, Stripe, OAuth, XP, evidence, automation,
+  reports, exports, provider geometry, or public Anaheim/Ontario promotion.
+
+## Decision 080: Buildings and props share one iso depth stack
+
+Buildings and props now render as grouped children of one shared Pixi depth
+container. The renderer no longer relies on separate `buildingLayer` then
+`propLayer` parent order for visual occlusion.
+
+Reason:
+At detail zoom, props behind buildings were drawn above every building because
+the whole prop layer sat over the whole building layer. Iso painter order must
+compare the actual building footprint key and prop anchor key so a behind prop
+is hidden by the building and a front prop remains visible.
+
+Accepted consequence:
+The old QA layer labels remain, but they are now visibility proxy handles
+rather than the visual parents of the display objects. Browser QA can still find
+`buildingLayer` and `propLayer` through `window.__ATLAS_QA__.world.children` and
+hide each group independently.
+
+Still blocked:
+- New prop kinds, cars, clouds, humans, labels, glows, or decorative clutter.
+- Generator or scene compiler contract changes for this renderer-only fix.
+- Three.js or new dependencies.
+- Hosted Clawd, DB persistence, Stripe, OAuth, XP, evidence, automation,
+  reports, exports, provider geometry, or public Anaheim/Ontario promotion.
+
 ## Decision 079: Generated visual proof must pass without map labels
 
 Generated district previews now suppress rendered place labels through an
