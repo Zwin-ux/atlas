@@ -1,115 +1,82 @@
 {
-  "id": "postalpha-0.75c-4-ns3-presentation-fixes",
-  "name": "Post-Alpha 0.75C-4 - NS-3 Presentation Fixes",
-  "status": "implemented_nonbrowser_green_browser_reviewer_run_split_guard_blocked_by_git_index_permission",
-  "playerPromise": "Atlas reads more like a first-party ChatGPT map surface: quieter coverage copy, lighter dark-mode map treatment, native dark cards, mobile chrome that gives the map back, and one button grammar.",
-  "engineeringPromise": "Apply the Fable presentation audit findings F1-F6 in web presentation code only, preserving generated-scene honesty and avoiding renderer scene graph, compiler, generator, dependency, provider, persistence, paid, or MCP tool changes.",
-  "axis": "ns3_chatgpt_native_presentation",
-  "contract": [
-    "Dark city-world renderer and coverage fallback use brightness(0.94) saturate(1) in both explicit data-theme dark and prefers-color-scheme fallback.",
-    "The generate-district action uses dark-theme panel styling consistent with the other cards in both explicit data-theme dark and prefers-color-scheme fallback.",
-    "Coverage explainer copy is exactly: Riverside is fully explorable. Other counties preview as outlines. Nothing saves between chats.",
-    "The visible LOOKUP not saved chip is removed.",
-    "The generated-district button label is Generate a district and its generated/session-only honesty subline remains intact.",
-    "The generated-scene honesty banner is untouched.",
-    "At viewport width <= 480px, the coverage switcher collapses to a one-line chip by default and expands/collapses on tap.",
-    "Bottom sticker toolbar icon buttons use the same rounded-square size/radius/border/background grammar as the top-right zoom stack.",
-    "The selected-place activity dot remains only because it maps to curated place activity data; the label is plain and accessible."
-  ],
+  "id": "postalpha-0.45e-owner-gate-cutline-next-axis-selection",
+  "name": "Post-Alpha 0.45E - Owner Gate Cutline / Next Axis Selection",
+  "status": "local_green",
+  "playerPromise": "Atlas turns the hidden Anaheim proof into a clear owner-gate decision without exposing Anaheim publicly.",
+  "engineeringPromise": "The selector reads the 0.44E hidden visual packet, product proof, readiness aggregate, and owner cutline, then chooses the next axis while blocking public promotion unless the cutline explicitly approves it.",
+  "inputUpdate": "postalpha-0.44e-hidden-second-district-visual-product-proof-packet",
+  "selectedAxis": "owner_gate_review",
+  "recommendedNextQuest": "0.46E Owner Gate Review Packet",
+  "decision": "REQUEST_OWNER_REVIEW",
   "metricResult": {
-    "findings": {
-      "F1": "passed_by_source",
-      "F2": "passed_by_source",
-      "F3": "passed_by_source_and_copy_grep",
-      "F4": "passed_by_source",
-      "F5": "passed_by_source",
-      "F6": "kept_curated_metric_relabelled"
+    "ownerGateSelector": {
+      "district": "anaheim-candidate",
+      "selectedAxis": "owner_gate_review",
+      "recommendedNextQuest": "0.46E Owner Gate Review Packet",
+      "decision": "REQUEST_OWNER_REVIEW",
+      "readyForPlayablePromotion": false,
+      "ownerCutlineOutcome": "BLOCK_PROMOTION",
+      "visualPacket": "passed",
+      "productProof": "passed",
+      "splitGuard": "passed",
+      "visualOutcome": "HIDDEN_DRAFT_ONLY",
+      "visualPromotionReady": false,
+      "visualPublicPlayable": false,
+      "productPromotionReady": false,
+      "productPublicPlayable": false,
+      "productMiraAcceptance": false,
+      "blockedPublicSpike": true
     },
-    "copyAssertions": {
-      "countySwitcherVerifier": "updated to assert the new coverage explainer exactly and fail if a lookup-not-saved chip returns",
-      "generatedSceneHonestyBanner": "unchanged; verify-generated-district-widget still asserts synthetic/not-real/session honesty"
-    },
-    "nonBrowserVerification": {
-      "typecheckStarter": "passed",
-      "coreTests": "passed_99",
-      "toolResultShape": "passed",
-      "providerBoundaries": "passed",
-      "copyGrep": "passed_no_old_widget_or_verifier_strings",
-      "diffCheck": "passed",
-      "strictEngineBetaSplitGuard": "blocked_by_git_index_permission_false_positive_on_unchanged_web_src_VoxelSceneView_tsx"
-    },
-    "browserVerification": {
-      "buildWeb": "not_run_per_packet_instruction_sandbox_blocks_esbuild",
-      "generatedDistrictWidget": "not_run_per_packet_instruction_reviewer_runs",
-      "widgetPerformance": "not_run_per_packet_instruction_reviewer_runs",
-      "bothThemeScreenshots": "not_run_per_packet_instruction_reviewer_runs"
+    "candidateScores": {
+      "ownerGateReview": 94,
+      "controlledPublicSecondDistrictSpike": 0,
+      "focusedHiddenSecondDistrictFix": 50,
+      "publicEngineBetaQuality": 35
     },
     "scope": {
-      "rendererSceneGraphChanges": 0,
-      "generatorChanges": 0,
-      "compilerChanges": 0,
-      "newDependencies": 0,
       "newMcpTools": 0,
-      "providerGeometry": false,
-      "persistence": false,
-      "paidScope": false,
-      "publicAnaheimPromotion": false
+      "dbMigrations": 0,
+      "rendererChanges": 0,
+      "publicAnaheimPromotion": false,
+      "providerGeometry": false
     }
   },
   "verification": {
-    "typecheckStarter": "pnpm typecheck:starter",
-    "coreTests": "pnpm test:core",
-    "toolResultShape": "node scripts/verify-tool-result-shape.mjs",
-    "providerBoundaries": "node scripts/verify-provider-boundaries.mjs",
-    "copyGrep": "rg -n '% active|Play Riverside now|Browse CA shells|Lookup without saving|Turn to a new district|LOOKUP not saved|public-product-path' web/src/App.tsx web/src/CityWorldView.tsx web/src/CountySwitcher.tsx web/src/styles.css scripts/verify-county-switcher.mjs",
-    "diffCheck": "git diff --check",
-    "splitGuardAttempted": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only",
-    "reviewerRunBuildWeb": "pnpm build:web",
-    "reviewerRunGeneratedDistrictWidget": "node scripts/verify-generated-district-widget.mjs",
-    "reviewerRunWidgetPerformance": "node scripts/verify-widget-performance.mjs"
+    "selectorCheck": "node --check scripts/select-second-district-owner-gate-next-axis.mjs",
+    "selectorJson": "node scripts/select-second-district-owner-gate-next-axis.mjs --json-only",
+    "selectorArtifact": "node scripts/select-second-district-owner-gate-next-axis.mjs --write-default --json-only",
+    "ownerCutline": "node scripts/verify-second-district-owner-gate-cutline.mjs --readiness artifacts/second-district-readiness/latest/anaheim-candidate/readiness-aggregate.json --json-only",
+    "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only"
   },
-  "nextCodeStep": "0.75C-4 Browser Bundle / QA Replay",
+  "nextCodeStep": "0.46E Owner Gate Review Packet",
   "forbiddenScope": [
-    "renderer scene-graph changes",
-    "generator changes",
-    "compiler changes",
-    "new dependencies",
-    "MCP tool changes",
-    "provider-created geometry",
+    "public Anaheim/Ontario exposure",
+    "public playable second district unless owner cutline is APPROVE_CONTROLLED_PUBLIC_SPIKE",
     "database persistence",
+    "migrations",
+    "new MCP tools",
     "paid, Stripe, OAuth, Hosted Clawd, XP, evidence, automation, reports, or exports",
-    "public Anaheim/Ontario exposure"
+    "provider-created geometry",
+    "live provider-to-scene normalization",
+    "renderer or public UI changes inside 0.45E",
+    "cars, humans, decorative props, panels, glows, or label crutches"
   ],
   "gates": [
     {
-      "id": "presentation-source",
-      "label": "F1-F6 implemented in scoped presentation files",
-      "required": true,
-      "status": "passed"
+      "id": "selector-evidence",
+      "label": "Owner-gate selector reads 0.44E visual/product/readiness/cutline artifacts",
+      "required": true
     },
     {
-      "id": "honesty-copy",
-      "label": "Generated-scene honesty banner remains asserted and old button/explainer assertions are updated",
-      "required": true,
-      "status": "passed"
+      "id": "block-public-spike",
+      "label": "Controlled public Anaheim spike remains blocked while cutline is BLOCK_PROMOTION",
+      "required": true
     },
     {
-      "id": "nonbrowser-verification",
-      "label": "Typecheck, core tests, provider boundary, tool-result shape, copy grep, and diff check pass",
-      "required": true,
-      "status": "passed"
-    },
-    {
-      "id": "browser-replay",
-      "label": "Fresh bundle, widget, performance, and both-theme screenshots",
-      "required": true,
-      "status": "reviewer_run"
-    },
-    {
-      "id": "split-guard",
-      "label": "Strict Engine Beta split guard",
-      "required": true,
-      "status": "blocked_by_git_index_permission_false_positive_on_unchanged_legacy_file"
+      "id": "owner-review",
+      "label": "Next step is owner review packet, not more hidden art or public promotion",
+      "required": true
     }
   ]
 }
