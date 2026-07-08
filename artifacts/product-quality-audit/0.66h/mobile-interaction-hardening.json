@@ -2,14 +2,14 @@
   "ok": true,
   "update": "postalpha-0.66h-mobile-interaction-hardening",
   "decision": "RETAINED_GRAPH_BOTTOM_SHEET_SPLIT_PAYLOAD",
-  "previewUrl": "http://127.0.0.1:8793/preview",
+  "previewUrl": "http://127.0.0.1:8787/preview",
   "chromePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "static": {
-    "eagerJsBytes": 211394,
-    "cssBytes": 82172,
+    "eagerJsBytes": 210928,
+    "cssBytes": 83546,
     "chunkCount": 25,
-    "deferredJsBytes": 732234,
-    "totalJsBytes": 943628,
+    "deferredJsBytes": 735594,
+    "totalJsBytes": 946522,
     "previewHtmlBytes": 214,
     "previewUsesExternalAssets": true,
     "sourceContracts": "retained graph + bottom sheet + split payload"
@@ -25,9 +25,9 @@
       },
       "ok": true,
       "pan": {
-        "frameCount": 96,
-        "p50FrameMs": 33.4,
-        "p95FrameMs": 50.1,
+        "frameCount": 75,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 33.4,
         "rebuildBefore": 1,
         "rebuildAfter": 1,
         "rebuildDelta": 0
@@ -77,9 +77,9 @@
       },
       "ok": true,
       "pan": {
-        "frameCount": 103,
+        "frameCount": 73,
         "p50FrameMs": 16.7,
-        "p95FrameMs": 33.4,
+        "p95FrameMs": 16.7,
         "rebuildBefore": 1,
         "rebuildAfter": 1,
         "rebuildDelta": 0

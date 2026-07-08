@@ -2,7 +2,7 @@
   "ok": true,
   "update": "postalpha-0.67h-product-feel-cleanup",
   "decision": "GRAPHICS_CHROME_DEMOTED_OBJECTS_FIRST",
-  "previewUrl": "http://127.0.0.1:8793/preview",
+  "previewUrl": "http://127.0.0.1:8787/preview",
   "chromePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "static": {
     "sourceContracts": "mobile selected-only labels, desktop ambient label cap, quiet focus rings, off-facade pins, focal calm for props/actors, reduced commerce/gym detail",
@@ -23,7 +23,7 @@
         "fallbackVisible": false,
         "rebuildCount": 1,
         "horizontalOverflow": false,
-        "bodyText": "Riverside County\nEastvale\nRiverside\nPlayable\nOrange\nShell\nUnknown\nNot indexed\n\nRiverside is playable. Orange is browse-only. Lookups stay temporary.\n\nLOOKUP\nnot saved\nTurn to a new district\ngenerated / session-only\nPin\nLANDMARK\nEastvale Cor"
+        "bodyText": "Riverside County\nEastvale\nRiverside\nPlayable\nOrange\nShell\nUnknown\nNot indexed\nRiverside is fully explorable. Other counties preview as outlines. Nothing saves between chats.\nGenerate a district\ngenerated · session-only\nPin\nLANDMARK\nEastvale"
       },
       "consoleErrors": [],
       "screenshotPath": "C:\\Users\\mzwin\\Documents\\Atlas\\artifacts\\product-quality-audit\\0.67h\\screens\\graphics-cleanup-desktop-1280x720.png",
@@ -43,7 +43,7 @@
         "fallbackVisible": false,
         "rebuildCount": 1,
         "horizontalOverflow": false,
-        "bodyText": "Riverside County\nEastvale\nRiverside\nPlayable\nOrange\nShell\nUnknown\nNot indexed\n\nRiverside is playable. Orange is browse-only. Lookups stay temporary.\n\nLOOKUP\nnot saved\nTurn to a new district\ngenerated / session-only\nPin\nLANDMARK\nEastvale Cor"
+        "bodyText": "Riverside County\nEastvale\nRiverside is fully explorable. Other counties preview as outlines. Nothing saves between chats.\nGenerate a district\ngenerated · session-only\nPin\nLANDMARK\nEastvale Core\n76% of places active\n1\npins\n0\nnotes\n1\nhere\nPin"
       },
       "consoleErrors": [],
       "screenshotPath": "C:\\Users\\mzwin\\Documents\\Atlas\\artifacts\\product-quality-audit\\0.67h\\screens\\graphics-cleanup-mobile-390x844.png",
