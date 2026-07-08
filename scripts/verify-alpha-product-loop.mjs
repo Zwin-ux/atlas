@@ -325,6 +325,9 @@ async function runViewport({ previewUrl, viewport, screenshotDir, chrome, camera
     await waitFor(client, `document.readyState === "complete"`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='alpha-city-world']"))`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='selected-place-tray']"))`, 10_000);
+    // Pixi appends its canvas after an async app.init(); the pan/zoom smoke
+    // and canvas assertions need it mounted.
+    await waitFor(client, `document.querySelectorAll("canvas").length >= 1`, 20_000);
 
     const initial = await readState(client);
     if (proofOnly) {

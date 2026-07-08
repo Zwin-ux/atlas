@@ -252,6 +252,9 @@ async function runViewport({ previewUrl, viewport, scenario, toolResult, screens
     await client.send("Page.navigate", { url: previewUrl });
     await waitFor(client, `document.readyState === "complete"`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='alpha-city-world']"))`, 20_000);
+    // Pixi appends its canvas after an async app.init(); wait for it before
+    // any state read asserts canvasCount.
+    await waitFor(client, `document.querySelectorAll("canvas").length >= 1`, 20_000);
     await waitFor(client, `window.__atlasToolResultBridgeReady === true`, 10_000);
     await waitFor(client, `window.__atlasToolResultSubscriberCount > 0`, 10_000);
 
