@@ -92,6 +92,7 @@ const ENGINE_BETA_DATA_FILES = new Set([
   "scripts/verify-preview-http.mjs",
   "scripts/verify-object-authorship-scene-grammar.mjs",
   "scripts/verify-roads-roofs-scene-grammar.mjs",
+  "scripts/verify-material-texture-grammar.mjs",
   "scripts/verify-terrain-chunk-massing-grammar.mjs",
   "scripts/verify-terrain-elevation-chunk-grammar.mjs",
   "scripts/verify-terrain-parcel-composition.mjs",

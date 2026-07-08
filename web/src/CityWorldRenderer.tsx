@@ -112,6 +112,7 @@ const TILE_HEIGHT = CITY_WORLD_TILE_BASIS.tileHeight;
 const TILE_DEPTH = CITY_WORLD_TILE_BASIS.tileDepth;
 const STREAMING_WINDOW_MARGIN_TILES = 3;
 const STREAMING_REFRESH_MARGIN_TILES = 0.75;
+const MATERIAL_TEXTURE_DETAIL_ZOOM = 1.55;
 
 // ---- Unified sun model ----------------------------------------------------
 // One fixed key light for the whole scene: sun sits to the screen upper-left
@@ -595,9 +596,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       const distance = pointerDistance(activePointersRef.current);
       if (distance && pinchRef.current) {
         movedRef.current = true;
-        const camera = cameraRef.current;
-        camera.zoom = clamp(pinchRef.current.zoom * (distance / pinchRef.current.distance), camera.minZoom, camera.maxZoom);
-        applyCamera();
+        setCameraZoom(pinchRef.current.zoom * (distance / pinchRef.current.distance));
         return;
       }
 
@@ -661,7 +660,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     const activeCameraPresetId = resolveCameraPresetId(scene, cameraPresetId, mount.clientWidth);
     const viewportFrame = rendererViewportFrame(mount, cameraRef.current, activeCameraPresetId, STREAMING_WINDOW_MARGIN_TILES);
     const rebuildStart = performance.now();
-    const drawn = drawScene(world, scene, activeCameraPresetId, viewportFrame, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
+    const drawn = drawScene(world, scene, activeCameraPresetId, viewportFrame, cameraRef.current.zoom, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
       if (!movedRef.current) selectPlaceRef.current(placeId);
     }, setHoverPlaceId, animatedRef.current);
     perfRef.current.sceneRebuilds += 1;
@@ -720,8 +719,18 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
 
   function zoomBy(multiplier: number) {
     const camera = cameraRef.current;
-    camera.zoom = clamp(camera.zoom * multiplier, camera.minZoom, camera.maxZoom);
+    setCameraZoom(camera.zoom * multiplier);
+  }
+
+  function setCameraZoom(nextZoom: number) {
+    const camera = cameraRef.current;
+    const materialTextureWasEnabled = shouldDrawMaterialTexture(camera.zoom);
+    camera.zoom = clamp(nextZoom, camera.minZoom, camera.maxZoom);
+    const materialTextureIsEnabled = shouldDrawMaterialTexture(camera.zoom);
     applyCamera();
+    if (materialTextureWasEnabled !== materialTextureIsEnabled) {
+      setWindowRefreshKey((value) => value + 1);
+    }
   }
 
   function resetCamera(nextScene: CityWorldScene) {
@@ -847,6 +856,7 @@ function drawScene(
   scene: CityWorldScene,
   cameraPresetId: CityWorldCameraPresetId,
   viewportFrame: CityWorldViewportFrame,
+  cameraZoom: number,
   atlasTextures: CityWorldTextureMap,
   debugMode: CityWorldDebugMode | undefined,
   suppressPlaceLabels: boolean,
@@ -879,7 +889,7 @@ function drawScene(
 
   const buildings = orderedSceneItems(renderCommands, "building", itemIndex.buildings);
   const props = orderedSceneItems(renderCommands, "prop", itemIndex.props);
-  drawDepthInterleavedBuildingsAndProps(layers, buildings, props, animated, atlas);
+  drawDepthInterleavedBuildingsAndProps(layers, buildings, props, animated, atlas, shouldDrawMaterialTexture(cameraZoom));
   const actors = orderedSceneItems(renderCommands, "actor", itemIndex.actors);
   for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas);
   const visiblePlaces = orderedSceneItems(renderCommands, "place_marker", itemIndex.places);
@@ -955,6 +965,10 @@ function rendererViewportFrame(mount: HTMLDivElement, camera: CameraState, camer
   return cityWorldExpandViewportFrame(cityWorldViewportFrameForPreset(cameraPresetId, center, camera.zoom), marginTiles);
 }
 
+function shouldDrawMaterialTexture(cameraZoom: number): boolean {
+  return cameraZoom >= MATERIAL_TEXTURE_DETAIL_ZOOM;
+}
+
 function orderedSceneItems<T extends { id: string }>(
   commands: readonly CityWorldRenderCommand[],
   kind: CityWorldRenderCommandKind,
@@ -978,6 +992,7 @@ function drawDepthInterleavedBuildingsAndProps(
   props: CityWorldProp[],
   animated: AnimatedTarget[],
   atlas: CityWorldAtlasResolver,
+  materialTextureEnabled: boolean,
 ) {
   const buildingProxy = layers.buildingLayer as QaVisibilityProxyLayer;
   const propProxy = layers.propLayer as QaVisibilityProxyLayer;
@@ -1007,7 +1022,7 @@ function drawDepthInterleavedBuildingsAndProps(
     group.label = `${item.kind}-${item.id}`;
     group.zIndex = item.depthKey;
     if (item.kind === "building") {
-      drawBuilding(layers, group, item.building, atlas);
+      drawBuilding(layers, group, item.building, atlas, materialTextureEnabled);
       group.visible = buildingProxy.visible;
       buildingProxy.atlasVisibilityTargets.push(group);
     } else {
@@ -2832,7 +2847,7 @@ function drawCivicLotComposition(g: Graphics, point: ProjectedPoint, width: numb
     .stroke({ color: 0x7f6d4e, alpha: 0.18, width: 1.2, cap: "round", join: "round" });
 }
 
-function drawBuilding(layers: LayerMap, layer: Container, building: CityWorldBuilding, atlas: CityWorldAtlasResolver) {
+function drawBuilding(layers: LayerMap, layer: Container, building: CityWorldBuilding, atlas: CityWorldAtlasResolver, materialTextureEnabled: boolean) {
   // The base scene is focus-agnostic: hover/selection emphasis draws in the
   // focusLayer overlay so focus changes never rebuild these Graphics.
   const geometry = createBuildingGeometry(building, atlas);
@@ -2850,7 +2865,7 @@ function drawBuilding(layers: LayerMap, layer: Container, building: CityWorldBui
   // a wall-plane window/storefront grid. The legacy per-kind + per-family
   // "authorship" overlay stack (15 functions of translucent screen-space
   // decals) is retired — misregistered decals were the ghost-facade defect.
-  drawBuildingShell(layer, geometry, building);
+  drawBuildingShell(layer, geometry, building, materialTextureEnabled);
 }
 
 function createBuildingGeometry(building: CityWorldBuilding, atlas: CityWorldAtlasResolver): BuildingGeometry {
@@ -3878,7 +3893,7 @@ function drawDraftFoundationMaterial(layer: Container, center: ProjectedPoint, w
   layer.addChild(contactTile, stratum);
 }
 
-function drawBuildingShell(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+function drawBuildingShell(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, materialTextureEnabled: boolean) {
   const { bottom, top, footprintWidth, footprintDepth, bodyColor, outline, activeStrokeAlpha } = geometry;
   // Unified sun: lower-left wall faces the sun, lower-right wall falls into
   // cool shade. Same factors for every building in the scene.
@@ -3897,10 +3912,11 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const right = polygon(rightSide, sideRight, 1, outline, activeStrokeAlpha);
   layer.addChild(left, right);
   drawBuildingShellLighting(layer, geometry);
+  if (materialTextureEnabled) drawWallMaterialTexture(layer, geometry, building);
   drawWallBlockCourses(layer, geometry, building);
   drawWallFacade(layer, geometry, building);
 
-  drawRoof(layer, geometry, building);
+  drawRoof(layer, geometry, building, materialTextureEnabled);
   drawTieredMassing(layer, geometry, building);
 }
 
@@ -3922,6 +3938,56 @@ function drawWallBlockCourses(layer: Container, geometry: BuildingGeometry, buil
   }
   courses.stroke({ color: shadeColor(geometry.bodyColor, -26), alpha: 0.15, width: 1, cap: "butt" });
   layer.addChild(courses);
+}
+
+function drawWallMaterialTexture(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const material = new Graphics();
+  let hasTexture = false;
+  for (const side of ["sun", "shade"] as const) {
+    const surface = wallSurface(geometry, side);
+    if (surface.heightPx < 18 || surface.edgeLengthPx < 18) continue;
+    const courseCount = Math.max(2, Math.min(7, Math.floor(surface.heightPx / 9)));
+    const courseHeight = surface.heightPx / courseCount;
+    const blockColumns = Math.max(2, Math.min(5, Math.floor(surface.edgeLengthPx / 18)));
+    for (let course = 0; course < courseCount; course += 1) {
+      const seed = materialTextureSeed(building.id, side, course);
+      const v0 = course * courseHeight + 0.7;
+      const v1 = Math.min(surface.heightPx - 0.7, (course + 1) * courseHeight - 0.7);
+      if (v1 <= v0 + 2) continue;
+      const delta = materialTextureDelta(seed);
+      const bandAlpha = side === "sun" ? 0.08 : 0.1;
+      material
+        .poly(wallQuadPoints(surface, 0.04, v0, 0.96, v1), true)
+        .fill({ color: shadeColor(geometry.bodyColor, delta), alpha: bandAlpha });
+      hasTexture = true;
+
+      if (seed % 4 !== 0) continue;
+      const column = Math.floor(seed / 7) % blockColumns;
+      const offset = course % 2 === 0 ? 0 : 0.5 / blockColumns;
+      const u0 = 0.08 + ((column / blockColumns + offset) % 0.84);
+      const u1 = Math.min(0.94, u0 + 0.52 / blockColumns);
+      if (u1 <= u0 + 0.04) continue;
+      material
+        .poly(wallQuadPoints(surface, u0, v0 + courseHeight * 0.18, u1, v1 - courseHeight * 0.12), true)
+        .fill({ color: shadeColor(geometry.bodyColor, delta > 0 ? 16 : -16), alpha: side === "sun" ? 0.1 : 0.12 });
+    }
+  }
+  if (hasTexture) layer.addChild(material);
+}
+
+function materialTextureSeed(buildingId: string, face: string, courseIndex: number): number {
+  const key = `${buildingId}:${face}:${courseIndex}`;
+  let hash = 2166136261;
+  for (let index = 0; index < key.length; index += 1) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return hash;
+}
+
+function materialTextureDelta(seed: number): number {
+  const steps = [-16, -10, 10, 16] as const;
+  return steps[seed % steps.length] ?? 10;
 }
 
 // ---- Wall-plane facade system ----------------------------------------------
@@ -4322,7 +4388,7 @@ function drawAuthoredWallMaterial(layer: Container, geometry: BuildingGeometry, 
   }
 }
 
-function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, materialTextureEnabled: boolean) {
   const { top, footprintWidth, footprintDepth, roofColor, outline, activeStrokeAlpha } = geometry;
   const roofShape = building.roofShape ?? "flat";
   // Roofs are the brightest surfaces in the scene: lit from above by the sun.
@@ -4439,16 +4505,81 @@ function drawRoof(layer: Container, geometry: BuildingGeometry, building: CityWo
   }
   lines.stroke({ color: shadeColor(roofColor, -44), alpha: 0.38, width: 1.5, cap: "round", join: "round" });
   layer.addChild(lines);
+  if (materialTextureEnabled) drawRoofMaterialTexture(layer, geometry, building);
   drawParapetCap(layer, geometry, building, roofShape);
   drawRoofMaterial(layer, geometry, building);
   drawAuthoredRoofProfile(layer, geometry, building);
 }
 
 // 0.53E Hero Silhouette — a raised parapet wall around a flat roof edge. This is
+// 0.75C-3 close-zoom material: coarse roof seams and cells stay clipped to the
+// roof diamond and draw only behind parapets/authored roof profiles.
+function drawRoofMaterialTexture(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const { top, footprintWidth, footprintDepth, roofColor } = geometry;
+  if (footprintWidth < 28 || footprintDepth < 16) return;
+  const roofShape = building.roofShape ?? "flat";
+  const material = new Graphics();
+  const courseCount = Math.max(3, Math.min(7, Math.floor(Math.min(footprintWidth, footprintDepth) / 9)));
+  const seamColor = shadeColor(roofColor, -18);
+  const capColor = shadeColor(roofColor, 18);
+
+  for (let course = 1; course < courseCount; course += 1) {
+    const seed = materialTextureSeed(building.id, `roof-${roofShape}`, course);
+    const t = course / courseCount;
+    const start = roofMaterialPoint(top, footprintWidth, footprintDepth, 0.12, t);
+    const end = roofMaterialPoint(top, footprintWidth, footprintDepth, 0.88, t);
+    material.moveTo(start.x, start.y).lineTo(end.x, end.y);
+
+    if (seed % 3 !== 0) continue;
+    const u0 = 0.18 + ((Math.floor(seed / 11) % 4) * 0.14);
+    const u1 = Math.min(0.82, u0 + 0.16);
+    const t0 = Math.max(0.08, t - 0.055);
+    const t1 = Math.min(0.92, t + 0.055);
+    material
+      .poly(roofMaterialQuadPoints(top, footprintWidth, footprintDepth, u0, t0, u1, t1), true)
+      .fill({ color: shadeColor(roofColor, materialTextureDelta(seed)), alpha: 0.12 });
+  }
+  material.stroke({ color: seamColor, alpha: roofShape === "flat" ? 0.2 : 0.16, width: 1, cap: "butt", join: "round" });
+
+  if (roofShape === "gable" || roofShape === "hip") {
+    const caps = 2 + (materialTextureSeed(building.id, "roof-ridge", 0) % 3);
+    for (let cap = 0; cap < caps; cap += 1) {
+      const seed = materialTextureSeed(building.id, "roof-ridge", cap);
+      const u = 0.34 + (cap / Math.max(1, caps - 1)) * 0.32;
+      const t = 0.42 + (seed % 3) * 0.035;
+      const center = roofMaterialPoint(top, footprintWidth, footprintDepth, u, t);
+      material
+        .moveTo(center.x - 3.2, center.y - 1.2)
+        .lineTo(center.x + 3.2, center.y + 1.2);
+    }
+    material.stroke({ color: capColor, alpha: 0.22, width: 1.4, cap: "butt", join: "round" });
+  }
+
+  layer.addChild(material);
+}
+
+function roofMaterialPoint(top: ProjectedPoint, width: number, depth: number, u: number, t: number): ProjectedPoint {
+  const halfW = width / 2;
+  const halfD = depth / 2;
+  const clampedT = clamp(t, 0, 1);
+  const span = halfW * (1 - Math.abs(clampedT * 2 - 1));
+  return {
+    x: top.x + (clamp(u, 0, 1) * 2 - 1) * span,
+    y: top.y - halfD + depth * clampedT,
+  };
+}
+
+function roofMaterialQuadPoints(top: ProjectedPoint, width: number, depth: number, u0: number, t0: number, u1: number, t1: number): number[] {
+  const a = roofMaterialPoint(top, width, depth, u0, t0);
+  const b = roofMaterialPoint(top, width, depth, u1, t0);
+  const c = roofMaterialPoint(top, width, depth, u1, t1);
+  const d = roofMaterialPoint(top, width, depth, u0, t1);
+  return [a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y];
+}
+
+// 0.53E Hero Silhouette - a raised parapet wall around a flat roof edge. This is
 // the single biggest "box -> building" cue: the roof stops reading as a flush
-// lid and starts reading as a real rooftop bounded by a low wall. Only flat-
-// roofed commercial / civic / lowrise families get it (pitched roofs don't have
-// parapets). Obeys the unified sun: front-left face lit, front-right in shade.
+// lid and starts reading as a real rooftop bounded by a low wall.
 function drawParapetCap(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, roofShape: CityWorldBuilding["roofShape"]) {
   if (roofShape !== "flat" && roofShape !== "sawtooth") return;
   const family = building.visualGrammar?.objectFamily;

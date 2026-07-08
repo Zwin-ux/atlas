@@ -20,9 +20,70 @@ The owner-gate / second-district ceremony below is **parked** but kept honest: `
 Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`
 stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only on human request.
 
-## Branch-local generated fabric gate (2026-07-08, `fable/0.58e-prop-cleanup`)
+## Branch-local close-zoom material gate (2026-07-08, `fable/0.58e-prop-cleanup`)
 
 Current quest:
+`0.75C-3 Close-Zoom Material Texture`.
+
+Player-facing promise:
+At close zoom, Atlas buildings read as built from coarse wall and roof material
+instead of flat color planes.
+
+Engineering promise:
+The renderer adds deterministic wall and roof texture grammar inside the
+existing vector building path, zoom-gated so overview cameras emit no new
+material texture commands.
+
+Contract:
+- Material texture draws only when `camera.zoom >= 1.55`.
+- Desktop/mobile overview cameras remain visually unchanged and emit no new
+  material texture pass.
+- Residential and commerce detail cameras show the material pass.
+- Wall texture uses the 0.73F wall-plane helpers only:
+  `wallSurface`, `wallPoint`, and `wallQuadPoints`.
+- Texture variation is seeded from building id, face, and course index.
+- Texture shades derive from `bodyColor` and `roofColor` through `shadeColor`
+  with small deltas.
+- Texture commands batch into one wall `Graphics` and one roof `Graphics` per
+  vector building.
+
+Metric / verifier:
+- `pnpm typecheck:starter`
+- `pnpm test:core`
+- `node scripts\verify-generated-district-parity.mjs`
+- `node scripts\verify-material-texture-grammar.mjs`
+- Relevant node-side renderer grammar/facade verifiers.
+- Reviewer-run: `pnpm build:web`,
+  `node scripts\verify-generated-district-widget.mjs`,
+  `node scripts\verify-widget-performance.mjs`.
+
+Proof:
+`artifacts/0.75c-material-texture/CODEX_RESULT.md`.
+
+Current status:
+Implemented locally with non-browser verifiers green. Material verifier proves
+below-threshold planned texture commands are `0`, above-threshold sample
+commands are deterministic, `desktop`/`mobile` stay below `1.55`, and
+`residential_detail`/`commerce_detail` cross the threshold. Browser
+bundle/widget/performance replay remains reviewer-run by packet instruction.
+
+Anti-scope:
+No authored Riverside scene changes, generator/compiler changes, curated prop
+changes, new dependencies, Three.js, filters/shaders, textures/bitmaps,
+forbidden prop-kind changes, `maxPropCommands` changes, MCP tool changes,
+provider geometry, Hosted Clawd, DB/Auth, Stripe, public Anaheim/Ontario
+promotion, cars, humans, labels, panels, glows, dashboard UI, or generic
+SaaS/product drift.
+
+Next visual-engine move:
+`0.75C-4 Browser Bundle / QA Replay`: run `pnpm build:web`, then
+`verify-generated-district-widget` and `verify-widget-performance` against the
+fresh bundle, including `/preview?atlasCamera=residential_detail` and
+`/preview?atlasCamera=commerce_detail` visual checks.
+
+## Branch-local generated fabric gate (2026-07-08, `fable/0.58e-prop-cleanup`)
+
+Completed quest:
 `0.75C-2 Denser Residential Fabric`.
 
 Player-facing promise:
@@ -69,10 +130,8 @@ DB/Auth, Stripe, public Anaheim/Ontario promotion, cars, humans, labels, panels,
 glows, dashboard UI, or generic SaaS/product drift.
 
 Next visual-engine move:
-`0.75C-3 Browser Bundle / QA Replay`: rerun `pnpm build:web`, then
-`verify-generated-district-widget` and `verify-widget-performance` against the
-fresh bundle. If those pass, use the latest selector or human packet for the
-next renderer-quality slice.
+Superseded by the human-directed `0.75C-3 Close-Zoom Material Texture` packet
+above. Browser bundle/widget/performance replay is now tracked as `0.75C-4`.
 
 ## Branch-local renderer depth gate (2026-07-08, `fable/0.58e-prop-cleanup`)
 

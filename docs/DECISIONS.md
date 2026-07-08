@@ -1421,3 +1421,14 @@ blocked because promotion readiness is false and the owner cutline is still
 `BLOCK_PROMOTION`. Since the visual and product proof are already present,
 Atlas should not continue hidden art work without an owner-named blocker. The
 next step is a 0.46E owner review packet for Lumen, Mira, Forge, and Axiom.
+
+## Decision 068: Close-zoom material stays vector, seeded, and zoom-gated
+
+0.75C-3 sets the material texture rule for vector buildings: wall and roof
+texture may enrich close zoom, but it must stay in deterministic vector
+`Graphics`, derive shades from the existing body/roof colors, and emit only
+when `camera.zoom >= 1.55`. Wall material must use the wall-plane facade seam
+(`wallSurface`, `wallPoint`, `wallQuadPoints`) so it foreshortens with the
+building face. Overview cameras must not emit the new texture pass. Future
+material work should tune alpha/course cadence before adding new geometry
+classes, dependencies, shaders, filters, bitmaps, or data/compiler changes.

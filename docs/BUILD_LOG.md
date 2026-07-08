@@ -8276,3 +8276,36 @@ generated-district widget ok:true desktop+mobile (honesty banner, no console
 errors, fresh worktree bundle on :8791); product-loop ok:true desktop+mobile;
 verify-fable-prop-cleanup ok; git diff --check clean. Evidence:
 `artifacts/0.58e-generated-parity-plus/`.
+
+## Entry 089
+
+**0.75C-3 close-zoom material texture - complete, 2026-07-08, Codex.**
+Renderer-only material pass added to `web/src/CityWorldRenderer.tsx`: vector
+buildings now draw deterministic coarse wall courses, occasional offset block
+cells, roof seams, roof course cells, and pitched-roof ridge caps only when the
+live camera crosses `camera.zoom >= 1.55`. The pass stays inside the existing
+per-building group: one wall `Graphics` and one roof `Graphics` per vector
+building, never per face/course. Wall texture uses the 0.73F wall-plane seam
+(`wallSurface` / `wallPoint` / `wallQuadPoints`); roof texture clips to the roof
+diamond via local roof material coordinates. All shades derive from
+`bodyColor`/`roofColor` through `shadeColor`; no new hues, dependencies,
+Three.js, filters/shaders, bitmaps/textures, compiler/generator changes, or
+authored Riverside data changes.
+
+New verifier `scripts/verify-material-texture-grammar.mjs` proves the zoom gate
+and deterministic seed: below-threshold planned texture commands `0`;
+above-threshold sample commands `20`; repeated same-input run identical;
+sibling building id differs; `desktop` `1.46` and `mobile` `0.92` stay below
+threshold while `residential_detail` `1.74` and `commerce_detail` `1.62` cross
+it. The strict split guard now allows the verifier in the Engine Beta data
+envelope.
+
+Verified: `pnpm typecheck:starter`; `pnpm test:core` 99/99;
+`verify-generated-district-parity`; `verify-material-texture-grammar`;
+`verify-object-kit-renderer-consumption`; `verify-object-authorship-scene-grammar`;
+`verify-roads-roofs-scene-grammar`; public object-kit, terrain grammar, face
+orientation, commerce/plaza/civic object verifiers; provider/tool guards;
+render-command/window/dynamic refresh/fable/mobile guards; strict
+`engine-beta-data` split guard; `git diff --check`. Not run by packet
+instruction: `pnpm build:web`, generated district widget, widget performance.
+Evidence: `artifacts/0.75c-material-texture/CODEX_RESULT.md`.
