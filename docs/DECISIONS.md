@@ -1,5 +1,30 @@
 # Decisions
 
+## Decision 080: Buildings and props share one iso depth stack
+
+Buildings and props now render as grouped children of one shared Pixi depth
+container. The renderer no longer relies on separate `buildingLayer` then
+`propLayer` parent order for visual occlusion.
+
+Reason:
+At detail zoom, props behind buildings were drawn above every building because
+the whole prop layer sat over the whole building layer. Iso painter order must
+compare the actual building footprint key and prop anchor key so a behind prop
+is hidden by the building and a front prop remains visible.
+
+Accepted consequence:
+The old QA layer labels remain, but they are now visibility proxy handles
+rather than the visual parents of the display objects. Browser QA can still find
+`buildingLayer` and `propLayer` through `window.__ATLAS_QA__.world.children` and
+hide each group independently.
+
+Still blocked:
+- New prop kinds, cars, clouds, humans, labels, glows, or decorative clutter.
+- Generator or scene compiler contract changes for this renderer-only fix.
+- Three.js or new dependencies.
+- Hosted Clawd, DB persistence, Stripe, OAuth, XP, evidence, automation,
+  reports, exports, provider geometry, or public Anaheim/Ontario promotion.
+
 ## Decision 079: Generated visual proof must pass without map labels
 
 Generated district previews now suppress rendered place labels through an

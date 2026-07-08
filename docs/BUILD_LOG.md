@@ -1,5 +1,59 @@
 # Build Log
 
+## Entry 195
+
+Quest:
+`0.75C-1 Prop / Building Depth Interleave`.
+
+What changed:
+- Buildings and props now draw into one shared `buildingPropDepthLayer` in
+  `web/src/CityWorldRenderer.tsx`.
+- Each visible building/prop group gets the same iso depth key used by the core
+  render-command ordering helpers. Buildings use footprint depth
+  `x + y + max(width, depth) * 0.001`; props use anchor `x + y`.
+- Equal-depth ties keep buildings before props, so a plaza prop at the same
+  depth stays visible after the building body.
+- `buildingLayer` and `propLayer` remain resolvable from
+  `window.__ATLAS_QA__.world.children` as visibility proxies that hide their
+  depth-sorted groups independently.
+- `scripts/verify-widget-performance.mjs` now checks those QA handles before
+  running the hover/idle/rebuild performance gates.
+- Core render-command tests now include deterministic proof that a prop behind
+  a building draws earlier and a prop in front draws later.
+
+Verification:
+- `pnpm typecheck:starter` passed.
+- `pnpm test:core` passed: 20 files, 98 tests.
+- `node scripts\verify-generated-district-parity.mjs` passed.
+- `node scripts\verify-render-command-layer-budget.mjs` passed.
+- `node scripts\verify-fable-prop-cleanup.mjs` passed.
+- `node scripts\verify-cityworld-mobile-occlusion.mjs` passed.
+- `node scripts\verify-provider-boundaries.mjs` passed.
+- `node scripts\verify-tool-result-shape.mjs` passed.
+- `node scripts\verify-no-google-in-renderer.mjs` passed.
+- `node scripts\verify-object-kit-renderer-consumption.mjs` passed.
+- `node scripts\verify-object-authorship-scene-grammar.mjs` passed.
+- `node scripts\verify-public-object-kit-prefab-palette.mjs` passed.
+- `node scripts\verify-roads-roofs-scene-grammar.mjs` passed.
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+  passed after removing an accidental line-ending-only dirty state in
+  `scripts/build-web.mjs`.
+
+Blocked verification:
+- `pnpm build:web` could not complete in this sandbox. Esbuild reported
+  `Cannot read directory "../..": Access is denied.` and then could not resolve
+  `web/src/main.tsx`, even though direct Node and PowerShell reads of that file
+  succeeded.
+- `node scripts\verify-generated-district-widget.mjs` and
+  `node scripts\verify-widget-performance.mjs` were not run because the required
+  fresh web bundle was not produced.
+
+Anti-scope:
+No new dependencies, no Three.js, no generator/compiler contract changes, no
+MCP changes, no forbidden prop-kind changes, no `maxPropCommands` cap change,
+no Hosted Clawd, DB/Auth, Stripe, provider geometry, public Anaheim/Ontario, or
+dashboard/product drift.
+
 ## Entry 194
 
 Quest:

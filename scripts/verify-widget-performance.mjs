@@ -69,6 +69,37 @@ async function runGate(activeChrome) {
     const perfSnapshot = () =>
       evaluate(client, `(() => { const p = window.__ATLAS_QA__.perf; return { rebuilds: p.sceneRebuilds, overlays: p.overlayRedraws, frames: p.renderedFrames, ms: p.lastRebuildMs, anim: p.animatedTargetCount(), parked: p.loopParked(), graphics: p.graphicsCount() }; })()`);
 
+    // ---- Gate 0: building/prop QA layer handles still bisect visuals -----
+    const depthLayerState = await evaluate(client, `(() => {
+      const world = window.__ATLAS_QA__.world;
+      const buildingLayer = world.children.find((c) => c.label === "buildingLayer");
+      const propLayer = world.children.find((c) => c.label === "propLayer");
+      const depthLayer = world.children.find((c) => c.label === "buildingPropDepthLayer");
+      const buildingTargets = depthLayer ? depthLayer.children.filter((c) => String(c.label || "").startsWith("building-")) : [];
+      const propTargets = depthLayer ? depthLayer.children.filter((c) => String(c.label || "").startsWith("prop-")) : [];
+      if (buildingLayer) buildingLayer.visible = false;
+      const buildingHidden = buildingTargets.length > 0 && buildingTargets.every((c) => c.visible === false);
+      if (buildingLayer) buildingLayer.visible = true;
+      if (propLayer) propLayer.visible = false;
+      const propsHidden = propTargets.length > 0 && propTargets.every((c) => c.visible === false);
+      if (propLayer) propLayer.visible = true;
+      return {
+        hasBuildingLayer: Boolean(buildingLayer),
+        hasPropLayer: Boolean(propLayer),
+        hasDepthLayer: Boolean(depthLayer),
+        depthSortable: Boolean(depthLayer?.sortableChildren),
+        buildingTargetCount: buildingTargets.length,
+        propTargetCount: propTargets.length,
+        buildingHidden,
+        propsHidden,
+      };
+    })()`);
+    checks.depthLayer = depthLayerState;
+    if (!depthLayerState.hasBuildingLayer || !depthLayerState.hasPropLayer) failures.push("buildingLayer/propLayer QA handles are missing");
+    if (!depthLayerState.hasDepthLayer || !depthLayerState.depthSortable) failures.push("building/prop shared depth layer is missing or not sortable");
+    if (!depthLayerState.buildingHidden) failures.push("buildingLayer QA handle did not hide depth-sorted building groups");
+    if (!depthLayerState.propsHidden) failures.push("propLayer QA handle did not hide depth-sorted prop groups");
+
     // ---- Gate 1: hover never rebuilds the scene --------------------------
     const beforeHover = await perfSnapshot();
     await evaluate(client, `(() => {

@@ -120,6 +120,15 @@ export type CityWorldRenderLayerBudgetResult = {
   layerSummaries: CityWorldRenderLayerSummary[];
 };
 
+export type CityWorldDepthInterleaveKind = "building" | "prop";
+
+export type CityWorldDepthInterleaveItem = {
+  id: string;
+  kind: CityWorldDepthInterleaveKind;
+  depthKey: number;
+  sourceIndex: number;
+};
+
 export const CITY_WORLD_RENDER_LAYER_ORDER = [
   "terrain",
   "roads",
@@ -334,6 +343,22 @@ export function evaluateCityWorldRenderLayerBudget(
   };
 }
 
+export function cityWorldBuildingDepthKey(building: Pick<CityWorldBuilding, "position" | "width" | "depth">): number {
+  return footprintZOrder(building);
+}
+
+export function cityWorldPropDepthKey(prop: Pick<CityWorldProp, "position">): number {
+  return pointZOrder(prop.position);
+}
+
+export function compareCityWorldDepthInterleaveItems(first: CityWorldDepthInterleaveItem, second: CityWorldDepthInterleaveItem): number {
+  const depthDelta = first.depthKey - second.depthKey;
+  if (depthDelta !== 0) return depthDelta;
+  const kindDelta = depthInterleaveKindRank(first.kind) - depthInterleaveKindRank(second.kind);
+  if (kindDelta !== 0) return kindDelta;
+  return first.sourceIndex - second.sourceIndex;
+}
+
 // 0.74F clutter-contract revision (user-approved): the curated prop kit
 // (bench, streetlight, fountain, sign, dock, boat, water tower) graduates to
 // public scenes — density is gated by the scene-window maxPropCommands cap
@@ -418,8 +443,12 @@ function pointZOrder(point: { x: number; y: number }): number {
   return point.x + point.y;
 }
 
-function footprintZOrder(item: CityWorldLot | CityWorldBuilding): number {
+function footprintZOrder(item: Pick<CityWorldLot | CityWorldBuilding, "position" | "width" | "depth">): number {
   return item.position.x + item.position.y + Math.max(item.width, item.depth) * 0.001;
+}
+
+function depthInterleaveKindRank(kind: CityWorldDepthInterleaveKind): number {
+  return kind === "building" ? 0 : 1;
 }
 
 function layerRank(layerId: CityWorldRenderLayerId): number {

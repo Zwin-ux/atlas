@@ -1,82 +1,109 @@
 {
-  "id": "postalpha-0.45e-owner-gate-cutline-next-axis-selection",
-  "name": "Post-Alpha 0.45E - Owner Gate Cutline / Next Axis Selection",
-  "status": "local_green",
-  "playerPromise": "Atlas turns the hidden Anaheim proof into a clear owner-gate decision without exposing Anaheim publicly.",
-  "engineeringPromise": "The selector reads the 0.44E hidden visual packet, product proof, readiness aggregate, and owner cutline, then chooses the next axis while blocking public promotion unless the cutline explicitly approves it.",
-  "inputUpdate": "postalpha-0.44e-hidden-second-district-visual-product-proof-packet",
-  "selectedAxis": "owner_gate_review",
-  "recommendedNextQuest": "0.46E Owner Gate Review Packet",
-  "decision": "REQUEST_OWNER_REVIEW",
+  "id": "postalpha-0.75c-1-prop-building-depth-interleave",
+  "name": "Post-Alpha 0.75C-1 - Prop / Building Depth Interleave",
+  "status": "implemented_non_browser_green_build_blocked",
+  "playerPromise": "Allowed props respect building massing at detail zoom: props behind buildings draw behind them, and props in front remain visible.",
+  "engineeringPromise": "Buildings and props render through one shared Pixi depth stack keyed by existing iso depth helpers, while buildingLayer and propLayer remain QA-visible handles.",
+  "axis": "renderer_depth_order",
+  "contract": [
+    "Building and prop visual groups parent into buildingPropDepthLayer.",
+    "Building depth key is x + y + max(width, depth) * 0.001.",
+    "Prop depth key is anchor x + y.",
+    "Equal-depth ties draw buildings before props.",
+    "buildingLayer and propLayer remain discoverable from window.__ATLAS_QA__.world.children and hide their matching groups independently.",
+    "Hover and selection remain focusLayer-only and do not rebuild the base scene."
+  ],
   "metricResult": {
-    "ownerGateSelector": {
-      "district": "anaheim-candidate",
-      "selectedAxis": "owner_gate_review",
-      "recommendedNextQuest": "0.46E Owner Gate Review Packet",
-      "decision": "REQUEST_OWNER_REVIEW",
-      "readyForPlayablePromotion": false,
-      "ownerCutlineOutcome": "BLOCK_PROMOTION",
-      "visualPacket": "passed",
-      "productProof": "passed",
-      "splitGuard": "passed",
-      "visualOutcome": "HIDDEN_DRAFT_ONLY",
-      "visualPromotionReady": false,
-      "visualPublicPlayable": false,
-      "productPromotionReady": false,
-      "productPublicPlayable": false,
-      "productMiraAcceptance": false,
-      "blockedPublicSpike": true
+    "coreDepthOrderProof": {
+      "passed": true,
+      "test": "packages/core/test/city-world-render-commands.test.ts",
+      "assertion": "prop behind building sorts earlier; prop at equal depth sorts after building; prop in front sorts later"
     },
-    "candidateScores": {
-      "ownerGateReview": 94,
-      "controlledPublicSecondDistrictSpike": 0,
-      "focusedHiddenSecondDistrictFix": 50,
-      "publicEngineBetaQuality": 35
+    "nonBrowserVerification": {
+      "typecheckStarter": "passed",
+      "coreTests": "passed_98",
+      "generatedDistrictParity": "passed",
+      "renderCommandLayerBudget": "passed",
+      "fablePropCleanup": "passed",
+      "mobileOcclusion": "passed",
+      "providerBoundaries": "passed",
+      "toolResultShape": "passed",
+      "noGoogleInRenderer": "passed",
+      "objectKitRendererConsumption": "passed",
+      "objectAuthorshipSceneGrammar": "passed",
+      "publicObjectKitPrefabPalette": "passed",
+      "roadsRoofsSceneGrammar": "passed",
+      "strictEngineBetaSplitGuard": "passed"
+    },
+    "blockedVerification": {
+      "buildWeb": "blocked_in_sandbox",
+      "buildWebError": "Esbuild reported Cannot read directory \"../..\": Access is denied, then could not resolve web/src/main.tsx even though direct Node and PowerShell file reads succeeded.",
+      "generatedDistrictWidget": "not_run_requires_fresh_build",
+      "widgetPerformance": "not_run_requires_fresh_build"
     },
     "scope": {
+      "newDependencies": 0,
+      "threeJs": false,
+      "generatorContractChanges": 0,
+      "sceneCompilerContractChanges": 0,
+      "forbiddenPropKindChanges": 0,
+      "maxPropCommandsChanged": false,
       "newMcpTools": 0,
       "dbMigrations": 0,
-      "rendererChanges": 0,
       "publicAnaheimPromotion": false,
       "providerGeometry": false
     }
   },
   "verification": {
-    "selectorCheck": "node --check scripts/select-second-district-owner-gate-next-axis.mjs",
-    "selectorJson": "node scripts/select-second-district-owner-gate-next-axis.mjs --json-only",
-    "selectorArtifact": "node scripts/select-second-district-owner-gate-next-axis.mjs --write-default --json-only",
-    "ownerCutline": "node scripts/verify-second-district-owner-gate-cutline.mjs --readiness artifacts/second-district-readiness/latest/anaheim-candidate/readiness-aggregate.json --json-only",
-    "sourceOfTruthDrift": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "typecheckStarter": "pnpm typecheck:starter",
+    "coreTests": "pnpm test:core",
+    "buildWeb": "pnpm build:web",
+    "generatedDistrictParity": "node scripts/verify-generated-district-parity.mjs",
+    "renderCommandLayerBudget": "node scripts/verify-render-command-layer-budget.mjs",
+    "fablePropCleanup": "node scripts/verify-fable-prop-cleanup.mjs",
+    "mobileOcclusion": "node scripts/verify-cityworld-mobile-occlusion.mjs",
+    "providerBoundaries": "node scripts/verify-provider-boundaries.mjs",
+    "toolResultShape": "node scripts/verify-tool-result-shape.mjs",
+    "noGoogleInRenderer": "node scripts/verify-no-google-in-renderer.mjs",
+    "objectKitRendererConsumption": "node scripts/verify-object-kit-renderer-consumption.mjs",
+    "objectAuthorshipSceneGrammar": "node scripts/verify-object-authorship-scene-grammar.mjs",
+    "publicObjectKitPrefabPalette": "node scripts/verify-public-object-kit-prefab-palette.mjs",
+    "roadsRoofsSceneGrammar": "node scripts/verify-roads-roofs-scene-grammar.mjs",
     "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only"
   },
-  "nextCodeStep": "0.46E Owner Gate Review Packet",
+  "nextCodeStep": "0.75C-2 Browser Bundle / QA Replay",
   "forbiddenScope": [
-    "public Anaheim/Ontario exposure",
-    "public playable second district unless owner cutline is APPROVE_CONTROLLED_PUBLIC_SPIKE",
+    "new dependencies",
+    "Three.js",
+    "generator or scene compiler contract changes",
+    "forbidden prop-kind changes",
+    "maxPropCommands cap changes",
+    "new MCP tools",
     "database persistence",
     "migrations",
-    "new MCP tools",
     "paid, Stripe, OAuth, Hosted Clawd, XP, evidence, automation, reports, or exports",
     "provider-created geometry",
-    "live provider-to-scene normalization",
-    "renderer or public UI changes inside 0.45E",
-    "cars, humans, decorative props, panels, glows, or label crutches"
+    "public Anaheim/Ontario exposure",
+    "cars, humans, decorative clutter, panels, glows, or label crutches"
   ],
   "gates": [
     {
-      "id": "selector-evidence",
-      "label": "Owner-gate selector reads 0.44E visual/product/readiness/cutline artifacts",
-      "required": true
+      "id": "depth-interleave",
+      "label": "Buildings and props sort by one shared iso painter key",
+      "required": true,
+      "status": "passed"
     },
     {
-      "id": "block-public-spike",
-      "label": "Controlled public Anaheim spike remains blocked while cutline is BLOCK_PROMOTION",
-      "required": true
+      "id": "qa-layer-handles",
+      "label": "buildingLayer and propLayer remain independently hideable QA handles",
+      "required": true,
+      "status": "implemented_browser_replay_pending"
     },
     {
-      "id": "owner-review",
-      "label": "Next step is owner review packet, not more hidden art or public promotion",
-      "required": true
+      "id": "browser-replay",
+      "label": "Fresh bundle passes generated widget and widget performance verifiers",
+      "required": true,
+      "status": "blocked_by_sandbox_build"
     }
   ]
 }

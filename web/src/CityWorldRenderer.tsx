@@ -3,8 +3,11 @@ import { Application, Container, Filter, GlProgram, Graphics, Sprite, Text } fro
 import {
   CITY_WORLD_TILE_BASIS,
   cityWorldDiamondPoints,
+  cityWorldBuildingDepthKey,
   cityWorldExpandViewportFrame,
   cityWorldFrameContainsFrame,
+  cityWorldPropDepthKey,
+  compareCityWorldDepthInterleaveItems,
   cityWorldScreenCenterForCamera,
   cityWorldViewportFrameForPreset,
   createCityWorldSceneWindowCompiler,
@@ -74,9 +77,14 @@ type AnimatedTarget = {
 };
 
 type LayerMap = Record<
-  "terrainLayer" | "roadLayer" | "lotLayer" | "padLayer" | "shadowLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "focusLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
+  "terrainLayer" | "roadLayer" | "lotLayer" | "padLayer" | "shadowLayer" | "buildingPropDepthLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "focusLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
   Container
 >;
+
+type QaVisibilityProxyLayer = Container & {
+  atlasProxyVisible: boolean;
+  atlasVisibilityTargets: Container[];
+};
 
 type BuildingGeometry = {
   bottom: ProjectedPoint;
@@ -870,10 +878,8 @@ function drawScene(
   drawBanded(layers.lotLayer, orderedSceneItems(renderCommands, "lot", itemIndex.lots), (g, lot) => drawLot(g, lot));
 
   const buildings = orderedSceneItems(renderCommands, "building", itemIndex.buildings);
-  for (const building of buildings) drawBuilding(layers, building, atlas);
-
   const props = orderedSceneItems(renderCommands, "prop", itemIndex.props);
-  for (const prop of props) drawProp(layers.propLayer, prop, animated, atlas);
+  drawDepthInterleavedBuildingsAndProps(layers, buildings, props, animated, atlas);
   const actors = orderedSceneItems(renderCommands, "actor", itemIndex.actors);
   for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas);
   const visiblePlaces = orderedSceneItems(renderCommands, "place_marker", itemIndex.places);
@@ -964,6 +970,54 @@ function orderedSceneItems<T extends { id: string }>(
     if (item) items.push(item);
   }
   return items;
+}
+
+function drawDepthInterleavedBuildingsAndProps(
+  layers: LayerMap,
+  buildings: CityWorldBuilding[],
+  props: CityWorldProp[],
+  animated: AnimatedTarget[],
+  atlas: CityWorldAtlasResolver,
+) {
+  const buildingProxy = layers.buildingLayer as QaVisibilityProxyLayer;
+  const propProxy = layers.propLayer as QaVisibilityProxyLayer;
+  buildingProxy.atlasVisibilityTargets.length = 0;
+  propProxy.atlasVisibilityTargets.length = 0;
+  layers.buildingPropDepthLayer.sortableChildren = true;
+
+  const items = [
+    ...buildings.map((building, sourceIndex) => ({
+      id: building.id,
+      kind: "building" as const,
+      depthKey: cityWorldBuildingDepthKey(building),
+      sourceIndex,
+      building,
+    })),
+    ...props.map((prop, sourceIndex) => ({
+      id: prop.id,
+      kind: "prop" as const,
+      depthKey: cityWorldPropDepthKey(prop),
+      sourceIndex,
+      prop,
+    })),
+  ].sort(compareCityWorldDepthInterleaveItems);
+
+  for (const item of items) {
+    const group = new Container();
+    group.label = `${item.kind}-${item.id}`;
+    group.zIndex = item.depthKey;
+    if (item.kind === "building") {
+      drawBuilding(layers, group, item.building, atlas);
+      group.visible = buildingProxy.visible;
+      buildingProxy.atlasVisibilityTargets.push(group);
+    } else {
+      drawProp(group, item.prop, animated, atlas);
+      group.visible = propProxy.visible;
+      propProxy.atlasVisibilityTargets.push(group);
+    }
+    layers.buildingPropDepthLayer.addChild(group);
+  }
+  layers.buildingPropDepthLayer.sortChildren();
 }
 
 function drawEngineDebugOverlay(layer: Container, scene: CityWorldScene) {
@@ -1072,8 +1126,9 @@ function createLayers(): LayerMap {
     roadLayer: namedLayer("roadLayer"),
     padLayer: namedLayer("padLayer"),
     shadowLayer: namedLayer("shadowLayer"),
-    buildingLayer: namedLayer("buildingLayer"),
-    propLayer: namedLayer("propLayer"),
+    buildingPropDepthLayer: namedLayer("buildingPropDepthLayer"),
+    buildingLayer: namedVisibilityProxyLayer("buildingLayer"),
+    propLayer: namedVisibilityProxyLayer("propLayer"),
     actorLayer: namedLayer("actorLayer"),
     // Hover/selection emphasis draws here alone — over the buildings it
     // traces, under labels and hit targets — so focus changes never rebuild
@@ -1088,6 +1143,23 @@ function createLayers(): LayerMap {
 function namedLayer(label: keyof LayerMap): Container {
   const layer = new Container();
   layer.label = label;
+  return layer;
+}
+
+function namedVisibilityProxyLayer(label: "buildingLayer" | "propLayer"): QaVisibilityProxyLayer {
+  const layer = namedLayer(label) as QaVisibilityProxyLayer;
+  layer.atlasProxyVisible = true;
+  layer.atlasVisibilityTargets = [];
+  Object.defineProperty(layer, "visible", {
+    configurable: true,
+    get() {
+      return this.atlasProxyVisible;
+    },
+    set(value: boolean) {
+      this.atlasProxyVisible = value;
+      for (const target of this.atlasVisibilityTargets) target.visible = value;
+    },
+  });
   return layer;
 }
 
@@ -2760,8 +2832,7 @@ function drawCivicLotComposition(g: Graphics, point: ProjectedPoint, width: numb
     .stroke({ color: 0x7f6d4e, alpha: 0.18, width: 1.2, cap: "round", join: "round" });
 }
 
-function drawBuilding(layers: LayerMap, building: CityWorldBuilding, atlas: CityWorldAtlasResolver) {
-  const layer = layers.buildingLayer;
+function drawBuilding(layers: LayerMap, layer: Container, building: CityWorldBuilding, atlas: CityWorldAtlasResolver) {
   // The base scene is focus-agnostic: hover/selection emphasis draws in the
   // focusLayer overlay so focus changes never rebuild these Graphics.
   const geometry = createBuildingGeometry(building, atlas);

@@ -20,6 +20,62 @@ The owner-gate / second-district ceremony below is **parked** but kept honest: `
 Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`
 stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only on human request.
 
+## Branch-local renderer depth gate (2026-07-08, `fable/0.58e-prop-cleanup`)
+
+Current quest:
+`0.75C-1 Prop / Building Depth Interleave`.
+
+Player-facing promise:
+At detail zoom, plaza props, trees, benches, signs, and other allowed props
+respect the city massing: props behind buildings tuck behind them, and props in
+front remain visible.
+
+Engineering promise:
+Buildings and props render as one shared Pixi painter-order stack keyed by the
+existing iso depth helpers. The old QA labels `buildingLayer` and `propLayer`
+remain discoverable and independently hide their matching grouped objects.
+
+Contract:
+- Building visual groups and prop visual groups parent into
+  `buildingPropDepthLayer`.
+- Building depth key is `x + y + max(width, depth) * 0.001`.
+- Prop depth key is anchor `x + y`.
+- Equal-depth ties draw buildings before props.
+- QA can still find `buildingLayer` and `propLayer` in
+  `window.__ATLAS_QA__.world.children`.
+- Hover and selection stay overlay-only; no scene rebuild on focus changes.
+
+Metric / verifier:
+- `pnpm typecheck:starter`
+- `pnpm test:core`
+- `pnpm build:web`
+- `node scripts\verify-generated-district-parity.mjs`
+- `node scripts\verify-generated-district-widget.mjs`
+- `node scripts\verify-widget-performance.mjs`
+- `node scripts\verify-render-command-layer-budget.mjs`
+- `node scripts\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only`
+
+Proof:
+`artifacts/0.75c-depth-interleave/CODEX_RESULT.md`.
+
+Current status:
+Implementation and non-browser verifiers are green. `pnpm build:web` is blocked
+in the current sandbox by esbuild access denial while resolving the web entry,
+so the generated-widget and widget-performance browser gates still need replay
+in an environment where the web bundle can be produced.
+
+Anti-scope:
+No new dependencies, Three.js, generator/compiler contract changes, forbidden
+prop-kind changes, `maxPropCommands` cap changes, MCP tool changes, provider
+geometry, Hosted Clawd, DB/Auth, Stripe, public Anaheim/Ontario promotion,
+dashboard UI, cars, humans, labels, panels, or decorative clutter.
+
+Next visual-engine move:
+`0.75C-2 Browser Bundle / QA Replay`: rerun `pnpm build:web`, then
+`verify-generated-district-widget` and `verify-widget-performance` against the
+fresh bundle. If the build passes, continue to the next named renderer quality
+slice from the latest selector or human packet.
+
 ## Branch-local generated visual gate (2026-07-06, `fable/0.58e-prop-cleanup`)
 
 Current quest:

@@ -147,6 +147,9 @@ export {
   CITY_WORLD_SCENE_WINDOW_DEFAULT_CHUNK_SIZE,
   buildCityWorldRenderCommandBuffer,
   buildCityWorldSceneItemIndex,
+  cityWorldBuildingDepthKey,
+  cityWorldPropDepthKey,
+  compareCityWorldDepthInterleaveItems,
   compileCityWorldSceneChunkIndex,
   compileCityWorldSceneWindow,
   createCityWorldSceneWindowCompiler,
@@ -278,6 +281,8 @@ export type {
   CityWorldMobileOcclusionReport,
 } from "./voxel/cityWorldDerivedTerrainMap.js";
 export type {
+  CityWorldDepthInterleaveItem,
+  CityWorldDepthInterleaveKind,
   CityWorldRenderBudgetProfileId,
   CityWorldRenderCommand,
   CityWorldRenderCommandBuffer,
