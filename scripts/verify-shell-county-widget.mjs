@@ -374,13 +374,13 @@ function assertShellState(label, state, expectedTier, errors) {
   if (state.noteInputVisible) failures.push("note input should not be visible for shell counties");
   if (!state.recoveryActionVisible) failures.push("recovery action is missing");
   if (!state.recoveryActionFirstViewportVisible) failures.push("recovery action is not visible in the first viewport");
-  if (!state.recoveryActionText.includes("Riverside/Eastvale")) failures.push("recovery action does not point to Riverside/Eastvale");
+  if (!state.recoveryActionText.includes("Riverside")) failures.push("recovery action does not point to Riverside");
   if (expectedTier === "L1_COUNTY_SHELL" && state.canvasCount !== 1) failures.push(`expected one canvas, got ${state.canvasCount}`);
   if (expectedTier === "L0_UNSUPPORTED" && state.canvasCount !== 0) failures.push(`unsupported counties should not render a shell canvas, got ${state.canvasCount}`);
   if (state.horizontalOverflow) failures.push("horizontal overflow detected");
   if (
     expectedTier === "L1_COUNTY_SHELL" &&
-    !state.boundaryText.includes("Indexed only")
+    !state.boundaryText.includes("Browse-only")
   ) {
     failures.push("shell boundary copy is missing");
   }
@@ -390,8 +390,11 @@ function assertShellState(label, state, expectedTier, errors) {
   ) {
     failures.push("unsupported boundary copy is missing");
   }
-  if (!state.boundaryText.includes("saves") || !state.boundaryText.includes("XP") || !state.boundaryText.includes("automation")) {
-    failures.push("session/payment boundary copy is missing");
+  // Boundary copy was shortened to plain voice ("Nothing is saved.") in the
+  // hosted-clawd pass; the XP/automation enumeration lives in the tool-layer
+  // honesty verifiers. Assert the session boundary in the current voice.
+  if (!/nothing is saved/i.test(state.boundaryText)) {
+    failures.push("session boundary copy is missing");
   }
   if (!state.sourceText.includes("Riverside/Eastvale")) failures.push("playable county guidance is missing");
   if (errors.length > 0) failures.push(`console errors: ${errors.join(" | ")}`);

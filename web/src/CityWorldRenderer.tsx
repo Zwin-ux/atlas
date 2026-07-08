@@ -481,6 +481,13 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     const app = new Application();
     appRef.current = app;
     let cancelled = false;
+    let initComplete = false;
+    let destroyed = false;
+    const destroyApp = () => {
+      if (destroyed) return;
+      destroyed = true;
+      app.destroy({ removeView: true }, { children: true });
+    };
 
     async function initPixi() {
       await app.init({
@@ -491,9 +498,10 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
         resolution: Math.min(window.devicePixelRatio || 1, 2),
         resizeTo: mountElement,
       });
+      initComplete = true;
 
       if (cancelled) {
-        app.destroy({ removeView: true }, { children: true });
+        destroyApp();
         return;
       }
 
@@ -573,7 +581,10 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
         window.cancelAnimationFrame(cameraFrameRef.current);
         cameraFrameRef.current = null;
       }
-      app.destroy({ removeView: true }, { children: true });
+      // Destroying before app.init() settles crashes Pixi's resize plugin
+      // (_cancelResize is not installed yet). When init is still in flight,
+      // the cancelled branch inside initPixi destroys after init resolves.
+      if (initComplete) destroyApp();
     };
   }, []);
 

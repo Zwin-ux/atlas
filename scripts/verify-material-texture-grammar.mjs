@@ -31,7 +31,9 @@ const setCameraZoomBody = functionBody(source.renderer, "setCameraZoom");
 requireText("renderer", "const MATERIAL_TEXTURE_DETAIL_ZOOM = 1.55", "Renderer must keep the material texture threshold explicit at 1.55.");
 requireText("renderer", "function shouldDrawMaterialTexture(cameraZoom: number)", "Renderer must expose a single zoom-gate helper for material texture.");
 requireText("renderer", "shouldDrawMaterialTexture(cameraZoom)", "drawScene must gate material texture from the live camera zoom.");
-requireText("renderer", "drawDepthInterleavedBuildingsAndProps(layers, buildings, props, animated, atlas, shouldDrawMaterialTexture(cameraZoom))", "Building/prop interleave path must receive the zoom-gated material flag.");
+// 0.75R merge threads the 0.67H focal-calm callback after the material flag,
+// so match the call prefix rather than the exact closing paren.
+requireText("renderer", "drawDepthInterleavedBuildingsAndProps(layers, buildings, props, animated, atlas, shouldDrawMaterialTexture(cameraZoom)", "Building/prop interleave path must receive the zoom-gated material flag.");
 requireText("renderer", "drawBuilding(layers, group, item.building, atlas, materialTextureEnabled)", "Material texture must stay inside the existing per-building group.");
 requireText("renderer", "drawWallMaterialTexture(layer, geometry, building)", "Building shell must call close-zoom wall material texture.");
 requireText("renderer", "drawRoofMaterialTexture(layer, geometry, building)", "Roof path must call close-zoom roof material texture.");

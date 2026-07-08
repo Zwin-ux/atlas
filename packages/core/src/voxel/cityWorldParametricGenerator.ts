@@ -168,9 +168,16 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     // a road corridor is dropped. Soft zones (park/water) may host embedded
     // roads — the renderer draws roads over lot ground.
     const softZone = zone.kind === "park" || zone.kind === "water";
-    const parcels = layoutZoneParcels(zone, rng, boardCenter).filter(
+    let parcels = layoutZoneParcels(zone, rng, boardCenter).filter(
       (parcel) => softZone || parcelClearsRoads(parcel, roadSegments),
     );
+    if (parcels.length === 0 && !softZone) {
+      // A re-gridded zone can land every parcel inside a road corridor and
+      // silently erase the whole zone (lots, buildings, AND its place).
+      // Retry once with the grid shifted a quarter cell — deterministic, and
+      // only reached when the primary grid produced nothing.
+      parcels = layoutZoneParcels(zone, rng, boardCenter, 0.25).filter((parcel) => parcelClearsRoads(parcel, roadSegments));
+    }
     if (parcels.length === 0) continue;
 
     for (const parcel of parcels) {
@@ -433,7 +440,7 @@ function parametricTerrainGrammar(
   return { terrainProfile, terrainComposition: composition, terrainElevation: elevation, chunkEdge, terrainChunkMassing: massing, contactProfile };
 }
 
-function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCenter?: { x: number; y: number }): ParcelLayout[] {
+function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCenter?: { x: number; y: number }, gridOffset = 0): ParcelLayout[] {
   const { rect } = zone;
   const zoneWidth = rect.maxX - rect.minX;
   const zoneHeight = rect.maxY - rect.minY;
@@ -562,8 +569,8 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCent
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       if (rng() > density) continue;
-      const cx = rect.minX + (col + 0.5) * cellWidth;
-      const cy = rect.minY + (row + 0.5) * cellHeight;
+      const cx = rect.minX + (col + 0.5 + (col < cols - 1 ? gridOffset : 0)) * cellWidth;
+      const cy = rect.minY + (row + 0.5 + (row < rows - 1 ? gridOffset : 0)) * cellHeight;
       const jitter = (rng() - 0.5) * 0.3;
       // Rotate apartment massing so court parcels step instead of cloning one slab.
       const spec = zone.kind === "apartments" ? apartmentSpecForOrdinal(index, rng) : buildingSpecForZone(zone.kind, rng);

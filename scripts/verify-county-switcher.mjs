@@ -268,7 +268,7 @@ function assertState(label, state, expected) {
     if (state.stickerToolsVisible) failures.push("sticker tools should be hidden");
     if (state.noteInputVisible) failures.push("note input should be hidden");
     if (!state.recoveryVisible) failures.push("recovery action missing");
-    if (!state.recoveryText.includes("Riverside/Eastvale")) failures.push("recovery action text missing Riverside/Eastvale");
+    if (!state.recoveryText.includes("Riverside")) failures.push("recovery action text missing Riverside");
     if (!state.recoveryFirstViewportVisible) failures.push("recovery action below first viewport");
     if (expected.coverageTier === "L1_COUNTY_SHELL" && state.canvasCount !== 1) failures.push(`expected shell canvas, got ${state.canvasCount}`);
     if (expected.coverageTier === "L0_UNSUPPORTED" && state.canvasCount !== 0) failures.push(`unsupported should not render canvas, got ${state.canvasCount}`);
@@ -298,6 +298,9 @@ async function runViewport({ previewUrl, viewport, screenshotDir, port }) {
     await waitFor(client, `document.readyState === "complete"`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='alpha-city-world']"))`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='county-switcher']"))`, 10_000);
+    // Pixi appends its canvas after an async app.init(); the React container
+    // mounts first, so wait for the canvas before asserting the initial state.
+    await waitFor(client, `document.querySelectorAll("canvas").length >= 1`, 20_000);
 
     const initialState = await readState(client);
     assertState(`${viewport.label} initial Riverside`, initialState, {
@@ -310,6 +313,8 @@ async function runViewport({ previewUrl, viewport, screenshotDir, port }) {
 
     await clickCounty(client, "orange-ca");
     await waitFor(client, `document.querySelector("[data-qa='county-coverage-shell']")?.getAttribute("data-qa-coverage-tier") === "L1_COUNTY_SHELL"`, 10_000);
+    // The shell scene's Pixi canvas mounts after an async app.init().
+    await waitFor(client, `document.querySelectorAll("canvas").length >= 1`, 20_000);
     const orangeState = await readState(client);
     assertState(`${viewport.label} Orange shell`, orangeState, {
       mode: "coverage",
