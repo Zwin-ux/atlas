@@ -1,5 +1,31 @@
 # Decisions
 
+## Decision 100: Generated districts carry compiler-authored regional palettes
+
+0.76-1 adds typed regional palette identity for generated district archetypes.
+
+Decision:
+Generated district specs carry an optional `regionalPalette` selected from
+`REGIONAL_PALETTES`. When present, the parametric compiler authors regional
+building palette keys and regional terrain palette keys. When absent, the
+legacy kind-keyed building pools and terrain keys remain the path.
+
+Decision id:
+`GENERATED_DISTRICTS_USE_COMPILER_AUTHORED_REGIONAL_PALETTES`.
+
+Reason:
+The player-facing region read must be authored before rendering, not inferred
+from ids in Pixi. Registered regional palette keys also keep atlas validation
+strict and keep diagnostics measuring effective rendered colors.
+
+Allowed next:
+- `0.76-2 Region-true landmarks` as the next READY 0.76 packet.
+
+Still blocked:
+- New geometry from this palette packet, provider-created geometry, public
+  playable claims for generated counties, new MCP tools, persistence, money,
+  public Anaheim/Ontario, reports, exports, evidence, XP, and automation.
+
 ## Decision 099: 0.72H-b fixes generated labels but is still a review candidate
 
 The sibling Fable worktree now has a stronger generated-draft visual candidate:

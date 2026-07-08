@@ -8,6 +8,37 @@ verifier/selector result created during the current slice. If the human says
 "continue," continue only the named next quest. If that quest conflicts with
 permanent gates, stop and report the conflict.
 
+## Current 0.76 USA-region quality track (2026-07-08)
+
+Current packet:
+`0.76-1 Regional Palettes` is local-green and waiting for reviewer-run
+web/Chrome proof.
+
+Decision:
+`GENERATED_DISTRICTS_USE_COMPILER_AUTHORED_REGIONAL_PALETTES`.
+
+Proof:
+- `packages/core/src/voxel/cityWorldRegionalPalettes.ts`
+- `packages/core/src/voxel/cityWorldParametricGenerator.ts`
+- `packages/core/src/voxel/cityWorldGeneratedDistrict.ts`
+- `packages/core/test/city-world-generated-district.test.ts`
+- `scripts/verify-generated-district-parity.mjs`
+- `artifacts/0.76-1-regional-palettes/CODEX_RESULT.md`
+
+Next READY packet:
+`0.76-2 Region-true landmarks`.
+
+Queue:
+- READY: `0.76-2 Region-true landmarks`
+- QUEUED: `0.76-3 Massing & zone variants`
+- QUEUED: `0.76-4 Terrain features`
+- QUEUED: `0.76-5 Gate promotion + batch sweep`
+
+Anti-scope remains:
+No new dependencies, Three.js, provider geometry, persistence, money, new MCP
+tools, public Anaheim/Ontario promotion, generated public-playable claims, or
+geometry additions from the palette packet.
+
 ## Active product track (human-directed 2026-07-03)
 
 The live track is the product/app-quality path to a **submittable ChatGPT app**, specified in

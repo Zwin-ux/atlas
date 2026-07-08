@@ -28,6 +28,7 @@ import {
   cityWorldSegmentTouchesFrame,
   cityWorldViewportFrameForCameraPreset,
 } from "./cityWorldBasis.js";
+import { resolveRegionalBuildingPalette, regionalTerrainPaletteKey, type RegionalPalette } from "./cityWorldRegionalPalettes.js";
 
 /**
  * Parametric scene-generator seam.
@@ -91,6 +92,11 @@ export type CityWorldParametricSpec = {
   heightGrid?: { cellSize: number; values: number[][] };
   zones: CityWorldZoneSpec[];
   roadSeeds: CityWorldRoadSeed[];
+  /**
+   * Optional compiler-authored regional palette for generated districts. When
+   * absent, the legacy kind-keyed template pools and terrain keys are used.
+   */
+  regionalPalette?: RegionalPalette;
   /** Optional deterministic seed for parcel jitter. Defaults to 1. */
   seed?: number;
 };
@@ -168,7 +174,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     // a road corridor is dropped. Soft zones (park/water) may host embedded
     // roads — the renderer draws roads over lot ground.
     const softZone = zone.kind === "park" || zone.kind === "water";
-    let parcels = layoutZoneParcels(zone, rng, boardCenter).filter(
+    let parcels = layoutZoneParcels(zone, rng, boardCenter, 0, spec.regionalPalette).filter(
       (parcel) => softZone || parcelClearsRoads(parcel, roadSegments),
     );
     if (parcels.length === 0 && !softZone) {
@@ -176,7 +182,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       // silently erase the whole zone (lots, buildings, AND its place).
       // Retry once with the grid shifted a quarter cell — deterministic, and
       // only reached when the primary grid produced nothing.
-      parcels = layoutZoneParcels(zone, rng, boardCenter, 0.25).filter((parcel) => parcelClearsRoads(parcel, roadSegments));
+      parcels = layoutZoneParcels(zone, rng, boardCenter, 0.25, spec.regionalPalette).filter((parcel) => parcelClearsRoads(parcel, roadSegments));
     }
     if (parcels.length === 0) continue;
 
@@ -197,7 +203,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
         ),
       );
 
-      const building = buildingForZone(zone, parcel, placeId, rng);
+      const building = buildingForZone(zone, parcel, placeId, rng, spec.regionalPalette);
       if (building) {
         building.position.z = parcelZ;
         buildings.push(withBuildingMetadata(building));
@@ -344,7 +350,7 @@ function createParametricTerrain(spec: CityWorldParametricSpec, bounds: CityWorl
         depth: 1,
         variant,
         spriteKey: `tile.${kind}.${variant}`,
-        paletteKey: `terrain.${kind}`,
+        paletteKey: regionalTerrainKeyForKind(kind, spec.regionalPalette),
         detailLevel: kind === "water" || kind === "park" || kind === "plaza" ? "medium" : "low",
         visualGrammar: elevation ? { ...grammar, elevation } : grammar,
       });
@@ -440,7 +446,13 @@ function parametricTerrainGrammar(
   return { terrainProfile, terrainComposition: composition, terrainElevation: elevation, chunkEdge, terrainChunkMassing: massing, contactProfile };
 }
 
-function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCenter?: { x: number; y: number }, gridOffset = 0): ParcelLayout[] {
+function layoutZoneParcels(
+  zone: CityWorldZoneSpec,
+  rng: () => number,
+  boardCenter?: { x: number; y: number },
+  gridOffset = 0,
+  regionalPalette?: RegionalPalette,
+): ParcelLayout[] {
   const { rect } = zone;
   const zoneWidth = rect.maxX - rect.minX;
   const zoneHeight = rect.maxY - rect.minY;
@@ -496,7 +508,7 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCent
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < cols; col += 1) {
         if (rng() > stripDensity) continue;
-        const template = buildingSpecForZone(zone.kind, rng);
+        const template = buildingSpecForZone(zone.kind, rng, regionalPalette);
         if (!template) continue;
         const spec: ZoneBuildingSpec = {
           ...template,
@@ -517,7 +529,7 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCent
       }
     }
     if (strips.length === 0) {
-      const template = buildingSpecForZone(zone.kind, rng);
+      const template = buildingSpecForZone(zone.kind, rng, regionalPalette);
       const spec: ZoneBuildingSpec | undefined = template
         ? { ...template, width: Math.min(Math.max(template.width, zoneWidth * 0.6), 6.2) }
         : undefined;
@@ -573,7 +585,7 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCent
       const cy = rect.minY + (row + 0.5 + (row < rows - 1 ? gridOffset : 0)) * cellHeight;
       const jitter = (rng() - 0.5) * 0.3;
       // Rotate apartment massing so court parcels step instead of cloning one slab.
-      const spec = zone.kind === "apartments" ? apartmentSpecForOrdinal(index, rng) : buildingSpecForZone(zone.kind, rng);
+      const spec = zone.kind === "apartments" ? apartmentSpecForOrdinal(index, rng, regionalPalette) : buildingSpecForZone(zone.kind, rng, regionalPalette);
       const pad = spec ? parcelForSpec(spec) : footprint;
       parcels.push({
         index: index++,
@@ -589,7 +601,7 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCent
 
   // Never leave a zoned block empty — guarantee at least one anchor parcel.
   if (parcels.length === 0) {
-    const spec = zone.kind === "apartments" ? apartmentSpecForOrdinal(0, rng) : buildingSpecForZone(zone.kind, rng);
+    const spec = zone.kind === "apartments" ? apartmentSpecForOrdinal(0, rng, regionalPalette) : buildingSpecForZone(zone.kind, rng, regionalPalette);
     const pad = spec ? parcelForSpec(spec) : footprint;
     parcels.push({
       index: 0,
@@ -611,7 +623,7 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCent
       const closestDistance = Math.hypot(closest.x - cornerTargetX, closest.y - cornerTargetY);
       return parcelDistance < closestDistance ? parcel : closest;
     }, parcels[0] as ParcelLayout);
-    const cornerSpec = applyDimensionJitter(CORNER_STORE_TEMPLATE, rng);
+    const cornerSpec = applyDimensionJitter(CORNER_STORE_TEMPLATE, rng, regionalPalette);
     cornerSpec.labelOverride = "Corner market";
     cornerParcel.spec = cornerSpec;
     cornerParcel.lotKind = "shop";
@@ -622,8 +634,14 @@ function layoutZoneParcels(zone: CityWorldZoneSpec, rng: () => number, boardCent
   return parcels;
 }
 
-function buildingForZone(zone: CityWorldZoneSpec, parcel: ParcelLayout, placeId: string, rng: () => number): CityWorldBuilding | null {
-  const spec = parcel.spec ?? buildingSpecForZone(zone.kind, rng);
+function buildingForZone(
+  zone: CityWorldZoneSpec,
+  parcel: ParcelLayout,
+  placeId: string,
+  rng: () => number,
+  regionalPalette?: RegionalPalette,
+): CityWorldBuilding | null {
+  const spec = parcel.spec ?? buildingSpecForZone(zone.kind, rng, regionalPalette);
   if (!spec) return null;
   return {
     id: `gen-building-${zone.id}-${parcel.index}`,
@@ -642,6 +660,7 @@ function buildingForZone(zone: CityWorldZoneSpec, parcel: ParcelLayout, placeId:
     height: spec.height + parcel.elevationBoost,
     bodyColor: spec.bodyColor,
     roofColor: spec.roofColor,
+    ...(spec.paletteKey ? { paletteKey: spec.paletteKey } : {}),
     placeId,
     roofShape: spec.roofShape,
     facadeStyle: spec.facadeStyle,
@@ -662,6 +681,8 @@ type ZoneBuildingSpec = {
   spriteKey?: string;
   /** Label override for authored fabric roles (e.g. neighborhood corner market). */
   labelOverride?: string;
+  /** Optional regional manifest palette key for generated districts. */
+  paletteKey?: string;
 };
 
 /**
@@ -722,9 +743,9 @@ function apartmentClearanceSafeMinHeight(width: number, depth: number): number {
 }
 
 /** Rotate the court pool per parcel ordinal so silhouettes step deterministically. */
-function apartmentSpecForOrdinal(ordinal: number, rng: () => number): ZoneBuildingSpec {
+function apartmentSpecForOrdinal(ordinal: number, rng: () => number, regionalPalette?: RegionalPalette): ZoneBuildingSpec {
   const template = APARTMENT_TEMPLATE_POOL[ordinal % APARTMENT_TEMPLATE_POOL.length] as ZoneBuildingTemplate;
-  const spec = applyDimensionJitter(template, rng);
+  const spec = applyDimensionJitter(template, rng, regionalPalette);
   spec.height = Math.max(spec.height, apartmentClearanceSafeMinHeight(spec.width, spec.depth));
   return spec;
 }
@@ -733,45 +754,73 @@ const GYM_TEMPLATE_POOL: ZoneBuildingTemplate[] = [
   { kind: "gym", width: 4.0, depth: 2.6, height: 2.0, facadeStyle: "fitness", roofShape: "sawtooth", bodyColors: ["#d7e7ef", "#d3e2ea"], roofColors: ["#a76f4e", "#5f8fa6"] },
 ];
 
-function applyDimensionJitter(template: ZoneBuildingTemplate, rng: () => number): ZoneBuildingSpec {
+function applyDimensionJitter(template: ZoneBuildingTemplate, rng: () => number, regionalPalette?: RegionalPalette): ZoneBuildingSpec {
   const home = template.kind === "home";
   const jitter = (value: number, spread = 0.3) => Math.round(value * (1 + (rng() - 0.5) * spread) * 100) / 100;
+  const width = jitter(template.width, home ? 0.14 : 0.3);
+  const depth = jitter(template.depth, home ? 0.12 : 0.3);
+  const height = jitter(template.height, home ? 0.08 : 0.3);
+  const bodyPick = pickIndexed(rng, regionalPalette?.body ?? template.bodyColors);
+  const roofPick = pickIndexed(rng, regionalPalette?.roof ?? template.roofColors);
+  const regional = regionalPalette ? resolveRegionalBuildingPalette(regionalPalette, bodyPick.index, roofPick.index) : undefined;
   return {
     kind: template.kind,
-    width: jitter(template.width, home ? 0.14 : 0.3),
-    depth: jitter(template.depth, home ? 0.12 : 0.3),
-    height: jitter(template.height, home ? 0.08 : 0.3),
-    bodyColor: pick(rng, template.bodyColors),
-    roofColor: pick(rng, template.roofColors),
+    width,
+    depth,
+    height,
+    bodyColor: regional?.bodyColor ?? bodyPick.value,
+    roofColor: regional?.roofColor ?? roofPick.value,
+    ...(regional ? { paletteKey: regional.paletteKey } : {}),
     facadeStyle: template.facadeStyle,
     roofShape: template.roofShape,
   };
 }
 
-function buildingSpecForZone(kind: CityWorldZoneKind, rng: () => number): ZoneBuildingSpec | null {
+function buildingSpecForZone(kind: CityWorldZoneKind, rng: () => number, regionalPalette?: RegionalPalette): ZoneBuildingSpec | null {
   if (kind === "residential") {
     const totalWeight = RESIDENTIAL_TEMPLATE_POOL.reduce((sum, entry) => sum + entry.weight, 0);
     let roll = rng() * totalWeight;
     for (const entry of RESIDENTIAL_TEMPLATE_POOL) {
       roll -= entry.weight;
-      if (roll <= 0) return applyDimensionJitter(entry.template, rng);
+      if (roll <= 0) return applyDimensionJitter(entry.template, rng, regionalPalette);
     }
     const last = RESIDENTIAL_TEMPLATE_POOL[RESIDENTIAL_TEMPLATE_POOL.length - 1];
-    return last ? applyDimensionJitter(last.template, rng) : null;
+    return last ? applyDimensionJitter(last.template, rng, regionalPalette) : null;
   }
   if (kind === "commercial") {
-    return applyDimensionJitter(pick(rng, COMMERCIAL_TEMPLATE_POOL), rng);
+    return applyDimensionJitter(pick(rng, COMMERCIAL_TEMPLATE_POOL), rng, regionalPalette);
   }
   if (kind === "apartments") {
-    return applyDimensionJitter(pick(rng, APARTMENT_TEMPLATE_POOL), rng);
+    return applyDimensionJitter(pick(rng, APARTMENT_TEMPLATE_POOL), rng, regionalPalette);
   }
   if (kind === "gym") {
-    return applyDimensionJitter(pick(rng, GYM_TEMPLATE_POOL), rng);
+    return applyDimensionJitter(pick(rng, GYM_TEMPLATE_POOL), rng, regionalPalette);
   }
   if (kind === "civic") {
-    return { kind: "civic", width: 3.4, depth: 2.5, height: 2.8, bodyColor: "#f3dfbd", roofColor: "#5d8fa8", facadeStyle: "civic", roofShape: "tower" };
+    const regional = regionalPalette ? resolveRegionalBuildingPalette(regionalPalette, 0, 0) : undefined;
+    return {
+      kind: "civic",
+      width: 3.4,
+      depth: 2.5,
+      height: 2.8,
+      bodyColor: regional?.bodyColor ?? "#f3dfbd",
+      roofColor: regional?.roofColor ?? "#5d8fa8",
+      ...(regional ? { paletteKey: regional.paletteKey } : {}),
+      facadeStyle: "civic",
+      roofShape: "tower",
+    };
   }
   return null;
+}
+
+function regionalTerrainKeyForKind(kind: CityWorldTerrainKind, regionalPalette: RegionalPalette | undefined): string {
+  if (!regionalPalette || kind === "water") return `terrain.${kind}`;
+  return regionalTerrainPaletteKey(regionalPalette.archetype);
+}
+
+function pickIndexed<T>(rng: () => number, values: readonly T[]): { value: T; index: number } {
+  const index = Math.floor(rng() * values.length) % values.length;
+  return { value: values[index] as T, index };
 }
 
 function parcelFootprint(kind: CityWorldZoneKind): { width: number; depth: number } {

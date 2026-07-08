@@ -143,7 +143,13 @@ export {
   analyzeCityWorldObjectKit,
   assignCityWorldObjectKit,
   CITY_WORLD_BUILDING_PALETTES,
+  GENERATED_DISTRICT_ARCHETYPES,
+  REGIONAL_BUILDING_PALETTES,
+  REGIONAL_PALETTES,
   resolveEffectiveBuildingColors,
+  regionalBuildingPaletteKey,
+  regionalTerrainPaletteKey,
+  resolveRegionalBuildingPalette,
   cityWorldBuildingTouchesLot,
   cityWorldDiamondPoints,
   cityWorldExpandViewportFrame,
@@ -206,6 +212,7 @@ export type {
   DeterministicGeneratedDistrictSpec,
   GeneratedDistrictArchetype,
 } from "./voxel/cityWorldGeneratedDistrict.js";
+export type { RegionalPalette } from "./voxel/cityWorldRegionalPalettes.js";
 export type {
   CampaignAssetPlaceholder,
   CampaignChannel,

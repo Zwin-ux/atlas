@@ -14,6 +14,15 @@ export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput 
 export { generateParametricCityWorldScene, exampleParametricDistrictSpec, analyzeGeneratedDistrictParity } from "./cityWorldParametricGenerator.js";
 export type { CityWorldParametricSpec, CityWorldParametricResult, CityWorldZoneSpec, CityWorldZoneKind, CityWorldRoadSeed, CityWorldGeneratedDistrictParityReport, CityWorldGeneratedFrameBandDensity, CityWorldGeneratedPadMetric } from "./cityWorldParametricGenerator.js";
 export {
+  GENERATED_DISTRICT_ARCHETYPES,
+  REGIONAL_BUILDING_PALETTES,
+  REGIONAL_PALETTES,
+  regionalBuildingPaletteKey,
+  regionalTerrainPaletteKey,
+  resolveRegionalBuildingPalette,
+} from "./cityWorldRegionalPalettes.js";
+export type { RegionalPalette } from "./cityWorldRegionalPalettes.js";
+export {
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,

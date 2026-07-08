@@ -1,4 +1,5 @@
 import type { CityWorldBuilding } from "./cityWorldTypes.js";
+import { REGIONAL_BUILDING_PALETTES } from "./cityWorldRegionalPalettes.js";
 
 /**
  * Effective building palette registry.
@@ -56,6 +57,7 @@ export const CITY_WORLD_BUILDING_PALETTES: Record<string, CityWorldBuildingPalet
   "building.venue.anaheim_convention_center.v1": { base: "#f0d9ab", shade: "#c8ae7c", highlight: "#fff0c8", roof: "#97bcc9", trim: "#4e8298" },
   "building.shop.1": { base: "#f2dfc2", shade: "#cdb18c", highlight: "#fff4d8", roof: "#cfa057", trim: "#5b9fcb" },
   "building.shop.2": { base: "#f2dfc2", shade: "#cdb18c", highlight: "#fff4d8", roof: "#c37481", trim: "#cfa057" },
+  ...REGIONAL_BUILDING_PALETTES,
 };
 
 /** Mirror of the renderer's `FALLBACK_PALETTES.building` (no roof entry). */

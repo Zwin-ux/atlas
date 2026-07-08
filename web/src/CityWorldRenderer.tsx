@@ -930,7 +930,7 @@ function drawScene(
   // bands partition painter depth, so adding bands in ascending order with
   // in-band call order preserved is exactly order-safe — and drops thousands
   // of per-tile/per-lot Graphics to ~dozens.
-  drawBanded(layers.terrainLayer, orderedSceneItems(renderCommands, "terrain_tile", itemIndex.terrainTiles), (g, tile) => drawTerrainTile(g, tile));
+  drawBanded(layers.terrainLayer, orderedSceneItems(renderCommands, "terrain_tile", itemIndex.terrainTiles), (g, tile) => drawTerrainTile(g, tile, atlas));
   drawRoadNetwork(layers.roadLayer, orderedSceneItems(renderCommands, "road_segment", itemIndex.roadSegments));
   drawBanded(layers.lotLayer, orderedSceneItems(renderCommands, "lot", itemIndex.lots), (g, lot) => drawLot(g, lot));
 
@@ -1267,12 +1267,13 @@ function namedVisibilityProxyLayer(label: "buildingLayer" | "propLayer"): QaVisi
   return layer;
 }
 
-function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile) {
+function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile, atlas: CityWorldAtlasResolver) {
   const point = project(tile.position);
   const contact = resolveTerrainContact(tile);
   const draftTile = contact.tone === "draft";
   const shellTile = contact.tone === "shell";
-  const baseColor = shellTile ? SHELL_TERRAIN_COLORS[tile.kind] : draftTile ? DRAFT_TERRAIN_COLORS[tile.kind] : TERRAIN_COLORS[tile.kind];
+  const regionalTerrain = tile.paletteKey?.startsWith("terrain.region.") ? atlas.resolvePalette(tile.paletteKey, "terrain").colors : undefined;
+  const baseColor = shellTile ? SHELL_TERRAIN_COLORS[tile.kind] : draftTile ? DRAFT_TERRAIN_COLORS[tile.kind] : regionalTerrain ? colorToNumber(regionalTerrain.base) : TERRAIN_COLORS[tile.kind];
   // Deterministic tonal variation: two low-frequency waves plus a whisper of
   // per-tile hash so the ground reads as planted terrain, not a flat board —
   // and not a checkerboard. Calm range only.
@@ -1290,7 +1291,7 @@ function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile) {
     : mixColor(scaleColor(shadeColor(baseColor, variation), 0.98), SUN_WARM_TINT, 0.07);
   const alpha = shellTile ? (tile.kind === "grass" ? 0.86 : 0.9) : draftTile ? (tile.kind === "grass" ? 0.84 : 0.92) : tile.kind === "water" ? 0.97 : tile.kind === "grass" ? 0.92 : 0.94;
   const strokeAlpha = shellTile ? (tile.kind === "grass" ? 0.1 : 0.14) : draftTile ? (tile.kind === "grass" ? 0.018 : 0.1) : tile.kind === "grass" ? 0.026 : tile.kind === "water" ? 0.18 : 0.12;
-  const strokeColor = tile.kind === "water" ? 0x3a8ea1 : shellTile ? 0x747965 : draftTile ? 0x7a8a58 : 0x6d824f;
+  const strokeColor = tile.kind === "water" ? 0x3a8ea1 : shellTile ? 0x747965 : draftTile ? 0x7a8a58 : regionalTerrain ? colorToNumber(regionalTerrain.shade) : 0x6d824f;
   // Massing/elevation extrusions first, then the tile face: within a shared
   // Graphics, path order is z order (old per-object add order preserved).
   drawTerrainChunkMassing(g, tile, point, color);

@@ -4,9 +4,15 @@ import {
   analyzeCityWorldScene,
   analyzeGeneratedDistrictParity,
   compileCityWorldScene,
+  createDeterministicGeneratedDistrictScene,
+  createDeterministicGeneratedDistrictSpec,
   exampleParametricDistrictSpec,
+  GENERATED_DISTRICT_ARCHETYPES,
   generateParametricCityWorldScene,
+  REGIONAL_PALETTES,
+  resolveEffectiveBuildingColors,
   riversideDemoVoxelScene,
+  US_COUNTY_INDEX,
 } from "../packages/core/dist/index.js";
 
 // 0.58E Generated District Parity + Numeric Proof.
@@ -20,6 +26,8 @@ import {
 // matching gate FIRES. A verifier that cannot fail is not proof.
 
 const jsonOnly = process.argv.includes("--json-only");
+const paletteDistinctnessOnly = process.argv.includes("--palette-distinctness-only");
+const PALETTE_DISTINCTNESS_FLOOR = 0.16;
 
 // ---------------------------------------------------------------------------
 // Numeric gates. Thresholds are the reviewable contract of this verifier:
@@ -116,6 +124,18 @@ const SCENE_FLOORS = [
   ["home clone pressure <= 0.30", (m) => m.homeClonePressure <= 0.3, (m) => m.homeClonePressure],
   ["building/lot contact >= 0.95", (m) => m.buildingLotContactRatio >= 0.95, (m) => m.buildingLotContactRatio],
 ];
+
+const paletteDistinctness = evaluateRegionalPaletteDistinctness();
+const archetypeMetrics = evaluateGeneratedArchetypeMetrics();
+
+if (paletteDistinctnessOnly) {
+  if (jsonOnly) {
+    console.log(JSON.stringify(paletteDistinctness, null, 2));
+  } else {
+    printPaletteDistinctness(paletteDistinctness);
+  }
+  process.exit(paletteDistinctness.ok ? 0 : 1);
+}
 
 // ---------------------------------------------------------------------------
 // 1) Gate the healthy generated district.
@@ -239,9 +259,157 @@ const detectionProven = detectionProof.every((entry) => entry.fires);
 // ---------------------------------------------------------------------------
 const curated = analyzeGeneratedDistrictParity(compileCityWorldScene(riversideDemoVoxelScene));
 
+function evaluateRegionalPaletteDistinctness() {
+  const signatures = Object.fromEntries(
+    GENERATED_DISTRICT_ARCHETYPES.map((archetype) => {
+      const county = countyForArchetype(archetype);
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+      const signature = dominantRegionalPaletteSignature(result.scene, generated.archetype);
+      return [archetype, { countySlug: county.countySlug, ...signature }];
+    }),
+  );
+
+  const pairs = [];
+  for (let firstIndex = 0; firstIndex < GENERATED_DISTRICT_ARCHETYPES.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < GENERATED_DISTRICT_ARCHETYPES.length; secondIndex += 1) {
+      const first = GENERATED_DISTRICT_ARCHETYPES[firstIndex];
+      const second = GENERATED_DISTRICT_ARCHETYPES[secondIndex];
+      const distance = regionalPaletteDistance(signatures[first], signatures[second]);
+      pairs.push({
+        pair: `${first}/${second}`,
+        first,
+        second,
+        distance,
+        passed: distance >= PALETTE_DISTINCTNESS_FLOOR,
+      });
+    }
+  }
+
+  const terrainFailures = GENERATED_DISTRICT_ARCHETYPES.flatMap((archetype) => {
+    const signature = signatures[archetype];
+    const expected = REGIONAL_PALETTES[archetype].terrainTone.paletteKey;
+    return signature.terrainPaletteKey === expected ? [] : [`${archetype} terrain ${signature.terrainPaletteKey} != ${expected}`];
+  });
+  const failures = [
+    ...pairs.filter((entry) => !entry.passed).map((entry) => `${entry.pair} distance ${entry.distance} < ${PALETTE_DISTINCTNESS_FLOOR}`),
+    ...terrainFailures,
+  ];
+
+  return {
+    ok: failures.length === 0,
+    floor: PALETTE_DISTINCTNESS_FLOOR,
+    minDistance: roundMetric(Math.min(...pairs.map((entry) => entry.distance))),
+    signatures,
+    pairs,
+    failures,
+  };
+}
+
+function countyForArchetype(archetype) {
+  const county = US_COUNTY_INDEX.find(
+    (candidate) => createDeterministicGeneratedDistrictSpec({ county: candidate }).archetype === archetype,
+  );
+  if (!county) throw new Error(`Missing county fixture for generated archetype ${archetype}`);
+  return county;
+}
+
+function dominantRegionalPaletteSignature(scene, archetype) {
+  const effectiveBuildingColors = scene.buildings.map((building) => resolveEffectiveBuildingColors(building));
+  const terrainPaletteKey = dominant(
+    scene.terrainTiles.filter((tile) => tile.kind !== "water").map((tile) => tile.paletteKey ?? ""),
+  );
+
+  return {
+    archetype,
+    bodyColor: dominant(effectiveBuildingColors.map((colors) => colors.bodyColor)),
+    roofColor: dominant(effectiveBuildingColors.map((colors) => colors.roofColor)),
+    terrainColor: REGIONAL_PALETTES[archetype].terrainTone.base.toLowerCase(),
+    terrainPaletteKey,
+  };
+}
+
+function regionalPaletteDistance(first, second) {
+  return roundMetric(
+    (colorDistance(first.bodyColor, second.bodyColor) +
+      colorDistance(first.roofColor, second.roofColor) +
+      colorDistance(first.terrainColor, second.terrainColor)) /
+      3,
+  );
+}
+
+function colorDistance(first, second) {
+  const a = parseHexColor(first);
+  const b = parseHexColor(second);
+  return Math.sqrt(((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2) / (3 * 255 ** 2));
+}
+
+function parseHexColor(hex) {
+  const normalized = hex.toLowerCase().replace("#", "");
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  };
+}
+
+function dominant(values) {
+  const counts = new Map();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  const winner = [...counts.entries()].sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0]))[0];
+  if (!winner) throw new Error("Cannot resolve dominant palette from an empty list");
+  return winner[0];
+}
+
+function roundMetric(value) {
+  return Number.isFinite(value) ? Math.round(value * 1000) / 1000 : 0;
+}
+
+function printPaletteDistinctness(result) {
+  console.log(`Generated district regional palette distinctness: ${result.ok ? "OK" : "FAIL"}`);
+  console.log(`  floor ${result.floor}; min ${result.minDistance}`);
+  for (const pair of result.pairs) {
+    console.log(`  ${pair.passed ? "PASS" : "FAIL"}  ${pair.pair} (${pair.distance})`);
+  }
+  if (!result.ok) console.log(`  failures: ${result.failures.join(", ")}`);
+}
+
+function evaluateGeneratedArchetypeMetrics() {
+  const entries = GENERATED_DISTRICT_ARCHETYPES.map((archetype) => {
+    const county = countyForArchetype(archetype);
+    const { result } = createDeterministicGeneratedDistrictScene({ county });
+    const diagnostics = analyzeCityWorldScene(result.scene, "playable");
+    const parity = analyzeGeneratedDistrictParity(result.scene);
+    return {
+      archetype,
+      countySlug: county.countySlug,
+      homeClonePressure: roundMetric(diagnostics.metrics.homeClonePressure),
+      firstViewportCompositionScore: roundMetric(diagnostics.metrics.firstViewportCompositionScore),
+      emptyBoardRatio: roundMetric(diagnostics.metrics.emptyBoardRatio),
+      buildingLotContactRatio: roundMetric(diagnostics.metrics.buildingLotContactRatio),
+      unsafeRoofCount: parity.residentialRoofMetrics.unsafeRoofCount,
+      homeCount: parity.residentialRoofMetrics.homeCount,
+    };
+  });
+  const failures = entries.flatMap((entry) => {
+    const local = [];
+    if (entry.homeClonePressure > 0.3) local.push(`${entry.archetype} homeClonePressure ${entry.homeClonePressure} > 0.30`);
+    if (entry.buildingLotContactRatio < 0.95) local.push(`${entry.archetype} buildingLotContactRatio ${entry.buildingLotContactRatio} < 0.95`);
+    if (entry.unsafeRoofCount > 0) local.push(`${entry.archetype} unsafeRoofCount ${entry.unsafeRoofCount} > 0`);
+    return local;
+  });
+  return {
+    ok: failures.length === 0,
+    maxHomeClonePressure: roundMetric(Math.max(...entries.map((entry) => entry.homeClonePressure))),
+    entries,
+    failures,
+  };
+}
+
 const failures = [
   ...gateResults.filter((gate) => !gate.passed).map((gate) => `gate:${gate.id}`),
   ...floorResults.filter((floor) => !floor.passed).map((floor) => `floor:${floor.label}`),
+  ...paletteDistinctness.failures.map((failure) => `palette:${failure}`),
+  ...archetypeMetrics.failures.map((failure) => `archetype:${failure}`),
   ...(hardBlockerFree ? [] : ["scene hard blockers present"]),
   ...(detectionProven ? [] : ["detection proof failed: a degraded scene did not trip its gate"]),
 ];
@@ -270,6 +438,8 @@ const report = {
     commerceMetrics: curated.commerceMetrics,
     frameDensity: curated.frameDensity,
   },
+  paletteDistinctness,
+  archetypeMetrics,
   failures,
 };
 
@@ -280,6 +450,12 @@ if (jsonOnly) {
   console.log(`  scene ${scene.id}`);
   for (const gate of gateResults) console.log(`  ${gate.passed ? "PASS" : "FAIL"}  ${gate.label} (${gate.value})`);
   for (const floor of floorResults) console.log(`  ${floor.passed ? "PASS" : "FAIL"}  ${floor.label} (${floor.value})`);
+  console.log(
+    `  ${paletteDistinctness.ok ? "PASS" : "FAIL"}  regional palette distinctness >= ${PALETTE_DISTINCTNESS_FLOOR} (min ${paletteDistinctness.minDistance})`,
+  );
+  console.log(
+    `  ${archetypeMetrics.ok ? "PASS" : "FAIL"}  per-archetype home clone pressure <= 0.30 (max ${archetypeMetrics.maxHomeClonePressure})`,
+  );
   console.log(`  ${hardBlockerFree ? "PASS" : "FAIL"}  no scene hard blockers`);
   for (const proof of detectionProof) console.log(`  ${proof.fires ? "PASS" : "FAIL"}  detection: degraded scene trips gate ${proof.gateId} (${proof.degradedValue})`);
   console.log(`  curated Riverside reference: pad fill mean ${curated.padMetrics.padFootprintFillMean}, desktop lower frame ${curated.frameDensity.desktop?.lowerFrameOccupancyRatio ?? "n/a"}`);

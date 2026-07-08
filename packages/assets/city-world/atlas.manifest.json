@@ -63,6 +63,60 @@
         "accent": "#74bccb"
       }
     },
+    "terrain.region.metro_grid": {
+      "key": "terrain.region.metro_grid",
+      "colors": {
+        "base": "#7f8987",
+        "shade": "#626b69",
+        "highlight": "#c5cbc6",
+        "accent": "#6e7470"
+      }
+    },
+    "terrain.region.coastal_grid": {
+      "key": "terrain.region.coastal_grid",
+      "colors": {
+        "base": "#d8cfa7",
+        "shade": "#b8ac81",
+        "highlight": "#f2e7c3",
+        "accent": "#7fa58e"
+      }
+    },
+    "terrain.region.desert_basin": {
+      "key": "terrain.region.desert_basin",
+      "colors": {
+        "base": "#cdbb82",
+        "shade": "#a78f5e",
+        "highlight": "#eadcae",
+        "accent": "#8fa16f"
+      }
+    },
+    "terrain.region.mountain_valley": {
+      "key": "terrain.region.mountain_valley",
+      "colors": {
+        "base": "#4f6f3f",
+        "shade": "#334e31",
+        "highlight": "#a8b990",
+        "accent": "#7d8174"
+      }
+    },
+    "terrain.region.prairie_town": {
+      "key": "terrain.region.prairie_town",
+      "colors": {
+        "base": "#9fa94d",
+        "shade": "#747d39",
+        "highlight": "#d8df88",
+        "accent": "#8c6f4c"
+      }
+    },
+    "terrain.region.river_town": {
+      "key": "terrain.region.river_town",
+      "colors": {
+        "base": "#4d8f83",
+        "shade": "#37675e",
+        "highlight": "#98beb7",
+        "accent": "#866f4f"
+      }
+    },
     "road.asphalt": {
       "key": "road.asphalt",
       "colors": {
@@ -451,6 +505,186 @@
         "highlight": "#fff4d8",
         "roof": "#c37481",
         "trim": "#cfa057"
+      }
+    },
+    "building.region.metro_grid.v1": {
+      "key": "building.region.metro_grid.v1",
+      "colors": {
+        "base": "#a9aca6",
+        "shade": "#8b8d88",
+        "highlight": "#b8bbb6",
+        "roof": "#666d70",
+        "trim": "#54595c"
+      }
+    },
+    "building.region.metro_grid.v2": {
+      "key": "building.region.metro_grid.v2",
+      "colors": {
+        "base": "#aeb8bd",
+        "shade": "#8f979b",
+        "highlight": "#bdc5c9",
+        "roof": "#26313a",
+        "trim": "#1f2830"
+      }
+    },
+    "building.region.metro_grid.v3": {
+      "key": "building.region.metro_grid.v3",
+      "colors": {
+        "base": "#8fb7c2",
+        "shade": "#75969f",
+        "highlight": "#a3c4cd",
+        "roof": "#b77a4f",
+        "trim": "#966441"
+      }
+    },
+    "building.region.coastal_grid.v1": {
+      "key": "building.region.coastal_grid.v1",
+      "colors": {
+        "base": "#f4ead6",
+        "shade": "#c8c0af",
+        "highlight": "#f6eedd",
+        "roof": "#2f526d",
+        "trim": "#274359"
+      }
+    },
+    "building.region.coastal_grid.v2": {
+      "key": "building.region.coastal_grid.v2",
+      "colors": {
+        "base": "#d9c69f",
+        "shade": "#b2a282",
+        "highlight": "#e0d0b0",
+        "roof": "#3f7f82",
+        "trim": "#34686b"
+      }
+    },
+    "building.region.coastal_grid.v3": {
+      "key": "building.region.coastal_grid.v3",
+      "colors": {
+        "base": "#e8f0e8",
+        "shade": "#bec5be",
+        "highlight": "#ecf3ec",
+        "roof": "#66727a",
+        "trim": "#545d64"
+      }
+    },
+    "building.region.desert_basin.v1": {
+      "key": "building.region.desert_basin.v1",
+      "colors": {
+        "base": "#d9b27c",
+        "shade": "#b29266",
+        "highlight": "#e0c094",
+        "roof": "#b65f38",
+        "trim": "#954e2e"
+      }
+    },
+    "building.region.desert_basin.v2": {
+      "key": "building.region.desert_basin.v2",
+      "colors": {
+        "base": "#c98f62",
+        "shade": "#a57550",
+        "highlight": "#d3a37e",
+        "roof": "#8f4b32",
+        "trim": "#753e29"
+      }
+    },
+    "building.region.desert_basin.v3": {
+      "key": "building.region.desert_basin.v3",
+      "colors": {
+        "base": "#ead09a",
+        "shade": "#c0ab7e",
+        "highlight": "#eed8ac",
+        "roof": "#c77a45",
+        "trim": "#a36439"
+      }
+    },
+    "building.region.mountain_valley.v1": {
+      "key": "building.region.mountain_valley.v1",
+      "colors": {
+        "base": "#8a6a4a",
+        "shade": "#71573d",
+        "highlight": "#9f856b",
+        "roof": "#56616a",
+        "trim": "#475057"
+      }
+    },
+    "building.region.mountain_valley.v2": {
+      "key": "building.region.mountain_valley.v2",
+      "colors": {
+        "base": "#6f5b42",
+        "shade": "#5b4b36",
+        "highlight": "#897964",
+        "roof": "#244d34",
+        "trim": "#1e3f2b"
+      }
+    },
+    "building.region.mountain_valley.v3": {
+      "key": "building.region.mountain_valley.v3",
+      "colors": {
+        "base": "#6f7650",
+        "shade": "#5b6142",
+        "highlight": "#898f70",
+        "roof": "#4e514f",
+        "trim": "#404241"
+      }
+    },
+    "building.region.prairie_town.v1": {
+      "key": "building.region.prairie_town.v1",
+      "colors": {
+        "base": "#d6b65e",
+        "shade": "#af954d",
+        "highlight": "#ddc37b",
+        "roof": "#a43f32",
+        "trim": "#863429"
+      }
+    },
+    "building.region.prairie_town.v2": {
+      "key": "building.region.prairie_town.v2",
+      "colors": {
+        "base": "#a94f3e",
+        "shade": "#8b4133",
+        "highlight": "#b86f61",
+        "roof": "#8e938b",
+        "trim": "#747972"
+      }
+    },
+    "building.region.prairie_town.v3": {
+      "key": "building.region.prairie_town.v3",
+      "colors": {
+        "base": "#ead9b5",
+        "shade": "#c0b294",
+        "highlight": "#eee0c2",
+        "roof": "#5f7c48",
+        "trim": "#4e663b"
+      }
+    },
+    "building.region.river_town.v1": {
+      "key": "building.region.river_town.v1",
+      "colors": {
+        "base": "#8b9275",
+        "shade": "#727860",
+        "highlight": "#a0a68e",
+        "roof": "#2f5d8a",
+        "trim": "#274c71"
+      }
+    },
+    "building.region.river_town.v2": {
+      "key": "building.region.river_town.v2",
+      "colors": {
+        "base": "#c99a55",
+        "shade": "#a57e46",
+        "highlight": "#d3ac74",
+        "roof": "#577747",
+        "trim": "#47623a"
+      }
+    },
+    "building.region.river_town.v3": {
+      "key": "building.region.river_town.v3",
+      "colors": {
+        "base": "#a8563d",
+        "shade": "#8a4732",
+        "highlight": "#b87460",
+        "roof": "#9a927d",
+        "trim": "#7e7867"
       }
     },
     "prop.bench": {

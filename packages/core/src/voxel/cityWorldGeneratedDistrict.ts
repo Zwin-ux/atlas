@@ -13,6 +13,7 @@ import {
   type DeterministicGeneratedDistrictSceneResult,
   type DeterministicGeneratedDistrictSpec,
 } from "./cityWorldGeneratedDistrictTypes.js";
+import { REGIONAL_PALETTES } from "./cityWorldRegionalPalettes.js";
 
 export {
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
@@ -44,6 +45,7 @@ export function createDeterministicGeneratedDistrictSpec(
     heightGrid: generatedHeightGrid(archetype, seed),
     zones: generatedZones(archetype, seed),
     roadSeeds: generatedRoadSeeds(archetype, seed),
+    regionalPalette: REGIONAL_PALETTES[archetype],
     seed,
   };
 

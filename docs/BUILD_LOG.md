@@ -1,5 +1,39 @@
 # Build Log
 
+## Entry 216
+
+Quest:
+0.76-1 Regional Palettes.
+
+What changed:
+- Added `REGIONAL_PALETTES` and typed regional palette threading for generated
+  district specs only.
+- Generated buildings now resolve regional body/roof palette keys when
+  `regionalPalette` is present; non-regional specs keep the legacy kind-keyed
+  template pools.
+- Generated non-water terrain tiles now carry `terrain.region.*` palette keys,
+  and Pixi reads only those regional terrain keys. Default `terrain.*` rendering
+  stays on the existing constants.
+- Added deterministic palette-distinctness gates in core tests and
+  `verify-generated-district-parity.mjs`, plus per-archetype clone-pressure
+  tails in the verifier.
+
+Measured proof:
+- `pnpm typecheck:starter` passed.
+- `pnpm test:core` passed: 22 files, 110 tests.
+- `node scripts/verify-generated-district-parity.mjs` passed with palette
+  distinctness min `0.161` and per-archetype max clone pressure `0.175`.
+- `node scripts/verify-generated-district-parity.mjs --palette-distinctness-only`
+  passed: all 15 archetype pairs clear the `0.16` floor.
+
+Decision:
+`GENERATED_DISTRICTS_USE_COMPILER_AUTHORED_REGIONAL_PALETTES`.
+
+Skipped:
+Sandbox blocks esbuild/Chrome gates here. Reviewer should run `pnpm build:web`,
+`verify-generated-district-widget.mjs`, `verify-widget-performance.mjs`, and
+browser/screenshot verifiers.
+
 ## Entry 215
 
 Quest:
