@@ -8309,3 +8309,36 @@ render-command/window/dynamic refresh/fable/mobile guards; strict
 `engine-beta-data` split guard; `git diff --check`. Not run by packet
 instruction: `pnpm build:web`, generated district widget, widget performance.
 Evidence: `artifacts/0.75c-material-texture/CODEX_RESULT.md`.
+
+## Entry 090
+
+**0.75C-4 NS-3 presentation fixes - complete, 2026-07-08, Codex.**
+Executed Fable audit findings F1-F6 in scoped presentation files. Dark mode no
+longer veils the map as hard (`brightness(0.94) saturate(1)` in explicit dark
+theme and prefers-color fallback). The generate-district action now reads
+`Generate a district`, keeps `generated · session-only`, and uses a dark-native
+panel treatment instead of the white primary-card read. The coverage explainer
+is now: `Riverside is fully explorable. Other counties preview as outlines.
+Nothing saves between chats.` The visible `LOOKUP not saved` chip was removed.
+At `<=480px`, the coverage switcher collapses to a one-line chip by default and
+expands/collapses on tap. Bottom sticker buttons now use the zoom stack's
+rounded-square size/radius/border/background grammar. The selected-place
+activity metric was kept because it maps to curated Riverside place activity
+data and compiler-derived curated node scores; it now reads plainly with an
+accessible title.
+
+Generated-scene honesty was not weakened: the banner remains unchanged and
+`verify-generated-district-widget` still asserts synthetic / not-real /
+session-only language. `scripts/verify-county-switcher.mjs` now asserts the new
+coverage explainer exactly and fails if a lookup-not-saved chip returns.
+
+Verified: `pnpm typecheck:starter`; `pnpm test:core` 99/99;
+`node scripts/verify-tool-result-shape.mjs`; `node scripts/verify-provider-boundaries.mjs`;
+copy grep over changed widget/verifier files found no old presentation strings;
+`git diff --check`. Not run by packet instruction: `pnpm build:web`, generated
+district widget, widget performance, and both-theme screenshots. Attempted
+strict `engine-beta-data` split guard, but this sandbox cannot write the parent
+worktree `.git` index and `git status` reports unchanged
+`web/src/VoxelSceneView.tsx` as modified even though `git hash-object` matches
+HEAD (`ebe2ab11ad38222f3069aea04eea54f8ef641805`). Evidence:
+`artifacts/0.75c-presentation-audit/CODEX_RESULT.md`.

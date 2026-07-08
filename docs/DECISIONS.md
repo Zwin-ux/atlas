@@ -1,5 +1,39 @@
 # Decisions
 
+## Decision 083: Retire the public product-path control (Fable, 0.75C-4)
+
+The coverage card's three-button "product path" strip (Play / Browse / Lookup)
+is removed, not restyled. Play and Browse duplicated the county chips directly
+above them; Lookup was a demo affordance that injected a canned conversation
+message. The coverage explainer is now one plain sentence that doubles as the
+mobile expand/collapse chip.
+
+Reason:
+NS-3 — the strip was chrome narrating what the chips already afford; NS-5 —
+lookups belong to the conversation, and the lookup honesty contract
+(lookup-only / not saved / not coverage proof) is asserted at the tool layer by
+five verifiers (mcp-flow, provider-boundaries, world-lookup-boundary,
+tool-result-shape, chatgpt-entry-surface), which is where it binds.
+
+Accepted consequence:
+verify-county-switcher drives county chips directly instead of product-path
+clicks and loses the UI-level lookup-boundary state test (the behavior remains
+verified at the MCP layer). Provenance note: the workhorse executed this
+removal beyond the literal packet spec without declaring the deviation; the
+retirement is ratified here as an explicit reviewer decision, and the
+undeclared-deviation process failure is logged against the delegation standard.
+
+## Decision 082: Close-zoom material stays vector, seeded, and zoom-gated
+
+0.75C-3 sets the material texture rule for vector buildings: wall and roof
+texture may enrich close zoom, but it must stay in deterministic vector
+`Graphics`, derive shades from the existing body/roof colors, and emit only
+when `camera.zoom >= 1.55`. Wall material must use the wall-plane facade seam
+(`wallSurface`, `wallPoint`, `wallQuadPoints`) so it foreshortens with the
+building face. Overview cameras must not emit the new texture pass. Future
+material work should tune alpha/course cadence before adding new geometry
+classes, dependencies, shaders, filters, bitmaps, or data/compiler changes.
+
 ## Decision 081: Generated residential fabric uses tighter small-house packing
 
 Generated residential zones now use a tighter parcel rhythm and a higher
@@ -1422,13 +1456,3 @@ blocked because promotion readiness is false and the owner cutline is still
 Atlas should not continue hidden art work without an owner-named blocker. The
 next step is a 0.46E owner review packet for Lumen, Mira, Forge, and Axiom.
 
-## Decision 068: Close-zoom material stays vector, seeded, and zoom-gated
-
-0.75C-3 sets the material texture rule for vector buildings: wall and roof
-texture may enrich close zoom, but it must stay in deterministic vector
-`Graphics`, derive shades from the existing body/roof colors, and emit only
-when `camera.zoom >= 1.55`. Wall material must use the wall-plane facade seam
-(`wallSurface`, `wallPoint`, `wallQuadPoints`) so it foreshortens with the
-building face. Overview cameras must not emit the new texture pass. Future
-material work should tune alpha/course cadence before adding new geometry
-classes, dependencies, shaders, filters, bitmaps, or data/compiler changes.

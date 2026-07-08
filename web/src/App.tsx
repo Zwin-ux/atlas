@@ -410,7 +410,7 @@ export function App() {
     <>
       <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} />
       <button type="button" className="city-world-generate-district" data-qa="generate-district-button" onClick={openGeneratedPreview}>
-        <strong>Turn to a new district</strong>
+        <strong>Generate a district</strong>
         <span>generated · session-only</span>
       </button>
     </>

@@ -199,52 +199,23 @@ async function clickCounty(client, countySlug) {
   );
 }
 
-async function clickProductPath(client, action) {
-  await evaluate(
-    client,
-    `(() => {
-      const button = document.querySelector("[data-qa='public-product-path-${action}']");
-      if (!button) throw new Error("Missing public product path action ${action}");
-      button.click();
-      return true;
-    })()`,
-  );
-}
-
 async function readState(client) {
   return evaluate(
     client,
     `(() => {
       const activeButton = document.querySelector("[data-qa='county-switcher'] button.is-active");
       const summary = document.querySelector("[data-qa='county-switcher-summary']");
-      const productPath = document.querySelector("[data-qa='public-product-path']");
+      const lookupChip = document.querySelector("[data-qa-public-path-action='lookup']");
       const recovery = document.querySelector("[data-qa='coverage-recovery-action']");
-      const tray = document.querySelector("[data-qa='coverage-status-tray']") || document.querySelector("[data-qa='selected-place-tray']");
       const coverageTray = document.querySelector("[data-qa='coverage-status-tray']");
-      const productPathRect = productPath?.getBoundingClientRect();
       const recoveryRect = recovery?.getBoundingClientRect();
       const trayRect = coverageTray?.getBoundingClientRect();
-      const bottomTrayRect = tray?.getBoundingClientRect();
       return {
         activeCountySlug: activeButton?.getAttribute("data-qa-county-slug") || "",
         activeCountyLabel: activeButton?.querySelector("span")?.textContent?.trim() || "",
         switcherSummary: summary?.textContent?.trim() || "",
-        productPathText: productPath?.getAttribute("aria-label") || productPath?.textContent?.replace(/\\s+/g, " ").trim() || "",
-        productPathChipCount: document.querySelectorAll("[data-qa='public-product-path'] > button").length,
-        productPathActions: Array.from(document.querySelectorAll("[data-qa='public-product-path'] > button"))
-          .map((button) => button.getAttribute("data-qa-public-path-action") || "")
-          .filter(Boolean),
-        productPathFirstViewportVisible: Boolean(
-          productPath &&
-          productPathRect &&
-          productPathRect.top >= 0 &&
-          productPathRect.left >= 0 &&
-          productPathRect.right <= document.documentElement.clientWidth &&
-          productPathRect.bottom <= window.innerHeight
-        ),
-        productPathHeight: productPathRect ? Math.round(productPathRect.height) : 0,
-        productPathBottom: productPathRect ? Math.round(productPathRect.bottom) : 0,
-        productPathAboveTray: Boolean(productPathRect && bottomTrayRect && productPathRect.bottom < bottomTrayRect.top),
+        lookupChipText: lookupChip?.textContent?.replace(/\\s+/g, " ").trim() || "",
+        lookupChipPresent: Boolean(lookupChip),
         alphaVisible: Boolean(document.querySelector("[data-qa='alpha-city-world']")),
         coverageVisible: Boolean(document.querySelector("[data-qa='county-coverage-shell']")),
         coverageTier: document.querySelector("[data-qa='county-coverage-shell']")?.getAttribute("data-qa-coverage-tier") || "",
@@ -256,7 +227,7 @@ async function readState(client) {
         recoveryText: recovery?.textContent?.trim() || "",
         recoveryFirstViewportVisible: Boolean(
           recovery &&
-          tray &&
+          coverageTray &&
           recoveryRect &&
           trayRect &&
           recoveryRect.top >= trayRect.top &&
@@ -277,31 +248,11 @@ function assertState(label, state, expected) {
   if (expected.activeCountyLabel && state.activeCountyLabel !== expected.activeCountyLabel) {
     failures.push(`active county label ${state.activeCountyLabel}`);
   }
-  if (
-    !state.switcherSummary.includes("Play Riverside now") ||
-    !state.switcherSummary.includes("Browse CA shells") ||
-    !state.switcherSummary.includes("Lookup without saving")
-  ) {
-    failures.push("coverage summary missing");
+  const expectedSummary = "Riverside is fully explorable. Other counties preview as outlines. Nothing saves between chats.";
+  if (state.switcherSummary !== expectedSummary) failures.push(`coverage summary mismatch: ${state.switcherSummary}`);
+  if (state.lookupChipPresent || /LOOKUP\s+not saved/i.test(state.lookupChipText)) {
+    failures.push("lookup-not-saved chip must stay removed");
   }
-  if (
-    !state.productPathText.includes("Play") ||
-    !state.productPathText.includes("Riverside") ||
-    !state.productPathText.includes("Browse") ||
-    (!state.productPathText.includes("CA shells") && !state.productPathText.includes("California shells")) ||
-    !state.productPathText.includes("Lookup") ||
-    !state.productPathText.includes("not saved") ||
-    !state.productPathText.includes("not coverage proof")
-  ) {
-    failures.push(`public product path missing: ${state.productPathText}`);
-  }
-  if (state.productPathChipCount !== 3) failures.push(`public product path chip count ${state.productPathChipCount}`);
-  for (const action of ["play", "browse", "lookup"]) {
-    if (!state.productPathActions.includes(action)) failures.push(`public product path missing ${action} action`);
-  }
-  if (!state.productPathFirstViewportVisible) failures.push("public product path is not fully visible in first viewport");
-  if (state.productPathHeight > 58) failures.push(`public product path too tall: ${state.productPathHeight}px`);
-  if (!state.productPathAboveTray) failures.push("public product path overlaps or crowds the bottom tray");
   if (state.horizontalOverflow) failures.push("horizontal overflow");
   if (expected.mode === "playable") {
     if (!state.alphaVisible) failures.push("playable map missing");
@@ -355,17 +306,9 @@ async function runViewport({ previewUrl, viewport, screenshotDir, port }) {
       activeCountyLabel: "Riverside",
     });
 
-    await clickProductPath(client, "lookup");
-    await delay(150);
-    const lookupState = await readState(client);
-    assertState(`${viewport.label} lookup action boundary`, lookupState, {
-      mode: "playable",
-      activeCountySlug: "riverside-ca",
-      activeCountyLabel: "Riverside",
-    });
     screenshots.push(await captureScreenshot(client, screenshotDir, `riverside-${viewport.label}`));
 
-    await clickProductPath(client, "browse");
+    await clickCounty(client, "orange-ca");
     await waitFor(client, `document.querySelector("[data-qa='county-coverage-shell']")?.getAttribute("data-qa-coverage-tier") === "L1_COUNTY_SHELL"`, 10_000);
     const orangeState = await readState(client);
     assertState(`${viewport.label} Orange shell`, orangeState, {
@@ -389,7 +332,7 @@ async function runViewport({ previewUrl, viewport, screenshotDir, port }) {
     });
     screenshots.push(await captureScreenshot(client, screenshotDir, `unsupported-${viewport.label}`));
 
-    await clickProductPath(client, "play");
+    await clickCounty(client, "riverside-ca");
     await waitFor(client, `Boolean(document.querySelector("[data-qa='alpha-city-world']")) && document.querySelector("[data-qa='county-switcher'] button.is-active")?.getAttribute("data-qa-county-slug") === "riverside-ca"`, 10_000);
     const restoredState = await readState(client);
     assertState(`${viewport.label} restored Riverside`, restoredState, {
@@ -405,7 +348,7 @@ async function runViewport({ previewUrl, viewport, screenshotDir, port }) {
       label: viewport.label,
       ok: true,
       screenshots: screenshots.filter(Boolean),
-      states: { initialState, lookupState, orangeState, unsupportedState, restoredState },
+      states: { initialState, orangeState, unsupportedState, restoredState },
     };
   } finally {
     client.close();

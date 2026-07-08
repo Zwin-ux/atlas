@@ -20,9 +20,73 @@ The owner-gate / second-district ceremony below is **parked** but kept honest: `
 Review Packet` remains the recorded next quest for that parked ladder, `artifacts/current-update.json`
 stays at `0.45E`, and Anaheim/Ontario stay hidden and non-public. Re-open only on human request.
 
-## Branch-local close-zoom material gate (2026-07-08, `fable/0.58e-prop-cleanup`)
+## Branch-local NS-3 presentation gate (2026-07-08, `fable/0.58e-prop-cleanup`)
 
 Current quest:
+`0.75C-4 NS-3 Presentation Fixes`.
+
+Player-facing promise:
+Atlas reads more like a first-party ChatGPT map surface: quieter coverage copy,
+lighter dark-mode map treatment, native dark cards, mobile chrome that gives the
+map back, and one button grammar.
+
+Engineering promise:
+Apply the Fable presentation audit findings F1-F6 in `web/src` presentation code
+only, preserving generated-scene honesty and avoiding renderer scene graph,
+compiler, generator, dependency, provider, persistence, paid, or MCP tool
+changes.
+
+Contract:
+- Dark map veil is softened to `brightness(0.94) saturate(1)` in explicit dark
+  theme and prefers-color-scheme fallback.
+- "Generate a district" uses dark-native card styling while preserving
+  `generated · session-only`.
+- Coverage explainer is exactly: `Riverside is fully explorable. Other counties
+  preview as outlines. Nothing saves between chats.`
+- The visible `LOOKUP not saved` chip is removed.
+- Generated-scene honesty banner remains untouched.
+- Mobile `<=480px` coverage switcher collapses to a one-line chip by default
+  and expands/collapses on tap.
+- Bottom sticker toolbar buttons match the zoom stack rounded-square grammar.
+- The selected-place activity dot stays only because it maps to curated place
+  activity data, now with plain accessible labeling.
+
+Metric / verifier:
+- `pnpm typecheck:starter`
+- `pnpm test:core`
+- `node scripts\verify-tool-result-shape.mjs`
+- `node scripts\verify-provider-boundaries.mjs`
+- Copy grep over `scripts/verify-*.mjs` and changed widget files.
+- `git diff --check`
+- Attempt strict `engine-beta-data` split guard.
+- Reviewer-run, per packet: `pnpm build:web`,
+  `node scripts\verify-generated-district-widget.mjs`,
+  `node scripts\verify-widget-performance.mjs`, plus both-theme screenshots.
+
+Proof:
+`artifacts/0.75c-presentation-audit/CODEX_RESULT.md`.
+
+Current status:
+Implemented locally with non-browser verifiers green. The strict split guard was
+attempted and is blocked by this worktree's `.git` index permission issue: Git
+status reports unchanged `web/src/VoxelSceneView.tsx` as modified even though it
+hashes to the HEAD blob. Browser bundle/widget/performance replay and
+both-theme screenshots remain reviewer-run by packet instruction.
+
+Anti-scope:
+No renderer scene-graph changes, generator/compiler changes, new dependencies,
+MCP tool changes, provider geometry, Hosted Clawd, DB/Auth, Stripe,
+public Anaheim/Ontario promotion, dashboard drift, or generic SaaS/product
+drift.
+
+Next visual-engine move:
+`0.75C-4 Browser Bundle / QA Replay`: reviewer runs `pnpm build:web`, then
+`verify-generated-district-widget`, `verify-widget-performance`, and both-theme
+desktop/mobile screenshots against the fresh bundle.
+
+## Branch-local close-zoom material gate (2026-07-08, `fable/0.58e-prop-cleanup`)
+
+Completed quest:
 `0.75C-3 Close-Zoom Material Texture`.
 
 Player-facing promise:
@@ -34,29 +98,6 @@ The renderer adds deterministic wall and roof texture grammar inside the
 existing vector building path, zoom-gated so overview cameras emit no new
 material texture commands.
 
-Contract:
-- Material texture draws only when `camera.zoom >= 1.55`.
-- Desktop/mobile overview cameras remain visually unchanged and emit no new
-  material texture pass.
-- Residential and commerce detail cameras show the material pass.
-- Wall texture uses the 0.73F wall-plane helpers only:
-  `wallSurface`, `wallPoint`, and `wallQuadPoints`.
-- Texture variation is seeded from building id, face, and course index.
-- Texture shades derive from `bodyColor` and `roofColor` through `shadeColor`
-  with small deltas.
-- Texture commands batch into one wall `Graphics` and one roof `Graphics` per
-  vector building.
-
-Metric / verifier:
-- `pnpm typecheck:starter`
-- `pnpm test:core`
-- `node scripts\verify-generated-district-parity.mjs`
-- `node scripts\verify-material-texture-grammar.mjs`
-- Relevant node-side renderer grammar/facade verifiers.
-- Reviewer-run: `pnpm build:web`,
-  `node scripts\verify-generated-district-widget.mjs`,
-  `node scripts\verify-widget-performance.mjs`.
-
 Proof:
 `artifacts/0.75c-material-texture/CODEX_RESULT.md`.
 
@@ -66,20 +107,6 @@ below-threshold planned texture commands are `0`, above-threshold sample
 commands are deterministic, `desktop`/`mobile` stay below `1.55`, and
 `residential_detail`/`commerce_detail` cross the threshold. Browser
 bundle/widget/performance replay remains reviewer-run by packet instruction.
-
-Anti-scope:
-No authored Riverside scene changes, generator/compiler changes, curated prop
-changes, new dependencies, Three.js, filters/shaders, textures/bitmaps,
-forbidden prop-kind changes, `maxPropCommands` changes, MCP tool changes,
-provider geometry, Hosted Clawd, DB/Auth, Stripe, public Anaheim/Ontario
-promotion, cars, humans, labels, panels, glows, dashboard UI, or generic
-SaaS/product drift.
-
-Next visual-engine move:
-`0.75C-4 Browser Bundle / QA Replay`: run `pnpm build:web`, then
-`verify-generated-district-widget` and `verify-widget-performance` against the
-fresh bundle, including `/preview?atlasCamera=residential_detail` and
-`/preview?atlasCamera=commerce_detail` visual checks.
 
 ## Branch-local generated fabric gate (2026-07-08, `fable/0.58e-prop-cleanup`)
 

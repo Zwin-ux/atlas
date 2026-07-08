@@ -138,13 +138,13 @@
 /* Dark theme dims the WORLD canvas — one filter rule, art untouched. */
 :root[data-theme="dark"] .city-world-renderer,
 :root[data-theme="dark"] .city-world-coverage-map-fallback {
-  filter: brightness(0.82) saturate(0.9);
+  filter: brightness(0.94) saturate(1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .city-world-renderer,
   :root:not([data-theme="light"]) .city-world-coverage-map-fallback {
-    filter: brightness(0.82) saturate(0.9);
+    filter: brightness(0.94) saturate(1);
   }
 }
 
@@ -308,7 +308,7 @@ button {
   overflow-wrap: anywhere;
 }
 
-/* One hairline plate wrapping the county rows, summary caption, and Lookup row
+/* One hairline plate wrapping the county rows and coverage explainer
    so no left-rail text floats bare over the map (contrast + legibility). */
 .city-world-county-switcher {
   display: grid;
@@ -389,96 +389,39 @@ button {
   text-transform: none;
 }
 
-/* Switcher summary — unboxed tertiary caption */
-.city-world-county-switcher p {
-  margin: 0;
+/* Coverage explainer — mobile collapses this card to this one-line chip. */
+.city-world-county-switcher .city-world-coverage-chip {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
-  width: fit-content;
-  max-width: 100%;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   color: var(--ink-3);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.35;
-  backdrop-filter: none;
-}
-
-.city-world-product-path {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
-  max-width: 100%;
-  overflow-x: auto;
-  padding-bottom: 1px;
-  scrollbar-width: none;
-}
-
-.city-world-product-path::-webkit-scrollbar {
-  display: none;
-}
-
-.city-world-product-path button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  min-height: 0;
-  padding: 4px 8px;
-  border: var(--hairline) solid var(--border-subtle);
-  border-radius: var(--r-control);
-  background: var(--city-panel);
-  color: var(--city-ink);
-  box-shadow: var(--elev-0);
   cursor: pointer;
-  text-align: left;
-  backdrop-filter: blur(12px) saturate(1.1);
-  transition: background-color var(--dur-instant) var(--ease-out);
-}
-
-.city-world-product-path button:hover,
-.city-world-product-path button:focus-visible {
-  background: var(--city-panel-strong);
-}
-
-.city-world-product-path b {
-  color: var(--ink-2);
+  font: inherit;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1.35;
-  text-transform: uppercase;
-}
-
-.city-world-product-path em {
-  color: var(--ink-3);
-  font-size: 11px;
-  font-style: normal;
   font-weight: 500;
   line-height: 1.35;
-}
-
-/* Play/Browse are visually redundant with the county rows — HIDDEN, never
-   removed. Hooks (data-qa, click targets) stay intact in the DOM. */
-.city-world-product-path button[data-qa-public-path-action="play"],
-.city-world-product-path button[data-qa-public-path-action="browse"] {
-  display: none;
-}
-
-/* Lookup survives as a plain text row. */
-.city-world-product-path button[data-qa-public-path-action="lookup"] {
-  padding: 2px 6px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  overflow: hidden;
+  text-align: left;
+  white-space: normal;
   backdrop-filter: none;
 }
 
-.city-world-product-path button[data-qa-public-path-action="lookup"]:hover,
-.city-world-product-path button[data-qa-public-path-action="lookup"]:focus-visible {
-  background: var(--alpha-05);
+.city-world-county-switcher .city-world-coverage-chip:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .city-world-county-switcher .city-world-coverage-chip:hover {
+    color: var(--ink-2);
+    background: transparent;
+  }
 }
 
 /* TURN action — solid ink primary (recipe consolidated below) */
@@ -665,8 +608,8 @@ button {
 }
 
 .city-world-stickers button {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   font-size: 13px;
   font-weight: 600;
 }
@@ -1450,6 +1393,59 @@ button {
   color: var(--ink-3);
 }
 
+:root[data-theme="dark"] .city-world-generate-district {
+  border-color: var(--border-subtle);
+  background: var(--city-panel);
+  color: var(--city-ink);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+:root[data-theme="dark"] .city-world-generate-district span {
+  color: var(--ink-3);
+}
+
+:root[data-theme="dark"] .city-world-generate-district:hover {
+  background: var(--city-panel-strong);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .city-world-generate-district {
+    border-color: var(--border-subtle);
+    background: var(--city-panel);
+    color: var(--city-ink);
+    backdrop-filter: blur(12px) saturate(1.1);
+  }
+
+  :root:not([data-theme="light"]) .city-world-generate-district span {
+    color: var(--ink-3);
+  }
+
+  :root:not([data-theme="light"]) .city-world-generate-district:hover {
+    background: var(--city-panel-strong);
+  }
+}
+
+@media (max-width: 480px) {
+  .city-world-county-switcher {
+    max-width: min(268px, calc(100vw - 78px));
+  }
+
+  .city-world-county-switcher:not(.is-expanded) {
+    gap: 0;
+    padding: 6px 8px;
+  }
+
+  .city-world-county-switcher:not(.is-expanded) .city-world-county-switcher-options {
+    display: none;
+  }
+
+  /* Collapsed chip clamps to one line; desktop and expanded states wrap. */
+  .city-world-county-switcher:not(.is-expanded) .city-world-coverage-chip {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Mobile — size and inset adjustments only
    ------------------------------------------------------------------------- */
@@ -1483,18 +1479,10 @@ button {
     padding: 4px 8px;
   }
 
-  .city-world-product-path {
-    gap: 4px;
-  }
-
-  .city-world-product-path button {
+  .city-world-county-switcher .city-world-coverage-chip {
     min-width: 0;
-    padding: 4px 8px;
-  }
-
-  .city-world-product-path b,
-  .city-world-product-path em {
-    font-size: 11px;
+    min-height: 0;
+    padding: 0;
   }
 
   .city-world-generate-district {

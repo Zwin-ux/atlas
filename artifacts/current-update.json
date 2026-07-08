@@ -1,172 +1,115 @@
 {
-  "id": "postalpha-0.75c-3-close-zoom-material-texture",
-  "name": "Post-Alpha 0.75C-3 - Close-Zoom Material Texture",
-  "status": "implemented_nonbrowser_green_browser_replay_pending",
-  "playerPromise": "At close zoom, Atlas buildings read as built from coarse wall and roof material instead of flat color planes.",
-  "engineeringPromise": "The renderer adds deterministic wall and roof texture grammar inside the existing vector building path, zoom-gated so overview cameras emit no new material texture commands.",
-  "axis": "renderer_close_zoom_material_texture",
+  "id": "postalpha-0.75c-4-ns3-presentation-fixes",
+  "name": "Post-Alpha 0.75C-4 - NS-3 Presentation Fixes",
+  "status": "implemented_nonbrowser_green_browser_reviewer_run_split_guard_blocked_by_git_index_permission",
+  "playerPromise": "Atlas reads more like a first-party ChatGPT map surface: quieter coverage copy, lighter dark-mode map treatment, native dark cards, mobile chrome that gives the map back, and one button grammar.",
+  "engineeringPromise": "Apply the Fable presentation audit findings F1-F6 in web presentation code only, preserving generated-scene honesty and avoiding renderer scene graph, compiler, generator, dependency, provider, persistence, paid, or MCP tool changes.",
+  "axis": "ns3_chatgpt_native_presentation",
   "contract": [
-    "Wall material texture draws only when camera zoom is >= 1.55.",
-    "Desktop and mobile overview cameras stay below the material texture threshold.",
-    "Residential and commerce detail cameras cross the material texture threshold.",
-    "Wall material uses wallSurface, wallPoint, and wallQuadPoints only.",
-    "Texture variation is seeded from stable building id, face, and course index.",
-    "Texture shades derive from bodyColor or roofColor through shadeColor with small deltas.",
-    "No Math.random, gradients, filters, shaders, Three.js, bitmaps, textures, dependencies, compiler changes, generator changes, or authored Riverside data changes.",
-    "Texture strokes and fills batch into one wall Graphics and one roof Graphics per vector building, not per face or per course."
+    "Dark city-world renderer and coverage fallback use brightness(0.94) saturate(1) in both explicit data-theme dark and prefers-color-scheme fallback.",
+    "The generate-district action uses dark-theme panel styling consistent with the other cards in both explicit data-theme dark and prefers-color-scheme fallback.",
+    "Coverage explainer copy is exactly: Riverside is fully explorable. Other counties preview as outlines. Nothing saves between chats.",
+    "The visible LOOKUP not saved chip is removed.",
+    "The generated-district button label is Generate a district and its generated/session-only honesty subline remains intact.",
+    "The generated-scene honesty banner is untouched.",
+    "At viewport width <= 480px, the coverage switcher collapses to a one-line chip by default and expands/collapses on tap.",
+    "Bottom sticker toolbar icon buttons use the same rounded-square size/radius/border/background grammar as the top-right zoom stack.",
+    "The selected-place activity dot remains only because it maps to curated place activity data; the label is plain and accessible."
   ],
   "metricResult": {
-    "materialTexture": {
-      "threshold": 1.55,
-      "cameraPresetZooms": {
-        "desktop": 1.46,
-        "mobile": 0.92,
-        "residential_detail": 1.74,
-        "commerce_detail": 1.62
-      },
-      "zoomGate": {
-        "belowThresholdCommandCount": 0,
-        "aboveThresholdSampleCommandCount": 20,
-        "repeatedRunIdentical": true,
-        "siblingBuildingDiffers": true
-      },
-      "batching": {
-        "wallGraphicsPerBuilding": 1,
-        "roofGraphicsPerBuilding": 1
-      }
+    "findings": {
+      "F1": "passed_by_source",
+      "F2": "passed_by_source",
+      "F3": "passed_by_source_and_copy_grep",
+      "F4": "passed_by_source",
+      "F5": "passed_by_source",
+      "F6": "kept_curated_metric_relabelled"
+    },
+    "copyAssertions": {
+      "countySwitcherVerifier": "updated to assert the new coverage explainer exactly and fail if a lookup-not-saved chip returns",
+      "generatedSceneHonestyBanner": "unchanged; verify-generated-district-widget still asserts synthetic/not-real/session honesty"
     },
     "nonBrowserVerification": {
       "typecheckStarter": "passed",
       "coreTests": "passed_99",
-      "generatedDistrictParity": "passed",
-      "materialTextureGrammar": "passed",
-      "objectKitRendererConsumption": "passed",
-      "objectAuthorshipSceneGrammar": "passed",
-      "roadsRoofsSceneGrammar": "passed",
-      "publicObjectKitPrefabPalette": "passed",
-      "terrainChunkMassingGrammar": "passed",
-      "terrainElevationChunkGrammar": "passed",
-      "terrainParcelComposition": "passed",
-      "faceOrientationSourceContrast": "passed",
-      "commerceStripPrefabGeometry": "passed",
-      "plazaRowFocusedCapture": "passed",
-      "civicVenueObjectKitContract": "passed",
-      "publicObjectIdentityCivicService": "passed",
-      "publicCivicLandmarkAuthorship": "passed",
-      "noGoogleInRenderer": "passed",
-      "providerBoundaries": "passed",
       "toolResultShape": "passed",
-      "renderCommandLayerBudget": "passed",
-      "sceneWindowCompiler": "passed",
-      "dynamicWindowRefresh": "passed",
-      "fablePropCleanup": "passed",
-      "mobileOcclusion": "passed",
-      "strictEngineBetaSplitGuard": "passed",
-      "diffCheck": "passed"
+      "providerBoundaries": "passed",
+      "copyGrep": "passed_no_old_widget_or_verifier_strings",
+      "diffCheck": "passed",
+      "strictEngineBetaSplitGuard": "blocked_by_git_index_permission_false_positive_on_unchanged_web_src_VoxelSceneView_tsx"
     },
     "browserVerification": {
-      "buildWeb": "reviewer_run_per_instruction",
-      "generatedDistrictWidget": "reviewer_run_requires_fresh_bundle",
-      "widgetPerformance": "reviewer_run_requires_fresh_bundle"
+      "buildWeb": "not_run_per_packet_instruction_sandbox_blocks_esbuild",
+      "generatedDistrictWidget": "not_run_per_packet_instruction_reviewer_runs",
+      "widgetPerformance": "not_run_per_packet_instruction_reviewer_runs",
+      "bothThemeScreenshots": "not_run_per_packet_instruction_reviewer_runs"
     },
     "scope": {
-      "newDependencies": 0,
-      "threeJs": false,
-      "filtersOrShadersAdded": false,
-      "bitmapsOrTexturesAdded": false,
-      "authoredRiversideChanged": false,
-      "curatedPropsChanged": false,
-      "sceneCompilerContractChanges": 0,
+      "rendererSceneGraphChanges": 0,
       "generatorChanges": 0,
-      "forbiddenPropKindChanges": 0,
-      "maxPropCommandsChanged": false,
+      "compilerChanges": 0,
+      "newDependencies": 0,
       "newMcpTools": 0,
-      "dbMigrations": 0,
-      "publicAnaheimPromotion": false,
-      "providerGeometry": false
+      "providerGeometry": false,
+      "persistence": false,
+      "paidScope": false,
+      "publicAnaheimPromotion": false
     }
   },
   "verification": {
     "typecheckStarter": "pnpm typecheck:starter",
     "coreTests": "pnpm test:core",
-    "generatedDistrictParity": "node scripts/verify-generated-district-parity.mjs",
-    "materialTextureGrammar": "node scripts/verify-material-texture-grammar.mjs",
-    "objectKitRendererConsumption": "node scripts/verify-object-kit-renderer-consumption.mjs",
-    "objectAuthorshipSceneGrammar": "node scripts/verify-object-authorship-scene-grammar.mjs",
-    "roadsRoofsSceneGrammar": "node scripts/verify-roads-roofs-scene-grammar.mjs",
-    "publicObjectKitPrefabPalette": "node scripts/verify-public-object-kit-prefab-palette.mjs",
-    "terrainChunkMassingGrammar": "node scripts/verify-terrain-chunk-massing-grammar.mjs",
-    "terrainElevationChunkGrammar": "node scripts/verify-terrain-elevation-chunk-grammar.mjs",
-    "terrainParcelComposition": "node scripts/verify-terrain-parcel-composition.mjs",
-    "faceOrientationSourceContrast": "node scripts/verify-face-orientation-source-contrast.mjs",
-    "commerceStripPrefabGeometry": "node scripts/verify-commerce-strip-prefab-geometry.mjs",
-    "plazaRowFocusedCapture": "node scripts/verify-plaza-row-focused-capture.mjs",
-    "civicVenueObjectKitContract": "node scripts/verify-civic-venue-object-kit-contract.mjs",
-    "publicObjectIdentityCivicService": "node scripts/verify-public-object-identity-civic-service.mjs",
-    "publicCivicLandmarkAuthorship": "node scripts/verify-public-civic-landmark-authorship.mjs",
-    "noGoogleInRenderer": "node scripts/verify-no-google-in-renderer.mjs",
-    "providerBoundaries": "node scripts/verify-provider-boundaries.mjs",
     "toolResultShape": "node scripts/verify-tool-result-shape.mjs",
-    "renderCommandLayerBudget": "node scripts/verify-render-command-layer-budget.mjs",
-    "sceneWindowCompiler": "node scripts/verify-scene-window-compiler.mjs",
-    "dynamicWindowRefresh": "node scripts/verify-dynamic-window-refresh.mjs",
-    "fablePropCleanup": "node scripts/verify-fable-prop-cleanup.mjs",
-    "mobileOcclusion": "node scripts/verify-cityworld-mobile-occlusion.mjs",
-    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only",
+    "providerBoundaries": "node scripts/verify-provider-boundaries.mjs",
+    "copyGrep": "rg -n '% active|Play Riverside now|Browse CA shells|Lookup without saving|Turn to a new district|LOOKUP not saved|public-product-path' web/src/App.tsx web/src/CityWorldView.tsx web/src/CountySwitcher.tsx web/src/styles.css scripts/verify-county-switcher.mjs",
     "diffCheck": "git diff --check",
+    "splitGuardAttempted": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode engine-beta-data --json-only",
     "reviewerRunBuildWeb": "pnpm build:web",
     "reviewerRunGeneratedDistrictWidget": "node scripts/verify-generated-district-widget.mjs",
     "reviewerRunWidgetPerformance": "node scripts/verify-widget-performance.mjs"
   },
   "nextCodeStep": "0.75C-4 Browser Bundle / QA Replay",
-  "reviewerLiveCheck": {
-    "residentialDetail": "/preview?atlasCamera=residential_detail",
-    "commerceDetail": "/preview?atlasCamera=commerce_detail",
-    "overviewNoTexture": "/preview?atlasCamera=desktop"
-  },
   "forbiddenScope": [
-    "authored Riverside scene changes",
-    "curated prop changes",
-    "new dependencies",
-    "Three.js",
-    "filters or shaders",
-    "textures or bitmaps",
-    "scene compiler contract changes",
+    "renderer scene-graph changes",
     "generator changes",
-    "forbidden prop-kind changes",
-    "maxPropCommands cap changes",
-    "new MCP tools",
-    "database persistence",
-    "migrations",
-    "paid, Stripe, OAuth, Hosted Clawd, XP, evidence, automation, reports, or exports",
+    "compiler changes",
+    "new dependencies",
+    "MCP tool changes",
     "provider-created geometry",
-    "public Anaheim/Ontario exposure",
-    "cars, humans, decorative clutter, panels, glows, labels, or dashboard UI"
+    "database persistence",
+    "paid, Stripe, OAuth, Hosted Clawd, XP, evidence, automation, reports, or exports",
+    "public Anaheim/Ontario exposure"
   ],
   "gates": [
     {
-      "id": "zoom-gated",
-      "label": "Below threshold emits no material texture commands; detail threshold emits deterministic texture commands",
+      "id": "presentation-source",
+      "label": "F1-F6 implemented in scoped presentation files",
       "required": true,
       "status": "passed"
     },
     {
-      "id": "wall-plane",
-      "label": "Wall texture uses wallSurface/wallPoint/wallQuadPoints",
+      "id": "honesty-copy",
+      "label": "Generated-scene honesty banner remains asserted and old button/explainer assertions are updated",
       "required": true,
       "status": "passed"
     },
     {
-      "id": "batching",
-      "label": "Wall and roof material texture batch into one Graphics each per vector building",
+      "id": "nonbrowser-verification",
+      "label": "Typecheck, core tests, provider boundary, tool-result shape, copy grep, and diff check pass",
       "required": true,
       "status": "passed"
     },
     {
       "id": "browser-replay",
-      "label": "Fresh bundle passes generated widget and widget performance verifiers",
+      "label": "Fresh bundle, widget, performance, and both-theme screenshots",
       "required": true,
       "status": "reviewer_run"
+    },
+    {
+      "id": "split-guard",
+      "label": "Strict Engine Beta split guard",
+      "required": true,
+      "status": "blocked_by_git_index_permission_false_positive_on_unchanged_legacy_file"
     }
   ]
 }
