@@ -2,11 +2,14 @@
 import process from "node:process";
 import {
   GENERATED_LANDMARK_SIGNATURES,
+  GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR,
   US_COUNTY_INDEX,
+  analyzeGeneratedDistrictMassingSignature,
   analyzeGeneratedLandmark,
   createDeterministicGeneratedDistrictSpec,
   createDeterministicGeneratedDistrictScene,
   expectedGeneratedLandmarkKind,
+  generatedDistrictMassingSignatureDistance,
   resolveCountyParameters,
 } from "../packages/core/dist/index.js";
 
@@ -138,6 +141,15 @@ function landmarkFingerprint(county) {
   };
 }
 
+function massingFingerprint(county) {
+  const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+  return {
+    countySlug: county.countySlug,
+    archetype: generated.archetype,
+    ...analyzeGeneratedDistrictMassingSignature(result.scene),
+  };
+}
+
 function jaccard(a, b) {
   if (a.size === 0 && b.size === 0) return 1;
   let inter = 0;
@@ -159,6 +171,22 @@ function distinctnessMatrix(fingerprintByArchetype, present) {
     }
   }
   return { pairs, worst };
+}
+
+function massingDistinctnessMatrix(massingByArchetype, present) {
+  const pairs = [];
+  let closest = { pair: null, distance: Number.POSITIVE_INFINITY };
+  for (let i = 0; i < present.length; i += 1) {
+    for (let j = i + 1; j < present.length; j += 1) {
+      const a = present[i];
+      const b = present[j];
+      const distance = generatedDistrictMassingSignatureDistance(massingByArchetype[a], massingByArchetype[b]);
+      pairs.push({ a, b, distance });
+      if (distance < closest.distance) closest = { pair: [a, b], distance };
+    }
+  }
+  if (!closest.pair) closest = { pair: null, distance: 0 };
+  return { pairs, closest };
 }
 
 // ---------------------------------------------------------------------------
@@ -249,6 +277,39 @@ for (const a of present) {
   );
 }
 
+const massingByArchetype = {};
+for (const a of present) {
+  massingByArchetype[a] = massingFingerprint(firstCountyByArchetype[a]);
+}
+const massingDistinctness = massingDistinctnessMatrix(massingByArchetype, present);
+const massingFailures = massingDistinctness.pairs
+  .filter((entry) => entry.distance < GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR)
+  .map((entry) => `${entry.a}~${entry.b}:${entry.distance}`);
+log("\nMassing/layout signatures — non-landmark fabric readouts:");
+for (const a of present) {
+  const entry = massingByArchetype[a];
+  log(
+    "  " +
+      a.padEnd(16) +
+      `buildings ${String(entry.buildingCount).padStart(2)}`.padEnd(14) +
+      `height ${entry.meanBuildingHeight}/${entry.maxBuildingHeight}`.padEnd(18) +
+      `foot ${entry.meanFootprintArea}`.padEnd(12) +
+      `roads ${entry.roadCount}/${entry.roadLength}`.padEnd(17) +
+      `apt ${entry.apartmentRatio}`.padEnd(10) +
+      `water ${entry.waterLotRatio}`.padEnd(12) +
+      `linear ${entry.linearityRatio}`,
+  );
+}
+log(
+  "  closest pair: " +
+    (massingDistinctness.closest.pair ? massingDistinctness.closest.pair.join(" ~ ") : "n/a") +
+    " = " +
+    massingDistinctness.closest.distance +
+    "  (gate: >= " +
+    GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR +
+    ")",
+);
+
 const perf = perfProbe(firstCountyByArchetype);
 log("\nPerf at scale — " + perf.sampled + " counties: mean " + perf.meanMs.toFixed(2) +
     "ms/county, " + perf.failures + " budget failures (gate: mean <= " + MEAN_GEN_MS_CEILING + "ms, 0 failures)");
@@ -286,6 +347,15 @@ const GATES = [
     detail: landmarkSilhouettePairs.length === 0 ? "all unique" : landmarkSilhouettePairs.join("; "),
   },
   {
+    id: "massing_layout_distinctness",
+    label: "any two archetypes' non-landmark massing/layout signatures differ",
+    pass: massingFailures.length === 0,
+    detail:
+      massingFailures.length === 0
+        ? `closest ${massingDistinctness.closest.pair ? massingDistinctness.closest.pair.join("~") : "n/a"} = ${massingDistinctness.closest.distance}`
+        : massingFailures.join("; "),
+  },
+  {
     id: "perf_at_scale",
     label: "mean generation <= " + MEAN_GEN_MS_CEILING + "ms, 0 budget failures",
     pass: perf.meanMs <= MEAN_GEN_MS_CEILING && perf.failures === 0,
@@ -314,6 +384,13 @@ if (jsonOnly) {
         byArchetype: landmarkByArchetype,
         failures: landmarkFailures,
         duplicateSilhouettes: landmarkSilhouettePairs,
+      },
+      massing: {
+        floor: GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR,
+        byArchetype: massingByArchetype,
+        closest: massingDistinctness.closest,
+        pairs: massingDistinctness.pairs,
+        failures: massingFailures,
       },
       perf,
       gates: GATES.map(({ id, pass, detail }) => ({ id, pass, detail })),

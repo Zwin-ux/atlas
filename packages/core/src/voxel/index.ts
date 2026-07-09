@@ -13,14 +13,18 @@ export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistric
 export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./cityWorldCompiler.js";
 export {
   GENERATED_LANDMARK_SIGNATURES,
+  GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR,
+  analyzeGeneratedDistrictMassingSignature,
   analyzeGeneratedDistrictParity,
   analyzeGeneratedLandmark,
   exampleParametricDistrictSpec,
   expectedGeneratedLandmarkKind,
   generateParametricCityWorldScene,
   generatedLandmarkSilhouetteKey,
+  generatedDistrictMassingSignatureDistance,
 } from "./cityWorldParametricGenerator.js";
 export type {
+  CityWorldGeneratedMassingSignature,
   CityWorldGeneratedDistrictParityReport,
   CityWorldGeneratedFrameBandDensity,
   CityWorldGeneratedLandmarkHostCell,

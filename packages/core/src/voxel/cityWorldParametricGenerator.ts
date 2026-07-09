@@ -257,7 +257,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     label: spec.label,
     region: spec.region,
     bounds,
-    cameraPresets: parametricCameraPresets(bounds, spec.zones, { terrainTiles, roadSegments, lots, buildings }),
+    cameraPresets: parametricCameraPresets(bounds, spec.zones, { terrainTiles, roadSegments, lots, buildings }, spec.countyParameters),
     terrainTiles,
     roadSegments,
     lots,
@@ -460,6 +460,7 @@ function layoutZoneParcels(
   const zoneWidth = rect.maxX - rect.minX;
   const zoneHeight = rect.maxY - rect.minY;
   if (zoneWidth <= 0 || zoneHeight <= 0) return [];
+  const massingProfile = generatedMassingProfileFor(countyParameters);
 
   // Park/water are single soft parcels.
   if (zone.kind === "park" || zone.kind === "water") {
@@ -501,11 +502,11 @@ function layoutZoneParcels(
     // 0.58E parity — ceil, not round: a 7-tile zone deserves two strip
     // segments; rounding down left small commercial zones as one lonely slab
     // and starved the lower frame.
-    const cols = Math.max(1, Math.ceil(zoneWidth / 5.4));
-    const rows = Math.max(1, Math.floor(zoneHeight / 3.6));
+    const cols = Math.max(1, Math.ceil(zoneWidth / massingProfile.commercialCellWidth));
+    const rows = Math.max(1, Math.floor(zoneHeight / massingProfile.commercialRowDepth));
     const stripCellWidth = zoneWidth / cols;
     const stripCellHeight = zoneHeight / rows;
-    const stripDensity = zone.density ?? 0.85;
+    const stripDensity = Math.max(zone.density ?? massingProfile.commercialDensityFloor, massingProfile.commercialDensityFloor);
     const strips: ParcelLayout[] = [];
     let stripIndex = 0;
     for (let row = 0; row < rows; row += 1) {
@@ -516,7 +517,7 @@ function layoutZoneParcels(
         const spec: ZoneBuildingSpec = {
           ...template,
           // Stretch to the row segment, capped near the hero strip's 6.1 tiles.
-          width: Math.min(Math.max(template.width, stripCellWidth * 0.84), 6.2),
+          width: Math.min(Math.max(template.width, stripCellWidth * massingProfile.commercialStripFill), massingProfile.commercialMaxWidth),
           depth: Math.min(Math.max(template.depth, 1.4), Math.max(1.4, stripCellHeight * 0.52)),
         };
         const stripJitter = (rng() - 0.5) * 0.2;
@@ -534,7 +535,7 @@ function layoutZoneParcels(
     if (strips.length === 0) {
       const template = buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
       const spec: ZoneBuildingSpec | undefined = template
-        ? { ...template, width: Math.min(Math.max(template.width, zoneWidth * 0.6), 6.2) }
+        ? { ...template, width: Math.min(Math.max(template.width, zoneWidth * 0.6), massingProfile.commercialMaxWidth) }
         : undefined;
       strips.push({
         index: 0,
@@ -561,11 +562,11 @@ function layoutZoneParcels(
   // small-house fabric below the north-star read.
   const density =
     zone.kind === "residential"
-      ? Math.max(zone.density ?? 0.9, 0.9)
+      ? Math.max(zone.density ?? massingProfile.residentialDensityFloor, massingProfile.residentialDensityFloor)
       : zone.kind === "apartments"
-        ? Math.max(zone.density ?? 0.78, 0.78)
+        ? Math.max(zone.density ?? massingProfile.apartmentDensityFloor, massingProfile.apartmentDensityFloor)
         : zone.density ?? 0.62;
-  const cell = zone.kind === "residential" ? 1.95 : zone.kind === "apartments" ? 2.75 : 3.4;
+  const cell = zone.kind === "residential" ? massingProfile.residentialCell : zone.kind === "apartments" ? massingProfile.apartmentCell : 3.4;
   const cols = Math.max(1, Math.floor(zoneWidth / cell));
   const rows = Math.max(1, Math.floor(zoneHeight / cell));
   const cellWidth = zoneWidth / cols;
@@ -589,7 +590,9 @@ function layoutZoneParcels(
       const jitter = (rng() - 0.5) * 0.3;
       // Rotate apartment massing so court parcels step instead of cloning one slab.
       const spec =
-        zone.kind === "apartments" ? apartmentSpecForOrdinal(index, rng, regionalPalette) : buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
+        zone.kind === "apartments"
+          ? apartmentSpecForOrdinal(index, rng, regionalPalette, countyParameters)
+          : buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
       const pad = spec ? parcelForSpec(spec) : footprint;
       parcels.push({
         index: index++,
@@ -606,7 +609,9 @@ function layoutZoneParcels(
   // Never leave a zoned block empty — guarantee at least one anchor parcel.
   if (parcels.length === 0) {
     const spec =
-      zone.kind === "apartments" ? apartmentSpecForOrdinal(0, rng, regionalPalette) : buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
+      zone.kind === "apartments"
+        ? apartmentSpecForOrdinal(0, rng, regionalPalette, countyParameters)
+        : buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
     const pad = spec ? parcelForSpec(spec) : footprint;
     parcels.push({
       index: 0,
@@ -620,7 +625,7 @@ function layoutZoneParcels(
   }
 
   // Large neighborhoods get one downtown-facing corner market.
-  if (zone.kind === "residential" && parcels.length >= CORNER_STORE_MIN_PARCELS && boardCenter) {
+  if (zone.kind === "residential" && parcels.length >= massingProfile.cornerStoreMinParcels && boardCenter) {
     const cornerTargetX = boardCenter.x >= (rect.minX + rect.maxX) / 2 ? rect.maxX : rect.minX;
     const cornerTargetY = boardCenter.y >= (rect.minY + rect.maxY) / 2 ? rect.maxY : rect.minY;
     const cornerParcel = parcels.reduce((closest, parcel) => {
@@ -628,7 +633,7 @@ function layoutZoneParcels(
       const closestDistance = Math.hypot(closest.x - cornerTargetX, closest.y - cornerTargetY);
       return parcelDistance < closestDistance ? parcel : closest;
     }, parcels[0] as ParcelLayout);
-    const cornerSpec = applyDimensionJitter(CORNER_STORE_TEMPLATE, rng, regionalPalette);
+    const cornerSpec = applyDimensionJitter(CORNER_STORE_TEMPLATE, rng, regionalPalette, countyParameters);
     cornerSpec.labelOverride = "Corner market";
     cornerParcel.spec = cornerSpec;
     cornerParcel.lotKind = "shop";
@@ -833,6 +838,93 @@ export function generatedLandmarkSilhouetteKey(
     signature.depth.toFixed(1),
     signature.height.toFixed(1),
   ].join(":");
+}
+
+export const GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR = 0.16;
+
+export type CityWorldGeneratedMassingSignature = {
+  sceneId: string;
+  buildingCount: number;
+  lotCount: number;
+  roadCount: number;
+  roadLength: number;
+  meanRoadLength: number;
+  meanBuildingHeight: number;
+  maxBuildingHeight: number;
+  meanFootprintArea: number;
+  footprintAreaStdDev: number;
+  highRiseRatio: number;
+  apartmentRatio: number;
+  shopRatio: number;
+  civicRatio: number;
+  waterLotRatio: number;
+  builtSpanX: number;
+  builtSpanY: number;
+  linearityRatio: number;
+  elevationSpread: number;
+};
+
+export function analyzeGeneratedDistrictMassingSignature(scene: CityWorldScene): CityWorldGeneratedMassingSignature {
+  const buildings = scene.buildings.filter((building) => !building.id.startsWith("gen-landmark-"));
+  const lots = scene.lots.filter((lot) => !lot.id.startsWith("gen-landmark-lot-"));
+  const roadLengths = scene.roadSegments.map((road) => Math.hypot(road.to.x - road.from.x, road.to.y - road.from.y));
+  const roadLength = roadLengths.reduce((sum, value) => sum + value, 0);
+  const footprintAreas = buildings.map((building) => building.width * building.depth);
+  const heights = buildings.map((building) => building.height);
+  const xs = buildings.map((building) => building.position.x);
+  const ys = buildings.map((building) => building.position.y);
+  const zs = buildings.map((building) => building.position.z);
+  const spanX = xs.length > 0 ? Math.max(...xs) - Math.min(...xs) : 0;
+  const spanY = ys.length > 0 ? Math.max(...ys) - Math.min(...ys) : 0;
+  const normalizedSpanX = spanX / Math.max(1, scene.bounds.maxX - scene.bounds.minX);
+  const normalizedSpanY = spanY / Math.max(1, scene.bounds.maxY - scene.bounds.minY);
+  const minSpan = Math.max(0.01, Math.min(normalizedSpanX, normalizedSpanY));
+  const maxSpan = Math.max(normalizedSpanX, normalizedSpanY);
+
+  return {
+    sceneId: scene.id,
+    buildingCount: buildings.length,
+    lotCount: lots.length,
+    roadCount: scene.roadSegments.length,
+    roadLength: roundDimension(roadLength),
+    meanRoadLength: roundDimension(safeRatio(roadLength, scene.roadSegments.length)),
+    meanBuildingHeight: roundDimension(mean(heights)),
+    maxBuildingHeight: roundDimension(Math.max(0, ...heights)),
+    meanFootprintArea: roundDimension(mean(footprintAreas)),
+    footprintAreaStdDev: roundDimension(stddev(footprintAreas)),
+    highRiseRatio: roundDimension(safeRatio(buildings.filter((building) => building.height >= 2.2).length, buildings.length)),
+    apartmentRatio: roundDimension(safeRatio(buildings.filter((building) => building.kind === "apartment").length, buildings.length)),
+    shopRatio: roundDimension(safeRatio(buildings.filter((building) => building.kind === "shop").length, buildings.length)),
+    civicRatio: roundDimension(safeRatio(buildings.filter((building) => building.kind === "civic").length, buildings.length)),
+    waterLotRatio: roundDimension(safeRatio(lots.filter((lot) => lot.kind === "waterfront").length, lots.length)),
+    builtSpanX: roundDimension(normalizedSpanX),
+    builtSpanY: roundDimension(normalizedSpanY),
+    linearityRatio: roundDimension(Math.min(4, maxSpan / minSpan)),
+    elevationSpread: roundDimension(zs.length > 0 ? Math.max(...zs) - Math.min(...zs) : 0),
+  };
+}
+
+export function generatedDistrictMassingSignatureDistance(
+  first: CityWorldGeneratedMassingSignature,
+  second: CityWorldGeneratedMassingSignature,
+): number {
+  const weighted =
+    normalizedDelta(first.meanBuildingHeight, second.meanBuildingHeight, 2.6, 0.14) +
+    normalizedDelta(first.maxBuildingHeight, second.maxBuildingHeight, 4.4, 0.1) +
+    normalizedDelta(first.meanFootprintArea, second.meanFootprintArea, 4, 0.12) +
+    normalizedDelta(first.footprintAreaStdDev, second.footprintAreaStdDev, 2.6, 0.07) +
+    normalizedDelta(first.buildingCount, second.buildingCount, 34, 0.1) +
+    normalizedDelta(first.lotCount, second.lotCount, 34, 0.08) +
+    normalizedDelta(first.roadCount, second.roadCount, 5, 0.05) +
+    normalizedDelta(first.roadLength, second.roadLength, 150, 0.09) +
+    normalizedDelta(first.meanRoadLength, second.meanRoadLength, 28, 0.06) +
+    normalizedDelta(first.apartmentRatio, second.apartmentRatio, 0.45, 0.1) +
+    normalizedDelta(first.shopRatio, second.shopRatio, 0.45, 0.08) +
+    normalizedDelta(first.highRiseRatio, second.highRiseRatio, 0.45, 0.11) +
+    normalizedDelta(first.waterLotRatio, second.waterLotRatio, 0.2, 0.06) +
+    normalizedDelta(first.linearityRatio, second.linearityRatio, 2.8, 0.1) +
+    normalizedDelta(first.elevationSpread, second.elevationSpread, 1.2, 0.07);
+  return roundDimension(Math.min(1, weighted));
 }
 
 const LANDMARK_KIND_BY_ARCHETYPE: Record<GeneratedDistrictArchetype, CityWorldGeneratedLandmarkKind> = {
@@ -1209,9 +1301,14 @@ function apartmentClearanceSafeMinHeight(width: number, depth: number): number {
 }
 
 /** Rotate the court pool per parcel ordinal so silhouettes step deterministically. */
-function apartmentSpecForOrdinal(ordinal: number, rng: () => number, regionalPalette?: RegionalPalette): ZoneBuildingSpec {
+function apartmentSpecForOrdinal(
+  ordinal: number,
+  rng: () => number,
+  regionalPalette?: RegionalPalette,
+  countyParameters?: CountyGenerationParameters,
+): ZoneBuildingSpec {
   const template = APARTMENT_TEMPLATE_POOL[ordinal % APARTMENT_TEMPLATE_POOL.length] as ZoneBuildingTemplate;
-  const spec = applyDimensionJitter(template, rng, regionalPalette);
+  const spec = applyDimensionJitter(template, rng, regionalPalette, countyParameters);
   spec.height = Math.max(spec.height, apartmentClearanceSafeMinHeight(spec.width, spec.depth));
   return spec;
 }
@@ -1220,7 +1317,12 @@ const GYM_TEMPLATE_POOL: ZoneBuildingTemplate[] = [
   { kind: "gym", width: 4.0, depth: 2.6, height: 2.0, facadeStyle: "fitness", roofShape: "sawtooth", bodyColors: ["#d7e7ef", "#d3e2ea"], roofColors: ["#a76f4e", "#5f8fa6"] },
 ];
 
-function applyDimensionJitter(template: ZoneBuildingTemplate, rng: () => number, regionalPalette?: RegionalPalette): ZoneBuildingSpec {
+function applyDimensionJitter(
+  template: ZoneBuildingTemplate,
+  rng: () => number,
+  regionalPalette?: RegionalPalette,
+  countyParameters?: CountyGenerationParameters,
+): ZoneBuildingSpec {
   const home = template.kind === "home";
   const jitter = (value: number, spread = 0.3) => Math.round(value * (1 + (rng() - 0.5) * spread) * 100) / 100;
   const width = jitter(template.width, home ? 0.14 : 0.3);
@@ -1228,17 +1330,258 @@ function applyDimensionJitter(template: ZoneBuildingTemplate, rng: () => number,
   const height = jitter(template.height, home ? 0.08 : 0.3);
   const bodyPick = pickIndexed(rng, regionalPalette?.body ?? template.bodyColors);
   const roofPick = pickIndexed(rng, regionalPalette?.roof ?? template.roofColors);
-  const regional = regionalPalette ? resolveRegionalBuildingPalette(regionalPalette, bodyPick.index, roofPick.index) : undefined;
+  const paletteIndex = generatedTemplatePaletteIndex(bodyPick.index, roofPick.index, template, countyParameters);
+  const regional = regionalPalette ? resolveRegionalBuildingPalette(regionalPalette, paletteIndex.body, paletteIndex.roof) : undefined;
+  return applyCountyMassingModulation(
+    {
+      kind: template.kind,
+      width,
+      depth,
+      height,
+      bodyColor: regional?.bodyColor ?? bodyPick.value,
+      roofColor: regional?.roofColor ?? roofPick.value,
+      ...(regional ? { paletteKey: regional.paletteKey } : {}),
+      facadeStyle: template.facadeStyle,
+      roofShape: template.roofShape,
+    },
+    countyParameters,
+  );
+}
+
+function generatedTemplatePaletteIndex(
+  bodyIndex: number,
+  roofIndex: number,
+  template: ZoneBuildingTemplate,
+  countyParameters?: CountyGenerationParameters,
+): { body: number; roof: number } {
+  if (
+    countyParameters?.archetypeProfile.archetype === "metro_grid" &&
+    (template.facadeStyle === "rowhome" || template.kind === "apartment")
+  ) {
+    return { body: bodyIndex + 1, roof: roofIndex + 1 };
+  }
+  return { body: bodyIndex, roof: roofIndex };
+}
+
+function applyCountyMassingModulation(
+  spec: ZoneBuildingSpec,
+  countyParameters: CountyGenerationParameters | undefined,
+): ZoneBuildingSpec {
+  if (!countyParameters) return spec;
+  const profile = generatedMassingProfileFor(countyParameters);
+  const modulation = countyParameters.modulation;
+  const reliefLift = Math.max(0, modulation.reliefScale - 1);
+  const heightBiasLift = modulation.heightBias * profile.heightBiasMultiplier;
+  const baseHeightScale =
+    profile.heightScale +
+    heightBiasLift +
+    (countyParameters.archetypeProfile.archetype === "mountain_valley" ? reliefLift * 0.7 : 0) +
+    (countyParameters.archetypeProfile.archetype === "metro_grid" ? Math.max(0, modulation.densityScale - 1) * 0.8 : 0);
+  const footprintScale =
+    profile.footprintScale +
+    (countyParameters.archetypeProfile.archetype === "desert_basin" ? Math.max(0, 0.5 - modulation.vegetationDensity) * 0.12 : 0) +
+    (countyParameters.archetypeProfile.archetype === "prairie_town" ? Math.max(0, 0.54 - modulation.vegetationDensity) * 0.08 : 0);
+
+  const width = roundDimension(spec.width * footprintScale);
+  const depth = roundDimension(spec.depth * footprintScale);
+  let height = roundDimension(spec.height * baseHeightScale);
+
+  if (spec.kind === "home") {
+    const footprintMin = Math.max(0.1, Math.min(width, depth));
+    if (spec.facadeStyle === "rowhome") height = Math.min(height, 1.48);
+    else if (spec.facadeStyle === "cottage") height = Math.min(height, 1.26, footprintMin * 1.12);
+    else if (spec.facadeStyle === "ranch") height = Math.min(height, 1.18, footprintMin * 0.94);
+  }
+
   return {
-    kind: template.kind,
+    ...spec,
     width,
     depth,
     height,
-    bodyColor: regional?.bodyColor ?? bodyPick.value,
-    roofColor: regional?.roofColor ?? roofPick.value,
-    ...(regional ? { paletteKey: regional.paletteKey } : {}),
-    facadeStyle: template.facadeStyle,
-    roofShape: template.roofShape,
+  };
+}
+
+function weightedResidentialTemplate(rng: () => number, countyParameters?: CountyGenerationParameters): ZoneBuildingTemplate | null {
+  const profile = generatedMassingProfileFor(countyParameters);
+  const weighted = RESIDENTIAL_TEMPLATE_POOL.map((entry) => ({
+    template: entry.template,
+    weight: entry.weight * residentialTemplateMultiplier(entry.template, profile),
+  }));
+  const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+  let roll = rng() * totalWeight;
+  for (const entry of weighted) {
+    roll -= entry.weight;
+    if (roll <= 0) return entry.template;
+  }
+  return weighted[weighted.length - 1]?.template ?? null;
+}
+
+function residentialTemplateMultiplier(template: ZoneBuildingTemplate, profile: GeneratedDistrictMassingProfile): number {
+  if (template.facadeStyle === "rowhome") return profile.rowhomeWeight;
+  if (template.facadeStyle === "ranch") return profile.ranchWeight;
+  return profile.cottageWeight;
+}
+
+type GeneratedDistrictMassingProfile = {
+  residentialDensityFloor: number;
+  apartmentDensityFloor: number;
+  commercialDensityFloor: number;
+  residentialCell: number;
+  apartmentCell: number;
+  commercialCellWidth: number;
+  commercialRowDepth: number;
+  commercialStripFill: number;
+  commercialMaxWidth: number;
+  footprintScale: number;
+  heightScale: number;
+  heightBiasMultiplier: number;
+  cottageWeight: number;
+  ranchWeight: number;
+  rowhomeWeight: number;
+  cornerStoreMinParcels: number;
+};
+
+function generatedMassingProfileFor(countyParameters?: CountyGenerationParameters): GeneratedDistrictMassingProfile {
+  if (!countyParameters) {
+    return {
+      residentialDensityFloor: 0.9,
+      apartmentDensityFloor: 0.78,
+      commercialDensityFloor: 0.85,
+      residentialCell: 1.95,
+      apartmentCell: 2.75,
+      commercialCellWidth: 5.4,
+      commercialRowDepth: 3.6,
+      commercialStripFill: 0.84,
+      commercialMaxWidth: 6.2,
+      footprintScale: 1,
+      heightScale: 1,
+      heightBiasMultiplier: 3,
+      cottageWeight: 1,
+      ranchWeight: 1,
+      rowhomeWeight: 1,
+      cornerStoreMinParcels: CORNER_STORE_MIN_PARCELS,
+    };
+  }
+
+  const archetype = countyParameters.archetypeProfile.archetype;
+  if (archetype === "metro_grid") {
+    return {
+      residentialDensityFloor: 0.91,
+      apartmentDensityFloor: 0.86,
+      commercialDensityFloor: 0.88,
+      residentialCell: 1.7,
+      apartmentCell: 2.35,
+      commercialCellWidth: 4.7,
+      commercialRowDepth: 3.25,
+      commercialStripFill: 0.88,
+      commercialMaxWidth: 5.8,
+      footprintScale: 0.96,
+      heightScale: 1.16,
+      heightBiasMultiplier: 4.4,
+      cottageWeight: 0.72,
+      ranchWeight: 0.74,
+      rowhomeWeight: 2.05,
+      cornerStoreMinParcels: 7,
+    };
+  }
+  if (archetype === "desert_basin") {
+    return {
+      residentialDensityFloor: 0.62,
+      apartmentDensityFloor: 0.48,
+      commercialDensityFloor: 0.5,
+      residentialCell: 2.32,
+      apartmentCell: 3.55,
+      commercialCellWidth: 7.2,
+      commercialRowDepth: 4.2,
+      commercialStripFill: 0.8,
+      commercialMaxWidth: 6.8,
+      footprintScale: 1.14,
+      heightScale: 0.88,
+      heightBiasMultiplier: 2.2,
+      cottageWeight: 0.74,
+      ranchWeight: 2.18,
+      rowhomeWeight: 0.28,
+      cornerStoreMinParcels: 9,
+    };
+  }
+  if (archetype === "coastal_grid") {
+    return {
+      residentialDensityFloor: 0.7,
+      apartmentDensityFloor: 0.66,
+      commercialDensityFloor: 0.74,
+      residentialCell: 2.15,
+      apartmentCell: 2.85,
+      commercialCellWidth: 5.2,
+      commercialRowDepth: 3.45,
+      commercialStripFill: 0.9,
+      commercialMaxWidth: 6.2,
+      footprintScale: 1.02,
+      heightScale: 1.02,
+      heightBiasMultiplier: 3.1,
+      cottageWeight: 1.18,
+      ranchWeight: 1.08,
+      rowhomeWeight: 0.58,
+      cornerStoreMinParcels: 8,
+    };
+  }
+  if (archetype === "mountain_valley") {
+    return {
+      residentialDensityFloor: 0.64,
+      apartmentDensityFloor: 0.52,
+      commercialDensityFloor: 0.6,
+      residentialCell: 2.35,
+      apartmentCell: 3.25,
+      commercialCellWidth: 6.25,
+      commercialRowDepth: 3.9,
+      commercialStripFill: 0.84,
+      commercialMaxWidth: 6.4,
+      footprintScale: 1.07,
+      heightScale: 1.06,
+      heightBiasMultiplier: 3.6,
+      cottageWeight: 1.5,
+      ranchWeight: 1.08,
+      rowhomeWeight: 0.34,
+      cornerStoreMinParcels: 8,
+    };
+  }
+  if (archetype === "prairie_town") {
+    return {
+      residentialDensityFloor: 0.6,
+      apartmentDensityFloor: 0.45,
+      commercialDensityFloor: 0.56,
+      residentialCell: 2.45,
+      apartmentCell: 3.45,
+      commercialCellWidth: 6.4,
+      commercialRowDepth: 4,
+      commercialStripFill: 0.84,
+      commercialMaxWidth: 6.6,
+      footprintScale: 1.16,
+      heightScale: 0.92,
+      heightBiasMultiplier: 2.4,
+      cottageWeight: 0.5,
+      ranchWeight: 2.1,
+      rowhomeWeight: 0.28,
+      cornerStoreMinParcels: 9,
+    };
+  }
+
+  return {
+    residentialDensityFloor: 0.66,
+    apartmentDensityFloor: 0.6,
+    commercialDensityFloor: 0.68,
+    residentialCell: 2.3,
+    apartmentCell: 2.95,
+    commercialCellWidth: 5.7,
+    commercialRowDepth: 3.55,
+    commercialStripFill: 0.86,
+    commercialMaxWidth: 6.2,
+    footprintScale: 1.04,
+    heightScale: 1,
+    heightBiasMultiplier: 3,
+    cottageWeight: 1.24,
+    ranchWeight: 1.02,
+    rowhomeWeight: 0.74,
+    cornerStoreMinParcels: 8,
   };
 }
 
@@ -1249,32 +1592,30 @@ function buildingSpecForZone(
   countyParameters?: CountyGenerationParameters,
 ): ZoneBuildingSpec | null {
   if (kind === "residential") {
-    const totalWeight = RESIDENTIAL_TEMPLATE_POOL.reduce((sum, entry) => sum + entry.weight, 0);
-    let roll = rng() * totalWeight;
-    for (const entry of RESIDENTIAL_TEMPLATE_POOL) {
-      roll -= entry.weight;
-      if (roll <= 0) return applyDimensionJitter(entry.template, rng, regionalPalette);
-    }
-    const last = RESIDENTIAL_TEMPLATE_POOL[RESIDENTIAL_TEMPLATE_POOL.length - 1];
-    return last ? applyDimensionJitter(last.template, rng, regionalPalette) : null;
+    const template = weightedResidentialTemplate(rng, countyParameters);
+    return template ? applyDimensionJitter(template, rng, regionalPalette, countyParameters) : null;
   }
   if (kind === "commercial") {
-    return applyDimensionJitter(pick(rng, COMMERCIAL_TEMPLATE_POOL), rng, regionalPalette);
+    return applyDimensionJitter(pick(rng, COMMERCIAL_TEMPLATE_POOL), rng, regionalPalette, countyParameters);
   }
   if (kind === "apartments") {
-    return applyDimensionJitter(pick(rng, APARTMENT_TEMPLATE_POOL), rng, regionalPalette);
+    return applyDimensionJitter(pick(rng, APARTMENT_TEMPLATE_POOL), rng, regionalPalette, countyParameters);
   }
   if (kind === "gym") {
-    return applyDimensionJitter(pick(rng, GYM_TEMPLATE_POOL), rng, regionalPalette);
+    return applyDimensionJitter(pick(rng, GYM_TEMPLATE_POOL), rng, regionalPalette, countyParameters);
   }
   if (kind === "civic") {
     const regional = regionalPalette ? resolveRegionalBuildingPalette(regionalPalette, 0, 0) : undefined;
-    const metroTower = countyParameters?.archetype === "metro_grid";
+    const archetype = countyParameters?.archetypeProfile.archetype;
+    const metroTower = archetype === "metro_grid";
+    const mountainRidge = archetype === "mountain_valley";
+    const heightBias = countyParameters?.modulation.heightBias ?? 0;
+    const reliefLift = Math.max(0, (countyParameters?.modulation.reliefScale ?? 1) - 1);
     return {
       kind: "civic",
-      width: metroTower ? 2.4 : 3.4,
-      depth: metroTower ? 2.0 : 2.45,
-      height: metroTower ? 3.35 : 1.65,
+      width: metroTower ? 2.4 : mountainRidge ? 3.65 : 3.4,
+      depth: metroTower ? 2.0 : mountainRidge ? 2.55 : 2.45,
+      height: roundDimension((metroTower ? 3.35 : mountainRidge ? 1.9 : 1.65) + heightBias * 4 + (mountainRidge ? reliefLift * 1.4 : 0)),
       bodyColor: regional?.bodyColor ?? "#f3dfbd",
       roofColor: regional?.roofColor ?? "#5d8fa8",
       ...(regional ? { paletteKey: regional.paletteKey } : {}),
@@ -1404,12 +1745,95 @@ function commerceFrameCompositionScore(center: CityWorldPoint, scenery: Parametr
   return massing * 0.25 + featureDensity * 0.45 + cityWorldClamp(families / 4, 0, 1) * 0.3;
 }
 
-function parametricCameraPresets(bounds: CityWorldBounds, zones: CityWorldZoneSpec[], scenery: ParametricCameraScenery): CityWorldScene["cameraPresets"] {
+function overviewFrameCompositionScore(center: CityWorldPoint, scenery: ParametricCameraScenery): number {
+  const frame = cityWorldViewportFrameForCameraPreset({ id: "desktop", center, zoom: 1.32 });
+  const tiles = scenery.terrainTiles.filter((tile) => cityWorldPointInsideFrame(tile.position, frame));
+  const lots = scenery.lots.filter((lot) => cityWorldPointInsideFrame(lot.position, frame));
+  const roads = scenery.roadSegments.filter((road) => cityWorldSegmentTouchesFrame(road.from, road.to, frame));
+  const buildings = scenery.buildings.filter((building) => cityWorldPointInsideFrame(building.position, frame));
+  const massing = tiles.length > 0 ? tiles.filter((tile) => (tile.visualGrammar?.terrainChunkMassing ?? "none") !== "none").length / tiles.length : 0;
+  const featureDensity = cityWorldClamp((lots.length + roads.length * 2 + buildings.length * 3) / Math.max(1, tiles.length * 0.26), 0, 1);
+  const families = new Set(buildings.map((building) => building.visualGrammar?.objectFamily).filter(Boolean)).size;
+  return massing * 0.25 + featureDensity * 0.45 + cityWorldClamp(families / 4, 0, 1) * 0.3;
+}
+
+function generatedOverviewFocus(
+  builtZones: CityWorldZoneSpec[],
+  fallback: { x: number; y: number },
+  scenery: ParametricCameraScenery,
+  scorer: (center: CityWorldPoint, scenery: ParametricCameraScenery) => number = overviewFrameCompositionScore,
+): { x: number; y: number } {
+  return bestGeneratedFocus(builtZones, fallback, scenery, scorer).focus;
+}
+
+function bestGeneratedFocus(
+  zones: CityWorldZoneSpec[],
+  fallback: { x: number; y: number },
+  scenery: ParametricCameraScenery,
+  scorer: (center: CityWorldPoint, scenery: ParametricCameraScenery) => number,
+): { focus: { x: number; y: number }; score: number } {
+  const offsets = [
+    { x: 0, y: 0 },
+    { x: -2, y: 0 },
+    { x: 2, y: 0 },
+    { x: 0, y: -2 },
+    { x: 0, y: 2 },
+  ];
+  const anchors = zones.flatMap((zone) => {
+    const center = zoneCenter(zone);
+    return offsets.map((offset) => ({ x: center.x + offset.x, y: center.y + offset.y }));
+  });
+  for (let a = 0; a < zones.length; a += 1) {
+    for (let b = a + 1; b < zones.length; b += 1) {
+      const zoneA = zones[a];
+      const zoneB = zones[b];
+      if (zoneA && zoneB) {
+        const midpoint = averagePoint([zoneCenter(zoneA), zoneCenter(zoneB)]);
+        for (const offset of offsets) anchors.push({ x: midpoint.x + offset.x, y: midpoint.y + offset.y });
+      }
+    }
+  }
+  if (anchors.length === 0) anchors.push(fallback);
+
+  let focus = anchors[0] ?? fallback;
+  let score = -1;
+  for (const candidate of anchors) {
+    const candidateScore = scorer({ x: candidate.x, y: candidate.y, z: 0 }, scenery);
+    if (candidateScore > score) {
+      score = candidateScore;
+      focus = candidate;
+    }
+  }
+  return { focus, score };
+}
+
+function mobileOverviewFrameCompositionScore(center: CityWorldPoint, scenery: ParametricCameraScenery): number {
+  const frame = cityWorldViewportFrameForCameraPreset({ id: "mobile", center, zoom: 0.92 });
+  const tiles = scenery.terrainTiles.filter((tile) => cityWorldPointInsideFrame(tile.position, frame));
+  const lots = scenery.lots.filter((lot) => cityWorldPointInsideFrame(lot.position, frame));
+  const roads = scenery.roadSegments.filter((road) => cityWorldSegmentTouchesFrame(road.from, road.to, frame));
+  const buildings = scenery.buildings.filter((building) => cityWorldPointInsideFrame(building.position, frame));
+  const massing = tiles.length > 0 ? tiles.filter((tile) => (tile.visualGrammar?.terrainChunkMassing ?? "none") !== "none").length / tiles.length : 0;
+  const featureDensity = cityWorldClamp((lots.length + roads.length * 2 + buildings.length * 3) / Math.max(1, tiles.length * 0.26), 0, 1);
+  const families = new Set(buildings.map((building) => building.visualGrammar?.objectFamily).filter(Boolean)).size;
+  return massing * 0.25 + featureDensity * 0.45 + cityWorldClamp(families / 4, 0, 1) * 0.3;
+}
+
+function parametricCameraPresets(
+  bounds: CityWorldBounds,
+  zones: CityWorldZoneSpec[],
+  scenery: ParametricCameraScenery,
+  countyParameters?: CountyGenerationParameters,
+): CityWorldScene["cameraPresets"] {
   // Center the primary cameras on the built-up mass (centroid of buildable
   // zones) rather than the raw grid center, so the first viewport is dense.
   const built = zones.filter((zone) => ZONE_TO_LOT[zone.kind] && zone.kind !== "water");
   const focus = built.length > 0 ? averagePoint(built.map(zoneCenter)) : { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
-  const center = { x: focus.x, y: focus.y, z: 0 };
+  const openingFocus = countyParameters ? generatedOverviewFocus(built, focus, scenery) : focus;
+  const mobileFocus = countyParameters
+    ? generatedOverviewFocus(built, { x: openingFocus.x, y: openingFocus.y + 3 }, scenery, mobileOverviewFrameCompositionScore)
+    : { x: openingFocus.x, y: openingFocus.y + 4 };
+  const center = { x: openingFocus.x, y: openingFocus.y, z: 0 };
   const residentialZone = zones.find((zone) => zone.kind === "residential");
   // Frame the "downtown mass" (mixed non-residential families) for the commerce
   // detail camera so it reads more than one object family.
@@ -1420,29 +1844,16 @@ function parametricCameraPresets(bounds: CityWorldBounds, zones: CityWorldZoneSp
   // frame in the road gap between blocks, where it reads as empty field.
   // Candidates are zone centers plus pairwise midpoints; each is scored by
   // building mass and distinct object families inside an approximate frame.
-  const candidates = downtownZones.map(zoneCenter);
-  for (let a = 0; a < downtownZones.length; a += 1) {
-    for (let b = a + 1; b < downtownZones.length; b += 1) {
-      const zoneA = downtownZones[a];
-      const zoneB = downtownZones[b];
-      if (zoneA && zoneB) candidates.push(averagePoint([zoneCenter(zoneA), zoneCenter(zoneB)]));
-    }
-  }
-  let commercialFocus = downtownZones.length > 0 ? candidates[0] ?? focus : focus;
-  let bestScore = -1;
-  for (const candidate of candidates) {
-    const score = commerceFrameCompositionScore({ x: candidate.x, y: candidate.y, z: 0 }, scenery);
-    if (score > bestScore) {
-      bestScore = score;
-      commercialFocus = candidate;
-    }
-  }
+  const downtownFocus = bestGeneratedFocus(downtownZones, focus, scenery, commerceFrameCompositionScore);
+  const fabricFocus = bestGeneratedFocus(built, focus, scenery, commerceFrameCompositionScore);
+  const commercialFocus = downtownFocus.score >= 0.6 || downtownFocus.score >= fabricFocus.score ? downtownFocus.focus : fabricFocus.focus;
 
   return [
-    // Bias the first frame south of the built centroid: the lower band of the
-    // opening viewport must hold built mass, not open field.
-    { id: "desktop", center: { ...center, y: center.y + 1.5 }, zoom: 1.32, minZoom: 0.6, maxZoom: 1.9 },
-    { id: "mobile", center: { ...center, y: center.y + 4 }, zoom: 0.92, minZoom: 0.5, maxZoom: 1.5 },
+    // Legacy parametric demos still need the southward bias. Generated
+    // districts use scored centers, so adding the bias can move sparse
+    // archetypes off their strongest overview fabric.
+    { id: "desktop", center: countyParameters ? center : { ...center, y: center.y + 1.5 }, zoom: 1.32, minZoom: 0.6, maxZoom: 1.9 },
+    { id: "mobile", center: { x: mobileFocus.x, y: mobileFocus.y, z: 0 }, zoom: 0.92, minZoom: 0.5, maxZoom: 1.5 },
     { id: "residential_detail", center: { x: residentialFocus.x, y: residentialFocus.y, z: 0 }, zoom: 1.62, minZoom: 0.7, maxZoom: 1.9 },
     { id: "commerce_detail", center: { x: commercialFocus.x, y: commercialFocus.y, z: 0 }, zoom: 1.58, minZoom: 0.7, maxZoom: 1.95 },
   ];
@@ -1985,6 +2396,20 @@ function frameBandDensity(
 
 function safeRatio(numerator: number, denominator: number): number {
   return denominator > 0 ? numerator / denominator : 0;
+}
+
+function mean(values: number[]): number {
+  return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function stddev(values: number[]): number {
+  if (values.length === 0) return 0;
+  const average = mean(values);
+  return Math.sqrt(values.reduce((sum, value) => sum + (value - average) ** 2, 0) / values.length);
+}
+
+function normalizedDelta(first: number, second: number, scale: number, weight: number): number {
+  return Math.min(1, Math.abs(first - second) / Math.max(0.0001, scale)) * weight;
 }
 
 function roundParityMetric(value: number): number {

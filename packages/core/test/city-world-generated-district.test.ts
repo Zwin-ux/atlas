@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   ARCHETYPE_PROFILES,
+  GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR,
   GENERATED_LANDMARK_SIGNATURES,
   GENERATED_DISTRICT_ARCHETYPES,
   REGION_PROFILES,
   REGIONAL_PALETTES,
   STATE_TO_DIVISION,
+  analyzeGeneratedDistrictMassingSignature,
   analyzeGeneratedLandmark,
   compileCityWorldSceneWindow,
   createDeterministicGeneratedDistrictScene,
@@ -13,6 +15,7 @@ import {
   deterministicGeneratedDistrictSeedForCounty,
   evaluateCityWorldSceneWindowBudget,
   expectedGeneratedLandmarkKind,
+  generatedDistrictMassingSignatureDistance,
   resolveCountyParameters,
   resolveEffectiveBuildingColors,
   US_COUNTY_INDEX,
@@ -161,6 +164,32 @@ describe("deterministic generated district specs", () => {
     expect(bayGenerated.result.scene.buildings.find((building) => building.id === bayLandmark?.buildingId)?.label).toBe(
       "Waterfront pier hall",
     );
+  });
+
+  it("resolves distinct massing and street-layout signatures per generated archetype (0.76-3)", () => {
+    const signatures = new Map<GeneratedDistrictArchetype, ReturnType<typeof analyzeGeneratedDistrictMassingSignature>>();
+
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const parameters = resolveCountyParameters(testCounty, generated.seed);
+      const signature = analyzeGeneratedDistrictMassingSignature(result.scene);
+
+      expect(generated.archetype).toBe(archetype);
+      expect(generated.spec.countyParameters?.modulation).toEqual(parameters.modulation);
+      expect(signature.buildingCount).toBeGreaterThan(8);
+      expect(signature.roadLength).toBeGreaterThan(80);
+      signatures.set(archetype, signature);
+    }
+
+    for (let firstIndex = 0; firstIndex < GENERATED_DISTRICT_ARCHETYPES.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < GENERATED_DISTRICT_ARCHETYPES.length; secondIndex += 1) {
+        const first = GENERATED_DISTRICT_ARCHETYPES[firstIndex] as GeneratedDistrictArchetype;
+        const second = GENERATED_DISTRICT_ARCHETYPES[secondIndex] as GeneratedDistrictArchetype;
+        const distance = generatedDistrictMassingSignatureDistance(signatures.get(first)!, signatures.get(second)!);
+        expect(distance).toBeGreaterThanOrEqual(GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR);
+      }
+    }
   });
 
   it("keeps coastal California out of the coarse desert box", () => {

@@ -11,26 +11,26 @@ permanent gates, stop and report the conflict.
 ## Current 0.76 USA-region quality track (2026-07-08)
 
 Current packet:
-`0.76-2 Region-aware landmarks` is local-green and waiting for reviewer-run
+`0.76-3 Massing & zone variants` is local-green and waiting for reviewer-run
 web/Chrome proof.
 
 Decision:
-`GENERATED_LANDMARKS_READ_COUNTY_PARAMETERS`.
+`GENERATED_MASSING_LAYOUTS_READ_COUNTY_PARAMETERS`.
 
 Proof:
 - `packages/core/src/voxel/cityWorldParametricGenerator.ts`
-- `packages/core/src/voxel/cityWorldGeneratedDistrict.ts`
-- `packages/core/src/voxel/cityWorldCountyParameters.ts`
+- `packages/core/src/voxel/cityWorldGeneratedDistrictArchetypes.ts`
+- `packages/core/src/voxel/index.ts`
+- `packages/core/src/index.ts`
 - `packages/core/test/city-world-generated-district.test.ts`
 - `scripts/verify-archetype-identity-sweep.mjs`
-- `artifacts/0.76-2-landmarks/CODEX_RESULT.md`
+- `artifacts/0.76-3-massing/CODEX_RESULT.md`
 
 Next READY packet:
-`0.76-3 Massing & zone variants`.
+`0.76-4 Terrain features`.
 
 Queue:
-- READY: `0.76-3 Massing & zone variants`
-- QUEUED: `0.76-4 Terrain features`
+- READY: `0.76-4 Terrain features`
 - QUEUED: `0.76-5 Gate promotion + batch sweep`
 
 Anti-scope remains:
@@ -43,7 +43,7 @@ The strict `national-generation-contract` split guard now recognizes the
 current 0.75S ship-pass evidence, clay reference-board inputs, and 0.76 packet
 handoff files as selected-RC review artifacts. This keeps the release-safety
 sentinel focused on real unknowns without changing the next implementation
-slice: `0.76-3 Massing & zone variants`.
+slice: `0.76-4 Terrain features`.
 
 ## Active product track (human-directed 2026-07-03)
 

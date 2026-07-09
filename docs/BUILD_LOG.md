@@ -1,5 +1,63 @@
 # Build Log
 
+## Entry 219
+
+Quest:
+0.76-3 Massing & zone variants.
+
+What changed:
+- `generatedZones` and `generatedRoadSeeds` now resolve six distinct
+  archetype layouts from the 0.76-P county parameter spine.
+- Metro grids get tight blocks, taller civic/apartment massing, close roads,
+  and a prop-capped pocket plaza so the mobile window stays under the generated
+  draft prop ceiling.
+- Desert basins get low, wide sprawl, a dry civic/plaza cluster, wider
+  frontage roads, and broad footprints.
+- Coastal grids get a shoreline road, waterfront strip, water-edge lots, and
+  stepback homes.
+- Mountain valleys get contour-like terrace roads, ridge civic massing, and
+  relief-driven elevation spread.
+- Prairie towns get long section roads, low wide town grids, an ag edge, and
+  low building heights.
+- River towns get a linear main street along the river edge with dock/water
+  fabric and narrow town spans.
+- The parametric generator now derives density, height, footprint, camera
+  focus, and template weighting from `resolveCountyParameters` modulation plus
+  `ARCHETYPE_PROFILES`, not from county-name reclassification.
+- Added a non-landmark massing/layout signature contract, identity-sweep gate,
+  and deterministic core test so the six archetypes must differ in measurable
+  height, footprint, road, water, and span readouts.
+
+Measured proof:
+- `pnpm typecheck:starter` passed.
+- `pnpm test:core` passed: 22 files, 116 tests.
+- `node scripts/verify-generated-district-parity.mjs` passed with pad floor
+  `0.492`, pad mean `0.716`, mobile lower frame `0.102`, composition `0.688`,
+  empty board `0`, contact `1`, clone pressure `0.105`, roof unsafe count `0`,
+  regional palette distinctness min `0.16`, and max per-archetype clone
+  pressure `0.3`.
+- `node scripts/verify-archetype-identity-sweep.mjs` passed: 3222 counties,
+  massing closest pair `coastal_grid~desert_basin = 0.17` against floor `0.16`,
+  perf mean `14.48ms/county`, 0 budget failures.
+- Per-archetype first-viewport composition tails from generated samples:
+  metro `0.701`, coastal `0.775`, desert `0.727`, mountain `0.675`,
+  prairie `0.631`, river `0.637`.
+- Conservative Graphics estimates stay under the packet target: metro `1127`,
+  coastal `1102`, desert `1046`, mountain `888`, prairie `855`, river `858`;
+  actual Chrome/Graphics ceiling remains reviewer-run.
+- Curated Riverside source was not touched; `git diff --exit-code --
+  packages/core/src/voxel/riversideDemoScene.ts` returned clean.
+
+Decision:
+`GENERATED_MASSING_LAYOUTS_READ_COUNTY_PARAMETERS`.
+
+Skipped:
+Sandbox blocks esbuild/Chrome gates here. Reviewer should run `pnpm build:web`,
+`verify-generated-district-widget.mjs`, `verify-widget-performance.mjs`,
+browser/screenshot verifiers, the actual Graphics ceiling gate, and one
+overview screenshot per archetype. Evidence:
+`artifacts/0.76-3-massing/CODEX_RESULT.md`.
+
 ## Entry 218
 
 Quest:
