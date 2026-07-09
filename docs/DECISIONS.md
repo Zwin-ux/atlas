@@ -1,5 +1,33 @@
 # Decisions
 
+## Decision 102: Generated landmarks read county parameters
+
+0.76-2 replaces the universal generated water-tower landmark with
+parameter-spine landmarks.
+
+Decision:
+Generated USA districts carry the resolved `CountyGenerationParameters` into
+the parametric scene generator before landmark selection. The generator may key
+the signature landmark primarily from `archetype` and bias massing labels,
+proportions, and host reads from `nameSignal`, `regionProfile`, `climate`, and
+`modulation`, but it must not re-derive landmark identity from ad hoc
+county-name parsing alone.
+
+Decision id:
+`GENERATED_LANDMARKS_READ_COUNTY_PARAMETERS`.
+
+Reason:
+NS-6 region identity cannot scale if every generated county shares the same
+water-tower marker. The landmark must be structural: coastal pier hall, river
+boathouse, desert mesa tower, mountain ridge lodge, prairie grain-elevator
+tower, and metro civic tower.
+
+Still blocked:
+- New prop kinds, new dependencies, Three.js, renderer seam changes, MCP tool
+  changes, curated Riverside edits, provider geometry, persistence, money,
+  public Anaheim/Ontario promotion, generated public-playable claims, reports,
+  exports, evidence, XP, and automation.
+
 ## Decision 101: County generation uses a config-driven parameter spine
 
 0.76-P adds a typed county parameter model for deterministic generated
@@ -2172,3 +2200,12 @@ not in the browser pan/zoom render loop. Generated drafts still travel through
 `_meta`, remain non-playable, non-public, provider-free, and DB-unpersisted, and
 the seven public MCP tools remain unchanged. Production Redis config must be
 explicit; local/dev may fall back to memory.
+
+## Decision 069: Ship-review artifacts are selected-RC evidence
+
+The `national-generation-contract` split guard may include current ship-review
+and USA-region quality evidence files, including 0.75S screenshot/audit packets,
+clay reference-board inputs, 0.75R handoff notes, and 0.76 work packets. These
+files are release-safety evidence and reviewer handoff material, not runtime
+scope expansion. They do not authorize public Anaheim/Ontario promotion, new MCP
+tools, provider geometry, persistence, money, deployment, or submission.

@@ -29,6 +29,8 @@ import {
   cityWorldViewportFrameForCameraPreset,
 } from "./cityWorldBasis.js";
 import { resolveRegionalBuildingPalette, regionalTerrainPaletteKey, type RegionalPalette } from "./cityWorldRegionalPalettes.js";
+import type { CountyGenerationParameters, NameSignal } from "./cityWorldCountyParameters.js";
+import type { GeneratedDistrictArchetype } from "./cityWorldGeneratedDistrictTypes.js";
 
 /**
  * Parametric scene-generator seam.
@@ -97,6 +99,12 @@ export type CityWorldParametricSpec = {
    * absent, the legacy kind-keyed template pools and terrain keys are used.
    */
   regionalPalette?: RegionalPalette;
+  /**
+   * Optional generated-county parameter spine. When present, signature
+   * landmarks are selected from the resolved county parameters instead of
+   * re-deriving identity from a flat archetype bucket.
+   */
+  countyParameters?: CountyGenerationParameters;
   /** Optional deterministic seed for parcel jitter. Defaults to 1. */
   seed?: number;
 };
@@ -174,7 +182,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     // a road corridor is dropped. Soft zones (park/water) may host embedded
     // roads — the renderer draws roads over lot ground.
     const softZone = zone.kind === "park" || zone.kind === "water";
-    let parcels = layoutZoneParcels(zone, rng, boardCenter, 0, spec.regionalPalette).filter(
+    let parcels = layoutZoneParcels(zone, rng, boardCenter, 0, spec.regionalPalette, spec.countyParameters).filter(
       (parcel) => softZone || parcelClearsRoads(parcel, roadSegments),
     );
     if (parcels.length === 0 && !softZone) {
@@ -182,7 +190,9 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       // silently erase the whole zone (lots, buildings, AND its place).
       // Retry once with the grid shifted a quarter cell — deterministic, and
       // only reached when the primary grid produced nothing.
-      parcels = layoutZoneParcels(zone, rng, boardCenter, 0.25, spec.regionalPalette).filter((parcel) => parcelClearsRoads(parcel, roadSegments));
+      parcels = layoutZoneParcels(zone, rng, boardCenter, 0.25, spec.regionalPalette, spec.countyParameters).filter((parcel) =>
+        parcelClearsRoads(parcel, roadSegments),
+      );
     }
     if (parcels.length === 0) continue;
 
@@ -203,7 +213,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
         ),
       );
 
-      const building = buildingForZone(zone, parcel, placeId, rng, spec.regionalPalette);
+      const building = buildingForZone(zone, parcel, placeId, rng, spec.regionalPalette, spec.countyParameters);
       if (building) {
         building.position.z = parcelZ;
         buildings.push(withBuildingMetadata(building));
@@ -232,20 +242,12 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     }
   }
 
-  // District landmark: one water tower on the highest non-water block corner.
-  const towerHost = spec.zones
-    .filter((zone) => zone.kind !== "water" && zone.kind !== "park")
-    .map((zone) => ({ zone, z: elevationModel.tileZ(Math.round(zone.rect.maxX - 1), Math.round(zone.rect.minY + 1)) }))
-    .sort((first, second) => second.z - first.z)[0];
-  if (towerHost) {
-    props.push(
-      withPropMetadata({
-        id: `gen-prop-water-tower`,
-        kind: "water_tower",
-        position: { x: towerHost.zone.rect.maxX - 1, y: towerHost.zone.rect.minY + 1, z: towerHost.z },
-        variant: 0,
-      }),
-    );
+  const signatureLandmark = createGeneratedLandmark(spec, elevationModel, roadSegments);
+  if (signatureLandmark) {
+    lots.push(signatureLandmark.lot);
+    buildings.push(signatureLandmark.building);
+    places.push(signatureLandmark.place);
+    props.push(...signatureLandmark.props);
   }
 
   const scene: CityWorldScene = {
@@ -278,7 +280,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       // 0.57E parity — default the selection to the landmark (like curated
       // Eastvale Core), not the first residential zone: selecting a
       // many-building home_area place rings every house on first paint.
-      selectedPlaceId: (places.find((place) => place.kind === "landmark") ?? places[0])?.id ?? "",
+      selectedPlaceId: signatureLandmark?.place.id ?? (places.find((place) => place.kind === "landmark") ?? places[0])?.id ?? "",
     },
   };
 
@@ -452,6 +454,7 @@ function layoutZoneParcels(
   boardCenter?: { x: number; y: number },
   gridOffset = 0,
   regionalPalette?: RegionalPalette,
+  countyParameters?: CountyGenerationParameters,
 ): ParcelLayout[] {
   const { rect } = zone;
   const zoneWidth = rect.maxX - rect.minX;
@@ -508,7 +511,7 @@ function layoutZoneParcels(
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < cols; col += 1) {
         if (rng() > stripDensity) continue;
-        const template = buildingSpecForZone(zone.kind, rng, regionalPalette);
+        const template = buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
         if (!template) continue;
         const spec: ZoneBuildingSpec = {
           ...template,
@@ -529,7 +532,7 @@ function layoutZoneParcels(
       }
     }
     if (strips.length === 0) {
-      const template = buildingSpecForZone(zone.kind, rng, regionalPalette);
+      const template = buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
       const spec: ZoneBuildingSpec | undefined = template
         ? { ...template, width: Math.min(Math.max(template.width, zoneWidth * 0.6), 6.2) }
         : undefined;
@@ -585,7 +588,8 @@ function layoutZoneParcels(
       const cy = rect.minY + (row + 0.5 + (row < rows - 1 ? gridOffset : 0)) * cellHeight;
       const jitter = (rng() - 0.5) * 0.3;
       // Rotate apartment massing so court parcels step instead of cloning one slab.
-      const spec = zone.kind === "apartments" ? apartmentSpecForOrdinal(index, rng, regionalPalette) : buildingSpecForZone(zone.kind, rng, regionalPalette);
+      const spec =
+        zone.kind === "apartments" ? apartmentSpecForOrdinal(index, rng, regionalPalette) : buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
       const pad = spec ? parcelForSpec(spec) : footprint;
       parcels.push({
         index: index++,
@@ -601,7 +605,8 @@ function layoutZoneParcels(
 
   // Never leave a zoned block empty — guarantee at least one anchor parcel.
   if (parcels.length === 0) {
-    const spec = zone.kind === "apartments" ? apartmentSpecForOrdinal(0, rng, regionalPalette) : buildingSpecForZone(zone.kind, rng, regionalPalette);
+    const spec =
+      zone.kind === "apartments" ? apartmentSpecForOrdinal(0, rng, regionalPalette) : buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
     const pad = spec ? parcelForSpec(spec) : footprint;
     parcels.push({
       index: 0,
@@ -640,8 +645,9 @@ function buildingForZone(
   placeId: string,
   rng: () => number,
   regionalPalette?: RegionalPalette,
+  countyParameters?: CountyGenerationParameters,
 ): CityWorldBuilding | null {
-  const spec = parcel.spec ?? buildingSpecForZone(zone.kind, rng, regionalPalette);
+  const spec = parcel.spec ?? buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
   if (!spec) return null;
   return {
     id: `gen-building-${zone.id}-${parcel.index}`,
@@ -684,6 +690,466 @@ type ZoneBuildingSpec = {
   /** Optional regional manifest palette key for generated districts. */
   paletteKey?: string;
 };
+
+export type CityWorldGeneratedLandmarkKind =
+  | "coastal_pier_hall"
+  | "river_boathouse"
+  | "desert_mesa_tower"
+  | "mountain_ridge_lodge"
+  | "prairie_grain_elevator"
+  | "metro_civic_tower";
+
+export type CityWorldGeneratedLandmarkHostCell = "water_edge" | "highest_block_corner" | "ridge" | "ag_block" | "civic_core";
+
+export type CityWorldGeneratedLandmarkSignature = {
+  kind: CityWorldGeneratedLandmarkKind;
+  archetype: GeneratedDistrictArchetype;
+  hostCell: CityWorldGeneratedLandmarkHostCell;
+  buildingKind: CityWorldBuilding["kind"];
+  roofShape: NonNullable<CityWorldBuilding["roofShape"]>;
+  facadeStyle: NonNullable<CityWorldBuilding["facadeStyle"]>;
+  expectedAccentProps: readonly CityWorldProp["kind"][];
+};
+
+export type CityWorldGeneratedLandmarkReadout = CityWorldGeneratedLandmarkSignature & {
+  buildingId: string;
+  placeId: string;
+  width: number;
+  depth: number;
+  height: number;
+  silhouetteKey: string;
+  accentProps: CityWorldProp["kind"][];
+};
+
+export const GENERATED_LANDMARK_SIGNATURES: Record<CityWorldGeneratedLandmarkKind, CityWorldGeneratedLandmarkSignature> = {
+  coastal_pier_hall: {
+    kind: "coastal_pier_hall",
+    archetype: "coastal_grid",
+    hostCell: "water_edge",
+    buildingKind: "shop",
+    roofShape: "hip",
+    facadeStyle: "strip_store",
+    expectedAccentProps: ["dock", "boat"],
+  },
+  river_boathouse: {
+    kind: "river_boathouse",
+    archetype: "river_town",
+    hostCell: "water_edge",
+    buildingKind: "shop",
+    roofShape: "gable",
+    facadeStyle: "storefront",
+    expectedAccentProps: ["dock", "boat"],
+  },
+  desert_mesa_tower: {
+    kind: "desert_mesa_tower",
+    archetype: "desert_basin",
+    hostCell: "highest_block_corner",
+    buildingKind: "civic",
+    roofShape: "tower",
+    facadeStyle: "civic",
+    expectedAccentProps: ["water_tower"],
+  },
+  mountain_ridge_lodge: {
+    kind: "mountain_ridge_lodge",
+    archetype: "mountain_valley",
+    hostCell: "ridge",
+    buildingKind: "civic",
+    roofShape: "gable",
+    facadeStyle: "civic",
+    expectedAccentProps: ["tree"],
+  },
+  prairie_grain_elevator: {
+    kind: "prairie_grain_elevator",
+    archetype: "prairie_town",
+    hostCell: "ag_block",
+    buildingKind: "civic",
+    roofShape: "tower",
+    facadeStyle: "civic",
+    expectedAccentProps: ["water_tower"],
+  },
+  metro_civic_tower: {
+    kind: "metro_civic_tower",
+    archetype: "metro_grid",
+    hostCell: "civic_core",
+    buildingKind: "civic",
+    roofShape: "tower",
+    facadeStyle: "civic",
+    expectedAccentProps: [],
+  },
+};
+
+export function expectedGeneratedLandmarkKind(parameters: CountyGenerationParameters): CityWorldGeneratedLandmarkKind {
+  return LANDMARK_KIND_BY_ARCHETYPE[parameters.archetype];
+}
+
+export function analyzeGeneratedLandmark(scene: CityWorldScene): CityWorldGeneratedLandmarkReadout | null {
+  const building = scene.buildings.find((candidate) => candidate.id.startsWith("gen-landmark-"));
+  if (!building?.placeId) return null;
+  const kind = landmarkKindFromBuildingId(building.id);
+  if (!kind) return null;
+  const signature = GENERATED_LANDMARK_SIGNATURES[kind];
+  const place = scene.places.find((candidate) => candidate.id === building.placeId);
+  const accentProps = scene.props
+    .filter((prop) => prop.placeId === building.placeId || signature.expectedAccentProps.includes(prop.kind))
+    .map((prop) => prop.kind);
+  const width = roundDimension(building.width);
+  const depth = roundDimension(building.depth);
+  const height = roundDimension(building.height);
+  const readout: CityWorldGeneratedLandmarkReadout = {
+    ...signature,
+    buildingId: building.id,
+    placeId: building.placeId,
+    hostCell: (place?.nodeId as CityWorldGeneratedLandmarkHostCell | undefined) ?? signature.hostCell,
+    buildingKind: building.kind,
+    roofShape: building.roofShape ?? signature.roofShape,
+    facadeStyle: building.facadeStyle ?? signature.facadeStyle,
+    width,
+    depth,
+    height,
+    silhouetteKey: generatedLandmarkSilhouetteKey({
+      ...signature,
+      buildingKind: building.kind,
+      roofShape: building.roofShape ?? signature.roofShape,
+      facadeStyle: building.facadeStyle ?? signature.facadeStyle,
+      hostCell: (place?.nodeId as CityWorldGeneratedLandmarkHostCell | undefined) ?? signature.hostCell,
+      width,
+      depth,
+      height,
+    }),
+    accentProps,
+  };
+  return readout;
+}
+
+export function generatedLandmarkSilhouetteKey(
+  signature: Pick<CityWorldGeneratedLandmarkReadout, "buildingKind" | "roofShape" | "facadeStyle" | "hostCell" | "width" | "depth" | "height">,
+): string {
+  return [
+    signature.hostCell,
+    signature.buildingKind,
+    signature.facadeStyle,
+    signature.roofShape,
+    signature.width.toFixed(1),
+    signature.depth.toFixed(1),
+    signature.height.toFixed(1),
+  ].join(":");
+}
+
+const LANDMARK_KIND_BY_ARCHETYPE: Record<GeneratedDistrictArchetype, CityWorldGeneratedLandmarkKind> = {
+  coastal_grid: "coastal_pier_hall",
+  river_town: "river_boathouse",
+  desert_basin: "desert_mesa_tower",
+  mountain_valley: "mountain_ridge_lodge",
+  prairie_town: "prairie_grain_elevator",
+  metro_grid: "metro_civic_tower",
+};
+
+type GeneratedLandmarkAssembly = {
+  lot: CityWorldLot;
+  building: CityWorldBuilding;
+  place: CityWorldPlace;
+  props: CityWorldProp[];
+};
+
+type GeneratedLandmarkMassing = {
+  label: string;
+  buildingKind: CityWorldBuilding["kind"];
+  lotKind: CityWorldLot["kind"];
+  width: number;
+  depth: number;
+  height: number;
+  bodyColor: string;
+  roofColor: string;
+  paletteKey?: string;
+  facadeStyle: NonNullable<CityWorldBuilding["facadeStyle"]>;
+  roofShape: NonNullable<CityWorldBuilding["roofShape"]>;
+};
+
+type GeneratedLandmarkHost = {
+  point: CityWorldPoint;
+  zone: CityWorldZoneSpec;
+};
+
+function createGeneratedLandmark(
+  spec: CityWorldParametricSpec,
+  elevationModel: ParametricElevationModel,
+  roadSegments: CityWorldRoadSegment[],
+): GeneratedLandmarkAssembly | null {
+  const parameters = spec.countyParameters;
+  if (!parameters) return null;
+
+  const kind = expectedGeneratedLandmarkKind(parameters);
+  const signature = GENERATED_LANDMARK_SIGNATURES[kind];
+  const massing = generatedLandmarkMassing(parameters, signature);
+  const host = generatedLandmarkHost(signature, massing, spec.zones, elevationModel);
+  if (!host) return null;
+
+  const placeId = `gen-place-landmark-${kind}`;
+  const lot = withLotMetadata(
+    {
+      id: `gen-landmark-lot-${kind}`,
+      kind: massing.lotKind,
+      label: massing.label,
+      position: host.point,
+      width: Math.max(massing.width * 1.12, massing.width + 0.28),
+      depth: Math.max(massing.depth * 1.18, massing.depth + 0.28),
+      placeId,
+    },
+    roadSegments,
+  );
+  const building = withBuildingMetadata({
+    id: `gen-landmark-${kind}`,
+    kind: massing.buildingKind,
+    label: massing.label,
+    spriteKey: `building.${massing.buildingKind}.generated.landmark.v1`,
+    position: host.point,
+    width: massing.width,
+    depth: massing.depth,
+    height: massing.height,
+    bodyColor: massing.bodyColor,
+    roofColor: massing.roofColor,
+    ...(massing.paletteKey ? { paletteKey: massing.paletteKey } : {}),
+    placeId,
+    roofShape: massing.roofShape,
+    facadeStyle: massing.facadeStyle,
+    detailLevel: "high",
+  });
+  const place: CityWorldPlace = {
+    id: placeId,
+    label: massing.label,
+    kind: "landmark",
+    districtId: spec.region.district,
+    nodeId: signature.hostCell,
+    anchor: host.point,
+    hitRadius: Math.max(3.1, Math.max(massing.width, massing.depth) * 0.88),
+    description: `Generated ${massing.label.toLowerCase()} landmark.`,
+    activity: 0,
+    labelPriority: 10,
+  };
+
+  return {
+    lot,
+    building,
+    place,
+    props: generatedLandmarkAccentProps(signature, host.point, placeId, elevationModel),
+  };
+}
+
+function generatedLandmarkMassing(
+  parameters: CountyGenerationParameters,
+  signature: CityWorldGeneratedLandmarkSignature,
+): GeneratedLandmarkMassing {
+  const waterSignal = hasNameSignal(parameters, ["port", "harbor", "lake", "bay", "beach"]);
+  const workingWaterfrontSignal = hasNameSignal(parameters, ["port", "harbor"]);
+  const riverSignal = hasNameSignal(parameters, ["falls", "river"]);
+  const mesaSignal = hasNameSignal(parameters, ["mesa", "desert"]);
+  const ridgeSignal = hasNameSignal(parameters, ["mount", "mountain"]);
+  const snowPitchLift = parameters.climate.snowRoofAllowed ? 0.22 : 0;
+  const roofPitchLift = Math.max(0, parameters.regionProfile.roofPitchBias) * 0.55;
+  const colors = landmarkPalette(parameters, signature.kind);
+
+  if (signature.kind === "coastal_pier_hall") {
+    return {
+      label: workingWaterfrontSignal ? "Working pier hall" : waterSignal ? "Waterfront pier hall" : "Pier hall",
+      buildingKind: "shop",
+      lotKind: "waterfront",
+      width: roundDimension(4.7 + (workingWaterfrontSignal ? 0.48 : waterSignal ? 0.26 : 0)),
+      depth: 1.34,
+      height: roundDimension(1.08 + (parameters.climate.coastalProximity === "coastal" ? 0 : 0.06)),
+      ...colors,
+      facadeStyle: "strip_store",
+      roofShape: "hip",
+    };
+  }
+  if (signature.kind === "river_boathouse") {
+    return {
+      label: riverSignal ? "River boathouse" : "Bank boathouse",
+      buildingKind: "shop",
+      lotKind: "waterfront",
+      width: roundDimension(3.25 + (riverSignal ? 0.34 : 0)),
+      depth: 1.58,
+      height: roundDimension(1.34 + (parameters.nameSignal.includes("falls") ? 0.16 : 0)),
+      ...colors,
+      facadeStyle: "storefront",
+      roofShape: "gable",
+    };
+  }
+  if (signature.kind === "desert_mesa_tower") {
+    return {
+      label: mesaSignal ? "Mesa water tower" : "Desert water tower",
+      buildingKind: "civic",
+      lotKind: "civic",
+      width: 1.16,
+      depth: 1.18,
+      height: roundDimension(3.68 + (mesaSignal ? 0.28 : 0) + (parameters.climate.aridity === "arid" ? 0.16 : 0)),
+      ...colors,
+      facadeStyle: "civic",
+      roofShape: "tower",
+    };
+  }
+  if (signature.kind === "mountain_ridge_lodge") {
+    return {
+      label: ridgeSignal ? "Ridge lodge" : "Mountain lodge",
+      buildingKind: "civic",
+      lotKind: "civic",
+      width: 4.18,
+      depth: 2.24,
+      height: roundDimension(2.02 + snowPitchLift + roofPitchLift),
+      ...colors,
+      facadeStyle: "civic",
+      roofShape: "gable",
+    };
+  }
+  if (signature.kind === "prairie_grain_elevator") {
+    return {
+      label: "Grain elevator",
+      buildingKind: "civic",
+      lotKind: "shop",
+      width: 1.18,
+      depth: 1.76,
+      height: roundDimension(3.38 + (parameters.region === "west_north_central" ? 0.18 : 0) + (parameters.climate.aridity === "dry" ? 0.08 : 0)),
+      ...colors,
+      facadeStyle: "civic",
+      roofShape: "tower",
+    };
+  }
+
+  return {
+    label: "Civic tower",
+    buildingKind: "civic",
+    lotKind: "civic",
+    width: 2.28,
+    depth: 2.04,
+    height: roundDimension(4.12 + Math.max(0, parameters.modulation.heightBias) * 3),
+    ...colors,
+    facadeStyle: "civic",
+    roofShape: "tower",
+  };
+}
+
+function landmarkPalette(
+  parameters: CountyGenerationParameters,
+  kind: CityWorldGeneratedLandmarkKind,
+): { bodyColor: string; roofColor: string; paletteKey?: string } {
+  const pick: Record<CityWorldGeneratedLandmarkKind, { bodyIndex: number; roofIndex: number }> = {
+    coastal_pier_hall: { bodyIndex: 0, roofIndex: 1 },
+    river_boathouse: { bodyIndex: 2, roofIndex: 0 },
+    desert_mesa_tower: { bodyIndex: 1, roofIndex: 0 },
+    mountain_ridge_lodge: { bodyIndex: 0, roofIndex: 1 },
+    prairie_grain_elevator: { bodyIndex: 2, roofIndex: 1 },
+    metro_civic_tower: { bodyIndex: 1, roofIndex: 1 },
+  };
+  const regional = resolveRegionalBuildingPalette(parameters.palette, pick[kind].bodyIndex, pick[kind].roofIndex);
+  return {
+    bodyColor: regional.bodyColor,
+    roofColor: regional.roofColor,
+    paletteKey: regional.paletteKey,
+  };
+}
+
+function generatedLandmarkHost(
+  signature: CityWorldGeneratedLandmarkSignature,
+  massing: GeneratedLandmarkMassing,
+  zones: CityWorldZoneSpec[],
+  elevationModel: ParametricElevationModel,
+): GeneratedLandmarkHost | null {
+  if (signature.hostCell === "water_edge") {
+    const zone = zones.find((candidate) => candidate.kind === "water") ?? zones.find((candidate) => candidate.id === "water-edge");
+    return zone ? hostInsideZone(zone, zone.rect.minX + massing.width / 2 + 0.18, zoneCenter(zone).y, massing, elevationModel) : null;
+  }
+  if (signature.hostCell === "civic_core") {
+    const zone = zones.find((candidate) => candidate.id === "civic-core" || candidate.kind === "civic");
+    return zone ? hostInsideZone(zone, zoneCenter(zone).x + 0.85, zoneCenter(zone).y - 0.2, massing, elevationModel) : null;
+  }
+  if (signature.hostCell === "ag_block") {
+    const zone =
+      zones.find((candidate) => candidate.id === "east-commons") ??
+      zones.find((candidate) => candidate.id === "south-commerce") ??
+      zones.find((candidate) => candidate.kind === "commercial");
+    return zone ? hostInsideZone(zone, zoneCenter(zone).x, zoneCenter(zone).y, massing, elevationModel) : null;
+  }
+  if (signature.hostCell === "ridge" || signature.hostCell === "highest_block_corner") {
+    const ranked = zones
+      .filter((zone) => zone.kind !== "water" && zone.kind !== "park")
+      .flatMap((zone) =>
+        [
+          { x: zone.rect.minX + massing.width / 2 + 0.25, y: zone.rect.minY + massing.depth / 2 + 0.25 },
+          { x: zone.rect.maxX - massing.width / 2 - 0.25, y: zone.rect.minY + massing.depth / 2 + 0.25 },
+          { x: zone.rect.maxX - massing.width / 2 - 0.25, y: zone.rect.maxY - massing.depth / 2 - 0.25 },
+          { x: zone.rect.minX + massing.width / 2 + 0.25, y: zone.rect.maxY - massing.depth / 2 - 0.25 },
+        ].map((point) => ({ zone, point, z: elevationModel.tileZ(Math.round(point.x), Math.round(point.y)) })),
+      )
+      .sort((first, second) => second.z - first.z || first.point.x + first.point.y - (second.point.x + second.point.y));
+    const top = ranked[0];
+    return top ? hostInsideZone(top.zone, top.point.x, top.point.y, massing, elevationModel) : null;
+  }
+  return null;
+}
+
+function hostInsideZone(
+  zone: CityWorldZoneSpec,
+  preferredX: number,
+  preferredY: number,
+  massing: GeneratedLandmarkMassing,
+  elevationModel: ParametricElevationModel,
+): GeneratedLandmarkHost {
+  const halfW = massing.width / 2 + 0.14;
+  const halfD = massing.depth / 2 + 0.14;
+  const minX = zone.rect.minX + halfW;
+  const maxX = zone.rect.maxX - halfW;
+  const minY = zone.rect.minY + halfD;
+  const maxY = zone.rect.maxY - halfD;
+  const x = minX <= maxX ? cityWorldClamp(preferredX, minX, maxX) : zoneCenter(zone).x;
+  const y = minY <= maxY ? cityWorldClamp(preferredY, minY, maxY) : zoneCenter(zone).y;
+  return {
+    zone,
+    point: { x: roundDimension(x), y: roundDimension(y), z: elevationModel.tileZ(Math.round(x), Math.round(y)) },
+  };
+}
+
+function generatedLandmarkAccentProps(
+  signature: CityWorldGeneratedLandmarkSignature,
+  anchor: CityWorldPoint,
+  placeId: string,
+  elevationModel: ParametricElevationModel,
+): CityWorldProp[] {
+  const props: CityWorldProp[] = [];
+  const point = (id: string, kind: CityWorldProp["kind"], dx: number, dy: number, variant: number) =>
+    withPropMetadata({
+      id: `gen-landmark-prop-${signature.kind}-${id}`,
+      kind,
+      position: {
+        x: roundDimension(anchor.x + dx),
+        y: roundDimension(anchor.y + dy),
+        z: elevationModel.tileZ(Math.round(anchor.x + dx), Math.round(anchor.y + dy)),
+      },
+      variant,
+      placeId,
+    });
+
+  if (signature.kind === "desert_mesa_tower") {
+    props.push(point("tank", "water_tower", 0.72, -0.2, 0));
+  } else if (signature.kind === "mountain_ridge_lodge") {
+    props.push(point("pine-0", "tree", -2.05, -0.9, 2), point("pine-1", "tree", 2.1, -0.72, 3), point("pine-2", "tree", -1.35, 1.18, 4));
+  } else if (signature.kind === "prairie_grain_elevator") {
+    props.push(point("drum", "water_tower", 0.78, -0.08, 1));
+  }
+
+  return props;
+}
+
+function hasNameSignal(parameters: CountyGenerationParameters, names: readonly NameSignal[]): boolean {
+  return names.some((name) => parameters.nameSignal.includes(name));
+}
+
+function landmarkKindFromBuildingId(id: string): CityWorldGeneratedLandmarkKind | null {
+  const raw = id.replace(/^gen-landmark-/, "");
+  return raw in GENERATED_LANDMARK_SIGNATURES ? (raw as CityWorldGeneratedLandmarkKind) : null;
+}
+
+function roundDimension(value: number): number {
+  return Math.round(value * 100) / 100;
+}
 
 /**
  * A dimension-jittered spec POOL. Each generated building draws from a pool of
@@ -776,7 +1242,12 @@ function applyDimensionJitter(template: ZoneBuildingTemplate, rng: () => number,
   };
 }
 
-function buildingSpecForZone(kind: CityWorldZoneKind, rng: () => number, regionalPalette?: RegionalPalette): ZoneBuildingSpec | null {
+function buildingSpecForZone(
+  kind: CityWorldZoneKind,
+  rng: () => number,
+  regionalPalette?: RegionalPalette,
+  countyParameters?: CountyGenerationParameters,
+): ZoneBuildingSpec | null {
   if (kind === "residential") {
     const totalWeight = RESIDENTIAL_TEMPLATE_POOL.reduce((sum, entry) => sum + entry.weight, 0);
     let roll = rng() * totalWeight;
@@ -798,16 +1269,17 @@ function buildingSpecForZone(kind: CityWorldZoneKind, rng: () => number, regiona
   }
   if (kind === "civic") {
     const regional = regionalPalette ? resolveRegionalBuildingPalette(regionalPalette, 0, 0) : undefined;
+    const metroTower = countyParameters?.archetype === "metro_grid";
     return {
       kind: "civic",
-      width: 3.4,
-      depth: 2.5,
-      height: 2.8,
+      width: metroTower ? 2.4 : 3.4,
+      depth: metroTower ? 2.0 : 2.45,
+      height: metroTower ? 3.35 : 1.65,
       bodyColor: regional?.bodyColor ?? "#f3dfbd",
       roofColor: regional?.roofColor ?? "#5d8fa8",
       ...(regional ? { paletteKey: regional.paletteKey } : {}),
       facadeStyle: "civic",
-      roofShape: "tower",
+      roofShape: metroTower ? "tower" : "hip",
     };
   }
   return null;

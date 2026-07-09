@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 import process from "node:process";
 import {
+  GENERATED_LANDMARK_SIGNATURES,
   US_COUNTY_INDEX,
+  analyzeGeneratedLandmark,
   createDeterministicGeneratedDistrictSpec,
   createDeterministicGeneratedDistrictScene,
+  expectedGeneratedLandmarkKind,
+  resolveCountyParameters,
 } from "../packages/core/dist/index.js";
 
 // 0.76 USA-Region — Archetype Identity Sweep (NS-6).
@@ -92,6 +96,48 @@ function paletteFingerprint(county) {
   return { body, roof, terrain, all: new Set([...body, ...roof]) };
 }
 
+function landmarkFingerprint(county) {
+  const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+  const parameters = resolveCountyParameters(county, generated.seed);
+  const expectedKind = expectedGeneratedLandmarkKind(parameters);
+  const expected = GENERATED_LANDMARK_SIGNATURES[expectedKind];
+  const landmark = analyzeGeneratedLandmark(result.scene);
+  const propKinds = result.scene.props.map((prop) => prop.kind);
+  const missingAccentProps = expected.expectedAccentProps.filter((propKind) => !propKinds.includes(propKind));
+  const failures = [];
+
+  if (!generated.spec.countyParameters) failures.push("missing countyParameters on generated spec");
+  if (!landmark) {
+    failures.push("missing gen-landmark building");
+  } else {
+    if (landmark.kind !== expectedKind) failures.push(`expected ${expectedKind}, got ${landmark.kind}`);
+    if (landmark.hostCell !== expected.hostCell) failures.push(`expected host ${expected.hostCell}, got ${landmark.hostCell}`);
+    if (landmark.buildingKind !== expected.buildingKind) failures.push(`expected building ${expected.buildingKind}, got ${landmark.buildingKind}`);
+    if (landmark.roofShape !== expected.roofShape) failures.push(`expected roof ${expected.roofShape}, got ${landmark.roofShape}`);
+    if (landmark.facadeStyle !== expected.facadeStyle) failures.push(`expected facade ${expected.facadeStyle}, got ${landmark.facadeStyle}`);
+    if (result.scene.hudDefaults.selectedPlaceId !== landmark.placeId) {
+      failures.push(`selectedPlaceId ${result.scene.hudDefaults.selectedPlaceId} != landmark ${landmark.placeId}`);
+    }
+  }
+  for (const propKind of missingAccentProps) failures.push(`missing accent prop ${propKind}`);
+
+  return {
+    countySlug: county.countySlug,
+    archetype: generated.archetype,
+    expectedKind,
+    actualKind: landmark?.kind ?? "missing",
+    hostCell: landmark?.hostCell ?? "missing",
+    silhouetteKey: landmark?.silhouetteKey ?? "missing",
+    massing: landmark ? `${landmark.width}x${landmark.depth}x${landmark.height}` : "missing",
+    roofShape: landmark?.roofShape ?? "missing",
+    facadeStyle: landmark?.facadeStyle ?? "missing",
+    propCount: result.scene.props.length,
+    accentProps: [...new Set((landmark?.accentProps ?? []).filter((propKind) => expected.expectedAccentProps.includes(propKind)))],
+    missingAccentProps,
+    failures,
+  };
+}
+
 function jaccard(a, b) {
   if (a.size === 0 && b.size === 0) return 1;
   let inter = 0;
@@ -171,6 +217,38 @@ log("  fingerprint sizes: " + present.map((a) => a + "=" + fingerprintByArchetyp
 log("  worst pair: " + (worst.pair ? worst.pair.join(" ~ ") : "n/a") + " = " + worst.jaccard +
     "  (gate: <= " + MAX_PAIR_JACCARD + ")");
 
+const landmarkByArchetype = {};
+for (const a of present) {
+  landmarkByArchetype[a] = landmarkFingerprint(firstCountyByArchetype[a]);
+}
+const landmarkFailures = Object.entries(landmarkByArchetype).flatMap(([archetype, entry]) =>
+  entry.failures.map((failure) => `${archetype}: ${failure}`),
+);
+const landmarkSilhouettePairs = [];
+for (let i = 0; i < present.length; i += 1) {
+  for (let j = i + 1; j < present.length; j += 1) {
+    const first = present[i];
+    const second = present[j];
+    if (landmarkByArchetype[first].silhouetteKey === landmarkByArchetype[second].silhouetteKey) {
+      landmarkSilhouettePairs.push(`${first}~${second}:${landmarkByArchetype[first].silhouetteKey}`);
+    }
+  }
+}
+log("\nLandmark signatures — parameter-spine massing readouts:");
+for (const a of present) {
+  const entry = landmarkByArchetype[a];
+  log(
+    "  " +
+      a.padEnd(16) +
+      entry.actualKind.padEnd(24) +
+      entry.hostCell.padEnd(21) +
+      `${entry.roofShape}/${entry.facadeStyle}`.padEnd(19) +
+      `massing ${entry.massing}`.padEnd(27) +
+      `props ${entry.propCount}`.padEnd(10) +
+      `accent ${entry.accentProps.join(",") || "none"}`,
+  );
+}
+
 const perf = perfProbe(firstCountyByArchetype);
 log("\nPerf at scale — " + perf.sampled + " counties: mean " + perf.meanMs.toFixed(2) +
     "ms/county, " + perf.failures + " budget failures (gate: mean <= " + MEAN_GEN_MS_CEILING + "ms, 0 failures)");
@@ -196,6 +274,18 @@ const GATES = [
     detail: "worst " + (worst.pair ? worst.pair.join("~") : "n/a") + " = " + worst.jaccard,
   },
   {
+    id: "landmark_presence",
+    label: "each archetype resolves its expected parameter-spine landmark",
+    pass: landmarkFailures.length === 0,
+    detail: landmarkFailures.length === 0 ? "all present" : landmarkFailures.join("; "),
+  },
+  {
+    id: "landmark_silhouette_distinctness",
+    label: "any two archetypes' landmark silhouettes differ",
+    pass: landmarkSilhouettePairs.length === 0,
+    detail: landmarkSilhouettePairs.length === 0 ? "all unique" : landmarkSilhouettePairs.join("; "),
+  },
+  {
     id: "perf_at_scale",
     label: "mean generation <= " + MEAN_GEN_MS_CEILING + "ms, 0 budget failures",
     pass: perf.meanMs <= MEAN_GEN_MS_CEILING && perf.failures === 0,
@@ -217,12 +307,17 @@ for (const g of GATES) {
 }
 
 if (jsonOnly) {
-  console.log(JSON.stringify({
-    totalClassified, counts, present,
-    distinctness: { worst, pairs },
-    perf,
-    gates: GATES.map(({ id, pass, detail }) => ({ id, pass, detail })),
-    failed,
+    console.log(JSON.stringify({
+      totalClassified, counts, present,
+      distinctness: { worst, pairs },
+      landmarks: {
+        byArchetype: landmarkByArchetype,
+        failures: landmarkFailures,
+        duplicateSilhouettes: landmarkSilhouettePairs,
+      },
+      perf,
+      gates: GATES.map(({ id, pass, detail }) => ({ id, pass, detail })),
+      failed,
   }, null, 2));
 }
 

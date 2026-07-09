@@ -1,5 +1,50 @@
 # Build Log
 
+## Entry 218
+
+Quest:
+0.76-2 Region-aware landmarks.
+
+What changed:
+- Generated USA districts no longer share one universal water-tower landmark.
+- The parametric generator now reads the 0.76-P
+  `CountyGenerationParameters` spine carried on `CityWorldParametricSpec`.
+- Each archetype resolves one signature landmark through building massing,
+  host-cell placement, roof shape, facade style, and height.
+- Coastal counties get a low pier hall on the water edge; river towns get a
+  boathouse/abutment hall on the water edge; desert basins get a tall mesa
+  tower on the high block corner; mountain valleys get a steep-gabled ridge
+  lodge with a tree cluster; prairie towns get a grain-elevator tower in the
+  ag block; metro grids get the civic tower on the civic core.
+- Name signals and region/climate parameters bias the same signature envelopes
+  without creating new renderer contracts.
+- The identity sweep now includes parameter-spine landmark presence and
+  silhouette-distinctness gates, and core tests include a deterministic
+  per-archetype landmark assertion.
+
+Measured proof:
+- `pnpm typecheck:starter` passed.
+- `pnpm test:core` passed: 22 files, 115 tests.
+- `node scripts/verify-generated-district-parity.mjs` passed with pad floor
+  `0.492`, pad mean `0.716`, contact `1`, composition `0.688`, mobile lower
+  frame `0.102`, regional palette distinctness min `0.161`, and max home clone
+  pressure `0.175`.
+- `node scripts/verify-archetype-identity-sweep.mjs` passed: 3222 counties
+  checked, failures 0, prop counts 31-35 by archetype, and landmark presence /
+  silhouette-distinctness gates PASS.
+- Curated Riverside source was not touched; `git diff --exit-code --
+  packages/core/src/voxel/riversideDemoScene.ts` returned clean.
+
+Decision:
+`GENERATED_LANDMARKS_READ_COUNTY_PARAMETERS`.
+
+Skipped:
+Sandbox blocks esbuild/Chrome gates here. Reviewer should run `pnpm build:web`,
+`verify-generated-district-widget.mjs`, `verify-widget-performance.mjs`,
+browser/screenshot verifiers, and one county screenshot per archetype for
+landmark readability. Evidence:
+`artifacts/0.76-2-landmarks/CODEX_RESULT.md`.
+
 ## Entry 217
 
 Quest:
@@ -9408,3 +9453,20 @@ worktree `.git` index and `git status` reports unchanged
 `web/src/VoxelSceneView.tsx` as modified even though `git hash-object` matches
 HEAD (`ebe2ab11ad38222f3069aea04eea54f8ef641805`). Evidence:
 `artifacts/0.75c-presentation-audit/CODEX_RESULT.md`.
+
+## Entry 091
+
+**Axiom split-guard envelope refresh - complete, 2026-07-09.**
+The canonical wakeup found `0.76-P Parameter Model Spine` local-green with
+`0.76-2 Region-aware landmarks` next, but loop readiness was blocked because
+the strict `national-generation-contract` selected-RC guard still treated
+current review artifacts as unknown paths. Updated
+`scripts/verify-alpha-rc-split.mjs` to recognize the 0.75S ship-pass evidence
+packet, clay reference-board inputs, `docs/0.75R_HANDOFF.md`, the 0.76-2 work
+packet, and the ship-pass capture helper as selected-RC evidence. Recorded the
+decision in `docs/DECISIONS.md` and kept `docs/NEXT_QUESTS.md` pointed at the
+same next implementation slice.
+
+This is verifier/release-hygiene only. It does not change runtime behavior,
+MCP tools, public district promotion, persistence, money, provider geometry,
+deployment, or submission scope.

@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   ARCHETYPE_PROFILES,
+  GENERATED_LANDMARK_SIGNATURES,
   GENERATED_DISTRICT_ARCHETYPES,
   REGION_PROFILES,
   REGIONAL_PALETTES,
   STATE_TO_DIVISION,
+  analyzeGeneratedLandmark,
   compileCityWorldSceneWindow,
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
   deterministicGeneratedDistrictSeedForCounty,
   evaluateCityWorldSceneWindowBudget,
+  expectedGeneratedLandmarkKind,
   resolveCountyParameters,
   resolveEffectiveBuildingColors,
   US_COUNTY_INDEX,
@@ -118,6 +121,46 @@ describe("deterministic generated district specs", () => {
         expect(distance).toBeGreaterThanOrEqual(PALETTE_DISTINCTNESS_FLOOR);
       }
     }
+  });
+
+  it("resolves one distinct parameter-spine landmark per generated archetype (0.76-2)", () => {
+    const silhouettes = new Map<GeneratedDistrictArchetype, string>();
+
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const parameters = resolveCountyParameters(testCounty, generated.seed);
+      const expectedKind = expectedGeneratedLandmarkKind(parameters);
+      const expected = GENERATED_LANDMARK_SIGNATURES[expectedKind];
+      const landmark = analyzeGeneratedLandmark(result.scene);
+
+      expect(generated.spec.countyParameters).toEqual(parameters);
+      expect(generated.archetype).toBe(archetype);
+      expect(expected.archetype).toBe(archetype);
+      expect(landmark).not.toBeNull();
+      expect(landmark?.kind).toBe(expectedKind);
+      expect(landmark?.hostCell).toBe(expected.hostCell);
+      expect(landmark?.buildingKind).toBe(expected.buildingKind);
+      expect(landmark?.roofShape).toBe(expected.roofShape);
+      expect(landmark?.facadeStyle).toBe(expected.facadeStyle);
+      expect(result.scene.hudDefaults.selectedPlaceId).toBe(landmark?.placeId);
+      expect(result.scene.buildings.some((building) => building.id === landmark?.buildingId)).toBe(true);
+      for (const propKind of expected.expectedAccentProps) {
+        expect(result.scene.props.map((prop) => prop.kind)).toContain(propKind);
+      }
+      silhouettes.set(archetype, landmark?.silhouetteKey ?? "");
+    }
+
+    expect(new Set(silhouettes.values()).size).toBe(GENERATED_DISTRICT_ARCHETYPES.length);
+
+    const bayCounty = county("bay-fl");
+    const bayGenerated = createDeterministicGeneratedDistrictScene({ county: bayCounty });
+    const bayLandmark = analyzeGeneratedLandmark(bayGenerated.result.scene);
+    expect(resolveCountyParameters(bayCounty, bayGenerated.generated.seed).nameSignal).toContain("bay");
+    expect(bayLandmark?.kind).toBe("coastal_pier_hall");
+    expect(bayGenerated.result.scene.buildings.find((building) => building.id === bayLandmark?.buildingId)?.label).toBe(
+      "Waterfront pier hall",
+    );
   });
 
   it("keeps coastal California out of the coarse desert box", () => {

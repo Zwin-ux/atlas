@@ -11,8 +11,29 @@ export * from "./cityWorldPaletteRegistry.js";
 export * from "./cityWorldAtlas.js";
 export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistrictPlaceAnchorDraftCityWorldScene, withBuildingMetadata, withCityWorldTerrainContactMetadata, withLotMetadata, withRoadMetadata, withPropMetadata } from "./cityWorldCompiler.js";
 export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./cityWorldCompiler.js";
-export { generateParametricCityWorldScene, exampleParametricDistrictSpec, analyzeGeneratedDistrictParity } from "./cityWorldParametricGenerator.js";
-export type { CityWorldParametricSpec, CityWorldParametricResult, CityWorldZoneSpec, CityWorldZoneKind, CityWorldRoadSeed, CityWorldGeneratedDistrictParityReport, CityWorldGeneratedFrameBandDensity, CityWorldGeneratedPadMetric } from "./cityWorldParametricGenerator.js";
+export {
+  GENERATED_LANDMARK_SIGNATURES,
+  analyzeGeneratedDistrictParity,
+  analyzeGeneratedLandmark,
+  exampleParametricDistrictSpec,
+  expectedGeneratedLandmarkKind,
+  generateParametricCityWorldScene,
+  generatedLandmarkSilhouetteKey,
+} from "./cityWorldParametricGenerator.js";
+export type {
+  CityWorldGeneratedDistrictParityReport,
+  CityWorldGeneratedFrameBandDensity,
+  CityWorldGeneratedLandmarkHostCell,
+  CityWorldGeneratedLandmarkKind,
+  CityWorldGeneratedLandmarkReadout,
+  CityWorldGeneratedLandmarkSignature,
+  CityWorldGeneratedPadMetric,
+  CityWorldParametricResult,
+  CityWorldParametricSpec,
+  CityWorldRoadSeed,
+  CityWorldZoneKind,
+  CityWorldZoneSpec,
+} from "./cityWorldParametricGenerator.js";
 export {
   GENERATED_DISTRICT_ARCHETYPES,
   REGIONAL_BUILDING_PALETTES,

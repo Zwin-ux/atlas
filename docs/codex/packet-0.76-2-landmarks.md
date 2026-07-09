@@ -3,10 +3,24 @@
 Implementation driver on the Atlas voxel engine (read
 `docs/codex/CODEX_DRIVER_ADAPTER.md` boot sequence first). Implement
 completely, verify what you can, leave the working tree UNCOMMITTED. Do not
-commit. Do not push. **Prerequisite: 0.76-1 (regional palettes) is landed and
-reviewer-verified.**
+commit. Do not push. **Prerequisite: 0.76-P (parameter spine) is committed
+(HEAD `2e2e521`) and reviewer-verified. Build on the spine.**
 
 **North star:** NS-6. **Lever 3 of 4.**
+
+## Input from the spine (0.76-P)
+Landmark selection MUST read the `CountyGenerationParameters` produced by
+`resolveCountyParameters` (`packages/core/src/voxel/cityWorldCountyParameters.ts`),
+not re-derive from the archetype alone. Key the landmark off:
+- `archetype` — the primary signature (table below).
+- `nameSignal` — a cheap, honest amplifier: `port`/`harbor` strengthens a
+  working-waterfront landmark, `lake`/`bay`/`beach` favors the water landmark,
+  `mount`/`mountain` the ridge lodge, `mesa` the desert tower, `falls`/`river`
+  the dock. Where a name signal is present, prefer its landmark within the
+  archetype's family.
+- `regionProfile` / `climate` — may bias landmark massing (e.g. steeper lodge
+  roof in high-latitude/snow-allowed regions) but stay inside the envelope.
+Keep it deterministic and seed-threaded; no renderer seam change.
 
 ## Repo
 - Canonical: `C:\Users\mzwin\Documents\Atlas`, branch

@@ -11,33 +11,39 @@ permanent gates, stop and report the conflict.
 ## Current 0.76 USA-region quality track (2026-07-08)
 
 Current packet:
-`0.76-P Parameter Model Spine` is local-green and waiting for reviewer-run
+`0.76-2 Region-aware landmarks` is local-green and waiting for reviewer-run
 web/Chrome proof.
 
 Decision:
-`COUNTY_PARAMETER_MODEL_SPINE_CONFIG_DRIVEN`.
+`GENERATED_LANDMARKS_READ_COUNTY_PARAMETERS`.
 
 Proof:
-- `packages/core/src/voxel/cityWorldCountyParameters.ts`
-- `packages/core/src/voxel/cityWorldRegionalPalettes.ts`
+- `packages/core/src/voxel/cityWorldParametricGenerator.ts`
 - `packages/core/src/voxel/cityWorldGeneratedDistrict.ts`
-- `packages/core/src/voxel/cityWorldGeneratedDistrictArchetypes.ts`
+- `packages/core/src/voxel/cityWorldCountyParameters.ts`
 - `packages/core/test/city-world-generated-district.test.ts`
-- `artifacts/0.76-P-parameter-spine/CODEX_RESULT.md`
+- `scripts/verify-archetype-identity-sweep.mjs`
+- `artifacts/0.76-2-landmarks/CODEX_RESULT.md`
 
 Next READY packet:
-`0.76-2 Region-aware landmarks`.
+`0.76-3 Massing & zone variants`.
 
 Queue:
-- READY: `0.76-2 Region-aware landmarks`
-- QUEUED: `0.76-3 Massing & zone variants`
+- READY: `0.76-3 Massing & zone variants`
 - QUEUED: `0.76-4 Terrain features`
 - QUEUED: `0.76-5 Gate promotion + batch sweep`
 
 Anti-scope remains:
 No new dependencies, Three.js, provider geometry, persistence, money, new MCP
 tools, public Anaheim/Ontario promotion, generated public-playable claims, or
-renderer seam changes from the parameter-spine packet.
+renderer seam changes from the parameter-spine or landmark packets.
+
+Verifier state:
+The strict `national-generation-contract` split guard now recognizes the
+current 0.75S ship-pass evidence, clay reference-board inputs, and 0.76 packet
+handoff files as selected-RC review artifacts. This keeps the release-safety
+sentinel focused on real unknowns without changing the next implementation
+slice: `0.76-3 Massing & zone variants`.
 
 ## Active product track (human-directed 2026-07-03)
 

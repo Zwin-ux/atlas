@@ -48,6 +48,7 @@ export function createDeterministicGeneratedDistrictSpec(
     zones: generatedZones(parameters, seed),
     roadSeeds: generatedRoadSeeds(parameters, seed),
     regionalPalette: parameters.palette,
+    countyParameters: parameters,
     seed,
   };
 
