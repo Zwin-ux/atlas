@@ -1486,55 +1486,74 @@ function buildingVisualGrammar(
   building: CityWorldBuilding,
   roofShape: CityWorldBuilding["roofShape"],
   facadeStyle: CityWorldBuilding["facadeStyle"],
+  detailLevel: NonNullable<CityWorldBuilding["detailLevel"]>,
 ): CityWorldVisualGrammar {
-  const objectFamily = buildingObjectFamily(building, facadeStyle);
-  const materialProfile =
-    building.kind === "civic"
-      ? "civic_glass_stucco"
-      : building.kind === "shop" || facadeStyle === "strip_store" || facadeStyle === "storefront"
-        ? "socal_storefront"
-        : building.kind === "apartment" || facadeStyle === "lowrise"
-          ? "socal_lowrise"
-          : facadeStyle === "ranch"
-            ? "socal_cool_stucco"
-            : facadeStyle === "rowhome"
-              ? "socal_stucco_light"
-              : "socal_stucco_warm";
-  const roofProfile =
-    building.kind === "civic"
-      ? roofShape === "tower"
-        ? "civic_glass_cap"
-        : "blue_metal_utility"
-      : roofShape === "flat"
-        ? "flat_parapet_cap"
-        : facadeStyle === "ranch"
-          ? "sage_tile"
-          : roofShape === "hip"
-            ? "cool_clay_tile"
-            : roofShape === "sawtooth"
-              ? "blue_metal_utility"
-              : "terracotta_barrel_tile";
+  const objectFamily = buildingObjectFamily(building, roofShape, facadeStyle);
+  const materialProfile = buildingMaterialProfile(building, facadeStyle);
+  const roofProfile = buildingRoofProfile(building, roofShape, facadeStyle);
 
   return {
     materialProfile,
     roofProfile,
     objectFamily,
     clusterRole: buildingClusterRole(building, objectFamily, facadeStyle),
-    noLabelPriority: buildingNoLabelPriority(building, objectFamily),
+    noLabelPriority: buildingNoLabelPriority(building, roofShape, objectFamily, detailLevel),
     contactProfile: building.kind === "civic" ? "landmark_base_shadow" : "parcel_pad_shadow",
   };
 }
 
+function buildingMaterialProfile(
+  building: CityWorldBuilding,
+  facadeStyle: CityWorldBuilding["facadeStyle"],
+): NonNullable<CityWorldVisualGrammar["materialProfile"]> {
+  if (building.kind === "civic") return "civic_glass_stucco";
+  if (building.kind === "shop" || facadeStyle === "strip_store" || facadeStyle === "storefront") return "socal_storefront";
+  if (building.kind === "apartment" || facadeStyle === "lowrise") return "socal_lowrise";
+  if (facadeStyle === "ranch") return "socal_cool_stucco";
+  if (facadeStyle === "rowhome") return "socal_stucco_light";
+  return "socal_stucco_warm";
+}
+
+function buildingRoofProfile(
+  building: CityWorldBuilding,
+  roofShape: CityWorldBuilding["roofShape"],
+  facadeStyle: CityWorldBuilding["facadeStyle"],
+): NonNullable<CityWorldVisualGrammar["roofProfile"]> {
+  if (roofShape === "tower") {
+    return building.kind === "civic" && facadeStyle === "civic" ? "civic_glass_cap" : "blue_metal_utility";
+  }
+  if (building.kind === "civic") return "blue_metal_utility";
+  if (roofShape === "flat") return "flat_parapet_cap";
+  if (facadeStyle === "ranch") return "sage_tile";
+  if (roofShape === "hip") return "cool_clay_tile";
+  if (roofShape === "sawtooth") return "blue_metal_utility";
+  return "terracotta_barrel_tile";
+}
+
 function buildingObjectFamily(
   building: CityWorldBuilding,
+  roofShape: CityWorldBuilding["roofShape"],
   facadeStyle: CityWorldBuilding["facadeStyle"],
 ): NonNullable<CityWorldVisualGrammar["objectFamily"]> {
   const id = building.id;
   if (id.includes("anaheim-convention-center") || id.includes("angel-stadium")) return "venue_anchor";
   if (id.includes("artic-transit-center") || id.includes("ontario-international-airport")) return "transit_anchor";
-  if (id.includes("platinum-triangle") || building.kind === "apartment" || facadeStyle === "lowrise") return "lowrise_cluster";
+  if (id.includes("platinum-triangle")) return "lowrise_cluster";
+
+  const base = buildingAuthoredObjectFamily(building, roofShape, facadeStyle);
+  if ((base === "residential_kit" || base === "civic_landmark") && id.includes("downtown-service")) return "service_block";
+  return base;
+}
+
+function buildingAuthoredObjectFamily(
+  building: CityWorldBuilding,
+  roofShape: CityWorldBuilding["roofShape"],
+  facadeStyle: CityWorldBuilding["facadeStyle"],
+): NonNullable<CityWorldVisualGrammar["objectFamily"]> {
+  if (building.kind !== "civic" && roofShape === "tower") return "service_block";
+  if (building.kind === "apartment" || facadeStyle === "lowrise") return "lowrise_cluster";
   if (building.kind === "shop" || facadeStyle === "strip_store" || facadeStyle === "storefront") return "commerce_strip";
-  if (building.kind === "gym" || facadeStyle === "fitness" || id.includes("downtown-service")) return "service_block";
+  if (building.kind === "gym" || facadeStyle === "fitness") return "service_block";
   if (building.kind === "civic" || facadeStyle === "civic") return "civic_landmark";
   return "residential_kit";
 }
@@ -1553,7 +1572,9 @@ function buildingClusterRole(
 
 function buildingNoLabelPriority(
   building: CityWorldBuilding,
+  roofShape: CityWorldBuilding["roofShape"],
   objectFamily: NonNullable<CityWorldVisualGrammar["objectFamily"]>,
+  detailLevel: NonNullable<CityWorldBuilding["detailLevel"]>,
 ): NonNullable<CityWorldVisualGrammar["noLabelPriority"]> {
   const id = building.id;
   if (
@@ -1567,6 +1588,8 @@ function buildingNoLabelPriority(
   ) {
     return "primary_anchor";
   }
+  if (objectFamily === "venue_anchor" || objectFamily === "transit_anchor") return "primary_anchor";
+  if (roofShape === "tower" && objectFamily === "service_block" && detailLevel === "high") return "supporting";
   if (id.startsWith("draft-building-") && (objectFamily === "civic_landmark" || objectFamily === "commerce_strip" || objectFamily === "lowrise_cluster")) {
     return "supporting";
   }
@@ -1621,6 +1644,7 @@ export function withBuildingMetadata(building: CityWorldBuilding): CityWorldBuil
           : building.kind === "apartment"
             ? "apartment"
             : "civic");
+  const detailLevel = building.detailLevel ?? (building.kind === "home" ? "medium" : "high");
 
   const buildingWithVisualGrammar: CityWorldBuilding = {
     ...building,
@@ -1628,8 +1652,8 @@ export function withBuildingMetadata(building: CityWorldBuilding): CityWorldBuil
     paletteKey: building.paletteKey ?? resolveBuildingPaletteKey(building, facadeStyle, variant),
     roofShape,
     facadeStyle,
-    detailLevel: building.detailLevel ?? (building.kind === "home" ? "medium" : "high"),
-    visualGrammar: buildingVisualGrammar(building, roofShape, facadeStyle),
+    detailLevel,
+    visualGrammar: buildingVisualGrammar(building, roofShape, facadeStyle, detailLevel),
   };
 
   return {

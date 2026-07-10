@@ -63,6 +63,9 @@ const E5_FILL_EXPECTATIONS: Record<GeneratedDistrictArchetype, { minCoverage: nu
   prairie_town: { minCoverage: 0.6, kinds: ["farm_field"] },
   river_town: { minCoverage: 0.6, kinds: ["shore_bank", "green_common"] },
 };
+const DEFAULT_MATERIAL_PROFILE = "socal_stucco_warm";
+const DEFAULT_ROOF_PROFILE = "terracotta_barrel_tile";
+const GENERATED_PROFILE_RATE_FLOOR = 0.6;
 
 describe("deterministic generated district specs", () => {
   it("compiles repeatable provider-free district specs from Census county identity", () => {
@@ -204,6 +207,36 @@ describe("deterministic generated district specs", () => {
     expect(bayGenerated.result.scene.buildings.find((building) => building.id === bayLandmark?.buildingId)?.label).toBe(
       "Waterfront pier hall",
     );
+  });
+
+  it("routes generated material and roof grammar from authored properties (E6/E7)", () => {
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const { result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const buildings = result.scene.buildings;
+      const materialRich = buildings.filter((building) => building.visualGrammar?.materialProfile !== DEFAULT_MATERIAL_PROFILE);
+      const roofRich = buildings.filter((building) => building.visualGrammar?.roofProfile !== DEFAULT_ROOF_PROFILE);
+      const missingProfiles = buildings.filter((building) => !building.visualGrammar?.materialProfile || !building.visualGrammar.roofProfile);
+
+      expect(missingProfiles).toEqual([]);
+      expect(materialRich.length / buildings.length).toBeGreaterThanOrEqual(GENERATED_PROFILE_RATE_FLOOR);
+      expect(roofRich.length / buildings.length).toBeGreaterThanOrEqual(GENERATED_PROFILE_RATE_FLOOR);
+    }
+
+    for (const archetype of ["desert_basin", "prairie_town"] as const) {
+      const testCounty = countyForArchetype(archetype);
+      const { result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const landmark = analyzeGeneratedLandmark(result.scene);
+      const landmarkBuilding = result.scene.buildings.find((building) => building.id === landmark?.buildingId);
+
+      expect(landmark?.kind).toMatch(/desert_mesa_tower|prairie_grain_elevator/);
+      expect(landmarkBuilding?.kind).toBe("gym");
+      expect(landmarkBuilding?.facadeStyle).toBe("fitness");
+      expect(landmarkBuilding?.roofShape).toBe("tower");
+      expect(landmarkBuilding?.visualGrammar?.objectFamily).toBe("service_block");
+      expect(landmarkBuilding?.visualGrammar?.roofProfile).toBe("blue_metal_utility");
+      expect(landmarkBuilding?.visualGrammar?.noLabelPriority).toBe("supporting");
+    }
   });
 
   it("resolves distinct massing and street-layout signatures per generated archetype (0.76-3)", () => {

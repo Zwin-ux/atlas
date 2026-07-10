@@ -905,9 +905,9 @@ export const GENERATED_LANDMARK_SIGNATURES: Record<CityWorldGeneratedLandmarkKin
     kind: "desert_mesa_tower",
     archetype: "desert_basin",
     hostCell: "highest_block_corner",
-    buildingKind: "civic",
+    buildingKind: "gym",
     roofShape: "tower",
-    facadeStyle: "civic",
+    facadeStyle: "fitness",
     expectedAccentProps: ["water_tower"],
   },
   mountain_ridge_lodge: {
@@ -923,9 +923,9 @@ export const GENERATED_LANDMARK_SIGNATURES: Record<CityWorldGeneratedLandmarkKin
     kind: "prairie_grain_elevator",
     archetype: "prairie_town",
     hostCell: "ag_block",
-    buildingKind: "civic",
+    buildingKind: "gym",
     roofShape: "tower",
-    facadeStyle: "civic",
+    facadeStyle: "fitness",
     expectedAccentProps: ["water_tower"],
   },
   metro_civic_tower: {
@@ -1225,13 +1225,13 @@ function generatedLandmarkMassing(
   if (signature.kind === "desert_mesa_tower") {
     return {
       label: mesaSignal ? "Mesa water tower" : "Desert water tower",
-      buildingKind: "civic",
+      buildingKind: "gym",
       lotKind: "civic",
       width: 1.16,
       depth: 1.18,
       height: roundDimension(3.68 + (mesaSignal ? 0.28 : 0) + (parameters.climate.aridity === "arid" ? 0.16 : 0)),
       ...colors,
-      facadeStyle: "civic",
+      facadeStyle: "fitness",
       roofShape: "tower",
     };
   }
@@ -1251,13 +1251,13 @@ function generatedLandmarkMassing(
   if (signature.kind === "prairie_grain_elevator") {
     return {
       label: "Grain elevator",
-      buildingKind: "civic",
+      buildingKind: "gym",
       lotKind: "shop",
       width: 1.18,
       depth: 1.76,
       height: roundDimension(3.38 + (parameters.region === "west_north_central" ? 0.18 : 0) + (parameters.climate.aridity === "dry" ? 0.08 : 0)),
       ...colors,
-      facadeStyle: "civic",
+      facadeStyle: "fitness",
       roofShape: "tower",
     };
   }

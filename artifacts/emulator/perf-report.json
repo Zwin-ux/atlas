@@ -7,7 +7,7 @@
       "archetype": "metro_grid",
       "viewport": "desktop",
       "graphics": 854,
-      "rebuildMs": 12,
+      "rebuildMs": 11.9,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -45,7 +45,7 @@
       "archetype": "coastal_grid",
       "viewport": "desktop",
       "graphics": 867,
-      "rebuildMs": 11.6,
+      "rebuildMs": 12.5,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -64,7 +64,7 @@
       "archetype": "coastal_grid",
       "viewport": "mobile",
       "graphics": 955,
-      "rebuildMs": 18.9,
+      "rebuildMs": 12,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -83,14 +83,14 @@
       "archetype": "desert_basin",
       "viewport": "desktop",
       "graphics": 684,
-      "rebuildMs": 11,
+      "rebuildMs": 11.1,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 950574,
-          "metaChars": 949302,
-          "generatedDraftSceneChars": 815115,
+          "resultChars": 950545,
+          "metaChars": 949273,
+          "generatedDraftSceneChars": 815086,
           "truncated": false
         }
       ],
@@ -102,14 +102,14 @@
       "archetype": "desert_basin",
       "viewport": "mobile",
       "graphics": 857,
-      "rebuildMs": 9.6,
+      "rebuildMs": 9.9,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 950574,
-          "metaChars": 949302,
-          "generatedDraftSceneChars": 815115,
+          "resultChars": 950545,
+          "metaChars": 949273,
+          "generatedDraftSceneChars": 815086,
           "truncated": false
         }
       ],
@@ -140,7 +140,7 @@
       "archetype": "mountain_valley",
       "viewport": "mobile",
       "graphics": 483,
-      "rebuildMs": 5.1,
+      "rebuildMs": 5.3,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -159,14 +159,14 @@
       "archetype": "prairie_town",
       "viewport": "desktop",
       "graphics": 542,
-      "rebuildMs": 8.8,
+      "rebuildMs": 8.9,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 922003,
-          "metaChars": 920736,
-          "generatedDraftSceneChars": 786562,
+          "resultChars": 921974,
+          "metaChars": 920707,
+          "generatedDraftSceneChars": 786533,
           "truncated": false
         }
       ],
@@ -178,14 +178,14 @@
       "archetype": "prairie_town",
       "viewport": "mobile",
       "graphics": 564,
-      "rebuildMs": 10.4,
+      "rebuildMs": 10.1,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 922003,
-          "metaChars": 920736,
-          "generatedDraftSceneChars": 786562,
+          "resultChars": 921974,
+          "metaChars": 920707,
+          "generatedDraftSceneChars": 786533,
           "truncated": false
         }
       ],
@@ -197,7 +197,7 @@
       "archetype": "river_town",
       "viewport": "desktop",
       "graphics": 572,
-      "rebuildMs": 10.4,
+      "rebuildMs": 10.2,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -216,7 +216,7 @@
       "archetype": "river_town",
       "viewport": "mobile",
       "graphics": 683,
-      "rebuildMs": 7.7,
+      "rebuildMs": 7.8,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -235,7 +235,7 @@
       "archetype": "curated",
       "viewport": "desktop",
       "graphics": 780,
-      "rebuildMs": 9.6,
+      "rebuildMs": 13.1,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -254,7 +254,7 @@
       "archetype": "curated",
       "viewport": "mobile",
       "graphics": 774,
-      "rebuildMs": 8.2,
+      "rebuildMs": 7.9,
       "rebuilds": 2,
       "deliveries": [
         {

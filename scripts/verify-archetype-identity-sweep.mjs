@@ -87,6 +87,10 @@ const E5_FILL_BANDS = {
   prairie_town: { minCoverage: 0.6, kinds: ["farm_field"], minFarmBlocks: 2, maxFarmBlocks: 4 },
   river_town: { minCoverage: 0.6, kinds: ["shore_bank", "green_common"] },
 };
+const DEFAULT_MATERIAL_PROFILE = "socal_stucco_warm";
+const DEFAULT_ROOF_PROFILE = "terracotta_barrel_tile";
+const GENERATED_PROFILE_RATE_FLOOR = 0.6;
+const UTILITY_TOWER_ARCHETYPES = new Set(["desert_basin", "prairie_town"]);
 
 function log(...args) {
   if (!jsonOnly) console.log(...args);
@@ -229,6 +233,54 @@ function landmarkFingerprint(county) {
     propCount: result.scene.props.length,
     accentProps: [...new Set((landmark?.accentProps ?? []).filter((propKind) => expected.expectedAccentProps.includes(propKind)))],
     missingAccentProps,
+    failures,
+  };
+}
+
+function profileGrammarFingerprint(county) {
+  const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+  const buildings = result.scene.buildings ?? [];
+  const materialRich = buildings.filter((building) => building.visualGrammar?.materialProfile !== DEFAULT_MATERIAL_PROFILE);
+  const roofRich = buildings.filter((building) => building.visualGrammar?.roofProfile !== DEFAULT_ROOF_PROFILE);
+  const missingProfiles = buildings.filter((building) => !building.visualGrammar?.materialProfile || !building.visualGrammar.roofProfile);
+  const landmark = analyzeGeneratedLandmark(result.scene);
+  const landmarkBuilding = buildings.find((building) => building.id === landmark?.buildingId);
+  const materialRate = roundMetric(materialRich.length / Math.max(1, buildings.length));
+  const roofRate = roundMetric(roofRich.length / Math.max(1, buildings.length));
+  const failures = [];
+
+  if (missingProfiles.length > 0) failures.push(`missing profiles ${missingProfiles.map((building) => building.id).join(",")}`);
+  if (materialRate < GENERATED_PROFILE_RATE_FLOOR) failures.push(`material non-default rate ${materialRate} below ${GENERATED_PROFILE_RATE_FLOOR}`);
+  if (roofRate < GENERATED_PROFILE_RATE_FLOOR) failures.push(`roof non-default rate ${roofRate} below ${GENERATED_PROFILE_RATE_FLOOR}`);
+  if (UTILITY_TOWER_ARCHETYPES.has(generated.archetype)) {
+    if (landmarkBuilding?.visualGrammar?.roofProfile !== "blue_metal_utility") {
+      failures.push(`${landmark?.kind ?? "missing landmark"} roofProfile ${landmarkBuilding?.visualGrammar?.roofProfile ?? "missing"} != blue_metal_utility`);
+    }
+    if (landmarkBuilding?.visualGrammar?.objectFamily !== "service_block") {
+      failures.push(`${landmark?.kind ?? "missing landmark"} objectFamily ${landmarkBuilding?.visualGrammar?.objectFamily ?? "missing"} != service_block`);
+    }
+  }
+
+  return {
+    countySlug: county.countySlug,
+    archetype: generated.archetype,
+    buildingCount: buildings.length,
+    materialRichCount: materialRich.length,
+    roofRichCount: roofRich.length,
+    materialRate,
+    roofRate,
+    materialProfiles: [...new Set(buildings.map((building) => building.visualGrammar?.materialProfile ?? "missing"))].sort(),
+    roofProfiles: [...new Set(buildings.map((building) => building.visualGrammar?.roofProfile ?? "missing"))].sort(),
+    landmark: landmark
+      ? {
+          kind: landmark.kind,
+          buildingKind: landmarkBuilding?.kind ?? "missing",
+          facadeStyle: landmarkBuilding?.facadeStyle ?? "missing",
+          roofShape: landmarkBuilding?.roofShape ?? "missing",
+          objectFamily: landmarkBuilding?.visualGrammar?.objectFamily ?? "missing",
+          roofProfile: landmarkBuilding?.visualGrammar?.roofProfile ?? "missing",
+        }
+      : null,
     failures,
   };
 }
@@ -602,6 +654,25 @@ for (const a of present) {
   );
 }
 
+const profileGrammarByArchetype = {};
+for (const a of present) {
+  profileGrammarByArchetype[a] = profileGrammarFingerprint(firstCountyByArchetype[a]);
+}
+const profileGrammarFailures = Object.entries(profileGrammarByArchetype).flatMap(([archetype, entry]) =>
+  entry.failures.map((failure) => `${archetype}: ${failure}`),
+);
+log("\nMaterial/roof grammar - representative E6/E7 profile readouts:");
+for (const a of present) {
+  const entry = profileGrammarByArchetype[a];
+  log(
+    "  " +
+      a.padEnd(16) +
+      `material ${entry.materialRichCount}/${entry.buildingCount} ${entry.materialRate}`.padEnd(23) +
+      `roof ${entry.roofRichCount}/${entry.buildingCount} ${entry.roofRate}`.padEnd(19) +
+      `landmark ${entry.landmark ? `${entry.landmark.kind}:${entry.landmark.buildingKind}/${entry.landmark.facadeStyle}/${entry.landmark.roofProfile}` : "missing"}`,
+  );
+}
+
 const massingByArchetype = {};
 for (const a of present) {
   massingByArchetype[a] = massingFingerprint(firstCountyByArchetype[a]);
@@ -736,6 +807,12 @@ const GATES = [
     detail: landmarkSilhouettePairs.length === 0 ? "all unique" : landmarkSilhouettePairs.join("; "),
   },
   {
+    id: "material_roof_profile_routing",
+    label: "generated buildings route non-default material/roof profiles from authored grammar (rate >= " + GENERATED_PROFILE_RATE_FLOOR + ")",
+    pass: profileGrammarFailures.length === 0,
+    detail: profileGrammarFailures.length === 0 ? "all representative E6/E7 profile bands pass" : profileGrammarFailures.join("; "),
+  },
+  {
     id: "massing_layout_distinctness",
     label: "any two archetypes' non-landmark massing/layout signatures differ",
     pass: massingFailures.length === 0,
@@ -797,6 +874,15 @@ if (jsonOnly) {
         byArchetype: landmarkByArchetype,
         failures: landmarkFailures,
         duplicateSilhouettes: landmarkSilhouettePairs,
+      },
+      profileGrammar: {
+        floor: GENERATED_PROFILE_RATE_FLOOR,
+        defaults: {
+          material: DEFAULT_MATERIAL_PROFILE,
+          roof: DEFAULT_ROOF_PROFILE,
+        },
+        byArchetype: profileGrammarByArchetype,
+        failures: profileGrammarFailures,
       },
       massing: {
         floor: GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR,
