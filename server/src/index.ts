@@ -1244,6 +1244,30 @@ function widgetAssetBase(): string {
   return configuredDomain ? `${configuredDomain}/widget` : "/widget";
 }
 
+// Dev-only production-fidelity host page: parents the /preview widget iframe
+// behind a faithful ChatGPT host bridge (see web/src/emulator/mockHost.ts).
+// Served WITHOUT a restrictive CSP — the page must iframe /preview and reach
+// same-origin /mcp. Not registered as an MCP resource; not part of the
+// submitted widget surface.
+function emulatorPageHtml(): string {
+  if (!existsSync(resolve(WEB_DIST, "emulator.js"))) {
+    throw new Error("Emulator bundle not found. Run `pnpm build:web` before opening /emulator.");
+  }
+  const assetBase = widgetAssetBase();
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas Production Emulator</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="${assetBase}/emulator.js"></script>
+  </body>
+</html>`;
+}
+
 function widgetResourceDomains(): string[] {
   return process.env.WIDGET_DOMAIN ? [process.env.WIDGET_DOMAIN.replace(/\/+$/, "")] : [];
 }
@@ -2855,6 +2879,15 @@ const httpServer = createServer(async (req, res) => {
       sendPreviewResponse(req, res);
     } catch (error) {
       textResponse(res, 500, error instanceof Error ? error.message : "Preview failed");
+    }
+    return;
+  }
+
+  if (url.pathname === "/emulator" && req.method === "GET") {
+    try {
+      htmlResponse(res, 200, emulatorPageHtml());
+    } catch (error) {
+      textResponse(res, 500, error instanceof Error ? error.message : "Emulator failed");
     }
     return;
   }
