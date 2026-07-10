@@ -234,7 +234,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     });
     placeIndex += 1;
 
-    for (const prop of zonePropsForZone(zone, rng)) {
+    for (const prop of zonePropsForZone(zone, rng, spec, roadSegments)) {
       if (prop.kind !== "water_shimmer" && prop.kind !== "boat" && prop.kind !== "dock") {
         prop.position.z = elevationModel.tileZ(Math.round(prop.position.x), Math.round(prop.position.y));
       }
@@ -1644,26 +1644,47 @@ function parcelFootprint(kind: CityWorldZoneKind): { width: number; depth: numbe
   return { width: 3.4, depth: 2.6 };
 }
 
-// 0.74F full prop kit — deterministic per-zone placement derived from zone-
-// rect fractions (stable, reads authored, never lands on a road: zone rects
-// already carry road clearance). Density stays under the scene-window
-// maxPropCommands cap. No cars, no humans.
-function zonePropsForZone(zone: CityWorldZoneSpec, rng: () => number): CityWorldProp[] {
+// 0.74F full prop kit + E2 vegetation grammar. Placement is deterministic and
+// authored from zone edges, road frontages, water edges, and terrain relief.
+// No cars, no humans; generated draft windows still own the visible prop cap.
+type ZonePropSpec = { kind: CityWorldProp["kind"]; point: CityWorldPoint; variant?: number };
+
+type PropPlacementContext = {
+  spec: CityWorldParametricSpec;
+  roadSegments: CityWorldRoadSegment[];
+  archetype: GeneratedDistrictArchetype | undefined;
+  vegetationDensity: number;
+};
+
+function zonePropsForZone(
+  zone: CityWorldZoneSpec,
+  rng: () => number,
+  spec: CityWorldParametricSpec,
+  roadSegments: CityWorldRoadSegment[],
+): CityWorldProp[] {
+  const context = propPlacementContext(spec, roadSegments);
   const { rect } = zone;
   const at = (fx: number, fy: number): CityWorldPoint => ({
     x: rect.minX + (rect.maxX - rect.minX) * fx,
     y: rect.minY + (rect.maxY - rect.minY) * fy,
     z: 0,
   });
-  const specs: Array<{ kind: CityWorldProp["kind"]; point: CityWorldPoint; variant?: number }> = [];
+  const specs: ZonePropSpec[] = [];
+  const desert = context.archetype === "desert_basin";
+  const vegetationRng = propZoneRng(spec, zone);
 
   if (zone.kind === "residential") {
-    specs.push(
-      { kind: "tree", point: at(0.06, 0.14), variant: 1 },
-      { kind: "tree", point: at(0.92, 0.82), variant: 2 },
-      { kind: "bush", point: at(0.1, 0.9) },
-      { kind: "streetlight", point: at(0.94, 0.08) },
-    );
+    if (desert) {
+      addDesertScrub(specs, zone, context, 2, vegetationRng);
+    } else {
+      const streetTreeCap =
+        context.archetype === "metro_grid" || context.archetype === "mountain_valley" || context.archetype === "coastal_grid" ? 3 : 4;
+      addStreetTreeRhythm(specs, zone, context, vegetationRng, streetTreeCap);
+      addVegetationSpec(specs, context, "bush", at(0.1, 0.9), 0);
+      if (context.archetype === "prairie_town") addPrairieShelterRow(specs, zone, context, vegetationRng, 2);
+      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, 1);
+    }
+    specs.push({ kind: "streetlight", point: at(0.94, 0.08) });
   } else if (zone.kind === "commercial") {
     specs.push(
       { kind: "sign", point: at(0.08, 0.9), variant: Math.floor(rng() * 3) },
@@ -1672,35 +1693,52 @@ function zonePropsForZone(zone: CityWorldZoneSpec, rng: () => number): CityWorld
       { kind: "bench", point: at(0.3, 0.08) },
       { kind: "bench", point: at(0.7, 0.08) },
     );
+    if (context.archetype === "prairie_town") addPrairieShelterRow(specs, zone, context, vegetationRng, 1);
   } else if (zone.kind === "civic") {
     specs.push(
       { kind: "fountain", point: at(0.5, 0.86) },
       { kind: "bench", point: at(0.3, 0.9) },
       { kind: "bench", point: at(0.7, 0.9) },
-      { kind: "tree", point: at(0.06, 0.5), variant: 3 },
-      { kind: "tree", point: at(0.94, 0.5), variant: 4 },
     );
+    if (desert) {
+      addDesertScrub(specs, zone, context, 1, vegetationRng);
+    } else {
+      addVegetationSpec(specs, context, "tree", at(0.06, 0.5), 3);
+      if (context.archetype !== "coastal_grid") addVegetationSpec(specs, context, "tree", at(0.94, 0.5), 4);
+      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, 1);
+    }
   } else if (zone.kind === "gym") {
     specs.push({ kind: "sign", point: at(0.9, 0.88), variant: 1 }, { kind: "streetlight", point: at(0.08, 0.1) });
+    if (desert) addDesertScrub(specs, zone, context, 1, vegetationRng);
   } else if (zone.kind === "apartments") {
     specs.push(
-      { kind: "bush", point: at(0.1, 0.08) },
-      { kind: "bush", point: at(0.9, 0.92) },
       { kind: "bench", point: at(0.5, 0.06) },
       { kind: "streetlight", point: at(0.08, 0.92) },
     );
+    if (desert) {
+      addDesertScrub(specs, zone, context, 1, vegetationRng);
+    } else {
+      addVegetationSpec(specs, context, "bush", at(0.1, 0.08), 0);
+      addVegetationSpec(specs, context, "bush", at(0.9, 0.92), 1);
+      addStreetTreeRhythm(specs, zone, context, vegetationRng, context.archetype === "coastal_grid" ? 1 : 2);
+      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, 1);
+    }
   } else if (zone.kind === "park") {
     const area = (rect.maxX - rect.minX) * (rect.maxY - rect.minY);
-    specs.push(
-      { kind: "tree", point: at(0.3, 0.28), variant: 0 },
-      { kind: "tree", point: at(0.55, 0.4), variant: 1 },
-      { kind: "tree", point: at(0.42, 0.58), variant: 2 },
-      { kind: "tree", point: at(0.7, 0.72), variant: 3 },
-      { kind: "tree", point: at(0.24, 0.78), variant: 4 },
-      { kind: "bush", point: at(0.8, 0.24) },
-      { kind: "bench", point: at(0.16, 0.46) },
-      { kind: "bench", point: at(0.62, 0.16) },
-    );
+    if (desert) {
+      addDesertScrub(specs, zone, context, 2, vegetationRng);
+    } else if (context.archetype === "prairie_town") {
+      addPrairieShelterRow(specs, zone, context, vegetationRng, vegetationBand(6, 8, context.vegetationDensity));
+      addVegetationSpec(specs, context, "bush", at(0.8, 0.24), 0);
+    } else {
+      const parkTreeCount = context.archetype === "coastal_grid" || context.archetype === "mountain_valley"
+        ? 5
+        : vegetationBand(5, 9, context.vegetationDensity);
+      addParkTreeCluster(specs, zone, context, vegetationRng, parkTreeCount);
+      addVegetationSpec(specs, context, "bush", at(0.8, 0.24), 0);
+      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, 1);
+    }
+    specs.push({ kind: "bench", point: at(0.16, 0.46) }, { kind: "bench", point: at(0.62, 0.16) });
     if (area >= 40) specs.push({ kind: "fountain", point: at(0.5, 0.5) });
   } else if (zone.kind === "water") {
     specs.push(
@@ -1711,6 +1749,9 @@ function zonePropsForZone(zone: CityWorldZoneSpec, rng: () => number): CityWorld
       { kind: "dock", point: at(0.08, 0.4) },
       { kind: "boat", point: at(0.4, 0.55), variant: Math.floor(rng() * 2) },
     );
+    addShorelineCluster(specs, zone, context, vegetationRng);
+  } else if (zone.kind === "plaza" && desert) {
+    addDesertScrub(specs, zone, context, 2, vegetationRng);
   }
 
   return specs.map((entry, index) =>
@@ -1721,6 +1762,282 @@ function zonePropsForZone(zone: CityWorldZoneSpec, rng: () => number): CityWorld
       variant: entry.variant ?? index % 5,
     }),
   );
+}
+
+function propPlacementContext(spec: CityWorldParametricSpec, roadSegments: CityWorldRoadSegment[]): PropPlacementContext {
+  return {
+    spec,
+    roadSegments,
+    archetype: spec.countyParameters?.archetype ?? spec.regionalPalette?.archetype,
+    vegetationDensity: spec.countyParameters?.modulation.vegetationDensity ?? 0.5,
+  };
+}
+
+function propZoneRng(spec: CityWorldParametricSpec, zone: CityWorldZoneSpec): () => number {
+  let seed = (spec.seed ?? 1) >>> 0;
+  const key = `${spec.id}:${zone.id}:e2-vegetation`;
+  for (let index = 0; index < key.length; index += 1) {
+    seed = Math.imul(seed ^ key.charCodeAt(index), 16777619) >>> 0;
+  }
+  return mulberry32(seed);
+}
+
+function addStreetTreeRhythm(
+  specs: ZonePropSpec[],
+  zone: CityWorldZoneSpec,
+  context: PropPlacementContext,
+  rng: () => number,
+  maxTrees: number,
+): void {
+  let added = 0;
+  for (const frontage of roadFrontagesForZone(zone, context.roadSegments)) {
+    if (added >= maxTrees) return;
+    const available = Math.max(0, maxTrees - added);
+    const length = frontage.end - frontage.start;
+    const spacing = 4.8 + (1 - context.vegetationDensity) * 1.2;
+    const count = Math.min(available, Math.max(1, Math.floor(length / spacing)));
+    for (let index = 0; index < count; index += 1) {
+      const t = (index + 1) / (count + 1);
+      const wobble = (rng() - 0.5) * 0.35;
+      const point =
+        frontage.axis === "x"
+          ? { x: frontage.start + length * t, y: frontage.offset + wobble, z: 0 }
+          : { x: frontage.offset + wobble, y: frontage.start + length * t, z: 0 };
+      if (addVegetationSpec(specs, context, "tree", point, added + index)) added += 1;
+    }
+  }
+}
+
+function addParkTreeCluster(
+  specs: ZonePropSpec[],
+  zone: CityWorldZoneSpec,
+  context: PropPlacementContext,
+  rng: () => number,
+  count: number,
+): void {
+  const cluster = [
+    [0.3, 0.72],
+    [0.55, 0.74],
+    [0.42, 0.86],
+    [0.7, 0.88],
+    [0.24, 0.9],
+    [0.18, 0.64],
+    [0.82, 0.7],
+    [0.63, 0.58],
+    [0.48, 0.95],
+  ] as const;
+  for (let index = 0; index < Math.min(count, cluster.length); index += 1) {
+    const [fx, fy] = cluster[index]!;
+    addVegetationSpec(specs, context, "tree", jitteredZonePoint(zone, fx, fy, rng, 0.18), index);
+  }
+}
+
+function addPrairieShelterRow(
+  specs: ZonePropSpec[],
+  zone: CityWorldZoneSpec,
+  context: PropPlacementContext,
+  rng: () => number,
+  count: number,
+): void {
+  const vertical = zone.rect.maxY - zone.rect.minY >= zone.rect.maxX - zone.rect.minX;
+  for (let index = 0; index < count; index += 1) {
+    const t = (index + 1) / (count + 1);
+    const wobble = (rng() - 0.5) * 0.22;
+    const point = vertical
+      ? { x: zone.rect.maxX - 0.85 + wobble, y: zone.rect.minY + (zone.rect.maxY - zone.rect.minY) * t, z: 0 }
+      : { x: zone.rect.minX + (zone.rect.maxX - zone.rect.minX) * t, y: zone.rect.maxY - 0.85 + wobble, z: 0 };
+    addVegetationSpec(specs, context, "tree", point, index + 2);
+  }
+}
+
+function addMountainPineCluster(
+  specs: ZonePropSpec[],
+  zone: CityWorldZoneSpec,
+  context: PropPlacementContext,
+  rng: () => number,
+  count: number,
+): void {
+  const candidates = ([
+    [0.18, 0.18],
+    [0.82, 0.18],
+    [0.18, 0.82],
+    [0.82, 0.82],
+    [0.5, 0.22],
+    [0.5, 0.78],
+  ] as const).map(([fx, fy]) => {
+    const point = zonePoint(zone, fx, fy);
+    return { point, relief: reliefAtBilinear(context.spec, point.x, point.y) };
+  }).sort((a, b) => b.relief - a.relief);
+
+  for (let index = 0; index < Math.min(count, candidates.length); index += 1) {
+    const base = candidates[index]!.point;
+    addVegetationSpec(
+      specs,
+      context,
+      "tree",
+      { x: base.x + (rng() - 0.5) * 0.28, y: base.y + (rng() - 0.5) * 0.28, z: 0 },
+      index + 3,
+    );
+  }
+}
+
+function addShorelineCluster(
+  specs: ZonePropSpec[],
+  zone: CityWorldZoneSpec,
+  context: PropPlacementContext,
+  rng: () => number,
+): void {
+  if (context.archetype !== "coastal_grid" && context.archetype !== "river_town") return;
+  const count = vegetationBand(context.archetype === "river_town" ? 4 : 3, context.archetype === "river_town" ? 6 : 5, context.vegetationDensity);
+  const landwardXs = shorelineLandwardXs(zone, context.roadSegments);
+  const fractions = [0.18, 0.34, 0.52, 0.68, 0.84, 0.92];
+  let added = 0;
+  for (const fy of fractions) {
+    if (added >= count) return;
+    for (const x of landwardXs) {
+      const point = { x: x + (rng() - 0.5) * 0.18, y: zone.rect.minY + (zone.rect.maxY - zone.rect.minY) * fy, z: 0 };
+      if (addVegetationSpec(specs, context, "tree", point, added + 1)) {
+        added += 1;
+        break;
+      }
+    }
+  }
+}
+
+function addDesertScrub(
+  specs: ZonePropSpec[],
+  zone: CityWorldZoneSpec,
+  context: PropPlacementContext,
+  count: number,
+  rng: () => number,
+): void {
+  const points = [
+    [0.16, 0.2],
+    [0.82, 0.74],
+    [0.28, 0.82],
+    [0.68, 0.22],
+  ] as const;
+  for (let index = 0; index < count && index < points.length; index += 1) {
+    const [fx, fy] = points[index]!;
+    addVegetationSpec(specs, context, "bush", jitteredZonePoint(zone, fx, fy, rng, 0.2), index);
+  }
+}
+
+function addVegetationSpec(
+  specs: ZonePropSpec[],
+  context: PropPlacementContext,
+  kind: "tree" | "bush",
+  rawPoint: CityWorldPoint,
+  variant = specs.length,
+): boolean {
+  const point = { x: roundDimension(rawPoint.x), y: roundDimension(rawPoint.y), z: 0 };
+  if (!pointInsideGeneratedBounds(point, context.spec)) return false;
+  if (!pointClearsRoads(point, context.roadSegments)) return false;
+  if (pointInsideWaterZone(point, context.spec)) return false;
+  if (specs.some((entry) => (entry.kind === "tree" || entry.kind === "bush") && distance2(entry.point, point) < 0.72)) return false;
+  specs.push({ kind, point, variant });
+  return true;
+}
+
+function roadFrontagesForZone(
+  zone: CityWorldZoneSpec,
+  roads: CityWorldRoadSegment[],
+): Array<{ axis: "x" | "y"; start: number; end: number; offset: number; roadId: string }> {
+  const frontages: Array<{ axis: "x" | "y"; start: number; end: number; offset: number; roadId: string }> = [];
+  const center = zoneCenter(zone);
+  for (const road of roads) {
+    if (road.kind === "crosswalk") continue;
+    const horizontal = road.from.y === road.to.y;
+    const vertical = road.from.x === road.to.x;
+    const half = road.width / 2 + ROAD_CLEARANCE_MARGIN + 0.72;
+    if (horizontal) {
+      const roadY = road.from.y;
+      const roadMinX = Math.min(road.from.x, road.to.x);
+      const roadMaxX = Math.max(road.from.x, road.to.x);
+      if (roadY < zone.rect.minY - 2.6 || roadY > zone.rect.maxY + 2.6) continue;
+      const start = Math.max(zone.rect.minX + 1, roadMinX + 1);
+      const end = Math.min(zone.rect.maxX - 1, roadMaxX - 1);
+      if (end - start < 2.2) continue;
+      frontages.push({
+        axis: "x",
+        start,
+        end,
+        offset: cityWorldClamp(roadY <= center.y ? roadY + half : roadY - half, zone.rect.minY + 0.85, zone.rect.maxY - 0.85),
+        roadId: road.id,
+      });
+    } else if (vertical) {
+      const roadX = road.from.x;
+      const roadMinY = Math.min(road.from.y, road.to.y);
+      const roadMaxY = Math.max(road.from.y, road.to.y);
+      if (roadX < zone.rect.minX - 2.6 || roadX > zone.rect.maxX + 2.6) continue;
+      const start = Math.max(zone.rect.minY + 1, roadMinY + 1);
+      const end = Math.min(zone.rect.maxY - 1, roadMaxY - 1);
+      if (end - start < 2.2) continue;
+      frontages.push({
+        axis: "y",
+        start,
+        end,
+        offset: cityWorldClamp(roadX <= center.x ? roadX + half : roadX - half, zone.rect.minX + 0.85, zone.rect.maxX - 0.85),
+        roadId: road.id,
+      });
+    }
+  }
+  return frontages.sort((a, b) => a.roadId.localeCompare(b.roadId));
+}
+
+function shorelineLandwardXs(zone: CityWorldZoneSpec, roads: CityWorldRoadSegment[]): number[] {
+  const verticalRoad = roads
+    .filter((road) => road.kind !== "crosswalk" && road.from.x === road.to.x)
+    .filter((road) => Math.abs(road.from.x - zone.rect.minX) <= 3.4)
+    .sort((a, b) => Math.abs(a.from.x - zone.rect.minX) - Math.abs(b.from.x - zone.rect.minX))[0];
+  const roadWestX = verticalRoad ? verticalRoad.from.x - verticalRoad.width / 2 - ROAD_CLEARANCE_MARGIN - 0.85 : Number.NaN;
+  return [zone.rect.minX - 0.38, zone.rect.minX - 0.72, zone.rect.minX - 1.28, roadWestX].filter(Number.isFinite);
+}
+
+function vegetationBand(min: number, max: number, vegetationDensity: number): number {
+  return Math.max(min, Math.min(max, Math.round(min + (max - min) * clamp01(vegetationDensity))));
+}
+
+function jitteredZonePoint(zone: CityWorldZoneSpec, fx: number, fy: number, rng: () => number, amount: number): CityWorldPoint {
+  const point = zonePoint(zone, fx, fy);
+  return {
+    x: point.x + (rng() - 0.5) * amount,
+    y: point.y + (rng() - 0.5) * amount,
+    z: 0,
+  };
+}
+
+function zonePoint(zone: CityWorldZoneSpec, fx: number, fy: number): CityWorldPoint {
+  return {
+    x: zone.rect.minX + (zone.rect.maxX - zone.rect.minX) * fx,
+    y: zone.rect.minY + (zone.rect.maxY - zone.rect.minY) * fy,
+    z: 0,
+  };
+}
+
+function pointClearsRoads(point: CityWorldPoint, roads: CityWorldRoadSegment[]): boolean {
+  for (const road of roads) {
+    if (road.kind === "crosswalk") continue;
+    const halfCorridor = road.width / 2 + ROAD_CLEARANCE_MARGIN;
+    const minX = Math.min(road.from.x, road.to.x) - halfCorridor;
+    const maxX = Math.max(road.from.x, road.to.x) + halfCorridor;
+    const minY = Math.min(road.from.y, road.to.y) - halfCorridor;
+    const maxY = Math.max(road.from.y, road.to.y) + halfCorridor;
+    if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) return false;
+  }
+  return true;
+}
+
+function pointInsideGeneratedBounds(point: CityWorldPoint, spec: CityWorldParametricSpec): boolean {
+  return point.x >= 0 && point.x <= spec.size.width && point.y >= 0 && point.y <= spec.size.height;
+}
+
+function pointInsideWaterZone(point: CityWorldPoint, spec: CityWorldParametricSpec): boolean {
+  return spec.zones.some((zone) => zone.kind === "water" && point.x >= zone.rect.minX && point.x <= zone.rect.maxX && point.y >= zone.rect.minY && point.y <= zone.rect.maxY);
+}
+
+function distance2(first: CityWorldPoint, second: CityWorldPoint): number {
+  return Math.hypot(first.x - second.x, first.y - second.y);
 }
 
 type ParametricCameraScenery = {

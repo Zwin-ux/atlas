@@ -52,6 +52,14 @@ const MAX_PAIR_JACCARD = 0.5;
 // Perf ceiling per county (ms), generous vs the measured 5.8ms mean.
 const MEAN_GEN_MS_CEILING = 20;
 const PERF_SAMPLE = 120;
+const VEGETATION_BANDS = {
+  metro_grid: { minTrees: 10, maxTrees: 14, minBushes: 3, maxBushes: 7, minVegetation: 10, maxVegetation: 18 },
+  coastal_grid: { minTrees: 12, maxTrees: 18, minBushes: 2, maxBushes: 5, minVegetation: 14, maxVegetation: 22, minParkVegetation: 5 },
+  desert_basin: { minTrees: 0, maxTrees: 0, minBushes: 4, maxBushes: 8, minVegetation: 4, maxVegetation: 8 },
+  mountain_valley: { minTrees: 10, maxTrees: 20, minBushes: 3, maxBushes: 6, minVegetation: 13, maxVegetation: 26, minParkVegetation: 5 },
+  prairie_town: { minTrees: 15, maxTrees: 20, minBushes: 3, maxBushes: 6, minVegetation: 18, maxVegetation: 22, minParkVegetation: 5 },
+  river_town: { minTrees: 10, maxTrees: 15, minBushes: 2, maxBushes: 5, minVegetation: 10, maxVegetation: 18 },
+};
 
 function log(...args) {
   if (!jsonOnly) console.log(...args);
@@ -204,6 +212,53 @@ function massingFingerprint(county) {
     archetype: generated.archetype,
     ...analyzeGeneratedDistrictMassingSignature(result.scene),
   };
+}
+
+function vegetationFingerprint(county) {
+  const first = createDeterministicGeneratedDistrictScene({ county });
+  const second = createDeterministicGeneratedDistrictScene({ county });
+  const archetype = first.generated.archetype;
+  const band = VEGETATION_BANDS[archetype];
+  const counts = vegetationCounts(first.result.scene);
+  const repeatedCounts = vegetationCounts(second.result.scene);
+  const parkZones = first.generated.spec.zones.filter((zone) => zone.kind === "park");
+  const parkVegetation = first.result.scene.props.filter(
+    (prop) => isVegetation(prop) && parkZones.some((zone) => pointInsideRect(prop.position, zone.rect)),
+  ).length;
+  const failures = [];
+
+  if (JSON.stringify(counts) !== JSON.stringify(repeatedCounts)) failures.push("vegetation counts are not deterministic");
+  if (counts.tree < band.minTrees || counts.tree > band.maxTrees) failures.push(`trees ${counts.tree} outside ${band.minTrees}-${band.maxTrees}`);
+  if (counts.bush < band.minBushes || counts.bush > band.maxBushes) failures.push(`bushes ${counts.bush} outside ${band.minBushes}-${band.maxBushes}`);
+  if (counts.vegetation < band.minVegetation || counts.vegetation > band.maxVegetation) {
+    failures.push(`vegetation ${counts.vegetation} outside ${band.minVegetation}-${band.maxVegetation}`);
+  }
+  if (band.minParkVegetation && parkZones.length > 0 && parkVegetation < band.minParkVegetation) {
+    failures.push(`park vegetation ${parkVegetation} below ${band.minParkVegetation}`);
+  }
+
+  return {
+    countySlug: county.countySlug,
+    archetype,
+    ...counts,
+    parkVegetation,
+    band,
+    failures,
+  };
+}
+
+function vegetationCounts(scene) {
+  const tree = scene.props.filter((prop) => prop.kind === "tree").length;
+  const bush = scene.props.filter((prop) => prop.kind === "bush").length;
+  return { tree, bush, vegetation: tree + bush };
+}
+
+function isVegetation(prop) {
+  return prop.kind === "tree" || prop.kind === "bush";
+}
+
+function pointInsideRect(point, rect) {
+  return point.x >= rect.minX && point.x <= rect.maxX && point.y >= rect.minY && point.y <= rect.maxY;
 }
 
 function jaccard(a, b) {
@@ -367,7 +422,7 @@ for (const a of present) {
       `roads ${entry.roadCount}/${entry.roadLength}`.padEnd(17) +
       `apt ${entry.apartmentRatio}`.padEnd(10) +
       `water ${entry.waterLotRatio}`.padEnd(12) +
-      `linear ${entry.linearityRatio}`,
+    `linear ${entry.linearityRatio}`,
   );
 }
 log(
@@ -380,8 +435,29 @@ log(
     ")",
 );
 
+const vegetationByArchetype = {};
+for (const a of present) {
+  vegetationByArchetype[a] = vegetationFingerprint(firstCountyByArchetype[a]);
+}
+const vegetationFailures = Object.entries(vegetationByArchetype).flatMap(([archetype, entry]) =>
+  entry.failures.map((failure) => `${archetype}: ${failure}`),
+);
+log("\nVegetation presence - representative E2 bands:");
+for (const a of present) {
+  const entry = vegetationByArchetype[a];
+  const band = entry.band;
+  log(
+    "  " +
+      a.padEnd(16) +
+      `trees ${String(entry.tree).padStart(2)} [${band.minTrees}-${band.maxTrees}]`.padEnd(20) +
+      `bushes ${String(entry.bush).padStart(2)} [${band.minBushes}-${band.maxBushes}]`.padEnd(21) +
+      `veg ${String(entry.vegetation).padStart(2)} [${band.minVegetation}-${band.maxVegetation}]`.padEnd(19) +
+      `park ${entry.parkVegetation}`,
+  );
+}
+
 const perf = perfProbe(firstCountyByArchetype);
-log("\nPerf at scale — " + perf.sampled + " counties: mean " + perf.meanMs.toFixed(2) +
+log("\nPerf at scale - " + perf.sampled + " counties: mean " + perf.meanMs.toFixed(2) +
     "ms/county, " + perf.failures + " budget failures (gate: mean <= " + MEAN_GEN_MS_CEILING + "ms, 0 failures)");
 
 // Teeth: a synthetic identical-palette pair MUST trip the distinctness gate.
@@ -426,6 +502,12 @@ const GATES = [
         : massingFailures.join("; "),
   },
   {
+    id: "vegetation_presence",
+    label: "representative generated archetypes hit E2 vegetation bands",
+    pass: vegetationFailures.length === 0,
+    detail: vegetationFailures.length === 0 ? "all representative bands pass" : vegetationFailures.join("; "),
+  },
+  {
     id: "structural_full_index",
     label: "all counties compile with buildings, places, landmarks, finite buildings, and water for water archetypes",
     pass: structural.failures.length === 0,
@@ -467,6 +549,11 @@ if (jsonOnly) {
         closest: massingDistinctness.closest,
         pairs: massingDistinctness.pairs,
         failures: massingFailures,
+      },
+      vegetation: {
+        bands: VEGETATION_BANDS,
+        byArchetype: vegetationByArchetype,
+        failures: vegetationFailures,
       },
       structural: {
         checked: structural.checked,

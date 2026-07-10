@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "ranAt": "2026-07-10T05:06:05.268Z",
+  "ranAt": "2026-07-10T05:38:12.680Z",
   "base": "http://127.0.0.1:8787",
   "cells": [
     {
@@ -33,12 +33,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=681; ceiling=1600"
+          "detail": "graphics=687; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=786620; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=787101; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -78,12 +78,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=681; ceiling=1600"
+          "detail": "graphics=687; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=786620; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=787101; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -123,7 +123,7 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=934; ceiling=1600"
+          "detail": "graphics=936; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -143,7 +143,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=786620; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=787101; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -183,7 +183,7 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=934; ceiling=1600"
+          "detail": "graphics=936; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -193,7 +193,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (366.08,152.8) -> (206.08,62.8); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
+          "detail": "world moved (366.08,152.8) -> (206.08,62.8); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",
@@ -203,7 +203,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=786620; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=787101; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -248,7 +248,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=794063; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=794485; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -308,7 +308,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=794063; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=794485; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -348,12 +348,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=739; ceiling=1600"
+          "detail": "graphics=733; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=789400; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=788347; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -393,7 +393,7 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=918; ceiling=1600"
+          "detail": "graphics=906; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -403,7 +403,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (244.64,163.84) -> (84.64,73.84); rebuilds=3 @ 1.3/s, fired=3, deferred=0"
+          "detail": "world moved (244.64,163.84) -> (84.64,73.84); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",
@@ -413,7 +413,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=789400; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=788347; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -453,12 +453,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=349; ceiling=1600"
+          "detail": "graphics=357; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=847596; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=848073; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -508,7 +508,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (376.2,108.64) -> (150.17,-18.5); rebuilds=5 @ 2.1/s, fired=4, deferred=3"
+          "detail": "world moved (376.2,108.64) -> (216.2,18.64); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",
@@ -518,7 +518,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=847596; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=848073; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -558,12 +558,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=524; ceiling=1600"
+          "detail": "graphics=530; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=773459; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=774618; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -603,7 +603,7 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=538; ceiling=1600"
+          "detail": "graphics=548; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -623,7 +623,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=773459; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=774618; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -663,12 +663,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=401; ceiling=1600"
+          "detail": "graphics=411; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=774176; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=775366; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -708,7 +708,7 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=492; ceiling=1600"
+          "detail": "graphics=504; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -728,7 +728,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=774176; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=775366; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -918,7 +918,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.2/s, fired=2, deferred=1"
+          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.3/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",

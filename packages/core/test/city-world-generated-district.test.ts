@@ -20,7 +20,7 @@ import {
   resolveEffectiveBuildingColors,
   US_COUNTY_INDEX,
 } from "../src/index.js";
-import type { CensusDivision, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
+import type { CensusDivision, CityWorldProp, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
 
 const PALETTE_DISTINCTNESS_FLOOR = 0.16;
 const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
@@ -33,6 +33,17 @@ const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
   "sutton-tx",
 ] as const;
 const WATER_ARCHETYPES: readonly GeneratedDistrictArchetype[] = ["coastal_grid", "river_town"];
+const VEGETATION_EXPECTATIONS: Record<
+  GeneratedDistrictArchetype,
+  { trees: number; bushes: number; minVegetation: number; maxVegetation: number; desertScrubOnly?: true }
+> = {
+  metro_grid: { trees: 10, bushes: 5, minVegetation: 10, maxVegetation: 16 },
+  coastal_grid: { trees: 15, bushes: 2, minVegetation: 14, maxVegetation: 20 },
+  desert_basin: { trees: 0, bushes: 5, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
+  mountain_valley: { trees: 13, bushes: 4, minVegetation: 13, maxVegetation: 25 },
+  prairie_town: { trees: 17, bushes: 4, minVegetation: 18, maxVegetation: 21 },
+  river_town: { trees: 11, bushes: 4, minVegetation: 10, maxVegetation: 16 },
+};
 
 describe("deterministic generated district specs", () => {
   it("compiles repeatable provider-free district specs from Census county identity", () => {
@@ -202,6 +213,43 @@ describe("deterministic generated district specs", () => {
     }
   });
 
+  it("saturates generated vegetation by archetype without placing trees in road corridors (E2)", () => {
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const first = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const second = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const expected = VEGETATION_EXPECTATIONS[archetype];
+      const counts = vegetationCounts(first.result.scene);
+      const repeatedCounts = vegetationCounts(second.result.scene);
+
+      expect(first.generated.archetype).toBe(archetype);
+      expect(counts).toEqual(repeatedCounts);
+      expect(counts.tree).toBe(expected.trees);
+      expect(counts.bush).toBe(expected.bushes);
+      expect(counts.vegetation).toBeGreaterThanOrEqual(expected.minVegetation);
+      expect(counts.vegetation).toBeLessThanOrEqual(expected.maxVegetation);
+      if (expected.desertScrubOnly) {
+        expect(counts.tree).toBe(0);
+        expect(counts.bush).toBeGreaterThanOrEqual(4);
+        expect(counts.bush).toBeLessThanOrEqual(8);
+      } else {
+        expect(counts.tree).toBeGreaterThanOrEqual(10);
+      }
+
+      const parkZones = first.generated.spec.zones.filter((zone) => zone.kind === "park");
+      if (parkZones.length > 0) {
+        const parkVegetation = first.result.scene.props.filter(
+          (prop) => isVegetation(prop) && parkZones.some((zone) => pointInsideRect(prop.position, zone.rect)),
+        );
+        expect(parkVegetation.length).toBeGreaterThanOrEqual(5);
+      }
+
+      for (const prop of first.result.scene.props.filter(isVegetation)) {
+        expect(propClearsRoadCorridors(prop, first.result.scene)).toBe(true);
+      }
+    }
+  });
+
   it("keeps coastal California out of the coarse desert box", () => {
     const coastalCalifornia = [
       "los-angeles-ca",
@@ -339,6 +387,33 @@ function parametersForCounty(countySlug: string): CountyGenerationParameters {
   const sampleCounty = county(countySlug);
   const seed = deterministicGeneratedDistrictSeedForCounty({ county: sampleCounty });
   return resolveCountyParameters(sampleCounty, seed);
+}
+
+function vegetationCounts(scene: CityWorldScene): { tree: number; bush: number; vegetation: number } {
+  const tree = scene.props.filter((prop) => prop.kind === "tree").length;
+  const bush = scene.props.filter((prop) => prop.kind === "bush").length;
+  return { tree, bush, vegetation: tree + bush };
+}
+
+function isVegetation(prop: CityWorldProp): boolean {
+  return prop.kind === "tree" || prop.kind === "bush";
+}
+
+function propClearsRoadCorridors(prop: CityWorldProp, scene: CityWorldScene): boolean {
+  for (const road of scene.roadSegments) {
+    if (road.kind === "crosswalk") continue;
+    const halfCorridor = road.width / 2 + 0.35;
+    const minX = Math.min(road.from.x, road.to.x) - halfCorridor;
+    const maxX = Math.max(road.from.x, road.to.x) + halfCorridor;
+    const minY = Math.min(road.from.y, road.to.y) - halfCorridor;
+    const maxY = Math.max(road.from.y, road.to.y) + halfCorridor;
+    if (prop.position.x >= minX && prop.position.x <= maxX && prop.position.y >= minY && prop.position.y <= maxY) return false;
+  }
+  return true;
+}
+
+function pointInsideRect(point: { x: number; y: number }, rect: { minX: number; minY: number; maxX: number; maxY: number }): boolean {
+  return point.x >= rect.minX && point.x <= rect.maxX && point.y >= rect.minY && point.y <= rect.maxY;
 }
 
 function parameterDiversityScore(first: CountyGenerationParameters, second: CountyGenerationParameters): number {
