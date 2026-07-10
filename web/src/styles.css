@@ -2096,7 +2096,7 @@ button {
 
 .city-world-note input {
   min-width: 0;
-  height: 36px;
+  height: 44px; /* 44px touch-target doctrine (audit: was 36px) */
   border: var(--hairline) solid var(--border);
   border-radius: var(--r-control);
   padding: 0 12px;
@@ -2108,10 +2108,40 @@ button {
 
 .city-world-note button {
   width: 60px;
-  height: 36px;
+  height: 44px; /* 44px touch-target doctrine (audit: was 54x36) */
   font-size: 12px;
   font-weight: 600;
   text-transform: none;
+}
+
+/* First-run gesture hint — one quiet line, never persistent chrome.
+   pointer-events none: taps fall through to the map, which dismisses it. */
+.city-world-first-run-hint {
+  position: absolute;
+  left: 50%;
+  bottom: max(96px, calc(env(safe-area-inset-bottom) + 96px));
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--r-control);
+  background: var(--surface-solid);
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: city-world-hint-in 300ms ease-out;
+}
+
+@keyframes city-world-hint-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .city-world-first-run-hint {
+    animation: none;
+  }
 }
 
 .city-world-recovery-action {
@@ -2745,19 +2775,23 @@ button {
 
   .city-world-county-switcher button {
     min-width: 78px;
-    min-height: 32px;
+    min-height: 44px; /* 44px touch-target doctrine (was 32px) */
     padding: 4px 8px;
   }
 
+  /* The coverage chip is a primary tap target on phones (expands the
+     switcher) — full 44px row, same quiet chip look. */
   .city-world-county-switcher .city-world-coverage-chip {
     min-width: 0;
-    min-height: 0;
+    min-height: 44px;
     padding: 0;
+    display: flex;
+    align-items: center;
   }
 
   .city-world-generate-district {
     max-width: 100%;
-    min-height: 36px;
+    min-height: 44px; /* 44px touch-target doctrine (was 36px) */
     padding: 8px 12px;
   }
 

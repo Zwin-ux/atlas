@@ -655,6 +655,8 @@ export function App() {
   return (
     <CityWorldView
       scene={scene}
+      showFirstRunHint={!widgetState.firstRunHintDismissed}
+      onDismissFirstRunHint={() => setWidgetState((current) => ({ ...current, firstRunHintDismissed: true }))}
       selectedDistrictId={selectedDistrictId}
       selectedPlaceId={selectedPlaceId}
       stickers={stickers}

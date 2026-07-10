@@ -42,6 +42,8 @@ export type CityWorldViewProps = {
   onHostedClawdPrimaryAction?: () => void;
   onExitGeneratedPreview?: () => void;
   countySwitcher?: ReactNode;
+  showFirstRunHint?: boolean;
+  onDismissFirstRunHint?: () => void;
   onSelectPlace: (placeId: string) => void;
   onSelectStickerMode: (kind: VoxelStickerKind) => void;
   onPlaceSticker: (placeId: string, kind: VoxelStickerKind) => void;
@@ -71,6 +73,8 @@ export function CityWorldView({
   onHostedClawdPrimaryAction,
   onExitGeneratedPreview,
   countySwitcher,
+  showFirstRunHint = false,
+  onDismissFirstRunHint,
   onSelectPlace,
   onSelectStickerMode,
   onPlaceSticker,
@@ -120,6 +124,15 @@ export function CityWorldView({
     void openaiWindow.openai?.requestDisplayMode?.({ mode: "fullscreen" }).catch(() => undefined);
   }, []);
 
+  // First-run gesture hint: one quiet line, gone on first interaction or
+  // after a short dwell — never persistent chrome.
+  const hintVisible = showFirstRunHint && !isGeneratedMode && !hasPreview && !hasHostedClawdTray;
+  useEffect(() => {
+    if (!hintVisible || !onDismissFirstRunHint) return;
+    const timer = window.setTimeout(() => onDismissFirstRunHint(), 8000);
+    return () => window.clearTimeout(timer);
+  }, [hintVisible, onDismissFirstRunHint]);
+
   const saveNote = () => {
     if (!activePlace || !noteDraft.trim()) return;
     onSaveNote(activePlace.id, noteDraft);
@@ -142,6 +155,7 @@ export function CityWorldView({
       data-qa-session-boundary="session-only"
       data-qa-camera-preset={cameraPresetId ?? ""}
       data-qa-generated={isGeneratedMode ? "true" : undefined}
+      onPointerDownCapture={hintVisible ? onDismissFirstRunHint : undefined}
     >
       <Suspense fallback={<CityWorldSceneFallback scene={cityScene} selectedPlaceId={activePlace?.id} />}>
         <CityWorldRenderer
@@ -176,6 +190,12 @@ export function CityWorldView({
       )}
 
       <MapChrome rendererRef={rendererRef} />
+
+      {hintVisible ? (
+        <div className="city-world-first-run-hint" role="note" data-qa="first-run-hint">
+          Drag to explore · Pinch to zoom · Tap places
+        </div>
+      ) : null}
 
       {!hasPreview && !hasHostedClawdTray && !isGeneratedMode ? (
       <div className="city-world-stickers" aria-label="Sticker tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>

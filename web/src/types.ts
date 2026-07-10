@@ -21,6 +21,8 @@ export type WidgetState = {
   hostedClawdOpen?: boolean | undefined;
   hostedClawdActionMessage?: string | undefined;
   hostedClawdContext?: HostedClawdContext | undefined;
+  /** One-time gesture hint: set after the first map interaction (persists across tool calls in this chat). */
+  firstRunHintDismissed?: boolean | undefined;
 };
 
 export type HostedClawdScreenState =

@@ -1,17 +1,12 @@
 # Atlas Emulator Audit Report
 
-Ran: 2026-07-10T04:05:55.966Z
+Ran: 2026-07-10T04:17:40.343Z
 Base: http://127.0.0.1:8787
-Result: OK (156 pass, 4 warn, 0 fail)
+Result: OK (158 pass, 0 warn, 0 fail)
 
 ## Findings
 
-| Level | County | Viewport | Theme | Check | Detail |
-| --- | --- | --- | --- | --- | --- |
-| WARN | riverside-ca | mobile | light | touch_targets_44 | county-switcher-summary is 454x29.69 CSS px |
-| WARN | riverside-ca | mobile | light | touch_targets_44 | save-note-button is 54x36 CSS px |
-| WARN | riverside-ca | mobile | dark | touch_targets_44 | county-switcher-summary is 454x29.69 CSS px |
-| WARN | riverside-ca | mobile | dark | touch_targets_44 | save-note-button is 54x36 CSS px |
+No fail or warn findings.
 
 ## Matrix
 
