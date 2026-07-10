@@ -21,6 +21,7 @@ import {
   US_COUNTY_INDEX,
 } from "../src/index.js";
 import type { CensusDivision, CityWorldProp, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
+import type { CityWorldRoadSegment, CityWorldTerrainTile, CityWorldZoneKind, CityWorldZoneSpec } from "../src/index.js";
 
 const PALETTE_DISTINCTNESS_FLOOR = 0.16;
 const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
@@ -43,6 +44,24 @@ const VEGETATION_EXPECTATIONS: Record<
   mountain_valley: { trees: 28, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
   prairie_town: { trees: 29, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
   river_town: { trees: 25, bushes: 6, minVegetation: 26, maxVegetation: 34 },
+};
+const E5_FILL_ZONE_KINDS = new Set<CityWorldZoneKind>([
+  "farm_field",
+  "plaza_paving",
+  "civic_forecourt",
+  "dry_wash",
+  "meadow",
+  "scree",
+  "shore_bank",
+  "green_common",
+]);
+const E5_FILL_EXPECTATIONS: Record<GeneratedDistrictArchetype, { minCoverage: number; kinds: CityWorldZoneKind[] }> = {
+  metro_grid: { minCoverage: 0.6, kinds: ["plaza_paving", "civic_forecourt"] },
+  coastal_grid: { minCoverage: 0.6, kinds: ["shore_bank", "green_common"] },
+  desert_basin: { minCoverage: 0.6, kinds: ["dry_wash"] },
+  mountain_valley: { minCoverage: 0.6, kinds: ["meadow", "scree"] },
+  prairie_town: { minCoverage: 0.6, kinds: ["farm_field"] },
+  river_town: { minCoverage: 0.6, kinds: ["shore_bank", "green_common"] },
 };
 
 describe("deterministic generated district specs", () => {
@@ -377,6 +396,35 @@ describe("deterministic generated district specs", () => {
     expect(desertRelief.spread).toBeGreaterThanOrEqual(0.5);
     expect(desertRelief.dropTileCount).toBeGreaterThanOrEqual(40);
   });
+
+  it("fills open generated blocks with deterministic archetype-specific ground treatments (E5)", () => {
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const first = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const second = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const expected = E5_FILL_EXPECTATIONS[archetype];
+      const firstCoverage = openBlockFillCoverage(first.generated.spec.zones, first.result.scene);
+      const secondCoverage = openBlockFillCoverage(second.generated.spec.zones, second.result.scene);
+
+      expect(first.generated.archetype).toBe(archetype);
+      expect(firstCoverage).toEqual(secondCoverage);
+      expect(firstCoverage.openGroundTiles).toBeGreaterThan(0);
+      expect(firstCoverage.fillCoverageRatio).toBeGreaterThanOrEqual(expected.minCoverage);
+      expect(firstCoverage.fillTileCount).toBeGreaterThan(20);
+      for (const kind of expected.kinds) {
+        expect(firstCoverage.fillKinds).toContain(kind);
+      }
+
+      if (archetype === "prairie_town") {
+        expect(firstCoverage.fillZoneCounts.farm_field).toBeGreaterThanOrEqual(2);
+        expect(firstCoverage.fillZoneCounts.farm_field).toBeLessThanOrEqual(4);
+        expect(firstCoverage.fillVariantCount).toBeGreaterThanOrEqual(2);
+      }
+      if (archetype === "coastal_grid" || archetype === "river_town") {
+        expect(firstCoverage.waterEdgeFillTiles).toBeGreaterThan(0);
+      }
+    }
+  });
 });
 
 function county(countySlug: string) {
@@ -523,6 +571,77 @@ function terrainElevationSpread(scene: CityWorldScene): { min: number; max: numb
     spread: max - min,
     dropTileCount: scene.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
   };
+}
+
+function openBlockFillCoverage(zones: CityWorldZoneSpec[], scene: CityWorldScene) {
+  let openGroundTiles = 0;
+  let fillTileCount = 0;
+  let waterEdgeFillTiles = 0;
+  const fillKinds = new Set<CityWorldZoneKind>();
+  const fillVariants = new Set<number>();
+  const fillZoneIds = new Set<string>();
+  const fillZoneCounts = Object.fromEntries([...E5_FILL_ZONE_KINDS].map((kind) => [kind, 0])) as Record<CityWorldZoneKind, number>;
+
+  for (const zone of zones) {
+    if (E5_FILL_ZONE_KINDS.has(zone.kind)) fillZoneCounts[zone.kind] += 1;
+  }
+
+  for (const tile of scene.terrainTiles) {
+    if (pointInRoadCorridor(tile.position, scene.roadSegments)) continue;
+    const zone = winningZoneAt(zones, tile.position.x, tile.position.y);
+    if (zone && !E5_FILL_ZONE_KINDS.has(zone.kind)) continue;
+    openGroundTiles += 1;
+    if (zone && E5_FILL_ZONE_KINDS.has(zone.kind)) {
+      fillTileCount += 1;
+      fillKinds.add(zone.kind);
+      fillVariants.add(tile.variant);
+      fillZoneIds.add(zone.id);
+      if ((tile.visualGrammar?.terrainContact?.waterEdgeSides?.length ?? 0) > 0) waterEdgeFillTiles += 1;
+      expect(fillTileMatchesZone(tile, zone.kind)).toBe(true);
+    }
+  }
+
+  return {
+    openGroundTiles,
+    fillTileCount,
+    fillCoverageRatio: roundMetric(fillTileCount / Math.max(1, openGroundTiles)),
+    fillKinds: [...fillKinds].sort(),
+    fillVariantCount: fillVariants.size,
+    fillZoneCount: fillZoneIds.size,
+    fillZoneCounts,
+    waterEdgeFillTiles,
+  };
+}
+
+function fillTileMatchesZone(tile: CityWorldTerrainTile, kind: CityWorldZoneKind): boolean {
+  if (kind === "farm_field") return tile.kind === "grass" && tile.visualGrammar?.terrainComposition === "neighborhood_yard_fabric";
+  if (kind === "dry_wash" || kind === "scree") return tile.kind === "plaza" && tile.visualGrammar?.terrainComposition === "quiet_field";
+  if (kind === "shore_bank") return tile.kind === "plaza" && tile.visualGrammar?.terrainComposition === "waterfront_edge_strata";
+  if (kind === "meadow" || kind === "green_common") return tile.kind === "park" && tile.visualGrammar?.terrainComposition === "park_basin";
+  if (kind === "civic_forecourt") return tile.kind === "plaza" && tile.visualGrammar?.terrainComposition === "civic_focus_field";
+  if (kind === "plaza_paving") return tile.kind === "plaza" && tile.visualGrammar?.terrainComposition === "commercial_apron_field";
+  return false;
+}
+
+function winningZoneAt(zones: CityWorldZoneSpec[], x: number, y: number): CityWorldZoneSpec | undefined {
+  let match: CityWorldZoneSpec | undefined;
+  for (const zone of zones) {
+    if (x >= zone.rect.minX && x <= zone.rect.maxX && y >= zone.rect.minY && y <= zone.rect.maxY) match = zone;
+  }
+  return match;
+}
+
+function pointInRoadCorridor(point: { x: number; y: number }, roads: CityWorldRoadSegment[]): boolean {
+  for (const road of roads) {
+    if (road.kind === "crosswalk") continue;
+    const halfCorridor = road.width / 2 + 0.35;
+    const minX = Math.min(road.from.x, road.to.x) - halfCorridor;
+    const maxX = Math.max(road.from.x, road.to.x) + halfCorridor;
+    const minY = Math.min(road.from.y, road.to.y) - halfCorridor;
+    const maxY = Math.max(road.from.y, road.to.y) + halfCorridor;
+    if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) return true;
+  }
+  return false;
 }
 
 function parameterDiversityScore(first: CountyGenerationParameters, second: CountyGenerationParameters): number {

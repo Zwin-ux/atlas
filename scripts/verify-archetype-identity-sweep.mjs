@@ -69,6 +69,24 @@ const RELIEF_BANDS = {
   desert_basin: { minSpread: 0.5, minDropTiles: 40 },
   river_town: { minSpread: 0.5, minDropTiles: 30 },
 };
+const E5_FILL_ZONE_KINDS = new Set([
+  "farm_field",
+  "plaza_paving",
+  "civic_forecourt",
+  "dry_wash",
+  "meadow",
+  "scree",
+  "shore_bank",
+  "green_common",
+]);
+const E5_FILL_BANDS = {
+  metro_grid: { minCoverage: 0.6, kinds: ["plaza_paving", "civic_forecourt"] },
+  coastal_grid: { minCoverage: 0.6, kinds: ["shore_bank", "green_common"] },
+  desert_basin: { minCoverage: 0.6, kinds: ["dry_wash"] },
+  mountain_valley: { minCoverage: 0.6, kinds: ["meadow", "scree"] },
+  prairie_town: { minCoverage: 0.6, kinds: ["farm_field"], minFarmBlocks: 2, maxFarmBlocks: 4 },
+  river_town: { minCoverage: 0.6, kinds: ["shore_bank", "green_common"] },
+};
 
 function log(...args) {
   if (!jsonOnly) console.log(...args);
@@ -299,6 +317,104 @@ function terrainFeatureFingerprint(county) {
     relief,
     failures,
   };
+}
+
+function openBlockFillFingerprint(county) {
+  const first = createDeterministicGeneratedDistrictScene({ county });
+  const second = createDeterministicGeneratedDistrictScene({ county });
+  const archetype = first.generated.archetype;
+  const band = E5_FILL_BANDS[archetype];
+  const coverage = openBlockFillCoverage(first.generated.spec.zones, first.result.scene);
+  const repeatedCoverage = openBlockFillCoverage(second.generated.spec.zones, second.result.scene);
+  const failures = [];
+
+  if (JSON.stringify(coverage) !== JSON.stringify(repeatedCoverage)) failures.push("fill coverage is not deterministic");
+  if (coverage.fillCoverageRatio < band.minCoverage) failures.push(`fill coverage ${coverage.fillCoverageRatio} below ${band.minCoverage}`);
+  for (const kind of band.kinds) {
+    if (!coverage.fillKinds.includes(kind)) failures.push(`missing fill kind ${kind}`);
+  }
+  if (archetype === "prairie_town") {
+    const farmBlocks = coverage.fillZoneCounts.farm_field ?? 0;
+    if (farmBlocks < band.minFarmBlocks || farmBlocks > band.maxFarmBlocks) {
+      failures.push(`farm blocks ${farmBlocks} outside ${band.minFarmBlocks}-${band.maxFarmBlocks}`);
+    }
+    if (coverage.fillVariantCount < 2) failures.push(`farm variants ${coverage.fillVariantCount} below 2`);
+  }
+  if ((archetype === "coastal_grid" || archetype === "river_town") && coverage.waterEdgeFillTiles <= 0) {
+    failures.push("shore/bank fill has no water-edge contact tiles");
+  }
+
+  return {
+    countySlug: county.countySlug,
+    archetype,
+    band,
+    ...coverage,
+    failures,
+  };
+}
+
+function openBlockFillCoverage(zones, scene) {
+  let openGroundTiles = 0;
+  let fillTileCount = 0;
+  let waterEdgeFillTiles = 0;
+  const fillKinds = new Set();
+  const fillVariants = new Set();
+  const fillZoneIds = new Set();
+  const fillZoneCounts = Object.fromEntries([...E5_FILL_ZONE_KINDS].map((kind) => [kind, 0]));
+
+  for (const zone of zones) {
+    if (E5_FILL_ZONE_KINDS.has(zone.kind)) fillZoneCounts[zone.kind] += 1;
+  }
+
+  for (const tile of scene.terrainTiles ?? []) {
+    if (pointInRoadCorridor(tile.position, scene.roadSegments ?? [])) continue;
+    const zone = winningZoneAt(zones, tile.position.x, tile.position.y);
+    if (zone && !E5_FILL_ZONE_KINDS.has(zone.kind)) continue;
+    openGroundTiles += 1;
+    if (zone && E5_FILL_ZONE_KINDS.has(zone.kind)) {
+      fillTileCount += 1;
+      fillKinds.add(zone.kind);
+      fillVariants.add(tile.variant);
+      fillZoneIds.add(zone.id);
+      if ((tile.visualGrammar?.terrainContact?.waterEdgeSides?.length ?? 0) > 0) waterEdgeFillTiles += 1;
+    }
+  }
+
+  return {
+    openGroundTiles,
+    fillTileCount,
+    fillCoverageRatio: roundMetric(fillTileCount / Math.max(1, openGroundTiles)),
+    fillKinds: [...fillKinds].sort(),
+    fillVariantCount: fillVariants.size,
+    fillZoneCount: fillZoneIds.size,
+    fillZoneCounts,
+    waterEdgeFillTiles,
+  };
+}
+
+function winningZoneAt(zones, x, y) {
+  let match;
+  for (const zone of zones) {
+    if (x >= zone.rect.minX && x <= zone.rect.maxX && y >= zone.rect.minY && y <= zone.rect.maxY) match = zone;
+  }
+  return match;
+}
+
+function pointInRoadCorridor(point, roads) {
+  for (const road of roads) {
+    if (road.kind === "crosswalk") continue;
+    const halfCorridor = road.width / 2 + 0.35;
+    const minX = Math.min(road.from.x, road.to.x) - halfCorridor;
+    const maxX = Math.max(road.from.x, road.to.x) + halfCorridor;
+    const minY = Math.min(road.from.y, road.to.y) - halfCorridor;
+    const maxY = Math.max(road.from.y, road.to.y) + halfCorridor;
+    if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) return true;
+  }
+  return false;
+}
+
+function roundMetric(value) {
+  return Number.isFinite(value) ? Number(value.toFixed(3)) : 0;
 }
 
 function waterBandMetrics(scene) {
@@ -563,6 +679,26 @@ for (const a of present) {
   );
 }
 
+const openBlockFillByArchetype = {};
+for (const a of present) {
+  openBlockFillByArchetype[a] = openBlockFillFingerprint(firstCountyByArchetype[a]);
+}
+const openBlockFillFailures = Object.entries(openBlockFillByArchetype).flatMap(([archetype, entry]) =>
+  entry.failures.map((failure) => `${archetype}: ${failure}`),
+);
+log("\nOpen-block fills - representative E5 bands:");
+for (const a of present) {
+  const entry = openBlockFillByArchetype[a];
+  const band = entry.band;
+  log(
+    "  " +
+      a.padEnd(16) +
+      `coverage ${entry.fillCoverageRatio} [${band.minCoverage}-1]`.padEnd(24) +
+      `tiles ${String(entry.fillTileCount).padStart(3)}/${String(entry.openGroundTiles).padEnd(3)}`.padEnd(16) +
+      `kinds ${entry.fillKinds.join(",")}`,
+  );
+}
+
 const perf = perfProbe(firstCountyByArchetype);
 log("\nPerf at scale - " + perf.sampled + " counties: mean " + perf.meanMs.toFixed(2) +
     "ms/county, " + perf.failures + " budget failures (gate: mean <= " + MEAN_GEN_MS_CEILING + "ms, 0 failures)");
@@ -621,6 +757,12 @@ const GATES = [
     detail: terrainFeatureFailures.length === 0 ? "all representative E3/E4 bands pass" : terrainFeatureFailures.join("; "),
   },
   {
+    id: "open_block_fill_coverage",
+    label: "representative generated archetypes fill open non-building blocks with E5 terrain treatments",
+    pass: openBlockFillFailures.length === 0,
+    detail: openBlockFillFailures.length === 0 ? "all representative E5 fill bands pass" : openBlockFillFailures.join("; "),
+  },
+  {
     id: "structural_full_index",
     label: "all counties compile with buildings, places, landmarks, finite buildings, and water bands for water archetypes",
     pass: structural.failures.length === 0,
@@ -673,6 +815,11 @@ if (jsonOnly) {
         reliefBands: RELIEF_BANDS,
         byArchetype: terrainFeaturesByArchetype,
         failures: terrainFeatureFailures,
+      },
+      openBlockFills: {
+        bands: E5_FILL_BANDS,
+        byArchetype: openBlockFillByArchetype,
+        failures: openBlockFillFailures,
       },
       structural: {
         checked: structural.checked,

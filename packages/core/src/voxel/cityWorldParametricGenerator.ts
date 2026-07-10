@@ -57,7 +57,15 @@ export type CityWorldZoneKind =
   | "gym"
   | "park"
   | "water"
-  | "plaza";
+  | "plaza"
+  | "farm_field"
+  | "plaza_paving"
+  | "civic_forecourt"
+  | "dry_wash"
+  | "meadow"
+  | "scree"
+  | "shore_bank"
+  | "green_common";
 
 export type CityWorldZoneSpec = {
   id: string;
@@ -130,6 +138,14 @@ const ZONE_TO_TERRAIN: Record<CityWorldZoneKind, CityWorldTerrainKind> = {
   park: "park",
   water: "water",
   plaza: "plaza",
+  farm_field: "grass",
+  plaza_paving: "plaza",
+  civic_forecourt: "plaza",
+  dry_wash: "plaza",
+  meadow: "park",
+  scree: "plaza",
+  shore_bank: "plaza",
+  green_common: "park",
 };
 
 const ZONE_TO_LOT: Record<CityWorldZoneKind, CityWorldLot["kind"] | null> = {
@@ -141,6 +157,14 @@ const ZONE_TO_LOT: Record<CityWorldZoneKind, CityWorldLot["kind"] | null> = {
   park: "park",
   water: "waterfront",
   plaza: null,
+  farm_field: null,
+  plaza_paving: null,
+  civic_forecourt: null,
+  dry_wash: null,
+  meadow: null,
+  scree: null,
+  shore_bank: null,
+  green_common: null,
 };
 
 export function generateParametricCityWorldScene(spec: CityWorldParametricSpec): CityWorldParametricResult {
@@ -346,7 +370,7 @@ function createParametricTerrain(spec: CityWorldParametricSpec, bounds: CityWorl
       const point: CityWorldPoint = { x, y, z: elevationModel.tileZ(x, y) };
       const zone = zoneAt(spec.zones, x, y);
       const kind: CityWorldTerrainKind = zone ? ZONE_TO_TERRAIN[zone.kind] : "grass";
-      const variant = (x * 17 + y * 11) % 5;
+      const variant = terrainVariantForZone(zone, x, y);
       const relief = reliefAt(spec, x, y);
       const grammar = parametricTerrainGrammar(spec, zone, point, bounds, relief);
       const elevation = tileElevationGrammar(elevationModel, x, y);
@@ -376,6 +400,10 @@ function parametricTerrainGrammar(
 ): CityWorldVisualGrammar {
   const nearWorldEdge = isNearBounds(point, bounds, 3);
   const onZoneEdge = zone ? isOnZoneEdge(zone, point) : false;
+
+  if (zone && isFillZoneKind(zone.kind)) {
+    return fillZoneTerrainGrammar(zone, nearWorldEdge, onZoneEdge, relief);
+  }
 
   const composition: NonNullable<CityWorldVisualGrammar["terrainComposition"]> = !zone
     ? "quiet_field"
@@ -452,6 +480,128 @@ function parametricTerrainGrammar(
         : "soft_ground_shadow";
 
   return { terrainProfile, terrainComposition: composition, terrainElevation: elevation, chunkEdge, terrainChunkMassing: massing, contactProfile };
+}
+
+function terrainVariantForZone(zone: CityWorldZoneSpec | undefined, x: number, y: number): number {
+  if (!zone) return (x * 17 + y * 11) % 5;
+  const localX = x - zone.rect.minX;
+  const localY = y - zone.rect.minY;
+  if (zone.kind === "farm_field") return localY % 2 === 0 ? 1 : 4;
+  if (zone.kind === "dry_wash") return (Math.floor((localX + localY * 2) / 3) + zone.id.length) % 2 === 0 ? 1 : 3;
+  if (zone.kind === "scree") return Math.abs(localX * 2 + localY * 3) % 5;
+  if (zone.kind === "shore_bank") return localY % 3 === 0 ? 0 : localX % 2 === 0 ? 2 : 4;
+  if (zone.kind === "plaza_paving" || zone.kind === "civic_forecourt") return (localX + localY) % 2 === 0 ? 0 : 2;
+  if (zone.kind === "meadow" || zone.kind === "green_common") return Math.abs(localX * 3 + localY * 2) % 5;
+  return (x * 17 + y * 11) % 5;
+}
+
+function isFillZoneKind(kind: CityWorldZoneKind): boolean {
+  return (
+    kind === "farm_field" ||
+    kind === "plaza_paving" ||
+    kind === "civic_forecourt" ||
+    kind === "dry_wash" ||
+    kind === "meadow" ||
+    kind === "scree" ||
+    kind === "shore_bank" ||
+    kind === "green_common"
+  );
+}
+
+function fillZoneTerrainGrammar(
+  zone: CityWorldZoneSpec,
+  nearWorldEdge: boolean,
+  onZoneEdge: boolean,
+  relief: number,
+): CityWorldVisualGrammar {
+  const worldOrZoneEdge = nearWorldEdge ? "world_edge" : onZoneEdge ? "parcel_cluster_edge" : "none";
+  const worldOrNoneMassing = nearWorldEdge ? "outer_world_edge_mass" : "none";
+
+  if (zone.kind === "farm_field") {
+    return {
+      terrainProfile: "quiet_socal_grass",
+      terrainComposition: "neighborhood_yard_fabric",
+      terrainElevation: nearWorldEdge ? "raised_parcel_shelf" : "flat_field",
+      chunkEdge: worldOrZoneEdge,
+      terrainChunkMassing: worldOrNoneMassing,
+      contactProfile: "soft_ground_shadow",
+    };
+  }
+
+  if (zone.kind === "plaza_paving") {
+    return {
+      terrainProfile: "commercial_plaza",
+      terrainComposition: "commercial_apron_field",
+      terrainElevation: "commercial_slab_field",
+      chunkEdge: worldOrZoneEdge,
+      terrainChunkMassing: nearWorldEdge || onZoneEdge ? "commercial_slab_mass" : "none",
+      contactProfile: "parcel_pad_shadow",
+    };
+  }
+
+  if (zone.kind === "civic_forecourt") {
+    return {
+      terrainProfile: "landmark_civic_ground",
+      terrainComposition: "civic_focus_field",
+      terrainElevation: "civic_plinth_shelf",
+      chunkEdge: worldOrZoneEdge,
+      terrainChunkMassing: nearWorldEdge || onZoneEdge ? "civic_plinth_mass" : "commercial_slab_mass",
+      contactProfile: "landmark_base_shadow",
+    };
+  }
+
+  if (zone.kind === "dry_wash") {
+    return {
+      terrainProfile: "quiet_socal_grass",
+      terrainComposition: "quiet_field",
+      terrainElevation: relief > 0.42 || nearWorldEdge ? "raised_parcel_shelf" : "flat_field",
+      chunkEdge: nearWorldEdge ? "world_edge" : onZoneEdge && relief > 0.36 ? "parcel_cluster_edge" : "none",
+      terrainChunkMassing: nearWorldEdge ? "outer_world_edge_mass" : relief > 0.42 ? "residential_shelf_mass" : "none",
+      contactProfile: "soft_ground_shadow",
+    };
+  }
+
+  if (zone.kind === "scree") {
+    return {
+      terrainProfile: "quiet_socal_grass",
+      terrainComposition: "quiet_field",
+      terrainElevation: "raised_parcel_shelf",
+      chunkEdge: worldOrZoneEdge,
+      terrainChunkMassing: nearWorldEdge || onZoneEdge || relief > 0.5 ? "residential_shelf_mass" : "none",
+      contactProfile: "soft_ground_shadow",
+    };
+  }
+
+  if (zone.kind === "shore_bank") {
+    return {
+      terrainProfile: "water_edge",
+      terrainComposition: "waterfront_edge_strata",
+      terrainElevation: "water_edge_cut",
+      chunkEdge: nearWorldEdge ? "world_edge" : "waterfront_bank_edge",
+      terrainChunkMassing: "waterfront_bank_cut_mass",
+      contactProfile: "soft_ground_shadow",
+    };
+  }
+
+  if (zone.kind === "meadow") {
+    return {
+      terrainProfile: "civic_green",
+      terrainComposition: "park_basin",
+      terrainElevation: relief > 0.18 || nearWorldEdge ? "raised_parcel_shelf" : "park_basin_shelf",
+      chunkEdge: nearWorldEdge ? "world_edge" : onZoneEdge ? "park_basin_edge" : "none",
+      terrainChunkMassing: nearWorldEdge ? "outer_world_edge_mass" : relief > 0.18 ? "residential_shelf_mass" : onZoneEdge ? "park_basin_cut_mass" : "none",
+      contactProfile: "soft_ground_shadow",
+    };
+  }
+
+  return {
+    terrainProfile: "civic_green",
+    terrainComposition: "park_basin",
+    terrainElevation: nearWorldEdge ? "raised_parcel_shelf" : "park_basin_shelf",
+    chunkEdge: nearWorldEdge ? "world_edge" : onZoneEdge ? "park_basin_edge" : "none",
+    terrainChunkMassing: nearWorldEdge ? "outer_world_edge_mass" : onZoneEdge ? "park_basin_cut_mass" : "none",
+    contactProfile: "soft_ground_shadow",
+  };
 }
 
 function layoutZoneParcels(
@@ -2361,6 +2511,14 @@ function zoneLabel(kind: CityWorldZoneKind): string {
     park: "Community park",
     water: "Waterfront",
     plaza: "Plaza",
+    farm_field: "Crop rows",
+    plaza_paving: "Plaza paving",
+    civic_forecourt: "Civic forecourt",
+    dry_wash: "Dry wash",
+    meadow: "Meadow",
+    scree: "Scree",
+    shore_bank: "Bank edge",
+    green_common: "Green commons",
   };
   return labels[kind];
 }

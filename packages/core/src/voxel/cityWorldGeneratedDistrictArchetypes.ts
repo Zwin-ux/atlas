@@ -80,6 +80,10 @@ function layoutContext(profile: ArchetypeProfile, modulation: CountyGenerationMo
 function metroGridZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
   const civicRect = { minX: 18 + context.xShift, minY: 10 + context.yShift, maxX: 24 + context.xShift, maxY: 15 + context.yShift };
   return [
+    zone("metro-block-paving-fill", "plaza_paving", { minX: 0, minY: 0, maxX: 44, maxY: 32 }, context, undefined, "Metro block paving"),
+    zone("metro-civic-forecourt-fill", "civic_forecourt", { minX: 15, minY: 9, maxX: 25, maxY: 16 }, context, undefined, "Civic forecourt"),
+    zone("metro-east-plaza-fill", "plaza_paving", { minX: 36, minY: 10, maxX: 41, maxY: 24 }, context, undefined, "East plaza paving"),
+    zone("metro-pocket-paving-fill", "plaza_paving", { minX: 5, minY: 10, maxX: 13, maxY: 15 }, context, undefined, "Pocket paving"),
     zone("metro-west-block", "residential", { minX: 3, minY: 4, maxX: 12, maxY: 8 }, context, 0.92, "West row blocks"),
     zone("metro-south-rowhomes", "residential", { minX: 3, minY: 18, maxX: 14, maxY: 28 }, context, 0.94, "South rowhomes"),
     zone("metro-civic-core", "civic", civicRect, context, undefined, "Civic tower core", context.civicElevationBoost + 0.05),
@@ -95,6 +99,10 @@ function metroGridZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): C
 
 function desertBasinZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
   return [
+    zone("desert-basin-wash-fill", "dry_wash", { minX: 0, minY: 0, maxX: 44, maxY: 32 }, context, undefined, "Basin dry wash"),
+    zone("desert-north-wash-fill", "dry_wash", { minX: 3, minY: 15, maxX: 18, maxY: 21 }, context, undefined, "North dry wash"),
+    zone("desert-east-wash-fill", "dry_wash", { minX: 32, minY: 5, maxX: 42, maxY: 13 }, context, undefined, "East dry wash"),
+    zone("desert-south-wash-fill", "dry_wash", { minX: 22, minY: 21, maxX: 42, maxY: 30 }, context, undefined, "South dry wash"),
     zone("desert-west-sprawl", "residential", { minX: 3, minY: 5, maxX: 18, maxY: 14 }, context, 0.56, "Low west sprawl"),
     zone("desert-south-sprawl", "residential", { minX: 5, minY: 22, maxX: 21, maxY: 29 }, context, 0.52, "South sprawl"),
     zone("desert-main-frontage", "commercial", { minX: 20, minY: 7, maxX: 33, maxY: 12 }, context, 0.58, "Wide frontage"),
@@ -108,6 +116,10 @@ function desertBasinZones(context: LayoutContext, bonusZone: CityWorldZoneSpec):
 
 function coastalGridZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
   return [
+    zone("coastal-land-common-fill", "green_common", { minX: 0, minY: 0, maxX: 35, maxY: 32 }, context, undefined, "Coastal commons"),
+    zone("coastal-shore-bank-fill", "shore_bank", { minX: 34, minY: 0, maxX: 36, maxY: 32 }, context, undefined, "Beach bank"),
+    zone("coastal-common-fill", "green_common", { minX: 4, minY: 15, maxX: 20, maxY: 20 }, context, undefined, "Shore commons"),
+    zone("coastal-north-common-fill", "green_common", { minX: 4, minY: 0, maxX: 20, maxY: 4 }, context, undefined, "Dune commons"),
     zone("coastal-back-homes", "residential", { minX: 4, minY: 5, maxX: 18, maxY: 14 }, context, 0.74, "Back-shore homes"),
     zone("coastal-stepback-homes", "residential", { minX: 5, minY: 19, maxX: 20, maxY: 29 }, context, 0.72, "Stepback homes"),
     zone("coastal-civic", "civic", { minX: 21, minY: 8, maxX: 28, maxY: 14 }, context, undefined, "Coastal civic", context.civicElevationBoost),
@@ -122,6 +134,11 @@ function coastalGridZones(context: LayoutContext, bonusZone: CityWorldZoneSpec):
 
 function mountainValleyZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
   return [
+    zone("mountain-valley-meadow-fill", "meadow", { minX: 0, minY: 0, maxX: 44, maxY: 32 }, context, undefined, "Valley meadow floor"),
+    zone("mountain-upper-scree-fill", "scree", { minX: 0, minY: 0, maxX: 15, maxY: 4 }, context, undefined, "Upper scree"),
+    zone("mountain-ridge-scree-fill", "scree", { minX: 25, minY: 0, maxX: 44, maxY: 12 }, context, undefined, "Ridge scree"),
+    zone("mountain-meadow-fill", "meadow", { minX: 25, minY: 19, maxX: 42, maxY: 22 }, context, undefined, "Valley meadow"),
+    zone("mountain-lower-meadow-fill", "meadow", { minX: 4, minY: 24, maxX: 14, maxY: 29 }, context, undefined, "Lower meadow"),
     zone("mountain-upper-homes", "residential", { minX: 4, minY: 5, maxX: 14, maxY: 12 }, context, 0.62, "Upper terrace homes"),
     zone("mountain-mid-homes", "residential", { minX: 10, minY: 16, maxX: 23, maxY: 23 }, context, 0.64, "Mid-terrace homes"),
     zone("mountain-lower-homes", "residential", { minX: 25, minY: 23, maxX: 38, maxY: 29 }, context, 0.58, "Valley homes"),
@@ -135,6 +152,10 @@ function mountainValleyZones(context: LayoutContext, bonusZone: CityWorldZoneSpe
 
 function prairieTownZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
   return [
+    zone("prairie-northwest-field-fill", "farm_field", { minX: 0, minY: 0, maxX: 21, maxY: 17 }, context, undefined, "Northwest crop rows"),
+    zone("prairie-northeast-field-fill", "farm_field", { minX: 23, minY: 0, maxX: 44, maxY: 17 }, context, undefined, "Northeast crop rows"),
+    zone("prairie-southwest-field-fill", "farm_field", { minX: 0, minY: 19, maxX: 21, maxY: 32 }, context, undefined, "Southwest crop rows"),
+    zone("prairie-southeast-field-fill", "farm_field", { minX: 23, minY: 19, maxX: 44, maxY: 32 }, context, undefined, "Southeast crop rows"),
     zone("prairie-west-grid", "residential", { minX: 4, minY: 5, maxX: 20, maxY: 15 }, context, 0.58, "West town grid"),
     zone("prairie-south-grid", "residential", { minX: 5, minY: 21, maxX: 21, maxY: 29 }, context, 0.54, "South town grid"),
     zone("prairie-main-street", "commercial", { minX: 23, minY: 6, maxX: 35, maxY: 12 }, context, 0.62, "Straight main street"),
@@ -149,6 +170,10 @@ function prairieTownZones(context: LayoutContext, bonusZone: CityWorldZoneSpec):
 function riverTownZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
   if (context.riverAxis === "vertical") {
     return [
+      zone("river-common-fill", "green_common", { minX: 0, minY: 0, maxX: 44, maxY: 32 }, context, undefined, "River commons"),
+      zone("river-west-bank-fill", "shore_bank", { minX: 19, minY: 0, maxX: 20, maxY: 32 }, context, undefined, "West bank"),
+      zone("river-east-bank-fill", "shore_bank", { minX: 26, minY: 0, maxX: 27, maxY: 32 }, context, undefined, "East bank"),
+      zone("river-west-common-fill", "green_common", { minX: 4, minY: 16, maxX: 18, maxY: 21 }, context, undefined, "West bank commons"),
       zone("river-west-homes", "residential", { minX: 4, minY: 5, maxX: 15, maxY: 14 }, context, 0.74, "West bank homes"),
       zone("river-south-homes", "residential", { minX: 5, minY: 22, maxX: 17, maxY: 30 }, context, 0.72, "South bank homes"),
       zone("river-ferry-market", "commercial", { minX: 27, minY: 4, maxX: 36, maxY: 9 }, context, 0.86, "Ferry market"),
@@ -163,6 +188,10 @@ function riverTownZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): C
   }
 
   return [
+    zone("river-common-base-fill", "green_common", { minX: 0, minY: 0, maxX: 44, maxY: 32 }, context, undefined, "River commons"),
+    zone("river-north-bank-fill", "shore_bank", { minX: 0, minY: 13, maxX: 44, maxY: 14 }, context, undefined, "North bank"),
+    zone("river-south-bank-fill", "shore_bank", { minX: 0, minY: 21, maxX: 44, maxY: 22 }, context, undefined, "South bank"),
+    zone("river-common-fill", "green_common", { minX: 5, minY: 11, maxX: 21, maxY: 14 }, context, undefined, "River commons"),
     zone("river-west-homes", "residential", { minX: 5, minY: 5, maxX: 18, maxY: 14 }, context, 0.74, "West bank homes"),
     zone("river-south-homes", "residential", { minX: 6, minY: 23, maxX: 21, maxY: 30 }, context, 0.72, "South bank homes"),
     zone("river-ferry-market", "commercial", { minX: 25, minY: 4, maxX: 34, maxY: 9 }, context, 0.86, "Ferry market"),
