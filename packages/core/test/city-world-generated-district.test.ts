@@ -23,6 +23,16 @@ import {
 import type { CensusDivision, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
 
 const PALETTE_DISTINCTNESS_FLOOR = 0.16;
+const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
+  "andrews-tx",
+  "brewster-tx",
+  "gaines-tx",
+  "garza-tx",
+  "scurry-tx",
+  "stonewall-tx",
+  "sutton-tx",
+] as const;
+const WATER_ARCHETYPES: readonly GeneratedDistrictArchetype[] = ["coastal_grid", "river_town"];
 
 describe("deterministic generated district specs", () => {
   it("compiles repeatable provider-free district specs from Census county identity", () => {
@@ -253,6 +263,38 @@ describe("deterministic generated district specs", () => {
       }
     }
   });
+
+  it("reroutes arid seed-fallback river towns to coherent desert landmarks (E1)", () => {
+    for (const countySlug of FORMERLY_WATERLESS_RIVER_TOWN_SLUGS) {
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
+      const parameters = resolveCountyParameters(county(countySlug), generated.seed);
+      const landmark = analyzeGeneratedLandmark(result.scene);
+
+      expect(parameters.climate.aridity).toBe("arid");
+      expect(generated.archetype).toBe("desert_basin");
+      expect(parameters.archetype).toBe("desert_basin");
+      expect(result.scene.terrainTiles.filter((tile) => tile.kind === "water")).toHaveLength(0);
+      expect(landmark).not.toBeNull();
+      expect(landmark?.kind).toBe("desert_mesa_tower");
+      expect(landmark?.hostCell).toBe("highest_block_corner");
+    }
+  });
+
+  it("keeps sampled water archetype counties water-backed with landmarks (E1)", () => {
+    const sample = sampledWaterArchetypeCounties();
+
+    expect(sample.length).toBeGreaterThanOrEqual(10);
+    for (const sampleCounty of sample) {
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: sampleCounty });
+      const waterTiles = result.scene.terrainTiles.filter((tile) => tile.kind === "water");
+      const landmark = analyzeGeneratedLandmark(result.scene);
+
+      expect(WATER_ARCHETYPES).toContain(generated.archetype);
+      expect(waterTiles.length).toBeGreaterThan(0);
+      expect(landmark).not.toBeNull();
+      expect(result.scene.buildings.some((building) => building.id === landmark?.buildingId)).toBe(true);
+    }
+  });
 });
 
 function county(countySlug: string) {
@@ -267,6 +309,30 @@ function countyForArchetype(archetype: GeneratedDistrictArchetype) {
   );
   if (!entry) throw new Error(`Missing county fixture for generated archetype ${archetype}`);
   return entry;
+}
+
+function sampledWaterArchetypeCounties() {
+  const sample = new Map<string, ReturnType<typeof county>>();
+  const waterCounties = US_COUNTY_INDEX.filter((candidate) =>
+    WATER_ARCHETYPES.includes(createDeterministicGeneratedDistrictSpec({ county: candidate }).archetype),
+  );
+
+  for (let index = 0; index < waterCounties.length; index += 53) {
+    const sampleCounty = waterCounties[index]!;
+    sample.set(sampleCounty.countySlug, sampleCounty);
+  }
+  for (const archetype of WATER_ARCHETYPES) {
+    const sampleCounty = countyForArchetype(archetype);
+    sample.set(sampleCounty.countySlug, sampleCounty);
+  }
+  for (const countySlug of ["bay-fl", "king-wa"]) {
+    const sampleCounty = county(countySlug);
+    if (WATER_ARCHETYPES.includes(createDeterministicGeneratedDistrictSpec({ county: sampleCounty }).archetype)) {
+      sample.set(sampleCounty.countySlug, sampleCounty);
+    }
+  }
+
+  return [...sample.values()];
 }
 
 function parametersForCounty(countySlug: string): CountyGenerationParameters {

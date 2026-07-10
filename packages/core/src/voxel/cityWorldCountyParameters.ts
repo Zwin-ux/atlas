@@ -277,6 +277,11 @@ export const NAME_SIGNAL_TOKENS: Record<NameSignal, readonly string[]> = {
 };
 
 const COASTAL_INTENT_STATES = ["CA", "FL", "HI", "LA", "ME", "MA", "MD", "NJ", "NY", "OR", "RI", "SC", "VA", "WA"] as const;
+const WATER_DEPENDENT_ARCHETYPES = ["coastal_grid", "river_town"] as const;
+
+export function isWaterDependentGeneratedDistrictArchetype(archetype: GeneratedDistrictArchetype): boolean {
+  return (WATER_DEPENDENT_ARCHETYPES as readonly GeneratedDistrictArchetype[]).includes(archetype);
+}
 
 const ARCHETYPE_SELECTION_RULES: readonly ArchetypeSelectionRule[] = [
   {
@@ -454,17 +459,29 @@ function resolveArchetype(county: CountyParameterInput, seed: number, climate: C
   const latitude = county.centroid?.latitude;
   const coastalIntent = hasCoastalIntent(stateCode, climate);
   for (const rule of ARCHETYPE_SELECTION_RULES) {
-    if (rule.fallback) return rule.archetype;
+    if (rule.fallback) return supportedArchetype(rule.archetype, climate) ?? rule.archetype;
     if (rule.excludeCoastalIntent && coastalIntent) continue;
-    if (rule.coastalIntent && coastalIntent) return rule.archetype;
-    if (rule.inlandAridProxy && climate.inlandAridProxy) return rule.archetype;
-    if (rule.states?.includes(stateCode)) return rule.archetype;
+    if (rule.coastalIntent && coastalIntent) return supportedArchetype(rule.archetype, climate) ?? "metro_grid";
+    if (rule.inlandAridProxy && climate.inlandAridProxy) return supportedArchetype(rule.archetype, climate) ?? "metro_grid";
+    if (rule.states?.includes(stateCode)) return supportedArchetype(rule.archetype, climate) ?? "metro_grid";
     if (rule.coordinate && longitude !== undefined && latitude !== undefined && coordinateMatches(rule.coordinate, longitude, latitude)) {
-      return rule.archetype;
+      return supportedArchetype(rule.archetype, climate) ?? "metro_grid";
     }
-    if (rule.seedModulo && seed % rule.seedModulo.divisor === rule.seedModulo.remainder) return rule.archetype;
+    if (rule.seedModulo && seed % rule.seedModulo.divisor === rule.seedModulo.remainder) {
+      const archetype = supportedArchetype(rule.archetype, climate);
+      if (archetype) return archetype;
+    }
   }
   return "metro_grid";
+}
+
+function supportedArchetype(
+  archetype: GeneratedDistrictArchetype,
+  climate: CountyGenerationClimate,
+): GeneratedDistrictArchetype | null {
+  if (!isWaterDependentGeneratedDistrictArchetype(archetype)) return archetype;
+  if (climate.aridity !== "arid") return archetype;
+  return "desert_basin";
 }
 
 function hasCoastalIntent(stateCode: string, climate: CountyGenerationClimate): boolean {

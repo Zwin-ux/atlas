@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "ranAt": "2026-07-10T04:35:56.357Z",
+  "ranAt": "2026-07-10T05:06:05.268Z",
   "base": "http://127.0.0.1:8787",
   "cells": [
     {
@@ -193,7 +193,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (366.08,152.8) -> (141.72,26.6); rebuilds=5 @ 2.1/s, fired=4, deferred=4"
+          "detail": "world moved (366.08,152.8) -> (206.08,62.8); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -403,7 +403,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (244.64,163.84) -> (84.64,73.84); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (244.64,163.84) -> (84.64,73.84); rebuilds=3 @ 1.3/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -508,7 +508,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (376.2,108.64) -> (216.2,18.64); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (376.2,108.64) -> (150.17,-18.5); rebuilds=5 @ 2.1/s, fired=4, deferred=3"
         },
         {
           "id": "touch_pinch",
@@ -858,7 +858,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -918,7 +918,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (115.1,74.42) -> (-108.91,-51.59); rebuilds=5 @ 2.1/s, fired=4, deferred=3"
+          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.2/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",

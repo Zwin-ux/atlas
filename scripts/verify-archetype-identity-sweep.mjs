@@ -6,7 +6,6 @@ import {
   US_COUNTY_INDEX,
   analyzeGeneratedDistrictMassingSignature,
   analyzeGeneratedLandmark,
-  createDeterministicGeneratedDistrictSpec,
   createDeterministicGeneratedDistrictScene,
   expectedGeneratedLandmarkKind,
   generatedDistrictMassingSignatureDistance,
@@ -43,6 +42,7 @@ const ARCHETYPES = [
   "prairie_town",
   "river_town",
 ];
+const WATER_ARCHETYPES = new Set(["coastal_grid", "river_town"]);
 
 // Distinctness threshold: max allowed Jaccard overlap between any two
 // archetypes' body+roof color fingerprints. Set between the pre-0.76 value
@@ -58,24 +58,80 @@ function log(...args) {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Index-wide archetype coverage — classify every county.
+// 1. Index-wide archetype coverage plus structural compile pass.
 // ---------------------------------------------------------------------------
-function archetypeForCounty(county) {
-  // createDeterministicGeneratedDistrictSpec is the sanctioned path that also
-  // computes the seed + archetype; use it so we test the real selection.
-  return createDeterministicGeneratedDistrictSpec({ county }).archetype;
-}
-
 function coverageDistribution() {
   const counts = Object.fromEntries(ARCHETYPES.map((a) => [a, 0]));
   const firstCountyByArchetype = {};
+  const structuralFailures = [];
+  const start = process.hrtime.bigint();
+
   for (const county of US_COUNTY_INDEX) {
-    const archetype = archetypeForCounty(county);
-    if (counts[archetype] === undefined) counts[archetype] = 0;
-    counts[archetype] += 1;
-    if (!firstCountyByArchetype[archetype]) firstCountyByArchetype[archetype] = county;
+    const structural = structuralInspection(county);
+    const archetype = structural.archetype;
+    if (archetype) {
+      if (counts[archetype] === undefined) counts[archetype] = 0;
+      counts[archetype] += 1;
+      if (!firstCountyByArchetype[archetype]) firstCountyByArchetype[archetype] = county;
+    }
+    if (structural.failures.length > 0) {
+      structuralFailures.push({
+        countySlug: county.countySlug,
+        archetype: archetype ?? "compile_error",
+        failures: structural.failures,
+      });
+    }
   }
-  return { counts, firstCountyByArchetype };
+
+  const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
+  return {
+    counts,
+    firstCountyByArchetype,
+    structural: {
+      checked: US_COUNTY_INDEX.length,
+      elapsedMs,
+      meanMs: elapsedMs / US_COUNTY_INDEX.length,
+      failures: structuralFailures,
+    },
+  };
+}
+
+function structuralInspection(county) {
+  try {
+    const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+    const scene = result?.scene;
+    const failures = [];
+
+    if (!scene) {
+      failures.push("missing scene");
+      return { archetype: generated?.archetype ?? null, failures };
+    }
+    if (!Array.isArray(scene.buildings) || scene.buildings.length === 0) failures.push("zero buildings");
+    if (!Array.isArray(scene.places) || scene.places.length === 0) failures.push("zero places");
+    if (!scene.buildings?.some((building) => building.id.startsWith("gen-landmark-"))) failures.push("missing gen-landmark building");
+
+    const nonFiniteBuildings = (scene.buildings ?? []).filter((building) => !buildingGeometryFinite(building));
+    if (nonFiniteBuildings.length > 0) {
+      failures.push(`non-finite building geometry: ${nonFiniteBuildings.map((building) => building.id).join(",")}`);
+    }
+
+    if (WATER_ARCHETYPES.has(generated.archetype)) {
+      const waterTiles = (scene.terrainTiles ?? []).filter((tile) => tile.kind === "water").length;
+      if (waterTiles === 0) failures.push(`${generated.archetype} has zero water terrain tiles`);
+    }
+
+    return { archetype: generated.archetype, failures };
+  } catch (error) {
+    return { archetype: null, failures: [`compile threw: ${formatError(error)}`] };
+  }
+}
+
+function buildingGeometryFinite(building) {
+  return [building.position?.x, building.position?.y, building.position?.z, building.width, building.depth, building.height].every(Number.isFinite);
+}
+
+function formatError(error) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 // ---------------------------------------------------------------------------
@@ -219,7 +275,7 @@ function perfProbe(firstCountyByArchetype) {
 // ---------------------------------------------------------------------------
 log("Atlas 0.76 — Archetype Identity Sweep (NS-6)\n");
 
-const { counts, firstCountyByArchetype } = coverageDistribution();
+const { counts, firstCountyByArchetype, structural } = coverageDistribution();
 const present = ARCHETYPES.filter((a) => (counts[a] ?? 0) > 0);
 const totalClassified = Object.values(counts).reduce((s, n) => s + n, 0);
 
@@ -232,6 +288,20 @@ for (const a of ARCHETYPES) {
     "  " + a.padEnd(16) + String(n).padStart(5) + "  (" + pct.padStart(4) + "%)  " +
       (sample ? "e.g. " + sample.name + ", " + sample.stateCode : "— none reached"),
   );
+}
+
+const structuralFailureSlugs = structural.failures.map((entry) => entry.countySlug);
+log(
+  "\nStructural full-index compile - " +
+    structural.checked +
+    " counties: mean " +
+    structural.meanMs.toFixed(2) +
+    "ms/county, " +
+    structural.failures.length +
+    " failures",
+);
+if (structural.failures.length > 0) {
+  log("  failing slugs: " + structuralFailureSlugs.join(", "));
 }
 
 const fingerprintByArchetype = {};
@@ -356,6 +426,12 @@ const GATES = [
         : massingFailures.join("; "),
   },
   {
+    id: "structural_full_index",
+    label: "all counties compile with buildings, places, landmarks, finite buildings, and water for water archetypes",
+    pass: structural.failures.length === 0,
+    detail: structural.failures.length === 0 ? "all counties pass" : structuralFailureSlugs.join(", "),
+  },
+  {
     id: "perf_at_scale",
     label: "mean generation <= " + MEAN_GEN_MS_CEILING + "ms, 0 budget failures",
     pass: perf.meanMs <= MEAN_GEN_MS_CEILING && perf.failures === 0,
@@ -391,6 +467,12 @@ if (jsonOnly) {
         closest: massingDistinctness.closest,
         pairs: massingDistinctness.pairs,
         failures: massingFailures,
+      },
+      structural: {
+        checked: structural.checked,
+        elapsedMs: Number(structural.elapsedMs.toFixed(2)),
+        meanMs: Number(structural.meanMs.toFixed(2)),
+        failures: structural.failures,
       },
       perf,
       gates: GATES.map(({ id, pass, detail }) => ({ id, pass, detail })),

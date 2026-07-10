@@ -3,6 +3,7 @@ import { unitFromSeed } from "./cityWorldGeneratedDistrictSeed.js";
 import type { DeterministicGeneratedDistrictInput, GeneratedDistrictArchetype } from "./cityWorldGeneratedDistrictTypes.js";
 import {
   ARCHETYPE_PROFILES,
+  isWaterDependentGeneratedDistrictArchetype,
   resolveCountyParameters,
   type ArchetypeProfile,
   type CountyGenerationParameters,
@@ -337,6 +338,12 @@ function bonusZoneFor(
   fallback: CityWorldZoneSpec,
 ): CityWorldZoneSpec {
   if (typeof parameters === "string") return fallback;
+  if (isWaterDependentGeneratedDistrictArchetype(parameters.archetype)) {
+    if (parameters.climate.aridity === "arid") {
+      throw new Error(`Water-dependent archetype ${parameters.archetype} cannot strip water for arid county parameters`);
+    }
+    return fallback.kind === "water" ? fallback : waterEdgeBonusZone(parameters.archetype);
+  }
   if (parameters.modulation.waterAffinity >= 0.75 && parameters.climate.aridity !== "arid" && parameters.archetype !== "desert_basin") {
     return {
       id: "water-edge",
@@ -355,6 +362,15 @@ function bonusZoneFor(
     };
   }
   return fallback;
+}
+
+function waterEdgeBonusZone(archetype: GeneratedDistrictArchetype): CityWorldZoneSpec {
+  return {
+    id: "water-edge",
+    kind: "water",
+    rect: { minX: 37, minY: 20, maxX: 43, maxY: 31 },
+    label: archetype === "river_town" ? "River edge" : archetype === "coastal_grid" ? "Coastal edge" : "Water edge",
+  };
 }
 
 function bonusRoadFor(
