@@ -50,6 +50,15 @@ packet lands uncommitted for reviewer certification through the emulator.
 - **E8 · River-town clone pressure sits at the 0.30 ceiling** — add
   residential template variety before any density push.
 
+- **E10 · Water-archetype opening frame should include the shoreline.** E3
+  gave coastal a 297-tile sea band, but the overview camera (composition-
+  scored on built mass) can open with the sea entirely off-frame. A blind
+  focus bias toward the water zone failed review (landed in no-man's-land and
+  broke the lower-frame occupancy floor 0.154 < 0.18). Correct fix: teach
+  `generatedOverviewFocus`'s composition scorer to VALUE water presence for
+  water archetypes, so it picks a frame with both mass and shoreline. Own
+  packet; parity floors are the gate.
+
 ## Packet queue (Codex workhorse, reviewer-certified per packet)
 
 | # | Packet | Scope | Gate it must add/hold |

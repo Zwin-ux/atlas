@@ -60,6 +60,15 @@ const VEGETATION_BANDS = {
   prairie_town: { minTrees: 28, maxTrees: 40, minBushes: 3, maxBushes: 6, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
   river_town: { minTrees: 22, maxTrees: 30, minBushes: 3, maxBushes: 6, minVegetation: 26, maxVegetation: 34 },
 };
+const WATER_TILE_FLOORS = {
+  coastal_grid: 250,
+  river_town: 150,
+};
+const RELIEF_BANDS = {
+  mountain_valley: { minSpread: 1, minDropTiles: 80 },
+  desert_basin: { minSpread: 0.5, minDropTiles: 40 },
+  river_town: { minSpread: 0.5, minDropTiles: 30 },
+};
 
 function log(...args) {
   if (!jsonOnly) console.log(...args);
@@ -125,7 +134,8 @@ function structuralInspection(county) {
 
     if (WATER_ARCHETYPES.has(generated.archetype)) {
       const waterTiles = (scene.terrainTiles ?? []).filter((tile) => tile.kind === "water").length;
-      if (waterTiles === 0) failures.push(`${generated.archetype} has zero water terrain tiles`);
+      const floor = WATER_TILE_FLOORS[generated.archetype] ?? 1;
+      if (waterTiles < floor) failures.push(`${generated.archetype} has ${waterTiles} water terrain tiles below ${floor}`);
     }
 
     return { archetype: generated.archetype, failures };
@@ -251,6 +261,80 @@ function vegetationCounts(scene) {
   const tree = scene.props.filter((prop) => prop.kind === "tree").length;
   const bush = scene.props.filter((prop) => prop.kind === "bush").length;
   return { tree, bush, vegetation: tree + bush };
+}
+
+function terrainFeatureFingerprint(county) {
+  const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+  const scene = result.scene;
+  const water = waterBandMetrics(scene);
+  const relief = reliefMetrics(scene);
+  const failures = [];
+
+  if (generated.archetype === "coastal_grid") {
+    const floor = WATER_TILE_FLOORS.coastal_grid;
+    if (water.count < floor) failures.push(`coastal water ${water.count} below ${floor}`);
+    if (water.maxX !== scene.bounds.maxX || water.yCoverage !== scene.bounds.maxY - scene.bounds.minY + 1) {
+      failures.push(`coastal water is not an edge band: x ${water.minX}-${water.maxX}, yCoverage ${water.yCoverage}`);
+    }
+  }
+
+  if (generated.archetype === "river_town") {
+    const floor = WATER_TILE_FLOORS.river_town;
+    if (water.count < floor) failures.push(`river water ${water.count} below ${floor}`);
+    if (!water.crossesBoardX && !water.crossesBoardY) {
+      failures.push(`river water does not cross board: x ${water.minX}-${water.maxX}, y ${water.minY}-${water.maxY}`);
+    }
+  }
+
+  const reliefBand = RELIEF_BANDS[generated.archetype];
+  if (reliefBand) {
+    if (relief.spread < reliefBand.minSpread) failures.push(`relief spread ${relief.spread} below ${reliefBand.minSpread}`);
+    if (relief.dropTileCount < reliefBand.minDropTiles) failures.push(`drop tiles ${relief.dropTileCount} below ${reliefBand.minDropTiles}`);
+  }
+
+  return {
+    countySlug: county.countySlug,
+    archetype: generated.archetype,
+    water,
+    relief,
+    failures,
+  };
+}
+
+function waterBandMetrics(scene) {
+  const waterTiles = (scene.terrainTiles ?? []).filter((tile) => tile.kind === "water");
+  if (waterTiles.length === 0) {
+    return { count: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, xCoverage: 0, yCoverage: 0, crossesBoardX: false, crossesBoardY: false };
+  }
+  const xs = waterTiles.map((tile) => tile.position.x);
+  const ys = waterTiles.map((tile) => tile.position.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  return {
+    count: waterTiles.length,
+    minX,
+    maxX,
+    minY,
+    maxY,
+    xCoverage: new Set(xs).size,
+    yCoverage: new Set(ys).size,
+    crossesBoardX: minX === scene.bounds.minX && maxX === scene.bounds.maxX,
+    crossesBoardY: minY === scene.bounds.minY && maxY === scene.bounds.maxY,
+  };
+}
+
+function reliefMetrics(scene) {
+  const zValues = (scene.terrainTiles ?? []).map((tile) => tile.position?.z ?? 0);
+  const min = Math.min(...zValues);
+  const max = Math.max(...zValues);
+  return {
+    min,
+    max,
+    spread: Number((max - min).toFixed(3)),
+    dropTileCount: (scene.terrainTiles ?? []).filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
+  };
 }
 
 function isVegetation(prop) {
@@ -456,6 +540,29 @@ for (const a of present) {
   );
 }
 
+const terrainFeaturesByArchetype = {};
+for (const a of present) {
+  terrainFeaturesByArchetype[a] = terrainFeatureFingerprint(firstCountyByArchetype[a]);
+}
+const terrainFeatureFailures = Object.entries(terrainFeaturesByArchetype).flatMap(([archetype, entry]) =>
+  entry.failures.map((failure) => `${archetype}: ${failure}`),
+);
+log("\nWater/relief bands - representative E3/E4 readouts:");
+for (const a of present) {
+  const entry = terrainFeaturesByArchetype[a];
+  const water = entry.water;
+  const relief = entry.relief;
+  log(
+    "  " +
+      a.padEnd(16) +
+      `water ${String(water.count).padStart(3)}`.padEnd(13) +
+      `x ${water.minX}-${water.maxX}`.padEnd(11) +
+      `y ${water.minY}-${water.maxY}`.padEnd(11) +
+      `relief ${relief.spread}`.padEnd(13) +
+      `drops ${relief.dropTileCount}`,
+  );
+}
+
 const perf = perfProbe(firstCountyByArchetype);
 log("\nPerf at scale - " + perf.sampled + " counties: mean " + perf.meanMs.toFixed(2) +
     "ms/county, " + perf.failures + " budget failures (gate: mean <= " + MEAN_GEN_MS_CEILING + "ms, 0 failures)");
@@ -508,8 +615,14 @@ const GATES = [
     detail: vegetationFailures.length === 0 ? "all representative bands pass" : vegetationFailures.join("; "),
   },
   {
+    id: "water_relief_bands",
+    label: "water archetypes read as bands and relief archetypes expose terrain strata",
+    pass: terrainFeatureFailures.length === 0,
+    detail: terrainFeatureFailures.length === 0 ? "all representative E3/E4 bands pass" : terrainFeatureFailures.join("; "),
+  },
+  {
     id: "structural_full_index",
-    label: "all counties compile with buildings, places, landmarks, finite buildings, and water for water archetypes",
+    label: "all counties compile with buildings, places, landmarks, finite buildings, and water bands for water archetypes",
     pass: structural.failures.length === 0,
     detail: structural.failures.length === 0 ? "all counties pass" : structuralFailureSlugs.join(", "),
   },
@@ -554,6 +667,12 @@ if (jsonOnly) {
         bands: VEGETATION_BANDS,
         byArchetype: vegetationByArchetype,
         failures: vegetationFailures,
+      },
+      terrainFeatures: {
+        waterTileFloors: WATER_TILE_FLOORS,
+        reliefBands: RELIEF_BANDS,
+        byArchetype: terrainFeaturesByArchetype,
+        failures: terrainFeatureFailures,
       },
       structural: {
         checked: structural.checked,

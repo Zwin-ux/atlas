@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "ranAt": "2026-07-10T06:02:05.826Z",
+  "ranAt": "2026-07-10T11:13:02.927Z",
   "base": "http://127.0.0.1:8787",
   "cells": [
     {
@@ -193,7 +193,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (366.08,152.8) -> (206.08,62.8); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (366.08,152.8) -> (141.72,26.6); rebuilds=5 @ 2.1/s, fired=4, deferred=1"
         },
         {
           "id": "touch_pinch",
@@ -248,7 +248,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=796405; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=797349; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -298,7 +298,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (295.24,108.64) -> (135.24,18.64); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (295.24,108.64) -> (69.37,-18.41); rebuilds=5 @ 2.2/s, fired=4, deferred=4"
         },
         {
           "id": "touch_pinch",
@@ -308,7 +308,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=796405; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=797349; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -348,12 +348,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=733; ceiling=1600"
+          "detail": "graphics=611; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=788347; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=812072; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -403,7 +403,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (244.64,163.84) -> (19.7,37.31); rebuilds=5 @ 2.1/s, fired=4, deferred=4"
+          "detail": "world moved (244.64,163.84) -> (20.4,37.71); rebuilds=5 @ 2.1/s, fired=4, deferred=3"
         },
         {
           "id": "touch_pinch",
@@ -413,7 +413,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=788347; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=812072; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -453,12 +453,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=371; ceiling=1600"
+          "detail": "graphics=369; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=850935; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=849975; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -498,7 +498,7 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=409; ceiling=1600"
+          "detail": "graphics=407; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -518,7 +518,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=850935; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=849975; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -663,12 +663,12 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=423; ceiling=1600"
+          "detail": "graphics=572; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=777409; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=842044; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -708,7 +708,7 @@
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=516; ceiling=1600"
+          "detail": "graphics=683; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -718,7 +718,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (62.48,152.8) -> (-97.52,62.8); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (401.5,-32.12) -> (241.5,-122.12); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",
@@ -728,7 +728,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=777409; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=842044; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -858,7 +858,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -918,7 +918,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.2/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",

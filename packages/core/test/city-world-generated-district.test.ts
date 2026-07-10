@@ -40,9 +40,9 @@ const VEGETATION_EXPECTATIONS: Record<
   metro_grid: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
   coastal_grid: { trees: 26, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
   desert_basin: { trees: 0, bushes: 5, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
-  mountain_valley: { trees: 29, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
+  mountain_valley: { trees: 28, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
   prairie_town: { trees: 29, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
-  river_town: { trees: 23, bushes: 4, minVegetation: 26, maxVegetation: 34 },
+  river_town: { trees: 25, bushes: 6, minVegetation: 26, maxVegetation: 34 },
 };
 
 describe("deterministic generated district specs", () => {
@@ -343,6 +343,40 @@ describe("deterministic generated district specs", () => {
       expect(result.scene.buildings.some((building) => building.id === landmark?.buildingId)).toBe(true);
     }
   });
+
+  it("authors overview-readable water bands and relief strata for generated terrain (E3/E4)", () => {
+    const coastal = createDeterministicGeneratedDistrictScene({ county: countyForArchetype("coastal_grid") });
+    const horizontalRiver = createDeterministicGeneratedDistrictScene({ county: county("butler-al") });
+    const verticalRiver = createDeterministicGeneratedDistrictScene({ county: riverCountyForAxis("vertical") });
+    const mountain = createDeterministicGeneratedDistrictScene({ county: countyForArchetype("mountain_valley") });
+    const desert = createDeterministicGeneratedDistrictScene({ county: countyForArchetype("desert_basin") });
+
+    const coastalWater = waterBandMetrics(coastal.result.scene);
+    expect(coastalWater.count).toBeGreaterThanOrEqual(250);
+    expect(coastalWater.maxX).toBe(coastal.result.scene.bounds.maxX);
+    expect(coastalWater.yCoverage).toBe(coastal.result.scene.bounds.maxY - coastal.result.scene.bounds.minY + 1);
+    expect(waterAccentMetrics(coastal.result.scene).dockEdgeDistance).toBeLessThanOrEqual(1);
+    expect(waterAccentMetrics(coastal.result.scene).boatEdgeDistance).toBeLessThanOrEqual(4);
+
+    for (const river of [horizontalRiver, verticalRiver]) {
+      const riverWater = waterBandMetrics(river.result.scene);
+      expect(river.generated.archetype).toBe("river_town");
+      expect(riverWater.count).toBeGreaterThanOrEqual(150);
+      expect(riverWater.crossesBoardX || riverWater.crossesBoardY).toBe(true);
+      expect(terrainElevationSpread(river.result.scene).spread).toBeGreaterThanOrEqual(0.5);
+      expect(river.result.scene.buildings.length).toBeGreaterThan(15);
+      expect(waterAccentMetrics(river.result.scene).dockEdgeDistance).toBeLessThanOrEqual(1);
+      expect(waterAccentMetrics(river.result.scene).boatEdgeDistance).toBeLessThanOrEqual(4);
+    }
+
+    const mountainRelief = terrainElevationSpread(mountain.result.scene);
+    expect(mountainRelief.spread).toBeGreaterThanOrEqual(1);
+    expect(mountainRelief.dropTileCount).toBeGreaterThanOrEqual(80);
+
+    const desertRelief = terrainElevationSpread(desert.result.scene);
+    expect(desertRelief.spread).toBeGreaterThanOrEqual(0.5);
+    expect(desertRelief.dropTileCount).toBeGreaterThanOrEqual(40);
+  });
 });
 
 function county(countySlug: string) {
@@ -356,6 +390,16 @@ function countyForArchetype(archetype: GeneratedDistrictArchetype) {
     (candidate) => createDeterministicGeneratedDistrictSpec({ county: candidate }).archetype === archetype,
   );
   if (!entry) throw new Error(`Missing county fixture for generated archetype ${archetype}`);
+  return entry;
+}
+
+function riverCountyForAxis(axis: "horizontal" | "vertical") {
+  const entry = US_COUNTY_INDEX.find((candidate) => {
+    const generated = createDeterministicGeneratedDistrictSpec({ county: candidate });
+    if (generated.archetype !== "river_town") return false;
+    return axis === "horizontal" ? generated.seed % 2 === 0 : generated.seed % 2 === 1;
+  });
+  if (!entry) throw new Error(`Missing ${axis} river-town fixture`);
   return entry;
 }
 
@@ -414,6 +458,71 @@ function propClearsRoadCorridors(prop: CityWorldProp, scene: CityWorldScene): bo
 
 function pointInsideRect(point: { x: number; y: number }, rect: { minX: number; minY: number; maxX: number; maxY: number }): boolean {
   return point.x >= rect.minX && point.x <= rect.maxX && point.y >= rect.minY && point.y <= rect.maxY;
+}
+
+function waterBandMetrics(scene: CityWorldScene) {
+  const waterTiles = scene.terrainTiles.filter((tile) => tile.kind === "water");
+  if (waterTiles.length === 0) {
+    return {
+      count: 0,
+      minX: 0,
+      maxX: 0,
+      minY: 0,
+      maxY: 0,
+      xCoverage: 0,
+      yCoverage: 0,
+      crossesBoardX: false,
+      crossesBoardY: false,
+    };
+  }
+  const xs = waterTiles.map((tile) => tile.position.x);
+  const ys = waterTiles.map((tile) => tile.position.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const xCoverage = new Set(xs).size;
+  const yCoverage = new Set(ys).size;
+  return {
+    count: waterTiles.length,
+    minX,
+    maxX,
+    minY,
+    maxY,
+    xCoverage,
+    yCoverage,
+    crossesBoardX: minX === scene.bounds.minX && maxX === scene.bounds.maxX,
+    crossesBoardY: minY === scene.bounds.minY && maxY === scene.bounds.maxY,
+  };
+}
+
+function waterAccentMetrics(scene: CityWorldScene): { dockEdgeDistance: number; boatEdgeDistance: number } {
+  const water = waterBandMetrics(scene);
+  const distanceToEdge = (prop: CityWorldProp | undefined) => {
+    if (!prop || water.count === 0) return Number.POSITIVE_INFINITY;
+    return Math.min(
+      Math.abs(prop.position.x - water.minX),
+      Math.abs(water.maxX - prop.position.x),
+      Math.abs(prop.position.y - water.minY),
+      Math.abs(water.maxY - prop.position.y),
+    );
+  };
+  return {
+    dockEdgeDistance: distanceToEdge(scene.props.find((prop) => prop.kind === "dock")),
+    boatEdgeDistance: distanceToEdge(scene.props.find((prop) => prop.kind === "boat")),
+  };
+}
+
+function terrainElevationSpread(scene: CityWorldScene): { min: number; max: number; spread: number; dropTileCount: number } {
+  const zValues = scene.terrainTiles.map((tile) => tile.position.z ?? 0);
+  const min = Math.min(...zValues);
+  const max = Math.max(...zValues);
+  return {
+    min,
+    max,
+    spread: max - min,
+    dropTileCount: scene.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
+  };
 }
 
 function parameterDiversityScore(first: CountyGenerationParameters, second: CountyGenerationParameters): number {

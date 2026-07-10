@@ -151,7 +151,7 @@ const TERRAIN_COLORS = {
   grass: 0xa3b877,
   park: 0x83aa64,
   plaza: 0xd6c49a,
-  water: 0x5fadc4,
+  water: 0x176a9f,
   sidewalk: 0xc2c7a0,
 } satisfies Record<CityWorldTerrainTile["kind"], number>;
 
@@ -159,7 +159,7 @@ const DRAFT_TERRAIN_COLORS = {
   grass: 0xa9b981,
   park: 0x8cab6e,
   plaza: 0xd8c599,
-  water: 0x67aabc,
+  water: 0x237aa4,
   sidewalk: 0xc6bd92,
 } satisfies Record<CityWorldTerrainTile["kind"], number>;
 
@@ -167,7 +167,7 @@ const SHELL_TERRAIN_COLORS = {
   grass: 0xaeb699,
   park: 0x9dac86,
   plaza: 0xc9c2a8,
-  water: 0x8bb5bd,
+  water: 0x5b91a6,
   sidewalk: 0xbfc1ad,
 } satisfies Record<CityWorldTerrainTile["kind"], number>;
 
@@ -243,9 +243,9 @@ function resolveLotContact(lot: CityWorldLot): CityWorldLotContactGrammar {
 // Tone tables keep shell counties honest (near-silent ground detail) and
 // hidden drafts muted, while the public county carries the full treatment.
 const TERRAIN_SEAM_TONE_STYLE: Record<CityWorldGroundTone, { seamAlpha: number; lipAlpha: number; strandAlpha: number; wetAlpha: number }> = {
-  public: { seamAlpha: 0.3, lipAlpha: 0.2, strandAlpha: 0.42, wetAlpha: 0.3 },
-  draft: { seamAlpha: 0.14, lipAlpha: 0.09, strandAlpha: 0.2, wetAlpha: 0.14 },
-  shell: { seamAlpha: 0.18, lipAlpha: 0.09, strandAlpha: 0.12, wetAlpha: 0.08 },
+  public: { seamAlpha: 0.3, lipAlpha: 0.2, strandAlpha: 0.56, wetAlpha: 0.42 },
+  draft: { seamAlpha: 0.14, lipAlpha: 0.09, strandAlpha: 0.28, wetAlpha: 0.22 },
+  shell: { seamAlpha: 0.18, lipAlpha: 0.09, strandAlpha: 0.16, wetAlpha: 0.12 },
 };
 
 const LOT_CURB_CUT_STYLE = {
@@ -1506,16 +1506,18 @@ function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile, atlas: CityWor
     Math.sin(tile.position.x * 0.055 - tile.position.y * 0.083) * 3.0;
   const toneHash = ((tile.position.x * 73856093) ^ (tile.position.y * 19349663) ^ (tile.variant * 83492791)) >>> 0;
   const hashTone = ((toneHash % 5) - 2) * 0.8;
-  const toneScale = tile.kind === "water" ? 0.7 : tile.kind === "grass" ? 1.25 : 0.6;
-  const variation = (tile.variant - 2) * (tile.kind === "water" ? 2.4 : tile.kind === "grass" ? 1.2 : 1.8) + (lowFrequencyTone + hashTone) * toneScale;
+  const toneScale = tile.kind === "water" ? 0.9 : tile.kind === "grass" ? 1.25 : 0.6;
+  const variation = (tile.variant - 2) * (tile.kind === "water" ? 3.1 : tile.kind === "grass" ? 1.2 : 1.8) + (lowFrequencyTone + hashTone) * toneScale;
   // Ground sits a half-step below the sunlit rooftops so built forms read
   // bright against the terrain instead of blending into it.
   const color = shellTile
     ? mixColor(scaleColor(shadeColor(baseColor, variation * 0.35), 0.96), 0xe0dec4, 0.16)
-    : mixColor(scaleColor(shadeColor(baseColor, variation), 0.98), SUN_WARM_TINT, 0.07);
+    : tile.kind === "water"
+      ? mixColor(scaleColor(shadeColor(baseColor, variation), 0.96), 0x082f57, 0.18)
+      : mixColor(scaleColor(shadeColor(baseColor, variation), 0.98), SUN_WARM_TINT, 0.07);
   const alpha = shellTile ? (tile.kind === "grass" ? 0.86 : 0.9) : draftTile ? (tile.kind === "grass" ? 0.84 : 0.92) : tile.kind === "water" ? 0.97 : tile.kind === "grass" ? 0.92 : 0.94;
-  const strokeAlpha = shellTile ? (tile.kind === "grass" ? 0.1 : 0.14) : draftTile ? (tile.kind === "grass" ? 0.018 : 0.1) : tile.kind === "grass" ? 0.026 : tile.kind === "water" ? 0.18 : 0.12;
-  const strokeColor = tile.kind === "water" ? 0x3a8ea1 : shellTile ? 0x747965 : draftTile ? 0x7a8a58 : regionalTerrain ? colorToNumber(regionalTerrain.shade) : 0x6d824f;
+  const strokeAlpha = shellTile ? (tile.kind === "grass" ? 0.1 : 0.14) : draftTile ? (tile.kind === "grass" ? 0.018 : 0.1) : tile.kind === "grass" ? 0.026 : tile.kind === "water" ? 0.28 : 0.12;
+  const strokeColor = tile.kind === "water" ? 0x0b4f79 : shellTile ? 0x747965 : draftTile ? 0x7a8a58 : regionalTerrain ? colorToNumber(regionalTerrain.shade) : 0x6d824f;
   // Massing/elevation extrusions first, then the tile face: within a shared
   // Graphics, path order is z order (old per-object add order preserved).
   drawTerrainChunkMassing(g, tile, point, color);
@@ -1524,17 +1526,19 @@ function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile, atlas: CityWor
   const graphic = appendPolygon(g, diamondPoints(point, TILE_WIDTH + 1, TILE_HEIGHT + 1), color, alpha, strokeColor, strokeAlpha);
 
   if (tile.kind === "water") {
-    // Gentle depth gradient + sheen: lighter toward the sun edge, darker below.
+    // Depth gradient + sheen: bright sun edge, deep blue falloff below.
     graphic
       .poly([point.x - TILE_WIDTH * 0.5, point.y, point.x, point.y - TILE_HEIGHT * 0.5, point.x + TILE_WIDTH * 0.16, point.y - TILE_HEIGHT * 0.34, point.x - TILE_WIDTH * 0.28, point.y + TILE_HEIGHT * 0.1], true)
-      .fill({ color: 0xa9dcE6, alpha: 0.16 })
+      .fill({ color: 0x75c9ee, alpha: 0.22 })
       .poly([point.x + TILE_WIDTH * 0.5, point.y, point.x, point.y + TILE_HEIGHT * 0.5, point.x - TILE_WIDTH * 0.14, point.y + TILE_HEIGHT * 0.36, point.x + TILE_WIDTH * 0.26, point.y - TILE_HEIGHT * 0.08], true)
-      .fill({ color: 0x2a6d84, alpha: 0.14 });
+      .fill({ color: 0x052f5a, alpha: 0.28 })
+      .poly([point.x - TILE_WIDTH * 0.22, point.y - TILE_HEIGHT * 0.04, point.x + TILE_WIDTH * 0.1, point.y - TILE_HEIGHT * 0.2, point.x + TILE_WIDTH * 0.34, point.y - TILE_HEIGHT * 0.02, point.x + TILE_WIDTH * 0.02, point.y + TILE_HEIGHT * 0.16], true)
+      .fill({ color: 0x0e5f98, alpha: 0.18 });
     if (tile.variant % 2 === 0) {
       graphic
         .moveTo(point.x - 11, point.y - 1)
         .lineTo(point.x + 13, point.y - 1)
-        .stroke({ color: 0xe9fbff, alpha: 0.2, width: 1.1, cap: "round" });
+        .stroke({ color: 0xd7f8ff, alpha: 0.28, width: 1.15, cap: "round" });
     }
   } else if (tile.kind === "park" && tile.variant % 3 === 0) {
     graphic.circle(point.x - 5, point.y - 1, 1.8).fill({ color: 0xd8f0b2, alpha: 0.32 });
@@ -1596,8 +1600,12 @@ function drawTerrainCliffCourses(g: Graphics, tile: CityWorldTerrainTile, point:
         g
           .moveTo(edge.from.x, edge.from.y + topDrop)
           .lineTo(edge.to.x, edge.to.y + topDrop)
-          .stroke({ color: shadeColor(color, 26), alpha: course === 0 ? 0.5 : 0.3, width: 1.1, cap: "butt" });
+          .stroke({ color: shadeColor(color, 30), alpha: course === 0 ? 0.58 : 0.36, width: 1.15, cap: "butt" });
       }
+      g
+        .moveTo(edge.from.x, edge.from.y + bottomDrop - 0.9)
+        .lineTo(edge.to.x, edge.to.y + bottomDrop - 0.9)
+        .stroke({ color: frontFace ? shadeColor(color, 12) : shadeColor(color, -46), alpha: frontFace ? 0.24 : 0.18, width: 0.9, cap: "butt" });
     }
   }
 }
@@ -1642,18 +1650,18 @@ function drawTerrainContactSeams(graphic: Graphics, tile: CityWorldTerrainTile, 
       const inner = insetEdgeSegment(point, edge, 0.34);
       graphic
         .poly([edge.from.x, edge.from.y, edge.to.x, edge.to.y, inner.to.x, inner.to.y, inner.from.x, inner.from.y], true)
-        .fill({ color: 0xe8dcae, alpha: style.strandAlpha * 0.55 });
+        .fill({ color: 0xead7a6, alpha: style.strandAlpha * 0.68 });
     }
     for (const side of waterEdgeSides) {
       const strand = insetEdgeSegment(point, tileEdgeSegment(point, width, height, side), 0.1);
       graphic.moveTo(strand.from.x, strand.from.y).lineTo(strand.to.x, strand.to.y);
     }
-    graphic.stroke({ color: 0xeadfb4, alpha: style.strandAlpha, width: 1.4, cap: "round", join: "round" });
+    graphic.stroke({ color: 0xf1dfae, alpha: style.strandAlpha, width: 1.65, cap: "round", join: "round" });
     for (const side of waterEdgeSides) {
       const wet = insetEdgeSegment(point, tileEdgeSegment(point, width, height, side), 0.22);
       graphic.moveTo(wet.from.x, wet.from.y).lineTo(wet.to.x, wet.to.y);
     }
-    graphic.stroke({ color: 0x3f7d8c, alpha: style.wetAlpha, width: 1.1, cap: "round", join: "round" });
+    graphic.stroke({ color: 0x185f85, alpha: style.wetAlpha, width: 1.25, cap: "round", join: "round" });
   }
 }
 
@@ -1798,18 +1806,18 @@ function terrainChunkMassingStyle(
   }
   if (massing === "waterfront_bank_cut_mass") {
     return {
-      depth: structuralEdge ? 13 : 9,
+      depth: structuralEdge ? 14 : 10,
       widthScale: structuralEdge ? 1.18 : 1.1,
       heightScale: structuralEdge ? 1.12 : 1.06,
-      leftColor: 0x5f8d96,
-      rightColor: 0x75aab2,
-      faceAlpha: structuralEdge ? 0.28 : 0.18,
-      shadowAlpha: structuralEdge ? 0.085 : 0.05,
-      rimColor: 0xe9fbff,
-      rimAlpha: structuralEdge ? 0.28 : 0.16,
+      leftColor: 0x1f6d8e,
+      rightColor: 0x2f86a4,
+      faceAlpha: structuralEdge ? 0.34 : 0.22,
+      shadowAlpha: structuralEdge ? 0.11 : 0.065,
+      rimColor: 0xdaf8ff,
+      rimAlpha: structuralEdge ? 0.34 : 0.2,
       rimWidth: structuralEdge ? 1.8 : 1.2,
-      strataColor: 0xd7f4f7,
-      strataAlpha: structuralEdge ? 0.16 : 0.07,
+      strataColor: 0x9ed8df,
+      strataAlpha: structuralEdge ? 0.2 : 0.1,
     };
   }
   if (massing === "shell_boundary_mass") {
@@ -1853,8 +1861,8 @@ function drawTerrainElevationEdges(g: Graphics, tile: CityWorldTerrainTile, poin
   const cut = elevation === "water_edge_cut";
   const basin = elevation === "park_basin_shelf";
   const depth = elevation === "civic_plinth_shelf" ? 7 : cut ? 8 : basin ? 4 : 5;
-  const sideColor = cut ? sunlitColor(0x6297a1, "shade") : sunlitColor(shadeColor(color, basin ? -8 : -12), "shade");
-  const faceAlpha = cut ? 0.4 : elevation === "civic_plinth_shelf" ? 0.42 : 0.3;
+  const sideColor = cut ? sunlitColor(0x155c80, "shade") : sunlitColor(shadeColor(color, basin ? -8 : -12), "shade");
+  const faceAlpha = cut ? 0.48 : elevation === "civic_plinth_shelf" ? 0.42 : 0.3;
 
   if (raised || cut || (basin && hash % 2 === 0)) {
     g
@@ -1873,7 +1881,7 @@ function drawTerrainElevationEdges(g: Graphics, tile: CityWorldTerrainTile, poin
       .moveTo(point.x - TILE_WIDTH * 0.36, point.y + TILE_HEIGHT * 0.12 + depth * 0.55)
       .lineTo(point.x - TILE_WIDTH * 0.08, point.y + TILE_HEIGHT * 0.28 + depth * 0.55)
       .lineTo(point.x + TILE_WIDTH * 0.28, point.y + TILE_HEIGHT * 0.1 + depth * 0.55)
-      .stroke({ color: cut ? 0xe9fbff : 0xf3dfb2, alpha: cut ? 0.16 : 0.12, width: 1, cap: "round", join: "round" });
+      .stroke({ color: cut ? 0xcdf5ff : 0xf3dfb2, alpha: cut ? 0.22 : 0.12, width: 1, cap: "round", join: "round" });
   }
 }
 
@@ -1970,7 +1978,7 @@ function drawTerrainParcelComposition(graphic: Graphics, tile: CityWorldTerrainT
       .moveTo(point.x - TILE_WIDTH * 0.34, point.y + TILE_HEIGHT * 0.02)
       .lineTo(point.x - TILE_WIDTH * 0.04, point.y + TILE_HEIGHT * 0.18)
       .lineTo(point.x + TILE_WIDTH * 0.3, point.y + TILE_HEIGHT * 0.02)
-      .stroke({ color: 0xe9fbff, alpha: 0.2, width: 1.4, cap: "round", join: "round" });
+          .stroke({ color: 0xd7f8ff, alpha: 0.26, width: 1.45, cap: "round", join: "round" });
   }
 }
 
@@ -1988,7 +1996,7 @@ function drawTerrainElevationChunkFace(graphic: Graphics, tile: CityWorldTerrain
     elevation === "hidden_draft_shelf"
       ? 0.3
       : elevation === "water_edge_cut"
-        ? 0.5
+        ? 0.58
         : elevation === "civic_plinth_shelf"
           ? 0.46
           : 0.38;
@@ -2029,13 +2037,13 @@ function drawTerrainElevationChunkFace(graphic: Graphics, tile: CityWorldTerrain
   if (chunkEdge !== "none") {
     const edgeColor =
       chunkEdge === "waterfront_bank_edge"
-        ? 0xe9fbff
+        ? 0xd7f8ff
         : chunkEdge === "park_basin_edge"
           ? 0xe7dca9
           : chunkEdge === "hidden_draft_boundary"
             ? 0xd9c28b
             : 0xf2e5bd;
-    const edgeAlpha = chunkEdge === "world_edge" ? 0.1 : chunkEdge === "parcel_cluster_edge" ? 0.13 : 0.18;
+    const edgeAlpha = chunkEdge === "waterfront_bank_edge" ? 0.24 : chunkEdge === "world_edge" ? 0.1 : chunkEdge === "parcel_cluster_edge" ? 0.13 : 0.18;
     graphic
       .moveTo(point.x - TILE_WIDTH * 0.5, point.y + depth * 0.45)
       .lineTo(point.x, point.y + TILE_HEIGHT * 0.5 + depth * 0.65)
@@ -2049,7 +2057,7 @@ function terrainElevationDepth(elevation: NonNullable<CityWorldTerrainTile["visu
   if (elevation === "raised_parcel_shelf") return 4.2;
   if (elevation === "commercial_slab_field") return 4.8;
   if (elevation === "park_basin_shelf") return 3.2;
-  if (elevation === "water_edge_cut") return 6.5;
+  if (elevation === "water_edge_cut") return 7.4;
   if (elevation === "hidden_draft_shelf") return 4;
   return chunkEdge && chunkEdge !== "none" ? 2.4 : 0;
 }

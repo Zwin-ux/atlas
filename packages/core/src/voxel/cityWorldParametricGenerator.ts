@@ -1153,7 +1153,9 @@ function generatedLandmarkHost(
 ): GeneratedLandmarkHost | null {
   if (signature.hostCell === "water_edge") {
     const zone = zones.find((candidate) => candidate.kind === "water") ?? zones.find((candidate) => candidate.id === "water-edge");
-    return zone ? hostInsideZone(zone, zone.rect.minX + massing.width / 2 + 0.18, zoneCenter(zone).y, massing, elevationModel) : null;
+    if (!zone) return null;
+    const point = waterEdgeHostPoint(zone, massing);
+    return hostInsideZone(zone, point.x, point.y, massing, elevationModel);
   }
   if (signature.hostCell === "civic_core") {
     const zone = zones.find((candidate) => candidate.id === "civic-core" || candidate.kind === "civic");
@@ -1202,6 +1204,20 @@ function hostInsideZone(
   return {
     zone,
     point: { x: roundDimension(x), y: roundDimension(y), z: elevationModel.tileZ(Math.round(x), Math.round(y)) },
+  };
+}
+
+function waterEdgeHostPoint(zone: CityWorldZoneSpec, massing: GeneratedLandmarkMassing): { x: number; y: number } {
+  const wideBand = zone.rect.maxX - zone.rect.minX > (zone.rect.maxY - zone.rect.minY) * 1.6;
+  if (wideBand) {
+    return {
+      x: zoneCenter(zone).x,
+      y: zone.rect.minY + massing.depth / 2 + 0.18,
+    };
+  }
+  return {
+    x: zone.rect.minX + massing.width / 2 + 0.18,
+    y: zoneCenter(zone).y,
   };
 }
 
@@ -1755,14 +1771,7 @@ function zonePropsForZone(
     specs.push({ kind: "bench", point: at(0.16, 0.46) }, { kind: "bench", point: at(0.62, 0.16) });
     if (area >= 40) specs.push({ kind: "fountain", point: at(0.5, 0.5) });
   } else if (zone.kind === "water") {
-    specs.push(
-      { kind: "water_shimmer", point: at(0.3, 0.3) },
-      { kind: "water_shimmer", point: at(0.6, 0.6) },
-      { kind: "water_shimmer", point: at(0.45, 0.82) },
-      // Dock reaches from the west shore; boat moored a tile off its head.
-      { kind: "dock", point: at(0.08, 0.4) },
-      { kind: "boat", point: at(0.4, 0.55), variant: Math.floor(rng() * 2) },
-    );
+    specs.push(...waterAccentProps(zone, rng));
     addShorelineCluster(specs, zone, context, vegetationRng);
   } else if (zone.kind === "plaza" && context.archetype === "metro_grid") {
     addParkTreeCluster(specs, zone, context, vegetationRng, vegetationBand(7, 9, context.vegetationDensity));
@@ -1802,6 +1811,28 @@ function propZoneRng(spec: CityWorldParametricSpec, zone: CityWorldZoneSpec): ()
     seed = Math.imul(seed ^ key.charCodeAt(index), 16777619) >>> 0;
   }
   return mulberry32(seed);
+}
+
+function waterAccentProps(zone: CityWorldZoneSpec, rng: () => number): ZonePropSpec[] {
+  const wideBand = zone.rect.maxX - zone.rect.minX > (zone.rect.maxY - zone.rect.minY) * 1.6;
+  const at = (fx: number, fy: number): CityWorldPoint => zonePoint(zone, fx, fy);
+  if (wideBand) {
+    return [
+      { kind: "water_shimmer", point: at(0.22, 0.34) },
+      { kind: "water_shimmer", point: at(0.52, 0.58) },
+      { kind: "water_shimmer", point: at(0.78, 0.42) },
+      { kind: "dock", point: at(0.66, 0.08) },
+      { kind: "boat", point: at(0.66, 0.36), variant: Math.floor(rng() * 2) },
+    ];
+  }
+
+  return [
+    { kind: "water_shimmer", point: at(0.3, 0.24) },
+    { kind: "water_shimmer", point: at(0.6, 0.56) },
+    { kind: "water_shimmer", point: at(0.45, 0.82) },
+    { kind: "dock", point: at(0.08, 0.42) },
+    { kind: "boat", point: at(0.38, 0.56), variant: Math.floor(rng() * 2) },
+  ];
 }
 
 function residentialStreetTreeCap(archetype: GeneratedDistrictArchetype | undefined): number {
@@ -1952,7 +1983,12 @@ function addShorelineCluster(
   rng: () => number,
 ): void {
   if (context.archetype !== "coastal_grid" && context.archetype !== "river_town") return;
-  const count = vegetationBand(4, 6, context.vegetationDensity);
+  const wideBand = zone.rect.maxX - zone.rect.minX > (zone.rect.maxY - zone.rect.minY) * 1.6;
+  const count = wideBand ? vegetationBand(4, 5, context.vegetationDensity) : vegetationBand(4, 6, context.vegetationDensity);
+  if (wideBand) {
+    addHorizontalShorelineCluster(specs, zone, context, rng, count);
+    return;
+  }
   const banks = context.archetype === "river_town" ? shorelineBankXs(zone, context.roadSegments) : [shorelineLandwardXs(zone, context.roadSegments)];
   const fractions = [0.18, 0.34, 0.52, 0.68, 0.84, 0.92];
   for (let bankIndex = 0; bankIndex < banks.length; bankIndex += 1) {
@@ -1967,6 +2003,36 @@ function addShorelineCluster(
           break;
         }
       }
+    }
+  }
+}
+
+function addHorizontalShorelineCluster(
+  specs: ZonePropSpec[],
+  zone: CityWorldZoneSpec,
+  context: PropPlacementContext,
+  rng: () => number,
+  count: number,
+): void {
+  const banks = shorelineBankYs(zone, context.roadSegments);
+  const fractions = [0.14, 0.26, 0.38, 0.52, 0.66, 0.8, 0.9];
+  for (let bankIndex = 0; bankIndex < banks.length; bankIndex += 1) {
+    const bankYs = banks[bankIndex]!;
+    let added = 0;
+    for (const fx of fractions) {
+      if (added >= count) break;
+      for (const y of bankYs) {
+        const point = { x: zone.rect.minX + (zone.rect.maxX - zone.rect.minX) * fx + (rng() - 0.5) * 0.24, y: y + (rng() - 0.5) * 0.12, z: 0 };
+        if (addVegetationSpec(specs, context, "tree", point, bankIndex * count + added + 1)) {
+          added += 1;
+          break;
+        }
+      }
+    }
+
+    const bushFx = bankIndex === 0 ? 0.08 : 0.92;
+    for (const y of bankYs) {
+      if (addVegetationSpec(specs, context, "bush", { x: zone.rect.minX + (zone.rect.maxX - zone.rect.minX) * bushFx, y, z: 0 }, bankIndex + 1)) break;
     }
   }
 }
@@ -2070,6 +2136,23 @@ function shorelineBankXs(zone: CityWorldZoneSpec, roads: CityWorldRoadSegment[])
   const roadEastX = verticalRoad ? verticalRoad.from.x + verticalRoad.width / 2 + ROAD_CLEARANCE_MARGIN + 0.85 : Number.NaN;
   const east = [zone.rect.maxX + 0.38, zone.rect.maxX + 0.72, zone.rect.maxX + 1.18, roadEastX].filter(Number.isFinite);
   return [west, east];
+}
+
+function shorelineBankYs(zone: CityWorldZoneSpec, roads: CityWorldRoadSegment[]): number[][] {
+  const horizontalRoadNorth = roads
+    .filter((road) => road.kind !== "crosswalk" && road.from.y === road.to.y)
+    .filter((road) => Math.abs(road.from.y - zone.rect.minY) <= 3.4)
+    .sort((a, b) => Math.abs(a.from.y - zone.rect.minY) - Math.abs(b.from.y - zone.rect.minY))[0];
+  const roadNorthY = horizontalRoadNorth ? horizontalRoadNorth.from.y - horizontalRoadNorth.width / 2 - ROAD_CLEARANCE_MARGIN - 0.85 : Number.NaN;
+  const north = [zone.rect.minY - 0.38, zone.rect.minY - 0.72, zone.rect.minY - 1.18, roadNorthY].filter(Number.isFinite);
+
+  const horizontalRoadSouth = roads
+    .filter((road) => road.kind !== "crosswalk" && road.from.y === road.to.y)
+    .filter((road) => Math.abs(road.from.y - zone.rect.maxY) <= 3.4)
+    .sort((a, b) => Math.abs(a.from.y - zone.rect.maxY) - Math.abs(b.from.y - zone.rect.maxY))[0];
+  const roadSouthY = horizontalRoadSouth ? horizontalRoadSouth.from.y + horizontalRoadSouth.width / 2 + ROAD_CLEARANCE_MARGIN + 0.85 : Number.NaN;
+  const south = [zone.rect.maxY + 0.38, zone.rect.maxY + 0.72, zone.rect.maxY + 1.18, roadSouthY].filter(Number.isFinite);
+  return [north, south];
 }
 
 function vegetationBand(min: number, max: number, vegetationDensity: number): number {

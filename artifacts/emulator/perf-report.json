@@ -7,7 +7,7 @@
       "archetype": "metro_grid",
       "viewport": "desktop",
       "graphics": 693,
-      "rebuildMs": 11.6,
+      "rebuildMs": 11,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -26,7 +26,7 @@
       "archetype": "metro_grid",
       "viewport": "mobile",
       "graphics": 962,
-      "rebuildMs": 10.9,
+      "rebuildMs": 10.4,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -45,14 +45,14 @@
       "archetype": "coastal_grid",
       "viewport": "desktop",
       "graphics": 867,
-      "rebuildMs": 8,
+      "rebuildMs": 13.4,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 932082,
-          "metaChars": 930758,
-          "generatedDraftSceneChars": 796405,
+          "resultChars": 933026,
+          "metaChars": 931702,
+          "generatedDraftSceneChars": 797349,
           "truncated": false
         }
       ],
@@ -64,14 +64,14 @@
       "archetype": "coastal_grid",
       "viewport": "mobile",
       "graphics": 956,
-      "rebuildMs": 10.6,
+      "rebuildMs": 12.2,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 932082,
-          "metaChars": 930758,
-          "generatedDraftSceneChars": 796405,
+          "resultChars": 933026,
+          "metaChars": 931702,
+          "generatedDraftSceneChars": 797349,
           "truncated": false
         }
       ],
@@ -82,15 +82,15 @@
       "county": "apache-az",
       "archetype": "desert_basin",
       "viewport": "desktop",
-      "graphics": 733,
-      "rebuildMs": 11.3,
+      "graphics": 611,
+      "rebuildMs": 12.9,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 923806,
-          "metaChars": 922534,
-          "generatedDraftSceneChars": 788347,
+          "resultChars": 947531,
+          "metaChars": 946259,
+          "generatedDraftSceneChars": 812072,
           "truncated": false
         }
       ],
@@ -102,14 +102,14 @@
       "archetype": "desert_basin",
       "viewport": "mobile",
       "graphics": 906,
-      "rebuildMs": 9.3,
+      "rebuildMs": 11,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 923806,
-          "metaChars": 922534,
-          "generatedDraftSceneChars": 788347,
+          "resultChars": 947531,
+          "metaChars": 946259,
+          "generatedDraftSceneChars": 812072,
           "truncated": false
         }
       ],
@@ -120,15 +120,15 @@
       "county": "adams-co",
       "archetype": "mountain_valley",
       "viewport": "desktop",
-      "graphics": 371,
-      "rebuildMs": 8.3,
+      "graphics": 369,
+      "rebuildMs": 8.6,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 986376,
-          "metaChars": 985109,
-          "generatedDraftSceneChars": 850935,
+          "resultChars": 985416,
+          "metaChars": 984149,
+          "generatedDraftSceneChars": 849975,
           "truncated": false
         }
       ],
@@ -139,15 +139,15 @@
       "county": "adams-co",
       "archetype": "mountain_valley",
       "viewport": "mobile",
-      "graphics": 409,
-      "rebuildMs": 12.6,
+      "graphics": 407,
+      "rebuildMs": 13.5,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 986376,
-          "metaChars": 985109,
-          "generatedDraftSceneChars": 850935,
+          "resultChars": 985416,
+          "metaChars": 984149,
+          "generatedDraftSceneChars": 849975,
           "truncated": false
         }
       ],
@@ -159,7 +159,7 @@
       "archetype": "prairie_town",
       "viewport": "desktop",
       "graphics": 542,
-      "rebuildMs": 8.3,
+      "rebuildMs": 8.7,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -178,7 +178,7 @@
       "archetype": "prairie_town",
       "viewport": "mobile",
       "graphics": 564,
-      "rebuildMs": 10.7,
+      "rebuildMs": 11,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -196,15 +196,15 @@
       "county": "butler-al",
       "archetype": "river_town",
       "viewport": "desktop",
-      "graphics": 423,
-      "rebuildMs": 11.4,
+      "graphics": 572,
+      "rebuildMs": 8.1,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 912868,
-          "metaChars": 911596,
-          "generatedDraftSceneChars": 777409,
+          "resultChars": 977503,
+          "metaChars": 976231,
+          "generatedDraftSceneChars": 842044,
           "truncated": false
         }
       ],
@@ -215,15 +215,15 @@
       "county": "butler-al",
       "archetype": "river_town",
       "viewport": "mobile",
-      "graphics": 516,
-      "rebuildMs": 8.1,
+      "graphics": 683,
+      "rebuildMs": 7,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 912868,
-          "metaChars": 911596,
-          "generatedDraftSceneChars": 777409,
+          "resultChars": 977503,
+          "metaChars": 976231,
+          "generatedDraftSceneChars": 842044,
           "truncated": false
         }
       ],
@@ -235,7 +235,7 @@
       "archetype": "curated",
       "viewport": "desktop",
       "graphics": 780,
-      "rebuildMs": 10.6,
+      "rebuildMs": 10.7,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -254,7 +254,7 @@
       "archetype": "curated",
       "viewport": "mobile",
       "graphics": 774,
-      "rebuildMs": 8.3,
+      "rebuildMs": 8.4,
       "rebuilds": 2,
       "deliveries": [
         {

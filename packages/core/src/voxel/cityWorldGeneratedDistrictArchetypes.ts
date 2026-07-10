@@ -42,7 +42,7 @@ export function generatedRoadSeeds(parameters: GeneratedDistrictArchetype | Coun
   if (profile.archetype === "coastal_grid") return withBonusRoad(coastalGridRoads(context), bonusRoad);
   if (profile.archetype === "mountain_valley") return withBonusRoad(mountainValleyRoads(context), bonusRoad);
   if (profile.archetype === "prairie_town") return withBonusRoad(prairieTownRoads(context), bonusRoad);
-  return withBonusRoad(riverTownRoads(context), bonusRoad);
+  return riverTownRoads(context);
 }
 
 type LayoutContext = {
@@ -52,6 +52,7 @@ type LayoutContext = {
   greenGap: number;
   xShift: number;
   yShift: number;
+  riverAxis: "horizontal" | "vertical";
   civicElevationBoost: number;
   reliefTerraceBoost: number;
   waterAffinity: number;
@@ -69,6 +70,7 @@ function layoutContext(profile: ArchetypeProfile, modulation: CountyGenerationMo
     greenGap: (vegetationDensity - 0.5) * 0.06,
     xShift,
     yShift,
+    riverAxis: seed % 2 === 0 ? "horizontal" : "vertical",
     civicElevationBoost: modulation?.civicElevationBoost ?? profile.zones.civicElevationBoost,
     reliefTerraceBoost: ((modulation?.reliefScale ?? 1) - 1) * 0.38,
     waterAffinity: modulation?.waterAffinity ?? 0,
@@ -109,12 +111,12 @@ function coastalGridZones(context: LayoutContext, bonusZone: CityWorldZoneSpec):
     zone("coastal-back-homes", "residential", { minX: 4, minY: 5, maxX: 18, maxY: 14 }, context, 0.74, "Back-shore homes"),
     zone("coastal-stepback-homes", "residential", { minX: 5, minY: 19, maxX: 20, maxY: 29 }, context, 0.72, "Stepback homes"),
     zone("coastal-civic", "civic", { minX: 21, minY: 8, maxX: 28, maxY: 14 }, context, undefined, "Coastal civic", context.civicElevationBoost),
-    zone("coastal-waterfront-strip", "commercial", { minX: 27, minY: 18, maxX: 35, maxY: 27 }, context, 0.86, "Waterfront strip"),
+    zone("coastal-waterfront-strip", "commercial", { minX: 27, minY: 18, maxX: 34, maxY: 27 }, context, 0.86, "Waterfront strip"),
     zone("coastal-main-street", "commercial", { minX: 22, minY: 5, maxX: 34, maxY: 8 }, context, 0.76, "Shore main street"),
     zone("coastal-apartments", "apartments", { minX: 22, minY: 16, maxX: 27, maxY: 26 }, context, 0.72, "Shore apartments"),
     zone("coastal-service", "gym", { minX: 15, minY: 16, maxX: 21, maxY: 21 }, context, undefined, "Marina service"),
     zone("coastal-green", "park", { minX: 8, minY: 15, maxX: 15, maxY: 19 }, context, undefined, "Shore green"),
-    normalizeBonusZone(bonusZone, { minX: 37, minY: 17, maxX: 43, maxY: 31 }, context.waterAffinity >= 0.75 ? "Coastal edge" : "Water edge"),
+    normalizeBonusZone(bonusZone, { minX: 36, minY: 0, maxX: 44, maxY: 32 }, context.waterAffinity >= 0.75 ? "Coastal edge" : "Water edge"),
   ];
 }
 
@@ -145,17 +147,33 @@ function prairieTownZones(context: LayoutContext, bonusZone: CityWorldZoneSpec):
 }
 
 function riverTownZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
+  if (context.riverAxis === "vertical") {
+    return [
+      zone("river-west-homes", "residential", { minX: 4, minY: 5, maxX: 15, maxY: 14 }, context, 0.74, "West bank homes"),
+      zone("river-south-homes", "residential", { minX: 5, minY: 22, maxX: 17, maxY: 30 }, context, 0.72, "South bank homes"),
+      zone("river-ferry-market", "commercial", { minX: 27, minY: 4, maxX: 36, maxY: 9 }, context, 0.86, "Ferry market"),
+      zone("river-main-north", "commercial", { minX: 27, minY: 11, maxX: 36, maxY: 16 }, context, 0.86, "River main north"),
+      zone("river-main-south", "commercial", { minX: 27, minY: 20, maxX: 36, maxY: 26 }, context, 0.86, "River main south"),
+      zone("river-dock-district", "commercial", { minX: 16, minY: 22, maxX: 20, maxY: 30 }, context, 0.82, "Dock district"),
+      zone("river-civic", "civic", { minX: 13, minY: 9, maxX: 19, maxY: 15 }, context, undefined, "River civic", context.civicElevationBoost),
+      zone("river-apartments", "apartments", { minX: 28, minY: 20, maxX: 36, maxY: 30 }, context, 0.72, "River flats"),
+      zone("river-plaza", "plaza", { minX: 9, minY: 16, maxX: 18, maxY: 20 }, context, undefined, "River plaza"),
+      normalizeBonusZone(bonusZone, { minX: 21, minY: 0, maxX: 25, maxY: 32 }, "River edge"),
+    ];
+  }
+
   return [
     zone("river-west-homes", "residential", { minX: 5, minY: 5, maxX: 18, maxY: 14 }, context, 0.74, "West bank homes"),
-    zone("river-south-homes", "residential", { minX: 6, minY: 20, maxX: 21, maxY: 29 }, context, 0.72, "South bank homes"),
-    zone("river-ferry-market", "commercial", { minX: 25, minY: 3, maxX: 33, maxY: 9 }, context, 0.86, "Ferry market"),
-    zone("river-main-north", "commercial", { minX: 25, minY: 11, maxX: 33, maxY: 17 }, context, 0.86, "River main north"),
-    zone("river-main-south", "commercial", { minX: 25, minY: 19, maxX: 33, maxY: 25 }, context, 0.86, "River main south"),
-    zone("river-dock-district", "commercial", { minX: 30, minY: 27, maxX: 36, maxY: 30 }, context, 0.82, "Dock district"),
-    zone("river-civic", "civic", { minX: 20, minY: 10, maxX: 26, maxY: 16 }, context, undefined, "River civic", context.civicElevationBoost),
-    zone("river-apartments", "apartments", { minX: 20, minY: 19, maxX: 27, maxY: 28 }, context, 0.72, "River flats"),
-    zone("river-plaza", "plaza", { minX: 10, minY: 15, maxX: 19, maxY: 19 }, context, undefined, "River plaza"),
-    normalizeBonusZone(bonusZone, { minX: 37, minY: 5, maxX: 43, maxY: 31 }, "River edge"),
+    zone("river-south-homes", "residential", { minX: 6, minY: 23, maxX: 21, maxY: 30 }, context, 0.72, "South bank homes"),
+    zone("river-ferry-market", "commercial", { minX: 25, minY: 4, maxX: 34, maxY: 9 }, context, 0.86, "Ferry market"),
+    zone("river-main-north", "commercial", { minX: 25, minY: 10, maxX: 34, maxY: 13 }, context, 0.86, "River main north"),
+    zone("river-main-south", "commercial", { minX: 25, minY: 22, maxX: 34, maxY: 27 }, context, 0.86, "River main south"),
+    zone("river-dock-district", "commercial", { minX: 29, minY: 21, maxX: 34, maxY: 24 }, context, 0.82, "Dock district"),
+    zone("river-east-market", "commercial", { minX: 36, minY: 22, maxX: 43, maxY: 30 }, context, 1.08, "East bank market"),
+    zone("river-civic", "civic", { minX: 13, minY: 8, maxX: 19, maxY: 13 }, context, undefined, "River civic", context.civicElevationBoost),
+    zone("river-apartments", "apartments", { minX: 23, minY: 23, maxX: 31, maxY: 30 }, context, 0.72, "River flats"),
+    zone("river-plaza", "plaza", { minX: 10, minY: 21, maxX: 19, maxY: 24 }, context, undefined, "River plaza"),
+    normalizeBonusZone(bonusZone, { minX: 0, minY: 15, maxX: 44, maxY: 20 }, "River edge"),
   ];
 }
 
@@ -182,7 +200,7 @@ function desertBasinRoads(context: LayoutContext): CityWorldRoadSeed[] {
 }
 
 function coastalGridRoads(context: LayoutContext): CityWorldRoadSeed[] {
-  const shoreX = 35 + Math.round(context.waterAffinity);
+  const shoreX = 35;
   return [
     road("gen-road-coastal-shoreline", "avenue", shoreX, 5, shoreX, 30),
     road("gen-road-coastal-north", "street", 4, 9 + context.yShift, shoreX, 9 + context.yShift),
@@ -216,13 +234,24 @@ function prairieTownRoads(context: LayoutContext): CityWorldRoadSeed[] {
 }
 
 function riverTownRoads(context: LayoutContext): CityWorldRoadSeed[] {
+  if (context.riverAxis === "vertical") {
+    return [
+      road("gen-road-river-west-bank", "avenue", 18, 5, 18, 30),
+      road("gen-road-river-east-bank", "avenue", 28, 5, 28, 30),
+      road("gen-road-river-north-cross", "street", 5, 10 + context.yShift, 39, 10 + context.yShift),
+      road("gen-road-river-mid-cross", "avenue", 6, 18, 39, 18),
+      road("gen-road-river-dock-cross", "street", 6, 26, 39, 26),
+      road("gen-cross-river-bridge", "crosswalk", 20, 18, 26, 18),
+    ];
+  }
+
   return [
     road("gen-road-river-main", "avenue", 34, 5, 34, 30),
     road("gen-road-river-west", "street", 22 + context.xShift, 5, 22 + context.xShift, 29),
     road("gen-road-river-north-cross", "street", 5, 10 + context.yShift, 36, 10 + context.yShift),
     road("gen-road-river-mid-cross", "avenue", 6, 18, 36, 18),
-    road("gen-road-river-dock-cross", "street", 6, 26, 37, 26),
-    road("gen-cross-river-bridge", "crosswalk", 34, 18, 38, 18),
+    road("gen-road-river-dock-cross", "street", 6, 31, 37, 31),
+    road("gen-cross-river-bridge", "crosswalk", 34, 14, 34, 21),
   ];
 }
 
@@ -240,7 +269,7 @@ export function generatedHeightGrid(
       row.map((value, columnIndex) =>
         roundUnit(
           clamp01(
-            value * reliefScale +
+            archetypeReliefValue(profile.archetype, value, rowIndex, columnIndex, profile.heightGrid.length, row.length) * reliefScale +
               heightBias +
               edgeReliefBoost(parameters, rowIndex, columnIndex, profile.heightGrid.length, row.length) +
               (unitFromSeed(seed, `h-${rowIndex}-${columnIndex}`) - 0.5) * 0.08,
@@ -257,6 +286,36 @@ function roundUnit(value: number): number {
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
+}
+
+function archetypeReliefValue(
+  archetype: GeneratedDistrictArchetype,
+  value: number,
+  rowIndex: number,
+  columnIndex: number,
+  rowCount: number,
+  columnCount: number,
+): number {
+  const edgeX = columnIndex === 0 || columnIndex === columnCount - 1;
+  const edgeY = rowIndex === 0 || rowIndex === rowCount - 1;
+  const corner = edgeX && edgeY;
+
+  if (archetype === "mountain_valley") {
+    const ridgeBoost = (edgeX ? 0.09 : 0) + (edgeY ? 0.06 : 0) + (corner ? 0.04 : 0);
+    return clamp01((value - 0.26) * 1.36 + 0.2 + ridgeBoost);
+  }
+
+  if (archetype === "desert_basin") {
+    const rimBoost = (edgeX ? 0.09 : 0) + (edgeY ? 0.07 : 0) + (corner ? 0.1 : 0);
+    return clamp01((value - 0.16) * 1.6 + 0.12 + rimBoost);
+  }
+
+  if (archetype === "river_town") {
+    const bankTerraceBoost = edgeY ? 0.04 : 0;
+    return clamp01(value * 1.45 + 0.16 + bankTerraceBoost);
+  }
+
+  return value;
 }
 
 function profileFor(parameters: GeneratedDistrictArchetype | CountyGenerationParameters): ArchetypeProfile {

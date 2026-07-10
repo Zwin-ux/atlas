@@ -1,6 +1,6 @@
 # Atlas Emulator Audit Report
 
-Ran: 2026-07-10T06:02:05.826Z
+Ran: 2026-07-10T11:13:02.927Z
 Base: http://127.0.0.1:8787
 Result: OK (158 pass, 0 warn, 0 fail)
 
@@ -16,16 +16,16 @@ No fail or warn findings.
 | autauga-al | 1 | metro_grid | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=693; ceiling=1600 | pass: max generatedDraftSceneChars=789550; ceiling=900000 | pass: console error entries=0 |
 | autauga-al | 1 | metro_grid | mobile | light | pass: state=delivered; errors=0 | pass: graphics=962; ceiling=1600 | pass: max generatedDraftSceneChars=789550; ceiling=900000 | pass: console error entries=0 |
 | autauga-al | 1 | metro_grid | mobile | dark | pass: state=delivered; errors=0 | pass: graphics=962; ceiling=1600 | pass: max generatedDraftSceneChars=789550; ceiling=900000 | pass: console error entries=0 |
-| aleutians-east-borough-ak | 1 | coastal_grid | desktop | light | pass: state=delivered; errors=0 | pass: graphics=867; ceiling=1600 | pass: max generatedDraftSceneChars=796405; ceiling=900000 | pass: console error entries=0 |
-| aleutians-east-borough-ak | 1 | coastal_grid | mobile | light | pass: state=delivered; errors=0 | pass: graphics=956; ceiling=1600 | pass: max generatedDraftSceneChars=796405; ceiling=900000 | pass: console error entries=0 |
-| apache-az | 1 | desert_basin | desktop | light | pass: state=delivered; errors=0 | pass: graphics=733; ceiling=1600 | pass: max generatedDraftSceneChars=788347; ceiling=900000 | pass: console error entries=0 |
-| apache-az | 1 | desert_basin | mobile | light | pass: state=delivered; errors=0 | pass: graphics=906; ceiling=1600 | pass: max generatedDraftSceneChars=788347; ceiling=900000 | pass: console error entries=0 |
-| adams-co | 1 | mountain_valley | desktop | light | pass: state=delivered; errors=0 | pass: graphics=371; ceiling=1600 | pass: max generatedDraftSceneChars=850935; ceiling=900000 | pass: console error entries=0 |
-| adams-co | 1 | mountain_valley | mobile | light | pass: state=delivered; errors=0 | pass: graphics=409; ceiling=1600 | pass: max generatedDraftSceneChars=850935; ceiling=900000 | pass: console error entries=0 |
+| aleutians-east-borough-ak | 1 | coastal_grid | desktop | light | pass: state=delivered; errors=0 | pass: graphics=867; ceiling=1600 | pass: max generatedDraftSceneChars=797349; ceiling=900000 | pass: console error entries=0 |
+| aleutians-east-borough-ak | 1 | coastal_grid | mobile | light | pass: state=delivered; errors=0 | pass: graphics=956; ceiling=1600 | pass: max generatedDraftSceneChars=797349; ceiling=900000 | pass: console error entries=0 |
+| apache-az | 1 | desert_basin | desktop | light | pass: state=delivered; errors=0 | pass: graphics=611; ceiling=1600 | pass: max generatedDraftSceneChars=812072; ceiling=900000 | pass: console error entries=0 |
+| apache-az | 1 | desert_basin | mobile | light | pass: state=delivered; errors=0 | pass: graphics=906; ceiling=1600 | pass: max generatedDraftSceneChars=812072; ceiling=900000 | pass: console error entries=0 |
+| adams-co | 1 | mountain_valley | desktop | light | pass: state=delivered; errors=0 | pass: graphics=369; ceiling=1600 | pass: max generatedDraftSceneChars=849975; ceiling=900000 | pass: console error entries=0 |
+| adams-co | 1 | mountain_valley | mobile | light | pass: state=delivered; errors=0 | pass: graphics=407; ceiling=1600 | pass: max generatedDraftSceneChars=849975; ceiling=900000 | pass: console error entries=0 |
 | adair-ia | 1 | prairie_town | desktop | light | pass: state=delivered; errors=0 | pass: graphics=542; ceiling=1600 | pass: max generatedDraftSceneChars=776712; ceiling=900000 | pass: console error entries=0 |
 | adair-ia | 1 | prairie_town | mobile | light | pass: state=delivered; errors=0 | pass: graphics=564; ceiling=1600 | pass: max generatedDraftSceneChars=776712; ceiling=900000 | pass: console error entries=0 |
-| butler-al | 1 | river_town | desktop | light | pass: state=delivered; errors=0 | pass: graphics=423; ceiling=1600 | pass: max generatedDraftSceneChars=777409; ceiling=900000 | pass: console error entries=0 |
-| butler-al | 1 | river_town | mobile | light | pass: state=delivered; errors=0 | pass: graphics=516; ceiling=1600 | pass: max generatedDraftSceneChars=777409; ceiling=900000 | pass: console error entries=0 |
+| butler-al | 1 | river_town | desktop | light | pass: state=delivered; errors=0 | pass: graphics=572; ceiling=1600 | pass: max generatedDraftSceneChars=842044; ceiling=900000 | pass: console error entries=0 |
+| butler-al | 1 | river_town | mobile | light | pass: state=delivered; errors=0 | pass: graphics=683; ceiling=1600 | pass: max generatedDraftSceneChars=842044; ceiling=900000 | pass: console error entries=0 |
 | riverside-ca | 0 | curated | desktop | light | pass: state=delivered; errors=0 | pass: graphics=780; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
 | riverside-ca | 0 | curated | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=780; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
 | riverside-ca | 0 | curated | mobile | light | pass: state=delivered; errors=0 | pass: graphics=774; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
