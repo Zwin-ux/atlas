@@ -7,13 +7,13 @@
       "archetype": "metro_grid",
       "viewport": "desktop",
       "graphics": 687,
-      "rebuildMs": 11.9,
+      "rebuildMs": 10.8,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 922578,
-          "metaChars": 921301,
+          "resultChars": 922579,
+          "metaChars": 921302,
           "generatedDraftSceneChars": 787101,
           "truncated": false
         }
@@ -26,7 +26,7 @@
       "archetype": "metro_grid",
       "viewport": "mobile",
       "graphics": 936,
-      "rebuildMs": 10.5,
+      "rebuildMs": 9.5,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -45,13 +45,13 @@
       "archetype": "coastal_grid",
       "viewport": "desktop",
       "graphics": 849,
-      "rebuildMs": 11.5,
+      "rebuildMs": 7.2,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 930162,
-          "metaChars": 928838,
+          "resultChars": 930163,
+          "metaChars": 928839,
           "generatedDraftSceneChars": 794485,
           "truncated": false
         }
@@ -64,7 +64,7 @@
       "archetype": "coastal_grid",
       "viewport": "mobile",
       "graphics": 938,
-      "rebuildMs": 11,
+      "rebuildMs": 10,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -83,13 +83,13 @@
       "archetype": "desert_basin",
       "viewport": "desktop",
       "graphics": 733,
-      "rebuildMs": 10.7,
+      "rebuildMs": 8.4,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 923806,
-          "metaChars": 922534,
+          "resultChars": 923807,
+          "metaChars": 922535,
           "generatedDraftSceneChars": 788347,
           "truncated": false
         }
@@ -102,7 +102,7 @@
       "archetype": "desert_basin",
       "viewport": "mobile",
       "graphics": 906,
-      "rebuildMs": 7,
+      "rebuildMs": 9.6,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -121,13 +121,13 @@
       "archetype": "mountain_valley",
       "viewport": "desktop",
       "graphics": 357,
-      "rebuildMs": 8.5,
+      "rebuildMs": 6.8,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 983514,
-          "metaChars": 982247,
+          "resultChars": 983515,
+          "metaChars": 982248,
           "generatedDraftSceneChars": 848073,
           "truncated": false
         }
@@ -140,7 +140,7 @@
       "archetype": "mountain_valley",
       "viewport": "mobile",
       "graphics": 391,
-      "rebuildMs": 12.7,
+      "rebuildMs": 12,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -159,13 +159,13 @@
       "archetype": "prairie_town",
       "viewport": "desktop",
       "graphics": 530,
-      "rebuildMs": 8.1,
+      "rebuildMs": 6,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 910059,
-          "metaChars": 908792,
+          "resultChars": 910060,
+          "metaChars": 908793,
           "generatedDraftSceneChars": 774618,
           "truncated": false
         }
@@ -178,7 +178,7 @@
       "archetype": "prairie_town",
       "viewport": "mobile",
       "graphics": 548,
-      "rebuildMs": 9.9,
+      "rebuildMs": 10,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -197,13 +197,13 @@
       "archetype": "river_town",
       "viewport": "desktop",
       "graphics": 411,
-      "rebuildMs": 10.3,
+      "rebuildMs": 8.2,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 910825,
-          "metaChars": 909553,
+          "resultChars": 910826,
+          "metaChars": 909554,
           "generatedDraftSceneChars": 775366,
           "truncated": false
         }
@@ -216,7 +216,7 @@
       "archetype": "river_town",
       "viewport": "mobile",
       "graphics": 504,
-      "rebuildMs": 7,
+      "rebuildMs": 7.5,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -235,13 +235,13 @@
       "archetype": "curated",
       "viewport": "desktop",
       "graphics": 780,
-      "rebuildMs": 11.2,
+      "rebuildMs": 11.5,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 22547,
-          "metaChars": 21772,
+          "resultChars": 22548,
+          "metaChars": 21773,
           "generatedDraftSceneChars": 0,
           "truncated": false
         }
@@ -254,7 +254,7 @@
       "archetype": "curated",
       "viewport": "mobile",
       "graphics": 774,
-      "rebuildMs": 8,
+      "rebuildMs": 7.2,
       "rebuilds": 2,
       "deliveries": [
         {

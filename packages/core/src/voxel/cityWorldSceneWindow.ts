@@ -203,9 +203,12 @@ export const CITY_WORLD_SCENE_WINDOW_BUDGETS: Record<CityWorldSceneWindowBudgetP
     maxPublicClutterCommands: 0,
     maxDebugCommands: 0,
     maxActorCommands: 0,
-    // 0.75R: the 0.74F curated prop kit reaches generated drafts too;
-    // observed 13-16 visible prop commands across sample counties.
-    maxPropCommands: 20,
+    // E2b: raised 20 -> 36 (the public window's own prop allowance) so the E2
+    // vegetation grammar is visible instead of window-clipped. Evidence at the
+    // raise: worst visible budget weight 715/1200 and worst REAL Pixi Graphics
+    // 938/1600 (emulator perf matrix) — 16 more visible props ≈ +32 Graphics,
+    // comfortably inside both ceilings. History: 0.75R observed 13-16.
+    maxPropCommands: 36,
     minTerrainCommands: 50,
     minRoadCommands: 1,
     minLotCommands: 1,

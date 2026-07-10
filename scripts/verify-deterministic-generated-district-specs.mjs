@@ -48,7 +48,7 @@ for (const token of ["selectGeneratedDistrictArchetype", "generatedZones", "gene
   requireToken(archetypeSource, token, "generated district archetypes");
 }
 
-for (const token of ["generated_draft_window", "maxPropCommands: 20", "requireNonPlayable: true"]) {
+for (const token of ["generated_draft_window", "maxPropCommands: 36", "requireNonPlayable: true"]) {
   requireToken(windowSource, token, "generated draft window budget");
 }
 
