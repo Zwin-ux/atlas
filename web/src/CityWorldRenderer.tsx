@@ -112,6 +112,10 @@ const TILE_HEIGHT = CITY_WORLD_TILE_BASIS.tileHeight;
 const TILE_DEPTH = CITY_WORLD_TILE_BASIS.tileDepth;
 const STREAMING_WINDOW_MARGIN_TILES = 3;
 const STREAMING_REFRESH_MARGIN_TILES = 0.75;
+// Max one streaming window rebuild per this interval while a finger is down
+// (see requestWindowRefreshIfNeeded) — prevents pan-time rebuild storms on
+// budget-clipped windows without letting the view outrun the window.
+const GESTURE_WINDOW_REFRESH_INTERVAL_MS = 250;
 const MATERIAL_TEXTURE_DETAIL_ZOOM = 1.55;
 
 // ---- Unified sun model ----------------------------------------------------
@@ -377,6 +381,19 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   const dragRef = useRef<{ active: boolean; x: number; y: number }>({ active: false, x: 0, y: 0 });
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
+  // Touch-feel pass: cumulative tap-slop origin, flick velocity samples, the
+  // live inertia animation, and the deferred material-texture rebuild flag
+  // (crossing the 1.55 texture gate mid-gesture must not hitch the gesture).
+  const gestureOriginRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const velocitySamplesRef = useRef<Array<{ x: number; y: number; t: number }>>([]);
+  const inertiaFrameRef = useRef<number | null>(null);
+  const pendingMaterialRefreshRef = useRef(false);
+  // Budget-clipped windows (heaviest generated mobile scenes) can leave near-
+  // zero streaming margin, so an un-throttled pan rebuilds the window several
+  // times per gesture. While fingers are down, allow at most one streaming
+  // rebuild per interval and flush the rest on release.
+  const pendingGestureWindowRefreshRef = useRef(false);
+  const lastGestureWindowRefreshRef = useRef(0);
   const selectPlaceRef = useRef(onSelectPlace);
   const activeWindowFrameRef = useRef<CityWorldViewportFrame | null>(null);
   const pendingWindowRefreshRef = useRef(false);
@@ -391,7 +408,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   const [windowRefreshKey, setWindowRefreshKey] = useState(0);
   // Perf counters surfaced on __ATLAS_QA__.perf so browser verifiers can gate
   // "hover must not rebuild the scene" and "idle must not render".
-  const perfRef = useRef({ sceneRebuilds: 0, lastRebuildMs: 0, overlayRedraws: 0, renderedFrames: 0 });
+  const perfRef = useRef({ sceneRebuilds: 0, lastRebuildMs: 0, overlayRedraws: 0, renderedFrames: 0, streamingRefreshFired: 0, streamingRefreshDeferred: 0 });
   // Focus-overlay animations (selection pulse) live apart from scene ambient
   // animations so the overlay can clear its own targets without touching the
   // scene's, and vice versa.
@@ -536,6 +553,8 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
           animatedTargetCount: () => animatedRef.current.length + focusAnimatedRef.current.length,
           loopParked: () => !renderLoopRef.current.active,
           graphicsCount: () => countGraphics(world),
+          get streamingRefreshFired() { return perfRef.current.streamingRefreshFired; },
+          get streamingRefreshDeferred() { return perfRef.current.streamingRefreshDeferred; },
         },
       };
       try {
@@ -594,13 +613,89 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     activeWindowFrameRef.current = null;
     pendingWindowRefreshRef.current = false;
 
+    // Touch-feel constants: cumulative tap slop (a slightly wobbly finger tap
+    // must stay a tap), flick velocity floor, and inertia decay per 16.7ms.
+    const TAP_SLOP_PX = 8;
+    const FLICK_MIN_SPEED = 0.25; // px/ms
+    const FLICK_SAMPLE_WINDOW_MS = 100;
+    const INERTIA_DECAY = 0.94;
+    const INERTIA_STOP_SPEED = 0.02;
+
+    const cancelInertia = () => {
+      if (inertiaFrameRef.current !== null) {
+        window.cancelAnimationFrame(inertiaFrameRef.current);
+        inertiaFrameRef.current = null;
+      }
+    };
+    const startInertia = (vx: number, vy: number) => {
+      cancelInertia();
+      let lastT = performance.now();
+      let velocityX = vx;
+      let velocityY = vy;
+      const step = (now: number) => {
+        // Keep inertiaFrameRef non-null for the whole coast — applyCameraNow's
+        // streaming-refresh throttle reads isGestureActive() mid-step, and
+        // nulling here would bypass it every frame (rebuild storm).
+        const dt = Math.min(48, now - lastT);
+        lastT = now;
+        const decay = Math.pow(INERTIA_DECAY, dt / 16.7);
+        velocityX *= decay;
+        velocityY *= decay;
+        if (Math.hypot(velocityX, velocityY) < INERTIA_STOP_SPEED) {
+          inertiaFrameRef.current = null;
+          flushPendingMaterialRefresh();
+          return;
+        }
+        cameraRef.current.x += velocityX * dt;
+        cameraRef.current.y += velocityY * dt;
+        applyCameraNow();
+        inertiaFrameRef.current = window.requestAnimationFrame(step);
+      };
+      inertiaFrameRef.current = window.requestAnimationFrame(step);
+    };
+    const pinchMidpoint = () => {
+      const [first, second] = [...activePointersRef.current.values()];
+      if (!first || !second) return null;
+      return { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+    };
+    const trackVelocity = (x: number, y: number) => {
+      const now = performance.now();
+      const samples = velocitySamplesRef.current;
+      samples.push({ x, y, t: now });
+      while (samples.length > 6 || (samples.length > 1 && now - (samples[0]?.t ?? now) > FLICK_SAMPLE_WINDOW_MS)) samples.shift();
+    };
+    const releaseVelocity = (): { vx: number; vy: number } | null => {
+      const samples = velocitySamplesRef.current;
+      const last = samples[samples.length - 1];
+      const first = samples[0];
+      if (!first || !last || first === last) return null;
+      // A real flick is many move events over real time. Two samples over a
+      // few ms (synthetic pans, twitchy releases) produce garbage velocities
+      // that turn a nudge into a runaway coast.
+      if (samples.length < 3) return null;
+      const dt = last.t - first.t;
+      if (dt < 30 || performance.now() - last.t > 80) return null;
+      const vx = (last.x - first.x) / dt;
+      const vy = (last.y - first.y) / dt;
+      const speed = Math.hypot(vx, vy);
+      if (speed < FLICK_MIN_SPEED) return null;
+      // Cap the coast: beyond ~1.5px/ms the decay tail crosses several window
+      // margins and streams rebuilds for no user-visible benefit.
+      const scale = Math.min(1, 1.5 / speed);
+      return { vx: vx * scale, vy: vy * scale };
+    };
+
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
-      zoomBy(event.deltaY > 0 ? 0.92 : 1.08);
+      // Anchor to the cursor so wheel zoom dives toward what's pointed at.
+      setCameraZoomAnchored(cameraRef.current.zoom * (event.deltaY > 0 ? 0.92 : 1.08), event.clientX, event.clientY);
     };
     const handlePointerDown = (event: PointerEvent) => {
+      cancelInertia();
       activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
       dragRef.current = { active: true, x: event.clientX, y: event.clientY };
+      gestureOriginRef.current = { x: event.clientX, y: event.clientY };
+      velocitySamplesRef.current = [{ x: event.clientX, y: event.clientY, t: performance.now() }];
       movedRef.current = false;
       try {
         mount.setPointerCapture?.(event.pointerId);
@@ -620,11 +715,17 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       const distance = pointerDistance(activePointersRef.current);
       if (distance && pinchRef.current) {
         movedRef.current = true;
-        setCameraZoom(pinchRef.current.zoom * (distance / pinchRef.current.distance));
+        // Anchor the zoom at the finger midpoint, not the preset center.
+        const midpoint = pinchMidpoint();
+        const nextZoom = pinchRef.current.zoom * (distance / pinchRef.current.distance);
+        if (midpoint) setCameraZoomAnchored(nextZoom, midpoint.x, midpoint.y);
+        else setCameraZoom(nextZoom);
         return;
       }
 
       if (!dragRef.current.active) {
+        // Hover is a mouse concept; touch move outside a drag is noise.
+        if (event.pointerType === "touch") return;
         setHoverPlaceId((current) => {
           const next = findHitPlace(event.clientX, event.clientY);
           return current === next ? current : next;
@@ -634,20 +735,43 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
 
       const dx = event.clientX - dragRef.current.x;
       const dy = event.clientY - dragRef.current.y;
-      if (Math.abs(dx) + Math.abs(dy) > 2) movedRef.current = true;
+      // Cumulative slop from the gesture origin — per-event jitter must not
+      // turn a tap into a pan.
+      if (Math.hypot(event.clientX - gestureOriginRef.current.x, event.clientY - gestureOriginRef.current.y) > TAP_SLOP_PX) {
+        movedRef.current = true;
+      }
       dragRef.current = { active: true, x: event.clientX, y: event.clientY };
-      cameraRef.current.x += dx;
-      cameraRef.current.y += dy;
-      scheduleCameraApply();
+      if (movedRef.current) {
+        cameraRef.current.x += dx;
+        cameraRef.current.y += dy;
+        trackVelocity(event.clientX, event.clientY);
+        scheduleCameraApply();
+      }
     };
     const handlePointerUp = (event: PointerEvent) => {
+      const wasPinching = pinchRef.current !== null;
       if (!movedRef.current) {
         const placeId = findHitPlace(event.clientX, event.clientY);
         if (placeId) selectPlaceRef.current(placeId);
       }
       activePointersRef.current.delete(event.pointerId);
       if (activePointersRef.current.size < 2) pinchRef.current = null;
-      dragRef.current.active = false;
+      const survivor = [...activePointersRef.current.values()][0];
+      if (survivor) {
+        // A pinch finger lifted while another stays down: re-anchor the drag
+        // to the surviving pointer so the map does not jump on the next move.
+        dragRef.current = { active: true, x: survivor.x, y: survivor.y };
+        gestureOriginRef.current = { x: survivor.x, y: survivor.y };
+        velocitySamplesRef.current = [];
+      } else {
+        dragRef.current.active = false;
+        if (movedRef.current && !wasPinching) {
+          const flick = releaseVelocity();
+          if (flick) startInertia(flick.vx, flick.vy);
+        }
+        velocitySamplesRef.current = [];
+        flushPendingMaterialRefresh();
+      }
       try {
         mount.releasePointerCapture?.(event.pointerId);
       } catch {
@@ -658,6 +782,8 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       activePointersRef.current.delete(event.pointerId);
       if (activePointersRef.current.size < 2) pinchRef.current = null;
       dragRef.current.active = false;
+      velocitySamplesRef.current = [];
+      flushPendingMaterialRefresh();
       try {
         mount.releasePointerCapture?.(event.pointerId);
       } catch {
@@ -671,6 +797,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     mount.addEventListener("pointerup", handlePointerUp);
     mount.addEventListener("pointercancel", handlePointerCancel);
     return () => {
+      cancelInertia();
       mount.removeEventListener("wheel", handleWheel);
       mount.removeEventListener("pointerdown", handlePointerDown);
       mount.removeEventListener("pointermove", handlePointerMove);
@@ -759,21 +886,74 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     setCameraZoom(camera.zoom * multiplier);
   }
 
+  function isGestureActive(): boolean {
+    // Inertia counts: the coast is machine-driven gesture motion, and its
+    // streaming refreshes must obey the same throttle as finger motion.
+    return dragRef.current.active || pinchRef.current !== null || inertiaFrameRef.current !== null;
+  }
+
+  function handleMaterialTextureCrossing(previousZoom: number) {
+    if (shouldDrawMaterialTexture(previousZoom) === shouldDrawMaterialTexture(cameraRef.current.zoom)) return;
+    // Deferred while a finger is still down: the full window rebuild the
+    // texture gate requires would hitch the live gesture. Flushed on release.
+    if (isGestureActive()) {
+      pendingMaterialRefreshRef.current = true;
+      return;
+    }
+    setWindowRefreshKey((value) => value + 1);
+  }
+
+  function flushPendingMaterialRefresh() {
+    if (isGestureActive()) return;
+    if (!pendingMaterialRefreshRef.current && !pendingGestureWindowRefreshRef.current) return;
+    pendingMaterialRefreshRef.current = false;
+    pendingGestureWindowRefreshRef.current = false;
+    setWindowRefreshKey((value) => value + 1);
+  }
+
   function setCameraZoom(nextZoom: number) {
     const camera = cameraRef.current;
-    const materialTextureWasEnabled = shouldDrawMaterialTexture(camera.zoom);
+    const previousZoom = camera.zoom;
     camera.zoom = clamp(nextZoom, camera.minZoom, camera.maxZoom);
-    const materialTextureIsEnabled = shouldDrawMaterialTexture(camera.zoom);
     scheduleCameraApply();
-    if (materialTextureWasEnabled !== materialTextureIsEnabled) {
-      setWindowRefreshKey((value) => value + 1);
+    handleMaterialTextureCrossing(previousZoom);
+  }
+
+  // Zoom keeping the world point under the given client position fixed —
+  // pinch stays anchored to the fingers, wheel to the cursor (screen-center
+  // zoom on a phone reads as the map sliding out from under the gesture).
+  function setCameraZoomAnchored(nextZoom: number, clientX: number, clientY: number) {
+    const mount = mountRef.current;
+    if (!mount) {
+      setCameraZoom(nextZoom);
+      return;
     }
+    const camera = cameraRef.current;
+    const previousZoom = camera.zoom;
+    const clamped = clamp(nextZoom, camera.minZoom, camera.maxZoom);
+    if (clamped === previousZoom) return;
+    const rect = mount.getBoundingClientRect();
+    const anchorX = clientX - rect.left;
+    const anchorY = clientY - rect.top;
+    const worldX = (anchorX - camera.x) / previousZoom;
+    const worldY = (anchorY - camera.y) / previousZoom;
+    camera.zoom = clamped;
+    camera.x = anchorX - worldX * clamped;
+    camera.y = anchorY - worldY * clamped;
+    scheduleCameraApply();
+    handleMaterialTextureCrossing(previousZoom);
   }
 
   function resetCamera(nextScene: CityWorldScene) {
     const mount = mountRef.current;
     const world = worldRef.current;
     if (!mount || !world) return;
+    // A scene/preset switch owns the camera — stop any in-flight flick.
+    if (inertiaFrameRef.current !== null) {
+      window.cancelAnimationFrame(inertiaFrameRef.current);
+      inertiaFrameRef.current = null;
+    }
+    pendingMaterialRefreshRef.current = false;
     const requestedPreset = cameraPresetId ? nextScene.cameraPresets.find((item) => item.id === cameraPresetId) : undefined;
     const preset =
       requestedPreset ??
@@ -818,6 +998,19 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     const activeCameraPresetId = resolveCameraPresetId(sceneRef.current, cameraPresetId, mount.clientWidth);
     const neededFrame = rendererViewportFrame(mount, cameraRef.current, activeCameraPresetId, STREAMING_REFRESH_MARGIN_TILES);
     if (cityWorldFrameContainsFrame(activeFrame, neededFrame)) return;
+    // Gesture throttle: budget-clipped windows can demand a refresh on nearly
+    // every pan step. While a finger is down, honor at most one streaming
+    // rebuild per interval; the rest coalesce into one flush on release.
+    if (isGestureActive()) {
+      const now = performance.now();
+      if (now - lastGestureWindowRefreshRef.current < GESTURE_WINDOW_REFRESH_INTERVAL_MS) {
+        pendingGestureWindowRefreshRef.current = true;
+        perfRef.current.streamingRefreshDeferred += 1;
+        return;
+      }
+      lastGestureWindowRefreshRef.current = now;
+    }
+    perfRef.current.streamingRefreshFired += 1;
     pendingWindowRefreshRef.current = true;
     window.requestAnimationFrame(() => {
       pendingWindowRefreshRef.current = false;

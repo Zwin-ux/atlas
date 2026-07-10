@@ -1,0 +1,1003 @@
+{
+  "ok": true,
+  "ranAt": "2026-07-10T04:05:55.966Z",
+  "base": "http://127.0.0.1:8787",
+  "cells": [
+    {
+      "county": "autauga-al",
+      "archetype": "metro_grid",
+      "draft": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=681; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=786620; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/autauga-al-desktop-light.png"
+    },
+    {
+      "county": "autauga-al",
+      "archetype": "metro_grid",
+      "draft": true,
+      "viewport": "desktop",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=681; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=786620; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/autauga-al-desktop-dark.png"
+    },
+    {
+      "county": "autauga-al",
+      "archetype": "metro_grid",
+      "draft": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=934; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (366.08,152.8) -> (141.65,26.56); rebuilds=4 @ 1.7/s, fired=3, deferred=5"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.5"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=786620; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/autauga-al-mobile-light.png"
+    },
+    {
+      "county": "autauga-al",
+      "archetype": "metro_grid",
+      "draft": true,
+      "viewport": "mobile",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=934; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (366.08,152.8) -> (206.08,62.8); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.5"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=786620; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/autauga-al-mobile-dark.png"
+    },
+    {
+      "county": "aleutians-east-borough-ak",
+      "archetype": "coastal_grid",
+      "draft": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=849; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=794063; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/aleutians-east-borough-ak-desktop-light.png"
+    },
+    {
+      "county": "aleutians-east-borough-ak",
+      "archetype": "coastal_grid",
+      "draft": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=938; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (295.24,108.64) -> (135.24,18.64); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.5"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=794063; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/aleutians-east-borough-ak-mobile-light.png"
+    },
+    {
+      "county": "apache-az",
+      "archetype": "desert_basin",
+      "draft": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=739; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=789400; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/apache-az-desktop-light.png"
+    },
+    {
+      "county": "apache-az",
+      "archetype": "desert_basin",
+      "draft": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=918; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (244.64,163.84) -> (84.64,73.84); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.5"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=789400; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/apache-az-mobile-light.png"
+    },
+    {
+      "county": "adams-co",
+      "archetype": "mountain_valley",
+      "draft": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=349; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=847596; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/adams-co-desktop-light.png"
+    },
+    {
+      "county": "adams-co",
+      "archetype": "mountain_valley",
+      "draft": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=391; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (376.2,108.64) -> (216.2,18.64); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.5"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=847596; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/adams-co-mobile-light.png"
+    },
+    {
+      "county": "adair-ia",
+      "archetype": "prairie_town",
+      "draft": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=524; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=773459; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/adair-ia-desktop-light.png"
+    },
+    {
+      "county": "adair-ia",
+      "archetype": "prairie_town",
+      "draft": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=538; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (477.4,42.4) -> (317.4,-47.6); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.5"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=773459; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/adair-ia-mobile-light.png"
+    },
+    {
+      "county": "butler-al",
+      "archetype": "river_town",
+      "draft": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=401; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=774176; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/butler-al-desktop-light.png"
+    },
+    {
+      "county": "butler-al",
+      "archetype": "river_town",
+      "draft": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=492; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (62.48,152.8) -> (-97.52,62.8); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.5"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=774176; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/butler-al-mobile-light.png"
+    },
+    {
+      "county": "riverside-ca",
+      "archetype": "curated",
+      "draft": false,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=780; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/riverside-ca-desktop-light.png"
+    },
+    {
+      "county": "riverside-ca",
+      "archetype": "curated",
+      "draft": false,
+      "viewport": "desktop",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=780; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/riverside-ca-desktop-dark.png"
+    },
+    {
+      "county": "riverside-ca",
+      "archetype": "curated",
+      "draft": false,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=774; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "warn",
+          "detail": "county-switcher-summary is 454x29.69 CSS px"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "warn",
+          "detail": "save-note-button is 54x36 CSS px"
+        },
+        {
+          "id": "touch_tap_select",
+          "level": "pass",
+          "detail": "selected label changed: Eastvale -> Corona"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.55"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/riverside-ca-mobile-light.png"
+    },
+    {
+      "county": "riverside-ca",
+      "archetype": "curated",
+      "draft": false,
+      "viewport": "mobile",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=550; clientWidth=550"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=774; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "warn",
+          "detail": "county-switcher-summary is 454x29.69 CSS px"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "warn",
+          "detail": "save-note-button is 54x36 CSS px"
+        },
+        {
+          "id": "touch_tap_select",
+          "level": "pass",
+          "detail": "selected label changed: Eastvale -> Corona"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.92 -> 1.55"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/riverside-ca-mobile-dark.png"
+    },
+    {
+      "county": "orange-ca",
+      "archetype": "shell",
+      "draft": false,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1440; clientWidth=1440"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=33; ceiling=1600"
+        },
+        {
+          "id": "cta_roundtrip",
+          "level": "pass",
+          "detail": "deliveries=2; current-city-map=Riverside CountyEastvale"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/orange-ca-desktop-light.png"
+    }
+  ],
+  "summary": {
+    "pass": 156,
+    "warn": 4,
+    "fail": 0
+  },
+  "failures": []
+}

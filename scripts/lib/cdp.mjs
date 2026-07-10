@@ -4,17 +4,46 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+// Default per-request ceiling. A CDP response can be lost (target closed,
+// renderer crash, socket drop) — without a timeout one lost response hangs
+// the whole harness as an unsettled top-level await. 30s is far above any
+// legitimate single CDP call in these harnesses.
+const CDP_SEND_TIMEOUT_MS = 30_000;
+
 export class CdpClient {
   constructor(url) { this.url = url; this.id = 0; this.pending = new Map(); this.events = []; this.socket = null; }
   async connect() {
     if (typeof WebSocket !== "function") throw new Error("Node runtime with global WebSocket required.");
     this.socket = new WebSocket(this.url);
     this.socket.addEventListener("message", (e) => this.handle(e.data));
+    this.socket.addEventListener("close", () => this.failAllPending(new Error("CDP socket closed")));
     await new Promise((res, rej) => { this.socket.addEventListener("open", res, { once: true }); this.socket.addEventListener("error", rej, { once: true }); });
   }
-  handle(raw) { const m = JSON.parse(raw); if (m.id && this.pending.has(m.id)) { const { resolve: rs, reject: rj } = this.pending.get(m.id); this.pending.delete(m.id); m.error ? rj(new Error(m.error.message)) : rs(m.result); return; } this.events.push(m); }
-  send(method, params = {}) { const id = ++this.id; this.socket.send(JSON.stringify({ id, method, params })); return new Promise((res, rej) => this.pending.set(id, { resolve: res, reject: rej })); }
-  close() { this.socket?.close(); }
+  failAllPending(error) {
+    for (const [id, entry] of this.pending) { clearTimeout(entry.timer); this.pending.delete(id); entry.reject(error); }
+  }
+  handle(raw) {
+    const m = JSON.parse(raw);
+    if (m.id && this.pending.has(m.id)) {
+      const { resolve: rs, reject: rj, timer } = this.pending.get(m.id);
+      clearTimeout(timer);
+      this.pending.delete(m.id);
+      m.error ? rj(new Error(m.error.message)) : rs(m.result);
+      return;
+    }
+    this.events.push(m);
+  }
+  send(method, params = {}, timeoutMs = CDP_SEND_TIMEOUT_MS) {
+    const id = ++this.id;
+    this.socket.send(JSON.stringify({ id, method, params }));
+    return new Promise((res, rej) => {
+      const timer = setTimeout(() => {
+        if (this.pending.has(id)) { this.pending.delete(id); rej(new Error(`CDP request timed out after ${timeoutMs}ms: ${method}`)); }
+      }, timeoutMs);
+      this.pending.set(id, { resolve: res, reject: rej, timer });
+    });
+  }
+  close() { this.failAllPending(new Error("CDP client closed")); this.socket?.close(); }
 }
 
 export function findChrome(explicit) {

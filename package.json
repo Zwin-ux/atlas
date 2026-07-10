@@ -47,6 +47,7 @@
     "verify:preview:http": "node scripts/verify-preview-http.mjs",
     "verify:widget:perf": "node scripts/verify-widget-performance.mjs",
     "verify:emulator:perf": "node scripts/verify-emulator-perf.mjs",
+    "verify:emulator:audit": "node scripts/verify-emulator-audit.mjs",
     "check": "pnpm env:check && pnpm typecheck && pnpm build",
     "dev:widget": "pnpm --dir apps/widget dev",
     "dev": "pnpm build:web && pnpm build:geo && tsx server/src/index.ts",
