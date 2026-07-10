@@ -172,11 +172,22 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
 
   // Corner stores face the district's central mass.
   const boardCenter = { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
+  const appendZoneProps = (zone: CityWorldZoneSpec): void => {
+    for (const prop of zonePropsForZone(zone, rng, spec, roadSegments)) {
+      if (prop.kind !== "water_shimmer" && prop.kind !== "boat" && prop.kind !== "dock") {
+        prop.position.z = elevationModel.tileZ(Math.round(prop.position.x), Math.round(prop.position.y));
+      }
+      props.push(prop);
+    }
+  };
 
   let placeIndex = 0;
   for (const zone of spec.zones) {
     const lotKind = ZONE_TO_LOT[zone.kind];
-    if (!lotKind) continue;
+    if (!lotKind) {
+      if (standaloneZonePropsEnabled(zone, spec)) appendZoneProps(zone);
+      continue;
+    }
     const placeId = `gen-place-${zone.id}`;
     // Safety net for arbitrary specs: a parcel that would put its building in
     // a road corridor is dropped. Soft zones (park/water) may host embedded
@@ -234,12 +245,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     });
     placeIndex += 1;
 
-    for (const prop of zonePropsForZone(zone, rng, spec, roadSegments)) {
-      if (prop.kind !== "water_shimmer" && prop.kind !== "boat" && prop.kind !== "dock") {
-        prop.position.z = elevationModel.tileZ(Math.round(prop.position.x), Math.round(prop.position.y));
-      }
-      props.push(prop);
-    }
+    appendZoneProps(zone);
   }
 
   const signatureLandmark = createGeneratedLandmark(spec, elevationModel, roadSegments);
@@ -1644,7 +1650,7 @@ function parcelFootprint(kind: CityWorldZoneKind): { width: number; depth: numbe
   return { width: 3.4, depth: 2.6 };
 }
 
-// 0.74F full prop kit + E2 vegetation grammar. Placement is deterministic and
+// 0.74F full prop kit + E2c vegetation grammar. Placement is deterministic and
 // authored from zone edges, road frontages, water edges, and terrain relief.
 // No cars, no humans; generated draft windows still own the visible prop cap.
 type ZonePropSpec = { kind: CityWorldProp["kind"]; point: CityWorldPoint; variant?: number };
@@ -1677,12 +1683,10 @@ function zonePropsForZone(
     if (desert) {
       addDesertScrub(specs, zone, context, 2, vegetationRng);
     } else {
-      const streetTreeCap =
-        context.archetype === "metro_grid" || context.archetype === "mountain_valley" || context.archetype === "coastal_grid" ? 3 : 4;
-      addStreetTreeRhythm(specs, zone, context, vegetationRng, streetTreeCap);
+      addStreetTreeRhythm(specs, zone, context, vegetationRng, residentialStreetTreeCap(context.archetype));
       addVegetationSpec(specs, context, "bush", at(0.1, 0.9), 0);
-      if (context.archetype === "prairie_town") addPrairieShelterRow(specs, zone, context, vegetationRng, 2);
-      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, 1);
+      if (context.archetype === "prairie_town") addPrairieShelterRow(specs, zone, context, vegetationRng, 4);
+      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, mountainPineClusterCount(context));
     }
     specs.push({ kind: "streetlight", point: at(0.94, 0.08) });
   } else if (zone.kind === "commercial") {
@@ -1693,7 +1697,14 @@ function zonePropsForZone(
       { kind: "bench", point: at(0.3, 0.08) },
       { kind: "bench", point: at(0.7, 0.08) },
     );
-    if (context.archetype === "prairie_town") addPrairieShelterRow(specs, zone, context, vegetationRng, 1);
+    if (context.archetype === "prairie_town") {
+      addPrairieShelterRow(specs, zone, context, vegetationRng, 2);
+      addPrairieFieldCorners(specs, zone, context, vegetationRng, 2);
+    } else if (context.archetype === "metro_grid" || context.archetype === "river_town") {
+      addStreetTreeRhythm(specs, zone, context, vegetationRng, 2);
+    } else if (context.archetype === "coastal_grid") {
+      addStreetTreeRhythm(specs, zone, context, vegetationRng, 1);
+    }
   } else if (zone.kind === "civic") {
     specs.push(
       { kind: "fountain", point: at(0.5, 0.86) },
@@ -1705,7 +1716,7 @@ function zonePropsForZone(
     } else {
       addVegetationSpec(specs, context, "tree", at(0.06, 0.5), 3);
       if (context.archetype !== "coastal_grid") addVegetationSpec(specs, context, "tree", at(0.94, 0.5), 4);
-      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, 1);
+      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, mountainPineClusterCount(context));
     }
   } else if (zone.kind === "gym") {
     specs.push({ kind: "sign", point: at(0.9, 0.88), variant: 1 }, { kind: "streetlight", point: at(0.08, 0.1) });
@@ -1720,23 +1731,26 @@ function zonePropsForZone(
     } else {
       addVegetationSpec(specs, context, "bush", at(0.1, 0.08), 0);
       addVegetationSpec(specs, context, "bush", at(0.9, 0.92), 1);
-      addStreetTreeRhythm(specs, zone, context, vegetationRng, context.archetype === "coastal_grid" ? 1 : 2);
-      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, 1);
+      addStreetTreeRhythm(specs, zone, context, vegetationRng, apartmentStreetTreeCap(context.archetype));
+      if (context.archetype === "prairie_town") addPrairieFieldCorners(specs, zone, context, vegetationRng, 2);
+      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, mountainPineClusterCount(context));
     }
   } else if (zone.kind === "park") {
     const area = (rect.maxX - rect.minX) * (rect.maxY - rect.minY);
     if (desert) {
       addDesertScrub(specs, zone, context, 2, vegetationRng);
     } else if (context.archetype === "prairie_town") {
-      addPrairieShelterRow(specs, zone, context, vegetationRng, vegetationBand(6, 8, context.vegetationDensity));
+      addPrairieShelterRow(specs, zone, context, vegetationRng, vegetationBand(7, 9, context.vegetationDensity));
+      addParkTreeCluster(specs, zone, context, vegetationRng, vegetationBand(7, 9, context.vegetationDensity));
+      addPrairieFieldCorners(specs, zone, context, vegetationRng, 4);
       addVegetationSpec(specs, context, "bush", at(0.8, 0.24), 0);
     } else {
       const parkTreeCount = context.archetype === "coastal_grid" || context.archetype === "mountain_valley"
-        ? 5
+        ? vegetationBand(7, 9, context.vegetationDensity)
         : vegetationBand(5, 9, context.vegetationDensity);
       addParkTreeCluster(specs, zone, context, vegetationRng, parkTreeCount);
       addVegetationSpec(specs, context, "bush", at(0.8, 0.24), 0);
-      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, 1);
+      if (context.archetype === "mountain_valley") addMountainPineCluster(specs, zone, context, vegetationRng, mountainPineClusterCount(context));
     }
     specs.push({ kind: "bench", point: at(0.16, 0.46) }, { kind: "bench", point: at(0.62, 0.16) });
     if (area >= 40) specs.push({ kind: "fountain", point: at(0.5, 0.5) });
@@ -1750,6 +1764,9 @@ function zonePropsForZone(
       { kind: "boat", point: at(0.4, 0.55), variant: Math.floor(rng() * 2) },
     );
     addShorelineCluster(specs, zone, context, vegetationRng);
+  } else if (zone.kind === "plaza" && context.archetype === "metro_grid") {
+    addParkTreeCluster(specs, zone, context, vegetationRng, vegetationBand(7, 9, context.vegetationDensity));
+    addVegetationSpec(specs, context, "bush", at(0.8, 0.24), 0);
   } else if (zone.kind === "plaza" && desert) {
     addDesertScrub(specs, zone, context, 2, vegetationRng);
   }
@@ -1773,6 +1790,11 @@ function propPlacementContext(spec: CityWorldParametricSpec, roadSegments: CityW
   };
 }
 
+function standaloneZonePropsEnabled(zone: CityWorldZoneSpec, spec: CityWorldParametricSpec): boolean {
+  const archetype = spec.countyParameters?.archetype ?? spec.regionalPalette?.archetype;
+  return zone.kind === "plaza" && archetype === "metro_grid";
+}
+
 function propZoneRng(spec: CityWorldParametricSpec, zone: CityWorldZoneSpec): () => number {
   let seed = (spec.seed ?? 1) >>> 0;
   const key = `${spec.id}:${zone.id}:e2-vegetation`;
@@ -1780,6 +1802,21 @@ function propZoneRng(spec: CityWorldParametricSpec, zone: CityWorldZoneSpec): ()
     seed = Math.imul(seed ^ key.charCodeAt(index), 16777619) >>> 0;
   }
   return mulberry32(seed);
+}
+
+function residentialStreetTreeCap(archetype: GeneratedDistrictArchetype | undefined): number {
+  if (archetype === "metro_grid" || archetype === "coastal_grid" || archetype === "river_town") return 5;
+  if (archetype === "mountain_valley" || archetype === "prairie_town") return 4;
+  return 4;
+}
+
+function apartmentStreetTreeCap(archetype: GeneratedDistrictArchetype | undefined): number {
+  if (archetype === "metro_grid" || archetype === "coastal_grid" || archetype === "river_town") return 3;
+  return 2;
+}
+
+function mountainPineClusterCount(context: PropPlacementContext): number {
+  return vegetationBand(4, 6, context.vegetationDensity);
 }
 
 function addStreetTreeRhythm(
@@ -1794,7 +1831,7 @@ function addStreetTreeRhythm(
     if (added >= maxTrees) return;
     const available = Math.max(0, maxTrees - added);
     const length = frontage.end - frontage.start;
-    const spacing = 4.8 + (1 - context.vegetationDensity) * 1.2;
+    const spacing = streetTreeSpacing(context);
     const count = Math.min(available, Math.max(1, Math.floor(length / spacing)));
     for (let index = 0; index < count; index += 1) {
       const t = (index + 1) / (count + 1);
@@ -1806,6 +1843,14 @@ function addStreetTreeRhythm(
       if (addVegetationSpec(specs, context, "tree", point, added + index)) added += 1;
     }
   }
+}
+
+function streetTreeSpacing(context: PropPlacementContext): number {
+  if (context.archetype === "metro_grid") return 3.1;
+  if (context.archetype === "coastal_grid" || context.archetype === "river_town") return 3.5;
+  if (context.archetype === "prairie_town") return 3.8;
+  if (context.archetype === "mountain_valley") return 4.0;
+  return 4.8 + (1 - context.vegetationDensity) * 1.2;
 }
 
 function addParkTreeCluster(
@@ -1850,6 +1895,25 @@ function addPrairieShelterRow(
   }
 }
 
+function addPrairieFieldCorners(
+  specs: ZonePropSpec[],
+  zone: CityWorldZoneSpec,
+  context: PropPlacementContext,
+  rng: () => number,
+  count: number,
+): void {
+  const corners = [
+    [0.12, 0.16],
+    [0.88, 0.16],
+    [0.12, 0.84],
+    [0.88, 0.84],
+  ] as const;
+  for (let index = 0; index < Math.min(count, corners.length); index += 1) {
+    const [fx, fy] = corners[index]!;
+    addVegetationSpec(specs, context, "tree", jitteredZonePoint(zone, fx, fy, rng, 0.18), index + 5);
+  }
+}
+
 function addMountainPineCluster(
   specs: ZonePropSpec[],
   zone: CityWorldZoneSpec,
@@ -1888,17 +1952,20 @@ function addShorelineCluster(
   rng: () => number,
 ): void {
   if (context.archetype !== "coastal_grid" && context.archetype !== "river_town") return;
-  const count = vegetationBand(context.archetype === "river_town" ? 4 : 3, context.archetype === "river_town" ? 6 : 5, context.vegetationDensity);
-  const landwardXs = shorelineLandwardXs(zone, context.roadSegments);
+  const count = vegetationBand(4, 6, context.vegetationDensity);
+  const banks = context.archetype === "river_town" ? shorelineBankXs(zone, context.roadSegments) : [shorelineLandwardXs(zone, context.roadSegments)];
   const fractions = [0.18, 0.34, 0.52, 0.68, 0.84, 0.92];
-  let added = 0;
-  for (const fy of fractions) {
-    if (added >= count) return;
-    for (const x of landwardXs) {
-      const point = { x: x + (rng() - 0.5) * 0.18, y: zone.rect.minY + (zone.rect.maxY - zone.rect.minY) * fy, z: 0 };
-      if (addVegetationSpec(specs, context, "tree", point, added + 1)) {
-        added += 1;
-        break;
+  for (let bankIndex = 0; bankIndex < banks.length; bankIndex += 1) {
+    const bankXs = banks[bankIndex]!;
+    let added = 0;
+    for (const fy of fractions) {
+      if (added >= count) break;
+      for (const x of bankXs) {
+        const point = { x: x + (rng() - 0.5) * 0.18, y: zone.rect.minY + (zone.rect.maxY - zone.rect.minY) * fy, z: 0 };
+        if (addVegetationSpec(specs, context, "tree", point, bankIndex * count + added + 1)) {
+          added += 1;
+          break;
+        }
       }
     }
   }
@@ -1992,6 +2059,17 @@ function shorelineLandwardXs(zone: CityWorldZoneSpec, roads: CityWorldRoadSegmen
     .sort((a, b) => Math.abs(a.from.x - zone.rect.minX) - Math.abs(b.from.x - zone.rect.minX))[0];
   const roadWestX = verticalRoad ? verticalRoad.from.x - verticalRoad.width / 2 - ROAD_CLEARANCE_MARGIN - 0.85 : Number.NaN;
   return [zone.rect.minX - 0.38, zone.rect.minX - 0.72, zone.rect.minX - 1.28, roadWestX].filter(Number.isFinite);
+}
+
+function shorelineBankXs(zone: CityWorldZoneSpec, roads: CityWorldRoadSegment[]): number[][] {
+  const west = shorelineLandwardXs(zone, roads);
+  const verticalRoad = roads
+    .filter((road) => road.kind !== "crosswalk" && road.from.x === road.to.x)
+    .filter((road) => Math.abs(road.from.x - zone.rect.maxX) <= 3.4)
+    .sort((a, b) => Math.abs(a.from.x - zone.rect.maxX) - Math.abs(b.from.x - zone.rect.maxX))[0];
+  const roadEastX = verticalRoad ? verticalRoad.from.x + verticalRoad.width / 2 + ROAD_CLEARANCE_MARGIN + 0.85 : Number.NaN;
+  const east = [zone.rect.maxX + 0.38, zone.rect.maxX + 0.72, zone.rect.maxX + 1.18, roadEastX].filter(Number.isFinite);
+  return [west, east];
 }
 
 function vegetationBand(min: number, max: number, vegetationDensity: number): number {

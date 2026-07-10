@@ -33,13 +33,13 @@
         "seed": 2696450625,
         "archetype": "metro_grid",
         "zones": 10,
-        "roads": 7,
+        "roads": 8,
         "sceneCounts": {
           "terrainTiles": 1485,
-          "roads": 7,
-          "lots": 50,
-          "buildings": 49,
-          "props": 36,
+          "roads": 8,
+          "lots": 26,
+          "buildings": 26,
+          "props": 29,
           "places": 7,
           "pins": 0,
           "actors": 0
@@ -47,15 +47,15 @@
         "windows": [
           {
             "cameraId": "desktop",
-            "visibleCommandCount": 410,
-            "visibleBudgetWeight": 456,
-            "chunkCoverageRatio": 0.4
+            "visibleCommandCount": 347,
+            "visibleBudgetWeight": 421,
+            "chunkCoverageRatio": 0.3
           },
           {
             "cameraId": "mobile",
-            "visibleCommandCount": 492,
-            "visibleBudgetWeight": 537,
-            "chunkCoverageRatio": 0.533
+            "visibleCommandCount": 484,
+            "visibleBudgetWeight": 577,
+            "chunkCoverageRatio": 0.4
           }
         ]
       },
@@ -65,30 +65,30 @@
         "stateCode": "FL",
         "seed": 2368776709,
         "archetype": "coastal_grid",
-        "zones": 10,
+        "zones": 9,
         "roads": 7,
         "sceneCounts": {
           "terrainTiles": 1485,
           "roads": 7,
-          "lots": 44,
-          "buildings": 42,
+          "lots": 33,
+          "buildings": 31,
           "props": 36,
-          "places": 7,
+          "places": 8,
           "pins": 0,
           "actors": 0
         },
         "windows": [
           {
             "cameraId": "desktop",
-            "visibleCommandCount": 363,
-            "visibleBudgetWeight": 392,
+            "visibleCommandCount": 403,
+            "visibleBudgetWeight": 500,
             "chunkCoverageRatio": 0.4
           },
           {
             "cameraId": "mobile",
-            "visibleCommandCount": 469,
-            "visibleBudgetWeight": 509,
-            "chunkCoverageRatio": 0.4
+            "visibleCommandCount": 510,
+            "visibleBudgetWeight": 616,
+            "chunkCoverageRatio": 0.533
           }
         ]
       },
@@ -98,14 +98,14 @@
         "stateCode": "AZ",
         "seed": 1155256855,
         "archetype": "desert_basin",
-        "zones": 10,
-        "roads": 7,
+        "zones": 8,
+        "roads": 6,
         "sceneCounts": {
           "terrainTiles": 1485,
-          "roads": 7,
-          "lots": 44,
-          "buildings": 43,
-          "props": 31,
+          "roads": 6,
+          "lots": 25,
+          "buildings": 25,
+          "props": 17,
           "places": 6,
           "pins": 0,
           "actors": 0
@@ -113,15 +113,15 @@
         "windows": [
           {
             "cameraId": "desktop",
-            "visibleCommandCount": 371,
-            "visibleBudgetWeight": 413,
+            "visibleCommandCount": 369,
+            "visibleBudgetWeight": 424,
             "chunkCoverageRatio": 0.4
           },
           {
             "cameraId": "mobile",
-            "visibleCommandCount": 474,
-            "visibleBudgetWeight": 524,
-            "chunkCoverageRatio": 0.4
+            "visibleCommandCount": 539,
+            "visibleBudgetWeight": 622,
+            "chunkCoverageRatio": 0.5
           }
         ]
       },
@@ -131,30 +131,30 @@
         "stateCode": "CA",
         "seed": 407517026,
         "archetype": "desert_basin",
-        "zones": 10,
-        "roads": 7,
+        "zones": 8,
+        "roads": 6,
         "sceneCounts": {
           "terrainTiles": 1485,
-          "roads": 7,
-          "lots": 40,
-          "buildings": 39,
-          "props": 31,
-          "places": 6,
+          "roads": 6,
+          "lots": 27,
+          "buildings": 27,
+          "props": 22,
+          "places": 7,
           "pins": 0,
           "actors": 0
         },
         "windows": [
           {
             "cameraId": "desktop",
-            "visibleCommandCount": 368,
-            "visibleBudgetWeight": 407,
-            "chunkCoverageRatio": 0.4
+            "visibleCommandCount": 369,
+            "visibleBudgetWeight": 419,
+            "chunkCoverageRatio": 0.267
           },
           {
             "cameraId": "mobile",
-            "visibleCommandCount": 474,
-            "visibleBudgetWeight": 525,
-            "chunkCoverageRatio": 0.4
+            "visibleCommandCount": 520,
+            "visibleBudgetWeight": 579,
+            "chunkCoverageRatio": 0.5
           }
         ]
       }

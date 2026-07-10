@@ -35,14 +35,14 @@ const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
 const WATER_ARCHETYPES: readonly GeneratedDistrictArchetype[] = ["coastal_grid", "river_town"];
 const VEGETATION_EXPECTATIONS: Record<
   GeneratedDistrictArchetype,
-  { trees: number; bushes: number; minVegetation: number; maxVegetation: number; desertScrubOnly?: true }
+  { trees: number; bushes: number; minVegetation: number; maxVegetation: number; minParkVegetation?: number; desertScrubOnly?: true }
 > = {
-  metro_grid: { trees: 10, bushes: 5, minVegetation: 10, maxVegetation: 16 },
-  coastal_grid: { trees: 15, bushes: 2, minVegetation: 14, maxVegetation: 20 },
+  metro_grid: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
+  coastal_grid: { trees: 26, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
   desert_basin: { trees: 0, bushes: 5, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
-  mountain_valley: { trees: 13, bushes: 4, minVegetation: 13, maxVegetation: 25 },
-  prairie_town: { trees: 17, bushes: 4, minVegetation: 18, maxVegetation: 21 },
-  river_town: { trees: 11, bushes: 4, minVegetation: 10, maxVegetation: 16 },
+  mountain_valley: { trees: 29, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
+  prairie_town: { trees: 29, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
+  river_town: { trees: 23, bushes: 4, minVegetation: 26, maxVegetation: 34 },
 };
 
 describe("deterministic generated district specs", () => {
@@ -241,7 +241,7 @@ describe("deterministic generated district specs", () => {
         const parkVegetation = first.result.scene.props.filter(
           (prop) => isVegetation(prop) && parkZones.some((zone) => pointInsideRect(prop.position, zone.rect)),
         );
-        expect(parkVegetation.length).toBeGreaterThanOrEqual(5);
+        expect(parkVegetation.length).toBeGreaterThanOrEqual(expected.minParkVegetation ?? 5);
       }
 
       for (const prop of first.result.scene.props.filter(isVegetation)) {

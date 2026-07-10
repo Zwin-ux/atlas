@@ -53,12 +53,12 @@ const MAX_PAIR_JACCARD = 0.5;
 const MEAN_GEN_MS_CEILING = 20;
 const PERF_SAMPLE = 120;
 const VEGETATION_BANDS = {
-  metro_grid: { minTrees: 10, maxTrees: 14, minBushes: 3, maxBushes: 7, minVegetation: 10, maxVegetation: 18 },
-  coastal_grid: { minTrees: 12, maxTrees: 18, minBushes: 2, maxBushes: 5, minVegetation: 14, maxVegetation: 22, minParkVegetation: 5 },
-  desert_basin: { minTrees: 0, maxTrees: 0, minBushes: 4, maxBushes: 8, minVegetation: 4, maxVegetation: 8 },
-  mountain_valley: { minTrees: 10, maxTrees: 20, minBushes: 3, maxBushes: 6, minVegetation: 13, maxVegetation: 26, minParkVegetation: 5 },
-  prairie_town: { minTrees: 15, maxTrees: 20, minBushes: 3, maxBushes: 6, minVegetation: 18, maxVegetation: 22, minParkVegetation: 5 },
-  river_town: { minTrees: 10, maxTrees: 15, minBushes: 2, maxBushes: 5, minVegetation: 10, maxVegetation: 18 },
+  metro_grid: { minTrees: 22, maxTrees: 28, minBushes: 5, maxBushes: 8, minVegetation: 26, maxVegetation: 34 },
+  coastal_grid: { minTrees: 24, maxTrees: 30, minBushes: 2, maxBushes: 5, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
+  desert_basin: { minTrees: 0, maxTrees: 0, minBushes: 5, maxBushes: 8, minVegetation: 5, maxVegetation: 8 },
+  mountain_valley: { minTrees: 24, maxTrees: 34, minBushes: 3, maxBushes: 6, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
+  prairie_town: { minTrees: 28, maxTrees: 40, minBushes: 3, maxBushes: 6, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
+  river_town: { minTrees: 22, maxTrees: 30, minBushes: 3, maxBushes: 6, minVegetation: 26, maxVegetation: 34 },
 };
 
 function log(...args) {
