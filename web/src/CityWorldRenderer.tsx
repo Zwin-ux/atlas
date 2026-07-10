@@ -130,7 +130,22 @@ const CAST_SHADOW_COLOR = 0x27404b;
 const CAST_SHADOW_ALPHA = 0.5;
 // Screen-space ground offset of a cast shadow per pixel of object height.
 const CAST_SHADOW_VECTOR = { x: 0.92, y: 0.21 };
-const BACKGROUND_COLOR = 0xa6b87c;
+// The surround is the "table" the diorama sits on and must adopt the host
+// theme (NS-3 crop test: a dark ChatGPT thread must not frame a bright
+// board). The diorama itself stays the only colorful thing in both themes.
+const BACKGROUND_COLOR_LIGHT = 0xa6b87c;
+const BACKGROUND_COLOR_DARK = 0x22251f; // warm near-black, faint green bias
+
+function isDarkTheme(): boolean {
+  const stamped = document.documentElement.getAttribute("data-theme");
+  if (stamped === "dark") return true;
+  if (stamped === "light") return false;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+}
+
+function resolveBackgroundColor(): number {
+  return isDarkTheme() ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
+}
 
 const TERRAIN_COLORS = {
   grass: 0xa3b877,
@@ -394,6 +409,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   // rebuild per interval and flush the rest on release.
   const pendingGestureWindowRefreshRef = useRef(false);
   const lastGestureWindowRefreshRef = useRef(0);
+  const themeCleanupRef = useRef<(() => void) | null>(null);
   const selectPlaceRef = useRef(onSelectPlace);
   const activeWindowFrameRef = useRef<CityWorldViewportFrame | null>(null);
   const pendingWindowRefreshRef = useRef(false);
@@ -503,6 +519,8 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     const destroyApp = () => {
       if (destroyed) return;
       destroyed = true;
+      themeCleanupRef.current?.();
+      themeCleanupRef.current = null;
       app.destroy({ removeView: true }, { children: true });
     };
 
@@ -510,7 +528,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       await app.init({
         autoDensity: true,
         antialias: true,
-        background: BACKGROUND_COLOR,
+        background: resolveBackgroundColor(),
         preference: "webgl",
         resolution: Math.min(window.devicePixelRatio || 1, 2),
         resizeTo: mountElement,
@@ -528,11 +546,24 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       // covers the open ground beyond the streamed tile window too.
       const backdrop = new Graphics();
       const paintBackdrop = () => {
-        backdrop.clear().rect(0, 0, app.screen.width + 2, app.screen.height + 2).fill({ color: BACKGROUND_COLOR });
+        backdrop.clear().rect(0, 0, app.screen.width + 2, app.screen.height + 2).fill({ color: resolveBackgroundColor() });
       };
       paintBackdrop();
       app.renderer.on("resize", paintBackdrop);
       app.stage.addChild(backdrop);
+      // Live theme changes (host pushes openai:set_globals; OS toggles flip
+      // prefers-color-scheme) repaint the surround without a scene rebuild.
+      const onThemeChange = () => {
+        paintBackdrop();
+        invalidateRender();
+      };
+      window.addEventListener("openai:set_globals", onThemeChange, { passive: true });
+      const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+      darkQuery?.addEventListener?.("change", onThemeChange);
+      themeCleanupRef.current = () => {
+        window.removeEventListener("openai:set_globals", onThemeChange);
+        darkQuery?.removeEventListener?.("change", onThemeChange);
+      };
       const world = new Container();
       world.sortableChildren = true;
       worldRef.current = world;

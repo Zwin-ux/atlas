@@ -110,7 +110,9 @@
   --alpha-05: var(--white-alpha-05);
   --alpha-10: var(--white-alpha-10);
   --alpha-15: var(--white-alpha-15);
-  --elev-1: 0 8px 24px rgba(0, 0, 0, 0.35);
+  /* Restrained dark elevation — dark surfaces read by tone, not bloom
+     (the 8px/24px shadow bled visibly onto the map). */
+  --elev-1: 0 2px 10px rgba(0, 0, 0, 0.3);
   --primary-hover: color-mix(in srgb, #f2f2f2 84%, #6e6e6e);
   --map-body: #779c66;
 }
@@ -129,24 +131,16 @@
     --alpha-05: var(--white-alpha-05);
     --alpha-10: var(--white-alpha-10);
     --alpha-15: var(--white-alpha-15);
-    --elev-1: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --elev-1: 0 2px 10px rgba(0, 0, 0, 0.3); /* keep in lockstep with the data-theme block */
     --primary-hover: color-mix(in srgb, #f2f2f2 84%, #6e6e6e);
     --map-body: #779c66;
   }
 }
 
-/* Dark theme dims the WORLD canvas — one filter rule, art untouched. */
-:root[data-theme="dark"] .city-world-renderer,
-:root[data-theme="dark"] .city-world-coverage-map-fallback {
-  filter: brightness(0.94) saturate(1);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .city-world-renderer,
-  :root:not([data-theme="light"]) .city-world-coverage-map-fallback {
-    filter: brightness(0.94) saturate(1);
-  }
-}
+/* Dark theme: the canvas SURROUND adopts the dark surface inside the
+   renderer itself (theme-aware Pixi backdrop — see CityWorldRenderer
+   BACKGROUND_COLOR_DARK). The diorama art is identical in both themes:
+   no brightness veil, the map stays the only colorful thing. */
 
 /* ---------------------------------------------------------------------------
    TIER 3 — aliases (existing --city-* / --atlas-* names kept working)

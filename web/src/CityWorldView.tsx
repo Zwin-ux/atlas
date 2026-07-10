@@ -260,10 +260,10 @@ export function CityWorldView({
         </div>
         <div className="city-world-tray-meta" aria-label="Map collection">
           <span data-qa="pin-count">
-            <b>{stickerCount}</b> pins
+            <b>{stickerCount}</b> {stickerCount === 1 ? "pin" : "pins"}
           </span>
           <span data-qa="note-count">
-            <b>{noteCount}</b> notes
+            <b>{noteCount}</b> {noteCount === 1 ? "note" : "notes"}
           </span>
           <span data-qa="selected-place-pin-count">
             <b>{placePins.length}</b> here
