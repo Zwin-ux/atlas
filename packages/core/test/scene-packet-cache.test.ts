@@ -3,6 +3,7 @@ import {
   assertScenePacketCachePlanSafe,
   createScenePacketCacheKey,
   createScenePacketCachePlan,
+  createScenePacketMemoryJobQueue,
   hashScenePacketViewportFrame,
   SCENE_PACKET_CACHE_CONTRACT_UPDATE_ID,
   scenePacketCachePolicyForReadiness,
@@ -221,6 +222,53 @@ describe("scene packet cache contract", () => {
     expect(backgroundPlan.generation.blockers).toEqual(
       expect.arrayContaining(["background_generation_not_enabled", "persistent_scene_packet_storage_not_enabled"]),
     );
+  });
+
+  it("claims memory queue jobs with additive owner and timestamp metadata", async () => {
+    const queue = createScenePacketMemoryJobQueue<{ id: string; enqueuedAtMs: number; countySlug: string }>({
+      ownerId: "worker-test",
+      claimTtlMs: 5_000,
+    });
+
+    await queue.enqueue({ id: "newer", enqueuedAtMs: 1_500, countySlug: "cook-il" });
+    await queue.enqueue({ id: "older", enqueuedAtMs: 500, countySlug: "riverside-ca" });
+
+    const claimed = await queue.claim(2_000);
+
+    expect(claimed).toMatchObject({
+      id: "older",
+      countySlug: "riverside-ca",
+      claim: {
+        ownerId: "worker-test",
+        claimedAtMs: 2_000,
+        claimExpiresAtMs: 7_000,
+      },
+    });
+
+    const status = await queue.status(2_000);
+    expect(status).toEqual({
+      queueDepth: 1,
+      claimedCount: 0,
+      oldestQueuedMs: 500,
+      oldestClaimedMs: null,
+    });
+  });
+
+  it("acks memory queue jobs without changing current in-process behavior", async () => {
+    const queue = createScenePacketMemoryJobQueue<{ id: string; enqueuedAtMs: number }>();
+
+    await queue.enqueue({ id: "job-a", enqueuedAtMs: 100 });
+    const claimed = await queue.claim(200);
+    expect(claimed?.id).toBe("job-a");
+
+    await queue.complete("job-a");
+    await queue.enqueue({ id: "job-a", enqueuedAtMs: 300 });
+
+    expect(await queue.claim(400)).toBeUndefined();
+    expect(await queue.status(400)).toMatchObject({
+      queueDepth: 0,
+      claimedCount: 0,
+    });
   });
 
   it("names safety blockers for accidental persistence, provider source notes, and hidden draft exposure", () => {

@@ -3,8 +3,11 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   assertScenePacketCachePlanSafe,
   createScenePacketCachePlan,
+  createScenePacketMemoryJobQueue as createCoreScenePacketMemoryJobQueue,
+  type ScenePacketClaimedJob,
   type ScenePacketCachePlan,
   type ScenePacketCacheSafetyResult,
+  type ScenePacketJobQueueStatus,
   type ScenePacketReadiness,
   type WorldSourceNote,
 } from "@atlas/core";
@@ -59,7 +62,9 @@ export type ScenePacketMemoryStatus = {
   missCount: number;
   hitRate: number;
   queueDepth: number;
+  claimedCount: number;
   oldestQueuedMs: number | null;
+  oldestClaimedMs: number | null;
   lockTtlSeconds: number;
   redisConfigured: boolean;
   redisReachable: boolean | null;
@@ -176,13 +181,10 @@ export type ScenePacketCompileLock = {
 
 export type ScenePacketJobQueue<TJob extends { id: string; enqueuedAtMs: number }> = {
   enqueue(job: TJob): Promise<void>;
-  claim(nowMs: number): Promise<TJob | undefined>;
+  claim(nowMs: number): Promise<ScenePacketClaimedJob<TJob> | undefined>;
   complete(jobId: string): Promise<void>;
   fail(jobId: string, error: string): Promise<void>;
-  status(nowMs: number): Promise<{
-    queueDepth: number;
-    oldestQueuedMs: number | null;
-  }>;
+  status(nowMs: number): Promise<ScenePacketJobQueueStatus>;
 };
 
 export type ScenePacketRuntimeConfig = {
@@ -230,8 +232,10 @@ const PLAYABLE_RUNTIME_TTL_MS = 60 * 60 * 1000;
 const REDIS_CACHE_PREFIX = "atlas:scene-packet-cache:";
 const REDIS_LOCK_PREFIX = "atlas:scene-packet-lock:";
 const REDIS_JOB_QUEUE_KEY = "atlas:scene-packet-jobs:pending";
+const REDIS_JOB_CLAIMED_KEY = "atlas:scene-packet-jobs:claimed";
 const REDIS_JOB_DONE_PREFIX = "atlas:scene-packet-jobs:done:";
 const REDIS_JOB_FAILED_PREFIX = "atlas:scene-packet-jobs:failed:";
+const DEFAULT_JOB_CLAIM_TTL_MS = DEFAULT_LOCK_TTL_SECONDS * 1000;
 
 export function readScenePacketRuntimeConfig(
   env: NodeJS.ProcessEnv = process.env,
@@ -280,6 +284,7 @@ export function createScenePacketMemoryAdapter<TScene>(
   const nowMs = options.nowMs ?? Date.now;
   const lockTtlSeconds = Math.max(1, Math.floor(options.lockTtlSeconds ?? DEFAULT_LOCK_TTL_SECONDS));
   const lockWaitMs = Math.max(0, Math.floor(options.lockWaitMs ?? DEFAULT_LOCK_WAIT_MS));
+  const jobClaimTtlMs = lockTtlSeconds * 1000;
   const cacheBackend = options.cacheBackend === "redis" && options.redisUrl ? "redis" : "memory";
   const redisConnector =
     cacheBackend === "redis" && options.redisUrl ? createLazyRedisConnector(options.redisUrl) : undefined;
@@ -294,8 +299,12 @@ export function createScenePacketMemoryAdapter<TScene>(
   const jobQueue =
     options.jobQueue ??
     (redisConnector
-      ? createRedisScenePacketJobQueue<ScenePacketGeneratedDraftJob>(redisConnector)
-      : createMemoryScenePacketJobQueue<ScenePacketGeneratedDraftJob>());
+      ? createRedisScenePacketJobQueue<ScenePacketGeneratedDraftJob>(redisConnector, {
+          claimTtlMs: jobClaimTtlMs,
+        })
+      : createMemoryScenePacketJobQueue<ScenePacketGeneratedDraftJob>({
+          claimTtlMs: jobClaimTtlMs,
+        }));
 
   async function getOrCreatePlayableScenePacket(
     input: PlayableScenePacketInput<TScene>,
@@ -506,7 +515,9 @@ export function createScenePacketMemoryAdapter<TScene>(
       missCount: cacheStatus.missCount,
       hitRate: cacheStatus.hitRate,
       queueDepth: queueStatus.queueDepth,
+      claimedCount: queueStatus.claimedCount,
       oldestQueuedMs: queueStatus.oldestQueuedMs,
+      oldestClaimedMs: queueStatus.oldestClaimedMs,
       lockTtlSeconds,
       redisConfigured: cacheStatus.redisConfigured,
       redisReachable: cacheStatus.redisReachable,
@@ -648,45 +659,11 @@ export function createMemoryScenePacketCompileLock(): ScenePacketCompileLock {
   };
 }
 
-export function createMemoryScenePacketJobQueue<TJob extends { id: string; enqueuedAtMs: number }>(): ScenePacketJobQueue<TJob> {
-  const pending = new Map<string, TJob>();
-  const completed = new Set<string>();
-  const failed = new Map<string, string>();
-
-  return {
-    async enqueue(job) {
-      if (completed.has(job.id)) return;
-      pending.set(job.id, job);
-    },
-    async claim() {
-      let oldest: TJob | undefined;
-      for (const job of pending.values()) {
-        if (!oldest || job.enqueuedAtMs < oldest.enqueuedAtMs) oldest = job;
-      }
-      if (oldest) pending.delete(oldest.id);
-      return oldest;
-    },
-    async complete(jobId) {
-      pending.delete(jobId);
-      failed.delete(jobId);
-      completed.add(jobId);
-    },
-    async fail(jobId, error) {
-      pending.delete(jobId);
-      failed.set(jobId, error);
-    },
-    async status(now) {
-      let oldestQueuedMs: number | null = null;
-      for (const job of pending.values()) {
-        const age = Math.max(0, now - job.enqueuedAtMs);
-        oldestQueuedMs = oldestQueuedMs === null ? age : Math.max(oldestQueuedMs, age);
-      }
-      return {
-        queueDepth: pending.size,
-        oldestQueuedMs,
-      };
-    },
-  };
+export function createMemoryScenePacketJobQueue<TJob extends { id: string; enqueuedAtMs: number }>(options: {
+  ownerId?: string;
+  claimTtlMs?: number;
+} = {}): ScenePacketJobQueue<TJob> {
+  return createCoreScenePacketMemoryJobQueue<TJob>(options);
 }
 
 export function createRedisScenePacketCacheStore<TScene>(options: {
@@ -807,48 +784,232 @@ export function createRedisScenePacketCompileLock(connector: LazyRedisConnector)
 
 export function createRedisScenePacketJobQueue<TJob extends { id: string; enqueuedAtMs: number }>(
   connector: LazyRedisConnector,
+  options: {
+    ownerId?: string;
+    claimTtlMs?: number;
+  } = {},
 ): ScenePacketJobQueue<TJob> {
+  const ownerId = options.ownerId ?? `scene-packet-worker:${process.pid}:${randomUUID()}`;
+  const claimTtlMs = Math.max(1, Math.floor(options.claimTtlMs ?? DEFAULT_JOB_CLAIM_TTL_MS));
+
   return {
     async enqueue(job) {
       const client = await connector.client();
+      if (await client.get(`${REDIS_JOB_DONE_PREFIX}${job.id}`)) return;
+      if (await redisJobExistsInZset(client, REDIS_JOB_CLAIMED_KEY, job.id, "claim")) return;
+      await removeRedisJobsById(client, REDIS_JOB_QUEUE_KEY, job.id, "job");
       await client.zAdd(REDIS_JOB_QUEUE_KEY, {
         score: job.enqueuedAtMs,
         value: JSON.stringify(job),
       });
     },
-    async claim() {
+    async claim(now) {
       const client = await connector.client();
-      const values = await client.zRange(REDIS_JOB_QUEUE_KEY, 0, 0);
-      const raw = values[0];
-      if (!raw) return undefined;
-      const removed = await client.zRem(REDIS_JOB_QUEUE_KEY, raw);
-      if (!removed) return undefined;
-      return parseJson<TJob>(raw);
+      const raw = await client.eval(REDIS_JOB_CLAIM_SCRIPT, {
+        keys: [REDIS_JOB_QUEUE_KEY, REDIS_JOB_CLAIMED_KEY],
+        arguments: [String(now), String(claimTtlMs), ownerId],
+      });
+      if (typeof raw !== "string") return undefined;
+      const claimed = parseJson<RedisClaimedJobEnvelope<TJob>>(raw);
+      if (!claimed?.job || !claimed.claim) return undefined;
+      return {
+        ...claimed.job,
+        claim: claimed.claim,
+      };
     },
     async complete(jobId) {
       const client = await connector.client();
+      const trackedJob =
+        (await redisJobById<TJob>(client, REDIS_JOB_CLAIMED_KEY, jobId, "claim")) ??
+        (await redisJobById<TJob>(client, REDIS_JOB_QUEUE_KEY, jobId, "job"));
+      if (trackedJob) {
+        const durableCacheKey = redisDurableCacheKeyForJob(trackedJob);
+        if (durableCacheKey && !(await client.get(REDIS_CACHE_PREFIX + durableCacheKey))) {
+          return;
+        }
+      }
+      await removeRedisJobsById(client, REDIS_JOB_QUEUE_KEY, jobId, "job");
+      await removeRedisJobsById(client, REDIS_JOB_CLAIMED_KEY, jobId, "claim");
       await client.set(`${REDIS_JOB_DONE_PREFIX}${jobId}`, "1", { EX: 3_600 });
     },
     async fail(jobId, error) {
       const client = await connector.client();
+      await removeRedisJobsById(client, REDIS_JOB_QUEUE_KEY, jobId, "job");
+      await removeRedisJobsById(client, REDIS_JOB_CLAIMED_KEY, jobId, "claim");
       await client.set(`${REDIS_JOB_FAILED_PREFIX}${jobId}`, JSON.stringify({ error, failedAt: new Date().toISOString() }), {
         EX: 86_400,
       });
     },
     async status(now) {
       const client = await connector.client();
+      await requeueExpiredRedisClaims(client, now);
       const queueDepth = await client.zCard(REDIS_JOB_QUEUE_KEY);
+      const claimedCount = await client.zCard(REDIS_JOB_CLAIMED_KEY);
       const values = await client.zRange(REDIS_JOB_QUEUE_KEY, 0, 0);
       const oldest = values[0] ? parseJson<TJob>(values[0]) : undefined;
+      const claimedValues = await client.zRange(REDIS_JOB_CLAIMED_KEY, 0, 0);
+      const oldestClaimed = claimedValues[0] ? parseJson<RedisClaimedJobEnvelope<TJob>>(claimedValues[0]) : undefined;
       return {
         queueDepth,
+        claimedCount,
         oldestQueuedMs: oldest ? Math.max(0, now - oldest.enqueuedAtMs) : null,
+        oldestClaimedMs: oldestClaimed?.claim ? Math.max(0, now - oldestClaimed.claim.claimedAtMs) : null,
       };
     },
   };
 }
 
-type LazyRedisClient = {
+const REDIS_JOB_CLAIM_SCRIPT = `
+local pending_key = KEYS[1]
+local claimed_key = KEYS[2]
+local now = tonumber(ARGV[1])
+local claim_ttl_ms = tonumber(ARGV[2])
+local owner_id = ARGV[3]
+
+local expired = redis.call('zrangebyscore', claimed_key, '-inf', now)
+for _, raw_envelope in ipairs(expired) do
+  local decoded_ok, envelope = pcall(cjson.decode, raw_envelope)
+  if decoded_ok and envelope and envelope.job and envelope.job.id and not redis.call('get', 'atlas:scene-packet-jobs:done:' .. envelope.job.id) then
+    redis.call('zadd', pending_key, envelope.job.enqueuedAtMs or now, cjson.encode(envelope.job))
+  end
+  redis.call('zrem', claimed_key, raw_envelope)
+end
+
+local values = redis.call('zrange', pending_key, 0, 0)
+local raw_job = values[1]
+if not raw_job then
+  return nil
+end
+
+if redis.call('zrem', pending_key, raw_job) == 0 then
+  return nil
+end
+
+local job_ok, job = pcall(cjson.decode, raw_job)
+if not job_ok or not job or not job.id then
+  return nil
+end
+
+local claim = {
+  ownerId = owner_id,
+  claimedAtMs = now,
+  claimExpiresAtMs = now + claim_ttl_ms
+}
+local result = {
+  job = job,
+  claim = claim
+}
+redis.call('zadd', claimed_key, claim.claimExpiresAtMs, cjson.encode(result))
+return cjson.encode(result)
+`;
+
+const REDIS_JOB_REQUEUE_EXPIRED_SCRIPT = `
+local pending_key = KEYS[1]
+local claimed_key = KEYS[2]
+local now = tonumber(ARGV[1])
+local expired = redis.call('zrangebyscore', claimed_key, '-inf', now)
+for _, raw_envelope in ipairs(expired) do
+  local decoded_ok, envelope = pcall(cjson.decode, raw_envelope)
+  if decoded_ok and envelope and envelope.job and envelope.job.id and not redis.call('get', 'atlas:scene-packet-jobs:done:' .. envelope.job.id) then
+    redis.call('zadd', pending_key, envelope.job.enqueuedAtMs or now, cjson.encode(envelope.job))
+  end
+  redis.call('zrem', claimed_key, raw_envelope)
+end
+return #expired
+`;
+
+type RedisClaimedJobEnvelope<TJob extends { id: string; enqueuedAtMs: number }> = {
+  job: TJob;
+  claim: ScenePacketClaimedJob<TJob>["claim"];
+};
+
+async function requeueExpiredRedisClaims(client: LazyRedisClient, now: number): Promise<void> {
+  await client.eval(REDIS_JOB_REQUEUE_EXPIRED_SCRIPT, {
+    keys: [REDIS_JOB_QUEUE_KEY, REDIS_JOB_CLAIMED_KEY],
+    arguments: [String(now)],
+  });
+}
+
+async function redisJobExistsInZset(
+  client: LazyRedisClient,
+  key: string,
+  jobId: string,
+  valueKind: "job" | "claim",
+): Promise<boolean> {
+  const values = await client.zRange(key, 0, -1);
+  return values.some((value) => redisJobIdFromValue(value, valueKind) === jobId);
+}
+
+async function redisJobById<TJob extends { id: string; enqueuedAtMs: number }>(
+  client: LazyRedisClient,
+  key: string,
+  jobId: string,
+  valueKind: "job" | "claim",
+): Promise<TJob | undefined> {
+  const values = await client.zRange(key, 0, -1);
+  for (const value of values) {
+    if (valueKind === "job") {
+      const job = parseJson<TJob>(value);
+      if (job?.id === jobId) return job;
+      continue;
+    }
+    const envelope = parseJson<RedisClaimedJobEnvelope<TJob>>(value);
+    if (envelope?.job?.id === jobId) return envelope.job;
+  }
+  return undefined;
+}
+
+async function removeRedisJobsById(
+  client: LazyRedisClient,
+  key: string,
+  jobId: string,
+  valueKind: "job" | "claim",
+): Promise<number> {
+  const values = await client.zRange(key, 0, -1);
+  let removed = 0;
+  for (const value of values) {
+    if (redisJobIdFromValue(value, valueKind) !== jobId) continue;
+    removed += await client.zRem(key, value);
+  }
+  return removed;
+}
+
+function redisJobIdFromValue(value: string, valueKind: "job" | "claim"): string | undefined {
+  if (valueKind === "job") {
+    return parseJson<{ id: string }>(value)?.id;
+  }
+  return parseJson<RedisClaimedJobEnvelope<{ id: string; enqueuedAtMs: number }>>(value)?.job?.id;
+}
+
+function redisDurableCacheKeyForJob(job: { id: string; enqueuedAtMs: number }): string | undefined {
+  const value = job as Partial<ScenePacketGeneratedDraftJob>;
+  if (value.kind !== "generated_draft_scene") return undefined;
+  if (
+    !value.stateCode ||
+    !value.countySlug ||
+    !value.districtSlug ||
+    !value.cameraPresetId ||
+    !value.windowHash ||
+    !value.sceneSchemaVersion ||
+    !value.engineUpdateId
+  ) {
+    return undefined;
+  }
+  return createScenePacketCachePlan({
+    countryCode: value.countryCode ?? "US",
+    stateCode: value.stateCode,
+    countySlug: value.countySlug,
+    districtSlug: value.districtSlug,
+    cameraPresetId: value.cameraPresetId,
+    windowHash: value.windowHash,
+    sceneSchemaVersion: value.sceneSchemaVersion,
+    engineUpdateId: value.engineUpdateId,
+    readiness: "generated_draft",
+    generationMode: "deterministic_generated_draft",
+  }).key.key;
+}
+
+export type LazyRedisClient = {
   isOpen?: boolean;
   connect(): Promise<unknown>;
   ping(): Promise<string>;

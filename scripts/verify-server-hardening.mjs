@@ -69,6 +69,20 @@ try {
     }
   });
 
+  await gate("redis_rate_limit_fail_open", async () => {
+    const response = await request({
+      method: "GET",
+      path: "/api/world/lookup?query=Eastvale%2C%20CA&radiusMeters=3500",
+    });
+    assert(response.status === 200, `world lookup with unavailable Redis rate ledger expected 200, got ${response.status}: ${response.body}`);
+    const body = JSON.parse(response.body);
+    assert(body.type === "worldPlaceLookup", "world lookup fail-open response returned the wrong shape.");
+    assert(
+      server.stdoutText.includes('"event":"rate_limit_redis_fail_open"'),
+      "Redis rate-limit fail-open event was not logged.",
+    );
+  });
+
   await gate("hosted_clawd_write_404_without_persistence", async () => {
     const response = await request({
       method: "POST",
@@ -151,6 +165,9 @@ function spawnOptions(shell) {
       NODE_ENV: "test",
       APP_BASE_URL: baseUrl,
       ATLAS_ALLOWED_ORIGINS: allowedOrigin,
+      ATLAS_REDIS_URL: "redis://127.0.0.1:1",
+      ATLAS_DISABLE_LOCAL_RATE_LIMIT_EXEMPT: "true",
+      GEO_DATA_ADAPTER: "mock",
       ATLAS_HOSTED_CLAWD_PERSISTENCE_ENABLED: "false",
       ATLAS_HOSTED_CLAWD_MONEY_ENABLED: "false",
       ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED: "false",
@@ -250,25 +267,6 @@ function assert(condition, message) {
 async function stopServer(child) {
   if (!child) return;
   if (child.exitCode !== null) {
-    child.stdout?.destroy();
-    child.stderr?.destroy();
-    child.unref();
-    return;
-  }
-
-  if (process.platform === "win32" && child.pid) {
-    await new Promise((resolve) => {
-      const killer = spawn("taskkill", ["/pid", String(child.pid), "/t", "/f"], {
-        stdio: ["ignore", "ignore", "ignore"],
-        windowsHide: true,
-      });
-      killer.on("close", resolve);
-      killer.on("error", resolve);
-    });
-    await Promise.race([
-      new Promise((resolve) => child.on("close", resolve)),
-      delay(2_000),
-    ]);
     child.stdout?.destroy();
     child.stderr?.destroy();
     child.unref();

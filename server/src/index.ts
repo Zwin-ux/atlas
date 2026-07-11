@@ -42,9 +42,11 @@ import { riversideDemoVoxelScene } from "@atlas/core/voxel";
 import { createGeoDataAdapter, isGoogleMapsConfigured, readGeoAdapterConfig } from "@atlas/geo";
 import { z } from "zod";
 import {
+  createLazyRedisConnector,
   createScenePacketMemoryAdapter,
   readScenePacketRuntimeConfig,
   SCENE_PACKET_MEMORY_ADAPTER_UPDATE_ID,
+  type LazyRedisConnector,
   type ScenePacketGeneratedDraftJob,
   type ScenePacketMemorySummary,
 } from "./scenePacketMemoryAdapter.js";
@@ -106,6 +108,9 @@ const scenePacketMemory = createScenePacketMemoryAdapter<ScoutPreviewState["scen
   lockTtlSeconds: scenePacketRuntimeConfig.lockTtlSeconds,
   lockWaitMs: scenePacketRuntimeConfig.lockWaitMs,
 });
+const rateLimitRedisConnector: LazyRedisConnector | undefined = scenePacketRuntimeConfig.redisUrl
+  ? createLazyRedisConnector(scenePacketRuntimeConfig.redisUrl)
+  : undefined;
 // Hosted Clawd persistence foundation (0.60H). Persistence stays OFF unless
 // the flag and DATABASE_URL are configured. Protected user writes still require
 // OAuth/OIDC bearer tokens; iframe cookies and model text are never identity.
@@ -161,6 +166,7 @@ type RateLimitBucket = {
 };
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
+const RATE_LIMIT_REDIS_PREFIX = "atlas:rate-limit:";
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const WORLD_LOOKUP_RATE_LIMIT = 30;
 const HOSTED_CLAWD_WRITE_RATE_LIMIT = 20;
@@ -181,6 +187,43 @@ type RequestContext = {
 };
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
+
+const MCP_TOOL_NAMES = [
+  "lookup_world_places",
+  "select_county",
+  "ask_county_question",
+  "render_voxel_county",
+  "preview_scout_drop",
+  "preview_campaign_engine",
+  "get_upgrade_options",
+] as const;
+
+type McpToolName = (typeof MCP_TOOL_NAMES)[number];
+
+type McpToolMetric = {
+  calls: number;
+  errors: number;
+  latency: {
+    count: number;
+    totalMs: number;
+    maxMs: number;
+  };
+};
+
+const mcpToolMetrics = new Map<McpToolName, McpToolMetric>(
+  MCP_TOOL_NAMES.map((toolName) => [
+    toolName,
+    {
+      calls: 0,
+      errors: 0,
+      latency: {
+        count: 0,
+        totalMs: 0,
+        maxMs: 0,
+      },
+    },
+  ]),
+);
 
 type CameraIntent = {
   type: "focus_place" | "focus_district" | "focus_water_edge" | "focus_landmark";
@@ -1273,7 +1316,7 @@ async function getOrCreateGeneratedDraftScenePacket(
   }
   const rateLimitContext = currentRateLimitContext();
   const rateLimitKey = `generated_draft:${rateLimitContext.clientAddress}:${coverage.countySlug}`;
-  if (!rateLimitContext.rateLimitExempt && !consumeRateLimit(rateLimitKey, GENERATED_DRAFT_RATE_LIMIT)) {
+  if (!rateLimitContext.rateLimitExempt && !(await consumeRateLimit(rateLimitKey, GENERATED_DRAFT_RATE_LIMIT))) {
     logBackendEvent("generated_draft_rate_limited", {
       requestId: rateLimitContext.requestId,
       countySlug: coverage.countySlug,
@@ -1684,7 +1727,7 @@ function requestContextFor(req: IncomingMessage, res: ServerResponse): RequestCo
   return {
     requestId: String(res.getHeader("x-request-id") ?? ""),
     clientAddress: clientAddressFor(req),
-    rateLimitExempt: !serverSecurityConfig.production && isLoopbackAddress(req.socket.remoteAddress),
+    rateLimitExempt: isRateLimitExempt(req),
   };
 }
 
@@ -1699,7 +1742,109 @@ function logBackendEvent(event: string, fields: Record<string, unknown> = {}): v
   );
 }
 
-function consumeRateLimit(key: string, limit: number, now = Date.now()): boolean {
+async function instrumentMcpTool<T>(toolName: McpToolName, handler: () => Promise<T>): Promise<T> {
+  const context = currentRateLimitContext();
+  const startedAt = Date.now();
+  const metric = mcpToolMetrics.get(toolName);
+  if (metric) metric.calls += 1;
+  logBackendEvent("mcp_tool_started", {
+    requestId: context.requestId,
+    toolName,
+  });
+
+  try {
+    const result = await handler();
+    const durationMs = Date.now() - startedAt;
+    recordMcpToolLatency(toolName, durationMs);
+    logBackendEvent("mcp_tool_finished", {
+      requestId: context.requestId,
+      toolName,
+      durationMs,
+      ok: true,
+    });
+    return result;
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+    if (metric) metric.errors += 1;
+    recordMcpToolLatency(toolName, durationMs);
+    logBackendEvent("mcp_tool_finished", {
+      requestId: context.requestId,
+      toolName,
+      durationMs,
+      ok: false,
+      error: error instanceof Error ? error.name : "unknown",
+    });
+    throw error;
+  }
+}
+
+function recordMcpToolLatency(toolName: McpToolName, durationMs: number): void {
+  const metric = mcpToolMetrics.get(toolName);
+  if (!metric) return;
+  metric.latency.count += 1;
+  metric.latency.totalMs += durationMs;
+  metric.latency.maxMs = Math.max(metric.latency.maxMs, durationMs);
+}
+
+function mcpStatsPayload(): unknown {
+  return {
+    ok: true,
+    version: SERVER_VERSION,
+    mcp: {
+      tools: Object.fromEntries(
+        MCP_TOOL_NAMES.map((toolName) => {
+          const metric = mcpToolMetrics.get(toolName);
+          return [
+            toolName,
+            {
+              calls: metric?.calls ?? 0,
+              errors: metric?.errors ?? 0,
+              latency: {
+                count: metric?.latency.count ?? 0,
+                totalMs: metric?.latency.totalMs ?? 0,
+                maxMs: metric?.latency.maxMs ?? 0,
+              },
+            },
+          ];
+        }),
+      ),
+    },
+  };
+}
+
+const RATE_LIMIT_REDIS_SCRIPT = `
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local window_ms = tonumber(ARGV[2])
+local limit = tonumber(ARGV[3])
+local raw = redis.call('get', key)
+local reset_at = now + window_ms
+local count = 0
+
+if raw then
+  local decoded_ok, bucket = pcall(cjson.decode, raw)
+  if decoded_ok and bucket and bucket.resetAtMs and bucket.count and tonumber(bucket.resetAtMs) > now then
+    reset_at = tonumber(bucket.resetAtMs)
+    count = tonumber(bucket.count)
+  end
+end
+
+if count >= limit then
+  return cjson.encode({ allowed = false, count = count, resetAtMs = reset_at })
+end
+
+count = count + 1
+redis.call('set', key, cjson.encode({ resetAtMs = reset_at, count = count }), 'PX', math.max(1, reset_at - now))
+return cjson.encode({ allowed = true, count = count, resetAtMs = reset_at })
+`;
+
+type RedisRateLimitResult = {
+  allowed: boolean;
+  count: number;
+  resetAtMs: number;
+};
+
+function consumeMemoryRateLimit(key: string, limit: number, now = Date.now()): boolean {
   const current = rateLimitBuckets.get(key);
   if (!current || current.resetAtMs <= now) {
     rateLimitBuckets.set(key, { resetAtMs: now + RATE_LIMIT_WINDOW_MS, count: 1 });
@@ -1711,19 +1856,51 @@ function consumeRateLimit(key: string, limit: number, now = Date.now()): boolean
   return true;
 }
 
-function enforceRateLimit(
+async function consumeRateLimit(key: string, limit: number, now = Date.now()): Promise<boolean> {
+  if (!rateLimitRedisConnector) {
+    return consumeMemoryRateLimit(key, limit, now);
+  }
+
+  try {
+    const client = await rateLimitRedisConnector.client();
+    const raw = await client.eval(RATE_LIMIT_REDIS_SCRIPT, {
+      keys: [`${RATE_LIMIT_REDIS_PREFIX}${key}`],
+      arguments: [String(now), String(RATE_LIMIT_WINDOW_MS), String(limit)],
+    });
+    if (typeof raw !== "string") {
+      throw new Error("Redis rate limit script returned a non-string result.");
+    }
+    const result = JSON.parse(raw) as RedisRateLimitResult;
+    if (typeof result.allowed !== "boolean") {
+      throw new Error("Redis rate limit script returned an invalid result.");
+    }
+    return result.allowed;
+  } catch (error) {
+    logBackendEvent("rate_limit_redis_fail_open", {
+      scope: rateLimitScopeForKey(key),
+      error: error instanceof Error ? error.name : "unknown",
+    });
+    return consumeMemoryRateLimit(key, limit, now);
+  }
+}
+
+function rateLimitScopeForKey(key: string): string {
+  const index = key.indexOf(":");
+  return index === -1 ? key : key.slice(0, index);
+}
+
+async function enforceRateLimit(
   req: IncomingMessage,
   res: ServerResponse,
   scope: string,
   limit: number,
   discriminator = "",
-): boolean {
+): Promise<boolean> {
   const requestId = String(res.getHeader("x-request-id") ?? "");
-  const rateLimitExempt = !serverSecurityConfig.production && isLoopbackAddress(req.socket.remoteAddress);
-  if (rateLimitExempt) return true;
+  if (isRateLimitExempt(req)) return true;
 
   const key = `${scope}:${clientAddressFor(req)}:${discriminator}`;
-  if (consumeRateLimit(key, limit)) return true;
+  if (await consumeRateLimit(key, limit)) return true;
 
   logBackendEvent("rate_limit_denied", { requestId, scope, discriminator });
   jsonResponse(res, 429, {
@@ -1733,12 +1910,22 @@ function enforceRateLimit(
   return false;
 }
 
-function enforceMcpExpensiveToolRateLimit(toolName: "select_county" | "render_voxel_county"): void {
+function isRateLimitExempt(req: IncomingMessage): boolean {
+  if (isLocalRateLimitExemptionDisabled()) return false;
+  return !serverSecurityConfig.production && isLoopbackAddress(req.socket.remoteAddress);
+}
+
+function isLocalRateLimitExemptionDisabled(): boolean {
+  const value = process.env.ATLAS_DISABLE_LOCAL_RATE_LIMIT_EXEMPT?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+async function enforceMcpExpensiveToolRateLimit(toolName: "select_county" | "render_voxel_county"): Promise<void> {
   const context = currentRateLimitContext();
   if (context.rateLimitExempt) return;
 
   const key = `mcp_expensive_tool:${context.clientAddress}`;
-  if (consumeRateLimit(key, MCP_EXPENSIVE_TOOL_RATE_LIMIT)) return;
+  if (await consumeRateLimit(key, MCP_EXPENSIVE_TOOL_RATE_LIMIT)) return;
 
   logBackendEvent("rate_limit_denied", {
     requestId: context.requestId,
@@ -1934,7 +2121,9 @@ async function readyPayload(): Promise<unknown> {
       entryCount: scenePacketStatus.entryCount,
       hitRate: scenePacketStatus.hitRate,
       queueDepth: scenePacketStatus.queueDepth,
+      claimedCount: scenePacketStatus.claimedCount,
       oldestQueuedMs: scenePacketStatus.oldestQueuedMs,
+      oldestClaimedMs: scenePacketStatus.oldestClaimedMs,
     },
     hostedClawd: {
       persistenceEnabled: hostedClawdFlags.persistenceEnabled,
@@ -2029,7 +2218,7 @@ function handleWorldRoute(url: URL, res: ServerResponse): boolean {
 }
 
 async function handleWorldLookup(req: IncomingMessage, url: URL, res: ServerResponse): Promise<void> {
-  if (!enforceRateLimit(req, res, "world_lookup", WORLD_LOOKUP_RATE_LIMIT)) return;
+  if (!(await enforceRateLimit(req, res, "world_lookup", WORLD_LOOKUP_RATE_LIMIT))) return;
   const query = url.searchParams.get("query")?.trim();
   if (!query) {
     jsonResponse(res, 400, { ok: false, error: "Missing query." });
@@ -2053,7 +2242,7 @@ async function handleWorldLookup(req: IncomingMessage, url: URL, res: ServerResp
 }
 
 async function handleGeoGeocode(req: IncomingMessage, url: URL, res: ServerResponse): Promise<void> {
-  if (!enforceRateLimit(req, res, "geo_geocode", WORLD_LOOKUP_RATE_LIMIT)) return;
+  if (!(await enforceRateLimit(req, res, "geo_geocode", WORLD_LOOKUP_RATE_LIMIT))) return;
   const query = url.searchParams.get("query")?.trim();
   if (!query) {
     jsonResponse(res, 400, { ok: false, error: "Missing query." });
@@ -2633,7 +2822,7 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "Nearby places ready.",
       },
     },
-    async ({ query, radiusMeters }) => {
+    async ({ query, radiusMeters }) => instrumentMcpTool("lookup_world_places", async () => {
       const lookup = await performWorldLookup(query, radiusMeters ?? 3500);
       const categories = [...new Set(lookup.places.map((place) => place.category))].sort();
       const categoryText = categories.length > 0 ? categories.join(", ") : "none";
@@ -2646,7 +2835,7 @@ function createAtlasServer(): McpServer {
           },
         ],
       };
-    },
+    }),
   );
 
   registerAppTool(
@@ -2676,8 +2865,8 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "Riverside County ready.",
       },
     },
-    async ({ countySlug, includeGeneratedDraft }) => {
-      enforceMcpExpensiveToolRateLimit("select_county");
+    async ({ countySlug, includeGeneratedDraft }) => instrumentMcpTool("select_county", async () => {
+      await enforceMcpExpensiveToolRateLimit("select_county");
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const coverageShellScene = coverageShellSceneForSummary(coverage);
@@ -2726,7 +2915,7 @@ function createAtlasServer(): McpServer {
           },
         ],
       };
-    },
+    }),
   );
 
   registerAppTool(
@@ -2757,7 +2946,7 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "County answer ready.",
       },
     },
-    async ({ question, countySlug, businessType }) => {
+    async ({ question, countySlug, businessType }) => instrumentMcpTool("ask_county_question", async () => {
       const answer = countyQuestionService.answer({ question, countySlug, businessType });
       const requestedNodeId = answer.supported && answer.targetNodeId ? answer.targetNodeId : "eastvale";
       const { scene, scenePacket } = await getOrCreatePlayableScenePacket(PLAYABLE_ENGINE_BETA_COUNTY_SLUG, requestedNodeId);
@@ -2784,7 +2973,7 @@ function createAtlasServer(): McpServer {
           },
         ],
       };
-    },
+    }),
   );
 
   registerAppTool(
@@ -2815,8 +3004,8 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "City map ready.",
       },
     },
-    async ({ countySlug, selectedNodeId, includeGeneratedDraft }) => {
-      enforceMcpExpensiveToolRateLimit("render_voxel_county");
+    async ({ countySlug, selectedNodeId, includeGeneratedDraft }) => instrumentMcpTool("render_voxel_county", async () => {
+      await enforceMcpExpensiveToolRateLimit("render_voxel_county");
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const coverageShellScene = coverageShellSceneForSummary(coverage);
@@ -2868,7 +3057,7 @@ function createAtlasServer(): McpServer {
           },
         ],
       };
-    },
+    }),
   );
 
   registerAppTool(
@@ -2900,7 +3089,7 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "Scout Drop ready.",
       },
     },
-    async ({ countySlug, nodeId, locationLabel, businessType, goal, budget, serviceRadius }) => {
+    async ({ countySlug, nodeId, locationLabel, businessType, goal, budget, serviceRadius }) => instrumentMcpTool("preview_scout_drop", async () => {
       const preview = previewScoutDrop({
         countySlug: countySlug ?? "riverside-ca",
         nodeId,
@@ -2926,7 +3115,7 @@ function createAtlasServer(): McpServer {
           },
         ],
       };
-    },
+    }),
   );
 
   registerAppTool(
@@ -2959,7 +3148,7 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "Campaign preview ready.",
       },
     },
-    async ({ scoutPreviewId, countySlug, nodeId, locationLabel, businessType, goal, budget, serviceRadius }) => {
+    async ({ scoutPreviewId, countySlug, nodeId, locationLabel, businessType, goal, budget, serviceRadius }) => instrumentMcpTool("preview_campaign_engine", async () => {
       const { campaignPreview, rebuiltScoutPreview } = previewCampaignFromScoutRequest({
         scoutPreviewId,
         countySlug: countySlug ?? "riverside-ca",
@@ -2985,7 +3174,7 @@ function createAtlasServer(): McpServer {
           },
         ],
       };
-    },
+    }),
   );
 
   registerAppTool(
@@ -3012,7 +3201,7 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "Hosted Clawd options ready.",
       },
     },
-    async ({ trigger }) => {
+    async ({ trigger }) => instrumentMcpTool("get_upgrade_options", async () => {
       const options = upgradeOptionsStructuredContent(trigger);
       const optionSummaryLabel = atlasSaveSurfaceEnabled ? options.hosted.label : options.free.label;
       return {
@@ -3027,7 +3216,7 @@ function createAtlasServer(): McpServer {
           },
         ],
       };
-    },
+    }),
   );
 
   return server;
@@ -3166,6 +3355,11 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/api/ops/mcp-stats" && req.method === "GET") {
+    jsonResponse(res, 200, mcpStatsPayload());
+    return;
+  }
+
   // OAuth protected-resource metadata (RFC 9728) for Hosted Clawd account
   // linking. Only meaningful when the OIDC issuer/audience are configured.
   if (url.pathname === "/.well-known/oauth-protected-resource" && req.method === "GET") {
@@ -3209,31 +3403,31 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/hosted-clawd/create-or-attach" && req.method === "POST") {
-    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "create_or_attach_clawd")) return;
+    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "create_or_attach_clawd"))) return;
     await handleHostedClawdAction(req, res, "create_or_attach_clawd");
     return;
   }
 
   if (url.pathname === "/api/hosted-clawd/promote-session" && req.method === "POST") {
-    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "promote_session")) return;
+    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "promote_session"))) return;
     await handleHostedClawdAction(req, res, "promote_session");
     return;
   }
 
   if (url.pathname === "/api/hosted-clawd/saved-artifacts/campaigns" && req.method === "POST") {
-    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "save_campaign_artifact")) return;
+    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "save_campaign_artifact"))) return;
     await handleHostedClawdAction(req, res, "save_campaign_artifact");
     return;
   }
 
   if (url.pathname === "/api/hosted-clawd/checkout" && req.method === "POST") {
-    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "start_checkout")) return;
+    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "start_checkout"))) return;
     await handleHostedClawdAction(req, res, "start_checkout");
     return;
   }
 
   if (url.pathname === "/api/hosted-clawd/billing-portal" && req.method === "POST") {
-    if (!enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "open_billing_portal")) return;
+    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "open_billing_portal"))) return;
     await handleHostedClawdAction(req, res, "open_billing_portal");
     return;
   }

@@ -55,6 +55,9 @@ export {
   hashScenePacketViewportFrame,
   scenePacketCachePolicyForReadiness,
 } from "./scenePacketCache.js";
+export {
+  createScenePacketMemoryJobQueue,
+} from "./scenePacketJobQueue.js";
 export type * from "./types.js";
 export type * from "./californiaDistrictCandidatePack.js";
 export type * from "./districtCandidatePack.js";
@@ -66,3 +69,4 @@ export type * from "./districtOwnerGateCutline.js";
 export type * from "./productBackendBoundary.js";
 export type * from "./nationalGenerationProduction.js";
 export type * from "./scenePacketCache.js";
+export type * from "./scenePacketJobQueue.js";
