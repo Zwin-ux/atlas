@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
@@ -65,6 +66,14 @@ import {
   type HostedClawdContext,
   type HostedClawdContextInput,
 } from "./hostedClawd/index.js";
+import {
+  isLoopbackAddress,
+  isPrivateOrLoopbackAddress,
+  readServerSecurityConfig,
+  setCorsHeaders,
+  validateHostHeader,
+  validateOriginHeader,
+} from "./security.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-v1.html";
@@ -79,6 +88,7 @@ loadLocalEnv();
 const WEB_DIST = resolve(ROOT_DIR, "web/dist");
 const PORT = Number(process.env.PORT ?? 8787);
 const MCP_PATH = process.env.MCP_PATH ?? "/mcp";
+const serverSecurityConfig = readServerSecurityConfig(process.env);
 const countyPackService = new CountyPackService(resolve(ROOT_DIR, "data", "county_packs"));
 const countyQuestionService = new CountyQuestionService(countyPackService);
 const worldService = createNationalWorldService([riversideDemoVoxelScene]);
@@ -132,6 +142,7 @@ const hostedClawdService = new HostedClawdService({
   persistence: hostedClawdPersistence,
   billing: hostedClawdBilling,
 });
+const hostedClawdWriteRouterMounted = Boolean(hostedClawdPersistence);
 
 type WorldLookupCacheEntry = {
   response: WorldPlaceLookupResponse;
@@ -150,6 +161,22 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const WORLD_LOOKUP_RATE_LIMIT = 30;
 const HOSTED_CLAWD_WRITE_RATE_LIMIT = 20;
 const GENERATED_DRAFT_RATE_LIMIT = 20;
+const MCP_EXPENSIVE_TOOL_RATE_LIMIT = 120;
+const HOSTED_CLAWD_WRITE_PATHS = new Set([
+  "/api/hosted-clawd/create-or-attach",
+  "/api/hosted-clawd/promote-session",
+  "/api/hosted-clawd/saved-artifacts/campaigns",
+  "/api/hosted-clawd/checkout",
+  "/api/hosted-clawd/billing-portal",
+]);
+
+type RequestContext = {
+  requestId: string;
+  clientAddress: string;
+  rateLimitExempt: boolean;
+};
+
+const requestContext = new AsyncLocalStorage<RequestContext>();
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
   sceneId: string;
@@ -1030,8 +1057,11 @@ async function getOrCreateGeneratedDraftScenePacket(
   if (coverage.coverageTier !== "L1_COUNTY_SHELL" || !coverage.stateCode || !coverage.geoid) {
     return undefined;
   }
-  if (!consumeRateLimit(`generated_draft:${coverage.countySlug}`, GENERATED_DRAFT_RATE_LIMIT)) {
+  const rateLimitContext = currentRateLimitContext();
+  const rateLimitKey = `generated_draft:${rateLimitContext.clientAddress}:${coverage.countySlug}`;
+  if (!rateLimitContext.rateLimitExempt && !consumeRateLimit(rateLimitKey, GENERATED_DRAFT_RATE_LIMIT)) {
     logBackendEvent("generated_draft_rate_limited", {
+      requestId: rateLimitContext.requestId,
       countySlug: coverage.countySlug,
       coverageTier: coverage.coverageTier,
     });
@@ -1360,9 +1390,49 @@ function requestIdFor(req: IncomingMessage): string {
 }
 
 function clientAddressFor(req: IncomingMessage): string {
+  const directPeer = req.socket.remoteAddress || "unknown";
+  // Railway terminates public traffic at its platform proxy before forwarding
+  // to this Node process. Trust X-Forwarded-For only in that deployment shape
+  // and only when the direct peer is private/loopback; otherwise the socket is
+  // the last trustworthy address and client-supplied XFF is ignored.
+  if (isTrustedPlatformProxyPeer(directPeer)) {
+    const forwardedAddress = lastForwardedForAddress(req);
+    if (forwardedAddress) return forwardedAddress;
+  }
+  return directPeer;
+}
+
+function lastForwardedForAddress(req: IncomingMessage): string | undefined {
   const forwardedFor = req.headers["x-forwarded-for"];
   const raw = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
-  return raw?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
+  const parts = raw
+    ?.split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return parts?.at(-1);
+}
+
+function isTrustedPlatformProxyPeer(address: string | undefined): boolean {
+  const railwayRuntime = Boolean(
+    process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_PUBLIC_DOMAIN,
+  );
+  return railwayRuntime && isPrivateOrLoopbackAddress(address);
+}
+
+function currentRateLimitContext(): RequestContext {
+  return requestContext.getStore() ?? {
+    requestId: "unknown",
+    clientAddress: "unknown",
+    rateLimitExempt: false,
+  };
+}
+
+function requestContextFor(req: IncomingMessage, res: ServerResponse): RequestContext {
+  return {
+    requestId: String(res.getHeader("x-request-id") ?? ""),
+    clientAddress: clientAddressFor(req),
+    rateLimitExempt: !serverSecurityConfig.production && isLoopbackAddress(req.socket.remoteAddress),
+  };
 }
 
 function logBackendEvent(event: string, fields: Record<string, unknown> = {}): void {
@@ -1396,6 +1466,9 @@ function enforceRateLimit(
   discriminator = "",
 ): boolean {
   const requestId = String(res.getHeader("x-request-id") ?? "");
+  const rateLimitExempt = !serverSecurityConfig.production && isLoopbackAddress(req.socket.remoteAddress);
+  if (rateLimitExempt) return true;
+
   const key = `${scope}:${clientAddressFor(req)}:${discriminator}`;
   if (consumeRateLimit(key, limit)) return true;
 
@@ -1405,6 +1478,21 @@ function enforceRateLimit(
     error: "Too many requests. Try again shortly.",
   });
   return false;
+}
+
+function enforceMcpExpensiveToolRateLimit(toolName: "select_county" | "render_voxel_county"): void {
+  const context = currentRateLimitContext();
+  if (context.rateLimitExempt) return;
+
+  const key = `mcp_expensive_tool:${context.clientAddress}`;
+  if (consumeRateLimit(key, MCP_EXPENSIVE_TOOL_RATE_LIMIT)) return;
+
+  logBackendEvent("rate_limit_denied", {
+    requestId: context.requestId,
+    scope: "mcp_expensive_tool",
+    discriminator: toolName,
+  });
+  throw new Error("Atlas is receiving too many map render requests from this client. Try again shortly.");
 }
 
 function textResponse(res: ServerResponse, status: number, body: string): void {
@@ -1519,11 +1607,8 @@ function termsPageHtml(): string {
   );
 }
 
-function setCors(res: ServerResponse): void {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "content-type, mcp-session-id, authorization");
-  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id, WWW-Authenticate");
+function setCors(req: IncomingMessage, res: ServerResponse): void {
+  setCorsHeaders(req, res, serverSecurityConfig);
 }
 
 function loadLocalEnv(): void {
@@ -2346,6 +2431,7 @@ function createAtlasServer(): McpServer {
       },
     },
     async ({ countySlug, includeGeneratedDraft }) => {
+      enforceMcpExpensiveToolRateLimit("select_county");
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const coverageShellScene = coverageShellSceneForSummary(coverage);
@@ -2467,6 +2553,7 @@ function createAtlasServer(): McpServer {
       },
     },
     async ({ countySlug, selectedNodeId, includeGeneratedDraft }) => {
+      enforceMcpExpensiveToolRateLimit("render_voxel_county");
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const coverageShellScene = coverageShellSceneForSummary(coverage);
@@ -2686,7 +2773,7 @@ function createAtlasServer(): McpServer {
 }
 
 async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  setCors(res);
+  setCors(req, res);
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -2704,15 +2791,27 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
     void mcpServer.close();
   });
 
-  try {
-    await mcpServer.connect(transport);
-    await transport.handleRequest(req, res);
-  } catch (error) {
-    console.error("MCP request failed:", error);
-    if (!res.headersSent) {
-      res.writeHead(500).end("Internal server error");
+  await requestContext.run(requestContextFor(req, res), async () => {
+    try {
+      await mcpServer.connect(transport);
+      await transport.handleRequest(req, res);
+    } catch (error) {
+      console.error("MCP request failed:", error);
+      if (!res.headersSent) {
+        res.writeHead(500).end("Internal server error");
+      }
     }
-  }
+  });
+}
+
+function shouldValidateOrigin(url: URL, method: string | undefined): boolean {
+  if (!method) return false;
+  if (url.pathname === MCP_PATH && ["POST", "GET", "DELETE", "OPTIONS"].includes(method)) return true;
+  return ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+}
+
+function isHostedClawdWriteRoute(url: URL, method: string | undefined): boolean {
+  return method === "POST" && HOSTED_CLAWD_WRITE_PATHS.has(url.pathname);
 }
 
 const httpServer = createServer(async (req, res) => {
@@ -2729,7 +2828,33 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  const hostAdmission = validateHostHeader(req, serverSecurityConfig);
+  if (!hostAdmission.ok) {
+    logBackendEvent("request_admission_denied", {
+      requestId,
+      reason: hostAdmission.reason,
+      method: req.method,
+      path: req.url?.split("?")[0] ?? "",
+    });
+    textResponse(res, hostAdmission.status, hostAdmission.status === 400 ? "Bad Request" : "Forbidden");
+    return;
+  }
+
   const url = new URL(req.url, `http://${req.headers.host ?? `localhost:${PORT}`}`);
+
+  if (shouldValidateOrigin(url, req.method)) {
+    const originAdmission = validateOriginHeader(req, serverSecurityConfig);
+    if (!originAdmission.ok) {
+      logBackendEvent("request_admission_denied", {
+        requestId,
+        reason: originAdmission.reason,
+        method: req.method,
+        path: url.pathname,
+      });
+      textResponse(res, originAdmission.status, "Forbidden");
+      return;
+    }
+  }
 
   if (url.pathname === "/" && req.method === "GET") {
     textResponse(res, 200, `Atlas MCP server\nMCP: http://localhost:${PORT}${MCP_PATH}\nPreview: http://localhost:${PORT}/preview\n`);
@@ -2781,7 +2906,7 @@ const httpServer = createServer(async (req, res) => {
   // OAuth protected-resource metadata (RFC 9728) for Hosted Clawd account
   // linking. Only meaningful when the OIDC issuer/audience are configured.
   if (url.pathname === "/.well-known/oauth-protected-resource" && req.method === "GET") {
-    setCors(res);
+    setCors(req, res);
     if (!hostedClawdAuthConfig) {
       jsonResponse(res, 404, {
         ok: false,
@@ -2812,6 +2937,11 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/api/stripe/webhook" && req.method === "POST") {
     await handleHostedClawdStripeWebhookRoute(req, res);
+    return;
+  }
+
+  if (isHostedClawdWriteRoute(url, req.method) && !hostedClawdWriteRouterMounted) {
+    textResponse(res, 404, "Not Found");
     return;
   }
 
@@ -2908,4 +3038,10 @@ const httpServer = createServer(async (req, res) => {
 
 httpServer.listen(PORT, () => {
   console.log(`Atlas MCP server listening on http://localhost:${PORT}${MCP_PATH}`);
+  logBackendEvent("hosted_clawd_router_mode", {
+    mode: hostedClawdWriteRouterMounted ? "write_routes_mounted" : "write_routes_404",
+    persistenceEnabled: hostedClawdFlags.persistenceEnabled,
+    persistenceAdapterConfigured: Boolean(hostedClawdPersistence),
+    moneyEnabled: hostedClawdFlags.moneyEnabled,
+  });
 });
