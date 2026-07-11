@@ -287,7 +287,12 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     label: spec.label,
     region: spec.region,
     bounds,
-    cameraPresets: parametricCameraPresets(bounds, spec.zones, { terrainTiles, roadSegments, lots, buildings }, spec.countyParameters),
+    cameraPresets: parametricCameraPresets(
+      bounds,
+      spec.zones,
+      { bounds, terrainTiles, waterTiles: terrainTiles.filter((tile) => tile.kind === "water"), roadSegments, lots, buildings },
+      spec.countyParameters,
+    ),
     terrainTiles,
     roadSegments,
     lots,
@@ -486,7 +491,7 @@ function terrainVariantForZone(zone: CityWorldZoneSpec | undefined, x: number, y
   if (!zone) return (x * 17 + y * 11) % 5;
   const localX = x - zone.rect.minX;
   const localY = y - zone.rect.minY;
-  if (zone.kind === "farm_field") return localY % 2 === 0 ? 1 : 4;
+  if (zone.kind === "farm_field") return localY % 2 === 0 ? 0 : 4;
   if (zone.kind === "dry_wash") return (Math.floor((localX + localY * 2) / 3) + zone.id.length) % 2 === 0 ? 1 : 3;
   if (zone.kind === "scree") return Math.abs(localX * 2 + localY * 3) % 5;
   if (zone.kind === "shore_bank") return localY % 3 === 0 ? 0 : localX % 2 === 0 ? 2 : 4;
@@ -1437,6 +1442,11 @@ const RESIDENTIAL_TEMPLATE_POOL: Array<{ weight: number; template: ZoneBuildingT
   { weight: 0.46, template: { kind: "home", width: 1.72, depth: 1.06, height: 1.18, facadeStyle: "rowhome", roofShape: "flat", bodyColors: ["#eed8bd", "#f3e1c6"], roofColors: ["#587a8e", "#8a6a52"] } },
 ];
 
+const RIVER_TOWN_RESIDENTIAL_TEMPLATE_POOL: Array<{ weight: number; template: ZoneBuildingTemplate }> = [
+  { weight: 0.18, template: { kind: "home", width: 1.84, depth: 1.34, height: 1.04, facadeStyle: "cottage", roofShape: "gable", bodyColors: ["#ecd6b6", "#e8cfad", "#f0ddc2"], roofColors: ["#2f5d8a", "#577747", "#9a927d"] } },
+  { weight: 0.16, template: { kind: "home", width: 2.34, depth: 1.42, height: 1.0, facadeStyle: "ranch", roofShape: "hip", bodyColors: ["#e8c9aa", "#ecd2b0", "#e7d6bd"], roofColors: ["#577747", "#9a927d", "#2f5d8a"] } },
+];
+
 // Strip templates stay flat/parapet; hip roofs make rows read as houses.
 const COMMERCIAL_TEMPLATE_POOL: ZoneBuildingTemplate[] = [
   { kind: "shop", width: 3.0, depth: 1.7, height: 1.4, facadeStyle: "strip_store", roofShape: "flat", bodyColors: ["#efd8b6", "#eedcc4"], roofColors: ["#3f8b8c", "#6f9a86"] },
@@ -1496,9 +1506,10 @@ function applyDimensionJitter(
   countyParameters?: CountyGenerationParameters,
 ): ZoneBuildingSpec {
   const home = template.kind === "home";
+  const riverTownHome = home && countyParameters?.archetypeProfile.archetype === "river_town";
   const jitter = (value: number, spread = 0.3) => Math.round(value * (1 + (rng() - 0.5) * spread) * 100) / 100;
-  const width = jitter(template.width, home ? 0.14 : 0.3);
-  const depth = jitter(template.depth, home ? 0.12 : 0.3);
+  const width = jitter(template.width, riverTownHome ? 0.2 : home ? 0.14 : 0.3);
+  const depth = jitter(template.depth, riverTownHome ? 0.18 : home ? 0.12 : 0.3);
   const height = jitter(template.height, home ? 0.08 : 0.3);
   const bodyPick = pickIndexed(rng, regionalPalette?.body ?? template.bodyColors);
   const roofPick = pickIndexed(rng, regionalPalette?.roof ?? template.roofColors);
@@ -1575,7 +1586,11 @@ function applyCountyMassingModulation(
 
 function weightedResidentialTemplate(rng: () => number, countyParameters?: CountyGenerationParameters): ZoneBuildingTemplate | null {
   const profile = generatedMassingProfileFor(countyParameters);
-  const weighted = RESIDENTIAL_TEMPLATE_POOL.map((entry) => ({
+  const pool =
+    countyParameters?.archetypeProfile.archetype === "river_town"
+      ? [...RESIDENTIAL_TEMPLATE_POOL, ...RIVER_TOWN_RESIDENTIAL_TEMPLATE_POOL]
+      : RESIDENTIAL_TEMPLATE_POOL;
+  const weighted = pool.map((entry) => ({
     template: entry.template,
     weight: entry.weight * residentialTemplateMultiplier(entry.template, profile),
   }));
@@ -2352,11 +2367,18 @@ function distance2(first: CityWorldPoint, second: CityWorldPoint): number {
 }
 
 type ParametricCameraScenery = {
+  bounds: CityWorldBounds;
   terrainTiles: CityWorldTerrainTile[];
+  waterTiles: CityWorldTerrainTile[];
   roadSegments: CityWorldRoadSegment[];
   lots: CityWorldLot[];
   buildings: CityWorldBuilding[];
 };
+
+const WATER_AWARE_FRAME_TILE_FLOOR = 18;
+const WATER_AWARE_FRAME_BONUS_WEIGHT = 0.08;
+const WATER_AWARE_DESKTOP_LOWER_OCCUPANCY_FLOOR = 0.18;
+const WATER_AWARE_MOBILE_LOWER_OCCUPANCY_FLOOR = 0.1;
 
 // Mirrors the diagnostics viewport-composition formula (massing 0.25 +
 // feature density 0.45 + object-family variety 0.3) over the REAL projected
@@ -2383,6 +2405,50 @@ function overviewFrameCompositionScore(center: CityWorldPoint, scenery: Parametr
   const featureDensity = cityWorldClamp((lots.length + roads.length * 2 + buildings.length * 3) / Math.max(1, tiles.length * 0.26), 0, 1);
   const families = new Set(buildings.map((building) => building.visualGrammar?.objectFamily).filter(Boolean)).size;
   return massing * 0.25 + featureDensity * 0.45 + cityWorldClamp(families / 4, 0, 1) * 0.3;
+}
+
+function waterAwareOverviewFrameCompositionScore(center: CityWorldPoint, scenery: ParametricCameraScenery): number {
+  return overviewFrameCompositionScore(center, scenery) + waterPresenceFrameBonus(center, scenery, "desktop", 1.32);
+}
+
+function waterPresenceFrameBonus(
+  center: CityWorldPoint,
+  scenery: ParametricCameraScenery,
+  presetId: "desktop" | "mobile",
+  zoom: number,
+): number {
+  const rawFrame = cityWorldViewportFrameForCameraPreset({ id: presetId, center, zoom });
+  const frame = {
+    minX: Math.max(rawFrame.minX, scenery.bounds.minX),
+    maxX: Math.min(rawFrame.maxX, scenery.bounds.maxX),
+    minY: Math.max(rawFrame.minY, scenery.bounds.minY),
+    maxY: Math.min(rawFrame.maxY, scenery.bounds.maxY),
+  };
+  const waterTiles = scenery.waterTiles.filter((tile) => cityWorldPointInsideFrame(tile.position, frame)).length;
+  if (waterTiles < WATER_AWARE_FRAME_TILE_FLOOR) return 0;
+
+  const buildings = scenery.buildings.filter((building) => cityWorldPointInsideFrame(building.position, frame));
+  if (buildings.length === 0) return 0;
+
+  const lowerOccupancy = frameLowerBuildingOccupancy(frame, buildings);
+  const lowerFloor = presetId === "mobile" ? WATER_AWARE_MOBILE_LOWER_OCCUPANCY_FLOOR : WATER_AWARE_DESKTOP_LOWER_OCCUPANCY_FLOOR;
+  if (lowerOccupancy < lowerFloor) return 0;
+
+  const waterPresence = cityWorldClamp(waterTiles / WATER_AWARE_FRAME_TILE_FLOOR, 0, 1);
+  const builtPresence = cityWorldClamp(buildings.length / 4, 0, 1);
+  return waterPresence * builtPresence * WATER_AWARE_FRAME_BONUS_WEIGHT;
+}
+
+function frameLowerBuildingOccupancy(
+  frame: { minX: number; maxX: number; minY: number; maxY: number },
+  buildings: CityWorldBuilding[],
+): number {
+  const midScreenY = (frame.minX + frame.maxX + frame.minY + frame.maxY) / 2;
+  const bandArea = Math.max(0.0001, (frame.maxX - frame.minX) * (frame.maxY - frame.minY) * 0.5);
+  const lowerArea = buildings
+    .filter((building) => building.position.x + building.position.y >= midScreenY)
+    .reduce((sum, building) => sum + building.width * building.depth, 0);
+  return cityWorldClamp(lowerArea / bandArea, 0, 1);
 }
 
 function generatedOverviewFocus(
@@ -2447,6 +2513,10 @@ function mobileOverviewFrameCompositionScore(center: CityWorldPoint, scenery: Pa
   return massing * 0.25 + featureDensity * 0.45 + cityWorldClamp(families / 4, 0, 1) * 0.3;
 }
 
+function waterAwareMobileOverviewFrameCompositionScore(center: CityWorldPoint, scenery: ParametricCameraScenery): number {
+  return mobileOverviewFrameCompositionScore(center, scenery) + waterPresenceFrameBonus(center, scenery, "mobile", 0.92);
+}
+
 function parametricCameraPresets(
   bounds: CityWorldBounds,
   zones: CityWorldZoneSpec[],
@@ -2457,9 +2527,17 @@ function parametricCameraPresets(
   // zones) rather than the raw grid center, so the first viewport is dense.
   const built = zones.filter((zone) => ZONE_TO_LOT[zone.kind] && zone.kind !== "water");
   const focus = built.length > 0 ? averagePoint(built.map(zoneCenter)) : { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
-  const openingFocus = countyParameters ? generatedOverviewFocus(built, focus, scenery) : focus;
+  const waterAware = isWaterGeneratedArchetype(countyParameters?.archetypeProfile.archetype);
+  const openingFocus = countyParameters
+    ? generatedOverviewFocus(built, focus, scenery, waterAware ? waterAwareOverviewFrameCompositionScore : overviewFrameCompositionScore)
+    : focus;
   const mobileFocus = countyParameters
-    ? generatedOverviewFocus(built, { x: openingFocus.x, y: openingFocus.y + 3 }, scenery, mobileOverviewFrameCompositionScore)
+    ? generatedOverviewFocus(
+        built,
+        { x: openingFocus.x, y: openingFocus.y + 3 },
+        scenery,
+        waterAware ? waterAwareMobileOverviewFrameCompositionScore : mobileOverviewFrameCompositionScore,
+      )
     : { x: openingFocus.x, y: openingFocus.y + 4 };
   const center = { x: openingFocus.x, y: openingFocus.y, z: 0 };
   const residentialZone = zones.find((zone) => zone.kind === "residential");
@@ -2499,6 +2577,10 @@ function placeKindForZone(kind: CityWorldZoneKind): CityWorldPlace["kind"] {
   if (kind === "gym") return "shop";
   if (kind === "apartments") return "home_area";
   return "shop";
+}
+
+function isWaterGeneratedArchetype(archetype: GeneratedDistrictArchetype | undefined): boolean {
+  return archetype === "coastal_grid" || archetype === "river_town";
 }
 
 function zoneLabel(kind: CityWorldZoneKind): string {

@@ -7,7 +7,9 @@ import {
   REGION_PROFILES,
   REGIONAL_PALETTES,
   STATE_TO_DIVISION,
+  analyzeCityWorldScene,
   analyzeGeneratedDistrictMassingSignature,
+  analyzeGeneratedDistrictParity,
   analyzeGeneratedLandmark,
   compileCityWorldSceneWindow,
   createDeterministicGeneratedDistrictScene,
@@ -18,6 +20,7 @@ import {
   generatedDistrictMassingSignatureDistance,
   resolveCountyParameters,
   resolveEffectiveBuildingColors,
+  sampleCityWorldViewportForCameraPreset,
   US_COUNTY_INDEX,
 } from "../src/index.js";
 import type { CensusDivision, CityWorldProp, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
@@ -458,6 +461,49 @@ describe("deterministic generated district specs", () => {
       }
     }
   });
+
+  it("keeps river-town residential clone pressure below the tail-packet headroom target (E8)", () => {
+    const pressures = new Map<GeneratedDistrictArchetype, number>();
+
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const diagnostics = analyzeCityWorldScene(result.scene, "playable");
+      const pressure = roundMetric(diagnostics.metrics.homeClonePressure);
+
+      expect(generated.archetype).toBe(archetype);
+      expect(pressure).toBeLessThanOrEqual(0.3);
+      pressures.set(archetype, pressure);
+    }
+
+    expect(pressures.get("river_town")).toBeLessThanOrEqual(0.25);
+  });
+
+  it("keeps water-aware river-town opening frames built while bringing water into view (E10)", () => {
+    for (const testCounty of [county("butler-al"), county("talladega-al")]) {
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const parity = analyzeGeneratedDistrictParity(result.scene);
+
+      expect(generated.archetype).toBe("river_town");
+      for (const cameraId of ["desktop", "mobile"] as const) {
+        const frame = openingFrameReadout(result.scene, cameraId);
+        expect(frame.waterTiles).toBeGreaterThanOrEqual(18);
+        expect(frame.buildings).toBeGreaterThan(0);
+        expect(parity.frameDensity[cameraId]?.lowerFrameOccupancyRatio ?? 0).toBeGreaterThanOrEqual(cameraId === "desktop" ? 0.18 : 0.1);
+      }
+    }
+  });
+
+  it("uses the stronger in-palette prairie crop-row tone alternation (tail contrast)", () => {
+    const { generated, result } = createDeterministicGeneratedDistrictScene({ county: countyForArchetype("prairie_town") });
+    const variants = prairieFarmFieldVariants(generated.spec.zones, result.scene);
+    const toneOffsets = variants.map(prairieGrassVariantToneOffset);
+
+    expect(generated.archetype).toBe("prairie_town");
+    expect(variants).toEqual([0, 4]);
+    expect(toneOffsets).toEqual([-2.4, 2.4]);
+    expect(roundMetric(toneOffsets[1]! - toneOffsets[0]!)).toBe(4.8);
+  });
 });
 
 function county(countySlug: string) {
@@ -594,6 +640,16 @@ function waterAccentMetrics(scene: CityWorldScene): { dockEdgeDistance: number; 
   };
 }
 
+function openingFrameReadout(scene: CityWorldScene, cameraId: "desktop" | "mobile"): { waterTiles: number; buildings: number } {
+  const preset = scene.cameraPresets.find((candidate) => candidate.id === cameraId);
+  if (!preset) throw new Error(`Missing ${cameraId} camera preset`);
+  const sample = sampleCityWorldViewportForCameraPreset(scene, preset);
+  return {
+    waterTiles: sample.terrainTiles.filter((tile) => tile.kind === "water").length,
+    buildings: sample.buildings.length,
+  };
+}
+
 function terrainElevationSpread(scene: CityWorldScene): { min: number; max: number; spread: number; dropTileCount: number } {
   const zValues = scene.terrainTiles.map((tile) => tile.position.z ?? 0);
   const min = Math.min(...zValues);
@@ -604,6 +660,19 @@ function terrainElevationSpread(scene: CityWorldScene): { min: number; max: numb
     spread: max - min,
     dropTileCount: scene.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
   };
+}
+
+function prairieFarmFieldVariants(zones: CityWorldZoneSpec[], scene: CityWorldScene): number[] {
+  const variants = new Set<number>();
+  for (const tile of scene.terrainTiles) {
+    const zone = winningZoneAt(zones, tile.position.x, tile.position.y);
+    if (zone?.kind === "farm_field") variants.add(tile.variant);
+  }
+  return [...variants].sort((first, second) => first - second);
+}
+
+function prairieGrassVariantToneOffset(variant: number): number {
+  return roundMetric((variant - 2) * 1.2);
 }
 
 function openBlockFillCoverage(zones: CityWorldZoneSpec[], scene: CityWorldScene) {

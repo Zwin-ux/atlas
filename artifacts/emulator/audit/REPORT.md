@@ -1,6 +1,6 @@
 # Atlas Emulator Audit Report
 
-Ran: 2026-07-10T14:27:15.440Z
+Ran: 2026-07-11T00:54:56.338Z
 Base: http://127.0.0.1:8787
 Result: OK (158 pass, 0 warn, 0 fail)
 
@@ -24,8 +24,8 @@ No fail or warn findings.
 | adams-co | 1 | mountain_valley | mobile | light | pass: state=delivered; errors=0 | pass: graphics=483; ceiling=1600 | pass: max generatedDraftSceneChars=853252; ceiling=900000 | pass: console error entries=0 |
 | adair-ia | 1 | prairie_town | desktop | light | pass: state=delivered; errors=0 | pass: graphics=542; ceiling=1600 | pass: max generatedDraftSceneChars=786533; ceiling=900000 | pass: console error entries=0 |
 | adair-ia | 1 | prairie_town | mobile | light | pass: state=delivered; errors=0 | pass: graphics=564; ceiling=1600 | pass: max generatedDraftSceneChars=786533; ceiling=900000 | pass: console error entries=0 |
-| butler-al | 1 | river_town | desktop | light | pass: state=delivered; errors=0 | pass: graphics=572; ceiling=1600 | pass: max generatedDraftSceneChars=841015; ceiling=900000 | pass: console error entries=0 |
-| butler-al | 1 | river_town | mobile | light | pass: state=delivered; errors=0 | pass: graphics=683; ceiling=1600 | pass: max generatedDraftSceneChars=841015; ceiling=900000 | pass: console error entries=0 |
+| butler-al | 1 | river_town | desktop | light | pass: state=delivered; errors=0 | pass: graphics=613; ceiling=1600 | pass: max generatedDraftSceneChars=841017; ceiling=900000 | pass: console error entries=0 |
+| butler-al | 1 | river_town | mobile | light | pass: state=delivered; errors=0 | pass: graphics=682; ceiling=1600 | pass: max generatedDraftSceneChars=841017; ceiling=900000 | pass: console error entries=0 |
 | riverside-ca | 0 | curated | desktop | light | pass: state=delivered; errors=0 | pass: graphics=780; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
 | riverside-ca | 0 | curated | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=780; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
 | riverside-ca | 0 | curated | mobile | light | pass: state=delivered; errors=0 | pass: graphics=774; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |

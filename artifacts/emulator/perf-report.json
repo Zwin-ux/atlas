@@ -7,7 +7,7 @@
       "archetype": "metro_grid",
       "viewport": "desktop",
       "graphics": 854,
-      "rebuildMs": 11.9,
+      "rebuildMs": 16,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -26,7 +26,7 @@
       "archetype": "metro_grid",
       "viewport": "mobile",
       "graphics": 962,
-      "rebuildMs": 10.9,
+      "rebuildMs": 35.7,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -45,7 +45,7 @@
       "archetype": "coastal_grid",
       "viewport": "desktop",
       "graphics": 867,
-      "rebuildMs": 12.5,
+      "rebuildMs": 25.4,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -64,7 +64,7 @@
       "archetype": "coastal_grid",
       "viewport": "mobile",
       "graphics": 955,
-      "rebuildMs": 12,
+      "rebuildMs": 14.4,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -83,7 +83,7 @@
       "archetype": "desert_basin",
       "viewport": "desktop",
       "graphics": 684,
-      "rebuildMs": 11.1,
+      "rebuildMs": 24.3,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -102,7 +102,7 @@
       "archetype": "desert_basin",
       "viewport": "mobile",
       "graphics": 857,
-      "rebuildMs": 9.9,
+      "rebuildMs": 23.7,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -121,7 +121,7 @@
       "archetype": "mountain_valley",
       "viewport": "desktop",
       "graphics": 369,
-      "rebuildMs": 7.7,
+      "rebuildMs": 12.4,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -140,7 +140,7 @@
       "archetype": "mountain_valley",
       "viewport": "mobile",
       "graphics": 483,
-      "rebuildMs": 5.3,
+      "rebuildMs": 10.8,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -159,7 +159,7 @@
       "archetype": "prairie_town",
       "viewport": "desktop",
       "graphics": 542,
-      "rebuildMs": 8.9,
+      "rebuildMs": 17.1,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -178,7 +178,7 @@
       "archetype": "prairie_town",
       "viewport": "mobile",
       "graphics": 564,
-      "rebuildMs": 10.1,
+      "rebuildMs": 23.3,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -196,15 +196,15 @@
       "county": "butler-al",
       "archetype": "river_town",
       "viewport": "desktop",
-      "graphics": 572,
-      "rebuildMs": 10.2,
+      "graphics": 613,
+      "rebuildMs": 24.7,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 976474,
-          "metaChars": 975202,
-          "generatedDraftSceneChars": 841015,
+          "resultChars": 976476,
+          "metaChars": 975204,
+          "generatedDraftSceneChars": 841017,
           "truncated": false
         }
       ],
@@ -215,15 +215,15 @@
       "county": "butler-al",
       "archetype": "river_town",
       "viewport": "mobile",
-      "graphics": 683,
-      "rebuildMs": 7.8,
+      "graphics": 682,
+      "rebuildMs": 16.1,
       "rebuilds": 2,
       "deliveries": [
         {
           "tool": "select_county",
-          "resultChars": 976474,
-          "metaChars": 975202,
-          "generatedDraftSceneChars": 841015,
+          "resultChars": 976476,
+          "metaChars": 975204,
+          "generatedDraftSceneChars": 841017,
           "truncated": false
         }
       ],
@@ -235,7 +235,7 @@
       "archetype": "curated",
       "viewport": "desktop",
       "graphics": 780,
-      "rebuildMs": 13.1,
+      "rebuildMs": 24.5,
       "rebuilds": 2,
       "deliveries": [
         {
@@ -254,7 +254,7 @@
       "archetype": "curated",
       "viewport": "mobile",
       "graphics": 774,
-      "rebuildMs": 7.9,
+      "rebuildMs": 16.6,
       "rebuilds": 2,
       "deliveries": [
         {
