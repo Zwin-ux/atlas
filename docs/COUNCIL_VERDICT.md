@@ -57,27 +57,27 @@ attachments, not more bands and floors.
   place-blind is not. (pm #2, hn #3)
 
 ## Wave 3 — NS-5 FOR REAL (conversation-designer, full seat)
-- [ ] **W3.1 Camera intents in tool results**: structuredContent gains
+- [x] **W3.1 Camera intents in tool results**: structuredContent gains
   `cameraIntent` (focus place / district / water-edge / landmark) the widget
   applies — the model can finally SHOW its answer.
-- [ ] **W3.2 ask_county_question renders map-first**: attach the scene +
+- [x] **W3.2 ask_county_question renders map-first**: attach the scene +
   focus intent so answers stop being transcript-only.
 - [ ] **W3.3 Compare intent**: two-place selection/focus (biggest new
   conversational surface; scope carefully).
-- [ ] **W3.4 Question-service breadth**: beyond 5 topics/3 lanes/regex — route
+- [x] **W3.4 Question-service breadth**: beyond 5 topics/3 lanes/regex — route
   through place/zone data so "where's the park?" works everywhere.
 
 ## Wave 4 — ART: THE HAND-BUILT LEVEL (art-director + visual seat)
 - [x] **W4.1 Building attachments kit**: porches, awnings, chimneys, AC
   units, dormers as compiler-authored building sub-geometry — the single
   biggest procedural-vs-hand-built tell.
-- [ ] **W4.2 Road tone rebalance**: narrower/lighter residential lanes,
+- [x] **W4.2 Road tone rebalance**: narrower/lighter residential lanes,
   sidewalk strips — roads currently dominate every frame like highways.
-- [ ] **W4.3 Board edge treatment**: resolve the diorama edge (shore fade /
+- [x] **W4.3 Board edge treatment**: resolve the diorama edge (shore fade /
   pedestal) instead of the abrupt olive cut.
 - [ ] **W4.4 Organic layouts**: break the rectilinear template read —
   curved/diagonal road seeds per archetype (art seat's #1; largest scope).
-- [ ] **W4.5 Tree variety + signage-as-geometry** (2-3 tree species; storefront
+- [x] **W4.5 Tree variety + signage-as-geometry** (2-3 tree species; storefront
   lettering blocks like the reference's PLAZA/GYM).
 
 ## Wave 5 — A11Y (a11y seat; directory review risk too)
@@ -96,6 +96,13 @@ attachments, not more bands and floors.
   crossings (perf #2).
 - [ ] **W6.3 Worker job durability** (claim/ack semantics) + **W6.4 shared
   rate limiting** + **W6.5 MCP handling instrumentation** (sre #1/#4/#5).
+
+## Payload watch (2026-07-11, post-W4-art)
+Generated draft `_meta` payloads now run 818-877KB against the 900KB watch
+ceiling (worst: butler-al 877KB) — W4's art metadata consumed most of the
+remaining headroom. **0.76-T ship-params-not-scenes is now URGENT**: ship the
+compact spec, compile client-side (core is already in the widget bundle),
+collapse `_meta` ~100×. Schedule it with or before W6.
 
 ## Standing note
 The engine-quality program (0.76 + E1–E10) is DONE and gated; council seats
