@@ -42,7 +42,7 @@
   --status-blue: #3478b8;
   --status-orange: #e36f2c;
   --status-red: #c74132;
-  --status-yellow: #e0b84b;
+  --status-yellow: #9a7b1f;
 
   /* WORLD terrain — original map greens desaturated ~15%. Chrome never uses these. */
   --map-terrain-1: #aad48b;
@@ -85,7 +85,7 @@
   --surface-solid: #ffffff;
   --ink: #0d0d0d;
   --ink-2: #5d5d5d;
-  --ink-3: #757575;
+  --ink-3: #6b6b6b;
   --on-ink: #ffffff;
   --border: rgba(0, 0, 0, 0.1);
   --border-subtle: rgba(0, 0, 0, 0.05);
@@ -103,7 +103,8 @@
   --surface-solid: #212121;
   --ink: #f2f2f2;
   --ink-2: #b0b0b0;
-  --ink-3: #969696;
+  --ink-3: #a8a8a8;
+  --status-yellow: #d0a83d;
   --on-ink: #0d0d0d;
   --border: rgba(255, 255, 255, 0.12);
   --border-subtle: rgba(255, 255, 255, 0.06);
@@ -124,7 +125,8 @@
     --surface-solid: #212121;
     --ink: #f2f2f2;
     --ink-2: #b0b0b0;
-    --ink-3: #969696;
+    --ink-3: #a8a8a8;
+    --status-yellow: #d0a83d;
     --on-ink: #0d0d0d;
     --border: rgba(255, 255, 255, 0.12);
     --border-subtle: rgba(255, 255, 255, 0.06);

@@ -87,6 +87,8 @@ const E5_FILL_BANDS = {
   prairie_town: { minCoverage: 0.6, kinds: ["farm_field"], minFarmBlocks: 2, maxFarmBlocks: 4 },
   river_town: { minCoverage: 0.6, kinds: ["shore_bank", "green_common"] },
 };
+const ATTACHMENT_PRESENCE_BANDS = Object.fromEntries(ARCHETYPES.map((archetype) => [archetype, { minRate: 0.4, maxRate: 0.7 }]));
+const GENERATED_ATTACHMENT_KINDS = ["chimney", "porch_step", "porch_canopy", "dormer", "awning", "roof_ac", "parapet_vent", "entry_canopy"];
 const DEFAULT_MATERIAL_PROFILE = "socal_stucco_warm";
 const DEFAULT_ROOF_PROFILE = "terracotta_barrel_tile";
 const GENERATED_PROFILE_RATE_FLOOR = 0.6;
@@ -403,6 +405,68 @@ function openBlockFillFingerprint(county) {
     ...coverage,
     failures,
   };
+}
+
+function attachmentPresenceFingerprint(county) {
+  const first = createDeterministicGeneratedDistrictScene({ county });
+  const second = createDeterministicGeneratedDistrictScene({ county });
+  const archetype = first.generated.archetype;
+  const band = ATTACHMENT_PRESENCE_BANDS[archetype];
+  const readout = attachmentReadout(first.result.scene);
+  const repeatedReadout = attachmentReadout(second.result.scene);
+  const failures = [];
+
+  if (JSON.stringify(readout.countsByKind) !== JSON.stringify(repeatedReadout.countsByKind)) failures.push("attachment counts are not deterministic");
+  if (JSON.stringify(readout.parentIds) !== JSON.stringify(repeatedReadout.parentIds)) failures.push("attachment parent set is not deterministic");
+  if (readout.parentRate < band.minRate || readout.parentRate > band.maxRate) {
+    failures.push(`attachment parent rate ${readout.parentRate} outside ${band.minRate}-${band.maxRate}`);
+  }
+  if (readout.attachmentCount <= 0) failures.push("no generated building attachments");
+
+  return {
+    countySlug: county.countySlug,
+    archetype,
+    band,
+    ...readout,
+    failures,
+  };
+}
+
+function attachmentReadout(scene) {
+  const attachments = (scene.buildings ?? []).filter(isAttachmentBuilding);
+  const eligibleParents = (scene.buildings ?? []).filter(isEligibleAttachmentParent);
+  const parentIds = [...new Set(attachments.map((building) => building.visualGrammar?.buildingAttachment?.parentBuildingId).filter(Boolean))].sort();
+  const countsByKind = Object.fromEntries(GENERATED_ATTACHMENT_KINDS.map((kind) => [kind, 0]));
+
+  for (const attachment of attachments) {
+    const kind = attachment.visualGrammar?.buildingAttachment?.kind;
+    if (kind && kind in countsByKind) countsByKind[kind] += 1;
+  }
+
+  return {
+    eligibleParentCount: eligibleParents.length,
+    attachedParentCount: parentIds.length,
+    parentRate: roundMetric(parentIds.length / Math.max(1, eligibleParents.length)),
+    attachmentCount: attachments.length,
+    parentIds,
+    countsByKind,
+  };
+}
+
+function isAttachmentBuilding(building) {
+  return building.id.startsWith("gen-attachment-") || Boolean(building.visualGrammar?.buildingAttachment);
+}
+
+function isEligibleAttachmentParent(building) {
+  if (isAttachmentBuilding(building)) return false;
+  if (!building.id.startsWith("gen-building-") && !building.id.startsWith("gen-landmark-")) return false;
+  const facadeStyle = building.facadeStyle;
+  return (
+    (building.kind === "home" && (facadeStyle === "cottage" || facadeStyle === "ranch" || facadeStyle === "rowhome")) ||
+    (building.kind === "shop" && (facadeStyle === "strip_store" || facadeStyle === "storefront")) ||
+    (building.kind === "apartment" && facadeStyle === "lowrise") ||
+    (building.kind === "civic" && facadeStyle === "civic")
+  );
 }
 
 function openBlockFillCoverage(zones, scene) {
@@ -770,6 +834,27 @@ for (const a of present) {
   );
 }
 
+const attachmentPresenceByArchetype = {};
+for (const a of present) {
+  attachmentPresenceByArchetype[a] = attachmentPresenceFingerprint(firstCountyByArchetype[a]);
+}
+const attachmentPresenceFailures = Object.entries(attachmentPresenceByArchetype).flatMap(([archetype, entry]) =>
+  entry.failures.map((failure) => `${archetype}: ${failure}`),
+);
+log("\nBuilding attachments - representative W4.1 bands:");
+for (const a of present) {
+  const entry = attachmentPresenceByArchetype[a];
+  const band = entry.band;
+  log(
+    "  " +
+      a.padEnd(16) +
+      `parents ${String(entry.attachedParentCount).padStart(2)}/${String(entry.eligibleParentCount).padEnd(2)}`.padEnd(18) +
+      `rate ${entry.parentRate} [${band.minRate}-${band.maxRate}]`.padEnd(23) +
+      `attachments ${String(entry.attachmentCount).padStart(2)}`.padEnd(17) +
+      `kinds ${Object.entries(entry.countsByKind).filter(([, count]) => count > 0).map(([kind, count]) => `${kind}:${count}`).join(",")}`,
+  );
+}
+
 const perf = perfProbe(firstCountyByArchetype);
 log("\nPerf at scale - " + perf.sampled + " counties: mean " + perf.meanMs.toFixed(2) +
     "ms/county, " + perf.failures + " budget failures (gate: mean <= " + MEAN_GEN_MS_CEILING + "ms, 0 failures)");
@@ -840,6 +925,12 @@ const GATES = [
     detail: openBlockFillFailures.length === 0 ? "all representative E5 fill bands pass" : openBlockFillFailures.join("; "),
   },
   {
+    id: "building_attachment_presence",
+    label: "representative generated buildings carry W4.1 attachments within archetype bands",
+    pass: attachmentPresenceFailures.length === 0,
+    detail: attachmentPresenceFailures.length === 0 ? "all representative W4.1 attachment bands pass" : attachmentPresenceFailures.join("; "),
+  },
+  {
     id: "structural_full_index",
     label: "all counties compile with buildings, places, landmarks, finite buildings, and water bands for water archetypes",
     pass: structural.failures.length === 0,
@@ -906,6 +997,12 @@ if (jsonOnly) {
         bands: E5_FILL_BANDS,
         byArchetype: openBlockFillByArchetype,
         failures: openBlockFillFailures,
+      },
+      buildingAttachments: {
+        bands: ATTACHMENT_PRESENCE_BANDS,
+        kinds: GENERATED_ATTACHMENT_KINDS,
+        byArchetype: attachmentPresenceByArchetype,
+        failures: attachmentPresenceFailures,
       },
       structural: {
         checked: structural.checked,

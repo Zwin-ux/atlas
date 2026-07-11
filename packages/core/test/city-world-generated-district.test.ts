@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ARCHETYPE_PROFILES,
@@ -11,6 +13,7 @@ import {
   analyzeGeneratedDistrictMassingSignature,
   analyzeGeneratedDistrictParity,
   analyzeGeneratedLandmark,
+  compileCityWorldScene,
   compileCityWorldSceneWindow,
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
@@ -20,11 +23,12 @@ import {
   generatedDistrictMassingSignatureDistance,
   resolveCountyParameters,
   resolveEffectiveBuildingColors,
+  riversideDemoVoxelScene,
   sampleCityWorldViewportForCameraPreset,
   US_COUNTY_INDEX,
 } from "../src/index.js";
 import type { CensusDivision, CityWorldProp, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
-import type { CityWorldRoadSegment, CityWorldTerrainTile, CityWorldZoneKind, CityWorldZoneSpec } from "../src/index.js";
+import type { CityWorldBuilding, CityWorldRoadSegment, CityWorldTerrainTile, CityWorldZoneKind, CityWorldZoneSpec } from "../src/index.js";
 
 const PALETTE_DISTINCTNESS_FLOOR = 0.16;
 const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
@@ -69,6 +73,18 @@ const E5_FILL_EXPECTATIONS: Record<GeneratedDistrictArchetype, { minCoverage: nu
 const DEFAULT_MATERIAL_PROFILE = "socal_stucco_warm";
 const DEFAULT_ROOF_PROFILE = "terracotta_barrel_tile";
 const GENERATED_PROFILE_RATE_FLOOR = 0.6;
+const ATTACHMENT_RATE_FLOOR = 0.4;
+const ATTACHMENT_RATE_CEILING = 0.7;
+const GENERATED_ATTACHMENT_KINDS = [
+  "chimney",
+  "porch_step",
+  "porch_canopy",
+  "dormer",
+  "awning",
+  "roof_ac",
+  "parapet_vent",
+  "entry_canopy",
+] as const;
 
 describe("deterministic generated district specs", () => {
   it("compiles repeatable provider-free district specs from Census county identity", () => {
@@ -216,7 +232,7 @@ describe("deterministic generated district specs", () => {
     for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
       const testCounty = countyForArchetype(archetype);
       const { result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
-      const buildings = result.scene.buildings;
+      const buildings = result.scene.buildings.filter((building) => !isAttachmentBuilding(building));
       const materialRich = buildings.filter((building) => building.visualGrammar?.materialProfile !== DEFAULT_MATERIAL_PROFILE);
       const roofRich = buildings.filter((building) => building.visualGrammar?.roofProfile !== DEFAULT_ROOF_PROFILE);
       const missingProfiles = buildings.filter((building) => !building.visualGrammar?.materialProfile || !building.visualGrammar.roofProfile);
@@ -240,6 +256,51 @@ describe("deterministic generated district specs", () => {
       expect(landmarkBuilding?.visualGrammar?.roofProfile).toBe("blue_metal_utility");
       expect(landmarkBuilding?.visualGrammar?.noLabelPriority).toBe("supporting");
     }
+  });
+
+  it("authors deterministic generated building attachments within the W4.1 rate band", () => {
+    const aggregateCounts = Object.fromEntries(GENERATED_ATTACHMENT_KINDS.map((kind) => [kind, 0]));
+
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const first = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const second = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const firstReadout = attachmentReadout(first.result.scene);
+      const secondReadout = attachmentReadout(second.result.scene);
+
+      expect(first.generated.archetype).toBe(archetype);
+      expect(firstReadout.countsByKind).toEqual(secondReadout.countsByKind);
+      expect(firstReadout.parentIds).toEqual(secondReadout.parentIds);
+      expect(firstReadout.eligibleParentCount).toBeGreaterThan(0);
+      expect(firstReadout.parentRate).toBeGreaterThanOrEqual(ATTACHMENT_RATE_FLOOR);
+      expect(firstReadout.parentRate).toBeLessThanOrEqual(ATTACHMENT_RATE_CEILING);
+      expect(firstReadout.attachmentCount).toBeGreaterThan(0);
+
+      for (const [kind, count] of Object.entries(firstReadout.countsByKind)) {
+        aggregateCounts[kind as keyof typeof aggregateCounts] += count;
+      }
+      for (const attachment of firstReadout.attachments) {
+        const metadata = attachment.visualGrammar?.buildingAttachment;
+        const parent = first.result.scene.buildings.find((building) => building.id === metadata?.parentBuildingId);
+        expect(metadata).toBeTruthy();
+        expect(parent?.visualGrammar?.buildingAttachments).toContain(metadata?.kind);
+        expect(attachment.detailLevel).toBe("low");
+      }
+    }
+
+    for (const kind of GENERATED_ATTACHMENT_KINDS) {
+      expect(aggregateCounts[kind]).toBeGreaterThan(0);
+    }
+  });
+
+  it("leaves curated Riverside compile output byte-identical while generated attachments are active", () => {
+    const city = compileCityWorldScene(riversideDemoVoxelScene);
+    const hash = createHash("sha256").update(JSON.stringify(city)).digest("hex");
+    const baseline = readFileSync(new URL("../../../artifacts/engine-todo/curated-compile-baseline.txt", import.meta.url), "utf8").trim();
+
+    expect(hash).toBe(baseline);
+    expect(city.buildings.some(isAttachmentBuilding)).toBe(false);
+    expect(city.buildings.some((building) => (building.visualGrammar?.buildingAttachments?.length ?? 0) > 0)).toBe(false);
   });
 
   it("resolves distinct massing and street-layout signatures per generated archetype (0.76-3)", () => {
@@ -768,7 +829,7 @@ type RegionalPaletteSignature = {
 };
 
 function dominantRegionalPaletteSignature(scene: CityWorldScene, archetype: GeneratedDistrictArchetype): RegionalPaletteSignature {
-  const effectiveBuildingColors = scene.buildings.map((building) => resolveEffectiveBuildingColors(building));
+  const effectiveBuildingColors = scene.buildings.filter((building) => !isAttachmentBuilding(building)).map((building) => resolveEffectiveBuildingColors(building));
   const terrainPaletteKey = dominant(
     scene.terrainTiles.filter((tile) => tile.kind !== "water").map((tile) => tile.paletteKey ?? ""),
   );
@@ -812,6 +873,45 @@ function dominant(values: string[]): string {
   const winner = [...counts.entries()].sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0]))[0];
   if (!winner) throw new Error("Cannot resolve dominant palette from an empty list");
   return winner[0];
+}
+
+function attachmentReadout(scene: CityWorldScene) {
+  const attachments = scene.buildings.filter(isAttachmentBuilding);
+  const eligibleParents = scene.buildings.filter(isEligibleAttachmentParent);
+  const parentIds = [
+    ...new Set(attachments.map((building) => building.visualGrammar?.buildingAttachment?.parentBuildingId).filter((id): id is string => Boolean(id))),
+  ].sort();
+  const countsByKind = Object.fromEntries(GENERATED_ATTACHMENT_KINDS.map((kind) => [kind, 0]));
+
+  for (const attachment of attachments) {
+    const kind = attachment.visualGrammar?.buildingAttachment?.kind;
+    if (kind && kind in countsByKind) countsByKind[kind] += 1;
+  }
+
+  return {
+    attachments,
+    attachmentCount: attachments.length,
+    eligibleParentCount: eligibleParents.length,
+    parentIds,
+    parentRate: roundMetric(parentIds.length / Math.max(1, eligibleParents.length)),
+    countsByKind,
+  };
+}
+
+function isAttachmentBuilding(building: CityWorldBuilding): boolean {
+  return building.id.startsWith("gen-attachment-") || Boolean(building.visualGrammar?.buildingAttachment);
+}
+
+function isEligibleAttachmentParent(building: CityWorldBuilding): boolean {
+  if (isAttachmentBuilding(building)) return false;
+  if (!building.id.startsWith("gen-building-") && !building.id.startsWith("gen-landmark-")) return false;
+  const facadeStyle = building.facadeStyle;
+  return (
+    (building.kind === "home" && (facadeStyle === "cottage" || facadeStyle === "ranch" || facadeStyle === "rowhome")) ||
+    (building.kind === "shop" && (facadeStyle === "strip_store" || facadeStyle === "storefront")) ||
+    (building.kind === "apartment" && facadeStyle === "lowrise") ||
+    (building.kind === "civic" && facadeStyle === "civic")
+  );
 }
 
 function roundMetric(value: number): number {

@@ -418,6 +418,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   // for the mobile-interaction browser proof.
   const cameraFrameRef = useRef<number | null>(null);
   const rebuildCountRef = useRef(0);
+  const reducedMotionRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [hoverPlaceId, setHoverPlaceId] = useState<string | undefined>();
   const [atlasTextures, setAtlasTextures] = useState<CityWorldTextureMap>({});
@@ -459,7 +460,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       loop.active = false;
       return;
     }
-    const animating = animatedRef.current.length + focusAnimatedRef.current.length > 0 && !document.hidden;
+    const animating = !reducedMotionRef.current && animatedRef.current.length + focusAnimatedRef.current.length > 0 && !document.hidden;
     // Wall-clock cap: rAF timestamps are virtualized in headless/BeginFrame
     // environments, so the ambient 30fps gate keys off performance.now().
     const now = performance.now();
@@ -491,6 +492,31 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   useEffect(() => {
     sceneRef.current = scene;
   }, [scene]);
+
+  useEffect(() => {
+    const reducedMotionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    const applyReducedMotionPreference = (matches: boolean) => {
+      const changed = reducedMotionRef.current !== matches;
+      reducedMotionRef.current = matches;
+      if (matches) {
+        if (inertiaFrameRef.current !== null) {
+          window.cancelAnimationFrame(inertiaFrameRef.current);
+          inertiaFrameRef.current = null;
+        }
+        settleAnimatedTargets(animatedRef.current);
+        settleFocusPulseTargets();
+      }
+      if (changed) {
+        setFocusEpoch((epoch) => epoch + 1);
+        invalidateRender();
+      }
+    };
+    applyReducedMotionPreference(reducedMotionQuery?.matches ?? false);
+    if (!reducedMotionQuery) return;
+    const handleReducedMotionChange = (event: MediaQueryListEvent) => applyReducedMotionPreference(event.matches);
+    reducedMotionQuery.addEventListener("change", handleReducedMotionChange);
+    return () => reducedMotionQuery.removeEventListener("change", handleReducedMotionChange);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -696,6 +722,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       while (samples.length > 6 || (samples.length > 1 && now - (samples[0]?.t ?? now) > FLICK_SAMPLE_WINDOW_MS)) samples.shift();
     };
     const releaseVelocity = (): { vx: number; vy: number } | null => {
+      if (reducedMotionRef.current) return null;
       const samples = velocitySamplesRef.current;
       const last = samples[samples.length - 1];
       const first = samples[0];
@@ -853,6 +880,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     const drawn = drawScene(world, scene, activeCameraPresetId, viewportFrame, cameraRef.current.zoom, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
       if (!movedRef.current) selectPlaceRef.current(placeId);
     }, setHoverPlaceId, animatedRef.current);
+    if (reducedMotionRef.current) settleAnimatedTargets(animatedRef.current);
     perfRef.current.sceneRebuilds += 1;
     perfRef.current.lastRebuildMs = Math.round((performance.now() - rebuildStart) * 10) / 10;
     const qaHandle = (window as unknown as Record<string, unknown>).__ATLAS_QA__ as Record<string, unknown> | undefined;
@@ -901,11 +929,18 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     perfRef.current.overlayRedraws += 1;
     // The focus pulse runs briefly, then freezes so the render loop can park:
     // a permanent default selection must not pin the widget at 30fps forever.
-    if (focusPulseTimeoutRef.current !== undefined) window.clearTimeout(focusPulseTimeoutRef.current);
+    if (focusPulseTimeoutRef.current !== undefined) {
+      window.clearTimeout(focusPulseTimeoutRef.current);
+      focusPulseTimeoutRef.current = undefined;
+    }
+    if (reducedMotionRef.current) {
+      settleFocusPulseTargets();
+      invalidateRender();
+      return;
+    }
     if (focusAnimatedRef.current.length > 0) {
       focusPulseTimeoutRef.current = window.setTimeout(() => {
-        for (const item of focusAnimatedRef.current) item.target.alpha = item.baseAlpha;
-        focusAnimatedRef.current.length = 0;
+        settleFocusPulseTargets();
         invalidateRender();
       }, 4000);
     }
@@ -984,6 +1019,10 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       window.cancelAnimationFrame(inertiaFrameRef.current);
       inertiaFrameRef.current = null;
     }
+    if (reducedMotionRef.current && cameraFrameRef.current !== null) {
+      window.cancelAnimationFrame(cameraFrameRef.current);
+      cameraFrameRef.current = null;
+    }
     pendingMaterialRefreshRef.current = false;
     const requestedPreset = cameraPresetId ? nextScene.cameraPresets.find((item) => item.id === cameraPresetId) : undefined;
     const preset =
@@ -1020,6 +1059,22 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     world.position.set(camera.x, camera.y);
     requestWindowRefreshIfNeeded();
     invalidateRender();
+  }
+
+  function settleAnimatedTargets(targets: AnimatedTarget[]) {
+    for (const item of targets) {
+      item.target.position.set(0, 0);
+      item.target.alpha = item.baseAlpha;
+    }
+  }
+
+  function settleFocusPulseTargets() {
+    if (focusPulseTimeoutRef.current !== undefined) {
+      window.clearTimeout(focusPulseTimeoutRef.current);
+      focusPulseTimeoutRef.current = undefined;
+    }
+    settleAnimatedTargets(focusAnimatedRef.current);
+    focusAnimatedRef.current.length = 0;
   }
 
   function requestWindowRefreshIfNeeded() {
@@ -3173,6 +3228,14 @@ function drawBuilding(layers: LayerMap, layer: Container, building: CityWorldBui
   // The base scene is focus-agnostic: hover/selection emphasis draws in the
   // focusLayer overlay so focus changes never rebuild these Graphics.
   const geometry = createBuildingGeometry(building, atlas);
+  // W4.1 attachments (porches/awnings/chimneys/AC/dormers) are authored as
+  // tiny sub-buildings. Draw them MINIMALLY: one Graphics of walls+roof —
+  // no pad, no cast shadow, no facade/material machinery. A full building
+  // draw per attachment blew the Graphics ceiling (1621/1600 measured).
+  if (building.visualGrammar?.buildingAttachment) {
+    drawAttachmentBlock(layer, geometry, building);
+    return;
+  }
   // Foundation pads are ground decals: they live in a shared layer below every
   // cast shadow so shadows land ON pads instead of being washed out by them.
   drawBuildingFootprint(layers.padLayer, geometry, building);
@@ -4216,6 +4279,30 @@ function drawDraftFoundationMaterial(layer: Container, center: ProjectedPoint, w
   stratum.stroke({ color: shadeColor(color, -48), alpha: 0.2, width: 1.1, cap: "round", join: "round" });
   const contactTile = polygon(diamondPoints({ x: center.x, y: center.y + height * 0.18 }, width * 0.54, height * 0.18), shadeColor(color, 14), 0.14, 0xffffff, 0);
   layer.addChild(contactTile, stratum);
+}
+
+// W4.1 attachments: ONE Graphics per attachment — two wall faces + roof top,
+// same sun model as full buildings, none of the pad/shadow/facade machinery.
+// Keeps 20+ visible attachments within the Graphics ceiling (a full building
+// draw per attachment measured 1621/1600).
+function drawAttachmentBlock(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding) {
+  const { bottom, top, footprintWidth, footprintDepth, bodyColor, roofColor } = geometry;
+  const topLeft = { x: top.x - footprintWidth / 2, y: top.y };
+  const topRight = { x: top.x + footprintWidth / 2, y: top.y };
+  const topFront = { x: top.x, y: top.y + footprintDepth / 2 };
+  const topBack = { x: top.x, y: top.y - footprintDepth / 2 };
+  const bottomLeft = { x: bottom.x - footprintWidth / 2, y: bottom.y };
+  const bottomRight = { x: bottom.x + footprintWidth / 2, y: bottom.y };
+  const bottomFront = { x: bottom.x, y: bottom.y + footprintDepth / 2 };
+  const block = new Graphics();
+  block
+    .poly([topLeft.x, topLeft.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomLeft.x, bottomLeft.y], true)
+    .fill({ color: buildingFaceColor(bodyColor, "sun") })
+    .poly([topRight.x, topRight.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomRight.x, bottomRight.y], true)
+    .fill({ color: buildingFaceColor(bodyColor, "shade") })
+    .poly([topLeft.x, topLeft.y, topBack.x, topBack.y, topRight.x, topRight.y, topFront.x, topFront.y], true)
+    .fill({ color: sunlitColor(roofColor, "top") });
+  layer.addChild(block);
 }
 
 function drawBuildingShell(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, materialTextureEnabled: boolean) {

@@ -1,5 +1,7 @@
 import type {
   CityWorldActor,
+  CityWorldBuildingAttachmentKind,
+  CityWorldBuildingAttachmentMetadata,
   CityWorldBuilding,
   CityWorldBounds,
   CityWorldGroundTone,
@@ -1660,6 +1662,292 @@ export function withBuildingMetadata(building: CityWorldBuilding): CityWorldBuil
     ...buildingWithVisualGrammar,
     objectKit: assignCityWorldObjectKit(buildingWithVisualGrammar),
   };
+}
+
+export function withGeneratedBuildingAttachmentGeometry(buildings: CityWorldBuilding[]): CityWorldBuilding[] {
+  const primaries = buildings.map((building) => withBuildingMetadata(building));
+  const selectedParentIds = selectedGeneratedAttachmentParentIds(primaries);
+  return primaries.flatMap((primary) => withGeneratedBuildingAttachmentGeometryForParent(primary, selectedParentIds));
+}
+
+function withGeneratedBuildingAttachmentGeometryForParent(primary: CityWorldBuilding, selectedParentIds: Set<string>): CityWorldBuilding[] {
+  const attachmentKinds = selectedParentIds.has(primary.id) ? generatedBuildingAttachmentKinds(primary) : [];
+
+  if (attachmentKinds.length === 0) return [primary];
+
+  const primaryWithAttachmentMetadata: CityWorldBuilding = {
+    ...primary,
+    visualGrammar: {
+      ...(primary.visualGrammar ?? { contactProfile: "parcel_pad_shadow" as const }),
+      buildingAttachments: attachmentKinds,
+    },
+  };
+
+  return [
+    primaryWithAttachmentMetadata,
+    ...attachmentKinds.map((kind, ordinal) => withGeneratedAttachmentMetadata(createGeneratedAttachmentBuilding(primaryWithAttachmentMetadata, kind, ordinal), primaryWithAttachmentMetadata, kind, ordinal)),
+  ];
+}
+
+function selectedGeneratedAttachmentParentIds(buildings: CityWorldBuilding[]): Set<string> {
+  const eligible = buildings.filter((building) => isGeneratedPrimaryBuilding(building) && generatedBuildingCanCarryAttachments(building));
+  if (eligible.length === 0) return new Set();
+
+  const minCount = Math.ceil(eligible.length * 0.4);
+  const maxCount = Math.max(minCount, Math.floor(eligible.length * 0.7));
+  const civicParents = eligible.filter((building) => building.kind === "civic" && building.facadeStyle === "civic");
+  const targetCount = Math.max(civicParents.length, Math.max(minCount, Math.min(maxCount, Math.round(eligible.length * 0.56))));
+  const civicIds = new Set(civicParents.map((building) => building.id));
+  return new Set(
+    [
+      ...civicParents,
+      ...eligible
+        .filter((building) => !civicIds.has(building.id))
+      .map((building) => ({ building, score: attachmentSelectionScore(building) }))
+      .sort((first, second) => first.score - second.score || first.building.id.localeCompare(second.building.id))
+        .slice(0, Math.max(0, targetCount - civicParents.length))
+      .map((entry) => entry.building.id),
+    ].map((entry) => (typeof entry === "string" ? entry : entry.id)),
+  );
+}
+
+function generatedBuildingAttachmentKinds(building: CityWorldBuilding): CityWorldBuildingAttachmentKind[] {
+  if (!isGeneratedPrimaryBuilding(building)) return [];
+  if (!generatedBuildingCanCarryAttachments(building)) return [];
+
+  const kinds: CityWorldBuildingAttachmentKind[] = [];
+  const detailLevel = building.detailLevel ?? (building.kind === "home" ? "medium" : "high");
+  const facadeStyle = building.facadeStyle;
+  const roofShape = building.roofShape ?? "flat";
+
+  if (building.kind === "home" && (facadeStyle === "cottage" || facadeStyle === "ranch" || facadeStyle === "rowhome")) {
+    kinds.push(attachmentPercent(building, "porch") < 52 ? "porch_step" : "porch_canopy");
+    if (attachmentPercent(building, "chimney") < (detailLevel === "high" ? 72 : 62)) kinds.push("chimney");
+    if (roofShape === "gable" && attachmentPercent(building, "dormer") < 34) kinds.push("dormer");
+  } else if (building.kind === "shop" && (facadeStyle === "strip_store" || facadeStyle === "storefront")) {
+    kinds.push("awning");
+    if (attachmentPercent(building, "roof_ac") < 66) kinds.push("roof_ac");
+  } else if (building.kind === "apartment" && facadeStyle === "lowrise") {
+    kinds.push("roof_ac");
+    if (attachmentPercent(building, "parapet") < 58) kinds.push("parapet_vent");
+  } else if (building.kind === "civic" && facadeStyle === "civic") {
+    kinds.push("entry_canopy");
+  }
+
+  return kinds;
+}
+
+function attachmentSelectionScore(building: CityWorldBuilding): number {
+  const detailLevel = building.detailLevel ?? (building.kind === "home" ? "medium" : "high");
+  const detailPenalty = detailLevel === "low" ? 800 : detailLevel === "medium" ? 140 : 0;
+  return detailPenalty + attachmentPresenceSlot(building) * 100 + attachmentPercent(building, "presence");
+}
+
+function isGeneratedPrimaryBuilding(building: CityWorldBuilding): boolean {
+  return (building.id.startsWith("gen-building-") || building.id.startsWith("gen-landmark-")) && !building.id.startsWith("gen-attachment-");
+}
+
+function generatedBuildingCanCarryAttachments(building: CityWorldBuilding): boolean {
+  const facadeStyle = building.facadeStyle;
+  return (
+    (building.kind === "home" && (facadeStyle === "cottage" || facadeStyle === "ranch" || facadeStyle === "rowhome")) ||
+    (building.kind === "shop" && (facadeStyle === "strip_store" || facadeStyle === "storefront")) ||
+    (building.kind === "apartment" && facadeStyle === "lowrise") ||
+    (building.kind === "civic" && facadeStyle === "civic")
+  );
+}
+
+function createGeneratedAttachmentBuilding(parent: CityWorldBuilding, kind: CityWorldBuildingAttachmentKind, ordinal: number): CityWorldBuilding {
+  const baseZ = parent.position.z ?? 0;
+  const seed = attachmentPercent(parent, `${kind}-${ordinal}`);
+  const lateral = ((seed % 41) - 20) / 100;
+  const roofX = roundAttachmentDimension(parent.position.x + clampAttachmentOffset(lateral * parent.width, parent.width, 0.32));
+  const roofY = roundAttachmentDimension(parent.position.y + clampAttachmentOffset(((seed % 29) - 14) * 0.01 * parent.depth, parent.depth, 0.28));
+  const frontX = roundAttachmentDimension(parent.position.x + clampAttachmentOffset(lateral * parent.width, parent.width, 0.34));
+  const frontY = roundAttachmentDimension(parent.position.y + parent.depth * 0.48);
+  const colors = attachmentColors(parent, kind);
+  const dimensions = attachmentDimensions(parent, kind);
+  const mount = attachmentMount(kind);
+  const position =
+    mount === "roof" || mount === "parapet"
+      ? { x: roofX, y: roofY, z: baseZ }
+      : { x: frontX, y: frontY, z: baseZ };
+
+  return {
+    id: `gen-attachment-${parent.id.replace(/^gen-/, "")}-${ordinal}-${kind}`,
+    kind: "gym",
+    label: `${parent.label} ${kind.replace(/_/g, " ")}`,
+    spriteKey: "building.gym.generated.attachment.v1",
+    position,
+    width: dimensions.width,
+    depth: dimensions.depth,
+    height: attachmentRenderHeight(parent, kind, dimensions.height),
+    bodyColor: colors.body,
+    roofColor: colors.roof,
+    ...(parent.placeId ? { placeId: parent.placeId } : {}),
+    ...(parent.paletteKey ? { paletteKey: parent.paletteKey } : {}),
+    roofShape: kind === "dormer" ? "gable" : "flat",
+    facadeStyle: "fitness",
+    detailLevel: "low",
+  };
+}
+
+function attachmentRenderHeight(parent: CityWorldBuilding, kind: CityWorldBuildingAttachmentKind, blockHeight: number): number {
+  if (kind === "porch_step") return blockHeight;
+  if (kind === "porch_canopy" || kind === "awning" || kind === "entry_canopy") {
+    return roundAttachmentDimension(Math.max(blockHeight, parent.height * 0.52 + blockHeight));
+  }
+  if (kind === "dormer") return roundAttachmentDimension(Math.max(blockHeight, parent.height * 0.72 + blockHeight));
+  return roundAttachmentDimension(parent.height + blockHeight);
+}
+
+function withGeneratedAttachmentMetadata(
+  attachment: CityWorldBuilding,
+  parent: CityWorldBuilding,
+  kind: CityWorldBuildingAttachmentKind,
+  ordinal: number,
+): CityWorldBuilding {
+  const enriched = withBuildingMetadata(attachment);
+  const metadata: CityWorldBuildingAttachmentMetadata = {
+    kind,
+    parentBuildingId: parent.id,
+    mount: attachmentMount(kind),
+    ...(attachmentMount(kind) === "front" ? { facadeEdge: "south" as const } : {}),
+    ordinal,
+  };
+  return {
+    ...enriched,
+    visualGrammar: {
+      ...(enriched.visualGrammar ?? { contactProfile: "parcel_pad_shadow" as const }),
+      materialProfile: attachmentMaterialProfile(kind),
+      roofProfile: attachmentRoofProfile(parent, kind),
+      objectFamily: "service_block",
+      clusterRole: "support",
+      noLabelPriority: "none",
+      buildingAttachment: metadata,
+    },
+  };
+}
+
+function attachmentMaterialProfile(kind: CityWorldBuildingAttachmentKind): NonNullable<CityWorldVisualGrammar["materialProfile"]> {
+  if (kind === "awning") return "socal_storefront";
+  if (kind === "roof_ac" || kind === "parapet_vent") return "socal_cool_stucco";
+  if (kind === "entry_canopy") return "civic_glass_stucco";
+  return "socal_stucco_light";
+}
+
+function attachmentRoofProfile(parent: CityWorldBuilding, kind: CityWorldBuildingAttachmentKind): NonNullable<CityWorldVisualGrammar["roofProfile"]> {
+  if (kind === "roof_ac" || kind === "parapet_vent" || kind === "entry_canopy") return "blue_metal_utility";
+  if (kind === "porch_step" || kind === "porch_canopy" || kind === "awning") return "flat_parapet_cap";
+  return parent.visualGrammar?.roofProfile ?? "flat_parapet_cap";
+}
+
+function attachmentDimensions(parent: CityWorldBuilding, kind: CityWorldBuildingAttachmentKind): { width: number; depth: number; height: number } {
+  if (kind === "chimney") {
+    return {
+      width: roundAttachmentDimension(Math.max(0.16, Math.min(0.26, parent.width * 0.12))),
+      depth: roundAttachmentDimension(Math.max(0.14, Math.min(0.22, parent.depth * 0.16))),
+      height: roundAttachmentDimension(Math.max(0.2, Math.min(0.34, parent.height * 0.26))),
+    };
+  }
+  if (kind === "porch_step") {
+    return {
+      width: roundAttachmentDimension(Math.max(0.42, Math.min(0.78, parent.width * 0.36))),
+      depth: roundAttachmentDimension(Math.max(0.12, Math.min(0.22, parent.depth * 0.16))),
+      height: 0.08,
+    };
+  }
+  if (kind === "porch_canopy" || kind === "entry_canopy") {
+    return {
+      width: roundAttachmentDimension(Math.max(kind === "entry_canopy" ? 0.82 : 0.52, Math.min(kind === "entry_canopy" ? 1.18 : 0.86, parent.width * 0.42))),
+      depth: roundAttachmentDimension(Math.max(0.14, Math.min(0.26, parent.depth * 0.18))),
+      height: 0.1,
+    };
+  }
+  if (kind === "dormer") {
+    return {
+      width: roundAttachmentDimension(Math.max(0.3, Math.min(0.44, parent.width * 0.22))),
+      depth: roundAttachmentDimension(Math.max(0.2, Math.min(0.34, parent.depth * 0.24))),
+      height: roundAttachmentDimension(Math.max(0.18, Math.min(0.3, parent.height * 0.24))),
+    };
+  }
+  if (kind === "awning") {
+    return {
+      width: roundAttachmentDimension(Math.max(0.82, Math.min(parent.width * 0.82, 2.9))),
+      depth: roundAttachmentDimension(Math.max(0.14, Math.min(0.24, parent.depth * 0.14))),
+      height: 0.09,
+    };
+  }
+  if (kind === "roof_ac") {
+    return {
+      width: roundAttachmentDimension(Math.max(0.32, Math.min(0.5, parent.width * 0.16))),
+      depth: roundAttachmentDimension(Math.max(0.26, Math.min(0.42, parent.depth * 0.18))),
+      height: 0.16,
+    };
+  }
+  return {
+    width: roundAttachmentDimension(Math.max(0.16, Math.min(0.3, parent.width * 0.1))),
+    depth: roundAttachmentDimension(Math.max(0.34, Math.min(0.58, parent.depth * 0.24))),
+    height: 0.14,
+  };
+}
+
+function attachmentColors(parent: CityWorldBuilding, kind: CityWorldBuildingAttachmentKind): { body: string; roof: string } {
+  if (kind === "awning") return { body: parent.roofColor, roof: "#fff4d8" };
+  if (kind === "roof_ac" || kind === "parapet_vent") return { body: "#d8ded8", roof: "#9aa6a3" };
+  if (kind === "chimney") return { body: "#9b6a4c", roof: "#6d4837" };
+  if (kind === "dormer") return { body: parent.bodyColor, roof: parent.roofColor };
+  return { body: parent.bodyColor, roof: parent.roofColor };
+}
+
+function attachmentMount(kind: CityWorldBuildingAttachmentKind): NonNullable<CityWorldBuildingAttachmentMetadata["mount"]> {
+  if (kind === "porch_step" || kind === "porch_canopy" || kind === "awning" || kind === "entry_canopy") return "front";
+  if (kind === "parapet_vent") return "parapet";
+  return "roof";
+}
+
+function attachmentPercent(building: CityWorldBuilding, salt: string): number {
+  return hashId(
+    [
+      building.id,
+      salt,
+      building.kind,
+      building.facadeStyle ?? "",
+      building.roofShape ?? "",
+      building.detailLevel ?? "",
+      building.position.x.toFixed(2),
+      building.position.y.toFixed(2),
+      (building.position.z ?? 0).toFixed(2),
+      building.width.toFixed(2),
+      building.depth.toFixed(2),
+      building.height.toFixed(2),
+    ].join("|"),
+  ) % 100;
+}
+
+function attachmentPresenceSlot(building: CityWorldBuilding): number {
+  const ordinalMatch = /-(\d+)$/.exec(building.id);
+  const ordinal = ordinalMatch ? Number.parseInt(ordinalMatch[1] ?? "0", 10) : hashId(building.id) % 10;
+  const familyHash = hashId(
+    [
+      building.id.replace(/-\d+$/, ""),
+      building.kind,
+      building.facadeStyle ?? "",
+      building.roofShape ?? "",
+      building.position.x.toFixed(1),
+      building.position.y.toFixed(1),
+    ].join("|"),
+  );
+  return (ordinal * 3 + familyHash) % 10;
+}
+
+function clampAttachmentOffset(value: number, footprint: number, maxRatio: number): number {
+  const limit = footprint * maxRatio;
+  return Math.max(-limit, Math.min(limit, value));
+}
+
+function roundAttachmentDimension(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function resolveBuildingSpriteKey(building: CityWorldBuilding, roofShape: CityWorldBuilding["roofShape"], facadeStyle: CityWorldBuilding["facadeStyle"], variant: number): string {

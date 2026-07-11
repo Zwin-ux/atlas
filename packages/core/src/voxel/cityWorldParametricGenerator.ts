@@ -14,6 +14,7 @@ import type {
   CityWorldVisualGrammar,
 } from "./cityWorldTypes.js";
 import {
+  withGeneratedBuildingAttachmentGeometry,
   withBuildingMetadata,
   withCityWorldTerrainContactMetadata,
   withLotMetadata,
@@ -251,7 +252,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       const building = buildingForZone(zone, parcel, placeId, rng, spec.regionalPalette, spec.countyParameters);
       if (building) {
         building.position.z = parcelZ;
-        buildings.push(withBuildingMetadata(building));
+        buildings.push(building);
       }
     }
 
@@ -279,6 +280,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     places.push(signatureLandmark.place);
     props.push(...signatureLandmark.props);
   }
+  const buildingsWithAttachments = withGeneratedBuildingAttachmentGeometry(buildings);
 
   const scene: CityWorldScene = {
     type: "cityWorldScene",
@@ -290,13 +292,13 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     cameraPresets: parametricCameraPresets(
       bounds,
       spec.zones,
-      { bounds, terrainTiles, waterTiles: terrainTiles.filter((tile) => tile.kind === "water"), roadSegments, lots, buildings },
+      { bounds, terrainTiles, waterTiles: terrainTiles.filter((tile) => tile.kind === "water"), roadSegments, lots, buildings: buildingsWithAttachments },
       spec.countyParameters,
     ),
     terrainTiles,
     roadSegments,
     lots,
-    buildings,
+    buildings: buildingsWithAttachments,
     props,
     places,
     pins: [],
@@ -325,7 +327,7 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       terrainTiles: terrainTiles.length,
       roads: roadSegments.length,
       lots: lots.length,
-      buildings: buildings.length,
+      buildings: buildingsWithAttachments.length,
       props: props.length,
       zones: spec.zones.length,
     },
@@ -1001,6 +1003,10 @@ export function generatedLandmarkSilhouetteKey(
   ].join(":");
 }
 
+function isGeneratedAttachmentBuilding(building: CityWorldBuilding): boolean {
+  return building.id.startsWith("gen-attachment-") || Boolean(building.visualGrammar?.buildingAttachment);
+}
+
 export const GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR = 0.16;
 
 export type CityWorldGeneratedMassingSignature = {
@@ -1026,7 +1032,7 @@ export type CityWorldGeneratedMassingSignature = {
 };
 
 export function analyzeGeneratedDistrictMassingSignature(scene: CityWorldScene): CityWorldGeneratedMassingSignature {
-  const buildings = scene.buildings.filter((building) => !building.id.startsWith("gen-landmark-"));
+  const buildings = scene.buildings.filter((building) => !building.id.startsWith("gen-landmark-") && !isGeneratedAttachmentBuilding(building));
   const lots = scene.lots.filter((lot) => !lot.id.startsWith("gen-landmark-lot-"));
   const roadLengths = scene.roadSegments.map((road) => Math.hypot(road.to.x - road.from.x, road.to.y - road.from.y));
   const roadLength = roadLengths.reduce((sum, value) => sum + value, 0);
@@ -2898,9 +2904,10 @@ export function analyzeGeneratedDistrictParity(scene: CityWorldScene): CityWorld
   const softLotKinds = new Set<CityWorldLot["kind"]>(["park", "waterfront"]);
   const buildableLots = scene.lots.filter((lot) => !softLotKinds.has(lot.kind));
   const softLots = scene.lots.length - buildableLots.length;
+  const primaryBuildings = scene.buildings.filter((building) => !isGeneratedAttachmentBuilding(building));
 
   const pads: CityWorldGeneratedPadMetric[] = buildableLots.map((lot) => {
-    const residents = scene.buildings.filter((building) =>
+    const residents = primaryBuildings.filter((building) =>
       cityWorldPointInsideFootprint(building.position, lot.position, lot.width, lot.depth),
     );
     const primary = residents.reduce<CityWorldBuilding | null>(
@@ -2928,7 +2935,7 @@ export function analyzeGeneratedDistrictParity(scene: CityWorldScene): CityWorld
   const overhangTolerance = 0.02;
   const overhangPads = filledPads.filter((pad) => pad.overhangTiles > overhangTolerance);
 
-  const shops = scene.buildings.filter((building) => building.kind === "shop");
+  const shops = primaryBuildings.filter((building) => building.kind === "shop");
   // Strip rows and corner storefronts have separate size floors.
   const cornerShops = shops.filter((building) => building.facadeStyle === "storefront");
   const rowShops = shops.filter((building) => building.facadeStyle !== "storefront");
@@ -2946,13 +2953,13 @@ export function analyzeGeneratedDistrictParity(scene: CityWorldScene): CityWorld
   const heroCrownDuplicateZones = 0;
   const heroCrownMissingZones = 0;
 
-  const apartments = scene.buildings.filter((building) => building.kind === "apartment");
+  const apartments = primaryBuildings.filter((building) => building.kind === "apartment");
   const apartmentClearances = apartments.map((building) => ({
     id: building.id,
     clearance: apartmentColumnClearance(building),
   }));
   const unsafeApartments = apartmentClearances.filter((entry) => entry.clearance < 1);
-  const homes = scene.buildings.filter((building) => building.kind === "home");
+  const homes = primaryBuildings.filter((building) => building.kind === "home");
   const homeRoofSafety = homes.map((building) => generatedHomeRoofSafety(building));
   const unsafeHomeRoofs = homeRoofSafety.filter((entry) => !entry.safe);
 

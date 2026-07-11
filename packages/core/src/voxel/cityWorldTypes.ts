@@ -141,6 +141,26 @@ export type CityWorldRoadContactProfile = "embedded" | "apron" | "painted";
 
 export type CityWorldRoadLaneMarking = "avenue_dash" | "street_dash" | "apron_dash" | "none";
 
+export type CityWorldBuildingAttachmentKind =
+  | "chimney"
+  | "porch_step"
+  | "porch_canopy"
+  | "dormer"
+  | "awning"
+  | "roof_ac"
+  | "parapet_vent"
+  | "entry_canopy";
+
+export type CityWorldBuildingAttachmentMount = "roof" | "front" | "parapet";
+
+export type CityWorldBuildingAttachmentMetadata = {
+  kind: CityWorldBuildingAttachmentKind;
+  parentBuildingId: string;
+  mount: CityWorldBuildingAttachmentMount;
+  facadeEdge?: CityWorldTileEdge;
+  ordinal: number;
+};
+
 export type CityWorldRoadContactGrammar = {
   profile: CityWorldRoadContactProfile;
   tone: CityWorldGroundTone;
@@ -265,6 +285,8 @@ export type CityWorldVisualGrammar = {
   objectFamily?: CityWorldObjectFamily;
   clusterRole?: CityWorldClusterRole;
   noLabelPriority?: CityWorldNoLabelPriority;
+  buildingAttachments?: CityWorldBuildingAttachmentKind[];
+  buildingAttachment?: CityWorldBuildingAttachmentMetadata;
   contactProfile: CityWorldContactProfile;
   roadContact?: CityWorldRoadContactGrammar;
   lotContact?: CityWorldLotContactGrammar;
