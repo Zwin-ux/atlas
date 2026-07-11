@@ -45,12 +45,28 @@ try {
   await gate("hostile_host_rejected", async () => {
     const response = await request({
       method: "GET",
-      path: "/health",
+      path: "/api/geo/status",
       headers: {
         Host: "evil.example",
       },
     });
     assert([400, 403].includes(response.status), `hostile Host expected 400/403, got ${response.status}.`);
+  });
+
+  await gate("health_probes_bypass_host_admission", async () => {
+    for (const path of ["/health", "/ready"]) {
+      const response = await request({
+        method: "GET",
+        path,
+        headers: {
+          Host: "railway-internal-probe.local",
+        },
+      });
+      assert(
+        response.status === 200 || (path === "/ready" && response.status === 503),
+        `${path} probe with internal Host expected 200 (or 503 not-ready), got ${response.status}.`,
+      );
+    }
   });
 
   await gate("hosted_clawd_write_404_without_persistence", async () => {

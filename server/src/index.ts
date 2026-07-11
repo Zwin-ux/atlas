@@ -2858,6 +2858,20 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  // Railway healthchecks hit /ready with an internal Host header; liveness
+  // probes carry no session or user data, so they bypass host admission.
+  const probePath = req.url.split("?")[0];
+  if (req.method === "GET" && (probePath === "/health" || probePath === "/ready")) {
+    if (probePath === "/health") {
+      jsonResponse(res, 200, { ok: true, version: SERVER_VERSION });
+      return;
+    }
+    const payload = await readyPayload();
+    const status = typeof payload === "object" && payload !== null && "ok" in payload && payload.ok === true ? 200 : 503;
+    jsonResponse(res, status, payload);
+    return;
+  }
+
   const hostAdmission = validateHostHeader(req, serverSecurityConfig);
   if (!hostAdmission.ok) {
     logBackendEvent("request_admission_denied", {
@@ -2888,18 +2902,6 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/" && req.method === "GET") {
     textResponse(res, 200, `Atlas MCP server\nMCP: http://localhost:${PORT}${MCP_PATH}\nPreview: http://localhost:${PORT}/preview\n`);
-    return;
-  }
-
-  if (url.pathname === "/health" && req.method === "GET") {
-    jsonResponse(res, 200, { ok: true, version: SERVER_VERSION });
-    return;
-  }
-
-  if (url.pathname === "/ready" && req.method === "GET") {
-    const payload = await readyPayload();
-    const status = typeof payload === "object" && payload !== null && "ok" in payload && payload.ok === true ? 200 : 503;
-    jsonResponse(res, status, payload);
     return;
   }
 
