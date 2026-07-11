@@ -367,7 +367,7 @@ async function runStructuralChecks(client, cell, cellSpec) {
       const banner = await generatedBoundaryText(client);
       if (!banner.present) return { level: "fail", detail: "missing [data-qa='generated-boundary']" };
       const text = banner.text ?? "";
-      if (/generated/i.test(text) && /not real coverage/i.test(text) && /nothing is saved/i.test(text)) {
+      if (/generated/i.test(text) && /not real coverage/i.test(text) && /stays in this chat/i.test(text)) {
         return { level: "pass", detail: compactText(text) };
       }
       return { level: "fail", detail: `unexpected copy: ${compactText(text)}` };

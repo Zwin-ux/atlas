@@ -93,6 +93,7 @@ export type CampaignPreviewState = {
   type: "campaignPreview";
   id: string;
   scoutPreviewId: string;
+  continuityNote?: string;
   countySlug: string;
   selectedNodeId: string;
   businessType: string;

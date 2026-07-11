@@ -33,6 +33,7 @@ export type CityWorldViewProps = {
   noteDraft?: string;
   scoutPreview?: ScoutPreviewState | null;
   campaignPreview?: CampaignPreviewState | null;
+  sessionResumeLabel?: string | undefined;
   hostedClawdContext?: HostedClawdContext | null;
   hostedClawdOpen?: boolean;
   hostedClawdActionMessage?: string | undefined;
@@ -64,6 +65,7 @@ export function CityWorldView({
   noteDraft = "",
   scoutPreview = null,
   campaignPreview = null,
+  sessionResumeLabel,
   hostedClawdContext = null,
   hostedClawdOpen = false,
   hostedClawdActionMessage,
@@ -173,7 +175,7 @@ export function CityWorldView({
         <div className="city-world-generated-boundary" data-qa="generated-boundary">
           <div>
             <span>GENERATED PREVIEW</span>
-            <strong>Generated district. Not real coverage. Nothing is saved.</strong>
+            <strong>Generated district. Not real coverage. Preview stays in this chat.</strong>
           </div>
           <button type="button" data-qa="exit-generated" onClick={onExitGeneratedPreview}>
             Exit preview
@@ -269,6 +271,11 @@ export function CityWorldView({
             <b>{placePins.length}</b> here
           </span>
         </div>
+        {sessionResumeLabel ? (
+          <div className="city-world-session-boundary" data-qa="session-resume">
+            {sessionResumeLabel}
+          </div>
+        ) : null}
         <div className="city-world-session-boundary" data-qa="session-only-boundary">
           Pins and notes stay in this chat.
         </div>

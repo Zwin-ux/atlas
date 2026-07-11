@@ -13,7 +13,7 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
-  previewCampaignFromScout,
+  previewCampaignFromScoutRequest,
   previewScoutDrop,
   type CampaignPreviewState,
   type ScoutPreviewState,
@@ -638,6 +638,7 @@ const campaignPreviewOutputSchema = {
   type: z.literal("campaignPreview"),
   id: z.string(),
   scoutPreviewId: z.string(),
+  continuityNote: z.string().optional(),
   countySlug: z.string(),
   selectedNodeId: z.string(),
   businessType: z.string(),
@@ -2010,7 +2011,8 @@ function handleCampaignPreview(url: URL, res: ServerResponse): void {
   }
 
   try {
-    const scoutPreview = previewScoutDrop({
+    const { campaignPreview, rebuiltScoutPreview } = previewCampaignFromScoutRequest({
+      scoutPreviewId,
       countySlug: url.searchParams.get("countySlug") ?? "riverside-ca",
       nodeId: url.searchParams.get("nodeId") ?? undefined,
       locationLabel: url.searchParams.get("locationLabel") ?? "Eastvale",
@@ -2020,15 +2022,7 @@ function handleCampaignPreview(url: URL, res: ServerResponse): void {
       serviceRadius: url.searchParams.get("serviceRadius") ?? undefined,
     });
 
-    if (scoutPreview.id !== scoutPreviewId) {
-      jsonResponse(res, 400, {
-        ok: false,
-        error: `Scout preview mismatch. Expected ${scoutPreview.id} for the supplied Alpha inputs.`,
-      });
-      return;
-    }
-
-    jsonResponse(res, 200, { ok: true, preview: previewCampaignFromScout(scoutPreview) });
+    jsonResponse(res, 200, { ok: true, rebuiltScoutPreview, preview: campaignPreview });
   } catch (error) {
     jsonResponse(res, 400, {
       ok: false,
@@ -2652,11 +2646,11 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Scout Drop",
       description:
-        "Use this when the user asks to drop Clawd, scout a location, or find where to launch a local offer. Returns a temporary Scout Drop preview (route, signals, risks, channels, next actions) rendered on the map. Alpha is curated Riverside demo data only; nothing is saved, posted, or executed.",
+        "Use this when the user asks to drop Clawd, scout a location, or find where to launch a local offer. Returns a session-only Scout Drop preview (route, signals, risks, channels, next actions) rendered on the map. Uses curated scene data where available and synthetic session-only template signals elsewhere; nothing is saved, posted, or executed.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County slug. Alpha supports riverside-ca."),
-        nodeId: z.string().optional().describe("Atlas node id, such as eastvale."),
-        locationLabel: z.string().optional().describe("Fallback location label, such as Eastvale."),
+        countySlug: z.string().optional().describe("County slug for the Scout context."),
+        nodeId: z.string().optional().describe("Atlas node id when known."),
+        locationLabel: z.string().optional().describe("Fallback location label, such as Eastvale or a requested place."),
         businessType: z.string().optional().describe("Business type to scout, such as mobile detailing."),
         goal: z.string().optional().describe("Scout goal."),
         budget: z.string().optional().describe("Optional plain-language budget note."),
@@ -2710,12 +2704,12 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Campaign Engine",
       description:
-        "Use this when the user wants a 7-day manual campaign plan for an existing Atlas Scout Drop. Requires the scoutPreviewId returned by preview_scout_drop — call that tool first if no Scout Drop exists. Session-only: Alpha does not post, DM, buy ads, persist state, or perform live campaign execution.",
+        "Use this when the user wants a 7-day manual campaign plan for an existing Atlas Scout Drop. Pass the scoutPreviewId returned by preview_scout_drop when available; if the id is stale, Atlas rebuilds the Scout preview from the supplied args and continues. Session-only: Alpha does not post, DM, buy ads, persist state, or perform live campaign execution.",
       inputSchema: {
         scoutPreviewId: z.string().describe("Scout Drop id returned by preview_scout_drop."),
-        countySlug: z.string().optional().describe("County slug from the Scout Drop. Alpha supports riverside-ca."),
-        nodeId: z.string().optional().describe("Atlas node id from the Scout Drop, such as eastvale."),
-        locationLabel: z.string().optional().describe("Fallback location label from the Scout Drop, such as Eastvale."),
+        countySlug: z.string().optional().describe("County slug from the Scout Drop."),
+        nodeId: z.string().optional().describe("Atlas node id from the Scout Drop when known."),
+        locationLabel: z.string().optional().describe("Fallback location label from the Scout Drop."),
         businessType: z.string().optional().describe("Business type from the Scout Drop, such as mobile detailing."),
         goal: z.string().optional().describe("Scout goal from the Scout Drop."),
         budget: z.string().optional().describe("Optional plain-language budget note from the Scout Drop."),
@@ -2735,7 +2729,8 @@ function createAtlasServer(): McpServer {
       },
     },
     async ({ scoutPreviewId, countySlug, nodeId, locationLabel, businessType, goal, budget, serviceRadius }) => {
-      const scoutPreview = previewScoutDrop({
+      const { campaignPreview, rebuiltScoutPreview } = previewCampaignFromScoutRequest({
+        scoutPreviewId,
         countySlug: countySlug ?? "riverside-ca",
         nodeId,
         locationLabel: locationLabel ?? "Eastvale",
@@ -2744,12 +2739,6 @@ function createAtlasServer(): McpServer {
         budget,
         serviceRadius,
       });
-
-      if (scoutPreview.id !== scoutPreviewId) {
-        throw new Error(`Scout preview mismatch. Expected ${scoutPreview.id} for the supplied Alpha inputs.`);
-      }
-
-      const campaignPreview = previewCampaignFromScout(scoutPreview);
 
       return {
         structuredContent: campaignPreviewStructuredContent(campaignPreview),
@@ -2761,7 +2750,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `${campaignPreview.summary} This is a session-only manual preview; no posting, messaging, ad spend, persistence, evidence, or XP is performed. Next: ${campaignPreview.alphaBoundary.userActionLabel}.`,
+            text: `${rebuiltScoutPreview ? "Rebuilt scout preview from the supplied args. " : ""}${campaignPreview.summary} This is a session-only manual preview; no posting, messaging, ad spend, persistence, evidence, or XP is performed. Next: ${campaignPreview.alphaBoundary.userActionLabel}.`,
           },
         ],
       };

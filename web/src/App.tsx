@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
 import {
   compileCountyShellCityWorldScene,
@@ -393,6 +393,24 @@ export function App() {
   const toolScene = isVoxelScene(structuredContent) ? structuredContent : null;
   const scene = toolScene ?? campaignPreview?.scene ?? scoutPreview?.scene ?? metaScene ?? riversideDemoVoxelScene;
   const [widgetState, setWidgetState] = useWidgetState<WidgetState>(defaultWidgetState);
+  const sessionResumeContextSentRef = useRef(false);
+  const sessionResume = sessionResumeForWidgetState(widgetState);
+  const currentScoutPreviewId = scoutPreview?.id ?? campaignPreview?.scoutPreviewId;
+
+  useEffect(() => {
+    if (!sessionResume || sessionResumeContextSentRef.current) return;
+    sessionResumeContextSentRef.current = true;
+    void updateModelContext(sessionResume.modelContext);
+  }, [sessionResume]);
+
+  useEffect(() => {
+    if (!currentScoutPreviewId || widgetState.scoutPreviewId === currentScoutPreviewId) return;
+    setWidgetState((current) => (
+      current.scoutPreviewId === currentScoutPreviewId
+        ? current
+        : { ...current, scoutPreviewId: currentScoutPreviewId }
+    ));
+  }, [currentScoutPreviewId, widgetState.scoutPreviewId]);
 
   const activeSceneMatches = widgetState.activeSceneId === scene.id;
   const selectedDistrictId = activeSceneMatches ? widgetState.selectedDistrictId ?? scene.world?.selectedDistrictId : scene.world?.selectedDistrictId;
@@ -632,7 +650,7 @@ export function App() {
         setWidgetState((current) => ({
           ...current,
           activeSceneId: scene.id,
-          hostedClawdActionMessage: "Saving is not live yet. This business stays in this chat.",
+          hostedClawdActionMessage: "This business stays in this chat.",
         }));
       });
   };
@@ -644,7 +662,7 @@ export function App() {
     }
 
     if (scoutPreview) {
-      void sendUserMessage("Preview the 7-day campaign for this Scout Drop.");
+      void sendUserMessage(campaignAdvancePrompt(scoutPreview));
     }
   };
 
@@ -661,6 +679,7 @@ export function App() {
       noteDraft={noteDraft}
       scoutPreview={scoutPreview}
       campaignPreview={campaignPreview}
+      sessionResumeLabel={sessionResume?.label}
       hostedClawdContext={hostedClawdContext}
       hostedClawdOpen={hostedClawdOpen}
       hostedClawdActionMessage={hostedClawdActionMessage}
@@ -778,12 +797,12 @@ function defaultHostedClawdContext({
     },
     {
       label: "Scout report",
-      value: scoutPreview || campaignPreview ? "Saved" : "Run Scout first",
+      value: scoutPreview || campaignPreview ? "In this chat" : "Run Scout first",
       status: scoutPreview || campaignPreview ? "ready" : "planned",
     },
     {
       label: "Campaign draft",
-      value: campaignPreview ? "Saved" : "Preview campaign first",
+      value: campaignPreview ? "In this chat" : "Preview campaign first",
       status: campaignPreview ? "ready" : "planned",
     },
   ];
@@ -805,7 +824,7 @@ function defaultHostedClawdContext({
     contextLabel: `${businessType} at ${selectedPlaceLabel ?? scene.county.name}`,
     primaryCopy: primaryCopyForHostedClawdScreen(screenState),
     secondaryCopy: secondaryCopyForHostedClawdScreen(screenState),
-    sessionBoundary: screenState === "active" ? "Saved state on." : screenState === "inactive_payment_failed" ? "Saved items are read only." : "This chat is temporary.",
+    sessionBoundary: screenState === "active" ? "Saved state on." : screenState === "inactive_payment_failed" ? "Saved items are read only." : "Lives in this chat.",
     paymentCopy: screenState === "waitlist" ? "Billing is off in Alpha." : "Atlas checks billing before saving.",
     billing: billingSummaryForHostedClawdScreen(screenState),
     primaryAction: {
@@ -916,7 +935,7 @@ function primaryCopyForHostedClawdScreen(screenState: HostedClawdScreenState): s
       return "Save this business, scout report, and campaign draft.";
     case "waitlist":
     default:
-      return "Join the waitlist to save this setup later.";
+      return "Use this setup in this chat.";
   }
 }
 
@@ -931,10 +950,10 @@ function secondaryCopyForHostedClawdScreen(screenState: HostedClawdScreenState):
     case "inactive_payment_failed":
       return "New saves are paused until billing is fixed.";
     case "confirm_save":
-      return "Stickers and notes stay temporary until you choose what to save.";
+      return "Stickers and notes live in this chat.";
     case "waitlist":
     default:
-      return "This map, pins, notes, Scout Drop, and campaign preview remain temporary.";
+      return "This map, pins, notes, Scout Drop, and campaign preview live in this chat.";
   }
 }
 
@@ -1004,6 +1023,41 @@ function switchSlugFromCoverage(coverage: CountyCoverageStructuredContent | null
   if (coverage.countySlug === "orange-ca") return "orange-ca";
   if (coverage.coverageTier === "L0_UNSUPPORTED") return "made-up-ca";
   return "riverside-ca";
+}
+
+function sessionResumeForWidgetState(state: WidgetState): { label: string; modelContext: string } | null {
+  const pinCount = state.stickers?.length ?? 0;
+  const noteCount = state.notes?.length ?? 0;
+  const scoutPreviewId = state.scoutPreviewId?.trim();
+  if (pinCount === 0 && noteCount === 0 && !scoutPreviewId) return null;
+
+  const labelParts = [
+    ...(pinCount > 0 ? [`${pinCount} ${pinCount === 1 ? "pin" : "pins"}`] : []),
+    ...(noteCount > 0 ? [`${noteCount} ${noteCount === 1 ? "note" : "notes"}`] : []),
+    ...(scoutPreviewId ? ["Scout Drop"] : []),
+  ];
+  const contextParts = [
+    ...(pinCount > 0 ? [`${pinCount} ${pinCount === 1 ? "pin" : "pins"}`] : []),
+    ...(noteCount > 0 ? [`${noteCount} ${noteCount === 1 ? "note" : "notes"}`] : []),
+    ...(scoutPreviewId ? [`Scout Drop ${scoutPreviewId}`] : []),
+  ];
+
+  return {
+    label: `${labelParts.join(" · ")} in this chat`,
+    modelContext: `Atlas resumed this chat with ${contextParts.join(", ")}. Treat these as in-chat session state only.`,
+  };
+}
+
+function campaignAdvancePrompt(preview: ScoutPreviewState): string {
+  const locationLabel =
+    preview.scene.world?.places.find((place) => place.nodeId === preview.selectedNodeId)?.label ??
+    preview.scene.nodes.find((node) => node.id === preview.selectedNodeId)?.label ??
+    preview.selectedNodeId;
+
+  return [
+    "Preview the 7-day campaign for this Scout Drop.",
+    `Call preview_campaign_engine with scoutPreviewId ${JSON.stringify(preview.id)}, countySlug ${JSON.stringify(preview.countySlug)}, nodeId ${JSON.stringify(preview.selectedNodeId)}, locationLabel ${JSON.stringify(locationLabel)}, businessType ${JSON.stringify(preview.businessType)}, and goal ${JSON.stringify(preview.goal)}.`,
+  ].join(" ");
 }
 
 function countyLabelForSwitch(countySlug: CountySwitchSlug): string {

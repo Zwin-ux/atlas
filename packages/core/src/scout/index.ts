@@ -1,4 +1,5 @@
-export { CampaignPreviewService, previewCampaignFromScout } from "./CampaignPreviewService.js";
+export { CampaignPreviewService, previewCampaignFromScout, previewCampaignFromScoutRequest } from "./CampaignPreviewService.js";
+export type { CampaignPreviewRequest } from "./CampaignPreviewService.js";
 export { ScoutDropService, previewScoutDrop } from "./ScoutDropService.js";
 export type {
   CampaignAssetPlaceholder,
