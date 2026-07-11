@@ -14,7 +14,7 @@ if (/structuredContent:\s*scene\b/.test(server)) {
   blockers.push("Tool handlers must not place full scene objects directly in structuredContent.");
 }
 
-if (!/structuredContent:\s*voxelSceneStructuredContent\(scene\)/.test(server)) {
+if (!/structuredContent:\s*voxelSceneStructuredContent\(scene(?:,\s*[\w?.]+)?\)/.test(server)) {
   blockers.push("Playable map tools should return a compact voxelSceneStructuredContent summary.");
 }
 

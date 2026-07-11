@@ -1,5 +1,7 @@
 import type { CountyMapNode, CountyPack, CountySource } from "./types.js";
 import { CountyPackService } from "./CountyPackService.js";
+import { compileVoxelSceneFromCountyPack } from "../voxel/VoxelSceneCompiler.js";
+import type { VoxelDistrict, VoxelPlace } from "../voxel/types.js";
 
 export type CountyQuestionTopic =
   | "eastvale_first_slice"
@@ -14,6 +16,8 @@ export type CountyQuestionFact = {
   sourceNodeIds?: string[];
 };
 
+export type CountyQuestionTargetKind = "place" | "district" | "water_edge" | "landmark";
+
 export type CountyQuestionAnswer = {
   type: "countyQuestionAnswer";
   countySlug: string;
@@ -25,6 +29,10 @@ export type CountyQuestionAnswer = {
   sourceNotes: CountySource[];
   limitations: string[];
   suggestedNextTool?: "select_county" | "preview_scout_drop" | "lookup_world_places";
+  targetNodeId?: string;
+  targetPlaceId?: string;
+  targetLabel?: string;
+  targetKind?: CountyQuestionTargetKind;
 };
 
 export type CountyQuestionInput = {
@@ -82,6 +90,15 @@ export class CountyQuestionService {
 
     if (businessKey) {
       return businessSignalsAnswer(pack, question, businessKey);
+    }
+
+    const placeTarget = resolveCuratedPlaceTarget(pack, question);
+    if (placeTarget) {
+      return placeLocationAnswer(pack, question, placeTarget);
+    }
+
+    if (isPlaceLocationQuestion(question)) {
+      return unsupportedPlaceAnswer(pack, question);
     }
 
     if (isFirstSliceQuestion(question)) {
@@ -150,6 +167,67 @@ function countySummaryAnswer(pack: CountyPack, question: string): CountyQuestion
       { label: "Curated edges", value: String(pack.mapEdges.length) },
       { label: "Supported business lanes", value: Object.values(SUPPORTED_BUSINESS_LABELS).join(", ") },
     ],
+    suggestedNextTool: "select_county",
+  });
+}
+
+type CuratedPlaceTarget = {
+  nodeId: string;
+  placeId?: string;
+  label: string;
+  kind: CountyQuestionTargetKind;
+  aliases: string[];
+  sourceNodeIds: string[];
+};
+
+function placeLocationAnswer(pack: CountyPack, question: string, target: CuratedPlaceTarget): CountyQuestionAnswer {
+  const sourceNodes = target.sourceNodeIds
+    .map((nodeId) => pack.mapNodes.find((node) => node.id === nodeId))
+    .filter((node): node is CountyMapNode => Boolean(node));
+  const anchorNode = sourceNodes[0] ?? pack.mapNodes.find((node) => node.id === target.nodeId) ?? pack.mapNodes[0]!;
+  const nearby = nearbyNodes(pack, anchorNode).slice(0, 3);
+  const nearbyCopy = nearby.length > 0 ? nearby.map((item) => item.name).join(", ") : "the Eastvale playable district";
+
+  return supportedAnswer(pack, {
+    question,
+    topic: "county_summary",
+    answer: `${target.label} is in the curated Eastvale playable scene near ${nearbyCopy}. Atlas can focus the map there, but this is closed-world demo data, not a live place listing.`,
+    facts: [
+      {
+        label: "Curated map place",
+        value: target.placeId ? `${target.label}; scene place ${target.placeId}.` : `${target.label}; curated map zone.`,
+        sourceNodeIds: sourceNodes.map((node) => node.id),
+      },
+      {
+        label: "Nearby curated anchors",
+        value: nearbyCopy,
+        sourceNodeIds: nearby.map((item) => item.id),
+      },
+      factForNode(anchorNode, "Atlas anchor"),
+    ],
+    suggestedNextTool: "select_county",
+    targetNodeId: target.nodeId,
+    ...(target.placeId ? { targetPlaceId: target.placeId } : {}),
+    targetLabel: target.label,
+    targetKind: target.kind,
+  });
+}
+
+function unsupportedPlaceAnswer(pack: CountyPack, question: string): CountyQuestionAnswer {
+  return unsupportedAnswer({
+    countySlug: pack.slug,
+    question,
+    answer:
+      "Atlas Alpha can only locate places that exist in the curated Riverside/Eastvale scene. That place is not in the current pack, so Atlas will not invent a map target for it.",
+    facts: [
+      {
+        label: "Curated place boundary",
+        value: "Known targets include Eastvale, Neighborhood Blocks, Gym / Plaza, Apartments, Community park, Water edge, Norco, Corona, and Riverside.",
+      },
+      { label: "Alpha boundary", value: pack.summary },
+    ],
+    sourceNotes: pack.sources,
+    limitations: alphaLimitations(pack),
     suggestedNextTool: "select_county",
   });
 }
@@ -295,6 +373,141 @@ function isFirstSliceQuestion(question: string): boolean {
 
 function isSourceQuestion(question: string): boolean {
   return /\b(source|confidence|live|current|data|provider|google)\b/i.test(question);
+}
+
+function isPlaceLocationQuestion(question: string): boolean {
+  return /\b(where|near|nearby|around|next to|close to|show|focus|locate|find|what'?s near|what is near|what are near)\b/i.test(question);
+}
+
+function resolveCuratedPlaceTarget(pack: CountyPack, question: string): CuratedPlaceTarget | undefined {
+  if (!isPlaceLocationQuestion(question)) return undefined;
+
+  const lower = normalizeSearchText(question);
+  const targets = curatedPlaceTargets(pack);
+  return targets
+    .filter((target) => target.aliases.some((alias) => lower.includes(alias)))
+    .sort((a, b) => longestAliasLength(b) - longestAliasLength(a))[0];
+}
+
+function curatedPlaceTargets(pack: CountyPack): CuratedPlaceTarget[] {
+  const scene = compileVoxelSceneFromCountyPack(pack);
+  const nodeById = new Map(pack.mapNodes.map((node) => [node.id, node]));
+  const placeTargets = scene.world?.places.map((place): CuratedPlaceTarget => {
+    const node = nodeById.get(place.nodeId);
+    return {
+      nodeId: place.nodeId,
+      placeId: place.id,
+      label: place.label,
+      kind: targetKindForPlace(place),
+      aliases: aliasesForPlace(place, node),
+      sourceNodeIds: [place.nodeId],
+    };
+  }) ?? [];
+  const districtTargets = scene.world?.districts.map((district): CuratedPlaceTarget => ({
+    nodeId: district.worldNodeId,
+    label: district.label,
+    kind: "district",
+    aliases: aliasesForDistrict(district),
+    sourceNodeIds: district.focusNodeIds,
+  })) ?? [];
+
+  return [
+    ...placeTargets,
+    ...districtTargets,
+    {
+      nodeId: "eastvale",
+      label: "Community park",
+      kind: "place",
+      aliases: ["park", "community park"],
+      sourceNodeIds: ["eastvale"],
+    },
+    {
+      nodeId: "riverside",
+      label: "Water edge",
+      kind: "water_edge",
+      aliases: ["water edge", "waterfront", "river edge", "river"],
+      sourceNodeIds: ["riverside"],
+    },
+  ];
+}
+
+function targetKindForPlace(place: VoxelPlace): CountyQuestionTargetKind {
+  return place.kind === "landmark" ? "landmark" : "place";
+}
+
+function aliasesForPlace(place: VoxelPlace, node: CountyMapNode | undefined): string[] {
+  const raw = [
+    place.id,
+    place.nodeId,
+    place.label,
+    place.kind,
+    ...place.label.split("/"),
+    ...(node ? aliasesForNode(node) : []),
+  ];
+  return unique(raw.map(normalizeSearchText).filter(Boolean));
+}
+
+function aliasesForDistrict(district: VoxelDistrict): string[] {
+  return unique(
+    [
+      district.id,
+      district.worldNodeId,
+      district.label,
+      district.summary,
+      district.playable ? "playable district" : "locked district",
+      ...district.focusNodeIds,
+    ]
+      .map(normalizeSearchText)
+      .filter(Boolean),
+  );
+}
+
+function aliasesForNode(node: CountyMapNode): string[] {
+  const raw = [node.id, node.name, labelForNode(node), node.type, ...node.name.split("/"), ...node.signals];
+  if (node.type === "commercial_plaza") raw.push("plaza", "gym", "shops", "shop row", "plaza row");
+  if (node.type === "residential_cluster") raw.push("homes", "home area", "neighborhood", "neighborhood blocks", "residential");
+  if (node.type === "apartment_cluster") raw.push("apartments", "apartment", "property manager");
+  return raw;
+}
+
+function labelForNode(node: CountyMapNode): string {
+  if (node.type === "commercial_plaza") return node.name.replace("Eastvale ", "");
+  if (node.type === "residential_cluster") return "Neighborhood Blocks";
+  return node.name;
+}
+
+function nearbyNodes(pack: CountyPack, target: CountyMapNode): CountyMapNode[] {
+  const connectedIds = pack.mapEdges
+    .filter((edge) => edge.from === target.id || edge.to === target.id)
+    .map((edge) => (edge.from === target.id ? edge.to : edge.from));
+  const connected = connectedIds
+    .map((id) => pack.mapNodes.find((node) => node.id === id))
+    .filter((node): node is CountyMapNode => Boolean(node));
+  const byDistance = pack.mapNodes
+    .filter((node) => node.id !== target.id && !connectedIds.includes(node.id))
+    .sort((a, b) => distanceBetweenNodes(a, target) - distanceBetweenNodes(b, target));
+  return uniqueNodes([...connected, ...byDistance]);
+}
+
+function distanceBetweenNodes(a: CountyMapNode, b: CountyMapNode): number {
+  return Math.hypot(a.voxel.x - b.voxel.x, a.voxel.y - b.voxel.y);
+}
+
+function uniqueNodes(nodes: CountyMapNode[]): CountyMapNode[] {
+  const seen = new Set<string>();
+  return nodes.filter((node) => {
+    if (seen.has(node.id)) return false;
+    seen.add(node.id);
+    return true;
+  });
+}
+
+function longestAliasLength(target: CuratedPlaceTarget): number {
+  return Math.max(...target.aliases.map((alias) => alias.length));
+}
+
+function normalizeSearchText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 // Facts a closed-world curated pack genuinely cannot hold. Kept specific so it

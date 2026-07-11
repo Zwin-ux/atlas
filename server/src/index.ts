@@ -21,12 +21,14 @@ import {
 import {
   CountyPackService,
   CountyQuestionService,
+  compileCityWorldScene,
   compileCountyShellCityWorldScene,
   compileVoxelSceneFromCountyPack,
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
   createNationalWorldService,
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
+  type CountyQuestionAnswer,
   type UsCountyWorldResponse,
   type UsUnsupportedWorldResponse,
   type CityWorldScene,
@@ -179,6 +181,12 @@ type RequestContext = {
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
 
+type CameraIntent = {
+  type: "focus_place" | "focus_district" | "focus_water_edge" | "focus_landmark";
+  targetNodeId?: string;
+  targetLabel?: string;
+};
+
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
   sceneId: string;
   flow: ScoutPreviewState["scene"]["flow"];
@@ -203,6 +211,7 @@ type VoxelSceneStructuredContent = {
   noteCount: number;
   routeNodeIds: string[];
   flow: ScoutPreviewState["scene"]["flow"];
+  cameraIntent?: CameraIntent;
 };
 
 type CountyCoverageStructuredContent = {
@@ -556,6 +565,12 @@ const countyCoverageSummaryOutputSchema = {
   suggestedNextCountySlug: z.string(),
 };
 
+const cameraIntentOutputSchema = z.object({
+  type: z.enum(["focus_place", "focus_district", "focus_water_edge", "focus_landmark"]),
+  targetNodeId: z.string().optional(),
+  targetLabel: z.string().optional(),
+});
+
 const countySelectionOutputSchema = {
   type: z.enum(["voxelSceneSummary", "countyCoverageSummary"]),
   sceneId: z.string().optional(),
@@ -589,6 +604,7 @@ const countySelectionOutputSchema = {
   sourceNotes: countyCoverageSummaryOutputSchema.sourceNotes.optional(),
   limitations: z.array(z.string()).optional(),
   suggestedNextCountySlug: z.string().optional(),
+  cameraIntent: cameraIntentOutputSchema.optional(),
 };
 
 const scoutPreviewOutputSchema = {
@@ -901,6 +917,11 @@ const countyQuestionAnswerOutputSchema = {
   ),
   limitations: z.array(z.string()),
   suggestedNextTool: z.enum(["select_county", "preview_scout_drop", "lookup_world_places"]).optional(),
+  targetNodeId: z.string().optional(),
+  targetPlaceId: z.string().optional(),
+  targetLabel: z.string().optional(),
+  targetKind: z.enum(["place", "district", "water_edge", "landmark"]).optional(),
+  cameraIntent: cameraIntentOutputSchema.optional(),
 };
 
 function scoutPreviewStructuredContent(preview: ScoutPreviewState): ScoutPreviewStructuredContent {
@@ -921,7 +942,7 @@ function campaignPreviewStructuredContent(preview: CampaignPreviewState): Campai
   };
 }
 
-function voxelSceneStructuredContent(scene: ScoutPreviewState["scene"]): VoxelSceneStructuredContent {
+function voxelSceneStructuredContent(scene: ScoutPreviewState["scene"], cameraIntent?: CameraIntent): VoxelSceneStructuredContent {
   return {
     type: "voxelSceneSummary",
     sceneId: scene.id,
@@ -936,7 +957,39 @@ function voxelSceneStructuredContent(scene: ScoutPreviewState["scene"]): VoxelSc
     noteCount: scene.world?.notes?.length ?? 0,
     routeNodeIds: scene.clawd.routeNodeIds,
     flow: scene.flow,
+    ...(cameraIntent ? { cameraIntent } : {}),
   };
+}
+
+function defaultCameraIntentForScene(scene: ScoutPreviewState["scene"]): CameraIntent | undefined {
+  const selectedPlace = scene.world?.places.find((place) => place.nodeId === scene.selectedNodeId);
+  if (selectedPlace) {
+    return {
+      type: selectedPlace.kind === "landmark" ? "focus_landmark" : "focus_place",
+      targetNodeId: selectedPlace.nodeId,
+      targetLabel: selectedPlace.label,
+    };
+  }
+
+  const selectedNode = scene.nodes.find((node) => node.id === scene.selectedNodeId);
+  if (selectedNode) {
+    return {
+      type: selectedNode.kind === "regional_center" ? "focus_landmark" : "focus_place",
+      targetNodeId: selectedNode.id,
+      targetLabel: selectedNode.label,
+    };
+  }
+
+  const selectedDistrict = scene.world?.districts.find((district) => district.id === scene.world?.selectedDistrictId);
+  if (selectedDistrict) {
+    return {
+      type: "focus_district",
+      targetNodeId: selectedDistrict.worldNodeId,
+      targetLabel: selectedDistrict.label,
+    };
+  }
+
+  return undefined;
 }
 
 function countyCoverageStructuredContent(
@@ -1051,6 +1104,164 @@ async function getOrCreatePlayableScenePacket(
     scene: packet.payload as ScoutPreviewState["scene"],
     scenePacket: packet.summary,
   };
+}
+
+// The widget only needs the resolved focus preset, not the ~710KB compiled
+// scene it was derived from — _meta carries a minimal { sourceSceneId, preset }.
+type CameraFocus = {
+  sourceSceneId: string;
+  preset: CityWorldScene["cameraPresets"][number];
+};
+
+function decorateCityWorldSceneWithCameraIntent(
+  scene: ScoutPreviewState["scene"],
+  cameraIntent: CameraIntent | undefined,
+): { cameraIntent: CameraIntent; cameraFocus: CameraFocus } | undefined {
+  if (!cameraIntent) return undefined;
+  const cityScene = compileCityWorldScene(scene);
+  const focusPreset = focusCameraPresetForIntent(scene, cityScene, cameraIntent);
+  if (!focusPreset) return undefined;
+  return {
+    cameraIntent,
+    cameraFocus: {
+      sourceSceneId: cityScene.sourceSceneId,
+      preset: focusPreset,
+    },
+  };
+}
+
+function cameraIntentForCountyAnswer(scene: ScoutPreviewState["scene"], answer: CountyQuestionAnswer): CameraIntent | undefined {
+  if (!answer.supported || !answer.targetNodeId) return undefined;
+
+  const targetExists =
+    scene.nodes.some((node) => node.id === answer.targetNodeId) ||
+    Boolean(scene.world?.nodes.some((node) => node.id === answer.targetNodeId)) ||
+    Boolean(scene.world?.places.some((place) => place.nodeId === answer.targetNodeId)) ||
+    Boolean(scene.world?.districts.some((district) => district.id === answer.targetNodeId || district.worldNodeId === answer.targetNodeId));
+
+  if (!targetExists) return undefined;
+
+  const type =
+    answer.targetKind === "water_edge"
+      ? "focus_water_edge"
+      : answer.targetKind === "landmark"
+        ? "focus_landmark"
+        : answer.targetKind === "district"
+          ? "focus_district"
+          : "focus_place";
+
+  return {
+    type,
+    targetNodeId: answer.targetNodeId,
+    ...(answer.targetLabel ? { targetLabel: answer.targetLabel } : {}),
+  };
+}
+
+function focusCameraPresetForIntent(
+  scene: ScoutPreviewState["scene"],
+  cityScene: CityWorldScene,
+  cameraIntent: CameraIntent,
+): CityWorldScene["cameraPresets"][number] | undefined {
+  const center = focusCenterForCameraIntent(scene, cityScene, cameraIntent);
+  if (!center) return undefined;
+
+  const basePreset =
+    cameraIntent.type === "focus_district"
+      ? cityScene.cameraPresets.find((preset) => preset.id === "desktop")
+      : cameraIntent.type === "focus_place"
+        ? detailPresetForFocusPlace(cityScene, cameraIntent)
+        : cityScene.cameraPresets.find((preset) => preset.id === "commerce_detail") ??
+          cityScene.cameraPresets.find((preset) => preset.id === "desktop");
+  if (!basePreset) return undefined;
+
+  const preferredZoom =
+    cameraIntent.type === "focus_district"
+      ? basePreset.zoom
+      : cameraIntent.type === "focus_water_edge"
+        ? Math.min(basePreset.maxZoom, 1.38)
+        : Math.min(basePreset.maxZoom, Math.max(basePreset.zoom, 1.52));
+
+  return {
+    id: "focus",
+    center,
+    zoom: clamp(preferredZoom, basePreset.minZoom, basePreset.maxZoom),
+    minZoom: basePreset.minZoom,
+    maxZoom: basePreset.maxZoom,
+  };
+}
+
+function detailPresetForFocusPlace(cityScene: CityWorldScene, cameraIntent: CameraIntent): CityWorldScene["cameraPresets"][number] | undefined {
+  const targetPlace = cityScene.places.find((place) => place.nodeId === cameraIntent.targetNodeId || place.label === cameraIntent.targetLabel);
+  const preferredId = targetPlace?.kind === "home_area" ? "residential_detail" : "commerce_detail";
+  return cityScene.cameraPresets.find((preset) => preset.id === preferredId) ?? cityScene.cameraPresets.find((preset) => preset.id === "desktop");
+}
+
+function focusCenterForCameraIntent(
+  scene: ScoutPreviewState["scene"],
+  cityScene: CityWorldScene,
+  cameraIntent: CameraIntent,
+): CityWorldScene["cameraPresets"][number]["center"] | undefined {
+  if (cameraIntent.type === "focus_district") {
+    const district = scene.world?.districts.find(
+      (item) => item.id === cameraIntent.targetNodeId || item.worldNodeId === cameraIntent.targetNodeId || item.label === cameraIntent.targetLabel,
+    );
+    const districtPlaces = district ? cityScene.places.filter((place) => place.districtId === district.id) : [];
+    return averageCityWorldPoints(districtPlaces.map((place) => place.anchor)) ?? cityScene.cameraPresets.find((preset) => preset.id === "desktop")?.center;
+  }
+
+  if (cameraIntent.type === "focus_water_edge") {
+    const waterLot = cityScene.lots.find((lot) => lot.kind === "waterfront" || normalizedLabel(lot.label) === normalizedLabel(cameraIntent.targetLabel));
+    if (waterLot) return waterLot.position;
+  }
+
+  const labeledLot = cityLotForTargetLabel(cityScene, cameraIntent.targetLabel);
+  if (labeledLot) return labeledLot.position;
+
+  const byNode = cameraIntent.targetNodeId
+    ? cityScene.places.find((place) => place.nodeId === cameraIntent.targetNodeId)
+    : undefined;
+  if (byNode) return byNode.anchor;
+
+  const byLabel = cameraIntent.targetLabel
+    ? cityScene.places.find((place) => normalizedLabel(place.label) === normalizedLabel(cameraIntent.targetLabel))
+    : undefined;
+  if (byLabel) return byLabel.anchor;
+
+  const fallbackNode = cameraIntent.targetNodeId ? scene.nodes.find((node) => node.id === cameraIntent.targetNodeId) : undefined;
+  return fallbackNode?.position ? { ...fallbackNode.position, z: 0 } : undefined;
+}
+
+function cityLotForTargetLabel(cityScene: CityWorldScene, targetLabel: string | undefined): CityWorldScene["lots"][number] | undefined {
+  const target = normalizedLabel(targetLabel);
+  if (!target) return undefined;
+  const targetTokens = new Set(target.split(" ").filter((token) => token.length > 2));
+  return cityScene.lots.find((lot) => {
+    const lotLabel = normalizedLabel(lot.label);
+    if (lotLabel === target || lotLabel.includes(target) || target.includes(lotLabel)) return true;
+    const lotTokens = lotLabel.split(" ").filter((token) => token.length > 2);
+    return lotTokens.some((token) => targetTokens.has(token));
+  });
+}
+
+function averageCityWorldPoints(points: Array<CityWorldScene["cameraPresets"][number]["center"]>): CityWorldScene["cameraPresets"][number]["center"] | undefined {
+  if (points.length === 0) return undefined;
+  const total = points.reduce(
+    (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y, z: sum.z + point.z }),
+    { x: 0, y: 0, z: 0 },
+  );
+  return {
+    x: total.x / points.length,
+    y: total.y / points.length,
+    z: total.z / points.length,
+  };
+}
+
+function normalizedLabel(value: string | undefined): string {
+  return value?.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() ?? "";
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 async function getOrCreateGeneratedDraftScenePacket(
@@ -2498,11 +2709,13 @@ function createAtlasServer(): McpServer {
       }
 
       const { scene, scenePacket } = await getOrCreatePlayableScenePacket(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG, "eastvale");
+      const decoration = decorateCityWorldSceneWithCameraIntent(scene, defaultCameraIntentForScene(scene));
       return {
-        structuredContent: voxelSceneStructuredContent(scene),
+        structuredContent: voxelSceneStructuredContent(scene, decoration?.cameraIntent),
         _meta: {
           scene,
           scenePacket,
+          ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
           ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
         },
         content: [
@@ -2537,17 +2750,32 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
+        ui: { resourceUri: WIDGET_URI },
+        "openai/outputTemplate": WIDGET_URI,
         "openai/toolInvocation/invoking": "Checking curated county data...",
         "openai/toolInvocation/invoked": "County answer ready.",
       },
     },
     async ({ question, countySlug, businessType }) => {
       const answer = countyQuestionService.answer({ question, countySlug, businessType });
+      const requestedNodeId = answer.supported && answer.targetNodeId ? answer.targetNodeId : "eastvale";
+      const { scene, scenePacket } = await getOrCreatePlayableScenePacket(PLAYABLE_ENGINE_BETA_COUNTY_SLUG, requestedNodeId);
+      const decoration = decorateCityWorldSceneWithCameraIntent(scene, cameraIntentForCountyAnswer(scene, answer));
+      const structuredContent = {
+        ...answer,
+        ...(decoration ? { cameraIntent: decoration.cameraIntent } : {}),
+      };
       const answerPrefix = answer.supported
         ? "Curated Riverside/Eastvale answer."
         : "Atlas can only answer curated Riverside/Eastvale county questions right now.";
       return {
-        structuredContent: answer,
+        structuredContent,
+        _meta: {
+          scene,
+          scenePacket,
+          ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
+          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
+        },
         content: [
           {
             type: "text" as const,
@@ -2623,11 +2851,13 @@ function createAtlasServer(): McpServer {
         countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
         selectedNodeId ?? "eastvale",
       );
+      const decoration = decorateCityWorldSceneWithCameraIntent(scene, defaultCameraIntentForScene(scene));
       return {
-        structuredContent: voxelSceneStructuredContent(scene),
+        structuredContent: voxelSceneStructuredContent(scene, decoration?.cameraIntent),
         _meta: {
           scene,
           scenePacket,
+          ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
           ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
         },
         content: [

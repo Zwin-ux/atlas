@@ -309,7 +309,7 @@ export type CityWorldBounds = {
 };
 
 export type CityWorldCameraPreset = {
-  id: "desktop" | "mobile" | "residential_detail" | "commerce_detail";
+  id: "desktop" | "mobile" | "residential_detail" | "commerce_detail" | "focus";
   center: CityWorldPoint;
   zoom: number;
   minZoom: number;

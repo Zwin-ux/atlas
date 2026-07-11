@@ -24,6 +24,7 @@ const CityWorldRenderer = lazy(async () => {
 
 export type CityWorldViewProps = {
   scene: VoxelScene;
+  cameraFocus?: { sourceSceneId: string; preset: CityWorldScene["cameraPresets"][number] } | null;
   generatedScene?: CityWorldScene | null;
   selectedDistrictId?: string | undefined;
   selectedPlaceId?: string | undefined;
@@ -56,6 +57,7 @@ const STICKER_ORDER: VoxelStickerKind[] = ["favorite", "home", "shop", "park", "
 
 export function CityWorldView({
   scene,
+  cameraFocus = null,
   generatedScene = null,
   selectedDistrictId,
   selectedPlaceId,
@@ -90,14 +92,23 @@ export function CityWorldView({
   const cityScene = useMemo<CityWorldScene>(
     () => {
       if (generatedScene) return generatedScene;
-      return compileCityWorldScene(scene, {
+      const compiled = compileCityWorldScene(scene, {
         selectedDistrictId,
         selectedPlaceId,
         stickers,
         notes,
       });
+      const focusPreset =
+        cameraFocus?.sourceSceneId === scene.id && cameraFocus.preset.id === "focus"
+          ? cameraFocus.preset
+          : undefined;
+      if (!focusPreset) return compiled;
+      return {
+        ...compiled,
+        cameraPresets: [...compiled.cameraPresets.filter((preset) => preset.id !== "focus"), focusPreset],
+      };
     },
-    [generatedScene, notes, scene, selectedDistrictId, selectedPlaceId, stickers],
+    [cameraFocus, generatedScene, notes, scene, selectedDistrictId, selectedPlaceId, stickers],
   );
   // 0.57E parity — resolve selection against places that exist in THIS scene:
   // in generated mode the widget-state place id belongs to the county scene,

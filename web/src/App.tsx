@@ -30,6 +30,18 @@ type VoxelSceneStructuredContent = {
   nodeCount: number;
   routeNodeIds: string[];
   flow: VoxelScene["flow"];
+  cameraIntent?: CameraIntent;
+};
+
+type CameraIntent = {
+  type: "focus_place" | "focus_district" | "focus_water_edge" | "focus_landmark";
+  targetNodeId?: string;
+  targetLabel?: string;
+};
+
+export type CameraFocus = {
+  sourceSceneId: string;
+  preset: CityWorldScene["cameraPresets"][number];
 };
 
 export type CountyCoverageStructuredContent = {
@@ -66,9 +78,16 @@ type CampaignPreviewStructuredContent = Omit<CampaignPreviewState, "scene"> & {
   flow: VoxelScene["flow"];
 };
 
+type CountyQuestionStructuredContent = {
+  type: "countyQuestionAnswer";
+  supported: boolean;
+  cameraIntent?: CameraIntent;
+};
+
 type ToolStructuredContent =
   | CampaignPreviewState
   | CampaignPreviewStructuredContent
+  | CountyQuestionStructuredContent
   | ScoutPreviewState
   | ScoutPreviewStructuredContent
   | VoxelScene
@@ -352,6 +371,44 @@ function isCityWorldScene(value: unknown): value is CityWorldScene {
   );
 }
 
+function isCameraFocus(value: unknown): value is CameraFocus {
+  if (!isRecord(value) || typeof value.sourceSceneId !== "string" || !isRecord(value.preset)) return false;
+  const preset = value.preset;
+  return (
+    typeof preset.id === "string" &&
+    isRecord(preset.center) &&
+    typeof preset.center.x === "number" &&
+    typeof preset.center.y === "number" &&
+    typeof preset.zoom === "number" &&
+    typeof preset.minZoom === "number" &&
+    typeof preset.maxZoom === "number"
+  );
+}
+
+function isCameraIntent(value: unknown): value is CameraIntent {
+  return Boolean(
+    isRecord(value) &&
+      (value.type === "focus_place" || value.type === "focus_district" || value.type === "focus_water_edge" || value.type === "focus_landmark") &&
+      (value.targetNodeId === undefined || typeof value.targetNodeId === "string") &&
+      (value.targetLabel === undefined || typeof value.targetLabel === "string"),
+  );
+}
+
+function cameraIntentFromStructuredContent(value: unknown): CameraIntent | null {
+  if (!isRecord(value) || !isCameraIntent(value.cameraIntent)) return null;
+  return value.cameraIntent;
+}
+
+function placeForCameraIntent(scene: VoxelScene, cameraIntent: CameraIntent | null): NonNullable<VoxelScene["world"]>["places"][number] | null {
+  if (!cameraIntent || (cameraIntent.type !== "focus_place" && cameraIntent.type !== "focus_landmark")) return null;
+  const places = scene.world?.places ?? [];
+  return (
+    places.find((place) => cameraIntent.targetLabel && place.label === cameraIntent.targetLabel) ??
+    places.find((place) => cameraIntent.targetNodeId && place.nodeId === cameraIntent.targetNodeId) ??
+    null
+  );
+}
+
 export function App() {
   const result = useToolResult<ToolStructuredContent>(null);
   const [localCountySlug, setLocalCountySlug] = useState<CountySwitchSlug | null>(null);
@@ -363,6 +420,7 @@ export function App() {
   const metaCampaignPreview = isCampaignPreview(meta?.campaignPreview) ? meta.campaignPreview : null;
   const metaScoutPreview = isScoutPreview(meta?.scoutPreview) ? meta.scoutPreview : null;
   const metaScene = isVoxelScene(meta?.scene) ? meta.scene : null;
+  const metaCameraFocus = isCameraFocus(meta?.cameraFocus) ? meta.cameraFocus : null;
   const metaHostedClawd = isHostedClawdContext(meta?.hostedClawd) ? meta.hostedClawd : null;
   const coverageSummary = isCountyCoverageStructuredContent(structuredContent) ? structuredContent : null;
   const coverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
@@ -396,6 +454,7 @@ export function App() {
   const sessionResumeContextSentRef = useRef(false);
   const sessionResume = sessionResumeForWidgetState(widgetState);
   const currentScoutPreviewId = scoutPreview?.id ?? campaignPreview?.scoutPreviewId;
+  const toolCameraIntent = cameraIntentFromStructuredContent(structuredContent);
 
   useEffect(() => {
     if (!sessionResume || sessionResumeContextSentRef.current) return;
@@ -411,6 +470,30 @@ export function App() {
         : { ...current, scoutPreviewId: currentScoutPreviewId }
     ));
   }, [currentScoutPreviewId, widgetState.scoutPreviewId]);
+
+  // Apply a tool-carried camera intent ONCE per tool result — later user taps
+  // must not be stomped by effect re-runs (audit: touch_tap_select).
+  const appliedCameraIntentForRef = useRef<unknown>(null);
+  useEffect(() => {
+    if (!toolCameraIntent || appliedCameraIntentForRef.current === structuredContent) return;
+    const place = placeForCameraIntent(scene, toolCameraIntent);
+    if (!place) return;
+    appliedCameraIntentForRef.current = structuredContent;
+    setWidgetState((current) => {
+      if (current.activeSceneId === scene.id && current.selectedPlaceId === place.id && current.selectedNodeId === place.nodeId) {
+        return current;
+      }
+      return {
+        ...current,
+        activeSceneId: scene.id,
+        selectedDistrictId: place.districtId,
+        selectedPlaceId: place.id,
+        selectedNodeId: place.nodeId,
+        activeStepId: "place",
+        noteDraft: "",
+      };
+    });
+  }, [scene, setWidgetState, structuredContent, toolCameraIntent]);
 
   const activeSceneMatches = widgetState.activeSceneId === scene.id;
   const selectedDistrictId = activeSceneMatches ? widgetState.selectedDistrictId ?? scene.world?.selectedDistrictId : scene.world?.selectedDistrictId;
@@ -669,6 +752,7 @@ export function App() {
   return (
     <CityWorldView
       scene={scene}
+      cameraFocus={metaCameraFocus}
       showFirstRunHint={!widgetState.firstRunHintDismissed}
       onDismissFirstRunHint={() => setWidgetState((current) => ({ ...current, firstRunHintDismissed: true }))}
       selectedDistrictId={selectedDistrictId}

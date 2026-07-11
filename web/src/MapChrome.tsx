@@ -29,6 +29,8 @@ export function MapChrome({ rendererRef }: MapChromeProps) {
 }
 
 export function readRequestedCameraPreset(scene: CityWorldScene): CityWorldScene["cameraPresets"][number]["id"] | undefined {
+  const sceneRequested = scene.cameraPresets.find((preset) => preset.id === "focus")?.id;
+  if (sceneRequested) return sceneRequested;
   if (typeof window === "undefined") return undefined;
   const requested = new URLSearchParams(window.location.search).get("atlasCamera");
   return scene.cameraPresets.some((preset) => preset.id === requested) ? (requested as CityWorldScene["cameraPresets"][number]["id"]) : undefined;

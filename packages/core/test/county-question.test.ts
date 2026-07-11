@@ -75,6 +75,42 @@ describe("CountyQuestionService", () => {
     expect(sourceLimits.topic).toBe("source_limits");
   });
 
+  it("resolves curated place questions to map targets", () => {
+    const park = service.answer({
+      countySlug: "riverside-ca",
+      question: "Where is the park?",
+    });
+    const plaza = service.answer({
+      countySlug: "riverside-ca",
+      question: "What's near the plaza?",
+    });
+
+    expect(park.supported).toBe(true);
+    expect(park.targetNodeId).toBe("eastvale");
+    expect(park.targetPlaceId).toBeUndefined();
+    expect(park.targetLabel).toBe("Community park");
+    expect(park.answer).toContain("closed-world demo data");
+
+    expect(plaza.supported).toBe(true);
+    expect(plaza.targetNodeId).toBe("gym-plaza-eastvale");
+    expect(plaza.targetPlaceId).toBe("place-gym-plaza-eastvale");
+    expect(plaza.targetLabel).toContain("Plaza");
+    expect(plaza.facts.flatMap((fact) => fact.sourceNodeIds ?? [])).toContain("gym-plaza-eastvale");
+  });
+
+  it("refuses unknown place targets instead of inventing map focus", () => {
+    const answer = service.answer({
+      countySlug: "riverside-ca",
+      question: "Where is the beach?",
+    });
+
+    expect(answer.supported).toBe(false);
+    expect(answer.topic).toBe("unsupported");
+    expect(answer.answer).toContain("not in the current pack");
+    expect(answer.targetNodeId).toBeUndefined();
+    expect(answer.targetLabel).toBeUndefined();
+  });
+
   it("narrows unsupported counties and business claims", () => {
     const unsupportedCounty = service.answer({
       countySlug: "orange-ca",
