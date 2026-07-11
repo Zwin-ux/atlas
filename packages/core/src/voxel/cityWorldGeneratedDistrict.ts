@@ -76,9 +76,9 @@ export function createDeterministicGeneratedDistrictSpec(
 }
 
 export function createDeterministicGeneratedDistrictScene(
-  input: DeterministicGeneratedDistrictInput,
+  input: DeterministicGeneratedDistrictInput | DeterministicGeneratedDistrictSpec,
 ): DeterministicGeneratedDistrictSceneResult {
-  const generated = createDeterministicGeneratedDistrictSpec(input);
+  const generated = isDeterministicGeneratedDistrictSpec(input) ? input : createDeterministicGeneratedDistrictSpec(input);
   const result = generateParametricCityWorldScene(generated.spec);
   const coverage: CityWorldCoverage = {
     countySlug: generated.countySlug,
@@ -98,6 +98,12 @@ export function createDeterministicGeneratedDistrictScene(
       },
     },
   };
+}
+
+function isDeterministicGeneratedDistrictSpec(
+  input: DeterministicGeneratedDistrictInput | DeterministicGeneratedDistrictSpec,
+): input is DeterministicGeneratedDistrictSpec {
+  return "type" in input && input.type === "deterministicGeneratedDistrictSpec";
 }
 
 function normalizeDistrictSlug(value: string): string {

@@ -104,6 +104,15 @@ describe("deterministic generated district specs", () => {
     expect(first.spec.zones.length).toBeGreaterThanOrEqual(9);
   });
 
+  it("compiles a JSON-round-tripped deterministic spec to the identical scene", () => {
+    const source = createDeterministicGeneratedDistrictScene({ county: county("butler-al") });
+    const roundTrippedSpec = JSON.parse(JSON.stringify(source.generated));
+    const fromSpec = createDeterministicGeneratedDistrictScene(roundTrippedSpec);
+
+    expect(fromSpec.generated).toEqual(source.generated);
+    expect(fromSpec.result.scene).toEqual(source.result.scene);
+  });
+
   it("resolves county parameters deterministically across all Census divisions", () => {
     const sampleByDivision = new Map<CensusDivision, ReturnType<typeof county>>();
     for (const candidate of US_COUNTY_INDEX) {

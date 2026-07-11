@@ -17,6 +17,7 @@ const REBUILD_MS_CEILING = 350;
 const WORLD_GRAPHICS_CEILING = 1600;
 // Reporting threshold mirrors HOST_PAYLOAD_REPORT_CEILING in web/src/emulator/constants.ts.
 const HOST_PAYLOAD_REPORT_CEILING = 900_000;
+const GENERATED_DRAFT_SPEC_REPORT_CEILING = 10_000;
 const REPORT_PATH = "artifacts/emulator/perf-report.json";
 
 const VIEWPORTS = {
@@ -245,7 +246,7 @@ async function runCell({ chrome, base, county, viewport }) {
     cell.rebuildMs = rebuilds > 0 ? Math.min(...rebuildMsSamples) : null;
 
     const handle = await emulatorSnapshot(client);
-    cell.deliveries = deliveryPayloads(handle?.deliveries ?? []);
+    cell.deliveries = deliveryPayloads(handle?.deliveries ?? [], county);
     cell.warnings.push(...payloadWarnings(cell.deliveries));
 
     if (!handle || handle.state !== "delivered") cell.failures.push(`emulator state is ${handle?.state ?? "missing"}, expected delivered`);
@@ -261,7 +262,7 @@ async function runCell({ chrome, base, county, viewport }) {
     if (client) {
       try {
         const handle = await emulatorSnapshot(client);
-        cell.deliveries = deliveryPayloads(handle?.deliveries ?? []);
+        cell.deliveries = deliveryPayloads(handle?.deliveries ?? [], county);
         cell.warnings.push(...payloadWarnings(cell.deliveries));
         if (handle?.errors?.length) cell.failures.push(`emulator errors: ${handle.errors.join(" | ")}`);
       } catch {
@@ -340,6 +341,8 @@ function emulatorSnapshot(client) {
         resultChars: delivery.resultChars,
         metaChars: delivery.metaChars,
         generatedDraftSceneChars: delivery.generatedDraftSceneChars,
+        generatedDraftSpecChars: delivery.generatedDraftSpecChars,
+        metaKeys: Array.isArray(delivery.metaKeys) ? [...delivery.metaKeys] : [],
         truncated: delivery.truncated,
       })) : [],
       errors: Array.isArray(h.errors) ? [...h.errors] : [],
@@ -411,20 +414,33 @@ async function hoverDoesNotRebuild(client) {
   return failures;
 }
 
-function deliveryPayloads(deliveries) {
+function deliveryPayloads(deliveries, county) {
+  const expectedSpecChars = county.draft ? generatedDraftSpecCharsForCounty(county.county) : 0;
   return deliveries.map((delivery) => ({
     tool: delivery.tool,
     resultChars: delivery.resultChars,
     metaChars: delivery.metaChars,
-    generatedDraftSceneChars: delivery.generatedDraftSceneChars,
+    generatedDraftSceneChars: delivery.generatedDraftSceneChars ?? 0,
+    generatedDraftSpecChars: delivery.generatedDraftSpecChars ?? (delivery.metaKeys?.includes("generatedDraftSpec") ? expectedSpecChars : 0),
+    metaKeys: Array.isArray(delivery.metaKeys) ? delivery.metaKeys : [],
     truncated: Boolean(delivery.truncated),
   }));
 }
 
 function payloadWarnings(deliveries) {
-  return deliveries
+  const sceneWarnings = deliveries
     .filter((delivery) => delivery.generatedDraftSceneChars > HOST_PAYLOAD_REPORT_CEILING)
     .map((delivery) => `${delivery.tool} generatedDraftSceneChars ${delivery.generatedDraftSceneChars} exceeds report ceiling ${HOST_PAYLOAD_REPORT_CEILING}`);
+  const specWarnings = deliveries
+    .filter((delivery) => delivery.generatedDraftSpecChars > GENERATED_DRAFT_SPEC_REPORT_CEILING)
+    .map((delivery) => `${delivery.tool} generatedDraftSpecChars ${delivery.generatedDraftSpecChars} exceeds report ceiling ${GENERATED_DRAFT_SPEC_REPORT_CEILING}`);
+  return [...sceneWarnings, ...specWarnings];
+}
+
+function generatedDraftSpecCharsForCounty(countySlug) {
+  const county = US_COUNTY_INDEX.find((entry) => entry.countySlug === countySlug);
+  if (!county) return 0;
+  return JSON.stringify(createDeterministicGeneratedDistrictSpec({ county })).length;
 }
 
 async function writeAndPrint(report) {

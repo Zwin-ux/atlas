@@ -2,10 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
 import {
   compileCountyShellCityWorldScene,
+  createDeterministicGeneratedDistrictScene,
   createVoxelNote,
   createVoxelSticker,
+  DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
   riversideDemoVoxelScene,
   type CityWorldScene,
+  type DeterministicGeneratedDistrictSpec,
   type VoxelNote,
   type VoxelScene,
   type VoxelSticker,
@@ -178,6 +181,15 @@ const defaultWidgetState: WidgetState = {
 };
 
 type UnknownRecord = Record<string, unknown>;
+
+const generatedDraftArchetypes = new Set([
+  "metro_grid",
+  "coastal_grid",
+  "desert_basin",
+  "mountain_valley",
+  "prairie_town",
+  "river_town",
+]);
 
 function isRecord(value: unknown): value is UnknownRecord {
   return Boolean(value && typeof value === "object");
@@ -371,6 +383,89 @@ function isCityWorldScene(value: unknown): value is CityWorldScene {
   );
 }
 
+function isGeneratedHeightGridValue(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (isRecord(value) &&
+      hasNumber(value, "cellSize") &&
+      Array.isArray(value.values) &&
+      value.values.every((row) => Array.isArray(row) && row.every((cell) => typeof cell === "number" && Number.isFinite(cell))))
+  );
+}
+
+function isGeneratedZoneValue(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasString(value, "id") &&
+    hasString(value, "kind") &&
+    isRecord(value.rect) &&
+    hasNumber(value.rect, "minX") &&
+    hasNumber(value.rect, "minY") &&
+    hasNumber(value.rect, "maxX") &&
+    hasNumber(value.rect, "maxY")
+  );
+}
+
+function isGeneratedRoadSeedValue(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasString(value, "id") &&
+    hasString(value, "kind") &&
+    isRecord(value.from) &&
+    isRecord(value.to) &&
+    hasNumber(value.from, "x") &&
+    hasNumber(value.from, "y") &&
+    hasNumber(value.to, "x") &&
+    hasNumber(value.to, "y")
+  );
+}
+
+function isGeneratedParametricSpecValue(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasString(value, "id") &&
+    hasString(value, "label") &&
+    isRecord(value.region) &&
+    hasString(value.region, "country") &&
+    hasString(value.region, "state") &&
+    hasString(value.region, "county") &&
+    hasString(value.region, "district") &&
+    isRecord(value.size) &&
+    hasNumber(value.size, "width") &&
+    hasNumber(value.size, "height") &&
+    isGeneratedHeightGridValue(value.heightGrid) &&
+    Array.isArray(value.zones) &&
+    value.zones.length > 0 &&
+    value.zones.every(isGeneratedZoneValue) &&
+    Array.isArray(value.roadSeeds) &&
+    value.roadSeeds.length > 0 &&
+    value.roadSeeds.every(isGeneratedRoadSeedValue) &&
+    (value.seed === undefined || typeof value.seed === "number")
+  );
+}
+
+function isDeterministicGeneratedDistrictSpec(value: unknown): value is DeterministicGeneratedDistrictSpec {
+  return Boolean(
+    isRecord(value) &&
+      value.type === "deterministicGeneratedDistrictSpec" &&
+      value.update === DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID &&
+      value.sourceBasis === "census_identity_only" &&
+      value.providerGeometry === false &&
+      value.publicPlayable === false &&
+      value.promotionBlocked === true &&
+      Array.isArray(value.promotionBlockers) &&
+      hasString(value, "countySlug") &&
+      hasString(value, "stateCode") &&
+      hasString(value, "geoid") &&
+      hasString(value, "districtSlug") &&
+      hasString(value, "districtLabel") &&
+      hasNumber(value, "seed") &&
+      typeof value.archetype === "string" &&
+      generatedDraftArchetypes.has(value.archetype) &&
+      isGeneratedParametricSpecValue(value.spec),
+  );
+}
+
 function isCameraFocus(value: unknown): value is CameraFocus {
   if (!isRecord(value) || typeof value.sourceSceneId !== "string" || !isRecord(value.preset)) return false;
   const preset = value.preset;
@@ -424,7 +519,16 @@ export function App() {
   const metaHostedClawd = isHostedClawdContext(meta?.hostedClawd) ? meta.hostedClawd : null;
   const coverageSummary = isCountyCoverageStructuredContent(structuredContent) ? structuredContent : null;
   const coverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
-  const rawGeneratedDraftScene = isCityWorldScene(meta?.generatedDraftScene) ? meta.generatedDraftScene : null;
+  const rawGeneratedDraftSpec = isDeterministicGeneratedDistrictSpec(meta?.generatedDraftSpec) ? meta.generatedDraftSpec : null;
+  const generatedDraftSpecScene = useMemo(() => {
+    if (!rawGeneratedDraftSpec) return null;
+    try {
+      return createDeterministicGeneratedDistrictScene(rawGeneratedDraftSpec).result.scene;
+    } catch {
+      return null;
+    }
+  }, [rawGeneratedDraftSpec]);
+  const rawGeneratedDraftScene = generatedDraftSpecScene ?? (isCityWorldScene(meta?.generatedDraftScene) ? meta.generatedDraftScene : null);
   const generatedDraftScene = rawGeneratedDraftScene?.id === dismissedGeneratedDraftSceneId ? null : rawGeneratedDraftScene;
   const activeGeneratedScene = generatedScene ?? generatedDraftScene;
   const forcedPlayableCounty = localCountySlug === "riverside-ca";
@@ -554,7 +658,7 @@ export function App() {
       `Atlas requested a generated draft scene packet for ${draftCountySlug}. The draft must stay session-only, non-playable, provider-free, and widget-meta only.`,
     );
     void sendUserMessage(
-      `Open an Atlas generated draft for ${draftCountySlug}. Use render_voxel_county with countySlug "${draftCountySlug}" and includeGeneratedDraft true. Keep structuredContent as the county coverage summary and put the generated scene only in _meta.`,
+      `Open an Atlas generated draft for ${draftCountySlug}. Use render_voxel_county with countySlug "${draftCountySlug}" and includeGeneratedDraft true. Keep structuredContent as the county coverage summary and put the generated draft spec only in _meta.`,
     );
   };
 

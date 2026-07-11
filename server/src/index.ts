@@ -32,6 +32,7 @@ import {
   type UsCountyWorldResponse,
   type UsUnsupportedWorldResponse,
   type CityWorldScene,
+  type DeterministicGeneratedDistrictSpec,
   type WorldLookupPlaceInput,
   type WorldPlaceLookupResponse,
   type WorldSourceKind,
@@ -1266,7 +1267,7 @@ function clamp(value: number, min: number, max: number): number {
 
 async function getOrCreateGeneratedDraftScenePacket(
   coverage: CountyCoverageStructuredContent,
-): Promise<{ generatedDraftScene?: CityWorldScene; generatedDraftPacket: ScenePacketMemorySummary } | undefined> {
+): Promise<{ generatedDraftSpec?: DeterministicGeneratedDistrictSpec; generatedDraftPacket: ScenePacketMemorySummary } | undefined> {
   if (coverage.coverageTier !== "L1_COUNTY_SHELL" || !coverage.stateCode || !coverage.geoid) {
     return undefined;
   }
@@ -1325,11 +1326,11 @@ async function getOrCreateGeneratedDraftScenePacket(
     cacheBackend: scenePacketRuntimeConfig.effectiveBackend,
     cacheHit: packet.summary.cacheHit,
     generationStatus: packet.summary.generationStatus,
-    sceneReturned: Boolean(packet.payload),
+    specReturned: Boolean(packet.payload),
   });
 
   return {
-    ...(packet.payload ? { generatedDraftScene: packet.payload as CityWorldScene } : {}),
+    ...(packet.payload ? { generatedDraftSpec: generated } : {}),
     generatedDraftPacket: packet.summary,
   };
 }
@@ -2683,7 +2684,7 @@ function createAtlasServer(): McpServer {
         const scenePacket = await scenePacketStatusForCoverage(coverage);
         const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
-          ? generatedDraft.generatedDraftScene
+          ? generatedDraft.generatedDraftSpec
             ? " A generated draft packet is attached for the widget only: session-only, non-playable, provider-free, and not local truth."
             : " The generated draft is preparing; the widget can keep the county shell while the packet cache warms."
           : "";
@@ -2822,7 +2823,7 @@ function createAtlasServer(): McpServer {
         const scenePacket = await scenePacketStatusForCoverage(coverage);
         const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
-          ? generatedDraft.generatedDraftScene
+          ? generatedDraft.generatedDraftSpec
             ? " A generated draft packet is attached for the widget only: session-only, non-playable, provider-free, and not local truth."
             : " The generated draft is preparing; the widget can keep the county shell while the packet cache warms."
           : "";

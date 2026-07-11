@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
+import { performance } from "node:perf_hooks";
 import { dirname, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
-const UPDATE_ID = "postalpha-0.71h-scene-packet-service-boundary";
+const UPDATE_ID = "postalpha-0.76t-ship-params-not-scenes";
 const ARTIFACT_PATH = "artifacts/national-generation/0.71h/generated-draft-scene-packet.json";
+const GENERATED_DRAFT_SPEC_CHAR_CEILING = 10_000;
 
 const blockers = [];
 const warnings = [];
@@ -12,6 +15,8 @@ const checkedFiles = [];
 
 const coreSource = read("packages/core/src/world/scenePacketCache.ts");
 const coreTestSource = read("packages/core/test/scene-packet-cache.test.ts");
+const generatedDistrictSource = read("packages/core/src/voxel/cityWorldGeneratedDistrict.ts");
+const generatedDistrictTestSource = read("packages/core/test/city-world-generated-district.test.ts");
 const adapterSource = read("server/src/scenePacketMemoryAdapter.ts");
 const serverSource = read("server/src/index.ts");
 const appSource = read("web/src/App.tsx");
@@ -44,12 +49,16 @@ for (const forbidden of ["DATABASE_URL", "createPostgres", "Stripe", "INSERT ", 
 
 for (const token of [
   "includeGeneratedDraft",
-  "generatedDraftScene",
+  "generatedDraftSpec",
   "generatedDraftPacket",
   "createDeterministicGeneratedDistrictScene",
   "createDeterministicGeneratedDistrictSpec",
 ]) {
   requireToken(serverSource, token, "server MCP generated draft delivery");
+}
+
+if (/generatedDraftScene\s*:/.test(serverSource)) {
+  blockers.push("Server must not attach _meta.generatedDraftScene in the 0.76-T wire contract.");
 }
 
 if (/structuredContent\s*:\s*[^,\n]*generatedDraft/i.test(serverSource)) {
@@ -64,16 +73,33 @@ if (/app\.(get|post|put|delete)\s*\([^)]*generated/i.test(serverSource) || /\/ap
 
 for (const forbidden of ["exampleParametricDistrictSpec", "generateParametricCityWorldScene"]) {
   if (appSource.includes(forbidden)) {
-    blockers.push(`Widget must not compile generated district previews locally; remove ${forbidden}.`);
+    blockers.push(`Widget should compile generated drafts through the deterministic district helper, not ${forbidden}.`);
   }
 }
-for (const token of ["generatedDraftScene", "activeGeneratedScene", "includeGeneratedDraft true", "sendUserMessage"]) {
+for (const token of [
+  "generatedDraftSpec",
+  "isDeterministicGeneratedDistrictSpec",
+  "createDeterministicGeneratedDistrictScene(rawGeneratedDraftSpec)",
+  "generatedDraftScene",
+  "activeGeneratedScene",
+  "includeGeneratedDraft true",
+  "sendUserMessage",
+]) {
   requireToken(appSource, token, "widget generated draft meta consumption");
 }
 
 for (const token of ["generated draft packets runtime-only", "separates generated draft cache keys"]) {
   requireToken(coreTestSource, token, "core generated draft scene packet tests");
 }
+
+for (const token of [
+  "DeterministicGeneratedDistrictInput | DeterministicGeneratedDistrictSpec",
+  "isDeterministicGeneratedDistrictSpec",
+]) {
+  requireToken(generatedDistrictSource, token, "core generated draft spec compile helper");
+}
+
+requireToken(generatedDistrictTestSource, "JSON-round-tripped deterministic spec", "core generated draft determinism test");
 
 if (!packageSource.includes("\"verify:generated-draft-scene-packet\"")) {
   blockers.push("package.json must expose verify:generated-draft-scene-packet.");
@@ -89,6 +115,7 @@ try {
   }
   const adapterModule = await import("../server/dist/scenePacketMemoryAdapter.js");
   const core = await import("../packages/core/dist/index.js");
+  const specPayloads = await measureGeneratedDraftSpecPayloads(core, adapterModule);
   const adapter = adapterModule.createScenePacketMemoryAdapter({
     maxEntries: 4,
     nowMs: () => Date.parse("2026-07-06T09:00:00.000Z"),
@@ -165,7 +192,7 @@ try {
   assert(status.entryCount === 1, `Status should expose one summary entry; got ${status.entryCount}.`);
 
   const statusJson = JSON.stringify(status);
-  for (const forbidden of ["\"payload\":", "terrainTiles", "roadSegments", "buildings", "generatedDraftScene", "generatedDraftPacket"]) {
+  for (const forbidden of ["\"payload\":", "terrainTiles", "roadSegments", "buildings", "generatedDraftScene", "generatedDraftSpec", "generatedDraftPacket"]) {
     assert(!statusJson.includes(forbidden), `Scene packet status must not leak ${forbidden}.`);
   }
 
@@ -173,6 +200,11 @@ try {
     firstSummary: first.summary,
     secondSummary: second.summary,
     sceneBuilds,
+    generatedDraftSpecCharCeiling: GENERATED_DRAFT_SPEC_CHAR_CEILING,
+    specPayloads,
+    maxGeneratedDraftSpecChars: Math.max(...specPayloads.map((payload) => payload.specChars)),
+    maxGeneratedDraftWireMetaChars: Math.max(...specPayloads.map((payload) => payload.wireMetaChars)),
+    representativeCompileMs: specPayloads.find((payload) => payload.countySlug === "butler-al")?.compileMs ?? specPayloads[0]?.compileMs ?? null,
     status,
     safety,
   };
@@ -195,6 +227,107 @@ await mkdir(dirname(resolve(ARTIFACT_PATH)), { recursive: true });
 await writeFile(resolve(ARTIFACT_PATH), JSON.stringify(result, null, 2));
 console.log(JSON.stringify(result, null, 2));
 if (!result.ok) process.exitCode = 1;
+
+async function measureGeneratedDraftSpecPayloads(core, adapterModule) {
+  const adapter = adapterModule.createScenePacketMemoryAdapter({
+    maxEntries: 16,
+    nowMs: () => Date.parse("2026-07-11T09:00:00.000Z"),
+  });
+  const anchors = generatedDraftAnchorCounties(core);
+  const payloads = [];
+
+  for (const county of anchors) {
+    const source = core.createDeterministicGeneratedDistrictScene({ county });
+    const specJson = JSON.stringify(source.generated);
+    const roundTrippedSpec = JSON.parse(specJson);
+    const start = performance.now();
+    const fromSpec = core.createDeterministicGeneratedDistrictScene(roundTrippedSpec);
+    const compileMs = Number((performance.now() - start).toFixed(3));
+
+    assert(
+      isDeepStrictEqual(fromSpec.result.scene, source.result.scene),
+      `${county.countySlug} spec->scene compile must deep-equal county-input compile.`,
+    );
+    assert(
+      specJson.length < GENERATED_DRAFT_SPEC_CHAR_CEILING,
+      `${county.countySlug} generatedDraftSpec is ${specJson.length} chars; ceiling is ${GENERATED_DRAFT_SPEC_CHAR_CEILING}.`,
+    );
+
+    const packet = await adapter.getOrCreateGeneratedDraftScenePacket({
+      stateCode: county.stateCode,
+      countySlug: county.countySlug,
+      districtSlug: source.generated.districtSlug,
+      cameraPresetId: "generated-draft",
+      windowHash: "generated-initial-window",
+      sceneSchemaVersion: "city-world-v1",
+      engineUpdateId: source.generated.update,
+      sourceNotes: [
+        {
+          source: "census",
+          label: "2024 Census county identity",
+          attribution: "U.S. Census Bureau Gazetteer Files",
+          ttlSeconds: 31536000,
+        },
+      ],
+      createScene: () => source.result.scene,
+      sceneIdForPayload: (scene) => scene.id,
+      job: {
+        id: `${county.countySlug}:${source.generated.districtSlug}:generated-initial-window:${source.generated.update}`,
+        kind: "generated_draft_scene",
+        enqueuedAtMs: Date.parse("2026-07-11T09:00:00.000Z"),
+        stateCode: county.stateCode,
+        countySlug: county.countySlug,
+        countyName: county.name,
+        geoid: county.geoid,
+        ...(county.centroid ? { centroid: county.centroid } : {}),
+        districtSlug: source.generated.districtSlug,
+        cameraPresetId: "generated-draft",
+        windowHash: "generated-initial-window",
+        sceneSchemaVersion: "city-world-v1",
+        engineUpdateId: source.generated.update,
+        sourceNotes: [
+          {
+            source: "census",
+            label: "2024 Census county identity",
+            attribution: "U.S. Census Bureau Gazetteer Files",
+            ttlSeconds: 31536000,
+          },
+        ],
+      },
+    });
+    const wireMetaChars = JSON.stringify({
+      generatedDraftSpec: source.generated,
+      generatedDraftPacket: packet.summary,
+    }).length;
+    assert(
+      wireMetaChars < GENERATED_DRAFT_SPEC_CHAR_CEILING,
+      `${county.countySlug} generated draft wire meta is ${wireMetaChars} chars; ceiling is ${GENERATED_DRAFT_SPEC_CHAR_CEILING}.`,
+    );
+
+    payloads.push({
+      archetype: source.generated.archetype,
+      countySlug: county.countySlug,
+      specChars: specJson.length,
+      wireMetaChars,
+      compileMs,
+      sceneId: source.result.scene.id,
+    });
+  }
+
+  return payloads;
+}
+
+function generatedDraftAnchorCounties(core) {
+  const byArchetype = new Map();
+  for (const county of core.US_COUNTY_INDEX) {
+    const generated = core.createDeterministicGeneratedDistrictSpec({ county });
+    if (!byArchetype.has(generated.archetype)) byArchetype.set(generated.archetype, county);
+    if (byArchetype.size === core.GENERATED_DISTRICT_ARCHETYPES.length) break;
+  }
+  const missing = core.GENERATED_DISTRICT_ARCHETYPES.filter((archetype) => !byArchetype.has(archetype));
+  assert(missing.length === 0, `Generated draft anchor matrix is missing archetypes: ${missing.join(", ")}.`);
+  return core.GENERATED_DISTRICT_ARCHETYPES.map((archetype) => byArchetype.get(archetype)).filter(Boolean);
+}
 
 function read(path) {
   checkedFiles.push(path);
