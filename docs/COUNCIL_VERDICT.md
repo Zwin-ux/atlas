@@ -81,9 +81,9 @@ attachments, not more bands and floors.
   lettering blocks like the reference's PLAZA/GYM).
 
 ## Wave 5 — A11Y (a11y seat; directory review risk too)
-- [ ] **W5.1 Keyboard/SR place navigator** bound to onSelectPlace + DOM map
+- [x] **W5.1 Keyboard/SR place navigator** bound to onSelectPlace + DOM map
   summary (canvas is currently invisible to AT — critical).
-- [ ] **W5.2 Real modal for the sheet** (focus trap, inert background).
+- [x] **W5.2 Real modal for the sheet** (focus trap, inert background).
 - [x] **W5.3 Pixi reduced-motion**: disable inertia/pulse/ambient when
   prefers-reduced-motion.
 - [x] **W5.4 AA contrast**: --ink-3 and yellow status dot fail on translucent
@@ -97,12 +97,13 @@ attachments, not more bands and floors.
 - [ ] **W6.3 Worker job durability** (claim/ack semantics) + **W6.4 shared
   rate limiting** + **W6.5 MCP handling instrumentation** (sre #1/#4/#5).
 
-## Payload watch (2026-07-11, post-W4-art)
-Generated draft `_meta` payloads now run 818-877KB against the 900KB watch
-ceiling (worst: butler-al 877KB) — W4's art metadata consumed most of the
-remaining headroom. **0.76-T ship-params-not-scenes is now URGENT**: ship the
-compact spec, compile client-side (core is already in the widget bundle),
-collapse `_meta` ~100×. Schedule it with or before W6.
+## Payload watch (RESOLVED 2026-07-11 by 0.76-T, `dce29f5`)
+Generated draft `_meta` collapsed 877KB → 6.8KB worst-case: the wire ships
+`_meta.generatedDraftSpec` and the widget compiles client-side (deterministic,
+JSON-round-trip identity test). Worst total `_meta` is now ~140KB — the
+remaining weight is `coverageShellScene` (a full compiled shell scene attached
+for fallback). **NEXT payload slice: ship the shell as identity facts and
+compile client-side too** (the widget already has compileCountyShellCityWorldScene).
 
 ## Standing note
 The engine-quality program (0.76 + E1–E10) is DONE and gated; council seats
