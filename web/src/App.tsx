@@ -66,11 +66,6 @@ type CampaignPreviewStructuredContent = Omit<CampaignPreviewState, "scene"> & {
   flow: VoxelScene["flow"];
 };
 
-type UpgradeOptionsStructuredContent = {
-  type: "upgradeOptions";
-  hostedClawd?: HostedClawdContext;
-};
-
 type ToolStructuredContent =
   | CampaignPreviewState
   | CampaignPreviewStructuredContent
@@ -79,7 +74,6 @@ type ToolStructuredContent =
   | VoxelScene
   | VoxelSceneStructuredContent
   | CountyCoverageStructuredContent
-  | UpgradeOptionsStructuredContent
   | null;
 
 const coverageSourceNote = {
@@ -301,10 +295,6 @@ function isCountyCoverageStructuredContent(value: unknown): value is CountyCover
   );
 }
 
-function isUpgradeOptionsStructuredContent(value: unknown): value is UpgradeOptionsStructuredContent {
-  return Boolean(isRecord(value) && value.type === "upgradeOptions");
-}
-
 function isHostedClawdSavedState(value: unknown): value is NonNullable<HostedClawdContext["savedState"]> {
   return Boolean(
     isRecord(value) &&
@@ -367,6 +357,7 @@ export function App() {
   const [localCountySlug, setLocalCountySlug] = useState<CountySwitchSlug | null>(null);
   const [generatedScene, setGeneratedScene] = useState<CityWorldScene | null>(null);
   const [dismissedGeneratedDraftSceneId, setDismissedGeneratedDraftSceneId] = useState<string | null>(null);
+  const hasToolResult = result !== null;
   const structuredContent = result?.structuredContent;
   const meta = result?._meta;
   const metaCampaignPreview = isCampaignPreview(meta?.campaignPreview) ? meta.campaignPreview : null;
@@ -389,7 +380,6 @@ export function App() {
   const activeCountySlug = localCountySlug ?? switchSlugFromCoverage(coverageSummary);
   const campaignPreviewSummary = isCampaignPreviewStructuredContent(structuredContent) ? structuredContent : null;
   const scoutPreviewSummary = isScoutPreviewStructuredContent(structuredContent) ? structuredContent : null;
-  const upgradeOptionsSummary = isUpgradeOptionsStructuredContent(structuredContent) ? structuredContent : null;
   const structuredCampaignPreview = isCampaignPreview(structuredContent) ? structuredContent : null;
   const structuredScoutPreview = isScoutPreview(structuredContent) ? structuredContent : null;
   const campaignPreview =
@@ -415,24 +405,26 @@ export function App() {
   const notes = activeSceneMatches ? widgetState.notes ?? [] : [];
   const stickerMode = activeSceneMatches ? widgetState.stickerMode ?? "favorite" : "favorite";
   const noteDraft = activeSceneMatches ? widgetState.noteDraft ?? "" : "";
-  const hostedClawdOpen = activeSceneMatches ? widgetState.hostedClawdOpen ?? false : false;
-  const hostedClawdActionMessage = activeSceneMatches ? widgetState.hostedClawdActionMessage : undefined;
   const storedHostedClawdContext = activeSceneMatches && isHostedClawdContext(widgetState.hostedClawdContext)
     ? widgetState.hostedClawdContext
     : null;
   const hostedClawdReturnStatus = hostedClawdSubscriptionStatusFromUrl();
   const hostedClawdContext =
-    storedHostedClawdContext ??
-    metaHostedClawd ??
-    upgradeOptionsSummary?.hostedClawd ??
-    defaultHostedClawdContext({
-      scene,
-      selectedPlaceLabel: selectedPlace?.label,
-      scoutPreview,
-      campaignPreview,
-      selectedNoteCount: notes.length,
-      ...(hostedClawdReturnStatus ? { subscriptionStatus: hostedClawdReturnStatus } : {}),
-    });
+    metaHostedClawd
+      ? storedHostedClawdContext ?? metaHostedClawd
+      : !hasToolResult
+        ? storedHostedClawdContext ??
+          defaultHostedClawdContext({
+            scene,
+            selectedPlaceLabel: selectedPlace?.label,
+            scoutPreview,
+            campaignPreview,
+            selectedNoteCount: notes.length,
+            ...(hostedClawdReturnStatus ? { subscriptionStatus: hostedClawdReturnStatus } : {}),
+          })
+        : null;
+  const hostedClawdOpen = activeSceneMatches && hostedClawdContext ? widgetState.hostedClawdOpen ?? false : false;
+  const hostedClawdActionMessage = activeSceneMatches && hostedClawdContext ? widgetState.hostedClawdActionMessage : undefined;
 
   const selectCountyFromSwitcher = (countySlug: CountySwitchSlug) => {
     setGeneratedScene(null);
@@ -560,13 +552,15 @@ export function App() {
   };
 
   const openHostedClawd = () => {
+    const context = hostedClawdContext;
+    if (!context) return;
     setWidgetState((current) => ({
       ...current,
       activeSceneId: scene.id,
       hostedClawdOpen: true,
       hostedClawdActionMessage: undefined,
     }));
-    void updateModelContext(`User opened Atlas save for ${hostedClawdContext.contextLabel}.`);
+    void updateModelContext(`User opened Atlas save for ${context.contextLabel}.`);
   };
 
   const closeHostedClawd = () => {
@@ -578,8 +572,10 @@ export function App() {
   };
 
   const handleHostedClawdPrimaryAction = () => {
+    const context = hostedClawdContext;
+    if (!context) return;
     const payload = hostedClawdPayload({
-      context: hostedClawdContext,
+      context,
       scene,
       selectedPlaceLabel: selectedPlace?.label,
       scoutPreview,
@@ -587,7 +583,7 @@ export function App() {
       selectedNoteCount: notes.length,
     });
 
-    if (hostedClawdContext.primaryAction.kind === "open_saved_campaign" || hostedClawdContext.primaryAction.kind === "refresh_status") {
+    if (context.primaryAction.kind === "open_saved_campaign" || context.primaryAction.kind === "refresh_status") {
       void fetch(savedStateEndpointForHostedClawd(payload), { method: "GET" })
         .then((response) => response.json() as Promise<{ ok?: boolean; result?: { reason?: string; message?: string; context?: unknown }; hostedClawd?: unknown; error?: string }>)
         .then((body) => {
@@ -613,7 +609,7 @@ export function App() {
       return;
     }
 
-    const endpoint = endpointForHostedClawdAction(hostedClawdContext.primaryAction.kind);
+    const endpoint = endpointForHostedClawdAction(context.primaryAction.kind);
 
     void fetch(endpoint, {
       method: "POST",
@@ -622,7 +618,7 @@ export function App() {
     })
       .then((response) => response.json() as Promise<{ result?: { message?: string; redirectUrl?: string } }>)
       .then((body) => {
-        const message = body.result?.message ?? hostedClawdContext.primaryCopy;
+        const message = body.result?.message ?? context.primaryCopy;
         setWidgetState((current) => ({
           ...current,
           activeSceneId: scene.id,
@@ -643,7 +639,7 @@ export function App() {
 
   const advancePreview = () => {
     if (campaignPreview) {
-      openHostedClawd();
+      if (hostedClawdContext) openHostedClawd();
       return;
     }
 
@@ -668,12 +664,16 @@ export function App() {
       hostedClawdContext={hostedClawdContext}
       hostedClawdOpen={hostedClawdOpen}
       hostedClawdActionMessage={hostedClawdActionMessage}
-      {...(campaignPreview || scoutPreview ? { onAdvancePreview: advancePreview } : {})}
+      {...(scoutPreview || (campaignPreview && hostedClawdContext) ? { onAdvancePreview: advancePreview } : {})}
       countySwitcher={countySwitcher}
       generatedScene={activeGeneratedScene}
-      onOpenHostedClawd={openHostedClawd}
-      onCloseHostedClawd={closeHostedClawd}
-      onHostedClawdPrimaryAction={handleHostedClawdPrimaryAction}
+      {...(hostedClawdContext
+        ? {
+            onOpenHostedClawd: openHostedClawd,
+            onCloseHostedClawd: closeHostedClawd,
+            onHostedClawdPrimaryAction: handleHostedClawdPrimaryAction,
+          }
+        : {})}
       onExitGeneratedPreview={exitGeneratedPreview}
       onSelectPlace={selectPlace}
       onSelectStickerMode={(kind) => setWidgetState((current) => ({ ...current, stickerMode: kind }))}

@@ -143,6 +143,7 @@ const hostedClawdService = new HostedClawdService({
   billing: hostedClawdBilling,
 });
 const hostedClawdWriteRouterMounted = Boolean(hostedClawdPersistence);
+const atlasSaveSurfaceEnabled = (process.env.ATLAS_SAVE_SURFACE ?? "on").trim().toLowerCase() !== "off";
 
 type WorldLookupCacheEntry = {
   response: WorldPlaceLookupResponse;
@@ -1178,6 +1179,41 @@ function upgradeOptionsStructuredContent(trigger?: string) {
     ? "Use Hosted Clawd as a closed test surface only; public paid access stays closed."
     : "Use the free Alpha preview now; Hosted Clawd adds saving after the next approval gate.";
 
+  if (!atlasSaveSurfaceEnabled) {
+    return {
+      type: "upgradeOptions" as const,
+      ...(trigger ? { trigger } : {}),
+      free: {
+        label: "Atlas V1",
+        included: [
+          "Explore the Riverside/Eastvale playable map.",
+          "Preview generated draft scenes for indexed US counties when requested.",
+          "Keep pins, notes, Scout Drops, and campaign previews in this chat.",
+        ],
+        limits: [
+          "No account or cross-chat memory.",
+          "No saved campaigns, quests, evidence, XP, reports, or exports.",
+          "No posting, messaging, ad buying, checkout, or automated outreach.",
+        ],
+      },
+      hosted: {
+        label: "Hosted Clawd",
+        status: ownerGatedTest ? ("owner_gated_test" as const) : ("planned_beta" as const),
+        included: [
+          "Future saved business memory and campaign history stay behind a later gate.",
+          "The V1 app surface stays session-only.",
+        ],
+      },
+      unavailableActions: [
+        "Atlas does not create an account or save progress across chats in V1.",
+        "Atlas does not start checkout, charge money, grant XP, collect evidence, post, message, buy ads, or run automated outreach.",
+        "Lookup results are for manual review; they are not saved state, scene geometry, or coverage proof.",
+      ],
+      nextStep: "Use Atlas as a session-only map and planning preview; pins, notes, Scout Drops, and campaign previews live in this chat.",
+      hostedClawd,
+    };
+  }
+
   return {
     type: "upgradeOptions" as const,
     ...(trigger ? { trigger } : {}),
@@ -1203,6 +1239,10 @@ function upgradeOptionsStructuredContent(trigger?: string) {
     nextStep,
     hostedClawd,
   };
+}
+
+function hostedClawdMeta(hostedClawd: HostedClawdContext): { hostedClawd: HostedClawdContext } | Record<string, never> {
+  return atlasSaveSurfaceEnabled ? { hostedClawd } : {};
 }
 
 function hostedClawdContextForScene(scene: ScoutPreviewState["scene"], trigger: HostedClawdContextInput["trigger"]): HostedClawdContext {
@@ -2446,11 +2486,11 @@ function createAtlasServer(): McpServer {
           structuredContent: coverage,
           _meta: {
             scenePacket,
-            hostedClawd: hostedClawdService.getContext({
+            ...hostedClawdMeta(hostedClawdService.getContext({
               trigger: "map_tray",
               countySlug: coverage.countySlug,
               countyLabel: coverage.countyLabel,
-            }),
+            })),
             ...(coverageShellScene ? { coverageShellScene } : {}),
             ...(generatedDraft ?? {}),
           },
@@ -2469,7 +2509,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           scene,
           scenePacket,
-          hostedClawd: hostedClawdContextForScene(scene, "map_tray"),
+          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
         },
         content: [
           {
@@ -2568,11 +2608,11 @@ function createAtlasServer(): McpServer {
           structuredContent: coverage,
           _meta: {
             scenePacket,
-            hostedClawd: hostedClawdService.getContext({
+            ...hostedClawdMeta(hostedClawdService.getContext({
               trigger: "map_tray",
               countySlug: coverage.countySlug,
               countyLabel: coverage.countyLabel,
-            }),
+            })),
             ...(coverageShellScene ? { coverageShellScene } : {}),
             ...(generatedDraft ?? {}),
           },
@@ -2594,7 +2634,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           scene,
           scenePacket,
-          hostedClawd: hostedClawdContextForScene(scene, "map_tray"),
+          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
         },
         content: [
           {
@@ -2652,7 +2692,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           scoutPreview: preview,
           scene: preview.scene,
-          hostedClawd: hostedClawdContextForScout(preview),
+          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScout(preview) } : {}),
         },
         content: [
           {
@@ -2716,7 +2756,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           campaignPreview,
           scene: campaignPreview.scene,
-          hostedClawd: hostedClawdContextForCampaign(campaignPreview),
+          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForCampaign(campaignPreview) } : {}),
         },
         content: [
           {
@@ -2754,15 +2794,16 @@ function createAtlasServer(): McpServer {
     },
     async ({ trigger }) => {
       const options = upgradeOptionsStructuredContent(trigger);
+      const optionSummaryLabel = atlasSaveSurfaceEnabled ? options.hosted.label : options.free.label;
       return {
         structuredContent: options,
         _meta: {
-          hostedClawd: options.hostedClawd,
+          ...hostedClawdMeta(options.hostedClawd),
         },
         content: [
           {
             type: "text" as const,
-            text: `${options.hosted.label}: ${options.nextStep}`,
+            text: `${optionSummaryLabel}: ${options.nextStep}`,
           },
         ],
       };

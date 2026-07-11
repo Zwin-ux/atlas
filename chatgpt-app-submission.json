@@ -3,8 +3,8 @@
   "schema_version": 1,
   "app_info": {
     "display_name": "Atlas",
-    "subtitle": "Explore your county as a voxel city and scout it with an AI agent",
-    "description": "Atlas opens your county inside ChatGPT as an explorable voxel city map. Browse the streets, ask closed-world local questions, and drop Clawd — an AI companion — onto a place to scout opportunity signals, risks, and a route, then generate a manual 7-day campaign preview. Whether you're sizing up a local business, exploring your town, or researching a market, it all happens in the chat and is session-only: Atlas saves no state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Riverside/Eastvale is the playable Alpha; other California counties show honest coverage status. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is planned, not live.",
+    "subtitle": "Explore Riverside/Eastvale and preview generated US county drafts",
+    "description": "Atlas opens Riverside/Eastvale inside ChatGPT as the playable voxel town map. Browse places, ask closed-world local questions, drop Clawd onto a place to scout opportunity signals, risks, and a route, then generate a manual 7-day campaign preview. For other indexed US counties, Atlas can show honest coverage status and generated draft previews: synthetic, session-only, non-playable, provider-free, and not local truth. Things live in this chat. Atlas does not save state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is not part of the V1 app surface.",
     "category": "BUSINESS",
     "icon": "assets/brand/atlas-icon-512.png",
     "privacy_policy_url": "https://atlas-backend-production-e6fc.up.railway.app/privacy",
@@ -18,7 +18,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Loads the Riverside curated county pack and returns a compiled voxel scene without saving or changing state.",
+        "read_only_justification": "Loads the Riverside curated county pack or indexed county coverage status and returns widget metadata without saving or changing state.",
         "open_world_justification": "Does not call live providers, publish content, message users, or modify third-party systems.",
         "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
       }
@@ -42,7 +42,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Computes and returns a Riverside voxel scene summary without creating or updating server state.",
+        "read_only_justification": "Computes and returns a Riverside voxel scene summary or indexed county coverage status without creating or updating server state.",
         "open_world_justification": "Does not write to public internet state or any third-party system.",
         "destructive_justification": "Does not delete, overwrite, revoke access, send messages, or perform irreversible actions."
       }
@@ -90,7 +90,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Returns explanatory Alpha and planned Beta capability information without creating accounts or checkout sessions.",
+        "read_only_justification": "Returns explanatory V1 session-only boundaries and future Hosted Clawd capability information without creating accounts or checkout sessions.",
         "open_world_justification": "Does not contact payment systems, publish content, message users, or modify external services.",
         "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
       }
@@ -150,7 +150,7 @@
       "user_prompt": "Can Clawd save this map, campaign, and progress?",
       "file_attachment_urls": null,
       "tools_triggered": "get_upgrade_options",
-      "expected_output": "Explains that free Alpha map/session previews are temporary and Hosted Clawd persistence is planned for Beta, with no checkout started and no XP awarded in Alpha.",
+      "expected_output": "Explains that map pins, notes, Scout Drops, and campaign previews live only in this chat, with no account, checkout, saved progress, or XP created in V1.",
       "expected_output_url": null
     }
   ],

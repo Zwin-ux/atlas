@@ -26,12 +26,23 @@ function parseSubmission() {
   const submission = JSON.parse(readFileSync(submissionPath, "utf8"));
   assert(submission.schema_version === 1, "Submission schema_version must be 1.");
   assert(submission.app_info?.display_name === "Atlas", "Submission display_name must be Atlas.");
+  const subtitle = submission.app_info?.subtitle ?? "";
+  const description = submission.app_info?.description ?? "";
   assert(
-    typeof submission.app_info?.description === "string" &&
-      submission.app_info.description.includes("voxel city map") &&
-      submission.app_info.description.includes("session-only") &&
-      submission.app_info.description.includes("saves no state"),
-    "Submission description must explain map shape, session-only state, and Alpha limits.",
+    typeof subtitle === "string" &&
+      /Riverside\/Eastvale/i.test(subtitle) &&
+      /generated US county drafts/i.test(subtitle) &&
+      !/your county/i.test(subtitle),
+    "Submission subtitle must name Riverside/Eastvale and generated US county drafts without a your-county promise.",
+  );
+  assert(
+    typeof description === "string" &&
+      description.includes("playable voxel town map") &&
+      description.includes("generated draft previews") &&
+      description.includes("Things live in this chat") &&
+      description.includes("does not save state") &&
+      !/your county|waitlist/i.test(description),
+    "Submission description must explain playable Riverside, generated drafts, session-only state, and V1 limits.",
   );
 
   const submissionTools = Object.keys(submission.tools ?? {}).sort();
