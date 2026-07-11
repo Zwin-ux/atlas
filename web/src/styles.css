@@ -230,6 +230,29 @@ button {
   touch-action: none;
 }
 
+.city-world-stage,
+.city-world-map-surface {
+  position: absolute;
+  inset: 0;
+}
+
+.city-world-stage[aria-hidden="true"] {
+  pointer-events: none;
+}
+
+.city-world-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+
 .city-world-renderer,
 .city-world-canvas {
   position: absolute;
@@ -258,6 +281,7 @@ button {
 .city-world-left-rail,
 .city-world-generated-boundary,
 .city-world-zoom,
+.city-world-place-navigator,
 .city-world-stickers,
 .city-world-tray {
   position: absolute;
@@ -530,6 +554,90 @@ button {
   right: max(16px, env(safe-area-inset-right));
   display: grid;
   gap: 8px;
+}
+
+.city-world-place-navigator {
+  top: max(160px, calc(env(safe-area-inset-top) + 160px));
+  right: max(16px, env(safe-area-inset-right));
+  display: grid;
+  gap: 6px;
+  width: min(260px, calc(100vw - 32px));
+}
+
+.city-world-place-navigator-toggle {
+  display: none;
+}
+
+.city-world-place-navigator-list {
+  display: grid;
+  gap: 2px;
+  max-height: min(260px, calc(100dvh - 344px));
+  min-height: 44px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--r-panel);
+  background: var(--city-panel);
+  box-shadow: var(--elev-0);
+  backdrop-filter: blur(12px) saturate(1.1);
+  scrollbar-width: thin;
+}
+
+.city-world-place-navigator-list:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.city-world-place-navigator-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: var(--hairline) solid transparent;
+  border-radius: var(--r-control);
+  color: var(--city-ink);
+  cursor: pointer;
+  transition: background-color var(--dur-instant) var(--ease-out);
+}
+
+.city-world-place-navigator-option:hover,
+.city-world-place-navigator-option[data-active="true"] {
+  border-color: var(--border-subtle);
+  background: var(--alpha-05);
+}
+
+.city-world-place-navigator-option[aria-selected="true"] {
+  border-color: transparent;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.city-world-place-navigator-option span,
+.city-world-place-navigator-option b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-world-place-navigator-option span {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.city-world-place-navigator-option b {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.city-world-place-navigator-option[aria-selected="true"] b {
+  color: color-mix(in srgb, var(--on-ink) 72%, transparent);
 }
 
 .city-world-zoom button,
@@ -1605,6 +1713,57 @@ button {
     gap: 8px;
   }
 
+  .city-world-place-navigator {
+    top: auto;
+    right: auto;
+    left: max(12px, env(safe-area-inset-left));
+    bottom: calc(env(safe-area-inset-bottom) + 104px);
+    width: auto;
+    z-index: 4;
+  }
+
+  .city-world-place-navigator-toggle {
+    display: grid;
+    min-width: 76px;
+    min-height: 44px;
+    place-items: center;
+    padding: 0 12px;
+    border: var(--hairline) solid var(--border-subtle);
+    border-radius: var(--r-control);
+    background: var(--city-panel);
+    color: var(--city-ink);
+    box-shadow: var(--elev-0);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(12px) saturate(1.1);
+  }
+
+  .city-world-place-navigator-toggle[aria-expanded="true"] {
+    border-color: transparent;
+    background: var(--ink);
+    color: var(--on-ink);
+  }
+
+  .city-world-place-navigator-toggle:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  .city-world-place-navigator-list {
+    display: none;
+    position: absolute;
+    left: 0;
+    bottom: 52px;
+    width: min(312px, calc(100vw - 24px));
+    max-height: min(232px, calc(100dvh - 308px));
+  }
+
+  .city-world-place-navigator.is-expanded .city-world-place-navigator-list {
+    display: grid;
+  }
+
   .city-world-stickers {
     left: max(12px, env(safe-area-inset-left));
     right: max(12px, env(safe-area-inset-right));
@@ -1869,6 +2028,26 @@ button {
 .city-world-renderer-fallback-place.is-selected {
   fill: #0d8f8a;
   stroke: #242017;
+}
+
+.city-world-modal-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.city-world-modal-sheet:focus {
+  outline: none;
+}
+
+.city-world-focus-sentinel {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .city-world-hosted-clawd {

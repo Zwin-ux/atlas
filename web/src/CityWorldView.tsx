@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
 import {
   CITY_WORLD_TILE_BASIS,
@@ -54,6 +54,32 @@ export type CityWorldViewProps = {
 };
 
 const STICKER_ORDER: VoxelStickerKind[] = ["favorite", "home", "shop", "park", "idea", "question"];
+const MODAL_FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
+function getModalFocusableElements(container: HTMLElement | null): HTMLElement[] {
+  if (!container) return [];
+
+  return Array.from(container.querySelectorAll<HTMLElement>(MODAL_FOCUSABLE_SELECTOR)).filter((element) => {
+    if (element.dataset.focusSentinel === "true") return false;
+    if (element.getAttribute("aria-hidden") === "true") return false;
+    if (element.tabIndex < 0) return false;
+    return element.offsetParent !== null || element.getClientRects().length > 0;
+  });
+}
+
+function focusModalElement(container: HTMLElement | null, edge: "first" | "last" = "first") {
+  if (!container) return;
+  const focusable = getModalFocusableElements(container);
+  const target = edge === "first" ? (focusable[0] ?? container) : (focusable[focusable.length - 1] ?? container);
+  target.focus({ preventScroll: true });
+}
 
 export function CityWorldView({
   scene,
@@ -89,6 +115,16 @@ export function CityWorldView({
   const hasPreview = !isGeneratedMode && Boolean(scoutPreview || campaignPreview);
   const hasHostedClawdTray = !isGeneratedMode && hostedClawdOpen && Boolean(hostedClawdContext);
   const rendererRef = useRef<CityWorldRendererHandle | null>(null);
+  const backgroundRef = useRef<HTMLDivElement | null>(null);
+  const modalSheetRef = useRef<HTMLDivElement | null>(null);
+  const hostedClawdOpenerRef = useRef<HTMLElement | null>(null);
+  const wasModalOpenRef = useRef(false);
+  const placeNavigatorRef = useRef<HTMLDivElement | null>(null);
+  const idPrefix = useId();
+  const mapSummaryId = `${idPrefix}-map-summary`;
+  const placeNavigatorId = `${idPrefix}-place-navigator`;
+  const [placeNavigatorExpanded, setPlaceNavigatorExpanded] = useState(false);
+  const [navigatorActivePlaceId, setNavigatorActivePlaceId] = useState<string | null>(null);
   const cityScene = useMemo<CityWorldScene>(
     () => {
       if (generatedScene) return generatedScene;
@@ -129,6 +165,58 @@ export function CityWorldView({
   const latestNoteBody = latestPlaceNote?.body ?? "";
   const cameraPresetId = readRequestedCameraPreset(cityScene);
   const debugMode = readRequestedDebugMode();
+  const canNavigatePlaces = !isGeneratedMode && cityScene.places.length > 0;
+  const renderedDistrictCount = cityScene.region.district ? 1 : 0;
+  const mapSummary = `Voxel map of ${cityScene.region.county}: ${cityScene.places.length} ${cityScene.places.length === 1 ? "place" : "places"}, ${renderedDistrictCount} ${renderedDistrictCount === 1 ? "district" : "districts"}.`;
+  const navigatorActiveIndex = cityScene.places.findIndex((place) => place.id === navigatorActivePlaceId);
+  const navigatorActiveOptionId = navigatorActiveIndex >= 0 ? `${idPrefix}-place-option-${navigatorActiveIndex}` : undefined;
+
+  useEffect(() => {
+    setNavigatorActivePlaceId(activePlace?.id ?? cityScene.places[0]?.id ?? null);
+  }, [activePlace?.id, cityScene.places]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const background = backgroundRef.current;
+
+    if (hasHostedClawdTray) {
+      wasModalOpenRef.current = true;
+      if (!hostedClawdOpenerRef.current && document.activeElement instanceof HTMLElement) {
+        hostedClawdOpenerRef.current = document.activeElement;
+      }
+
+      const focusSheet = () => focusModalElement(modalSheetRef.current);
+      const enterModal = () => {
+        focusSheet();
+        background?.setAttribute("inert", "");
+        background?.setAttribute("aria-hidden", "true");
+      };
+      if (typeof window === "undefined") {
+        enterModal();
+      } else {
+        window.requestAnimationFrame(enterModal);
+      }
+      return () => {
+        background?.removeAttribute("inert");
+        background?.removeAttribute("aria-hidden");
+      };
+    }
+
+    background?.removeAttribute("inert");
+    background?.removeAttribute("aria-hidden");
+    if (!wasModalOpenRef.current) return;
+    wasModalOpenRef.current = false;
+    const opener = hostedClawdOpenerRef.current;
+    hostedClawdOpenerRef.current = null;
+
+    if (!opener || !document.contains(opener)) return;
+    const focusOpener = () => opener.focus({ preventScroll: true });
+    if (typeof window === "undefined") {
+      focusOpener();
+    } else {
+      window.requestAnimationFrame(focusOpener);
+    }
+  }, [hasHostedClawdTray]);
 
   useEffect(() => {
     const openaiWindow = window as Window & {
@@ -157,6 +245,95 @@ export function CityWorldView({
     onPlaceSticker(activePlace.id, stickerMode);
   };
 
+  const selectPlaceFromNavigator = (placeId: string) => {
+    if (!canNavigatePlaces) return;
+    setNavigatorActivePlaceId(placeId);
+    onSelectPlace(placeId);
+  };
+
+  const handlePlaceNavigatorToggle = () => {
+    setPlaceNavigatorExpanded((expanded) => {
+      const nextExpanded = !expanded;
+      if (nextExpanded && typeof window !== "undefined") {
+        window.requestAnimationFrame(() => placeNavigatorRef.current?.focus({ preventScroll: true }));
+      }
+      return nextExpanded;
+    });
+  };
+
+  const handlePlaceNavigatorKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!canNavigatePlaces) return;
+
+    const placeCount = cityScene.places.length;
+    const currentIndex = navigatorActiveIndex >= 0 ? navigatorActiveIndex : 0;
+    let nextIndex: number | null = null;
+
+    switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        nextIndex = Math.min(placeCount - 1, currentIndex + 1);
+        break;
+      case "ArrowUp":
+      case "ArrowLeft":
+        nextIndex = Math.max(0, currentIndex - 1);
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = placeCount - 1;
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        selectPlaceFromNavigator(cityScene.places[currentIndex]?.id ?? cityScene.places[0]?.id ?? "");
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    if (nextIndex === null) return;
+    const nextPlace = cityScene.places[nextIndex];
+    if (nextPlace) setNavigatorActivePlaceId(nextPlace.id);
+  };
+
+  const handleHostedClawdOpen = (event: MouseEvent<HTMLButtonElement>) => {
+    hostedClawdOpenerRef.current = event.currentTarget;
+    onOpenHostedClawd?.();
+  };
+
+  const handleModalSheetKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onCloseHostedClawd?.();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+    const focusable = getModalFocusableElements(modalSheetRef.current);
+    if (focusable.length === 0) {
+      event.preventDefault();
+      modalSheetRef.current?.focus({ preventScroll: true });
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const activeElement = typeof document === "undefined" ? null : document.activeElement;
+
+    if (event.shiftKey && (!activeElement || activeElement === first || !modalSheetRef.current?.contains(activeElement))) {
+      event.preventDefault();
+      last?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!event.shiftKey && activeElement === last) {
+      event.preventDefault();
+      first?.focus({ preventScroll: true });
+    }
+  };
+
   return (
     <main
       className={hasPreview ? "city-world-shell has-preview" : hasHostedClawdTray ? "city-world-shell has-save-sheet" : "city-world-shell"}
@@ -170,17 +347,28 @@ export function CityWorldView({
       data-qa-generated={isGeneratedMode ? "true" : undefined}
       onPointerDownCapture={hintVisible ? onDismissFirstRunHint : undefined}
     >
-      <Suspense fallback={<CityWorldSceneFallback scene={cityScene} selectedPlaceId={activePlace?.id} />}>
-        <CityWorldRenderer
-          ref={rendererRef}
-          scene={cityScene}
-          selectedPlaceId={activePlace?.id}
-          cameraPresetId={cameraPresetId}
-          debugMode={debugMode}
-          suppressPlaceLabels={isGeneratedMode}
-          onSelectPlace={isGeneratedMode ? () => undefined : onSelectPlace}
-        />
-      </Suspense>
+      <div ref={backgroundRef} className="city-world-stage">
+      <section
+        className="city-world-map-surface"
+        role="img"
+        aria-label={`${cityScene.region.district} voxel map`}
+        aria-describedby={mapSummaryId}
+      >
+        <p id={mapSummaryId} className="city-world-sr-only">
+          {mapSummary}
+        </p>
+        <Suspense fallback={<CityWorldSceneFallback scene={cityScene} selectedPlaceId={activePlace?.id} />}>
+          <CityWorldRenderer
+            ref={rendererRef}
+            scene={cityScene}
+            selectedPlaceId={activePlace?.id}
+            cameraPresetId={cameraPresetId}
+            debugMode={debugMode}
+            suppressPlaceLabels={isGeneratedMode}
+            onSelectPlace={isGeneratedMode ? () => undefined : onSelectPlace}
+          />
+        </Suspense>
+      </section>
 
       {isGeneratedMode ? (
         <div className="city-world-generated-boundary" data-qa="generated-boundary">
@@ -203,6 +391,53 @@ export function CityWorldView({
       )}
 
       <MapChrome rendererRef={rendererRef} />
+
+      {canNavigatePlaces ? (
+        <div className={placeNavigatorExpanded ? "city-world-place-navigator is-expanded" : "city-world-place-navigator"}>
+          <button
+            type="button"
+            className="city-world-place-navigator-toggle"
+            aria-expanded={placeNavigatorExpanded}
+            aria-controls={placeNavigatorId}
+            data-qa="place-navigator-toggle"
+            onClick={handlePlaceNavigatorToggle}
+          >
+            Places
+          </button>
+          <div
+            ref={placeNavigatorRef}
+            id={placeNavigatorId}
+            className="city-world-place-navigator-list"
+            role="listbox"
+            tabIndex={0}
+            aria-label={`${cityScene.region.district} places`}
+            aria-describedby={mapSummaryId}
+            aria-activedescendant={navigatorActiveOptionId}
+            data-qa="place-navigator"
+            onKeyDown={handlePlaceNavigatorKeyDown}
+          >
+            {cityScene.places.map((place, index) => {
+              const selected = place.id === activePlace?.id;
+              const active = place.id === navigatorActivePlaceId;
+              return (
+                <div
+                  key={place.id}
+                  id={`${idPrefix}-place-option-${index}`}
+                  className="city-world-place-navigator-option"
+                  role="option"
+                  aria-selected={selected}
+                  data-active={active ? "true" : undefined}
+                  data-kind={place.kind}
+                  onClick={() => selectPlaceFromNavigator(place.id)}
+                >
+                  <span>{place.label}</span>
+                  <b>{placeKindLabel(place.kind)}</b>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {hintVisible ? (
         <div className="city-world-first-run-hint" role="note" data-qa="first-run-hint">
@@ -241,14 +476,7 @@ export function CityWorldView({
       </div>
       ) : null}
 
-      {hasHostedClawdTray && hostedClawdContext && onCloseHostedClawd && onHostedClawdPrimaryAction ? (
-        <HostedClawdTray
-          context={hostedClawdContext}
-          actionMessage={hostedClawdActionMessage}
-          onClose={onCloseHostedClawd}
-          onPrimaryAction={onHostedClawdPrimaryAction}
-        />
-      ) : hasPreview ? (
+      {hasHostedClawdTray ? null : hasPreview ? (
         <PreviewPanel scoutPreview={scoutPreview} campaignPreview={campaignPreview} {...(onAdvancePreview ? { onAdvance: onAdvancePreview } : {})} />
       ) : !isGeneratedMode ? (
       <section
@@ -291,7 +519,7 @@ export function CityWorldView({
           Pins and notes stay in this chat.
         </div>
         {hostedClawdContext && onOpenHostedClawd ? (
-          <button type="button" className="city-world-hosted-clawd-open" data-qa="hosted-clawd-open" onClick={onOpenHostedClawd}>
+          <button type="button" className="city-world-hosted-clawd-open" data-qa="hosted-clawd-open" onClick={handleHostedClawdOpen}>
             Save with ChatGPT
             <span>{hostedClawdContext.sessionBoundary}</span>
           </button>
@@ -322,6 +550,29 @@ export function CityWorldView({
           </div>
         ) : null}
       </section>
+      ) : null}
+      </div>
+
+      {hasHostedClawdTray && hostedClawdContext && onCloseHostedClawd && onHostedClawdPrimaryAction ? (
+        <div
+          ref={modalSheetRef}
+          className="city-world-modal-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Atlas save panel"
+          tabIndex={-1}
+          data-qa="modal-sheet"
+          onKeyDown={handleModalSheetKeyDown}
+        >
+          <span className="city-world-focus-sentinel" tabIndex={0} data-focus-sentinel="true" onFocus={() => focusModalElement(modalSheetRef.current, "last")} />
+          <HostedClawdTray
+            context={hostedClawdContext}
+            actionMessage={hostedClawdActionMessage}
+            onClose={onCloseHostedClawd}
+            onPrimaryAction={onHostedClawdPrimaryAction}
+          />
+          <span className="city-world-focus-sentinel" tabIndex={0} data-focus-sentinel="true" onFocus={() => focusModalElement(modalSheetRef.current)} />
+        </div>
       ) : null}
     </main>
   );
