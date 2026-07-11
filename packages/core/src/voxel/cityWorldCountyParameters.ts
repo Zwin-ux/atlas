@@ -86,6 +86,109 @@ export type ArchetypeProfile = {
   paletteVariantOffsetByAridity?: Partial<Record<AridityBand, 0 | 1 | 2>>;
 };
 
+export type GeneratedTreeSpecies = "round_canopy" | "conifer" | "palm";
+
+export type GeneratedRoadArtProfile = {
+  roadTone: "metro_asphalt" | "coastal_light" | "desert_pale" | "mountain_gravel" | "prairie_pale" | "river_light";
+  arterialWidth: number;
+  residentialLaneWidth: number;
+  drivewayWidth: number;
+  treeSpecies: readonly GeneratedTreeSpecies[];
+};
+
+export const GENERATED_ART_PROFILES: Record<GeneratedDistrictArchetype, GeneratedRoadArtProfile> = {
+  metro_grid: {
+    roadTone: "metro_asphalt",
+    arterialWidth: 1.9,
+    residentialLaneWidth: 1.18,
+    drivewayWidth: 0.66,
+    treeSpecies: ["round_canopy", "round_canopy", "palm"],
+  },
+  coastal_grid: {
+    roadTone: "coastal_light",
+    arterialWidth: 1.74,
+    residentialLaneWidth: 1.06,
+    drivewayWidth: 0.62,
+    treeSpecies: ["palm", "round_canopy", "palm"],
+  },
+  desert_basin: {
+    roadTone: "desert_pale",
+    arterialWidth: 1.62,
+    residentialLaneWidth: 0.98,
+    drivewayWidth: 0.58,
+    treeSpecies: ["palm", "round_canopy"],
+  },
+  mountain_valley: {
+    roadTone: "mountain_gravel",
+    arterialWidth: 1.58,
+    residentialLaneWidth: 0.94,
+    drivewayWidth: 0.56,
+    treeSpecies: ["conifer", "conifer", "round_canopy"],
+  },
+  prairie_town: {
+    roadTone: "prairie_pale",
+    arterialWidth: 1.54,
+    residentialLaneWidth: 0.92,
+    drivewayWidth: 0.55,
+    treeSpecies: ["round_canopy", "conifer"],
+  },
+  river_town: {
+    roadTone: "river_light",
+    arterialWidth: 1.66,
+    residentialLaneWidth: 1.02,
+    drivewayWidth: 0.6,
+    treeSpecies: ["round_canopy", "conifer", "palm"],
+  },
+};
+
+const GENERATED_DEFAULT_ART_PROFILE: GeneratedRoadArtProfile = {
+  roadTone: "river_light",
+  arterialWidth: 1.66,
+  residentialLaneWidth: 1.02,
+  drivewayWidth: 0.6,
+  treeSpecies: ["round_canopy"],
+};
+
+const GENERATED_ART_ID_TOKENS: ReadonlyArray<readonly [GeneratedDistrictArchetype, readonly string[]]> = [
+  ["metro_grid", ["metro"]],
+  ["coastal_grid", ["coastal", "water-edge"]],
+  ["desert_basin", ["desert"]],
+  ["mountain_valley", ["mountain"]],
+  ["prairie_town", ["prairie"]],
+  ["river_town", ["river"]],
+];
+
+const TREE_SPECIES_VARIANT_OFFSET: Record<GeneratedTreeSpecies, number> = {
+  round_canopy: 0,
+  conifer: 20,
+  palm: 40,
+};
+
+export function generatedArchetypeForArtId(id: string): GeneratedDistrictArchetype | undefined {
+  if (!id.startsWith("gen-")) return undefined;
+  const normalized = id.toLowerCase();
+  return GENERATED_ART_ID_TOKENS.find(([, tokens]) => tokens.some((token) => normalized.includes(token)))?.[0];
+}
+
+export function generatedArtProfileForId(id: string): GeneratedRoadArtProfile | undefined {
+  if (!id.startsWith("gen-")) return undefined;
+  const archetype = generatedArchetypeForArtId(id);
+  return archetype ? GENERATED_ART_PROFILES[archetype] : GENERATED_DEFAULT_ART_PROFILE;
+}
+
+export function generatedTreeSpeciesForProp(id: string, kind: "tree" | "bush", variant: number): GeneratedTreeSpecies | undefined {
+  if (kind !== "tree") return undefined;
+  const profile = generatedArtProfileForId(id);
+  if (!profile) return undefined;
+  return profile.treeSpecies[positiveModulo(variant, profile.treeSpecies.length)];
+}
+
+export function generatedVegetationVariantForProp(id: string, kind: "tree" | "bush", variant: number): number {
+  const species = generatedTreeSpeciesForProp(id, kind, variant);
+  if (!species) return variant;
+  return TREE_SPECIES_VARIANT_OFFSET[species] + positiveModulo(variant, 20);
+}
+
 type CountyParameterInput = DeterministicGeneratedDistrictInput["county"];
 
 type ArchetypeSelectionRule = {
@@ -107,6 +210,7 @@ type ArchetypeSelectionRule = {
 export type CountyGenerationParameters = {
   archetype: GeneratedDistrictArchetype;
   archetypeProfile: ArchetypeProfile;
+  artProfile: GeneratedRoadArtProfile;
   region: CensusDivision;
   regionProfile: RegionProfile;
   climate: CountyGenerationClimate;
@@ -335,7 +439,7 @@ export const ARCHETYPE_PROFILES: Record<GeneratedDistrictArchetype, ArchetypePro
     zones: {
       civicElevationBoost: 0.18,
       bonusZone: { id: "east-commons", kind: "commercial", rect: { minX: 35, minY: 21, maxX: 41, maxY: 29 }, label: "East commons", density: 0.58 },
-      bonusRoad: { id: "gen-road-service-loop", kind: "driveway", from: { x: 15, y: 21 }, to: { x: 24, y: 21 } },
+      bonusRoad: { id: "gen-road-metro-service-loop", kind: "driveway", from: { x: 15, y: 21 }, to: { x: 24, y: 21 } },
     },
     heightGrid: [
       [0.18, 0.24, 0.26, 0.24, 0.2, 0.18],
@@ -350,7 +454,7 @@ export const ARCHETYPE_PROFILES: Record<GeneratedDistrictArchetype, ArchetypePro
     zones: {
       civicElevationBoost: 0.18,
       bonusZone: { id: "water-edge", kind: "water", rect: { minX: 37, minY: 20, maxX: 43, maxY: 31 }, label: "Coastal edge" },
-      bonusRoad: { id: "gen-road-water-edge", kind: "driveway", from: { x: 34, y: 24 }, to: { x: 41, y: 24 } },
+      bonusRoad: { id: "gen-road-coastal-water-edge", kind: "driveway", from: { x: 34, y: 24 }, to: { x: 41, y: 24 } },
     },
     heightGrid: [
       [0.28, 0.3, 0.3, 0.24, 0.14, 0.06],
@@ -366,7 +470,7 @@ export const ARCHETYPE_PROFILES: Record<GeneratedDistrictArchetype, ArchetypePro
     zones: {
       civicElevationBoost: 0.18,
       bonusZone: { id: "desert-plaza", kind: "plaza", rect: { minX: 34, minY: 21, maxX: 41, maxY: 29 }, label: "Dry plaza" },
-      bonusRoad: { id: "gen-road-service-loop", kind: "driveway", from: { x: 15, y: 21 }, to: { x: 24, y: 21 } },
+      bonusRoad: { id: "gen-road-desert-service-loop", kind: "driveway", from: { x: 15, y: 21 }, to: { x: 24, y: 21 } },
     },
     heightGrid: [
       [0.44, 0.34, 0.26, 0.24, 0.3, 0.42],
@@ -382,7 +486,7 @@ export const ARCHETYPE_PROFILES: Record<GeneratedDistrictArchetype, ArchetypePro
     zones: {
       civicElevationBoost: 0.35,
       bonusZone: { id: "ridge-commons", kind: "park", rect: { minX: 34, minY: 21, maxX: 41, maxY: 29 }, label: "Ridge commons", elevationBoost: 0.25 },
-      bonusRoad: { id: "gen-road-service-loop", kind: "driveway", from: { x: 15, y: 21 }, to: { x: 24, y: 21 } },
+      bonusRoad: { id: "gen-road-mountain-service-loop", kind: "driveway", from: { x: 15, y: 21 }, to: { x: 24, y: 21 } },
     },
     heightGrid: [
       [0.76, 0.58, 0.36, 0.32, 0.5, 0.72],
@@ -397,7 +501,7 @@ export const ARCHETYPE_PROFILES: Record<GeneratedDistrictArchetype, ArchetypePro
     zones: {
       civicElevationBoost: 0.18,
       bonusZone: { id: "east-commons", kind: "commercial", rect: { minX: 35, minY: 21, maxX: 41, maxY: 29 }, label: "East commons", density: 0.58 },
-      bonusRoad: { id: "gen-road-grid-north", kind: "street", from: { x: 4, y: 8 }, to: { x: 38, y: 8 } },
+      bonusRoad: { id: "gen-road-prairie-grid-north", kind: "street", from: { x: 4, y: 8 }, to: { x: 38, y: 8 } },
     },
     heightGrid: [
       [0.12, 0.14, 0.16, 0.16, 0.14, 0.12],
@@ -412,7 +516,7 @@ export const ARCHETYPE_PROFILES: Record<GeneratedDistrictArchetype, ArchetypePro
     zones: {
       civicElevationBoost: 0.18,
       bonusZone: { id: "water-edge", kind: "water", rect: { minX: 37, minY: 20, maxX: 43, maxY: 31 }, label: "River edge" },
-      bonusRoad: { id: "gen-road-water-edge", kind: "driveway", from: { x: 34, y: 24 }, to: { x: 41, y: 24 } },
+      bonusRoad: { id: "gen-road-river-water-edge", kind: "driveway", from: { x: 34, y: 24 }, to: { x: 41, y: 24 } },
     },
     heightGrid: [
       [0.32, 0.3, 0.26, 0.2, 0.14, 0.1],
@@ -437,6 +541,7 @@ export function resolveCountyParameters(county: CountyParameterInput, seed: numb
   return {
     archetype,
     archetypeProfile,
+    artProfile: GENERATED_ART_PROFILES[archetype],
     region,
     regionProfile,
     climate,
@@ -670,6 +775,10 @@ function resolveCountyPalette(base: RegionalPalette, paletteVariantOffset: 0 | 1
 
 function roundModulator(value: number): number {
   return Math.round(value * 1_000) / 1_000;
+}
+
+function positiveModulo(value: number, divisor: number): number {
+  return ((value % divisor) + divisor) % divisor;
 }
 
 function clamp(value: number, min: number, max: number): number {

@@ -15,6 +15,7 @@ import {
 } from "@atlas/core/voxel";
 import type {
   CityWorldActor,
+  CityWorldBounds,
   CityWorldBuilding,
   CityWorldGroundTone,
   CityWorldLot,
@@ -75,6 +76,13 @@ type AnimatedTarget = {
   baseAlpha: number;
   origin: ProjectedPoint;
 };
+
+type GeneratedSignageState = {
+  count: number;
+  max: number;
+};
+
+type GeneratedTreeSpecies = "round_canopy" | "conifer" | "palm";
 
 type LayerMap = Record<
   "terrainLayer" | "roadLayer" | "lotLayer" | "padLayer" | "shadowLayer" | "buildingPropDepthLayer" | "buildingLayer" | "propLayer" | "actorLayer" | "focusLayer" | "labelLayer" | "markerLayer" | "hudBridgeLayer",
@@ -1146,6 +1154,12 @@ function pointerDistance(pointers: Map<number, { x: number; y: number }>): numbe
   return Math.hypot(first.x - second.x, first.y - second.y);
 }
 
+function squaredDistance(first: ProjectedPoint, second: ProjectedPoint): number {
+  const dx = first.x - second.x;
+  const dy = first.y - second.y;
+  return dx * dx + dy * dy;
+}
+
 // Everything the incremental focus overlay needs to redraw hover/selection
 // without touching the base scene: visible places, their anchored buildings,
 // and the label crown lifts, captured at scene-rebuild time.
@@ -1209,6 +1223,7 @@ function drawScene(
   // bands partition painter depth, so adding bands in ascending order with
   // in-band call order preserved is exactly order-safe — and drops thousands
   // of per-tile/per-lot Graphics to ~dozens.
+  drawBoardEdgeFade(layers.terrainLayer, scene.bounds);
   drawBanded(layers.terrainLayer, orderedSceneItems(renderCommands, "terrain_tile", itemIndex.terrainTiles), (g, tile) => drawTerrainTile(g, tile, atlas));
   drawRoadNetwork(layers.roadLayer, orderedSceneItems(renderCommands, "road_segment", itemIndex.roadSegments));
   drawBanded(layers.lotLayer, orderedSceneItems(renderCommands, "lot", itemIndex.lots), (g, lot) => drawLot(g, lot));
@@ -1364,6 +1379,7 @@ function drawDepthInterleavedBuildingsAndProps(
 ) {
   const buildingProxy = layers.buildingLayer as QaVisibilityProxyLayer;
   const propProxy = layers.propLayer as QaVisibilityProxyLayer;
+  const generatedSignage: GeneratedSignageState = { count: 0, max: 8 };
   buildingProxy.atlasVisibilityTargets.length = 0;
   propProxy.atlasVisibilityTargets.length = 0;
   layers.buildingPropDepthLayer.sortableChildren = true;
@@ -1390,7 +1406,7 @@ function drawDepthInterleavedBuildingsAndProps(
     group.label = `${item.kind}-${item.id}`;
     group.zIndex = item.depthKey;
     if (item.kind === "building") {
-      drawBuilding(layers, group, item.building, atlas, materialTextureEnabled);
+      drawBuilding(layers, group, item.building, atlas, materialTextureEnabled, generatedSignage);
       group.visible = buildingProxy.visible;
       buildingProxy.atlasVisibilityTargets.push(group);
     } else {
@@ -1521,6 +1537,56 @@ function createLayers(): LayerMap {
     markerLayer: namedLayer("markerLayer"),
     hudBridgeLayer: namedLayer("hudBridgeLayer"),
   };
+}
+
+function drawBoardEdgeFade(layer: Container, bounds: CityWorldBounds) {
+  const nw = project({ x: bounds.minX, y: bounds.minY, z: 0 });
+  const ne = project({ x: bounds.maxX, y: bounds.minY, z: 0 });
+  const se = project({ x: bounds.maxX, y: bounds.maxY, z: 0 });
+  const sw = project({ x: bounds.minX, y: bounds.maxY, z: 0 });
+  const corners = [nw, ne, se, sw] as const;
+  const center = {
+    x: (nw.x + ne.x + se.x + sw.x) / 4,
+    y: (nw.y + ne.y + se.y + sw.y) / 4,
+  };
+  const background = resolveBackgroundColor();
+  const rimBase = isDarkTheme() ? 0x46513f : 0x91a766;
+  const near = mixColor(background, rimBase, isDarkTheme() ? 0.52 : 0.68);
+  const far = mixColor(background, rimBase, isDarkTheme() ? 0.22 : 0.34);
+  const edge = new Graphics();
+
+  drawBoardEdgeBand(edge, corners, center, 18, near, 0.62);
+  drawBoardEdgeBand(edge, corners, center, 34, far, 0.34);
+  layer.addChild(edge);
+}
+
+function drawBoardEdgeBand(
+  g: Graphics,
+  corners: readonly [ProjectedPoint, ProjectedPoint, ProjectedPoint, ProjectedPoint],
+  center: ProjectedPoint,
+  distance: number,
+  color: number,
+  alpha: number,
+) {
+  for (let index = 0; index < corners.length; index += 1) {
+    const from = corners[index]!;
+    const to = corners[(index + 1) % corners.length]!;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const length = Math.max(1, Math.hypot(dx, dy));
+    let nx = -dy / length;
+    let ny = dx / length;
+    const midpoint = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+    const currentDistance = squaredDistance(midpoint, center);
+    const candidateDistance = squaredDistance({ x: midpoint.x + nx * distance, y: midpoint.y + ny * distance }, center);
+    if (candidateDistance < currentDistance) {
+      nx *= -1;
+      ny *= -1;
+    }
+    g
+      .poly([from.x, from.y, to.x, to.y, to.x + nx * distance, to.y + ny * distance, from.x + nx * distance, from.y + ny * distance], true)
+      .fill({ color, alpha });
+  }
 }
 
 function namedLayer(label: keyof LayerMap): Container {
@@ -2178,6 +2244,59 @@ type RoadPassSet = {
   crosswalks: Graphics;
 };
 
+type GeneratedRoadPaintProfile = {
+  sideFace: number;
+  curb: number;
+  bed: number;
+  surface: number;
+  dash: number;
+  sideFaceAlpha: number;
+  curbAlpha: number;
+  bedAlpha: number;
+  surfaceAlpha: number;
+  dashAlpha: number;
+  sidewalk: number;
+  sidewalkAlpha: number;
+  sidewalkWidth: number;
+};
+
+function generatedRoadPaintProfile(road: CityWorldRoadSegment, contact: CityWorldRoadContactGrammar): GeneratedRoadPaintProfile | undefined {
+  if (!road.id.startsWith("gen-road-") || contact.profile === "painted") return undefined;
+  const sidewalkWidth = generatedRoadHasSidewalk(road) ? (road.kind === "avenue" ? 4.4 : 3) : 0;
+  const base = {
+    sideFaceAlpha: contact.profile === "apron" ? 0.3 : 0.42,
+    curbAlpha: contact.profile === "apron" ? 0.44 : 0.64,
+    bedAlpha: contact.profile === "apron" ? 0.7 : 0.88,
+    surfaceAlpha: contact.profile === "apron" ? 0.56 : 0.7,
+    dashAlpha: road.kind === "avenue" ? 0.25 : 0.18,
+    sidewalk: 0xd8d2b4,
+    sidewalkAlpha: road.kind === "avenue" ? 0.5 : 0.34,
+    sidewalkWidth,
+  };
+  const id = road.id;
+  if (id.includes("metro")) {
+    return { ...base, sideFace: 0x59625d, curb: 0xd8cda7, bed: 0x6c7770, surface: 0x7d877f, dash: 0xf0dfae, dashAlpha: road.kind === "avenue" ? 0.3 : 0.22 };
+  }
+  if (id.includes("coastal")) {
+    return { ...base, sideFace: 0x7f8777, curb: 0xe1d7b7, bed: 0x8a9484, surface: 0x9aa38e, dash: 0xf2e6be, sidewalk: 0xded9bf };
+  }
+  if (id.includes("desert")) {
+    return { ...base, sideFace: 0x8b8068, curb: 0xe3d1a2, bed: 0x9b9278, surface: 0xada487, dash: 0xf0dfb1, dashAlpha: 0.16, sidewalk: 0xdac89b };
+  }
+  if (id.includes("mountain")) {
+    return { ...base, sideFace: 0x737869, curb: 0xd8d0ad, bed: 0x858b7d, surface: 0x989d89, dash: 0xebddb5, dashAlpha: 0.18, sidewalk: 0xd1cdb1 };
+  }
+  if (id.includes("prairie")) {
+    return { ...base, sideFace: 0x8f876c, curb: 0xe2d09f, bed: 0x9f987c, surface: 0xb0aa8b, dash: 0xf0dfad, dashAlpha: 0.15, sidewalk: 0xd8ca9e };
+  }
+  return { ...base, sideFace: 0x7e8674, curb: 0xdfd3ac, bed: 0x8d9581, surface: 0x9da78d, dash: 0xefe1b5, sidewalk: 0xdad3b5 };
+}
+
+function generatedRoadHasSidewalk(road: CityWorldRoadSegment): boolean {
+  if (road.kind === "avenue") return true;
+  return /main|core|frontage|shoreline|dock|service|water-edge/.test(road.id);
+}
+
 function drawRoadNetwork(layer: Container, roads: CityWorldRoadSegment[]) {
   const passes: RoadPassSet = {
     shadow: new Graphics(),
@@ -2242,6 +2361,7 @@ function drawRoadSegmentModule(passes: RoadPassSet, road: CityWorldRoadSegment) 
   const shellRoad = contact.tone === "shell";
   const apron = contact.profile === "apron";
   const cap = apron ? "round" : "butt";
+  const generatedPaint = generatedRoadPaintProfile(road, contact);
   passes.shadow
     .moveTo(start.x, start.y + 7)
     .lineTo(end.x, end.y + 7)
@@ -2250,8 +2370,8 @@ function drawRoadSegmentModule(passes: RoadPassSet, road: CityWorldRoadSegment) 
     .moveTo(start.x, start.y + 4)
     .lineTo(end.x, end.y + 4)
     .stroke({
-      color: shellRoad ? (apron ? 0x8d8c7d : 0x59615d) : draftRoad ? (apron ? 0x8b846d : 0x4d554d) : apron ? 0x7c806f : 0x46514c,
-      alpha: shellRoad ? (apron ? 0.48 : 0.62) : draftRoad ? (apron ? 0.44 : 0.56) : apron ? 0.34 : 0.48,
+      color: generatedPaint ? generatedPaint.sideFace : shellRoad ? (apron ? 0x8d8c7d : 0x59615d) : draftRoad ? (apron ? 0x8b846d : 0x4d554d) : apron ? 0x7c806f : 0x46514c,
+      alpha: generatedPaint ? generatedPaint.sideFaceAlpha : shellRoad ? (apron ? 0.48 : 0.62) : draftRoad ? (apron ? 0.44 : 0.56) : apron ? 0.34 : 0.48,
       width: baseWidth + 8,
       cap,
       join: "round",
@@ -2261,18 +2381,19 @@ function drawRoadSegmentModule(passes: RoadPassSet, road: CityWorldRoadSegment) 
     .moveTo(start.x, start.y)
     .lineTo(end.x, end.y)
     .stroke({
-      color: shellRoad ? (apron ? 0xc9c0a4 : 0xd4ceb2) : draftRoad ? (apron ? 0xc4b182 : 0xd8c28b) : apron ? 0xc1ae88 : 0xd6c996,
-      alpha: shellRoad ? (apron ? 0.58 : 0.76) : draftRoad ? (apron ? 0.58 : 0.82) : apron ? 0.48 : 0.78,
+      color: generatedPaint ? generatedPaint.curb : shellRoad ? (apron ? 0xc9c0a4 : 0xd4ceb2) : draftRoad ? (apron ? 0xc4b182 : 0xd8c28b) : apron ? 0xc1ae88 : 0xd6c996,
+      alpha: generatedPaint ? generatedPaint.curbAlpha : shellRoad ? (apron ? 0.58 : 0.76) : draftRoad ? (apron ? 0.58 : 0.82) : apron ? 0.48 : 0.78,
       width: baseWidth + 7,
       cap,
       join: "round",
     });
+  if (generatedPaint && generatedPaint.sidewalkWidth > 0) drawGeneratedRoadSidewalkStrips(passes.curb, start, end, baseWidth, generatedPaint);
   passes.bed
     .moveTo(start.x, start.y + 1)
     .lineTo(end.x, end.y + 1)
     .stroke({
-      color: shellRoad ? (apron ? 0x8f9185 : 0x646c67) : draftRoad ? (apron ? 0x8e8c7d : 0x555e58) : apron ? 0x858b7e : 0x58635f,
-      alpha: shellRoad ? (apron ? 0.76 : 0.88) : apron ? 0.82 : 0.98,
+      color: generatedPaint ? generatedPaint.bed : shellRoad ? (apron ? 0x8f9185 : 0x646c67) : draftRoad ? (apron ? 0x8e8c7d : 0x555e58) : apron ? 0x858b7e : 0x58635f,
+      alpha: generatedPaint ? generatedPaint.bedAlpha : shellRoad ? (apron ? 0.76 : 0.88) : apron ? 0.82 : 0.98,
       width: baseWidth + 1,
       cap,
       join: "round",
@@ -2281,8 +2402,8 @@ function drawRoadSegmentModule(passes: RoadPassSet, road: CityWorldRoadSegment) 
     .moveTo(start.x, start.y - 1)
     .lineTo(end.x, end.y - 1)
     .stroke({
-      color: shellRoad ? (apron ? 0xaaa58e : 0x7c8278) : draftRoad ? (apron ? 0xa09c87 : 0x697069) : apron ? 0x969b8b : 0x68736d,
-      alpha: shellRoad ? (apron ? 0.62 : 0.76) : draftRoad ? (apron ? 0.62 : 0.82) : apron ? 0.58 : 0.78,
+      color: generatedPaint ? generatedPaint.surface : shellRoad ? (apron ? 0xaaa58e : 0x7c8278) : draftRoad ? (apron ? 0xa09c87 : 0x697069) : apron ? 0x969b8b : 0x68736d,
+      alpha: generatedPaint ? generatedPaint.surfaceAlpha : shellRoad ? (apron ? 0.62 : 0.76) : draftRoad ? (apron ? 0.62 : 0.82) : apron ? 0.58 : 0.78,
       width: Math.max(4, baseWidth - 6),
       cap,
       join: "round",
@@ -2291,15 +2412,65 @@ function drawRoadSegmentModule(passes: RoadPassSet, road: CityWorldRoadSegment) 
   drawRoadModuleSeams(passes.seams, start, end, baseWidth, apron);
   if (draftRoad) drawDraftRoadMaterial(passes.material, start, end, baseWidth, contact);
   else if (shellRoad) drawShellRoadMaterial(passes.material, start, end, baseWidth, contact);
+  else if (generatedPaint) drawGeneratedRoadMaterial(passes.material, start, end, baseWidth, contact, generatedPaint);
   else drawPublicRoadMaterial(passes.material, start, end, baseWidth, contact);
 
   if (contact.laneMarking === "avenue_dash") {
-    drawDashedLine(passes.dashes, start, end, 9, 12, shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.45, shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
+    drawDashedLine(passes.dashes, start, end, 9, 12, generatedPaint ? generatedPaint.dash : shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.45, generatedPaint ? generatedPaint.dashAlpha : shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
   } else if (contact.laneMarking === "street_dash") {
-    drawDashedLine(passes.dashes, start, end, 6, 10, shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.1, shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
+    drawDashedLine(passes.dashes, start, end, 6, 10, generatedPaint ? generatedPaint.dash : shellRoad ? 0xded8bb : draftRoad ? 0xe9d59c : 0xf3e3a4, 1.1, generatedPaint ? generatedPaint.dashAlpha : shellRoad ? 0.24 : draftRoad ? 0.28 : 0.38);
   } else if (contact.laneMarking === "apron_dash") {
     drawDashedLine(passes.dashes, start, end, 4, 12, 0xe8dfbd, 0.9, 0.18);
   }
+}
+
+function drawGeneratedRoadSidewalkStrips(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, paint: GeneratedRoadPaintProfile) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (length <= 0) return;
+  const nx = -dy / length;
+  const ny = dx / length;
+  const offset = roadWidth * 0.55 + paint.sidewalkWidth * 0.42;
+  g
+    .moveTo(start.x + nx * offset, start.y + ny * offset - 0.5)
+    .lineTo(end.x + nx * offset, end.y + ny * offset - 0.5)
+    .moveTo(start.x - nx * offset, start.y - ny * offset + 1.5)
+    .lineTo(end.x - nx * offset, end.y - ny * offset + 1.5)
+    .stroke({ color: paint.sidewalk, alpha: paint.sidewalkAlpha, width: paint.sidewalkWidth, cap: "butt" });
+}
+
+function drawGeneratedRoadMaterial(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar, paint: GeneratedRoadPaintProfile) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (length <= 0 || contact.profile === "painted") return;
+
+  const apron = contact.profile === "apron";
+  const ux = dx / length;
+  const uy = dy / length;
+  const nx = -dy / length;
+  const ny = dx / length;
+  const edgeInset = roadWidth * (apron ? 0.42 : 0.46);
+  g
+    .moveTo(start.x + nx * edgeInset, start.y + ny * edgeInset - 1.2)
+    .lineTo(end.x + nx * edgeInset, end.y + ny * edgeInset - 1.2)
+    .moveTo(start.x - nx * edgeInset, start.y - ny * edgeInset + 2.2)
+    .lineTo(end.x - nx * edgeInset, end.y - ny * edgeInset + 2.2)
+    .stroke({ color: mixColor(paint.curb, 0xffffff, 0.18), alpha: apron ? 0.1 : 0.14, width: 1.1, cap: "butt" });
+
+  const step = apron ? 44 : 58;
+  let wearCount = 0;
+  for (let cursor = step * 0.75; cursor < length - step * 0.45; cursor += step) {
+    const side = Math.floor(cursor / step) % 2 === 0 ? -1 : 1;
+    const centerX = start.x + ux * cursor + nx * roadWidth * 0.13 * side;
+    const centerY = start.y + uy * cursor + ny * roadWidth * 0.13 * side;
+    g
+      .moveTo(centerX - ux * 6, centerY - uy * 6)
+      .lineTo(centerX + ux * 8, centerY + uy * 8);
+    wearCount += 1;
+  }
+  if (wearCount > 0) g.stroke({ color: shadeColor(paint.surface, -42), alpha: apron ? 0.04 : 0.055, width: 1, cap: "round" });
 }
 
 function drawShellRoadMaterial(g: Graphics, start: ProjectedPoint, end: ProjectedPoint, roadWidth: number, contact: CityWorldRoadContactGrammar) {
@@ -3224,7 +3395,14 @@ function drawCivicLotComposition(g: Graphics, point: ProjectedPoint, width: numb
     .stroke({ color: 0x7f6d4e, alpha: 0.18, width: 1.2, cap: "round", join: "round" });
 }
 
-function drawBuilding(layers: LayerMap, layer: Container, building: CityWorldBuilding, atlas: CityWorldAtlasResolver, materialTextureEnabled: boolean) {
+function drawBuilding(
+  layers: LayerMap,
+  layer: Container,
+  building: CityWorldBuilding,
+  atlas: CityWorldAtlasResolver,
+  materialTextureEnabled: boolean,
+  generatedSignage: GeneratedSignageState,
+) {
   // The base scene is focus-agnostic: hover/selection emphasis draws in the
   // focusLayer overlay so focus changes never rebuild these Graphics.
   const geometry = createBuildingGeometry(building, atlas);
@@ -3243,6 +3421,7 @@ function drawBuilding(layers: LayerMap, layer: Container, building: CityWorldBui
 
   if (geometry.asset.mode === "sprite") {
     drawSpriteBuilding(layer, geometry, building);
+    drawGeneratedStorefrontSignage(layer, geometry, building, generatedSignage);
     return;
   }
 
@@ -3251,6 +3430,60 @@ function drawBuilding(layers: LayerMap, layer: Container, building: CityWorldBui
   // "authorship" overlay stack (15 functions of translucent screen-space
   // decals) is retired — misregistered decals were the ghost-facade defect.
   drawBuildingShell(layer, geometry, building, materialTextureEnabled);
+  drawGeneratedStorefrontSignage(layer, geometry, building, generatedSignage);
+}
+
+function drawGeneratedStorefrontSignage(layer: Container, geometry: BuildingGeometry, building: CityWorldBuilding, state: GeneratedSignageState) {
+  if (!isGeneratedStorefrontSignCandidate(building) || state.count >= state.max) return;
+  const { top, footprintWidth, footprintDepth, height, roofColor, accentColor, highlightColor, trimColor } = geometry;
+  const variant = objectVariant(building.id, 613);
+  const signWidth = Math.max(22, Math.min(footprintWidth * (building.kind === "gym" ? 0.62 : 0.72), 68));
+  const signHeight = building.kind === "gym" ? 9 : 8;
+  const x = top.x + ((variant % 3) - 1) * footprintWidth * 0.06;
+  const y = top.y + footprintDepth * 0.5 + Math.min(height * 0.34, building.kind === "gym" ? 15 : 12);
+  const boardColor = variant % 3 === 0 ? accentColor : variant % 3 === 1 ? shadeColor(roofColor, 18) : mixColor(accentColor, highlightColor, 0.35);
+  const sign = new Graphics()
+    .roundRect(x - signWidth / 2, y, signWidth, signHeight, 1.5)
+    .fill({ color: boardColor, alpha: 0.94 })
+    .stroke({ color: shadeColor(trimColor, -32), alpha: 0.58, width: 1 });
+
+  drawGeneratedSignGlyphBlocks(sign, x - signWidth * 0.4, y + 1.7, signWidth * 0.8, signHeight - 3.2, variant, highlightColor);
+  layer.addChild(sign);
+  state.count += 1;
+}
+
+function isGeneratedStorefrontSignCandidate(building: CityWorldBuilding): boolean {
+  if (!building.id.startsWith("gen-building-") && !building.id.startsWith("gen-landmark-")) return false;
+  if (building.visualGrammar?.buildingAttachment) return false;
+  return building.kind === "shop" || building.kind === "gym" || building.facadeStyle === "strip_store" || building.facadeStyle === "storefront";
+}
+
+function drawGeneratedSignGlyphBlocks(g: Graphics, left: number, top: number, width: number, height: number, variant: number, color: number) {
+  const glyphCount = variant % 2 === 0 ? 4 : 5;
+  const gap = Math.max(1.2, width * 0.025);
+  const cellWidth = (width - gap * (glyphCount - 1)) / glyphCount;
+  for (let glyph = 0; glyph < glyphCount; glyph += 1) {
+    drawAbstractBlockGlyph(g, left + glyph * (cellWidth + gap), top, cellWidth, height, (glyph + variant) % 6, color);
+  }
+}
+
+function drawAbstractBlockGlyph(g: Graphics, x: number, y: number, width: number, height: number, variant: number, color: number) {
+  const bar = Math.max(1.2, width * 0.22);
+  const alpha = 0.88;
+  if (variant === 0) {
+    g.rect(x, y, bar, height).rect(x, y, width, bar).rect(x, y + height - bar, width * 0.78, bar);
+  } else if (variant === 1) {
+    g.rect(x, y, width, bar).rect(x + width - bar, y, bar, height).rect(x, y + height * 0.45, width, bar);
+  } else if (variant === 2) {
+    g.rect(x, y, bar, height).rect(x + width - bar, y, bar, height).rect(x, y + height * 0.42, width, bar);
+  } else if (variant === 3) {
+    g.rect(x, y, width, bar).rect(x + width * 0.38, y, bar, height).rect(x, y + height - bar, width, bar);
+  } else if (variant === 4) {
+    g.rect(x, y, bar, height).rect(x, y, width, bar).rect(x + width - bar, y + height * 0.36, bar, height * 0.64);
+  } else {
+    g.rect(x, y, width, bar).rect(x, y + height * 0.42, width, bar).rect(x, y + height - bar, width, bar);
+  }
+  g.fill({ color, alpha });
 }
 
 function createBuildingGeometry(building: CityWorldBuilding, atlas: CityWorldAtlasResolver): BuildingGeometry {
@@ -6468,6 +6701,42 @@ function drawDraftSoCalFacadeMaterial(layer: Container, geometry: BuildingGeomet
   layer.addChild(roofPanels, stuccoFacet, baseCourse);
 }
 
+function generatedTreeSpecies(prop: CityWorldProp): GeneratedTreeSpecies {
+  if (!prop.id.startsWith("gen-")) return "round_canopy";
+  if (prop.variant >= 40) return "palm";
+  if (prop.variant >= 20) return "conifer";
+  return "round_canopy";
+}
+
+function drawRoundCanopyTree(g: Graphics, point: ProjectedPoint, foliage: number, trunk: number, tall: boolean, variant: number) {
+  const trunkHeight = tall ? 13 : 10;
+  voxelBox(g, { x: point.x, y: point.y - 2 }, 5, 3, trunkHeight, trunk);
+  voxelBox(g, { x: point.x, y: point.y - trunkHeight }, 19, 11, 9, shadeColor(foliage, -8));
+  voxelBox(g, { x: point.x, y: point.y - trunkHeight - 8 }, 14, 8, 7, foliage);
+  if (variant % 2 === 0) {
+    voxelBox(g, { x: point.x, y: point.y - trunkHeight - 14 }, 9, 5, 5, shadeColor(foliage, 14));
+  }
+}
+
+function drawConiferTree(g: Graphics, point: ProjectedPoint, foliage: number, trunk: number, tall: boolean) {
+  const trunkHeight = tall ? 14 : 11;
+  voxelBox(g, { x: point.x, y: point.y - 2 }, 4, 3, trunkHeight, shadeColor(trunk, -8));
+  voxelBox(g, { x: point.x, y: point.y - trunkHeight + 4 }, tall ? 19 : 17, tall ? 11 : 10, 8, shadeColor(foliage, -18));
+  voxelBox(g, { x: point.x, y: point.y - trunkHeight - 3 }, tall ? 15 : 13, tall ? 9 : 8, 7, shadeColor(foliage, -6));
+  voxelBox(g, { x: point.x, y: point.y - trunkHeight - 9 }, tall ? 10 : 9, 6, 6, sunlitColor(foliage, "top"));
+}
+
+function drawPalmTree(g: Graphics, point: ProjectedPoint, foliage: number, trunk: number, tall: boolean) {
+  const trunkHeight = tall ? 21 : 17;
+  voxelBox(g, { x: point.x - 1, y: point.y - 2 }, 4, 3, trunkHeight * 0.54, shadeColor(trunk, 8));
+  voxelBox(g, { x: point.x + 1, y: point.y - trunkHeight * 0.5 }, 4, 3, trunkHeight * 0.5, shadeColor(trunk, 18));
+  const crownY = point.y - trunkHeight;
+  voxelBox(g, { x: point.x - 8, y: crownY + 2 }, 15, 5, 5, shadeColor(foliage, -8));
+  voxelBox(g, { x: point.x + 8, y: crownY + 3 }, 15, 5, 5, shadeColor(foliage, -4));
+  voxelBox(g, { x: point.x, y: crownY - 2 }, 13, 9, 7, foliage);
+  voxelBox(g, { x: point.x, y: crownY - 7 }, 8, 5, 5, shadeColor(foliage, 16));
+}
+
 function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarget[], atlas: CityWorldAtlasResolver, calm = 1) {
   const point = project(prop.position);
   const asset = atlas.resolveAsset(prop.spriteKey, prop.paletteKey, "prop");
@@ -6487,12 +6756,10 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
       .fill({ color: CAST_SHADOW_COLOR, alpha: 0.26 });
     if (prop.kind === "tree") {
       const tall = prop.variant % 3 === 0;
-      voxelBox(tree, { x: point.x, y: point.y - 2 }, 5, 3, tall ? 13 : 10, shade);
-      voxelBox(tree, { x: point.x, y: point.y - (tall ? 13 : 10) }, 19, 11, 9, shadeColor(foliage, -8));
-      voxelBox(tree, { x: point.x, y: point.y - (tall ? 21 : 18) }, 14, 8, 7, foliage);
-      if (prop.variant % 2 === 0) {
-        voxelBox(tree, { x: point.x, y: point.y - (tall ? 27 : 24) }, 9, 5, 5, shadeColor(foliage, 14));
-      }
+      const species = generatedTreeSpecies(prop);
+      if (species === "conifer") drawConiferTree(tree, point, foliage, shade, tall);
+      else if (species === "palm") drawPalmTree(tree, point, foliage, shade, tall);
+      else drawRoundCanopyTree(tree, point, foliage, shade, tall, prop.variant);
     } else {
       voxelBox(tree, { x: point.x, y: point.y - 1 }, 13, 8, 6, shadeColor(foliage, -6));
       voxelBox(tree, { x: point.x, y: point.y - 6.5 }, 8, 5, 4, shadeColor(foliage, 10));

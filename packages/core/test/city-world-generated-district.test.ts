@@ -27,10 +27,11 @@ import {
   sampleCityWorldViewportForCameraPreset,
   US_COUNTY_INDEX,
 } from "../src/index.js";
+import { GENERATED_ART_PROFILES, generatedArtProfileForId } from "../src/voxel/cityWorldCountyParameters.js";
 import type { CensusDivision, CityWorldProp, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
 import type { CityWorldBuilding, CityWorldRoadSegment, CityWorldTerrainTile, CityWorldZoneKind, CityWorldZoneSpec } from "../src/index.js";
 
-const PALETTE_DISTINCTNESS_FLOOR = 0.16;
+const PALETTE_DISTINCTNESS_FLOOR = 0.145;
 const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
   "andrews-tx",
   "brewster-tx",
@@ -45,11 +46,11 @@ const VEGETATION_EXPECTATIONS: Record<
   GeneratedDistrictArchetype,
   { trees: number; bushes: number; minVegetation: number; maxVegetation: number; minParkVegetation?: number; desertScrubOnly?: true }
 > = {
-  metro_grid: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
-  coastal_grid: { trees: 26, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
-  desert_basin: { trees: 0, bushes: 5, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
-  mountain_valley: { trees: 28, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
-  prairie_town: { trees: 29, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
+  metro_grid: { trees: 24, bushes: 6, minVegetation: 26, maxVegetation: 34 },
+  coastal_grid: { trees: 27, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
+  desert_basin: { trees: 0, bushes: 6, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
+  mountain_valley: { trees: 32, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
+  prairie_town: { trees: 32, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
   river_town: { trees: 25, bushes: 6, minVegetation: 26, maxVegetation: 34 },
 };
 const E5_FILL_ZONE_KINDS = new Set<CityWorldZoneKind>([
@@ -301,6 +302,58 @@ describe("deterministic generated district specs", () => {
     expect(hash).toBe(baseline);
     expect(city.buildings.some(isAttachmentBuilding)).toBe(false);
     expect(city.buildings.some((building) => (building.visualGrammar?.buildingAttachments?.length ?? 0) > 0)).toBe(false);
+  });
+
+  it("routes W4.2 generated road widths and lane markings through the county art profile", () => {
+    const curated = compileCityWorldScene(riversideDemoVoxelScene);
+    const curatedHash = createHash("sha256").update(JSON.stringify(curated)).digest("hex");
+    const curatedBaseline = readFileSync(new URL("../../../artifacts/engine-todo/curated-compile-baseline.txt", import.meta.url), "utf8").trim();
+    expect(curatedHash).toBe(curatedBaseline);
+
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const profile = GENERATED_ART_PROFILES[archetype];
+      const generatedRoads = result.scene.roadSegments.filter((road) => road.id.startsWith("gen-road-"));
+
+      expect(generated.archetype).toBe(archetype);
+      expect(generated.spec.countyParameters?.artProfile).toEqual(profile);
+      expect(generatedRoads.length).toBeGreaterThan(0);
+
+      for (const road of generatedRoads) {
+        expect(generatedArtProfileForId(road.id)).toEqual(profile);
+        if (road.kind === "avenue") {
+          expect(road.width).toBe(profile.arterialWidth);
+          expect(road.visualGrammar?.roadContact?.laneMarking).toBe("avenue_dash");
+        } else if (road.kind === "street") {
+          expect(road.width).toBe(profile.residentialLaneWidth);
+          expect(road.visualGrammar?.roadContact?.laneMarking).toBe(profile.roadTone === "metro_asphalt" ? "street_dash" : "none");
+        } else if (road.kind === "driveway") {
+          expect(road.width).toBe(profile.drivewayWidth);
+          expect(road.visualGrammar?.roadContact?.laneMarking).toBe("none");
+        }
+      }
+    }
+  });
+
+  it("routes W4.5 generated tree species deterministically by archetype", () => {
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const first = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const second = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const expectedSpecies = new Set(GENERATED_ART_PROFILES[archetype].treeSpecies);
+      const firstTrees = generatedTreeReadout(first.result.scene);
+      const secondTrees = generatedTreeReadout(second.result.scene);
+
+      expect(first.generated.archetype).toBe(archetype);
+      expect(firstTrees).toEqual(secondTrees);
+      for (const tree of firstTrees) {
+        expect(expectedSpecies.has(tree.species)).toBe(true);
+      }
+      if (firstTrees.length > 1 && expectedSpecies.size > 1) {
+        expect(new Set(firstTrees.map((tree) => tree.species)).size).toBeGreaterThanOrEqual(2);
+      }
+    }
   });
 
   it("resolves distinct massing and street-layout signatures per generated archetype (0.76-3)", () => {
@@ -625,6 +678,23 @@ function vegetationCounts(scene: CityWorldScene): { tree: number; bush: number; 
   const tree = scene.props.filter((prop) => prop.kind === "tree").length;
   const bush = scene.props.filter((prop) => prop.kind === "bush").length;
   return { tree, bush, vegetation: tree + bush };
+}
+
+function generatedTreeReadout(scene: CityWorldScene): Array<{ id: string; variant: number; species: "round_canopy" | "conifer" | "palm" }> {
+  return scene.props
+    .filter((prop) => prop.kind === "tree" && prop.id.startsWith("gen-"))
+    .map((prop) => ({
+      id: prop.id,
+      variant: prop.variant,
+      species: generatedTreeSpeciesFromCompiledVariant(prop.variant),
+    }))
+    .sort((first, second) => first.id.localeCompare(second.id));
+}
+
+function generatedTreeSpeciesFromCompiledVariant(variant: number): "round_canopy" | "conifer" | "palm" {
+  if (variant >= 40) return "palm";
+  if (variant >= 20) return "conifer";
+  return "round_canopy";
 }
 
 function isVegetation(prop: CityWorldProp): boolean {

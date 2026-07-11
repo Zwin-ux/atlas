@@ -27,6 +27,7 @@ import type { WorldPlaceCategory } from "../world/types.js";
 import type { VoxelPlace, VoxelScene } from "./types.js";
 import { validateVoxelWorld } from "./mapSession.js";
 import { assignCityWorldObjectKit } from "./cityWorldObjectKit.js";
+import { generatedArtProfileForId, generatedVegetationVariantForProp, type GeneratedRoadArtProfile } from "./cityWorldCountyParameters.js";
 
 const CITY_BOUNDS = { minX: 0, minY: 0, maxX: 42, maxY: 30 };
 const SHELL_BOUNDS = { minX: 0, minY: 0, maxX: 18, maxY: 14 };
@@ -1432,15 +1433,22 @@ function nearestPointOnCitySegment(point: CityWorldPoint, from: CityWorldPoint, 
 }
 
 function roadVisualGrammar(road: CityWorldRoadSegment, tone: CityWorldGroundTone): CityWorldVisualGrammar {
+  const generatedArtProfile = generatedArtProfileForId(road.id);
   const roadContact: CityWorldRoadContactGrammar = {
     profile: road.kind === "crosswalk" ? "painted" : road.kind === "driveway" ? "apron" : "embedded",
     tone,
-    laneMarking:
-      road.kind === "avenue" ? "avenue_dash" : road.kind === "street" ? "street_dash" : road.kind === "driveway" ? "apron_dash" : "none",
+    laneMarking: generatedArtProfile ? generatedRoadLaneMarking(road, generatedArtProfile) : road.kind === "avenue" ? "avenue_dash" : road.kind === "street" ? "street_dash" : road.kind === "driveway" ? "apron_dash" : "none",
   };
   if (road.kind === "crosswalk") return { roadProfile: "paver_crosswalk", contactProfile: "curb_shadow", roadContact };
   if (road.kind === "driveway") return { roadProfile: "driveway_cut", contactProfile: "curb_shadow", roadContact };
   return { roadProfile: "embedded_asphalt_slab", contactProfile: "curb_shadow", roadContact };
+}
+
+function generatedRoadLaneMarking(road: CityWorldRoadSegment, profile: GeneratedRoadArtProfile): CityWorldRoadContactGrammar["laneMarking"] {
+  if (road.kind === "avenue") return "avenue_dash";
+  if (road.kind === "street") return profile.roadTone === "metro_asphalt" ? "street_dash" : "none";
+  if (road.kind === "driveway") return "none";
+  return "none";
 }
 
 function lotContactGrammar(lot: CityWorldLot, tone: CityWorldGroundTone, curbCutEdge: CityWorldTileEdge | undefined): CityWorldLotContactGrammar {
@@ -1600,13 +1608,30 @@ function buildingNoLabelPriority(
 }
 
 export function withRoadMetadata(road: CityWorldRoadSegment, tone: CityWorldGroundTone = cityWorldGroundTone(road.id)): CityWorldRoadSegment {
+  const profiledRoad = withGeneratedRoadArtProfile(road);
+  return {
+    ...profiledRoad,
+    spriteKey: `road.${profiledRoad.kind}.${profiledRoad.width > 1.8 ? "wide" : "standard"}`,
+    paletteKey: profiledRoad.kind === "crosswalk" ? "road.crosswalk" : profiledRoad.kind === "driveway" ? "road.driveway" : "road.asphalt",
+    detailLevel: profiledRoad.kind === "crosswalk" ? "high" : profiledRoad.id.startsWith("gen-road-") && profiledRoad.kind === "street" ? "low" : "medium",
+    visualGrammar: roadVisualGrammar(profiledRoad, tone),
+  };
+}
+
+function withGeneratedRoadArtProfile(road: CityWorldRoadSegment): CityWorldRoadSegment {
+  const profile = generatedArtProfileForId(road.id);
+  if (!profile || road.kind === "crosswalk") return road;
   return {
     ...road,
-    spriteKey: `road.${road.kind}.${road.width > 1.8 ? "wide" : "standard"}`,
-    paletteKey: road.kind === "crosswalk" ? "road.crosswalk" : road.kind === "driveway" ? "road.driveway" : "road.asphalt",
-    detailLevel: road.kind === "crosswalk" ? "high" : "medium",
-    visualGrammar: roadVisualGrammar(road, tone),
+    width: generatedRoadWidth(road, profile),
   };
+}
+
+function generatedRoadWidth(road: CityWorldRoadSegment, profile: GeneratedRoadArtProfile): number {
+  if (road.kind === "avenue") return profile.arterialWidth;
+  if (road.kind === "street") return profile.residentialLaneWidth;
+  if (road.kind === "driveway") return profile.drivewayWidth;
+  return road.width;
 }
 
 export function withLotMetadata(lot: CityWorldLot, roads: CityWorldRoadSegment[] = [], tone: CityWorldGroundTone = cityWorldGroundTone(lot.id)): CityWorldLot {
@@ -1989,9 +2014,12 @@ function resolveBuildingPaletteKey(building: CityWorldBuilding, facadeStyle: Cit
 }
 
 export function withPropMetadata(prop: CityWorldProp): CityWorldProp {
+  const variant =
+    prop.kind === "tree" || prop.kind === "bush" ? generatedVegetationVariantForProp(prop.id, prop.kind, prop.variant) : prop.variant;
   return {
     ...prop,
-    spriteKey: `prop.${prop.kind}.${prop.variant}`,
+    variant,
+    spriteKey: `prop.${prop.kind}.${variant}`,
     paletteKey: `prop.${prop.kind}`,
     detailLevel: prop.kind === "cloud" ? "low" : prop.kind === "water_shimmer" ? "medium" : "high",
   };
