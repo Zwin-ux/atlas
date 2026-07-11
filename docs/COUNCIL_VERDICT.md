@@ -94,8 +94,18 @@ attachments, not more bands and floors.
   whole-scene scans (perf #1).
 - [ ] **W6.2 Incremental rebuilds**: stop full teardown on window/texture-gate
   crossings (perf #2).
-- [ ] **W6.3 Worker job durability** (claim/ack semantics) + **W6.4 shared
+- [x] **W6.3 Worker job durability** (claim/ack semantics) + **W6.4 shared
   rate limiting** + **W6.5 MCP handling instrumentation** (sre #1/#4/#5).
+
+## Program status (2026-07-11 close)
+All six waves worked; every item closed except the four deliberately
+deferred: **W6.1/W6.2** (real streaming windows + incremental rebuilds —
+deep renderer architecture, needs a dedicated session), **W3.3** compare
+intent, **W4.4** organic layouts. Follow-ups filed: coverageShellScene
+payload slice (~133KB → client compile), HostedClawdTray stale
+"This chat is temporary" copy (surface hidden in prod). Deploy staged:
+worktree Documents/atlas-deploy-worktree + ATLAS_SAVE_SURFACE=off, awaiting
+human `railway up`.
 
 ## Payload watch (RESOLVED 2026-07-11 by 0.76-T, `dce29f5`)
 Generated draft `_meta` collapsed 877KB → 6.8KB worst-case: the wire ships
