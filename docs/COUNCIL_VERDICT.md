@@ -1,6 +1,9 @@
 # Council Verdict — 11-seat critical review, synthesized
 
-Status: ACTIVE master work thread (2026-07-10). Sources: ten parallel Codex
+Status: ACTIVE master work thread (2026-07-10; progress 2026-07-11 — W1+W2
+complete and committed, W4.1+W5.3/5.4 shipped, W3+W4.2/4.3/4.5 in flight;
+production deploy staged: worktree at Documents/atlas-deploy-worktree linked
+to atlas-backend, ATLAS_SAVE_SURFACE=off set, awaiting human `railway up`). Sources: ten parallel Codex
 seats (`artifacts/council/*.md` — cold-user, directory-reviewer, art-director,
 perf-engineer, SRE, security, product-PM, a11y, HN-cynic, conversation-
 designer) + the reviewer's visual seat (screenshots vs the north-star art).
@@ -23,32 +26,32 @@ attachments, not more bands and floors.
   (fixed with this doc's commit).
 - [x] **W1.2 `/emulator` prod exposure**: 404 when NODE_ENV=production (same).
 - [x] **W1.3 Railway healthcheck** `/health` → `/ready` (deep readiness; same).
-- [ ] **W1.4 MCP endpoint hardening**: Origin/Host allowlist + DNS-rebinding
+- [x] **W1.4 MCP endpoint hardening**: Origin/Host allowlist + DNS-rebinding
   defense on `/mcp`; CORS `*` → explicit hosts. (security #1, directory #2)
-- [ ] **W1.5 Copy truth pass**: submission subtitle "your county" +
+- [x] **W1.5 Copy truth pass**: submission subtitle "your county" +
   session-only claims vs the hosted-clawd billing surfaces in prod. Per the
   user's standing V1 decision: HIDE the save/billing surface (the 7-verifier
   gated slice) and align `chatgpt-app-submission.json` copy with reality —
   "Explore Riverside as a voxel town; preview any US county as a generated
   draft." (directory #1, hn #1/#4, cold-user #1)
-- [ ] **W1.6 Rate limits**: key by client+county, cover expensive MCP tool
+- [x] **W1.6 Rate limits**: key by client+county, cover expensive MCP tool
   paths, stop trusting spoofable headers. (security #3, sre #4)
-- [ ] **W1.7 Hosted-clawd write routes**: hard router gate (404 at the router
+- [x] **W1.7 Hosted-clawd write routes**: hard router gate (404 at the router
   when persistence env is off), not late service denial. (security #4)
 
 ## Wave 2 — THE RETURN LOOP (the #1 product gap; every product seat)
-- [ ] **W2.1 Durable-in-conversation state**: pins/notes/scout already live in
+- [x] **W2.1 Durable-in-conversation state**: pins/notes/scout already live in
   widgetState (host-persisted per conversation) — make the TOOLS read it back:
   select_county/render answers should summarize "your 3 pins, 1 note, last
   scout" so returning to the chat RESUMES instead of resets. No new
   persistence, no gate conflicts — pure honesty about what already survives.
-- [ ] **W2.2 Stop teasing the save** (part of W1.5's hide) and reframe the
+- [x] **W2.2 Stop teasing the save** (part of W1.5's hide) and reframe the
   boundary copy from apology to feature: "lives in this chat."
-- [ ] **W2.3 Campaign continuity**: preview_campaign_engine reconstructs the
+- [x] **W2.3 Campaign continuity**: preview_campaign_engine reconstructs the
   scout instead of remembering it and hard-throws on id drift → carry
   scoutPreviewId through widgetState + degrade to graceful re-scout.
   (pm #3, cold-user #4)
-- [ ] **W2.4 Scout de-faking**: parameterize ScoutDropService by the ACTUAL
+- [x] **W2.4 Scout de-faking**: parameterize ScoutDropService by the ACTUAL
   scene (selected place, county label, archetype signals) instead of
   hardcoded Eastvale/mobile-detailing strings — template-based is fine;
   place-blind is not. (pm #2, hn #3)
@@ -65,7 +68,7 @@ attachments, not more bands and floors.
   through place/zone data so "where's the park?" works everywhere.
 
 ## Wave 4 — ART: THE HAND-BUILT LEVEL (art-director + visual seat)
-- [ ] **W4.1 Building attachments kit**: porches, awnings, chimneys, AC
+- [x] **W4.1 Building attachments kit**: porches, awnings, chimneys, AC
   units, dormers as compiler-authored building sub-geometry — the single
   biggest procedural-vs-hand-built tell.
 - [ ] **W4.2 Road tone rebalance**: narrower/lighter residential lanes,
@@ -81,9 +84,9 @@ attachments, not more bands and floors.
 - [ ] **W5.1 Keyboard/SR place navigator** bound to onSelectPlace + DOM map
   summary (canvas is currently invisible to AT — critical).
 - [ ] **W5.2 Real modal for the sheet** (focus trap, inert background).
-- [ ] **W5.3 Pixi reduced-motion**: disable inertia/pulse/ambient when
+- [x] **W5.3 Pixi reduced-motion**: disable inertia/pulse/ambient when
   prefers-reduced-motion.
-- [ ] **W5.4 AA contrast**: --ink-3 and yellow status dot fail on translucent
+- [x] **W5.4 AA contrast**: --ink-3 and yellow status dot fail on translucent
   panels — retune tokens.
 
 ## Wave 6 — PERF/SRE ARCHITECTURE (bigger; schedule deliberately)
