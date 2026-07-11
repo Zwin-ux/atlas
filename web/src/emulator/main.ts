@@ -15,7 +15,10 @@ import { buildWidgetSrcdoc, createMockHost, type EmulatorDisplayMode, type Emula
 import { createInjectedToolSource, createLiveMcpToolSource } from "./toolSource";
 
 const params = new URLSearchParams(window.location.search);
-const county = params.get("county") ?? "orange-ca";
+// The county slug is the only user-controlled string interpolated into
+// markup — constrain it to slug characters (council security finding:
+// reflected XSS via ?county= into innerHTML).
+const county = (params.get("county") ?? "orange-ca").replace(/[^a-z0-9-]/gi, "").slice(0, 64) || "orange-ca";
 const includeGeneratedDraft = params.get("draft") !== "0";
 const viewportKey: EmulatorViewportKey = params.get("viewport") === "mobile" ? "mobile" : "desktop";
 const theme: EmulatorTheme = params.get("theme") === "dark" ? "dark" : "light";

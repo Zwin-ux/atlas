@@ -2884,6 +2884,12 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (url.pathname === "/emulator" && req.method === "GET") {
+    // Dev tooling only — never expose the host harness (and its same-origin
+    // MCP access) on production (council security/SRE finding).
+    if (process.env.NODE_ENV === "production") {
+      textResponse(res, 404, "Not Found");
+      return;
+    }
     try {
       htmlResponse(res, 200, emulatorPageHtml());
     } catch (error) {
