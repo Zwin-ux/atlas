@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Atlas</title>
+    <meta
+      name="description"
+      content="Atlas opens Riverside County as a voxel diorama inside ChatGPT, with generated draft previews for indexed US counties."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f5f0;
+        --surface: #fffdf8;
+        --text: #191918;
+        --muted: #6d6a63;
+        --faint: #d8d2c8;
+        --hairline: rgba(25, 25, 24, 0.14);
+        --button: #191918;
+        --button-text: #fffdf8;
+        --max: 1180px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #11110f;
+          --surface: #181714;
+          --text: #f2efe7;
+          --muted: #aaa49a;
+          --faint: #38352f;
+          --hairline: rgba(242, 239, 231, 0.16);
+          --button: #f2efe7;
+          --button-text: #11110f;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        text-rendering: geometricPrecision;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+      }
+
+      a {
+        color: inherit;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.18em;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      .page {
+        min-height: 100vh;
+      }
+
+      .nav,
+      main > section,
+      .footer {
+        width: min(var(--max), calc(100% - 48px));
+        margin: 0 auto;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 26px 0;
+      }
+
+      .wordmark {
+        width: 128px;
+        height: auto;
+      }
+
+      .status {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .hero {
+        padding: 72px 0 68px;
+      }
+
+      .hero-copy {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) auto;
+        gap: 32px;
+        align-items: end;
+        margin-bottom: 44px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 760px;
+        font-size: clamp(48px, 8vw, 116px);
+        line-height: 0.92;
+        font-weight: 650;
+        letter-spacing: 0;
+      }
+
+      .value-prop {
+        max-width: 530px;
+        margin-top: 24px;
+        color: var(--muted);
+        font-size: clamp(19px, 2vw, 24px);
+        line-height: 1.35;
+      }
+
+      .chatgpt-button {
+        min-width: 170px;
+        min-height: 46px;
+        border: 1px solid var(--hairline);
+        border-radius: 999px;
+        background: var(--button);
+        color: var(--button-text);
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        opacity: 0.42;
+        cursor: not-allowed;
+      }
+
+      .shot-frame {
+        overflow: hidden;
+        border: 1px solid var(--hairline);
+        background: var(--surface);
+      }
+
+      .hero-shot {
+        border-radius: 20px;
+      }
+
+      .hero-shot img {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+      }
+
+      .shot-dark {
+        display: none;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .shot-light {
+          display: none;
+        }
+
+        .shot-dark {
+          display: block;
+        }
+      }
+
+      .section-rule {
+        border-top: 1px solid var(--hairline);
+        padding-top: 52px;
+      }
+
+      .section-heading {
+        max-width: 720px;
+        font-size: clamp(28px, 4vw, 56px);
+        line-height: 1;
+        font-weight: 620;
+        letter-spacing: 0;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        margin-top: 34px;
+        background: var(--hairline);
+        border: 1px solid var(--hairline);
+      }
+
+      .step {
+        min-height: 210px;
+        padding: 28px;
+        background: var(--bg);
+      }
+
+      .step-number {
+        color: var(--muted);
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .step h3 {
+        margin-top: 48px;
+        font-size: 24px;
+        line-height: 1.12;
+        font-weight: 620;
+      }
+
+      .step p {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.45;
+      }
+
+      .gallery {
+        padding: 86px 0;
+      }
+
+      .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 34px;
+      }
+
+      figure {
+        margin: 0;
+      }
+
+      .gallery-card {
+        border-radius: 12px;
+      }
+
+      .gallery-card img {
+        aspect-ratio: 4 / 3;
+        width: 100%;
+        object-fit: cover;
+      }
+
+      figcaption {
+        margin-top: 12px;
+        font-size: 15px;
+        line-height: 1.35;
+      }
+
+      figcaption span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+      }
+
+      .honesty {
+        padding-bottom: 84px;
+      }
+
+      .honesty-panel {
+        display: grid;
+        grid-template-columns: 0.8fr 1.2fr;
+        gap: 36px;
+        padding: 36px 0 0;
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .honesty-copy {
+        display: grid;
+        gap: 18px;
+        color: var(--muted);
+        font-size: clamp(18px, 2vw, 23px);
+        line-height: 1.4;
+      }
+
+      .honesty-copy strong {
+        color: var(--text);
+        font-weight: 620;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 28px 0 42px;
+        border-top: 1px solid var(--hairline);
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 18px;
+      }
+
+      @media (max-width: 760px) {
+        .nav,
+        main > section,
+        .footer {
+          width: min(100% - 28px, var(--max));
+        }
+
+        .nav {
+          padding: 18px 0;
+        }
+
+        .wordmark {
+          width: 108px;
+        }
+
+        .status {
+          font-size: 13px;
+        }
+
+        .hero {
+          padding: 54px 0 52px;
+        }
+
+        .hero-copy {
+          grid-template-columns: 1fr;
+          gap: 24px;
+          margin-bottom: 32px;
+        }
+
+        h1 {
+          max-width: 360px;
+          font-size: clamp(52px, 18vw, 76px);
+        }
+
+        .value-prop {
+          font-size: 19px;
+        }
+
+        .chatgpt-button {
+          width: 100%;
+        }
+
+        .hero-shot {
+          border-radius: 14px;
+        }
+
+        .hero-shot img {
+          aspect-ratio: 390 / 844;
+          object-position: top center;
+        }
+
+        .steps,
+        .gallery-grid,
+        .honesty-panel {
+          grid-template-columns: 1fr;
+        }
+
+        .step {
+          min-height: 174px;
+          padding: 24px;
+        }
+
+        .step h3 {
+          margin-top: 34px;
+        }
+
+        .gallery {
+          padding: 64px 0;
+        }
+
+        .honesty {
+          padding-bottom: 62px;
+        }
+
+        .honesty-panel {
+          gap: 22px;
+        }
+
+        .footer {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="nav" aria-label="Atlas">
+        <img class="wordmark" src="assets/atlas-wordmark.svg" width="640" height="160" alt="Atlas" />
+        <div class="status">ChatGPT app</div>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <div>
+              <h1 id="hero-title">Atlas</h1>
+              <p class="value-prop">
+                Explore Riverside County as a voxel diorama in ChatGPT, with generated draft previews for indexed US
+                counties.
+              </p>
+            </div>
+            <button class="chatgpt-button" type="button" disabled data-slot="chatgpt-deep-link">
+              Open in ChatGPT
+            </button>
+          </div>
+
+          <picture class="shot-frame hero-shot shot-light">
+            <source media="(max-width: 760px)" srcset="assets/riverside-ca-mobile-light.png" />
+            <img src="assets/riverside-ca-desktop-light.png" width="1440" height="900" alt="Atlas Riverside County voxel map" />
+          </picture>
+          <picture class="shot-frame hero-shot shot-dark">
+            <source media="(max-width: 760px)" srcset="assets/riverside-ca-mobile-dark.png" />
+            <img src="assets/riverside-ca-desktop-dark.png" width="1440" height="900" alt="Atlas Riverside County voxel map in dark mode" />
+          </picture>
+        </section>
+
+        <section class="section-rule" aria-labelledby="how-title">
+          <h2 id="how-title" class="section-heading">How it works</h2>
+          <div class="steps">
+            <article class="step">
+              <div class="step-number">01</div>
+              <h3>Ask for any US county.</h3>
+              <p>Atlas names what is playable, what is a shell, and what is still unsupported.</p>
+            </article>
+            <article class="step">
+              <div class="step-number">02</div>
+              <h3>Explore the voxel diorama.</h3>
+              <p>Riverside opens as the curated map. Indexed counties can show generated draft previews.</p>
+            </article>
+            <article class="step">
+              <div class="step-number">03</div>
+              <h3>Pins and notes stay in your chat.</h3>
+              <p>Mark places while you look around. Nothing becomes account memory in the V1 app surface.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="gallery section-rule" aria-labelledby="gallery-title">
+          <h2 id="gallery-title" class="section-heading">Regional draft views</h2>
+          <div class="gallery-grid">
+            <figure>
+              <picture class="shot-frame gallery-card">
+                <source media="(max-width: 760px)" srcset="assets/miami-dade-fl-mobile-light.png" />
+                <img src="assets/miami-dade-fl-desktop-light.png" width="1440" height="900" alt="Generated draft preview for Miami-Dade County, Florida" />
+              </picture>
+              <figcaption>Miami-Dade County, Florida <span>Urban coastal draft</span></figcaption>
+            </figure>
+            <figure>
+              <picture class="shot-frame gallery-card">
+                <source media="(max-width: 760px)" srcset="assets/summit-co-mobile-light.png" />
+                <img src="assets/summit-co-desktop-light.png" width="1440" height="900" alt="Generated draft preview for Summit County, Colorado" />
+              </picture>
+              <figcaption>Summit County, Colorado <span>Mountain draft</span></figcaption>
+            </figure>
+            <figure>
+              <picture class="shot-frame gallery-card">
+                <source media="(max-width: 760px)" srcset="assets/loving-tx-mobile-light.png" />
+                <img src="assets/loving-tx-desktop-light.png" width="1440" height="900" alt="Generated draft preview for Loving County, Texas" />
+              </picture>
+              <figcaption>Loving County, Texas <span>Frontier desert draft</span></figcaption>
+            </figure>
+            <figure>
+              <picture class="shot-frame gallery-card">
+                <source media="(max-width: 760px)" srcset="assets/apache-az-mobile-light.png" />
+                <img src="assets/apache-az-desktop-light.png" width="1440" height="900" alt="Generated draft preview for Apache County, Arizona" />
+              </picture>
+              <figcaption>Apache County, Arizona <span>Desert draft</span></figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="honesty section-rule" aria-labelledby="honesty-title">
+          <div class="honesty-panel">
+            <div>
+              <div class="eyebrow">Current boundary</div>
+              <h2 id="honesty-title" class="section-heading">Honest by default</h2>
+            </div>
+            <div class="honesty-copy">
+              <p>
+                <strong>Things live in this chat.</strong> Atlas does not save state, provider data, XP, accounts,
+                checkout, posts, messages, ad buys, scraped lists, or live campaign execution.
+              </p>
+              <p>
+                Generated draft previews are synthetic, session-only, non-playable, provider-free, and not local truth.
+                They are not real coverage.
+              </p>
+              <p>
+                Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or
+                coverage proof.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div>Atlas for ChatGPT</div>
+        <nav class="footer-links" aria-label="Legal">
+          <a href="https://atlas-backend-production-e6fc.up.railway.app/privacy">Privacy</a>
+          <a href="https://atlas-backend-production-e6fc.up.railway.app/terms">Terms</a>
+        </nav>
+      </footer>
+    </div>
+  </body>
+</html>
