@@ -321,7 +321,16 @@ try {
     upgrade.hosted?.status === "planned_beta" || upgrade.hosted?.status === "owner_gated_test",
     "Hosted Clawd status must be planned_beta or owner_gated_test.",
   );
-  if (upgrade.hosted?.status === "planned_beta") {
+  const saveSurfaceOff = upgrade.free?.label === "Atlas V1";
+  if (saveSurfaceOff) {
+    // ATLAS_SAVE_SURFACE=off (production V1): the honest boundary line is
+    // the no-checkout/no-money sentence in the V1 payload.
+    assert(
+      Array.isArray(upgrade.unavailableActions) &&
+        upgrade.unavailableActions.some((item) => /does not start checkout, charge money/i.test(item)),
+      "V1 upgrade output must clearly keep checkout and money closed.",
+    );
+  } else if (upgrade.hosted?.status === "planned_beta") {
     assert(
       Array.isArray(upgrade.unavailableActions) &&
         upgrade.unavailableActions.some((item) => item.includes("Checkout is not live")),

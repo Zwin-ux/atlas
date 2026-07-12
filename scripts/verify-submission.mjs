@@ -261,7 +261,14 @@ try {
     upgrade.hosted?.status === "planned_beta" || upgrade.hosted?.status === "owner_gated_test",
     "Hosted Clawd must remain planned_beta or owner_gated_test.",
   );
-  if (upgrade.hosted?.status === "owner_gated_test") {
+  if (upgrade.free?.label === "Atlas V1") {
+    // ATLAS_SAVE_SURFACE=off (production V1) — assert its honest boundary.
+    assert(
+      Array.isArray(upgrade.unavailableActions) &&
+        upgrade.unavailableActions.some((item) => /does not start checkout, charge money/i.test(item)),
+      "V1 upgrade output must clearly keep checkout and money closed.",
+    );
+  } else if (upgrade.hosted?.status === "owner_gated_test") {
     assert(
       Array.isArray(upgrade.unavailableActions) &&
         upgrade.unavailableActions.some((item) => /Public paid access is not live/i.test(item)),
