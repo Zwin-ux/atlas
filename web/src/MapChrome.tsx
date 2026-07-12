@@ -64,6 +64,15 @@ export function readRequestedDebugMode(): "engine" | undefined {
   return new URLSearchParams(window.location.search).get("atlasDebug") === "engine" ? "engine" : undefined;
 }
 
+// The Riverside/Orange/Unknown coverage-tier switcher is a QA affordance for
+// proving the honest-shell/unsupported-county contract (verify-county-
+// switcher.mjs) — real users never asked to see "Unknown · Unavailable" as
+// primary navigation. Opt-in only, same pattern as atlasDebug.
+export function readRequestedCountySwitcherVisible(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("atlasCountySwitcher") === "1";
+}
+
 function ZoomInIcon() {
   return (
     <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">

@@ -18,6 +18,7 @@ import { sendUserMessage, updateModelContext, useToolResult, useWidgetState } fr
 import { CountyCoverageView } from "./CountyCoverageView";
 import { CountySwitcher, type CountySwitchSlug } from "./CountySwitcher";
 import { CityWorldView } from "./CityWorldView";
+import { readRequestedCountySwitcherVisible } from "./MapChrome";
 import type { HostedClawdActionKind, HostedClawdContext, HostedClawdScreenState, WidgetState } from "./types";
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
@@ -701,7 +702,7 @@ export function App() {
 
   const countySwitcher = (
     <>
-      <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} />
+      {readRequestedCountySwitcherVisible() ? <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} /> : null}
       <button type="button" className="city-world-generate-district" data-qa="generate-district-button" onClick={openGeneratedPreview}>
         <strong>Generate a district</strong>
         <span>Preview only - stays in this chat</span>

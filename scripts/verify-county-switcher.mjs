@@ -204,7 +204,6 @@ async function readState(client) {
     client,
     `(() => {
       const activeButton = document.querySelector("[data-qa='county-switcher'] button.is-active");
-      const summary = document.querySelector("[data-qa='county-switcher-summary']");
       const lookupChip = document.querySelector("[data-qa-public-path-action='lookup']");
       const recovery = document.querySelector("[data-qa='coverage-recovery-action']");
       const coverageTray = document.querySelector("[data-qa='coverage-status-tray']");
@@ -213,7 +212,6 @@ async function readState(client) {
       return {
         activeCountySlug: activeButton?.getAttribute("data-qa-county-slug") || "",
         activeCountyLabel: activeButton?.querySelector("span")?.textContent?.trim() || "",
-        switcherSummary: summary?.textContent?.trim() || "",
         lookupChipText: lookupChip?.textContent?.replace(/\\s+/g, " ").trim() || "",
         lookupChipPresent: Boolean(lookupChip),
         alphaVisible: Boolean(document.querySelector("[data-qa='alpha-city-world']")),
@@ -248,8 +246,6 @@ function assertState(label, state, expected) {
   if (expected.activeCountyLabel && state.activeCountyLabel !== expected.activeCountyLabel) {
     failures.push(`active county label ${state.activeCountyLabel}`);
   }
-  const expectedSummary = "Riverside is fully explorable. Other counties preview as outlines. Nothing saves between chats.";
-  if (state.switcherSummary !== expectedSummary) failures.push(`coverage summary mismatch: ${state.switcherSummary}`);
   if (state.lookupChipPresent || /LOOKUP\s+not saved/i.test(state.lookupChipText)) {
     failures.push("lookup-not-saved chip must stay removed");
   }
@@ -278,6 +274,12 @@ function assertState(label, state, expected) {
   }
 }
 
+function withCountySwitcherDebugFlag(url) {
+  const parsed = new URL(url);
+  parsed.searchParams.set("atlasCountySwitcher", "1");
+  return parsed.toString();
+}
+
 async function runViewport({ previewUrl, viewport, screenshotDir, port }) {
   const target = await createTarget(port);
   const client = new CdpClient(target.webSocketDebuggerUrl);
@@ -294,7 +296,11 @@ async function runViewport({ previewUrl, viewport, screenshotDir, port }) {
       deviceScaleFactor: 1,
       mobile: viewport.width <= 480,
     });
-    await client.send("Page.navigate", { url: previewUrl });
+    // The switcher is a QA-only affordance (opt-in via ?atlasCountySwitcher=1)
+    // hidden from real users by default — this gate proves the underlying
+    // coverage-tier contract still works, not that the nav is user-visible.
+    const debugUrl = withCountySwitcherDebugFlag(previewUrl);
+    await client.send("Page.navigate", { url: debugUrl });
     await waitFor(client, `document.readyState === "complete"`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='alpha-city-world']"))`, 20_000);
     await waitFor(client, `Boolean(document.querySelector("[data-qa='county-switcher']"))`, 10_000);

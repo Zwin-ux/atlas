@@ -412,41 +412,6 @@ button {
   text-transform: none;
 }
 
-/* Coverage explainer — mobile collapses this card to this one-line chip. */
-.city-world-county-switcher .city-world-coverage-chip {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: var(--ink-3);
-  cursor: pointer;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.35;
-  overflow: hidden;
-  text-align: left;
-  white-space: normal;
-  backdrop-filter: none;
-}
-
-.city-world-county-switcher .city-world-coverage-chip:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .city-world-county-switcher .city-world-coverage-chip:hover {
-    color: var(--ink-2);
-    background: transparent;
-  }
-}
-
 /* TURN action — solid ink primary (recipe consolidated below) */
 .city-world-generate-district {
   display: grid;
@@ -559,6 +524,10 @@ button {
   gap: 8px;
 }
 
+/* Collapsed-by-default disclosure on every viewport (was always-open on
+   desktop — a second permanent floating panel stacked on top of the place
+   tray). Same toggle mechanic as mobile previously used alone; the list
+   drops down from the toggle instead of reflowing layout when expanded. */
 .city-world-place-navigator {
   top: max(228px, calc(env(safe-area-inset-top) + 228px));
   right: max(16px, env(safe-area-inset-right));
@@ -568,12 +537,42 @@ button {
 }
 
 .city-world-place-navigator-toggle {
-  display: none;
+  display: grid;
+  min-width: 76px;
+  min-height: 44px;
+  place-items: center;
+  justify-self: end;
+  padding: 0 12px;
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--r-control);
+  background: var(--city-panel);
+  color: var(--city-ink);
+  box-shadow: var(--elev-0);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+.city-world-place-navigator-toggle[aria-expanded="true"] {
+  border-color: transparent;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.city-world-place-navigator-toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .city-world-place-navigator-list {
-  display: grid;
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
   gap: 2px;
+  width: min(260px, calc(100vw - 32px));
   max-height: min(260px, calc(100dvh - 412px));
   min-height: 44px;
   overflow: auto;
@@ -585,6 +584,10 @@ button {
   box-shadow: var(--elev-0);
   backdrop-filter: blur(12px) saturate(1.1);
   scrollbar-width: thin;
+}
+
+.city-world-place-navigator.is-expanded .city-world-place-navigator-list {
+  display: grid;
 }
 
 .city-world-place-navigator-list:focus-visible {
@@ -1612,21 +1615,6 @@ button {
   .city-world-county-switcher {
     max-width: min(268px, calc(100vw - 78px));
   }
-
-  .city-world-county-switcher:not(.is-expanded) {
-    gap: 0;
-    padding: 6px 8px;
-  }
-
-  .city-world-county-switcher:not(.is-expanded) .city-world-county-switcher-options {
-    display: none;
-  }
-
-  /* Collapsed chip clamps to one line; desktop and expanded states wrap. */
-  .city-world-county-switcher:not(.is-expanded) .city-world-coverage-chip {
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1660,16 +1648,6 @@ button {
     min-width: 78px;
     min-height: 44px; /* 44px touch-target doctrine (was 32px) */
     padding: 4px 8px;
-  }
-
-  /* The coverage chip is a primary tap target on phones (expands the
-     switcher) — full 44px row, same quiet chip look. */
-  .city-world-county-switcher .city-world-coverage-chip {
-    min-width: 0;
-    min-height: 44px;
-    padding: 0;
-    display: flex;
-    align-items: center;
   }
 
   .city-world-generate-district {
@@ -1716,6 +1694,8 @@ button {
     gap: 8px;
   }
 
+  /* Mobile: toggle sits bottom-left above the sticker row; the list opens
+     UP from it. Visibility/toggle mechanics are the universal defaults. */
   .city-world-place-navigator {
     top: auto;
     right: auto;
@@ -1726,45 +1706,16 @@ button {
   }
 
   .city-world-place-navigator-toggle {
-    display: grid;
-    min-width: 76px;
-    min-height: 44px;
-    place-items: center;
-    padding: 0 12px;
-    border: var(--hairline) solid var(--border-subtle);
-    border-radius: var(--r-control);
-    background: var(--city-panel);
-    color: var(--city-ink);
-    box-shadow: var(--elev-0);
-    font: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    backdrop-filter: blur(12px) saturate(1.1);
-  }
-
-  .city-world-place-navigator-toggle[aria-expanded="true"] {
-    border-color: transparent;
-    background: var(--ink);
-    color: var(--on-ink);
-  }
-
-  .city-world-place-navigator-toggle:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 2px;
+    justify-self: start;
   }
 
   .city-world-place-navigator-list {
-    display: none;
-    position: absolute;
+    top: auto;
     left: 0;
+    right: auto;
     bottom: 52px;
     width: min(312px, calc(100vw - 24px));
     max-height: min(232px, calc(100dvh - 308px));
-  }
-
-  .city-world-place-navigator.is-expanded .city-world-place-navigator-list {
-    display: grid;
   }
 
   .city-world-stickers {
