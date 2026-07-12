@@ -67,3 +67,10 @@ calls Atlas without long deliberation.
 Riverside render → Miami draft (sea visible per 0.77-2) → "Where is the
 park?" camera move → pins/notes + resume → scout→campaign → dark mode →
 rate-limit behavior.
+
+## Session 3 (2026-07-12, driven by reviewer via cookie session, prod=3b6d28d)
+- Widget renders; P1 build live; cold call fast (no 31s deliberation observed).
+### Finding G8-6 (OPEN): model narrates internal tier codes
+Model text said 'L1 County Shell coverage' - structuredContent coverageTier enum leaks into prose. Fix: tool description instructs plain-words coverage descriptions; never recite internal codes.
+### Finding G8-7 (OPEN): sandbox CSP blocks data: SVG fetch()
+connect-src violation x3 (strip store, sticker pin, road corner assets) - texture loads via fetch(dataUri) fail in real ChatGPT only; emulator has no such CSP. Fix: load data-URI textures via Image element (img-src allows data:), never fetch(). Emulator fidelity follow-up: mirror the sandbox connect-src CSP.
