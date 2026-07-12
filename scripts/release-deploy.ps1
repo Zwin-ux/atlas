@@ -39,9 +39,11 @@ Write-Host "`n[1/4] Deploying atlas-backend..." -ForegroundColor Cyan
 railway up --service atlas-backend --detach
 if (-not (Wait-Deployment "atlas-backend")) { exit 1 }
 
-Write-Host "`n[2/4] Deploying atlas-scene-packet-worker (same commit - W6.3 queue keys must match)..." -ForegroundColor Cyan
-railway up --service atlas-scene-packet-worker --detach
-if (-not (Wait-Deployment "atlas-scene-packet-worker")) { exit 1 }
+Write-Host "`n[2/4] Worker deploy SKIPPED - its inherited HTTP healthcheck crash-loops every deploy and the restart storm exhausts Redis connections (took down two release nights). Re-enable by removing this guard AFTER clearing the worker's Healthcheck Path in the Railway dashboard." -ForegroundColor Yellow
+if ($env:ATLAS_DEPLOY_WORKER -eq "1") {
+  railway up --service atlas-scene-packet-worker --detach
+  if (-not (Wait-Deployment "atlas-scene-packet-worker")) { exit 1 }
+}
 
 Write-Host "`n[3/4] Release gate (cold-start retries built in)..." -ForegroundColor Cyan
 Set-Location $repo
