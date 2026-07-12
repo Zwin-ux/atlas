@@ -33,8 +33,8 @@ after `docs/NORTH_STARS.md` (NS-0 + Spend rules govern every packet).
 
 ## P0 — Pre-alpha close-out (now)
 
-- [ ] P0.1 Deploy the UI de-slop build (switcher QA-gated, tray minimal,
-      Places disclosure collapsed everywhere) after gates green. HUMAN: deploy.
+- [x] P0.1 Deploy the UI de-slop build — LIVE `f6a28d9` 2026-07-12,
+      release gate 9/9 + public sanity 3/3 in one clean pass.
 - [ ] P0.2 G8 round 3: fullscreen expand, exploration feel, copy audit,
       cold-call timing, dark mode — findings to G8 doc. HUMAN: phone pass.
 - [ ] P0.3 Emulator fidelity packet: serve widget assets from a second
