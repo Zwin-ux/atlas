@@ -136,6 +136,7 @@ export {
 export {
   CITY_WORLD_TILE_BASIS,
   compileCityWorldScene,
+  compileCountyGeoScene,
   compileCountyShellCityWorldScene,
   compileDistrictPlaceAnchorDraftCityWorldScene,
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,

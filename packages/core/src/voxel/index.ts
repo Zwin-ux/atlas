@@ -9,6 +9,7 @@ export * from "./cityWorldSceneWindow.js";
 export * from "./cityWorldDiagnostics.js";
 export * from "./cityWorldPaletteRegistry.js";
 export * from "./cityWorldAtlas.js";
+export { compileCountyGeoScene, type CountyGeoPack, type CountyGeoPackLod0, type CompileCountyGeoSceneOptions } from "./cityWorldCountyGeoScene.js";
 export { compileCityWorldScene, compileCountyShellCityWorldScene, compileDistrictPlaceAnchorDraftCityWorldScene, withBuildingMetadata, withCityWorldTerrainContactMetadata, withLotMetadata, withRoadMetadata, withPropMetadata } from "./cityWorldCompiler.js";
 export type { CountyShellCityWorldInput, DistrictPlaceAnchorDraftCityWorldInput } from "./cityWorldCompiler.js";
 export {
