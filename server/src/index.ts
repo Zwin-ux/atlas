@@ -1657,6 +1657,13 @@ function sendWidgetAssetResponse(res: ServerResponse, assetPath: string): void {
   res.writeHead(200, {
     "content-type": contentTypeForWidgetAsset(absolutePath),
     "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache",
+    // Real ChatGPT loads the widget from a per-app sandbox origin
+    // (<our-domain-dashed>.web-sandbox.oaiusercontent.com) and fetches these
+    // assets CROSS-ORIGIN — without ACAO the widget is a blank screen (found
+    // in the first G8 real-host session). Static published bundles carry no
+    // user data, so wildcard is correct here; /mcp CORS stays allowlisted.
+    "access-control-allow-origin": "*",
+    "cross-origin-resource-policy": "cross-origin",
   });
   res.end(body);
 }

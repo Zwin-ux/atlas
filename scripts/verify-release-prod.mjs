@@ -51,6 +51,17 @@ await gate("ready_deep", async () => {
   throw new Error(`/ready not green after 4 attempts (${last})`);
 });
 
+await gate("widget_assets_cross_origin", async () => {
+  // Real ChatGPT sandboxed iframes fetch widget assets cross-origin — the
+  // first G8 session found a blank widget because ACAO was missing.
+  const response = await fetch(`${baseUrl}/widget/component.js`, {
+    headers: { Origin: "https://example.web-sandbox.oaiusercontent.com" },
+  });
+  assert(response.status === 200, `component.js expected 200, got ${response.status}`);
+  const acao = response.headers.get("access-control-allow-origin");
+  assert(acao === "*", `component.js ACAO expected *, got ${acao}`);
+});
+
 await gate("emulator_404_in_prod", async () => {
   const response = await fetch(`${baseUrl}/emulator?county=orange-ca`);
   assert(response.status === 404, `/emulator expected 404 in production, got ${response.status}`);
