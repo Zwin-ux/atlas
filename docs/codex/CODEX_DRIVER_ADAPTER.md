@@ -15,12 +15,12 @@ everything a Codex driver needs so nothing depends on Opus being in the room.
 
 ## Boot sequence (read in this order, every session)
 
-> **UPDATED 2026-07-11 (post-council, post-launch).** Production is LIVE
-> (release gate green). The 0.76 program below is COMPLETE; the queue is now
-> whatever `docs/NORTH_STARS.md` "Standing priority order" says, filtered
-> through its **Spend rules** — that section is the token-allocation law for
-> ANY driver. Also read `docs/COUNCIL_VERDICT.md` (closed program + deferred
-> items) and `docs/0.77_REGIONAL_TRUTH.md`.
+> **UPDATED 2026-07-12.** Production is LIVE and the pre-alpha is owner-
+> approved. **THE QUEUE IS `docs/PRODUCTION_ROADMAP.md`** (P0→P5, owner
+> decisions binding: interactive-everywhere, persistence-for-launch,
+> submission = G8 green + owner screenshots). Spend rules in
+> `docs/NORTH_STARS.md` govern every packet. Human gates: visuals/band
+> changes, production deploys, billing, submission — STOP and report there.
 
 1. `AGENTS.md` — the standing product law, named-slice rule, architecture law,
    anti-scope. Binding. If a packet conflicts with it, STOP and report.
