@@ -99,21 +99,30 @@ function layoutContext(
 }
 
 function metroGridZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
-  const civicRect = { minX: 18 + context.xShift, minY: 10 + context.yShift, maxX: 24 + context.xShift, maxY: 15 + context.yShift };
+  const waterBonus = bonusZone.kind === "water";
+  const civicRect = waterBonus
+    ? { minX: 22 + context.xShift, minY: 10 + context.yShift, maxX: 28 + context.xShift, maxY: 15 + context.yShift }
+    : { minX: 18 + context.xShift, minY: 10 + context.yShift, maxX: 24 + context.xShift, maxY: 15 + context.yShift };
   return [
     zone("metro-block-paving-fill", "plaza_paving", { minX: 0, minY: 0, maxX: 44, maxY: 32 }, context, undefined, "Metro block paving"),
+    ...(waterBonus
+      ? [
+          zone("metro-coastal-shore-bank-fill", "shore_bank", { minX: 32, minY: 0, maxX: 34, maxY: 32 }, context, undefined, "Metro shore bank"),
+          zone("metro-coastal-green-buffer", "green_common", { minX: 28, minY: 15, maxX: 33, maxY: 24 }, context, undefined, "Metro shore green"),
+        ]
+      : []),
     zone("metro-civic-forecourt-fill", "civic_forecourt", { minX: 15, minY: 9, maxX: 25, maxY: 16 }, context, undefined, "Civic forecourt"),
-    zone("metro-east-plaza-fill", "plaza_paving", { minX: 36, minY: 10, maxX: 41, maxY: 24 }, context, undefined, "East plaza paving"),
-    zone("metro-pocket-paving-fill", "plaza_paving", { minX: 5, minY: 10, maxX: 13, maxY: 15 }, context, undefined, "Pocket paving"),
-    zone("metro-west-block", "residential", { minX: 3, minY: 4, maxX: 12, maxY: 8 }, context, 0.92, "West row blocks"),
-    zone("metro-south-rowhomes", "residential", { minX: 3, minY: 18, maxX: 14, maxY: 28 }, context, 0.94, "South rowhomes"),
+    zone("metro-east-plaza-fill", "plaza_paving", waterBonus ? { minX: 29, minY: 10, maxX: 33, maxY: 24 } : { minX: 36, minY: 10, maxX: 41, maxY: 24 }, context, undefined, "East plaza paving"),
+    zone("metro-pocket-paving-fill", "plaza_paving", waterBonus ? { minX: 14, minY: 10, maxX: 21, maxY: 15 } : { minX: 5, minY: 10, maxX: 13, maxY: 15 }, context, undefined, "Pocket paving"),
+    zone("metro-west-block", "residential", waterBonus ? { minX: 14, minY: 4, maxX: 24, maxY: 8 } : { minX: 3, minY: 4, maxX: 12, maxY: 8 }, context, 0.92, "West row blocks"),
+    zone("metro-south-rowhomes", "residential", waterBonus ? { minX: 15, minY: 18, maxX: 27, maxY: 28 } : { minX: 3, minY: 18, maxX: 14, maxY: 28 }, context, 0.94, "South rowhomes"),
     zone("metro-civic-core", "civic", civicRect, context, undefined, "Civic tower core", context.civicElevationBoost + 0.05),
-    zone("metro-main-street", "commercial", { minX: 15, minY: 5, maxX: 25, maxY: 8 }, context, 0.92, "Tight main street"),
-    zone("metro-downtown-strip", "commercial", { minX: 27, minY: 10, maxX: 34, maxY: 14 }, context, 0.9, "Downtown strip"),
-    zone("metro-apartment-core", "apartments", { minX: 15, minY: 17, maxX: 25, maxY: 24 }, context, 0.91, "Apartment core"),
-    zone("metro-apartment-east", "apartments", { minX: 27, minY: 17, maxX: 34, maxY: 24 }, context, 0.88, "Apartment edge"),
-    zone("metro-service-yard", "gym", { minX: 16, minY: 25, maxX: 23, maxY: 29 }, context, undefined, "Service yard"),
-    zone("metro-pocket-plaza", "plaza", { minX: 6, minY: 10, maxX: 12, maxY: 15 }, context, undefined, "Pocket plaza"),
+    zone("metro-main-street", "commercial", waterBonus ? { minX: 22, minY: 5, maxX: 32, maxY: 8 } : { minX: 15, minY: 5, maxX: 25, maxY: 8 }, context, 0.92, "Tight main street"),
+    zone("metro-downtown-strip", "commercial", waterBonus ? { minX: 26, minY: 10, maxX: 33, maxY: 14 } : { minX: 27, minY: 10, maxX: 34, maxY: 14 }, context, 0.9, "Downtown strip"),
+    zone("metro-apartment-core", "apartments", waterBonus ? { minX: 21, minY: 17, maxX: 29, maxY: 24 } : { minX: 15, minY: 17, maxX: 25, maxY: 24 }, context, 0.91, "Apartment core"),
+    zone("metro-apartment-east", "apartments", waterBonus ? { minX: 29, minY: 17, maxX: 33, maxY: 24 } : { minX: 27, minY: 17, maxX: 34, maxY: 24 }, context, 0.9, "Apartment edge"),
+    zone("metro-service-yard", "gym", waterBonus ? { minX: 25, minY: 26, maxX: 32, maxY: 30 } : { minX: 16, minY: 25, maxX: 23, maxY: 29 }, context, undefined, "Service yard"),
+    zone("metro-pocket-plaza", "plaza", waterBonus ? { minX: 15, minY: 10, maxX: 21, maxY: 15 } : { minX: 6, minY: 10, maxX: 12, maxY: 15 }, context, undefined, "Pocket plaza"),
     bonusZone,
   ];
 }
@@ -137,19 +146,19 @@ function desertBasinZones(context: LayoutContext, bonusZone: CityWorldZoneSpec):
 
 function coastalGridZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): CityWorldZoneSpec[] {
   return [
-    zone("coastal-land-common-fill", "green_common", { minX: 0, minY: 0, maxX: 35, maxY: 32 }, context, undefined, "Coastal commons"),
-    zone("coastal-shore-bank-fill", "shore_bank", { minX: 34, minY: 0, maxX: 36, maxY: 32 }, context, undefined, "Beach bank"),
-    zone("coastal-common-fill", "green_common", { minX: 4, minY: 15, maxX: 20, maxY: 20 }, context, undefined, "Shore commons"),
-    zone("coastal-north-common-fill", "green_common", { minX: 4, minY: 0, maxX: 20, maxY: 4 }, context, undefined, "Dune commons"),
-    zone("coastal-back-homes", "residential", { minX: 4, minY: 5, maxX: 18, maxY: 14 }, context, 0.74, "Back-shore homes"),
-    zone("coastal-stepback-homes", "residential", { minX: 5, minY: 19, maxX: 20, maxY: 29 }, context, 0.72, "Stepback homes"),
-    zone("coastal-civic", "civic", { minX: 21, minY: 8, maxX: 28, maxY: 14 }, context, undefined, "Coastal civic", context.civicElevationBoost),
-    zone("coastal-waterfront-strip", "commercial", { minX: 27, minY: 18, maxX: 34, maxY: 27 }, context, 0.86, "Waterfront strip"),
-    zone("coastal-main-street", "commercial", { minX: 22, minY: 5, maxX: 34, maxY: 8 }, context, 0.76, "Shore main street"),
-    zone("coastal-apartments", "apartments", { minX: 22, minY: 16, maxX: 27, maxY: 26 }, context, 0.72, "Shore apartments"),
-    zone("coastal-service", "gym", { minX: 15, minY: 16, maxX: 21, maxY: 21 }, context, undefined, "Marina service"),
-    zone("coastal-green", "park", { minX: 8, minY: 15, maxX: 15, maxY: 19 }, context, undefined, "Shore green"),
-    normalizeBonusZone(bonusZone, { minX: 36, minY: 0, maxX: 44, maxY: 32 }, context.waterAffinity >= 0.75 ? "Coastal edge" : "Water edge"),
+    zone("coastal-land-common-fill", "green_common", { minX: 0, minY: 0, maxX: 33, maxY: 32 }, context, undefined, "Coastal commons"),
+    zone("coastal-shore-bank-fill", "shore_bank", { minX: 32, minY: 0, maxX: 34, maxY: 32 }, context, undefined, "Beach bank"),
+    zone("coastal-common-fill", "green_common", { minX: 21, minY: 15, maxX: 31, maxY: 21 }, context, undefined, "Shore commons"),
+    zone("coastal-north-common-fill", "green_common", { minX: 20, minY: 0, maxX: 32, maxY: 4 }, context, undefined, "Dune commons"),
+    zone("coastal-back-homes", "residential", { minX: 17, minY: 5, maxX: 31, maxY: 14 }, context, 0.78, "Back-shore homes"),
+    zone("coastal-stepback-homes", "residential", { minX: 18, minY: 19, maxX: 32, maxY: 29 }, context, 0.76, "Stepback homes"),
+    zone("coastal-civic", "civic", { minX: 23, minY: 8, maxX: 30, maxY: 14 }, context, undefined, "Coastal civic", context.civicElevationBoost),
+    zone("coastal-waterfront-strip", "commercial", { minX: 27, minY: 18, maxX: 33, maxY: 27 }, context, 0.9, "Waterfront strip"),
+    zone("coastal-main-street", "commercial", { minX: 21, minY: 5, maxX: 33, maxY: 8 }, context, 0.8, "Shore main street"),
+    zone("coastal-apartments", "apartments", { minX: 23, minY: 16, maxX: 31, maxY: 26 }, context, 0.76, "Shore apartments"),
+    zone("coastal-service", "gym", { minX: 16, minY: 16, maxX: 22, maxY: 21 }, context, undefined, "Marina service"),
+    zone("coastal-green", "park", { minX: 24, minY: 15, maxX: 31, maxY: 20 }, context, undefined, "Shore green"),
+    normalizeBonusZone(bonusZone, { minX: 34, minY: 0, maxX: 44, maxY: 32 }, context.waterAffinity >= 0.75 ? "Coastal edge" : "Water edge"),
   ];
 }
 
@@ -157,7 +166,7 @@ function mountainValleyZones(context: LayoutContext, bonusZone: CityWorldZoneSpe
   return [
     zone("mountain-valley-meadow-fill", "meadow", { minX: 0, minY: 0, maxX: 44, maxY: 32 }, context, undefined, "Valley meadow floor"),
     zone("mountain-upper-scree-fill", "scree", { minX: 0, minY: 0, maxX: 15, maxY: 4 }, context, undefined, "Upper scree"),
-    zone("mountain-ridge-scree-fill", "scree", { minX: 25, minY: 0, maxX: 44, maxY: 12 }, context, undefined, "Ridge scree"),
+    zone("mountain-ridge-scree-fill", "scree", { minX: 24, minY: 0, maxX: 44, maxY: 16 }, context, undefined, "Ridge scree"),
     zone("mountain-meadow-fill", "meadow", { minX: 25, minY: 19, maxX: 42, maxY: 22 }, context, undefined, "Valley meadow"),
     zone("mountain-lower-meadow-fill", "meadow", { minX: 4, minY: 24, maxX: 14, maxY: 29 }, context, undefined, "Lower meadow"),
     zone("mountain-upper-homes", "residential", { minX: 4, minY: 5, maxX: 14, maxY: 12 }, context, 0.62, "Upper terrace homes"),
@@ -228,6 +237,16 @@ function riverTownZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): C
 }
 
 function metroGridRoads(context: LayoutContext): CityWorldRoadSeed[] {
+  if (context.waterAffinity >= 0.75) {
+    return [
+      road("gen-road-metro-coastal-north", "avenue", 10, 9 + context.yShift, 33, 9 + context.yShift),
+      road("gen-road-metro-coastal-main", "avenue", 10, 16, 33, 16),
+      road("gen-road-metro-coastal-south", "street", 10, 25, 33, 25),
+      road("gen-road-metro-coastal-west", "street", 18 + context.xShift, 4, 18 + context.xShift, 29),
+      road("gen-road-metro-coastal-shore", "street", 33, 5, 33, 29),
+      road("gen-cross-metro-coastal-pier", "crosswalk", 31, 16, 36, 16),
+    ];
+  }
   return [
     road("gen-road-metro-north", "avenue", 3, 9 + context.yShift, 41, 9 + context.yShift),
     road("gen-road-metro-main", "avenue", 3, 16, 41, 16),
@@ -250,14 +269,14 @@ function desertBasinRoads(context: LayoutContext): CityWorldRoadSeed[] {
 }
 
 function coastalGridRoads(context: LayoutContext): CityWorldRoadSeed[] {
-  const shoreX = 35;
+  const shoreX = 33;
   return [
     road("gen-road-coastal-shoreline", "avenue", shoreX, 5, shoreX, 30),
     road("gen-road-coastal-north", "street", 4, 9 + context.yShift, shoreX, 9 + context.yShift),
     road("gen-road-coastal-mid", "avenue", 5, 16, shoreX, 16),
     road("gen-road-coastal-south", "street", 5, 25, shoreX, 25),
     road("gen-road-coastal-back", "street", 21 + context.xShift, 5, 21 + context.xShift, 29),
-    road("gen-cross-coastal-pier", "crosswalk", shoreX - 2, 25, shoreX + 2, 25),
+    road("gen-cross-coastal-pier", "crosswalk", shoreX - 2, 25, shoreX + 3, 25),
   ];
 }
 
@@ -351,8 +370,8 @@ function archetypeReliefValue(
   const corner = edgeX && edgeY;
 
   if (archetype === "mountain_valley") {
-    const ridgeBoost = (edgeX ? 0.09 : 0) + (edgeY ? 0.06 : 0) + (corner ? 0.04 : 0);
-    return clamp01((value - 0.26) * 1.36 + 0.2 + ridgeBoost);
+    const ridgeBoost = (edgeX ? 0.12 : 0) + (edgeY ? 0.09 : 0) + (corner ? 0.06 : 0);
+    return clamp01((value - 0.22) * 1.55 + 0.18 + ridgeBoost);
   }
 
   if (archetype === "desert_basin") {
@@ -496,7 +515,7 @@ function bonusZoneFor(
     return {
       id: "water-edge",
       kind: "water",
-      rect: { minX: 37, minY: 20, maxX: 43, maxY: 31 },
+      rect: { minX: 34, minY: 0, maxX: 44, maxY: 32 },
       label: parameters.archetype === "river_town" ? "River edge" : parameters.archetype === "coastal_grid" ? "Coastal edge" : "Water edge",
     };
   }
@@ -516,7 +535,7 @@ function waterEdgeBonusZone(archetype: GeneratedDistrictArchetype): CityWorldZon
   return {
     id: "water-edge",
     kind: "water",
-    rect: { minX: 37, minY: 20, maxX: 43, maxY: 31 },
+    rect: { minX: 34, minY: 0, maxX: 44, maxY: 32 },
     label: archetype === "river_town" ? "River edge" : archetype === "coastal_grid" ? "Coastal edge" : "Water edge",
   };
 }
@@ -528,7 +547,7 @@ function bonusRoadFor(
   if (typeof parameters === "string") return fallback;
   const bonusZone = bonusZoneFor(parameters, parameters.archetypeProfile.zones.bonusZone);
   if (bonusZone.kind === "water") {
-    return { id: "gen-road-water-edge", kind: "driveway", from: { x: 34, y: 24 }, to: { x: 41, y: 24 } };
+    return { id: "gen-road-water-edge", kind: "driveway", from: { x: 32, y: 24 }, to: { x: 41, y: 24 } };
   }
   return fallback;
 }

@@ -54,6 +54,7 @@ export type CountyGenerationClimate = {
   coastalProximity: "coastal" | "near_coastal" | "inland";
   inlandAridProxy: boolean;
   snowRoofAllowed: boolean;
+  tropicalHumid: boolean;
 };
 
 export type CountyGenerationModulation = {
@@ -392,7 +393,7 @@ export const NAME_SIGNAL_TOKENS: Record<NameSignal, readonly string[]> = {
   valley: ["valley"],
 };
 
-const COASTAL_INTENT_STATES = ["CA", "FL", "HI", "LA", "ME", "MA", "MD", "NJ", "NY", "OR", "RI", "SC", "VA", "WA"] as const;
+const COASTAL_INTENT_STATES = ["CA", "FL", "HI", "LA", "ME", "MA", "MD", "NJ", "NY", "OR", "PR", "RI", "SC", "VA", "WA"] as const;
 const WATER_DEPENDENT_ARCHETYPES = ["coastal_grid", "river_town"] as const;
 
 export const URBANIZATION_TIER_CUTS: Record<Exclude<UrbanizationTier, "frontier">, number> = {
@@ -684,7 +685,8 @@ function resolveClimate(
   const stateCode = county.stateCode.toUpperCase();
   const latitudeBand = resolveLatitudeBand(latitude);
   const inlandAridProxy = isCaliforniaInlandAridProxy(stateCode, latitude, longitude);
-  const coastalProximity = resolveCoastalProximity(stateCode, latitude, longitude, inlandAridProxy);
+  const tropicalHumid = isTropicalHumidStateLatitude(stateCode, latitude, latitudeBand);
+  const coastalProximity = resolveCoastalProximity(stateCode, latitude, longitude, inlandAridProxy, tropicalHumid);
   const waterSignal = waterNameSignalWeight(nameSignal);
   let aridityScore = clamp01(
     0.42 +
@@ -697,6 +699,7 @@ function resolveClimate(
   );
   if (inlandAridProxy) aridityScore = Math.max(aridityScore, 0.74);
   if (coastalProximity !== "inland" && !inlandAridProxy) aridityScore = Math.min(aridityScore, 0.5);
+  if (tropicalHumid && !inlandAridProxy) aridityScore = Math.min(aridityScore, 0.33);
   const aridity = aridityBand(aridityScore);
   const snowRoofAllowed =
     (latitudeBand === "cool_temperate" || latitudeBand === "northern" || latitudeBand === "arctic") && aridity !== "arid";
@@ -707,6 +710,7 @@ function resolveClimate(
     coastalProximity,
     inlandAridProxy,
     snowRoofAllowed,
+    tropicalHumid,
   };
 }
 
@@ -724,7 +728,9 @@ function resolveCoastalProximity(
   latitude: number,
   longitude: number,
   inlandAridProxy: boolean,
+  tropicalHumid: boolean,
 ): CountyGenerationClimate["coastalProximity"] {
+  if (tropicalHumid && !inlandAridProxy) return "coastal";
   if (stateCode === "CA") {
     if (inlandAridProxy) return "inland";
     return californiaCoastDistanceDegrees(latitude, longitude) <= 0.85 ? "coastal" : "near_coastal";
@@ -734,6 +740,12 @@ function resolveCoastalProximity(
   }
   if (longitude < -122 || longitude > -72) return "near_coastal";
   return "inland";
+}
+
+function isTropicalHumidStateLatitude(stateCode: string, latitude: number, latitudeBand: LatitudeBand): boolean {
+  if (stateCode === "HI" || stateCode === "PR") return latitudeBand === "tropical" || latitudeBand === "subtropical";
+  if (stateCode === "FL") return latitudeBand === "subtropical" && latitude < 27.6;
+  return false;
 }
 
 function isCaliforniaInlandAridProxy(stateCode: string, latitude: number, longitude: number): boolean {
@@ -835,7 +847,8 @@ function resolveModulation(
   const waterAffinity = clamp01(
     waterNameSignalWeight(nameSignal) +
       (climate.coastalProximity === "coastal" ? 0.45 : climate.coastalProximity === "near_coastal" ? 0.25 : 0) -
-      (climate.aridity === "arid" ? 0.55 : 0),
+      (climate.aridity === "arid" ? 0.55 : 0) +
+      (climate.tropicalHumid ? 0.4 : 0),
   );
   const dryReliefBoost = climate.aridity === "arid" || nameSignal.includes("mesa") || nameSignal.includes("desert") ? 0.035 : 0;
   const computedPaletteVariantOffset = ((regionProfile.paletteVariantOffset +
@@ -866,7 +879,7 @@ function resolveModulation(
       clamp(archetypeProfile.zones.civicElevationBoost + regionProfile.roofPitchBias * 0.08 + (climate.snowRoofAllowed ? 0.01 : 0), 0.14, 0.4),
     ),
     dryReliefBoost,
-    vegetationDensity: roundModulator(clamp01(0.5 + regionProfile.vegetationBias - aridityLift + waterAffinity * 0.08)),
+    vegetationDensity: roundModulator(clamp01(0.5 + regionProfile.vegetationBias - aridityLift + waterAffinity * 0.08 + (climate.tropicalHumid ? 0.12 : 0))),
     waterAffinity,
   };
 }

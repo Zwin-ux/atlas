@@ -55,12 +55,15 @@ const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
   "sutton-tx",
 ] as const;
 const WATER_ARCHETYPES: readonly GeneratedDistrictArchetype[] = ["coastal_grid", "river_town"];
+const COASTAL_OPENING_WATER_TILE_FLOOR = 18;
+const TROPICAL_PALM_RATE_FLOOR = 0.7;
+const MOUNTAIN_OPENING_DROP_TILE_FLOOR = 48;
 const VEGETATION_EXPECTATIONS: Record<
   GeneratedDistrictArchetype,
   { trees: number; bushes: number; minVegetation: number; maxVegetation: number; minParkVegetation?: number; desertScrubOnly?: true }
 > = {
   metro_grid: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
-  coastal_grid: { trees: 27, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
+  coastal_grid: { trees: 28, bushes: 1, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
   desert_basin: { trees: 0, bushes: 6, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
   mountain_valley: { trees: 32, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
   prairie_town: { trees: 32, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
@@ -553,6 +556,22 @@ describe("deterministic generated district specs", () => {
     }
   });
 
+  it("derives tropical-humid counties from state and latitude into lush generated ground (0.77-2)", () => {
+    for (const countySlug of ["miami-dade-fl", "honolulu-hi", "kalawao-hi", "san-juan-municipio-pr"]) {
+      const parameters = parametersForCounty(countySlug);
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
+      const trees = generatedTreeReadout(result.scene);
+      const palmRate = trees.filter((tree) => tree.species === "palm").length / Math.max(1, trees.length);
+
+      expect(parameters.climate.tropicalHumid).toBe(true);
+      expect(parameters.climate.aridity).toBe("humid");
+      expect(generated.spec.zones.some((zone) => zone.kind === "dry_wash")).toBe(false);
+      expect(landTerrainPaletteKeys(result.scene)).toEqual(["terrain.region.river_town"]);
+      expect(trees.length).toBeGreaterThan(0);
+      expect(palmRate).toBeGreaterThanOrEqual(TROPICAL_PALM_RATE_FLOOR);
+    }
+  });
+
   it("reroutes arid seed-fallback river towns to coherent desert landmarks (E1)", () => {
     for (const countySlug of FORMERLY_WATERLESS_RIVER_TOWN_SLUGS) {
       const { generated, result } = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
@@ -617,6 +636,26 @@ describe("deterministic generated district specs", () => {
     const desertRelief = terrainElevationSpread(desert.result.scene);
     expect(desertRelief.spread).toBeGreaterThanOrEqual(0.5);
     expect(desertRelief.dropTileCount).toBeGreaterThanOrEqual(40);
+  });
+
+  it("keeps coastal generated desktop opening frames water-visible (0.77-2)", () => {
+    for (const countySlug of ["miami-dade-fl", "honolulu-hi", "kalawao-hi"]) {
+      const { result } = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
+      const frame = openingFrameReadout(result.scene, "desktop");
+
+      expect(frame.waterTiles).toBeGreaterThanOrEqual(COASTAL_OPENING_WATER_TILE_FLOOR);
+      expect(frame.buildings).toBeGreaterThan(0);
+    }
+  });
+
+  it("shows stacked mountain cliff courses in the generated desktop opening frame (0.77-2)", () => {
+    const { generated, result } = createDeterministicGeneratedDistrictScene({ county: county("summit-co") });
+    const frame = openingFrameReadout(result.scene, "desktop");
+
+    expect(generated.archetype).toBe("mountain_valley");
+    expect(frame.elevationSpread).toBeGreaterThanOrEqual(1);
+    expect(frame.dropTileCount).toBeGreaterThanOrEqual(MOUNTAIN_OPENING_DROP_TILE_FLOOR);
+    expect(frame.buildings).toBeGreaterThanOrEqual(6);
   });
 
   it("fills open generated blocks with deterministic archetype-specific ground treatments (E5)", () => {
@@ -845,14 +884,31 @@ function waterAccentMetrics(scene: CityWorldScene): { dockEdgeDistance: number; 
   };
 }
 
-function openingFrameReadout(scene: CityWorldScene, cameraId: "desktop" | "mobile"): { waterTiles: number; buildings: number } {
+function openingFrameReadout(
+  scene: CityWorldScene,
+  cameraId: "desktop" | "mobile",
+): { waterTiles: number; buildings: number; elevationSpread: number; dropTileCount: number } {
   const preset = scene.cameraPresets.find((candidate) => candidate.id === cameraId);
   if (!preset) throw new Error(`Missing ${cameraId} camera preset`);
   const sample = sampleCityWorldViewportForCameraPreset(scene, preset);
+  const elevations = sample.terrainTiles.map((tile) => tile.position.z ?? 0);
   return {
     waterTiles: sample.terrainTiles.filter((tile) => tile.kind === "water").length,
     buildings: sample.buildings.length,
+    elevationSpread: elevations.length > 0 ? Math.max(...elevations) - Math.min(...elevations) : 0,
+    dropTileCount: sample.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
   };
+}
+
+function landTerrainPaletteKeys(scene: CityWorldScene): string[] {
+  return [
+    ...new Set(
+      scene.terrainTiles
+        .filter((tile) => tile.kind !== "water")
+        .map((tile) => tile.paletteKey)
+        .filter((key): key is string => Boolean(key)),
+    ),
+  ].sort();
 }
 
 function terrainElevationSpread(scene: CityWorldScene): { min: number; max: number; spread: number; dropTileCount: number } {

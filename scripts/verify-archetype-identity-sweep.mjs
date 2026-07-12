@@ -10,6 +10,7 @@ import {
   expectedGeneratedLandmarkKind,
   generatedDistrictMassingSignatureDistance,
   resolveCountyParameters,
+  sampleCityWorldViewportForCameraPreset,
 } from "../packages/core/dist/index.js";
 
 // 0.76 USA-Region — Archetype Identity Sweep (NS-6).
@@ -77,7 +78,7 @@ const MEAN_GEN_MS_CEILING = 20;
 const PERF_SAMPLE = 120;
 const VEGETATION_BANDS = {
   metro_grid: { minTrees: 22, maxTrees: 28, minBushes: 5, maxBushes: 8, minVegetation: 26, maxVegetation: 34 },
-  coastal_grid: { minTrees: 24, maxTrees: 30, minBushes: 2, maxBushes: 5, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
+  coastal_grid: { minTrees: 24, maxTrees: 30, minBushes: 1, maxBushes: 4, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
   desert_basin: { minTrees: 0, maxTrees: 0, minBushes: 5, maxBushes: 8, minVegetation: 5, maxVegetation: 8 },
   mountain_valley: { minTrees: 24, maxTrees: 34, minBushes: 3, maxBushes: 6, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
   prairie_town: { minTrees: 28, maxTrees: 40, minBushes: 3, maxBushes: 6, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
@@ -87,6 +88,13 @@ const WATER_TILE_FLOORS = {
   coastal_grid: 250,
   river_town: 150,
 };
+const COASTAL_OPENING_WATER_TILE_FLOOR = 18;
+const COASTAL_OPENING_ANCHORS = ["miami-dade-fl", "honolulu-hi", "kalawao-hi"];
+const TROPICAL_TRUTH_ANCHORS = ["miami-dade-fl", "honolulu-hi", "kalawao-hi", "san-juan-municipio-pr"];
+const TROPICAL_PALM_RATE_FLOOR = 0.7;
+const TROPICAL_LUSH_TERRAIN_PALETTE = "terrain.region.river_town";
+const MOUNTAIN_OPENING_RELIEF_ANCHORS = ["summit-co"];
+const MOUNTAIN_OPENING_DROP_TILE_FLOOR = 48;
 const RELIEF_BANDS = {
   mountain_valley: { minSpread: 1, minDropTiles: 80 },
   desert_basin: { minSpread: 0.5, minDropTiles: 40 },
@@ -462,6 +470,88 @@ function terrainFeatureFingerprint(county) {
   };
 }
 
+function coastalOpeningWaterReadouts() {
+  return COASTAL_OPENING_ANCHORS.map((countySlug) => {
+    const county = countyBySlug(countySlug);
+    const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+    const frame = openingFrameReadout(result.scene, "desktop");
+    const failures = [];
+
+    if (frame.waterTiles < COASTAL_OPENING_WATER_TILE_FLOOR) {
+      failures.push(`desktop opening water ${frame.waterTiles} below ${COASTAL_OPENING_WATER_TILE_FLOOR}`);
+    }
+    if (frame.buildings <= 0) failures.push("desktop opening frame has zero buildings");
+
+    return {
+      countySlug,
+      archetype: generated.archetype,
+      tier: generated.spec.countyParameters?.urbanizationTier ?? "missing",
+      frame,
+      failures,
+    };
+  });
+}
+
+function tropicalTruthReadouts() {
+  return TROPICAL_TRUTH_ANCHORS.map((countySlug) => {
+    const county = countyBySlug(countySlug);
+    const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+    const parameters = resolveCountyParameters(county, generated.seed);
+    const terrainPaletteKeys = landTerrainPaletteKeys(result.scene);
+    const treeVariants = result.scene.props.filter((prop) => prop.kind === "tree").map((prop) => prop.variant);
+    const palmCount = treeVariants.filter((variant) => variant >= 40).length;
+    const palmRate = roundMetric(palmCount / Math.max(1, treeVariants.length));
+    const dryWashZones = generated.spec.zones.filter((zone) => zone.kind === "dry_wash").map((zone) => zone.id);
+    const failures = [];
+
+    if (!parameters.climate.tropicalHumid) failures.push("climate.tropicalHumid false");
+    if (parameters.climate.aridity !== "humid") failures.push(`aridity ${parameters.climate.aridity} != humid`);
+    if (dryWashZones.length > 0) failures.push(`dry_wash zones present: ${dryWashZones.join(",")}`);
+    if (terrainPaletteKeys.length !== 1 || terrainPaletteKeys[0] !== TROPICAL_LUSH_TERRAIN_PALETTE) {
+      failures.push(`land terrain palettes ${terrainPaletteKeys.join(",") || "none"} != ${TROPICAL_LUSH_TERRAIN_PALETTE}`);
+    }
+    if (palmRate < TROPICAL_PALM_RATE_FLOOR) failures.push(`palm rate ${palmRate} below ${TROPICAL_PALM_RATE_FLOOR}`);
+
+    return {
+      countySlug,
+      archetype: generated.archetype,
+      tier: parameters.urbanizationTier,
+      latitudeBand: parameters.climate.latitudeBand,
+      aridity: parameters.climate.aridity,
+      tropicalHumid: parameters.climate.tropicalHumid,
+      terrainPaletteKeys,
+      treeCount: treeVariants.length,
+      palmCount,
+      palmRate,
+      dryWashZones,
+      failures,
+    };
+  });
+}
+
+function mountainOpeningReliefReadouts() {
+  return MOUNTAIN_OPENING_RELIEF_ANCHORS.map((countySlug) => {
+    const county = countyBySlug(countySlug);
+    const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+    const frame = openingFrameReadout(result.scene, "desktop");
+    const failures = [];
+
+    if (generated.archetype !== "mountain_valley") failures.push(`archetype ${generated.archetype} != mountain_valley`);
+    if (frame.elevationSpread < 1) failures.push(`desktop opening elevation spread ${frame.elevationSpread} below 1`);
+    if (frame.dropTileCount < MOUNTAIN_OPENING_DROP_TILE_FLOOR) {
+      failures.push(`desktop opening drop tiles ${frame.dropTileCount} below ${MOUNTAIN_OPENING_DROP_TILE_FLOOR}`);
+    }
+    if (frame.buildings < 6) failures.push(`desktop opening buildings ${frame.buildings} below 6`);
+
+    return {
+      countySlug,
+      archetype: generated.archetype,
+      frame,
+      failures,
+    };
+  });
+}
+
 function openBlockFillFingerprint(county) {
   const first = createDeterministicGeneratedDistrictScene({ county });
   const second = createDeterministicGeneratedDistrictScene({ county });
@@ -658,6 +748,32 @@ function reliefMetrics(scene) {
   };
 }
 
+function openingFrameReadout(scene, cameraId) {
+  const preset = scene.cameraPresets.find((candidate) => candidate.id === cameraId);
+  if (!preset) throw new Error(`Missing ${cameraId} camera preset for ${scene.id}`);
+  const sample = sampleCityWorldViewportForCameraPreset(scene, preset);
+  const zValues = sample.terrainTiles.map((tile) => tile.position?.z ?? 0);
+  const min = zValues.length > 0 ? Math.min(...zValues) : 0;
+  const max = zValues.length > 0 ? Math.max(...zValues) : 0;
+  return {
+    waterTiles: sample.terrainTiles.filter((tile) => tile.kind === "water").length,
+    buildings: sample.buildings.length,
+    elevationSpread: roundMetric(max - min),
+    dropTileCount: sample.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
+  };
+}
+
+function landTerrainPaletteKeys(scene) {
+  return [
+    ...new Set(
+      (scene.terrainTiles ?? [])
+        .filter((tile) => tile.kind !== "water")
+        .map((tile) => tile.paletteKey)
+        .filter(Boolean),
+    ),
+  ].sort();
+}
+
 function isVegetation(prop) {
   return prop.kind === "tree" || prop.kind === "bush";
 }
@@ -733,7 +849,7 @@ function perfProbe(firstCountyByArchetype) {
 // ---------------------------------------------------------------------------
 // Run.
 // ---------------------------------------------------------------------------
-log("Atlas 0.77-1 - Archetype Identity Sweep (NS-6 + Census density tiers)\n");
+log("Atlas 0.77-2 - Archetype Identity Sweep (NS-6 + Census density tiers + regional truth visuals)\n");
 
 const { counts, firstCountyByArchetype, structural } = coverageDistribution();
 const present = ARCHETYPES.filter((a) => (counts[a] ?? 0) > 0);
@@ -936,6 +1052,55 @@ for (const a of present) {
   );
 }
 
+const coastalOpeningWater = coastalOpeningWaterReadouts();
+const coastalOpeningWaterFailures = coastalOpeningWater.flatMap((entry) =>
+  entry.failures.map((failure) => `${entry.countySlug}: ${failure}`),
+);
+log("\n0.77-2 coastal opening water - desktop first-frame anchors:");
+for (const entry of coastalOpeningWater) {
+  log(
+    "  " +
+      entry.countySlug.padEnd(18) +
+      entry.archetype.padEnd(16) +
+      entry.tier.padEnd(11) +
+      `water ${String(entry.frame.waterTiles).padStart(3)} [${COASTAL_OPENING_WATER_TILE_FLOOR}+]`.padEnd(18) +
+      `buildings ${entry.frame.buildings}`,
+  );
+}
+
+const tropicalTruth = tropicalTruthReadouts();
+const tropicalTruthFailures = tropicalTruth.flatMap((entry) =>
+  entry.failures.map((failure) => `${entry.countySlug}: ${failure}`),
+);
+log("\n0.77-2 tropical truth - climate, ground, palms:");
+for (const entry of tropicalTruth) {
+  log(
+    "  " +
+      entry.countySlug.padEnd(24) +
+      entry.archetype.padEnd(16) +
+      entry.latitudeBand.padEnd(14) +
+      entry.aridity.padEnd(9) +
+      `palms ${entry.palmCount}/${entry.treeCount} ${entry.palmRate}`.padEnd(20) +
+      `terrain ${entry.terrainPaletteKeys.join(",")}`,
+  );
+}
+
+const mountainOpeningRelief = mountainOpeningReliefReadouts();
+const mountainOpeningReliefFailures = mountainOpeningRelief.flatMap((entry) =>
+  entry.failures.map((failure) => `${entry.countySlug}: ${failure}`),
+);
+log("\n0.77-2 mountain opening relief - desktop first-frame anchors:");
+for (const entry of mountainOpeningRelief) {
+  log(
+    "  " +
+      entry.countySlug.padEnd(18) +
+      entry.archetype.padEnd(16) +
+      `spread ${entry.frame.elevationSpread}`.padEnd(13) +
+      `drops ${String(entry.frame.dropTileCount).padStart(2)} [${MOUNTAIN_OPENING_DROP_TILE_FLOOR}+]`.padEnd(17) +
+      `buildings ${entry.frame.buildings}`,
+  );
+}
+
 const openBlockFillByArchetype = {};
 for (const a of present) {
   openBlockFillByArchetype[a] = openBlockFillFingerprint(representativeCountyByArchetype[a]);
@@ -1053,6 +1218,33 @@ const GATES = [
     detail: terrainFeatureFailures.length === 0 ? "all representative E3/E4 bands pass" : terrainFeatureFailures.join("; "),
   },
   {
+    id: "coastal_opening_water_visibility",
+    label: "coastal generated desktop opening frames include visible sea tiles (water >= " + COASTAL_OPENING_WATER_TILE_FLOOR + ")",
+    pass: coastalOpeningWaterFailures.length === 0,
+    detail:
+      coastalOpeningWaterFailures.length === 0
+        ? coastalOpeningWater.map((entry) => `${entry.countySlug}:${entry.frame.waterTiles}`).join(", ")
+        : coastalOpeningWaterFailures.join("; "),
+  },
+  {
+    id: "tropical_humid_visual_truth",
+    label: "HI/PR/south-FL tropical-humid generated scenes use lush ground, palms, and no dry washes",
+    pass: tropicalTruthFailures.length === 0,
+    detail:
+      tropicalTruthFailures.length === 0
+        ? tropicalTruth.map((entry) => `${entry.countySlug}:palms ${entry.palmRate}`).join(", ")
+        : tropicalTruthFailures.join("; "),
+  },
+  {
+    id: "mountain_opening_relief_visibility",
+    label: "mountain-valley desktop opening frames show stacked cliff-course drops",
+    pass: mountainOpeningReliefFailures.length === 0,
+    detail:
+      mountainOpeningReliefFailures.length === 0
+        ? mountainOpeningRelief.map((entry) => `${entry.countySlug}:drops ${entry.frame.dropTileCount}`).join(", ")
+        : mountainOpeningReliefFailures.join("; "),
+  },
+  {
     id: "open_block_fill_coverage",
     label: "representative generated archetypes fill open non-building blocks with E5 terrain treatments",
     pass: openBlockFillFailures.length === 0,
@@ -1136,6 +1328,24 @@ if (jsonOnly) {
         reliefBands: RELIEF_BANDS,
         byArchetype: terrainFeaturesByArchetype,
         failures: terrainFeatureFailures,
+      },
+      regionalTruth0772: {
+        coastalOpeningWater: {
+          floor: COASTAL_OPENING_WATER_TILE_FLOOR,
+          anchors: coastalOpeningWater,
+          failures: coastalOpeningWaterFailures,
+        },
+        tropicalTruth: {
+          palmRateFloor: TROPICAL_PALM_RATE_FLOOR,
+          lushTerrainPalette: TROPICAL_LUSH_TERRAIN_PALETTE,
+          anchors: tropicalTruth,
+          failures: tropicalTruthFailures,
+        },
+        mountainOpeningRelief: {
+          dropTileFloor: MOUNTAIN_OPENING_DROP_TILE_FLOOR,
+          anchors: mountainOpeningRelief,
+          failures: mountainOpeningReliefFailures,
+        },
       },
       openBlockFills: {
         bands: E5_FILL_BANDS,

@@ -389,7 +389,7 @@ function createParametricTerrain(spec: CityWorldParametricSpec, bounds: CityWorl
         depth: 1,
         variant,
         spriteKey: `tile.${kind}.${variant}`,
-        paletteKey: regionalTerrainKeyForKind(kind, spec.regionalPalette),
+        paletteKey: regionalTerrainKeyForKind(kind, spec),
         detailLevel: kind === "water" || kind === "park" || kind === "plaza" ? "medium" : "low",
         visualGrammar: elevation ? { ...grammar, elevation } : grammar,
       });
@@ -1886,9 +1886,11 @@ function buildingSpecForZone(
   return null;
 }
 
-function regionalTerrainKeyForKind(kind: CityWorldTerrainKind, regionalPalette: RegionalPalette | undefined): string {
-  if (!regionalPalette || kind === "water") return `terrain.${kind}`;
-  return regionalTerrainPaletteKey(regionalPalette.archetype);
+function regionalTerrainKeyForKind(kind: CityWorldTerrainKind, spec: CityWorldParametricSpec): string {
+  if (kind === "water") return `terrain.${kind}`;
+  if (spec.countyParameters?.climate.tropicalHumid) return regionalTerrainPaletteKey("river_town");
+  if (!spec.regionalPalette) return `terrain.${kind}`;
+  return regionalTerrainPaletteKey(spec.regionalPalette.archetype);
 }
 
 function pickIndexed<T>(rng: () => number, values: readonly T[]): { value: T; index: number } {
@@ -1914,6 +1916,7 @@ type PropPlacementContext = {
   roadSegments: CityWorldRoadSegment[];
   archetype: GeneratedDistrictArchetype | undefined;
   vegetationDensity: number;
+  tropicalHumid: boolean;
 };
 
 function zonePropsForZone(
@@ -2034,6 +2037,7 @@ function propPlacementContext(spec: CityWorldParametricSpec, roadSegments: CityW
     roadSegments,
     archetype: spec.countyParameters?.archetype ?? spec.regionalPalette?.archetype,
     vegetationDensity: spec.countyParameters?.modulation.vegetationDensity ?? 0.5,
+    tropicalHumid: spec.countyParameters?.climate.tropicalHumid ?? false,
   };
 }
 
@@ -2306,8 +2310,13 @@ function addVegetationSpec(
   if (!pointClearsRoads(point, context.roadSegments)) return false;
   if (pointInsideWaterZone(point, context.spec)) return false;
   if (specs.some((entry) => (entry.kind === "tree" || entry.kind === "bush") && distance2(entry.point, point) < 0.72)) return false;
-  specs.push({ kind, point, variant });
+  specs.push({ kind, point, variant: kind === "tree" && context.tropicalHumid ? tropicalPalmVariant(variant) : variant });
   return true;
+}
+
+function tropicalPalmVariant(variant: number): number {
+  const modulo = ((variant % 3) + 3) % 3;
+  return variant + ((2 - modulo + 3) % 3);
 }
 
 function roadFrontagesForZone(
@@ -2590,6 +2599,38 @@ function waterAwareMobileOverviewFrameCompositionScore(center: CityWorldPoint, s
   return mobileOverviewFrameCompositionScore(center, scenery) + waterPresenceFrameBonus(center, scenery, "mobile", 0.92);
 }
 
+function reliefAwareOverviewFrameCompositionScore(center: CityWorldPoint, scenery: ParametricCameraScenery): number {
+  return overviewFrameCompositionScore(center, scenery) + reliefPresenceFrameBonus(center, scenery, "desktop", 1.32);
+}
+
+function reliefAwareMobileOverviewFrameCompositionScore(center: CityWorldPoint, scenery: ParametricCameraScenery): number {
+  return mobileOverviewFrameCompositionScore(center, scenery) + reliefPresenceFrameBonus(center, scenery, "mobile", 0.92);
+}
+
+function reliefPresenceFrameBonus(
+  center: CityWorldPoint,
+  scenery: ParametricCameraScenery,
+  presetId: "desktop" | "mobile",
+  zoom: number,
+): number {
+  const rawFrame = cityWorldViewportFrameForCameraPreset({ id: presetId, center, zoom });
+  const frame = {
+    minX: Math.max(rawFrame.minX, scenery.bounds.minX),
+    maxX: Math.min(rawFrame.maxX, scenery.bounds.maxX),
+    minY: Math.max(rawFrame.minY, scenery.bounds.minY),
+    maxY: Math.min(rawFrame.maxY, scenery.bounds.maxY),
+  };
+  const tiles = scenery.terrainTiles.filter((tile) => cityWorldPointInsideFrame(tile.position, frame));
+  if (tiles.length === 0) return 0;
+  const buildings = scenery.buildings.filter((building) => cityWorldPointInsideFrame(building.position, frame));
+  if (buildings.length === 0) return 0;
+  const zValues = tiles.map((tile) => tile.position.z ?? 0);
+  const spread = Math.max(...zValues) - Math.min(...zValues);
+  const dropTiles = tiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length;
+  if (spread < 0.5 || dropTiles < 18) return 0;
+  return cityWorldClamp(dropTiles / 48, 0, 1) * 0.24 + cityWorldClamp(spread, 0, 1) * 0.12;
+}
+
 function parametricCameraPresets(
   bounds: CityWorldBounds,
   zones: CityWorldZoneSpec[],
@@ -2600,16 +2641,30 @@ function parametricCameraPresets(
   // zones) rather than the raw grid center, so the first viewport is dense.
   const built = zones.filter((zone) => ZONE_TO_LOT[zone.kind] && zone.kind !== "water");
   const focus = built.length > 0 ? averagePoint(built.map(zoneCenter)) : { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
-  const waterAware = isWaterGeneratedArchetype(countyParameters?.archetypeProfile.archetype);
+  const archetype = countyParameters?.archetypeProfile.archetype;
+  const waterAware = isWaterGeneratedArchetype(archetype) || scenery.waterTiles.length > 0;
+  const overviewScorer = waterAware
+    ? waterAwareOverviewFrameCompositionScore
+    : archetype === "mountain_valley"
+      ? reliefAwareOverviewFrameCompositionScore
+      : overviewFrameCompositionScore;
+  const mobileOverviewScorer = waterAware
+    ? waterAwareMobileOverviewFrameCompositionScore
+    : archetype === "mountain_valley"
+      ? reliefAwareMobileOverviewFrameCompositionScore
+      : mobileOverviewFrameCompositionScore;
+  const openingZones = archetype === "mountain_valley" ? mountainOverviewCandidateZones(zones, built) : built;
   const openingFocus = countyParameters
-    ? generatedOverviewFocus(built, focus, scenery, waterAware ? waterAwareOverviewFrameCompositionScore : overviewFrameCompositionScore)
+    ? archetype === "mountain_valley"
+      ? mountainOverviewFocus(openingZones, built, focus, scenery)
+      : generatedOverviewFocus(openingZones, focus, scenery, overviewScorer)
     : focus;
   const mobileFocus = countyParameters
     ? generatedOverviewFocus(
         built,
         { x: openingFocus.x, y: openingFocus.y + 3 },
         scenery,
-        waterAware ? waterAwareMobileOverviewFrameCompositionScore : mobileOverviewFrameCompositionScore,
+        mobileOverviewScorer,
       )
     : { x: openingFocus.x, y: openingFocus.y + 4 };
   const center = { x: openingFocus.x, y: openingFocus.y, z: 0 };
@@ -2641,6 +2696,29 @@ function parametricCameraPresets(
 function averagePoint(points: Array<{ x: number; y: number }>): { x: number; y: number } {
   const sum = points.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
   return { x: sum.x / points.length, y: sum.y / points.length };
+}
+
+function mountainOverviewCandidateZones(zones: CityWorldZoneSpec[], fallback: CityWorldZoneSpec[]): CityWorldZoneSpec[] {
+  const ridgeFabric = zones.filter(
+    (zone) =>
+      zone.id === "mountain-upper-homes" ||
+      zone.id === "mountain-mid-homes" ||
+      zone.id === "mountain-ridge-civic" ||
+      zone.id === "mountain-valley-main" ||
+      zone.id === "mountain-inn-court",
+  );
+  return ridgeFabric.length > 0 ? ridgeFabric : fallback;
+}
+
+function mountainOverviewFocus(
+  ridgeZones: CityWorldZoneSpec[],
+  builtZones: CityWorldZoneSpec[],
+  fallback: { x: number; y: number },
+  scenery: ParametricCameraScenery,
+): { x: number; y: number } {
+  const ridgeFocus = generatedOverviewFocus(ridgeZones, fallback, scenery, reliefAwareOverviewFrameCompositionScore);
+  const villageFocus = generatedOverviewFocus(builtZones, fallback, scenery, overviewFrameCompositionScore);
+  return averagePoint([ridgeFocus, villageFocus]);
 }
 
 function placeKindForZone(kind: CityWorldZoneKind): CityWorldPlace["kind"] {
