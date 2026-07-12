@@ -136,3 +136,6 @@ certification ladder, incident lessons) → `docs/G8_REAL_CHATGPT_FINDINGS.md`.
 Work packets top-down; one packet per agent; disjoint fences for parallel
 agents; result notes mandatory; STOP at human gates (visuals, deploys,
 billing, submission) and report instead of proceeding.
+
+## P1.6 - 0.79 VISUAL GUARANTEE (approved 2026-07-12; docs/0.79_VISUAL_GUARANTEE.md)
+Per-county visual score + worst-50 report (floor gates), challenge-set pixel snapshots, stratified weekly sampler (P4.1 retargets here). 0.79-1/-3 run parallel with 0.78-R; 0.79-2 after it lands.
