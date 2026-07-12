@@ -64,6 +64,22 @@ Missing: interaction wiring + honest place identity + map-first answers.
       (tap-select, pin, note on 3 anchor counties) — permanent.
 - [ ] P1.5 G8 battery re-run on generated interactivity. HUMAN: screenshots.
 
+## P1.5 — 0.78 REAL GEOGRAPHY (owner-approved 2026-07-12; full plan in
+## ~/.claude/plans/keep-polishing-have-a-snappy-moore.md — copy into repo
+## as docs/0.78_REAL_GEOGRAPHY.md at execution start)
+
+Owner critique: "county isn't accurate, size isn't good" → counties become
+REAL: TIGER/Line (public domain, honest) county silhouette boards, real
+water, ALL roads via LOD streaming, real town names as tappable anchors,
+town-tap → existing district engine re-anchored. Owner decisions: AAA bake→
+version→serve pipeline (packs in repo/object storage, served via backend +
+Redis cache); max detail via LOD0/1/2 (makes W6.1/6.2 renderer streaming a
+REQUIRED phase 0.78-R). Phases: 0.78-R renderer LOD/streaming → 0.78-D TIGER
+bake pipeline (reviewer machine, network) → 0.78-1 silhouette board (IoU
+gate ≥0.85) → 0.78-2 real town anchors → 0.78-3 town detail → 0.78-4 honesty
+copy re-line ("Real county shape, towns, and water from the U.S. Census.
+Buildings are a generated preview."). Sequenced after P1.1/P1.2 land.
+
 ## P2 — Persistence for launch (NS-7)
 
 Infra exists behind flags (Postgres, persistence adapter, Stripe test,
