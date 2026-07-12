@@ -2798,7 +2798,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Lookup world places",
       description:
-        "Use this when the user asks what places are near a real-world location, in any county. Read-only lookup normalized into Atlas place categories; may use Google Maps Platform when configured. Results are not saved and are not coverage proof — this never unlocks a playable map.",
+        "Use this when the user asks to search for real nearby places or place categories around a location. This is lookup-only and may use Google Maps Platform when configured; it does not open, show, refresh, or unlock a county map. Results are read-only, not saved, and not coverage proof.",
       inputSchema: {
         query: z.string().min(1).describe("Location query, such as Eastvale, CA."),
         radiusMeters: z
@@ -2842,7 +2842,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Select county",
       description:
-        "Use this when the user asks to open Atlas or switch to a US county. Riverside returns the playable Eastvale voxel city map in the widget; any other indexed county returns its honest browse-only coverage state. Not for refreshing an already-open map — use render_voxel_county for that.",
+        "Use this when the user asks to show, open, load, view, map, or switch to a US county in Atlas, including bare requests like \"show me Riverside County.\" This is the entry point for county maps: safe, read-only, and normally instant for open/show requests. Riverside opens the playable Eastvale voxel map; other indexed counties show honest browse-only coverage. For refreshing or focusing an already-open map, use render_voxel_county.",
       inputSchema: {
         countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca and browse-only shells for indexed US counties."),
         includeGeneratedDraft: z
@@ -2859,8 +2859,8 @@ function createAtlasServer(): McpServer {
       _meta: {
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Loading Riverside County...",
-        "openai/toolInvocation/invoked": "Riverside County ready.",
+        "openai/toolInvocation/invoking": "Opening Atlas county...",
+        "openai/toolInvocation/invoked": "Atlas county ready.",
       },
     },
     async ({ countySlug, includeGeneratedDraft }) => instrumentMcpTool("select_county", async () => {
@@ -2920,7 +2920,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Ask county question",
       description:
-        "Use this when the user asks a factual Riverside/Eastvale county or local-business question. Answers come only from the curated Atlas Alpha pack — closed-world and read-only; unsupported questions are refused rather than guessed.",
+        "Use this when the user asks a factual Riverside/Eastvale county, map, or local-business question. It answers from the curated Atlas Alpha pack only; it does not open or refresh the map and does not search live nearby places. Closed-world and read-only; unsupported questions are refused rather than guessed.",
       inputSchema: {
         question: z.string().min(1).describe("County or business question to answer from curated Atlas data."),
         countySlug: z.string().optional().describe("County slug. Alpha supports riverside-ca."),
@@ -2978,7 +2978,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Render voxel county",
       description:
-        "Use this when the user asks to refresh, re-render, or focus the county map that is already open. Renders the Riverside/Eastvale playable scene in the widget, or honest coverage state for non-playable counties. To open Atlas or switch counties, use select_county instead.",
+        "Use this when the user asks to refresh, re-render, refocus, or move the Atlas county map that is already open. It updates the widget scene or coverage state for the current county; it is not the entry point for bare \"show me X county\" requests. To show, open, map, or switch counties, use select_county.",
       inputSchema: {
         countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca; other indexed US slugs return honest coverage shells."),
         selectedNodeId: z.string().optional().describe("Atlas node id to focus, such as eastvale."),
@@ -2996,8 +2996,8 @@ function createAtlasServer(): McpServer {
       _meta: {
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Opening city map...",
-        "openai/toolInvocation/invoked": "City map ready.",
+        "openai/toolInvocation/invoking": "Refreshing Atlas map...",
+        "openai/toolInvocation/invoked": "Atlas map refreshed.",
       },
     },
     async ({ countySlug, selectedNodeId, includeGeneratedDraft }) => instrumentMcpTool("render_voxel_county", async () => {
@@ -3060,7 +3060,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Scout Drop",
       description:
-        "Use this when the user asks to drop Clawd, scout a location, or find where to launch a local offer. Returns a session-only Scout Drop preview (route, signals, risks, channels, next actions) rendered on the map. Uses curated scene data where available and synthetic session-only template signals elsewhere; nothing is saved, posted, or executed.",
+        "Use this when the user asks to drop Clawd, scout a chosen location, or find where to launch a local offer. It creates a session-only Scout Drop preview with route, signals, risks, channels, and next actions; it does not open or refresh county maps. Uses curated scene data where available and synthetic session-only template signals elsewhere; nothing is saved, posted, or executed.",
       inputSchema: {
         countySlug: z.string().optional().describe("County slug for the Scout context."),
         nodeId: z.string().optional().describe("Atlas node id when known."),
@@ -3118,7 +3118,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Campaign Engine",
       description:
-        "Use this when the user wants a 7-day manual campaign plan for an existing Atlas Scout Drop. Pass the scoutPreviewId returned by preview_scout_drop when available; if the id is stale, Atlas rebuilds the Scout preview from the supplied args and continues. Session-only: Alpha does not post, DM, buy ads, persist state, or perform live campaign execution.",
+        "Use this when the user wants a 7-day manual campaign plan after an Atlas Scout Drop exists. Pass the scoutPreviewId returned by preview_scout_drop when available; if the id is stale, Atlas rebuilds the Scout preview from the supplied args and continues. Session-only: Alpha does not post, DM, buy ads, persist state, or perform live campaign execution.",
       inputSchema: {
         scoutPreviewId: z.string().describe("Scout Drop id returned by preview_scout_drop."),
         countySlug: z.string().optional().describe("County slug from the Scout Drop."),
