@@ -43,6 +43,29 @@ const ARCHETYPES = [
   "river_town",
 ];
 const WATER_ARCHETYPES = new Set(["coastal_grid", "river_town"]);
+const REPRESENTATIVE_COUNTY_BY_ARCHETYPE = {
+  metro_grid: "alameda-ca",
+  coastal_grid: "marin-ca",
+  desert_basin: "maricopa-az",
+  mountain_valley: "adams-co",
+  prairie_town: "linn-ia",
+  river_town: "benton-ar",
+};
+const TIER_HISTOGRAM_BANDS = {
+  urban_core: { min: 127, max: 127 },
+  suburban: { min: 378, max: 378 },
+  town: { min: 1045, max: 1045 },
+  rural: { min: 1097, max: 1097 },
+  frontier: { min: 575, max: 575 },
+};
+const ANCHOR_TRUTHS = {
+  "loving-tx": { tier: "frontier", forbiddenArchetypes: ["metro_grid"], forbidsAvenues: true },
+  "kalawao-hi": { tier: "frontier", forbidsAvenues: true },
+  "miami-dade-fl": { tier: "urban_core", archetype: "metro_grid", minBuildings: 24 },
+  "los-angeles-ca": { tier: "urban_core", archetype: "metro_grid", minBuildings: 24 },
+  "cook-il": { tier: "urban_core", archetype: "metro_grid", minBuildings: 24 },
+  "fulton-ga": { tier: "urban_core", archetype: "metro_grid", minBuildings: 24 },
+};
 
 // Distinctness threshold: max allowed Jaccard overlap between any two
 // archetypes' body+roof color fingerprints. Set between the pre-0.76 value
@@ -135,6 +158,72 @@ function coverageDistribution() {
       failures: structuralFailures,
     },
   };
+}
+
+function representativeCountiesByArchetype() {
+  return Object.fromEntries(
+    ARCHETYPES.map((archetype) => {
+      const county = countyBySlug(REPRESENTATIVE_COUNTY_BY_ARCHETYPE[archetype]);
+      const generated = createDeterministicGeneratedDistrictScene({ county }).generated;
+      if (generated.archetype !== archetype) {
+        throw new Error(`Representative ${county.countySlug} resolved ${generated.archetype}, expected ${archetype}`);
+      }
+      return [archetype, county];
+    }),
+  );
+}
+
+function countyBySlug(countySlug) {
+  const county = US_COUNTY_INDEX.find((candidate) => candidate.countySlug === countySlug);
+  if (!county) throw new Error(`Missing county ${countySlug}`);
+  return county;
+}
+
+function tierHistogram() {
+  const counts = { urban_core: 0, suburban: 0, town: 0, rural: 0, frontier: 0 };
+  for (const county of US_COUNTY_INDEX) {
+    const { generated } = createDeterministicGeneratedDistrictScene({ county });
+    const tier = generated.spec.countyParameters?.urbanizationTier;
+    if (!tier || counts[tier] === undefined) throw new Error(`Missing urbanization tier for ${county.countySlug}`);
+    counts[tier] += 1;
+  }
+  const failures = Object.entries(TIER_HISTOGRAM_BANDS).flatMap(([tier, band]) => {
+    const count = counts[tier] ?? 0;
+    return count >= band.min && count <= band.max ? [] : [`${tier} ${count} outside ${band.min}-${band.max}`];
+  });
+  return { counts, bands: TIER_HISTOGRAM_BANDS, failures };
+}
+
+function anchorTruthReadouts() {
+  return Object.entries(ANCHOR_TRUTHS).map(([countySlug, expected]) => {
+    const county = countyBySlug(countySlug);
+    const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
+    const parameters = resolveCountyParameters(county, generated.seed);
+    const massing = analyzeGeneratedDistrictMassingSignature(result.scene);
+    const roadKinds = [...new Set(result.scene.roadSegments.filter((road) => road.id.startsWith("gen-road-")).map((road) => road.kind))].sort();
+    const failures = [];
+
+    if (parameters.urbanizationTier !== expected.tier) failures.push(`tier ${parameters.urbanizationTier} != ${expected.tier}`);
+    if (expected.archetype && generated.archetype !== expected.archetype) failures.push(`archetype ${generated.archetype} != ${expected.archetype}`);
+    if (expected.forbiddenArchetypes?.includes(generated.archetype)) failures.push(`forbidden archetype ${generated.archetype}`);
+    if (expected.forbidsAvenues && roadKinds.includes("avenue")) failures.push("frontier road seeds include avenue");
+    if (expected.minBuildings && massing.buildingCount < expected.minBuildings) {
+      failures.push(`buildingCount ${massing.buildingCount} below ${expected.minBuildings}`);
+    }
+
+    return {
+      countySlug,
+      geoid: county.geoid,
+      population2024: parameters.population2024,
+      landAreaSqMi: parameters.landAreaSqMi,
+      densityPerSqMi: parameters.densityPerSqMi,
+      tier: parameters.urbanizationTier,
+      archetype: generated.archetype,
+      buildingCount: massing.buildingCount,
+      roadKinds,
+      failures,
+    };
+  });
 }
 
 function structuralInspection(county) {
@@ -644,11 +733,15 @@ function perfProbe(firstCountyByArchetype) {
 // ---------------------------------------------------------------------------
 // Run.
 // ---------------------------------------------------------------------------
-log("Atlas 0.76 — Archetype Identity Sweep (NS-6)\n");
+log("Atlas 0.77-1 - Archetype Identity Sweep (NS-6 + Census density tiers)\n");
 
 const { counts, firstCountyByArchetype, structural } = coverageDistribution();
 const present = ARCHETYPES.filter((a) => (counts[a] ?? 0) > 0);
 const totalClassified = Object.values(counts).reduce((s, n) => s + n, 0);
+const representativeCountyByArchetype = representativeCountiesByArchetype();
+const tierHistogramReadout = tierHistogram();
+const anchorReadouts = anchorTruthReadouts();
+const anchorFailures = anchorReadouts.flatMap((entry) => entry.failures.map((failure) => `${entry.countySlug}: ${failure}`));
 
 log("Index coverage — " + totalClassified + " counties classified:");
 for (const a of ARCHETYPES) {
@@ -675,9 +768,38 @@ if (structural.failures.length > 0) {
   log("  failing slugs: " + structuralFailureSlugs.join(", "));
 }
 
+log("\nUrbanization tier histogram - full index:");
+for (const [tier, count] of Object.entries(tierHistogramReadout.counts)) {
+  const band = tierHistogramReadout.bands[tier];
+  log("  " + tier.padEnd(11) + String(count).padStart(5) + "  (gate: " + band.min + "-" + band.max + ")");
+}
+
+log("\n0.77-1 anchor truths - Census density routing:");
+for (const entry of anchorReadouts) {
+  log(
+    "  " +
+      entry.countySlug.padEnd(18) +
+      entry.tier.padEnd(11) +
+      entry.archetype.padEnd(16) +
+      `pop ${entry.population2024}`.padEnd(14) +
+      `area ${entry.landAreaSqMi}`.padEnd(13) +
+      `density ${entry.densityPerSqMi}`.padEnd(16) +
+      `buildings ${entry.buildingCount}`.padEnd(14) +
+      `roads ${entry.roadKinds.join(",")}`,
+  );
+}
+
+log("\nRepresentative counties for archetype visual bands:");
+for (const a of present) {
+  const sample = representativeCountyByArchetype[a];
+  const { generated } = createDeterministicGeneratedDistrictScene({ county: sample });
+  const parameters = resolveCountyParameters(sample, generated.seed);
+  log("  " + a.padEnd(16) + sample.countySlug.padEnd(34) + parameters.urbanizationTier);
+}
+
 const fingerprintByArchetype = {};
 for (const a of present) {
-  fingerprintByArchetype[a] = paletteFingerprint(firstCountyByArchetype[a]);
+  fingerprintByArchetype[a] = paletteFingerprint(representativeCountyByArchetype[a]);
 }
 
 const { pairs, worst } = distinctnessMatrix(fingerprintByArchetype, present);
@@ -688,7 +810,7 @@ log("  worst pair: " + (worst.pair ? worst.pair.join(" ~ ") : "n/a") + " = " + w
 
 const landmarkByArchetype = {};
 for (const a of present) {
-  landmarkByArchetype[a] = landmarkFingerprint(firstCountyByArchetype[a]);
+  landmarkByArchetype[a] = landmarkFingerprint(representativeCountyByArchetype[a]);
 }
 const landmarkFailures = Object.entries(landmarkByArchetype).flatMap(([archetype, entry]) =>
   entry.failures.map((failure) => `${archetype}: ${failure}`),
@@ -720,7 +842,7 @@ for (const a of present) {
 
 const profileGrammarByArchetype = {};
 for (const a of present) {
-  profileGrammarByArchetype[a] = profileGrammarFingerprint(firstCountyByArchetype[a]);
+  profileGrammarByArchetype[a] = profileGrammarFingerprint(representativeCountyByArchetype[a]);
 }
 const profileGrammarFailures = Object.entries(profileGrammarByArchetype).flatMap(([archetype, entry]) =>
   entry.failures.map((failure) => `${archetype}: ${failure}`),
@@ -739,7 +861,7 @@ for (const a of present) {
 
 const massingByArchetype = {};
 for (const a of present) {
-  massingByArchetype[a] = massingFingerprint(firstCountyByArchetype[a]);
+  massingByArchetype[a] = massingFingerprint(representativeCountyByArchetype[a]);
 }
 const massingDistinctness = massingDistinctnessMatrix(massingByArchetype, present);
 const massingFailures = massingDistinctness.pairs
@@ -772,7 +894,7 @@ log(
 
 const vegetationByArchetype = {};
 for (const a of present) {
-  vegetationByArchetype[a] = vegetationFingerprint(firstCountyByArchetype[a]);
+  vegetationByArchetype[a] = vegetationFingerprint(representativeCountyByArchetype[a]);
 }
 const vegetationFailures = Object.entries(vegetationByArchetype).flatMap(([archetype, entry]) =>
   entry.failures.map((failure) => `${archetype}: ${failure}`),
@@ -793,7 +915,7 @@ for (const a of present) {
 
 const terrainFeaturesByArchetype = {};
 for (const a of present) {
-  terrainFeaturesByArchetype[a] = terrainFeatureFingerprint(firstCountyByArchetype[a]);
+  terrainFeaturesByArchetype[a] = terrainFeatureFingerprint(representativeCountyByArchetype[a]);
 }
 const terrainFeatureFailures = Object.entries(terrainFeaturesByArchetype).flatMap(([archetype, entry]) =>
   entry.failures.map((failure) => `${archetype}: ${failure}`),
@@ -816,7 +938,7 @@ for (const a of present) {
 
 const openBlockFillByArchetype = {};
 for (const a of present) {
-  openBlockFillByArchetype[a] = openBlockFillFingerprint(firstCountyByArchetype[a]);
+  openBlockFillByArchetype[a] = openBlockFillFingerprint(representativeCountyByArchetype[a]);
 }
 const openBlockFillFailures = Object.entries(openBlockFillByArchetype).flatMap(([archetype, entry]) =>
   entry.failures.map((failure) => `${archetype}: ${failure}`),
@@ -836,7 +958,7 @@ for (const a of present) {
 
 const attachmentPresenceByArchetype = {};
 for (const a of present) {
-  attachmentPresenceByArchetype[a] = attachmentPresenceFingerprint(firstCountyByArchetype[a]);
+  attachmentPresenceByArchetype[a] = attachmentPresenceFingerprint(representativeCountyByArchetype[a]);
 }
 const attachmentPresenceFailures = Object.entries(attachmentPresenceByArchetype).flatMap(([archetype, entry]) =>
   entry.failures.map((failure) => `${archetype}: ${failure}`),
@@ -872,6 +994,18 @@ const GATES = [
     label: "all six archetypes reachable across the county index",
     pass: present.length === ARCHETYPES.length,
     detail: "reached " + present.length + "/" + ARCHETYPES.length,
+  },
+  {
+    id: "urbanization_tier_histogram",
+    label: "full-index Census density tiers stay inside deliberate 0.77-1 bands",
+    pass: tierHistogramReadout.failures.length === 0,
+    detail: tierHistogramReadout.failures.length === 0 ? JSON.stringify(tierHistogramReadout.counts) : tierHistogramReadout.failures.join("; "),
+  },
+  {
+    id: "urbanization_anchor_truths",
+    label: "0.77-1 anchor counties route to reality-backed density tiers and legal archetypes",
+    pass: anchorFailures.length === 0,
+    detail: anchorFailures.length === 0 ? "all anchors pass" : anchorFailures.join("; "),
   },
   {
     id: "palette_distinctness",
@@ -960,6 +1094,16 @@ for (const g of GATES) {
 if (jsonOnly) {
     console.log(JSON.stringify({
       totalClassified, counts, present,
+      urbanization: {
+        histogram: tierHistogramReadout.counts,
+        bands: tierHistogramReadout.bands,
+        failures: tierHistogramReadout.failures,
+        anchors: anchorReadouts,
+        anchorFailures,
+        representatives: Object.fromEntries(
+          Object.entries(representativeCountyByArchetype).map(([archetype, county]) => [archetype, county.countySlug]),
+        ),
+      },
       distinctness: { worst, pairs },
       landmarks: {
         byArchetype: landmarkByArchetype,

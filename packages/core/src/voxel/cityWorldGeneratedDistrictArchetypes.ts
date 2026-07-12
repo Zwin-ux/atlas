@@ -20,29 +20,43 @@ export function selectGeneratedDistrictArchetype(
 export function generatedZones(parameters: GeneratedDistrictArchetype | CountyGenerationParameters, seed: number): CityWorldZoneSpec[] {
   const profile = profileFor(parameters);
   const modulation = modulationFor(parameters);
-  const context = layoutContext(profile, modulation, seed);
+  const context = layoutContext(profile, modulation, seed, urbanizationTierFor(parameters));
   const bonusZone = cloneZone(bonusZoneFor(parameters, profile.zones.bonusZone), context.densityScale);
 
-  if (profile.archetype === "metro_grid") return metroGridZones(context, bonusZone);
-  if (profile.archetype === "desert_basin") return desertBasinZones(context, bonusZone);
-  if (profile.archetype === "coastal_grid") return coastalGridZones(context, bonusZone);
-  if (profile.archetype === "mountain_valley") return mountainValleyZones(context, bonusZone);
-  if (profile.archetype === "prairie_town") return prairieTownZones(context, bonusZone);
-  return riverTownZones(context, bonusZone);
+  const zones =
+    profile.archetype === "metro_grid"
+      ? metroGridZones(context, bonusZone)
+      : profile.archetype === "desert_basin"
+        ? desertBasinZones(context, bonusZone)
+        : profile.archetype === "coastal_grid"
+          ? coastalGridZones(context, bonusZone)
+          : profile.archetype === "mountain_valley"
+            ? mountainValleyZones(context, bonusZone)
+            : profile.archetype === "prairie_town"
+              ? prairieTownZones(context, bonusZone)
+              : riverTownZones(context, bonusZone);
+  return zonesForUrbanizationTier(zones, context);
 }
 
 export function generatedRoadSeeds(parameters: GeneratedDistrictArchetype | CountyGenerationParameters, seed: number): CityWorldRoadSeed[] {
   const profile = profileFor(parameters);
   const modulation = modulationFor(parameters);
-  const context = layoutContext(profile, modulation, seed);
+  const context = layoutContext(profile, modulation, seed, urbanizationTierFor(parameters));
   const bonusRoad = cloneRoad(bonusRoadFor(parameters, profile.zones.bonusRoad));
 
-  if (profile.archetype === "metro_grid") return withBonusRoad(metroGridRoads(context), bonusRoad);
-  if (profile.archetype === "desert_basin") return withBonusRoad(desertBasinRoads(context), bonusRoad);
-  if (profile.archetype === "coastal_grid") return withBonusRoad(coastalGridRoads(context), bonusRoad);
-  if (profile.archetype === "mountain_valley") return withBonusRoad(mountainValleyRoads(context), bonusRoad);
-  if (profile.archetype === "prairie_town") return withBonusRoad(prairieTownRoads(context), bonusRoad);
-  return riverTownRoads(context);
+  const roads =
+    profile.archetype === "metro_grid"
+      ? withBonusRoad(metroGridRoads(context), bonusRoad)
+      : profile.archetype === "desert_basin"
+        ? withBonusRoad(desertBasinRoads(context), bonusRoad)
+        : profile.archetype === "coastal_grid"
+          ? withBonusRoad(coastalGridRoads(context), bonusRoad)
+          : profile.archetype === "mountain_valley"
+            ? withBonusRoad(mountainValleyRoads(context), bonusRoad)
+            : profile.archetype === "prairie_town"
+              ? withBonusRoad(prairieTownRoads(context), bonusRoad)
+              : riverTownRoads(context);
+  return roadsForUrbanizationTier(roads, context);
 }
 
 type LayoutContext = {
@@ -56,9 +70,15 @@ type LayoutContext = {
   civicElevationBoost: number;
   reliefTerraceBoost: number;
   waterAffinity: number;
+  urbanizationTier: CountyGenerationParameters["urbanizationTier"] | "urban_core";
 };
 
-function layoutContext(profile: ArchetypeProfile, modulation: CountyGenerationModulation | undefined, seed: number): LayoutContext {
+function layoutContext(
+  profile: ArchetypeProfile,
+  modulation: CountyGenerationModulation | undefined,
+  seed: number,
+  urbanizationTier: LayoutContext["urbanizationTier"],
+): LayoutContext {
   const xShift = (seed % 3) - 1;
   const yShift = (Math.floor(seed / 3) % 3) - 1;
   const densityScale = modulation?.densityScale ?? 1;
@@ -74,6 +94,7 @@ function layoutContext(profile: ArchetypeProfile, modulation: CountyGenerationMo
     civicElevationBoost: modulation?.civicElevationBoost ?? profile.zones.civicElevationBoost,
     reliefTerraceBoost: ((modulation?.reliefScale ?? 1) - 1) * 0.38,
     waterAffinity: modulation?.waterAffinity ?? 0,
+    urbanizationTier,
   };
 }
 
@@ -353,6 +374,45 @@ function profileFor(parameters: GeneratedDistrictArchetype | CountyGenerationPar
 
 function modulationFor(parameters: GeneratedDistrictArchetype | CountyGenerationParameters): CountyGenerationModulation | undefined {
   return typeof parameters === "string" ? undefined : parameters.modulation;
+}
+
+function urbanizationTierFor(parameters: GeneratedDistrictArchetype | CountyGenerationParameters): LayoutContext["urbanizationTier"] {
+  return typeof parameters === "string" ? "urban_core" : parameters.urbanizationTier;
+}
+
+function zonesForUrbanizationTier(zones: CityWorldZoneSpec[], context: LayoutContext): CityWorldZoneSpec[] {
+  if (context.urbanizationTier === "urban_core" || context.urbanizationTier === "suburban" || context.urbanizationTier === "town") return zones;
+
+  const maxResidential = context.urbanizationTier === "frontier" ? 2 : 3;
+  const maxCommercial = context.urbanizationTier === "frontier" ? 1 : 2;
+  let residential = 0;
+  let commercial = 0;
+
+  return zones.filter((zone) => {
+    if (zone.kind === "apartments") return false;
+    if (context.urbanizationTier === "frontier" && zone.kind === "gym") return false;
+    if (zone.kind === "residential") {
+      residential += 1;
+      return residential <= maxResidential;
+    }
+    if (zone.kind === "commercial") {
+      commercial += 1;
+      return commercial <= maxCommercial;
+    }
+    return true;
+  });
+}
+
+function roadsForUrbanizationTier(roads: CityWorldRoadSeed[], context: LayoutContext): CityWorldRoadSeed[] {
+  if (context.urbanizationTier !== "frontier") return roads;
+  return roads.map((roadSeed) =>
+    roadSeed.kind === "avenue"
+      ? {
+          ...roadSeed,
+          kind: "street",
+        }
+      : roadSeed,
+  );
 }
 
 function zone(

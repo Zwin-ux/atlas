@@ -1,5 +1,6 @@
 import type { CityWorldParametricSpec, CityWorldRoadSeed, CityWorldZoneSpec } from "./cityWorldParametricGenerator.js";
 import type { DeterministicGeneratedDistrictInput, GeneratedDistrictArchetype } from "./cityWorldGeneratedDistrictTypes.js";
+import { US_COUNTY_FACTS_BY_GEOID } from "../world/usCountyFacts.js";
 import { REGIONAL_PALETTES, type RegionalPalette } from "./cityWorldRegionalPalettes.js";
 
 export type CensusDivision =
@@ -15,6 +16,7 @@ export type CensusDivision =
 
 export type LatitudeBand = "tropical" | "subtropical" | "warm_temperate" | "cool_temperate" | "northern" | "arctic";
 export type AridityBand = "humid" | "balanced" | "dry" | "arid";
+export type UrbanizationTier = "urban_core" | "suburban" | "town" | "rural" | "frontier";
 
 export type NameSignal =
   | "bay"
@@ -70,6 +72,12 @@ export type CountyGenerationEnvelope = {
   snowRoofSuppressed: boolean;
   forbidsCoastalDesert: boolean;
   forbidsSubtropicalSnowRoof: boolean;
+};
+
+export type CountyGenerationFacts = {
+  population2024: number;
+  landAreaSqMi: number;
+  densityPerSqMi: number;
 };
 
 export type ArchetypeZoneProfile = {
@@ -211,6 +219,10 @@ export type CountyGenerationParameters = {
   archetype: GeneratedDistrictArchetype;
   archetypeProfile: ArchetypeProfile;
   artProfile: GeneratedRoadArtProfile;
+  population2024: number;
+  landAreaSqMi: number;
+  densityPerSqMi: number;
+  urbanizationTier: UrbanizationTier;
   region: CensusDivision;
   regionProfile: RegionProfile;
   climate: CountyGenerationClimate;
@@ -383,6 +395,13 @@ export const NAME_SIGNAL_TOKENS: Record<NameSignal, readonly string[]> = {
 const COASTAL_INTENT_STATES = ["CA", "FL", "HI", "LA", "ME", "MA", "MD", "NJ", "NY", "OR", "RI", "SC", "VA", "WA"] as const;
 const WATER_DEPENDENT_ARCHETYPES = ["coastal_grid", "river_town"] as const;
 
+export const URBANIZATION_TIER_CUTS: Record<Exclude<UrbanizationTier, "frontier">, number> = {
+  urban_core: 1400,
+  suburban: 300,
+  town: 50,
+  rural: 10,
+};
+
 export function isWaterDependentGeneratedDistrictArchetype(archetype: GeneratedDistrictArchetype): boolean {
   return (WATER_DEPENDENT_ARCHETYPES as readonly GeneratedDistrictArchetype[]).includes(archetype);
 }
@@ -532,16 +551,22 @@ export function resolveCountyParameters(county: CountyParameterInput, seed: numb
   const region = STATE_TO_DIVISION[stateCode] ?? "south_atlantic";
   const regionProfile = REGION_PROFILES[region];
   const nameSignal = resolveNameSignals(county.name);
+  const facts = resolveCountyFacts(county);
+  const urbanizationTier = urbanizationTierForDensity(facts.densityPerSqMi);
   const climate = resolveClimate(county, regionProfile, nameSignal);
-  const archetype = resolveArchetype(county, seed, climate);
+  const archetype = resolveArchetype(county, seed, climate, nameSignal, urbanizationTier);
   const archetypeProfile = ARCHETYPE_PROFILES[archetype];
-  const modulation = resolveModulation(archetypeProfile, regionProfile, climate, nameSignal, seed);
+  const modulation = resolveModulation(archetypeProfile, regionProfile, climate, nameSignal, seed, urbanizationTier);
   const palette = resolveCountyPalette(archetypeProfile.palette, modulation.paletteVariantOffset);
 
   return {
     archetype,
     archetypeProfile,
     artProfile: GENERATED_ART_PROFILES[archetype],
+    population2024: facts.population2024,
+    landAreaSqMi: facts.landAreaSqMi,
+    densityPerSqMi: facts.densityPerSqMi,
+    urbanizationTier,
     region,
     regionProfile,
     climate,
@@ -558,35 +583,77 @@ export function resolveCountyParameters(county: CountyParameterInput, seed: numb
   };
 }
 
-function resolveArchetype(county: CountyParameterInput, seed: number, climate: CountyGenerationClimate): GeneratedDistrictArchetype {
+function resolveArchetype(
+  county: CountyParameterInput,
+  seed: number,
+  climate: CountyGenerationClimate,
+  nameSignal: readonly NameSignal[],
+  urbanizationTier: UrbanizationTier,
+): GeneratedDistrictArchetype {
   const stateCode = county.stateCode.toUpperCase();
   const longitude = county.centroid?.longitude;
   const latitude = county.centroid?.latitude;
   const coastalIntent = hasCoastalIntent(stateCode, climate);
+  if (urbanizationTier === "urban_core") return "metro_grid";
   for (const rule of ARCHETYPE_SELECTION_RULES) {
-    if (rule.fallback) return supportedArchetype(rule.archetype, climate) ?? rule.archetype;
+    if (rule.fallback) return supportedArchetype(rule.archetype, county, climate, nameSignal, urbanizationTier, seed);
     if (rule.excludeCoastalIntent && coastalIntent) continue;
-    if (rule.coastalIntent && coastalIntent) return supportedArchetype(rule.archetype, climate) ?? "metro_grid";
-    if (rule.inlandAridProxy && climate.inlandAridProxy) return supportedArchetype(rule.archetype, climate) ?? "metro_grid";
-    if (rule.states?.includes(stateCode)) return supportedArchetype(rule.archetype, climate) ?? "metro_grid";
+    if (rule.coastalIntent && coastalIntent) return supportedArchetype(rule.archetype, county, climate, nameSignal, urbanizationTier, seed);
+    if (rule.inlandAridProxy && climate.inlandAridProxy) {
+      return supportedArchetype(rule.archetype, county, climate, nameSignal, urbanizationTier, seed);
+    }
+    if (rule.states?.includes(stateCode)) return supportedArchetype(rule.archetype, county, climate, nameSignal, urbanizationTier, seed);
     if (rule.coordinate && longitude !== undefined && latitude !== undefined && coordinateMatches(rule.coordinate, longitude, latitude)) {
-      return supportedArchetype(rule.archetype, climate) ?? "metro_grid";
+      return supportedArchetype(rule.archetype, county, climate, nameSignal, urbanizationTier, seed);
     }
     if (rule.seedModulo && seed % rule.seedModulo.divisor === rule.seedModulo.remainder) {
-      const archetype = supportedArchetype(rule.archetype, climate);
-      if (archetype) return archetype;
+      return supportedArchetype(rule.archetype, county, climate, nameSignal, urbanizationTier, seed);
     }
   }
-  return "metro_grid";
+  return fallbackTerrainArchetype(county, climate, nameSignal, seed);
 }
 
 function supportedArchetype(
   archetype: GeneratedDistrictArchetype,
+  county: CountyParameterInput,
   climate: CountyGenerationClimate,
-): GeneratedDistrictArchetype | null {
+  nameSignal: readonly NameSignal[],
+  urbanizationTier: UrbanizationTier,
+  seed: number,
+): GeneratedDistrictArchetype {
+  if (archetype === "metro_grid" && !metroAllowedForTier(urbanizationTier)) {
+    return fallbackTerrainArchetype(county, climate, nameSignal, seed);
+  }
   if (!isWaterDependentGeneratedDistrictArchetype(archetype)) return archetype;
   if (climate.aridity !== "arid") return archetype;
   return "desert_basin";
+}
+
+function metroAllowedForTier(urbanizationTier: UrbanizationTier): boolean {
+  return urbanizationTier === "urban_core" || urbanizationTier === "suburban";
+}
+
+function fallbackTerrainArchetype(
+  county: CountyParameterInput,
+  climate: CountyGenerationClimate,
+  nameSignal: readonly NameSignal[],
+  seed: number,
+): GeneratedDistrictArchetype {
+  const stateCode = county.stateCode.toUpperCase();
+  if (climate.inlandAridProxy || climate.aridity === "arid" || nameSignal.includes("desert") || nameSignal.includes("mesa")) return "desert_basin";
+  if (hasCoastalIntent(stateCode, climate)) return "coastal_grid";
+  if (isMountainTerrainFallback(county)) return "mountain_valley";
+  if (waterNameSignalWeight(nameSignal) > 0 && seed % 3 === 0) return "river_town";
+  return "prairie_town";
+}
+
+function isMountainTerrainFallback(county: CountyParameterInput): boolean {
+  const stateCode = county.stateCode.toUpperCase();
+  if (!["CO", "ID", "MT", "UT", "WY", "WV", "VT"].includes(stateCode)) return false;
+  const longitude = county.centroid?.longitude ?? -98;
+  const latitude = county.centroid?.latitude ?? 39;
+  if (stateCode === "WV" || stateCode === "VT") return latitude >= 38;
+  return longitude < -104 && latitude >= 37;
 }
 
 function hasCoastalIntent(stateCode: string, climate: CountyGenerationClimate): boolean {
@@ -722,15 +789,49 @@ function waterNameSignalWeight(signals: readonly NameSignal[]): number {
     : 0;
 }
 
+function resolveCountyFacts(county: CountyParameterInput): CountyGenerationFacts {
+  const row = US_COUNTY_FACTS_BY_GEOID.get(county.geoid);
+  if (!row) throw new Error(`Missing Census county facts for GEOID ${county.geoid}`);
+  const [, population2024, landAreaSqMi] = row;
+  return {
+    population2024,
+    landAreaSqMi,
+    densityPerSqMi: densityPerSqMiForFacts(population2024, landAreaSqMi),
+  };
+}
+
+export function densityPerSqMiForFacts(population2024: number, landAreaSqMi: number): number {
+  if (!Number.isFinite(population2024) || population2024 < 0) {
+    throw new Error(`Invalid population2024 ${population2024}`);
+  }
+  if (!Number.isFinite(landAreaSqMi) || landAreaSqMi <= 0) {
+    throw new Error(`Invalid landAreaSqMi ${landAreaSqMi}`);
+  }
+  return Math.round((population2024 / landAreaSqMi) * 10) / 10;
+}
+
+export function urbanizationTierForDensity(densityPerSqMi: number): UrbanizationTier {
+  if (!Number.isFinite(densityPerSqMi) || densityPerSqMi < 0) {
+    throw new Error(`Invalid densityPerSqMi ${densityPerSqMi}`);
+  }
+  if (densityPerSqMi >= URBANIZATION_TIER_CUTS.urban_core) return "urban_core";
+  if (densityPerSqMi >= URBANIZATION_TIER_CUTS.suburban) return "suburban";
+  if (densityPerSqMi >= URBANIZATION_TIER_CUTS.town) return "town";
+  if (densityPerSqMi >= URBANIZATION_TIER_CUTS.rural) return "rural";
+  return "frontier";
+}
+
 function resolveModulation(
   archetypeProfile: ArchetypeProfile,
   regionProfile: RegionProfile,
   climate: CountyGenerationClimate,
   nameSignal: readonly NameSignal[],
   seed: number,
+  urbanizationTier: UrbanizationTier,
 ): CountyGenerationModulation {
   const aridityLift = climate.aridity === "arid" ? 0.1 : climate.aridity === "dry" ? 0.05 : climate.aridity === "humid" ? -0.03 : 0;
   const seedMicroVariation = (((seed >>> 5) % 5) - 2) * 0.001;
+  const tierDensityScale = urbanDensityScaleForTier(urbanizationTier);
   const waterAffinity = clamp01(
     waterNameSignalWeight(nameSignal) +
       (climate.coastalProximity === "coastal" ? 0.45 : climate.coastalProximity === "near_coastal" ? 0.25 : 0) -
@@ -745,7 +846,9 @@ function resolveModulation(
 
   return {
     paletteVariantOffset,
-    densityScale: roundModulator(clamp(1 + regionProfile.vegetationBias * 0.16 - aridityLift + waterAffinity * 0.025 + seedMicroVariation, 0.94, 1.06)),
+    densityScale: roundModulator(
+      clamp((1 + regionProfile.vegetationBias * 0.16 - aridityLift + waterAffinity * 0.025 + seedMicroVariation) * tierDensityScale, 0.42, 1.18),
+    ),
     reliefScale: roundModulator(
       clamp(
         1 +
@@ -766,6 +869,14 @@ function resolveModulation(
     vegetationDensity: roundModulator(clamp01(0.5 + regionProfile.vegetationBias - aridityLift + waterAffinity * 0.08)),
     waterAffinity,
   };
+}
+
+function urbanDensityScaleForTier(urbanizationTier: UrbanizationTier): number {
+  if (urbanizationTier === "urban_core") return 1.14;
+  if (urbanizationTier === "suburban") return 1.03;
+  if (urbanizationTier === "town") return 0.9;
+  if (urbanizationTier === "rural") return 0.68;
+  return 0.5;
 }
 
 function resolveCountyPalette(base: RegionalPalette, paletteVariantOffset: 0 | 1 | 2): RegionalPalette {

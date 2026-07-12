@@ -12,6 +12,14 @@ export {
   usCountyIndexSourceNotes,
 } from "./usCountyIndex.js";
 export {
+  US_COUNTY_FACTS,
+  US_COUNTY_FACTS_BY_GEOID,
+  US_COUNTY_FACTS_FALLBACK_GEOIDS,
+  US_COUNTY_FACTS_LAND_AREA_YEAR,
+  US_COUNTY_FACTS_POPULATION_YEAR,
+} from "./usCountyFacts.js";
+export type { UsCountyFactRow } from "./usCountyFacts.js";
+export {
   CALIFORNIA_DISTRICT_CANDIDATE_PACK,
   FIRST_CALIFORNIA_SECOND_DISTRICT_CANDIDATE,
 } from "./californiaDistrictCandidatePack.js";

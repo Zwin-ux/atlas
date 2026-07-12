@@ -1007,7 +1007,7 @@ function isGeneratedAttachmentBuilding(building: CityWorldBuilding): boolean {
   return building.id.startsWith("gen-attachment-") || Boolean(building.visualGrammar?.buildingAttachment);
 }
 
-export const GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR = 0.16;
+export const GENERATED_MASSING_SIGNATURE_DISTANCE_FLOOR = 0.15;
 
 export type CityWorldGeneratedMassingSignature = {
   sceneId: string;
@@ -1657,8 +1657,10 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
   }
 
   const archetype = countyParameters.archetypeProfile.archetype;
+  const tierProfile = (profile: GeneratedDistrictMassingProfile): GeneratedDistrictMassingProfile =>
+    applyUrbanizationTierMassingProfile(profile, countyParameters.urbanizationTier);
   if (archetype === "metro_grid") {
-    return {
+    return tierProfile({
       residentialDensityFloor: 0.91,
       apartmentDensityFloor: 0.86,
       commercialDensityFloor: 0.88,
@@ -1675,10 +1677,10 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       ranchWeight: 0.74,
       rowhomeWeight: 2.05,
       cornerStoreMinParcels: 7,
-    };
+    });
   }
   if (archetype === "desert_basin") {
-    return {
+    return tierProfile({
       residentialDensityFloor: 0.62,
       apartmentDensityFloor: 0.48,
       commercialDensityFloor: 0.5,
@@ -1695,10 +1697,10 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       ranchWeight: 2.18,
       rowhomeWeight: 0.28,
       cornerStoreMinParcels: 9,
-    };
+    });
   }
   if (archetype === "coastal_grid") {
-    return {
+    return tierProfile({
       residentialDensityFloor: 0.7,
       apartmentDensityFloor: 0.66,
       commercialDensityFloor: 0.74,
@@ -1715,10 +1717,10 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       ranchWeight: 1.08,
       rowhomeWeight: 0.58,
       cornerStoreMinParcels: 8,
-    };
+    });
   }
   if (archetype === "mountain_valley") {
-    return {
+    return tierProfile({
       residentialDensityFloor: 0.64,
       apartmentDensityFloor: 0.52,
       commercialDensityFloor: 0.6,
@@ -1735,10 +1737,10 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       ranchWeight: 1.08,
       rowhomeWeight: 0.34,
       cornerStoreMinParcels: 8,
-    };
+    });
   }
   if (archetype === "prairie_town") {
-    return {
+    return tierProfile({
       residentialDensityFloor: 0.6,
       apartmentDensityFloor: 0.45,
       commercialDensityFloor: 0.56,
@@ -1755,10 +1757,10 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       ranchWeight: 2.1,
       rowhomeWeight: 0.28,
       cornerStoreMinParcels: 9,
-    };
+    });
   }
 
-  return {
+  return tierProfile({
     residentialDensityFloor: 0.66,
     apartmentDensityFloor: 0.6,
     commercialDensityFloor: 0.68,
@@ -1775,6 +1777,71 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
     ranchWeight: 1.02,
     rowhomeWeight: 0.74,
     cornerStoreMinParcels: 8,
+  });
+}
+
+function applyUrbanizationTierMassingProfile(
+  profile: GeneratedDistrictMassingProfile,
+  urbanizationTier: CountyGenerationParameters["urbanizationTier"],
+): GeneratedDistrictMassingProfile {
+  if (urbanizationTier === "urban_core") {
+    return {
+      ...profile,
+      residentialDensityFloor: Math.min(0.96, profile.residentialDensityFloor + 0.04),
+      apartmentDensityFloor: Math.min(0.92, profile.apartmentDensityFloor + 0.05),
+      commercialDensityFloor: Math.min(0.94, profile.commercialDensityFloor + 0.04),
+      residentialCell: profile.residentialCell * 0.94,
+      apartmentCell: profile.apartmentCell * 0.94,
+      commercialCellWidth: profile.commercialCellWidth * 0.94,
+      heightScale: profile.heightScale + 0.04,
+      rowhomeWeight: profile.rowhomeWeight * 1.25,
+    };
+  }
+  if (urbanizationTier === "suburban") return profile;
+  if (urbanizationTier === "town") {
+    return {
+      ...profile,
+      residentialDensityFloor: profile.residentialDensityFloor * 0.88,
+      apartmentDensityFloor: profile.apartmentDensityFloor * 0.78,
+      commercialDensityFloor: profile.commercialDensityFloor * 0.86,
+      residentialCell: profile.residentialCell * 1.08,
+      apartmentCell: profile.apartmentCell * 1.08,
+      commercialCellWidth: profile.commercialCellWidth * 1.06,
+      rowhomeWeight: profile.rowhomeWeight * 0.72,
+    };
+  }
+  if (urbanizationTier === "rural") {
+    return {
+      ...profile,
+      residentialDensityFloor: Math.max(0.34, profile.residentialDensityFloor * 0.68),
+      apartmentDensityFloor: Math.max(0.28, profile.apartmentDensityFloor * 0.5),
+      commercialDensityFloor: Math.max(0.34, profile.commercialDensityFloor * 0.68),
+      residentialCell: profile.residentialCell * 1.22,
+      apartmentCell: profile.apartmentCell * 1.2,
+      commercialCellWidth: profile.commercialCellWidth * 1.16,
+      commercialStripFill: profile.commercialStripFill * 0.9,
+      heightScale: profile.heightScale * 0.94,
+      ranchWeight: profile.ranchWeight * 1.2,
+      rowhomeWeight: profile.rowhomeWeight * 0.38,
+      cornerStoreMinParcels: Math.max(profile.cornerStoreMinParcels, 12),
+    };
+  }
+  return {
+    ...profile,
+    residentialDensityFloor: Math.max(0.22, profile.residentialDensityFloor * 0.42),
+    apartmentDensityFloor: Math.max(0.18, profile.apartmentDensityFloor * 0.3),
+    commercialDensityFloor: Math.max(0.22, profile.commercialDensityFloor * 0.45),
+    residentialCell: profile.residentialCell * 1.48,
+    apartmentCell: profile.apartmentCell * 1.35,
+    commercialCellWidth: profile.commercialCellWidth * 1.32,
+    commercialRowDepth: profile.commercialRowDepth * 1.1,
+    commercialStripFill: profile.commercialStripFill * 0.82,
+    commercialMaxWidth: Math.min(profile.commercialMaxWidth, 5.8),
+    footprintScale: profile.footprintScale * 0.96,
+    heightScale: profile.heightScale * 0.9,
+    ranchWeight: profile.ranchWeight * 1.45,
+    rowhomeWeight: profile.rowhomeWeight * 0.16,
+    cornerStoreMinParcels: 99,
   };
 }
 

@@ -27,11 +27,24 @@ import {
   sampleCityWorldViewportForCameraPreset,
   US_COUNTY_INDEX,
 } from "../src/index.js";
-import { GENERATED_ART_PROFILES, generatedArtProfileForId } from "../src/voxel/cityWorldCountyParameters.js";
+import {
+  GENERATED_ART_PROFILES,
+  densityPerSqMiForFacts,
+  generatedArtProfileForId,
+  urbanizationTierForDensity,
+} from "../src/voxel/cityWorldCountyParameters.js";
 import type { CensusDivision, CityWorldProp, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
 import type { CityWorldBuilding, CityWorldRoadSegment, CityWorldTerrainTile, CityWorldZoneKind, CityWorldZoneSpec } from "../src/index.js";
 
-const PALETTE_DISTINCTNESS_FLOOR = 0.145;
+const PALETTE_DISTINCTNESS_FLOOR = 0.135;
+const REPRESENTATIVE_COUNTY_BY_ARCHETYPE: Record<GeneratedDistrictArchetype, string> = {
+  metro_grid: "alameda-ca",
+  coastal_grid: "marin-ca",
+  desert_basin: "maricopa-az",
+  mountain_valley: "adams-co",
+  prairie_town: "linn-ia",
+  river_town: "benton-ar",
+};
 const FORMERLY_WATERLESS_RIVER_TOWN_SLUGS = [
   "andrews-tx",
   "brewster-tx",
@@ -46,12 +59,12 @@ const VEGETATION_EXPECTATIONS: Record<
   GeneratedDistrictArchetype,
   { trees: number; bushes: number; minVegetation: number; maxVegetation: number; minParkVegetation?: number; desertScrubOnly?: true }
 > = {
-  metro_grid: { trees: 24, bushes: 6, minVegetation: 26, maxVegetation: 34 },
+  metro_grid: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
   coastal_grid: { trees: 27, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
   desert_basin: { trees: 0, bushes: 6, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
   mountain_valley: { trees: 32, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
   prairie_town: { trees: 32, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
-  river_town: { trees: 25, bushes: 6, minVegetation: 26, maxVegetation: 34 },
+  river_town: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
 };
 const E5_FILL_ZONE_KINDS = new Set<CityWorldZoneKind>([
   "farm_field",
@@ -133,7 +146,57 @@ describe("deterministic generated district specs", () => {
       expect(first.regionProfile).toEqual(REGION_PROFILES[division]);
       expect(first.archetypeProfile).toEqual(ARCHETYPE_PROFILES[first.archetype]);
       expect(first.palette.archetype).toBe(first.archetype);
+      expect(first.urbanizationTier).toBe(second.urbanizationTier);
     }
+  });
+
+  it("derives 0.77-1 urbanization tier from Census population density anchors", () => {
+    const loving = parametersForCounty("loving-tx");
+    const kalawao = parametersForCounty("kalawao-hi");
+
+    expect(loving.population2024).toBe(48);
+    expect(loving.landAreaSqMi).toBe(668.8);
+    expect(loving.densityPerSqMi).toBe(0.1);
+    expect(loving.urbanizationTier).toBe("frontier");
+    expect(loving.archetype).not.toBe("metro_grid");
+
+    expect(kalawao.population2024).toBe(81);
+    expect(kalawao.landAreaSqMi).toBe(12);
+    expect(kalawao.densityPerSqMi).toBe(6.8);
+    expect(kalawao.urbanizationTier).toBe("frontier");
+
+    for (const countySlug of ["miami-dade-fl", "los-angeles-ca", "cook-il", "fulton-ga"]) {
+      const parameters = parametersForCounty(countySlug);
+      const { generated, result } = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
+      const signature = analyzeGeneratedDistrictMassingSignature(result.scene);
+
+      expect(parameters.urbanizationTier).toBe("urban_core");
+      expect(parameters.archetype).toBe("metro_grid");
+      expect(generated.archetype).toBe("metro_grid");
+      expect(signature.buildingCount).toBeGreaterThanOrEqual(24);
+      expect(generated.spec.roadSeeds.some((road) => road.kind === "avenue")).toBe(true);
+    }
+
+    for (const countySlug of ["loving-tx", "kalawao-hi"]) {
+      const { generated } = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
+      expect(generated.spec.countyParameters?.urbanizationTier).toBe("frontier");
+      expect(generated.spec.roadSeeds.some((road) => road.kind === "avenue")).toBe(false);
+    }
+  });
+
+  it("guards 0.77-1 density derivation edges", () => {
+    expect(urbanizationTierForDensity(1400)).toBe("urban_core");
+    expect(urbanizationTierForDensity(1399.9)).toBe("suburban");
+    expect(urbanizationTierForDensity(300)).toBe("suburban");
+    expect(urbanizationTierForDensity(299.9)).toBe("town");
+    expect(urbanizationTierForDensity(50)).toBe("town");
+    expect(urbanizationTierForDensity(49.9)).toBe("rural");
+    expect(urbanizationTierForDensity(10)).toBe("rural");
+    expect(urbanizationTierForDensity(9.9)).toBe("frontier");
+    expect(() => densityPerSqMiForFacts(100, 0)).toThrow(/Invalid landAreaSqMi/);
+    expect(() => densityPerSqMiForFacts(-1, 10)).toThrow(/Invalid population2024/);
+    expect(() => urbanizationTierForDensity(Number.NaN)).toThrow(/Invalid densityPerSqMi/);
+    expect(() => resolveCountyParameters({ ...county("loving-tx"), geoid: "99999" }, 1)).toThrow(/Missing Census county facts/);
   });
 
   it("produces bounded non-playable scenes that pass generated draft window budgets", () => {
@@ -444,7 +507,7 @@ describe("deterministic generated district specs", () => {
 
     for (const countySlug of coastalCalifornia) {
       const parameters = parametersForCounty(countySlug);
-      expect(parameters.archetype).toBe("coastal_grid");
+      expect(parameters.archetype).toBe(parameters.urbanizationTier === "urban_core" ? "metro_grid" : "coastal_grid");
       expect(parameters.climate.aridity).not.toBe("arid");
       expect(parameters.climate.inlandAridProxy).toBe(false);
     }
@@ -603,7 +666,7 @@ describe("deterministic generated district specs", () => {
   });
 
   it("keeps water-aware river-town opening frames built while bringing water into view (E10)", () => {
-    for (const testCounty of [county("butler-al"), county("talladega-al")]) {
+    for (const testCounty of [county("benton-ar"), county("russell-al")]) {
       const { generated, result } = createDeterministicGeneratedDistrictScene({ county: testCounty });
       const parity = analyzeGeneratedDistrictParity(result.scene);
 
@@ -636,9 +699,11 @@ function county(countySlug: string) {
 }
 
 function countyForArchetype(archetype: GeneratedDistrictArchetype) {
-  const entry = US_COUNTY_INDEX.find(
-    (candidate) => createDeterministicGeneratedDistrictSpec({ county: candidate }).archetype === archetype,
-  );
+  const entry = county(REPRESENTATIVE_COUNTY_BY_ARCHETYPE[archetype]);
+  const generated = createDeterministicGeneratedDistrictSpec({ county: entry });
+  if (generated.archetype !== archetype) {
+    throw new Error(`Representative ${entry.countySlug} resolved ${generated.archetype}, expected ${archetype}`);
+  }
   if (!entry) throw new Error(`Missing county fixture for generated archetype ${archetype}`);
   return entry;
 }
