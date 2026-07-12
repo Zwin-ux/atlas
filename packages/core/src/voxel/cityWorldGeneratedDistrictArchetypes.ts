@@ -52,12 +52,12 @@ export function generatedRoadSeeds(parameters: GeneratedDistrictArchetype | Coun
       : profile.archetype === "desert_basin"
         ? withBonusRoad(desertBasinRoads(context), bonusRoad)
         : profile.archetype === "coastal_grid"
-          ? withBonusRoad(coastalGridRoads(context), bonusRoad)
-          : profile.archetype === "mountain_valley"
-            ? withBonusRoad(mountainValleyRoads(context), bonusRoad)
-            : profile.archetype === "prairie_town"
-              ? withBonusRoad(prairieTownRoads(context), bonusRoad)
-              : riverTownRoads(context);
+        ? withBonusRoad(coastalGridRoads(context), bonusRoad)
+        : profile.archetype === "mountain_valley"
+          ? withBonusRoad(mountainValleyRoads(context), bonusRoad)
+          : profile.archetype === "prairie_town"
+            ? withBonusRoad(prairieTownRoads(context), bonusRoad)
+            : riverTownRoads(context);
   return roadsForUrbanizationTier(roads, context);
 }
 
@@ -324,7 +324,7 @@ function mountainValleyRoads(context: LayoutContext): CityWorldRoadSeed[] {
   return [
     road("gen-road-mountain-upper-contour", "street", 4, 13 + context.yShift, 24, 13 + context.yShift),
     road("gen-road-mountain-valley-spine", "avenue", 10, 23, 38, 23),
-    road("gen-road-mountain-lower-contour", "street", 18, 30, 41, 30),
+    road("gen-road-mountain-lower-contour", "street", 24 + context.xShift, 27, 39, 27),
     road("gen-road-mountain-switchback-spine", "street", 24 + context.xShift, 8, 24 + context.xShift, 27),
     road("gen-road-mountain-switchback-branch", "street", 24 + context.xShift, 18, 18 + skew, 24),
     road("gen-road-mountain-terrace-branch", "street", 14, 13 + context.yShift, 27, 18.6 - bend * 0.25),
@@ -504,14 +504,142 @@ function zonesForUrbanizationTier(zones: CityWorldZoneSpec[], context: LayoutCon
 }
 
 function roadsForUrbanizationTier(roads: CityWorldRoadSeed[], context: LayoutContext): CityWorldRoadSeed[] {
-  if (context.urbanizationTier !== "frontier") return roads;
-  return roads.map((roadSeed) =>
-    roadSeed.kind === "avenue"
-      ? {
-          ...roadSeed,
-          kind: "street",
-        }
-      : roadSeed,
+  const tierRoads: CityWorldRoadSeed[] =
+    context.urbanizationTier === "frontier"
+      ? roads.map((roadSeed) =>
+          roadSeed.kind === "avenue"
+            ? {
+                ...roadSeed,
+                kind: "street" as const,
+              }
+            : roadSeed,
+        )
+      : roads;
+  if (
+    (context.urbanizationTier !== "frontier" && context.urbanizationTier !== "rural") ||
+    context.profile.archetype !== "mountain_valley"
+  ) {
+    return tierRoads;
+  }
+
+  return cappedConnectedSparseRoads(tierRoads, context);
+}
+
+const SPARSE_TIER_ROAD_LENGTH_CAP: Record<"frontier" | "rural", number> = {
+  frontier: 124,
+  rural: 142,
+};
+
+function cappedConnectedSparseRoads(roads: CityWorldRoadSeed[], context: LayoutContext): CityWorldRoadSeed[] {
+  const crosswalks = roads.filter((roadSeed) => roadSeed.kind === "crosswalk");
+  let network = largestRoadNetworkComponent(roads.filter((roadSeed) => roadSeed.kind !== "crosswalk"));
+  const cap = SPARSE_TIER_ROAD_LENGTH_CAP[context.urbanizationTier as "frontier" | "rural"];
+
+  while (roadSeedLength(network) > cap && network.length > 1) {
+    const trim = sparseRoadTrimCandidate(network);
+    if (!trim) break;
+    network = largestRoadNetworkComponent(network.filter((roadSeed) => roadSeed.id !== trim.id));
+  }
+
+  return [
+    ...network,
+    ...crosswalks.filter((crosswalk) => network.some((roadSeed) => roadSeedDistance(crosswalk, roadSeed) <= 0.8)),
+  ].sort((first, second) => first.id.localeCompare(second.id));
+}
+
+function sparseRoadTrimCandidate(roads: CityWorldRoadSeed[]): CityWorldRoadSeed | undefined {
+  return roads
+    .filter((roadSeed) => !roadSeed.id.includes("valley-spine") && !roadSeed.id.includes("switchback") && !roadSeed.id.includes("contour"))
+    .sort((first, second) => sparseRoadTrimPriority(first) - sparseRoadTrimPriority(second) || roadLength(second) - roadLength(first))[0];
+}
+
+function sparseRoadTrimPriority(roadSeed: CityWorldRoadSeed): number {
+  if (roadSeed.id.includes("service-loop")) return 0;
+  if (roadSeed.kind === "driveway") return 1;
+  if (roadSeed.id.includes("offset")) return 2;
+  return 3;
+}
+
+function largestRoadNetworkComponent(roads: CityWorldRoadSeed[]): CityWorldRoadSeed[] {
+  if (roads.length <= 1) return roads;
+  const components: CityWorldRoadSeed[][] = [];
+  const seen = new Set<string>();
+
+  for (const roadSeed of roads) {
+    if (seen.has(roadSeed.id)) continue;
+    const component: CityWorldRoadSeed[] = [];
+    const queue = [roadSeed];
+    seen.add(roadSeed.id);
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      component.push(current);
+      for (const candidate of roads) {
+        if (seen.has(candidate.id)) continue;
+        if (roadSeedDistance(current, candidate) > 0.18) continue;
+        seen.add(candidate.id);
+        queue.push(candidate);
+      }
+    }
+    components.push(component);
+  }
+
+  return components.sort((first, second) => roadSeedLength(second) - roadSeedLength(first) || second.length - first.length)[0] ?? [];
+}
+
+function roadSeedLength(roads: CityWorldRoadSeed[]): number {
+  return roads.reduce((sum, roadSeed) => sum + roadLength(roadSeed), 0);
+}
+
+function roadLength(roadSeed: CityWorldRoadSeed): number {
+  return Math.hypot(roadSeed.to.x - roadSeed.from.x, roadSeed.to.y - roadSeed.from.y);
+}
+
+function roadSeedDistance(first: CityWorldRoadSeed, second: CityWorldRoadSeed): number {
+  if (roadSegmentsIntersect(first, second)) return 0;
+  return Math.min(
+    pointToRoadSeedDistance(first.from, second),
+    pointToRoadSeedDistance(first.to, second),
+    pointToRoadSeedDistance(second.from, first),
+    pointToRoadSeedDistance(second.to, first),
+  );
+}
+
+function pointToRoadSeedDistance(point: RoadPoint2D, roadSeed: CityWorldRoadSeed): number {
+  const dx = roadSeed.to.x - roadSeed.from.x;
+  const dy = roadSeed.to.y - roadSeed.from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0) return Math.hypot(point.x - roadSeed.from.x, point.y - roadSeed.from.y);
+  const t = Math.max(0, Math.min(lengthSquared, (point.x - roadSeed.from.x) * dx + (point.y - roadSeed.from.y) * dy)) / lengthSquared;
+  return Math.hypot(point.x - (roadSeed.from.x + dx * t), point.y - (roadSeed.from.y + dy * t));
+}
+
+function roadSegmentsIntersect(first: CityWorldRoadSeed, second: CityWorldRoadSeed): boolean {
+  const a = first.from;
+  const b = first.to;
+  const c = second.from;
+  const d = second.to;
+  const abC = roadOrientation(a, b, c);
+  const abD = roadOrientation(a, b, d);
+  const cdA = roadOrientation(c, d, a);
+  const cdB = roadOrientation(c, d, b);
+
+  if (Math.abs(abC) < 0.001 && pointOnRoadBounds(c, a, b)) return true;
+  if (Math.abs(abD) < 0.001 && pointOnRoadBounds(d, a, b)) return true;
+  if (Math.abs(cdA) < 0.001 && pointOnRoadBounds(a, c, d)) return true;
+  if (Math.abs(cdB) < 0.001 && pointOnRoadBounds(b, c, d)) return true;
+  return (abC > 0) !== (abD > 0) && (cdA > 0) !== (cdB > 0);
+}
+
+function roadOrientation(a: RoadPoint2D, b: RoadPoint2D, c: RoadPoint2D): number {
+  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+function pointOnRoadBounds(point: RoadPoint2D, a: RoadPoint2D, b: RoadPoint2D): boolean {
+  return (
+    point.x >= Math.min(a.x, b.x) - 0.001 &&
+    point.x <= Math.max(a.x, b.x) + 0.001 &&
+    point.y >= Math.min(a.y, b.y) - 0.001 &&
+    point.y <= Math.max(a.y, b.y) + 0.001
   );
 }
 

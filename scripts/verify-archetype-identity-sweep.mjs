@@ -13,7 +13,6 @@ import {
   LAYOUT_GRAMMAR_PATTERNS,
   MAX_PAIR_JACCARD,
   MEAN_GEN_MS_CEILING,
-  MOUNTAIN_OPENING_DROP_TILE_FLOOR,
   P12_PLACE_IDENTITY_SAMPLE_COUNTIES,
   RELIEF_BANDS,
   TROPICAL_LUSH_TERRAIN_PALETTE,
@@ -349,7 +348,7 @@ for (const entry of mountainOpeningRelief) {
       entry.countySlug.padEnd(18) +
       entry.archetype.padEnd(16) +
       `spread ${entry.frame.elevationSpread}`.padEnd(13) +
-      `drops ${String(entry.frame.dropTileCount).padStart(2)} [${MOUNTAIN_OPENING_DROP_TILE_FLOOR}+]`.padEnd(17) +
+      `drops ${String(entry.frame.dropTileCount).padStart(2)} [${entry.dropFloor}+]`.padEnd(17) +
       `buildings ${entry.frame.buildings}`,
   );
 }
@@ -650,7 +649,7 @@ if (jsonOnly) {
           failures: tropicalTruthFailures,
         },
         mountainOpeningRelief: {
-          dropTileFloor: MOUNTAIN_OPENING_DROP_TILE_FLOOR,
+          dropTileFloors: Object.fromEntries(mountainOpeningRelief.map((entry) => [entry.countySlug, entry.dropFloor])),
           anchors: mountainOpeningRelief,
           failures: mountainOpeningReliefFailures,
         },

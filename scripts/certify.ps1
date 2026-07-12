@@ -7,7 +7,12 @@ Set-Location "$PSScriptRoot\.."
 $fails = @()
 function Step($name, $script) {
   Write-Host "== $name" -ForegroundColor Cyan
+  $global:LASTEXITCODE = 0
   & $script
+  # Pipelines ending in cmdlets can leave LASTEXITCODE stale from an earlier
+  # native call — each Step body must therefore end with the native command
+  # OR the block captures its own code. Reset-before + read-after is the
+  # contract; audit false-FAIL on 162/0 was this bug.
   if ($LASTEXITCODE -ne 0) { $script:fails += $name; Write-Host "FAIL $name" -ForegroundColor Red }
 }
 Step "typecheck" { pnpm typecheck:starter 2>$null | Out-Null }

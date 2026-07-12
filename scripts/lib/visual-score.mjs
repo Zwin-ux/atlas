@@ -8,6 +8,7 @@ import {
   expectedGeneratedLandmarkKind,
   generatedDistrictMassingSignatureDistance,
   resolveCountyParameters,
+  cityWorldViewportFrameForPreset,
   sampleCityWorldViewportForCameraPreset,
 } from "../../packages/core/dist/index.js";
 
@@ -83,7 +84,7 @@ export const COASTAL_OPENING_ANCHORS = ["miami-dade-fl", "honolulu-hi", "kalawao
 export const TROPICAL_TRUTH_ANCHORS = ["miami-dade-fl", "honolulu-hi", "kalawao-hi", "san-juan-municipio-pr"];
 export const TROPICAL_PALM_RATE_FLOOR = 0.7;
 export const TROPICAL_LUSH_TERRAIN_PALETTE = "terrain.region.river_town";
-export const MOUNTAIN_OPENING_RELIEF_ANCHORS = ["summit-co"];
+export const MOUNTAIN_OPENING_RELIEF_ANCHORS = ["summit-co", "butte-id"];
 export const MOUNTAIN_OPENING_DROP_TILE_FLOOR = 48;
 export const RELIEF_BANDS = {
   mountain_valley: { minSpread: 1, minDropTiles: 80 },
@@ -666,18 +667,23 @@ export function mountainOpeningReliefReadouts() {
     const county = countyBySlug(countySlug);
     const { generated, result } = createDeterministicGeneratedDistrictScene({ county });
     const frame = openingFrameReadout(result.scene, "desktop");
+    const tier = generated.spec.countyParameters?.urbanizationTier;
+    const dropFloor = tier === "frontier" ? 30 : MOUNTAIN_OPENING_DROP_TILE_FLOOR;
     const failures = [];
 
     if (generated.archetype !== "mountain_valley") failures.push(`archetype ${generated.archetype} != mountain_valley`);
     if (frame.elevationSpread < 1) failures.push(`desktop opening elevation spread ${frame.elevationSpread} below 1`);
-    if (frame.dropTileCount < MOUNTAIN_OPENING_DROP_TILE_FLOOR) {
-      failures.push(`desktop opening drop tiles ${frame.dropTileCount} below ${MOUNTAIN_OPENING_DROP_TILE_FLOOR}`);
+    if (frame.dropTileCount < dropFloor) {
+      failures.push(`desktop opening drop tiles ${frame.dropTileCount} below ${dropFloor}`);
     }
-    if (frame.buildings < 6) failures.push(`desktop opening buildings ${frame.buildings} below 6`);
+    if (frame.buildings < 6 && tier !== "frontier") failures.push(`desktop opening buildings ${frame.buildings} below 6`);
+    if (tier === "frontier" && frame.buildings < 3) failures.push(`desktop opening buildings ${frame.buildings} below 3`);
 
     return {
       countySlug,
       archetype: generated.archetype,
+      tier,
+      dropFloor,
       frame,
       failures,
     };
@@ -884,6 +890,10 @@ export function openingFrameReadout(scene, cameraId) {
   const preset = scene.cameraPresets.find((candidate) => candidate.id === cameraId);
   if (!preset) throw new Error(`Missing ${cameraId} camera preset for ${scene.id}`);
   const sample = sampleCityWorldViewportForCameraPreset(scene, preset);
+  const primaryBuildings = sample.buildings.filter(isPrimaryGeneratedBuilding);
+  const boardBuildings = (scene.buildings ?? []).filter(isPrimaryGeneratedBuilding);
+  const landmark = boardBuildings.find((building) => building.id.startsWith("gen-landmark-"));
+  const frame = cityWorldViewportFrameForPreset(preset.id, preset.center, preset.zoom);
   const zValues = sample.terrainTiles.map((tile) => tile.position?.z ?? 0);
   const min = zValues.length > 0 ? Math.min(...zValues) : 0;
   const max = zValues.length > 0 ? Math.max(...zValues) : 0;
@@ -891,9 +901,24 @@ export function openingFrameReadout(scene, cameraId) {
     waterTiles: sample.terrainTiles.filter((tile) => tile.kind === "water").length,
     terrainTiles: sample.terrainTiles.length,
     buildings: sample.buildings.length,
+    boardBuildings: boardBuildings.length,
+    landmarkFullyInside: landmark ? buildingFootprintInsideFrame(landmark, frame) : true,
     elevationSpread: roundMetric(max - min),
     dropTileCount: sample.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
   };
+}
+
+function isPrimaryGeneratedBuilding(building) {
+  return !building.id?.startsWith("gen-attachment-") && !building.visualGrammar?.buildingAttachment;
+}
+
+function buildingFootprintInsideFrame(building, frame) {
+  return (
+    building.position.x - building.width / 2 >= frame.minX &&
+    building.position.x + building.width / 2 <= frame.maxX &&
+    building.position.y - building.depth / 2 >= frame.minY &&
+    building.position.y + building.depth / 2 <= frame.maxY
+  );
 }
 
 export function landTerrainPaletteKeys(scene) {
@@ -992,8 +1017,8 @@ export const WEIGHTS = Object.freeze({
   labelGrammarCoverage: 10,
 });
 
-export const VISUAL_SCORE_MEDIAN_FLOOR = 93.46;
-export const VISUAL_SCORE_HARD_FLOOR = 70.9;
+export const VISUAL_SCORE_MEDIAN_FLOOR = 98.46;
+export const VISUAL_SCORE_HARD_FLOOR = 78.36;
 export const VISUAL_SCORE_EXPECTED_COUNTY_COUNT = 3222;
 
 const OPENING_BUILDING_TARGET_BY_TIER = {
@@ -1096,7 +1121,7 @@ export function scoreCountyVisualSignals(county, context) {
       vegetationBandFit: vegetationBandFitSignal(archetype, vegetation),
       paletteNeighborDistance: paletteNeighborDistanceSignal(archetype, palette, context.paletteByArchetype),
       massingSignatureDistance: massingSignatureDistanceSignal(archetype, massing, context.massingByArchetype),
-      roadClassMixSanity: roadClassMixSignal(archetype, roadMetrics, pattern),
+      roadClassMixSanity: roadClassMixSignal(archetype, roadMetrics, pattern, tier),
       labelGrammarCoverage: labelGrammarSignal(labels),
     };
     const score = weightedVisualScore(signals);
@@ -1128,7 +1153,7 @@ export function scoreCountyVisualSignals(county, context) {
   }
 }
 
-export function roadClassMixFailures(archetype, metrics, pattern) {
+export function roadClassMixFailures(archetype, metrics, pattern, tier) {
   const failures = [];
 
   if (pattern !== LAYOUT_GRAMMAR_PATTERNS[archetype]) failures.push(`pattern ${pattern} != ${LAYOUT_GRAMMAR_PATTERNS[archetype]}`);
@@ -1143,7 +1168,11 @@ export function roadClassMixFailures(archetype, metrics, pattern) {
   } else if (archetype === "desert_basin") {
     if (metrics.highwaySegments !== 2) failures.push(`desert highway segments ${metrics.highwaySegments} != 2`);
     if (metrics.offsetRoads < 1 || metrics.offsetRoads > 3) failures.push(`desert sparse offsets ${metrics.offsetRoads} outside 1-3`);
-    if (metrics.avenues !== 2) failures.push(`desert avenues ${metrics.avenues} != 2 highway spine segments`);
+    if (tier === "frontier") {
+      if (metrics.avenues !== 0) failures.push(`frontier desert avenues ${metrics.avenues} != 0`);
+    } else if (metrics.avenues !== 2) {
+      failures.push(`desert avenues ${metrics.avenues} != 2 highway spine segments`);
+    }
   } else if (archetype === "mountain_valley") {
     if (metrics.contourRoads < 2) failures.push(`mountain contour roads ${metrics.contourRoads} below 2`);
     if (metrics.valleySpines < 1) failures.push("mountain valley spine missing");
@@ -1168,6 +1197,8 @@ function compositionOccupancySignal(frame, tier) {
   const failures = ratio >= 0.75 ? [] : [`opening buildings ${frame.buildings} below ${Math.ceil(target * 0.75)} for ${tier}`];
   return visualSignal(score, `${frame.buildings}/${target} opening buildings`, {
     buildings: frame.buildings,
+    boardBuildings: frame.boardBuildings,
+    landmarkFullyInside: frame.landmarkFullyInside,
     target,
     terrainTiles: frame.terrainTiles,
   }, failures);
@@ -1245,8 +1276,8 @@ function massingSignatureDistanceSignal(archetype, massing, massingByArchetype) 
   }, failures);
 }
 
-function roadClassMixSignal(archetype, metrics, pattern) {
-  const failures = roadClassMixFailures(archetype, metrics, pattern);
+function roadClassMixSignal(archetype, metrics, pattern, tier) {
+  const failures = roadClassMixFailures(archetype, metrics, pattern, tier);
   const score = clamp01(1 - failures.length * 0.2);
   return visualSignal(score, failures.length === 0 ? "road grammar passes" : failures.join("; "), {
     pattern,

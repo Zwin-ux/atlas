@@ -17,6 +17,7 @@ import {
   compileCityWorldSceneWindow,
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
+  cityWorldViewportFrameForPreset,
   deterministicGeneratedDistrictSeedForCounty,
   evaluateCityWorldSceneWindowBudget,
   expectedGeneratedLandmarkKind,
@@ -61,6 +62,7 @@ const WATER_ARCHETYPES: readonly GeneratedDistrictArchetype[] = ["coastal_grid",
 const COASTAL_OPENING_WATER_TILE_FLOOR = 18;
 const TROPICAL_PALM_RATE_FLOOR = 0.7;
 const MOUNTAIN_OPENING_DROP_TILE_FLOOR = 48;
+const FRONTIER_MOUNTAIN_OPENING_DROP_TILE_FLOOR = 30;
 const VEGETATION_EXPECTATIONS: Record<
   GeneratedDistrictArchetype,
   { trees: number; bushes: number; minVegetation: number; maxVegetation: number; minParkVegetation?: number; desertScrubOnly?: true }
@@ -68,7 +70,7 @@ const VEGETATION_EXPECTATIONS: Record<
   metro_grid: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
   coastal_grid: { trees: 25, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
   desert_basin: { trees: 0, bushes: 7, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
-  mountain_valley: { trees: 30, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
+  mountain_valley: { trees: 28, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
   prairie_town: { trees: 38, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
   river_town: { trees: 23, bushes: 5, minVegetation: 26, maxVegetation: 34 },
 };
@@ -796,6 +798,26 @@ describe("deterministic generated district specs", () => {
     expect(frame.buildings).toBeGreaterThanOrEqual(6);
   });
 
+  it("keeps the confirmed mountain frontier tail framed, vegetated, and road-connected (0.79T)", () => {
+    const { generated, result } = createDeterministicGeneratedDistrictScene({ county: county("butte-id") });
+    const scene = result.scene;
+    const primaryBuildings = scene.buildings.filter(isPrimaryBuilding);
+    const opening = openingPrimaryFrameReadout(scene, "desktop");
+    const landmark = primaryBuildings.find((building) => building.id.startsWith("gen-landmark-"));
+    const vegetation = vegetationCounts(scene);
+
+    expect(generated.archetype).toBe("mountain_valley");
+    expect(generated.spec.countyParameters?.urbanizationTier).toBe("frontier");
+    expect(opening.primaryBuildings).toBeGreaterThanOrEqual(Math.max(3, Math.ceil(primaryBuildings.length / 2)));
+    expect(opening.landmarkFullyInside).toBe(true);
+    expect(opening.elevationSpread).toBeGreaterThanOrEqual(1);
+    expect(opening.dropTileCount).toBeGreaterThanOrEqual(FRONTIER_MOUNTAIN_OPENING_DROP_TILE_FLOOR);
+    expect(vegetation.vegetation).toBeGreaterThanOrEqual(VEGETATION_EXPECTATIONS.mountain_valley.minVegetation);
+    expect(vegetation.vegetation).toBeLessThanOrEqual(VEGETATION_EXPECTATIONS.mountain_valley.maxVegetation);
+    expect(roadNetworkComponents(scene.roadSegments.filter((road) => road.kind !== "crosswalk"))).toHaveLength(1);
+    expect(landmark).toBeTruthy();
+  });
+
   it("fills open generated blocks with deterministic archetype-specific ground treatments (E5)", () => {
     for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
       const testCounty = countyForArchetype(archetype);
@@ -959,6 +981,10 @@ function generatedTreeSpeciesFromCompiledVariant(variant: number): "round_canopy
   return "round_canopy";
 }
 
+function isPrimaryBuilding(building: CityWorldBuilding): boolean {
+  return !building.id.startsWith("gen-attachment-") && !building.visualGrammar?.buildingAttachment;
+}
+
 function isVegetation(prop: CityWorldProp): boolean {
   return prop.kind === "tree" || prop.kind === "bush";
 }
@@ -1068,6 +1094,37 @@ function openingFrameReadout(
   };
 }
 
+function openingPrimaryFrameReadout(
+  scene: CityWorldScene,
+  cameraId: "desktop" | "mobile",
+): { primaryBuildings: number; landmarkFullyInside: boolean; elevationSpread: number; dropTileCount: number } {
+  const preset = scene.cameraPresets.find((candidate) => candidate.id === cameraId);
+  if (!preset) throw new Error(`Missing ${cameraId} camera preset`);
+  const frame = cityWorldViewportFrameForPreset(preset.id, preset.center, preset.zoom);
+  const sample = sampleCityWorldViewportForCameraPreset(scene, preset);
+  const elevations = sample.terrainTiles.map((tile) => tile.position.z ?? 0);
+  const primaryBuildings = sample.buildings.filter(isPrimaryBuilding);
+  const landmark = scene.buildings.filter(isPrimaryBuilding).find((building) => building.id.startsWith("gen-landmark-"));
+  return {
+    primaryBuildings: primaryBuildings.length,
+    landmarkFullyInside: landmark ? buildingFootprintInsideFrame(landmark, frame) : true,
+    elevationSpread: elevations.length > 0 ? Math.max(...elevations) - Math.min(...elevations) : 0,
+    dropTileCount: sample.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
+  };
+}
+
+function buildingFootprintInsideFrame(
+  building: CityWorldBuilding,
+  frame: { minX: number; maxX: number; minY: number; maxY: number },
+): boolean {
+  return (
+    building.position.x - building.width / 2 >= frame.minX &&
+    building.position.x + building.width / 2 <= frame.maxX &&
+    building.position.y - building.depth / 2 >= frame.minY &&
+    building.position.y + building.depth / 2 <= frame.maxY
+  );
+}
+
 function landTerrainPaletteKeys(scene: CityWorldScene): string[] {
   return [
     ...new Set(
@@ -1169,6 +1226,77 @@ function pointInRoadCorridor(point: { x: number; y: number }, roads: CityWorldRo
     if (distanceToRoadSegment(point, road) <= halfCorridor) return true;
   }
   return false;
+}
+
+function roadNetworkComponents(roads: CityWorldRoadSegment[]): CityWorldRoadSegment[][] {
+  const components: CityWorldRoadSegment[][] = [];
+  const seen = new Set<string>();
+  for (const road of roads) {
+    if (seen.has(road.id)) continue;
+    const component: CityWorldRoadSegment[] = [];
+    const queue = [road];
+    seen.add(road.id);
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      component.push(current);
+      for (const candidate of roads) {
+        if (seen.has(candidate.id)) continue;
+        if (roadSegmentDistance(current, candidate) > 0.18) continue;
+        seen.add(candidate.id);
+        queue.push(candidate);
+      }
+    }
+    components.push(component);
+  }
+  return components;
+}
+
+function roadSegmentDistance(first: CityWorldRoadSegment, second: CityWorldRoadSegment): number {
+  if (roadSegmentsIntersect(first, second)) return 0;
+  return Math.min(
+    distanceToRoadSegment(first.from, second),
+    distanceToRoadSegment(first.to, second),
+    distanceToRoadSegment(second.from, first),
+    distanceToRoadSegment(second.to, first),
+  );
+}
+
+function roadSegmentsIntersect(first: CityWorldRoadSegment, second: CityWorldRoadSegment): boolean {
+  const a = first.from;
+  const b = first.to;
+  const c = second.from;
+  const d = second.to;
+  const abC = roadOrientation(a, b, c);
+  const abD = roadOrientation(a, b, d);
+  const cdA = roadOrientation(c, d, a);
+  const cdB = roadOrientation(c, d, b);
+
+  if (Math.abs(abC) < 0.001 && pointOnRoadBounds(c, a, b)) return true;
+  if (Math.abs(abD) < 0.001 && pointOnRoadBounds(d, a, b)) return true;
+  if (Math.abs(cdA) < 0.001 && pointOnRoadBounds(a, c, d)) return true;
+  if (Math.abs(cdB) < 0.001 && pointOnRoadBounds(b, c, d)) return true;
+  return (abC > 0) !== (abD > 0) && (cdA > 0) !== (cdB > 0);
+}
+
+function roadOrientation(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  c: { x: number; y: number },
+): number {
+  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+function pointOnRoadBounds(
+  point: { x: number; y: number },
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): boolean {
+  return (
+    point.x >= Math.min(a.x, b.x) - 0.001 &&
+    point.x <= Math.max(a.x, b.x) + 0.001 &&
+    point.y >= Math.min(a.y, b.y) - 0.001 &&
+    point.y <= Math.max(a.y, b.y) + 0.001
+  );
 }
 
 function distanceToRoadSegment(point: { x: number; y: number }, road: CityWorldRoadSegment): number {
