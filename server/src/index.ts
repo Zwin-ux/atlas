@@ -3338,6 +3338,30 @@ function isHostedClawdWriteRoute(url: URL, method: string | undefined): boolean 
   return method === "POST" && HOSTED_CLAWD_WRITE_PATHS.has(url.pathname);
 }
 
+// A cache dependency must never kill the API server: @redis/client v6 can
+// throw from internal timer/abort callbacks (uncaught, not routed to any
+// promise — crashed two production healthchecks). Guard ONLY that class;
+// everything else stays fail-fast.
+function isRedisInternalError(error: unknown): boolean {
+  return error instanceof Error && typeof error.stack === "string" && error.stack.includes("@redis/client");
+}
+process.on("uncaughtException", (error) => {
+  if (isRedisInternalError(error)) {
+    logBackendEvent("redis_internal_error_guarded", { message: error.message });
+    return;
+  }
+  console.error(error);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  if (isRedisInternalError(reason)) {
+    logBackendEvent("redis_internal_error_guarded", { message: reason instanceof Error ? reason.message : String(reason) });
+    return;
+  }
+  console.error(reason);
+  process.exit(1);
+});
+
 const httpServer = createServer(async (req, res) => {
   const requestId = requestIdFor(req);
   res.setHeader("x-request-id", requestId);

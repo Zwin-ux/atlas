@@ -1053,11 +1053,11 @@ export function createLazyRedisConnector(url: string): LazyRedisConnector {
       const created = redis.createClient({
         url,
         socket: {
-          connectTimeout: 2_000,
-          // Bounded retries so connect() REJECTS on an unreachable Redis
-          // instead of retrying forever — callers' fail-open depends on a
-          // prompt rejection (the unbounded default hung /api/world/lookup
-          // and the hardening gate).
+          // No connectTimeout: node-redis v6 implements it with an abort
+          // timer that THROWS UNCAUGHT when a slow (cold-container) connect
+          // exceeds it — killed the second production deploy. Bounded
+          // retries below still make connect() reject promptly on an
+          // unreachable Redis (fail-open depends on that).
           reconnectStrategy: (retries: number) => (retries >= 2 ? new Error("redis unreachable after 3 attempts") : Math.min(200 * (retries + 1), 600)),
         },
       });
