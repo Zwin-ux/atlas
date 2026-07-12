@@ -1,4 +1,4 @@
-import { Assets, type Texture } from "pixi.js";
+import { Assets, Texture } from "pixi.js";
 import {
   validateCityWorldSceneAtlasKeys,
   type CityWorldAtlasFallbackKind,
@@ -100,11 +100,26 @@ export function createCityWorldAtlasResolver(scene: CityWorldScene, textures: Ci
   };
 }
 
+// data: URIs must load through an Image element, NOT Assets.load — Pixi's
+// loader fetch()es the src, and ChatGPT's sandbox CSP (connect-src) blocks
+// data: fetches while img-src allows them (G8-7: three curated textures
+// silently failed in real ChatGPT while passing in the emulator).
+function loadTextureViaImage(src: string): Promise<Texture> {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const image = new Image();
+    image.onload = () => resolvePromise(Texture.from(image));
+    image.onerror = () => rejectPromise(new Error("image decode failed"));
+    image.src = src;
+  });
+}
+
 export async function loadCityWorldAtlasTextures(): Promise<CityWorldTextureMap> {
   const loaded = await Promise.all(
     Object.entries(TEXTURE_SOURCES).map(async ([alias, src]) => {
       try {
-        const texture = await Assets.load<Texture>({ alias, src });
+        const texture = src.startsWith("data:")
+          ? await loadTextureViaImage(src)
+          : await Assets.load<Texture>({ alias, src });
         return [alias, texture] as const;
       } catch (error) {
         console.warn(`Atlas city-world texture ${alias} failed to load. Primitive fallback remains active.`, error);
