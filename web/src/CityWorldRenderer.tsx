@@ -155,6 +155,11 @@ function resolveBackgroundColor(): number {
   return isDarkTheme() ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
 }
 
+function isFullscreenDisplayMode(): boolean {
+  const openai = window.openai as ({ displayMode?: unknown } & typeof window.openai) | undefined;
+  return openai?.displayMode === "fullscreen";
+}
+
 const TERRAIN_COLORS = {
   grass: 0xa3b877,
   park: 0x83aa64,
@@ -417,6 +422,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   // rebuild per interval and flush the rest on release.
   const pendingGestureWindowRefreshRef = useRef(false);
   const lastGestureWindowRefreshRef = useRef(0);
+  const wheelZoomArmedRef = useRef(false);
   const themeCleanupRef = useRef<(() => void) | null>(null);
   const selectPlaceRef = useRef(onSelectPlace);
   const activeWindowFrameRef = useRef<CityWorldViewportFrame | null>(null);
@@ -544,6 +550,9 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     const mount = mountRef.current;
     if (!mount) return;
     const mountElement = mount;
+    // The renderer owns touch pan/pinch after a pointer starts; keeping this
+    // on the canvas mount avoids browser gesture negotiation mid-drag.
+    mountElement.style.touchAction = "none";
 
     const app = new Application();
     appRef.current = app;
@@ -575,6 +584,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       }
 
       app.canvas.className = "city-world-canvas";
+      app.canvas.style.touchAction = "none";
       mountElement.appendChild(app.canvas);
       // Backdrop lives inside the stage so the post grade (vignette/haze)
       // covers the open ground beyond the streamed tile window too.
@@ -752,11 +762,16 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     };
 
     const handleWheel = (event: WheelEvent) => {
+      if (!wheelZoomArmedRef.current && !isFullscreenDisplayMode()) return;
       event.preventDefault();
       // Anchor to the cursor so wheel zoom dives toward what's pointed at.
       setCameraZoomAnchored(cameraRef.current.zoom * (event.deltaY > 0 ? 0.92 : 1.08), event.clientX, event.clientY);
     };
+    const handleWidgetEngagement = () => {
+      wheelZoomArmedRef.current = true;
+    };
     const handlePointerDown = (event: PointerEvent) => {
+      handleWidgetEngagement();
       cancelInertia();
       activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
       dragRef.current = { active: true, x: event.clientX, y: event.clientY };
@@ -857,6 +872,8 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       }
     };
 
+    window.addEventListener("pointerdown", handleWidgetEngagement, { capture: true, passive: true });
+    window.addEventListener("focusin", handleWidgetEngagement, true);
     mount.addEventListener("wheel", handleWheel, { passive: false });
     mount.addEventListener("pointerdown", handlePointerDown);
     mount.addEventListener("pointermove", handlePointerMove);
@@ -864,6 +881,8 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     mount.addEventListener("pointercancel", handlePointerCancel);
     return () => {
       cancelInertia();
+      window.removeEventListener("pointerdown", handleWidgetEngagement, true);
+      window.removeEventListener("focusin", handleWidgetEngagement, true);
       mount.removeEventListener("wheel", handleWheel);
       mount.removeEventListener("pointerdown", handlePointerDown);
       mount.removeEventListener("pointermove", handlePointerMove);

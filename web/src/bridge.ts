@@ -28,6 +28,8 @@ let bridgeInitialized = false;
 const pending = new Map<number, PendingRequest>();
 const toolResultSubscribers = new Set<(result: ToolResult<unknown>) => void>();
 
+export type OpenAiDisplayMode = "inline" | "pip" | "fullscreen";
+
 function isRpcResponse(message: unknown): message is JsonRpcResponse {
   return Boolean(
     message &&
@@ -233,4 +235,30 @@ export function useWidgetState<T extends Record<string, unknown>>(fallback: T) {
   };
 
   return [state, setWidgetState] as const;
+}
+
+function normalizeDisplayMode(value: unknown): OpenAiDisplayMode {
+  return value === "fullscreen" || value === "pip" || value === "inline" ? value : "inline";
+}
+
+function readDisplayModeGlobal(): OpenAiDisplayMode {
+  if (typeof window === "undefined") return "inline";
+  const openai = window.openai as ({ displayMode?: unknown } & typeof window.openai) | undefined;
+  return normalizeDisplayMode(openai?.displayMode);
+}
+
+export function useOpenAiDisplayMode(): OpenAiDisplayMode {
+  const [displayMode, setDisplayMode] = useState<OpenAiDisplayMode>(() => readDisplayModeGlobal());
+
+  useEffect(() => {
+    const onGlobals = (event: Event) => {
+      const detail = (event as CustomEvent<{ globals?: { displayMode?: unknown }; displayMode?: unknown }>).detail;
+      setDisplayMode(normalizeDisplayMode(detail?.globals?.displayMode ?? detail?.displayMode ?? readDisplayModeGlobal()));
+    };
+
+    window.addEventListener(SET_GLOBALS_EVENT_TYPE, onGlobals, { passive: true });
+    return () => window.removeEventListener(SET_GLOBALS_EVENT_TYPE, onGlobals);
+  }, []);
+
+  return displayMode;
 }

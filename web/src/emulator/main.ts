@@ -70,6 +70,8 @@ root.innerHTML = `
 
 const frameBox = document.getElementById("frame-box")!;
 const statusLine = document.getElementById("status")!;
+frameBox.dataset.displayMode = "inline";
+document.body.dataset.displayMode = "inline";
 const setStatus = (text: string) => {
   statusLine.textContent = text;
 };
@@ -88,6 +90,7 @@ async function boot(): Promise<void> {
   iframe.height = String(viewport.height);
   iframe.style.width = `${viewport.width}px`;
   iframe.style.height = `${viewport.height}px`;
+  iframe.dataset.displayMode = "inline";
   frameBox.appendChild(iframe);
 
   setStatus("connecting tool source…");
@@ -104,6 +107,9 @@ async function boot(): Promise<void> {
     onStatus: setStatus,
     onDisplayModeChange: (mode: EmulatorDisplayMode) => {
       frameBox.classList.toggle("fullscreen", mode === "fullscreen");
+      frameBox.dataset.displayMode = mode;
+      iframe.dataset.displayMode = mode;
+      document.body.dataset.displayMode = mode;
     },
   });
 

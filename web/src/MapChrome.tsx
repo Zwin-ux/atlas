@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import type { CityWorldScene } from "@atlas/core/voxel";
+import { useOpenAiDisplayMode, type OpenAiDisplayMode } from "./bridge";
 import type { CityWorldRendererHandle } from "./CityWorldRenderer";
 
 /**
@@ -12,9 +13,31 @@ export type MapChromeProps = {
   rendererRef: RefObject<CityWorldRendererHandle>;
 };
 
+function requestHostDisplayMode(mode: OpenAiDisplayMode): void {
+  const openai = window.openai as ({ requestDisplayMode?: (payload: { mode: OpenAiDisplayMode }) => unknown } & typeof window.openai) | undefined;
+  try {
+    void Promise.resolve(openai?.requestDisplayMode?.({ mode })).catch(() => undefined);
+  } catch {
+    // Real-host display mode is optional. Inline remains the safe baseline.
+  }
+}
+
 export function MapChrome({ rendererRef }: MapChromeProps) {
+  const displayMode = useOpenAiDisplayMode();
+  const fullscreen = displayMode === "fullscreen";
+  const handleDisplayModeToggle = () => requestHostDisplayMode(fullscreen ? "inline" : "fullscreen");
+
   return (
     <div className="city-world-zoom" aria-label="Map zoom controls" data-qa="map-zoom-controls">
+      <button
+        type="button"
+        aria-label={fullscreen ? "Collapse map" : "Expand map"}
+        aria-pressed={fullscreen}
+        data-qa="expand-map-button"
+        onClick={handleDisplayModeToggle}
+      >
+        {fullscreen ? <CollapseIcon /> : <ExpandIcon />}
+      </button>
       <button type="button" aria-label="Zoom in" data-qa="zoom-in-button" onClick={() => rendererRef.current?.zoomIn()}>
         <ZoomInIcon />
       </button>
@@ -62,6 +85,24 @@ function CenterIcon() {
     <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
       <path d="M10 3v3M10 14v3M3 10h3M14 10h3" />
       <circle cx="10" cy="10" r="3.5" />
+    </svg>
+  );
+}
+
+function ExpandIcon() {
+  return (
+    <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M7.2 4.5H4.5v2.7M12.8 4.5h2.7v2.7M7.2 15.5H4.5v-2.7M12.8 15.5h2.7v-2.7" />
+      <path d="M4.8 4.8 8 8M15.2 4.8 12 8M4.8 15.2 8 12M15.2 15.2 12 12" />
+    </svg>
+  );
+}
+
+function CollapseIcon() {
+  return (
+    <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M8 4.8v3.1H4.9M12 4.8v3.1h3.1M8 15.2v-3.1H4.9M12 15.2v-3.1h3.1" />
+      <path d="M8 7.9 4.8 4.7M12 7.9l3.2-3.2M8 12.1l-3.2 3.2M12 12.1l3.2 3.2" />
     </svg>
   );
 }

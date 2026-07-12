@@ -12,6 +12,7 @@ import {
   type VoxelStickerKind,
 } from "@atlas/core/voxel";
 import type { CityWorldRendererHandle } from "./CityWorldRenderer";
+import { useOpenAiDisplayMode } from "./bridge";
 import { HostedClawdTray } from "./HostedClawdTray";
 import { MapChrome, readRequestedCameraPreset, readRequestedDebugMode } from "./MapChrome";
 import { PreviewPanel } from "./PreviewPanel";
@@ -165,6 +166,7 @@ export function CityWorldView({
   const latestNoteBody = latestPlaceNote?.body ?? "";
   const cameraPresetId = readRequestedCameraPreset(cityScene);
   const debugMode = readRequestedDebugMode();
+  const displayMode = useOpenAiDisplayMode();
   const canNavigatePlaces = !isGeneratedMode && cityScene.places.length > 0;
   const renderedDistrictCount = cityScene.region.district ? 1 : 0;
   const mapSummary = `Voxel map of ${cityScene.region.county}: ${cityScene.places.length} ${cityScene.places.length === 1 ? "place" : "places"}, ${renderedDistrictCount} ${renderedDistrictCount === 1 ? "district" : "districts"}.`;
@@ -217,20 +219,6 @@ export function CityWorldView({
       window.requestAnimationFrame(focusOpener);
     }
   }, [hasHostedClawdTray]);
-
-  useEffect(() => {
-    const openaiWindow = window as Window & {
-      openai?: { requestDisplayMode?: (payload: { mode: "inline" | "pip" | "fullscreen" }) => unknown };
-    };
-    // Real ChatGPT returns undefined (with a console warning) when this is
-    // called outside a user gesture — .catch on that crashed the widget in
-    // the first G8 session. Treat every host API result as maybe-undefined.
-    try {
-      void Promise.resolve(openaiWindow.openai?.requestDisplayMode?.({ mode: "fullscreen" })).catch(() => undefined);
-    } catch {
-      // Host rejected the call synchronously — inline mode is fine.
-    }
-  }, []);
 
   // First-run gesture hint: one quiet line, gone on first interaction or
   // after a short dwell — never persistent chrome.
@@ -351,9 +339,14 @@ export function CityWorldView({
       data-qa-latest-note={latestNoteBody}
       data-qa-session-boundary="session-only"
       data-qa-camera-preset={cameraPresetId ?? ""}
+      data-qa-display-mode={displayMode}
+      data-display-mode={displayMode}
       data-qa-generated={isGeneratedMode ? "true" : undefined}
       onPointerDownCapture={hintVisible ? onDismissFirstRunHint : undefined}
     >
+      <span className="city-world-sr-only" data-qa="display-mode" data-display-mode={displayMode}>
+        {displayMode}
+      </span>
       <div ref={backgroundRef} className="city-world-stage">
       <section
         className="city-world-map-surface"

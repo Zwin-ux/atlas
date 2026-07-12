@@ -376,8 +376,12 @@ async function runStructuralChecks(client, cell, cellSpec) {
 
   await addAsyncCheck(cell, "canvas_single", async () => {
     const count = await innerCanvasCount(client);
-    if (count === 1) return { level: "pass", detail: "canvas count=1" };
-    return { level: "fail", detail: `canvas count=${count}` };
+    const displayMode = await runDisplayModeProbe(client, cellSpec.viewport);
+    if (count === 1 && displayMode.level === "pass") {
+      return { level: "pass", detail: `canvas count=1; ${displayMode.detail}` };
+    }
+    if (count !== 1) return { level: "fail", detail: `canvas count=${count}` };
+    return displayMode;
   });
 
   await addAsyncCheck(cell, "graphics_ceiling", async () => {
@@ -516,6 +520,117 @@ async function runCtaRoundtripCheck(client, cell) {
     })()`);
     return { level: "pass", detail: `deliveries=${state.deliveries}; current-city-map=${state.label}` };
   });
+}
+
+async function runDisplayModeProbe(client, viewportKey) {
+  const before = await displayModeSnapshot(client);
+  if (!before.buttonPresent) return { level: "fail", detail: "missing [data-qa='expand-map-button']" };
+  if (before.shellMode !== "inline" || before.indicatorMode !== "inline" || before.emulatorMode !== "inline") {
+    return { level: "fail", detail: `expected initial inline mode; got ${displayModeDetail(before)}` };
+  }
+
+  await clickInnerQaButton(client, "expand-map-button", viewportKey);
+  await waitFor(client, displayModePredicate("fullscreen"), 2_000);
+  const expanded = await displayModeSnapshot(client);
+  if (
+    expanded.shellMode !== "fullscreen" ||
+    expanded.indicatorMode !== "fullscreen" ||
+    expanded.emulatorMode !== "fullscreen" ||
+    expanded.frameMode !== "fullscreen" ||
+    expanded.buttonLabel !== "Collapse map" ||
+    expanded.buttonPressed !== "true" ||
+    !expanded.frameFullscreen
+  ) {
+    return { level: "fail", detail: `fullscreen did not settle; ${displayModeDetail(expanded)}` };
+  }
+
+  await clickInnerQaButton(client, "expand-map-button", viewportKey);
+  await waitFor(client, displayModePredicate("inline"), 2_000);
+  const collapsed = await displayModeSnapshot(client);
+  if (
+    collapsed.shellMode !== "inline" ||
+    collapsed.indicatorMode !== "inline" ||
+    collapsed.emulatorMode !== "inline" ||
+    collapsed.frameMode !== "inline" ||
+    collapsed.buttonLabel !== "Expand map" ||
+    collapsed.buttonPressed !== "false" ||
+    collapsed.frameFullscreen
+  ) {
+    return { level: "fail", detail: `inline did not settle; ${displayModeDetail(collapsed)}` };
+  }
+  await delay(100);
+
+  return { level: "pass", detail: "expand button toggles display-mode inline->fullscreen->inline" };
+}
+
+function displayModePredicate(mode) {
+  return `(() => {
+    const frame = document.querySelector("[data-qa='emulator-frame']");
+    const doc = frame?.contentWindow?.document;
+    const shell = doc?.querySelector("[data-qa='alpha-city-world'], [data-qa='county-coverage-shell']");
+    const indicator = doc?.querySelector("[data-qa='display-mode']");
+    const button = doc?.querySelector("[data-qa='expand-map-button']");
+    const frameBox = document.getElementById("frame-box");
+    return shell?.getAttribute("data-display-mode") === "${mode}" &&
+      indicator?.getAttribute("data-display-mode") === "${mode}" &&
+      window.__ATLAS_EMULATOR__?.displayMode === "${mode}" &&
+      frameBox?.dataset.displayMode === "${mode}" &&
+      button?.getAttribute("aria-label") === "${mode === "fullscreen" ? "Collapse map" : "Expand map"}";
+  })()`;
+}
+
+function displayModeSnapshot(client) {
+  return evaluate(client, `(() => {
+    const frame = document.querySelector("[data-qa='emulator-frame']");
+    const doc = frame?.contentWindow?.document;
+    const shell = doc?.querySelector("[data-qa='alpha-city-world'], [data-qa='county-coverage-shell']");
+    const indicator = doc?.querySelector("[data-qa='display-mode']");
+    const button = doc?.querySelector("[data-qa='expand-map-button']");
+    const frameBox = document.getElementById("frame-box");
+    return {
+      buttonPresent: Boolean(button),
+      buttonLabel: button?.getAttribute("aria-label") ?? "",
+      buttonPressed: button?.getAttribute("aria-pressed") ?? "",
+      shellMode: shell?.getAttribute("data-display-mode") ?? "",
+      shellQaMode: shell?.getAttribute("data-qa-display-mode") ?? "",
+      indicatorMode: indicator?.getAttribute("data-display-mode") ?? "",
+      indicatorText: indicator?.textContent?.replace(/\\s+/g, " ").trim() ?? "",
+      emulatorMode: window.__ATLAS_EMULATOR__?.displayMode ?? "",
+      frameMode: frameBox?.dataset.displayMode ?? "",
+      frameFullscreen: Boolean(frameBox?.classList.contains("fullscreen")),
+    };
+  })()`);
+}
+
+function displayModeDetail(snapshot) {
+  return `shell=${snapshot.shellMode}/${snapshot.shellQaMode}; indicator=${snapshot.indicatorMode}:${snapshot.indicatorText}; emulator=${snapshot.emulatorMode}; frame=${snapshot.frameMode}/${snapshot.frameFullscreen ? "fullscreen" : "inline"}; button=${snapshot.buttonLabel}/${snapshot.buttonPressed}`;
+}
+
+async function clickInnerQaButton(client, qa, viewportKey) {
+  const point = await innerQaButtonCenter(client, qa);
+  if (viewportKey === "mobile") {
+    await touchTap(client, point);
+    return;
+  }
+  await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x, y: point.y, button: "none" });
+  await client.send("Input.dispatchMouseEvent", { type: "mousePressed", x: point.x, y: point.y, button: "left", clickCount: 1 });
+  await delay(60);
+  await client.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: point.x, y: point.y, button: "left", clickCount: 1 });
+}
+
+function innerQaButtonCenter(client, qa) {
+  return evaluate(client, `(() => {
+    const frame = document.querySelector("[data-qa='emulator-frame']");
+    const doc = frame?.contentWindow?.document;
+    const button = doc?.querySelector("[data-qa='${qa}']");
+    if (!frame || !button) throw new Error("missing inner button [data-qa='${qa}']");
+    const frameRect = frame.getBoundingClientRect();
+    const buttonRect = button.getBoundingClientRect();
+    return {
+      x: frameRect.left + buttonRect.left + buttonRect.width / 2,
+      y: frameRect.top + buttonRect.top + buttonRect.height / 2,
+    };
+  })()`);
 }
 
 async function runPayloadChecks(client, cell) {

@@ -76,6 +76,7 @@ export type EmulatorQaHandle = {
 };
 
 const SET_GLOBALS_EVENT_TYPE = "openai:set_globals";
+const DISPLAY_MODE_GESTURE_WINDOW_MS = 200;
 
 function serializedChars(value: unknown): number {
   if (value === undefined) return 0;
@@ -151,12 +152,21 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
   // ---- window.openai (installed by the srcdoc bootstrap, synchronously) ----
   let widgetState: Record<string, unknown> | undefined;
   let innerWindow: Window | null = null;
+  let lastDisplayModeGestureAt = 0;
+  let gestureCleanup: (() => void) | null = null;
+  const markDisplayModeGesture = () => {
+    lastDisplayModeGestureAt = performance.now();
+  };
+  const hasRecentDisplayModeGesture = () => performance.now() - lastDisplayModeGestureAt <= DISPLAY_MODE_GESTURE_WINDOW_MS;
   const dispatchGlobals = (globals: Record<string, unknown>) => {
     innerWindow?.dispatchEvent(new CustomEvent(SET_GLOBALS_EVENT_TYPE, { detail: { globals } }));
   };
   const openaiApi = {
     get theme() {
       return qa.theme;
+    },
+    get displayMode() {
+      return qa.displayMode;
     },
     get widgetState() {
       return widgetState;
@@ -167,13 +177,26 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
       return Promise.resolve();
     },
     requestDisplayMode: (request: { mode: EmulatorDisplayMode }) => {
+      if (!hasRecentDisplayModeGesture()) {
+        console.warn("requestDisplayMode ignored: no recent user gesture.");
+        return undefined;
+      }
       qa.displayMode = request.mode;
+      dispatchGlobals({ displayMode: request.mode });
       options.onDisplayModeChange?.(request.mode);
       return Promise.resolve({ mode: request.mode });
     },
   };
   parentWindow.__ATLAS_EMULATOR_OPENAI_FACTORY__ = (inner: Window) => {
+    gestureCleanup?.();
     innerWindow = inner;
+    inner.addEventListener("pointerdown", markDisplayModeGesture, { capture: true, passive: true });
+    inner.addEventListener("keydown", markDisplayModeGesture, true);
+    gestureCleanup = () => {
+      inner.removeEventListener("pointerdown", markDisplayModeGesture, true);
+      inner.removeEventListener("keydown", markDisplayModeGesture, true);
+      gestureCleanup = null;
+    };
     return openaiApi;
   };
 
@@ -300,6 +323,7 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
       await runToolTurn(spec, `manual ${spec.name}`);
     },
     async destroy() {
+      gestureCleanup?.();
       try {
         await bridge.close();
       } catch {

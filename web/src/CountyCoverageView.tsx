@@ -1,6 +1,6 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import type { CityWorldScene } from "@atlas/core/voxel";
-import { sendUserMessage } from "./bridge";
+import { sendUserMessage, useOpenAiDisplayMode } from "./bridge";
 import { CityWorldRenderer, type CityWorldRendererHandle } from "./CityWorldRenderer";
 import { MapChrome, readRequestedCameraPreset, readRequestedDebugMode } from "./MapChrome";
 import type { CountyCoverageStructuredContent } from "./App";
@@ -20,23 +20,11 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
   const sourceLabel = coverage.sourceNotes[0]?.label ?? "Atlas coverage index";
   const cameraPresetId = shellScene ? readRequestedCameraPreset(shellScene) : undefined;
   const debugMode = readRequestedDebugMode();
+  const displayMode = useOpenAiDisplayMode();
   const boundaryCopy = isShell
     ? "Browse-only. Nothing is saved."
     : "Not indexed yet. Nothing is saved.";
   const recoveryText = "Open Riverside";
-
-  useEffect(() => {
-    const openaiWindow = window as Window & {
-      openai?: { requestDisplayMode?: (payload: { mode: "inline" | "pip" | "fullscreen" }) => unknown };
-    };
-    // Real host returns undefined outside a user gesture (G8 crash) —
-    // never assume a Promise from a host API.
-    try {
-      void Promise.resolve(openaiWindow.openai?.requestDisplayMode?.({ mode: "fullscreen" })).catch(() => undefined);
-    } catch {
-      // Inline mode is fine.
-    }
-  }, []);
 
   const openPlayableSlice = () => {
     void sendUserMessage("Open Riverside/Eastvale in Atlas.");
@@ -53,7 +41,12 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
       data-qa-place-count={coverage.placeCount}
       data-qa-session-boundary="session-only"
       data-qa-camera-preset={cameraPresetId ?? ""}
+      data-qa-display-mode={displayMode}
+      data-display-mode={displayMode}
     >
+      <span className="city-world-sr-only" data-qa="display-mode" data-display-mode={displayMode}>
+        {displayMode}
+      </span>
       {shellScene ? (
         <CityWorldRenderer ref={rendererRef} scene={shellScene} cameraPresetId={cameraPresetId} debugMode={debugMode} onSelectPlace={() => undefined} />
       ) : (
