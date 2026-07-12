@@ -1,38 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Atlas app icon — the diorama in miniature. One voxel grass block, one
-       chunky house, engine palette. Full-bleed square; the directory applies
-       its own corner mask. -->
-  <rect width="512" height="512" fill="#f2ead8"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="atlas-icon-title">
+  <title id="atlas-icon-title">Atlas voxel house on a green county block</title>
+  <defs>
+    <clipPath id="terrain-top">
+      <polygon points="256,108 424,198 256,318 88,198"/>
+    </clipPath>
+  </defs>
 
-  <!-- terrain slab: top diamond + two visible cliff faces (2:1 iso) -->
-  <polygon points="256,214 436,304 256,394 76,304" fill="#a9c37f"/>
-  <polygon points="76,304 256,394 256,450 76,360" fill="#6e8a55"/>
-  <polygon points="256,394 436,304 436,360 256,450" fill="#87a565"/>
+  <polygon points="256,108 424,198 256,318 88,198" fill="#A3B877"/>
+  <polygon points="88,198 256,318 256,392 88,272" fill="#26332C"/>
+  <polygon points="256,318 424,198 424,272 256,392" fill="#26332C"/>
 
-  <!-- house walls: left in shade, right sun-lit -->
-  <polygon points="164,206 256,252 256,322 164,276" fill="#dcc69e"/>
-  <polygon points="256,252 348,206 348,276 256,322" fill="#f2dfc0"/>
+  <g aria-hidden="true">
+    <polygon points="158,204 228,168 302,204 228,244" fill="#F1D7A6"/>
+    <polygon points="158,204 228,244 228,292 158,252" fill="#BE8E62"/>
+    <polygon points="228,244 302,204 302,252 228,292" fill="#F1D7A6"/>
+    <polygon points="130,190 228,132 326,190 228,252" fill="#D8743F"/>
+    <polygon points="228,132 326,190 228,252" fill="#AD5137"/>
+    <polygon points="130,190 228,132 228,252" fill="#D8743F"/>
+    <polygon points="252,254 278,240 278,274 252,288" fill="#26332C"/>
+  </g>
 
-  <!-- hip roof: apex over house center, front-left + front-right faces -->
-  <polygon points="164,206 256,252 256,148" fill="#a9704f"/>
-  <polygon points="256,252 348,206 256,148" fill="#c08157"/>
-  <polygon points="164,206 256,160 256,148" fill="#8a5a40"/>
-  <polygon points="348,206 256,160 256,148" fill="#b3714a"/>
+  <g clip-path="url(#terrain-top)" aria-hidden="true">
+    <polygon points="98,266 134,246 424,304 388,326" fill="#26332C"/>
+    <polygon points="274,292 294,282 338,292 318,302" fill="#F1D7A6"/>
+  </g>
 
-  <!-- door on the sun-lit wall -->
-  <polygon points="282,268 302,258 302,296 282,306" fill="#7c5a3e"/>
-
-  <!-- voxel tree: trunk + two stacked canopy cubes -->
-  <g>
-    <polygon points="128,318 142,325 142,345 128,338" fill="#7c5a3e"/>
-    <polygon points="142,325 156,318 156,338 142,345" fill="#8f6a49"/>
-    <polygon points="128,318 142,311 156,318 142,325" fill="#9a7350"/>
-    <polygon points="112,296 142,311 172,296 142,281" fill="#79a25c"/>
-    <polygon points="112,296 142,311 142,341 112,326" fill="#597c42" opacity="0"/>
-    <polygon points="112,296 142,311 142,325 112,310" fill="#597c42"/>
-    <polygon points="142,311 172,296 172,310 142,325" fill="#6a9150"/>
-    <polygon points="122,272 142,282 162,272 142,262" fill="#83ac64"/>
-    <polygon points="122,272 142,282 142,300 122,290" fill="#61854a"/>
-    <polygon points="142,282 162,272 162,290 142,300" fill="#719a56"/>
+  <g aria-hidden="true">
+    <polygon points="366,160 388,174 388,198 366,212 344,198 344,174" fill="#3E8C4E"/>
+    <polygon points="358,208 374,218 374,246 358,236" fill="#26332C"/>
+    <polygon points="358,208 374,218 386,212 370,202" fill="#3E8C4E"/>
   </g>
 </svg>
