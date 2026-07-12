@@ -3372,10 +3372,27 @@ process.on("unhandledRejection", (reason) => {
 const httpServer = createServer(async (req, res) => {
   const requestId = requestIdFor(req);
   res.setHeader("x-request-id", requestId);
+  const requestStartedAtMs = Date.now();
+  const requestPath = req.url?.split("?")[0] ?? "";
   logBackendEvent("http_request_started", {
     requestId,
     method: req.method,
-    path: req.url?.split("?")[0] ?? "",
+    path: requestPath,
+  });
+  // One readable line per completed hit — the 360 view of real ChatGPT
+  // traffic (G8): status + duration, plus caller identity (origin/UA) for
+  // the surfaces ChatGPT touches. No query strings, no bodies, no PII.
+  res.on("finish", () => {
+    const interesting = requestPath === MCP_PATH || requestPath.startsWith("/widget/") || requestPath === "/ready";
+    logBackendEvent("http_request_finished", {
+      requestId,
+      method: req.method,
+      path: requestPath,
+      status: res.statusCode,
+      durationMs: Date.now() - requestStartedAtMs,
+      ...(interesting && req.headers.origin ? { origin: String(req.headers.origin).slice(0, 100) } : {}),
+      ...(interesting && req.headers["user-agent"] ? { userAgent: String(req.headers["user-agent"]).slice(0, 80) } : {}),
+    });
   });
 
   if (!req.url) {
