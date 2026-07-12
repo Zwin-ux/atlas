@@ -139,3 +139,5 @@ billing, submission) and report instead of proceeding.
 
 ## P1.6 - 0.79 VISUAL GUARANTEE (approved 2026-07-12; docs/0.79_VISUAL_GUARANTEE.md)
 Per-county visual score + worst-50 report (floor gates), challenge-set pixel snapshots, stratified weekly sampler (P4.1 retargets here). 0.79-1/-3 run parallel with 0.78-R; 0.79-2 after it lands.
+
+### 0.78-R status (2026-07-12): REVERTED after 2 rounds - chunked renderer held 2321->3972 Graphics mid-zoom-transition (its own probe caught it); work preserved in git stash '078R chunked renderer'. Lesson: blind codex renderer surgery does not converge; 0.78-R is a REVIEWER-lane browser-in-the-loop task (Spend rule 3). jefferson-al canvas_single load-flake under multi-agent churn: re-verify on quiet box.
