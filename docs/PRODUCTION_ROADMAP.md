@@ -1,4 +1,4 @@
-# Atlas — Production Roadmap (THE mandatory queue)
+﻿# Atlas — Production Roadmap (THE mandatory queue)
 
 Status: ACTIVE master queue as of 2026-07-12. Supersedes COUNCIL_VERDICT.md
 (closed) as the work thread. Any driver (Fable, Opus, Codex) boots here
@@ -48,11 +48,11 @@ after `docs/NORTH_STARS.md` (NS-0 + Spend rules govern every packet).
 Reality: generated scenes already carry places (labels/kinds/anchors).
 Missing: interaction wiring + honest place identity + map-first answers.
 
-- [ ] P1.1 Renderer/state interactivity in generated mode: enable place
+- [x] P1.1 LIVE 3b6d28d - Renderer/state interactivity in generated mode: enable place
       taps (`onSelectPlace`), selection ring, place labels; widgetState
       selection/pins/notes keyed by generated scene id. Fence: renderer,
       App/View state, types. Kill: Graphics ceiling or tap-select audit red.
-- [ ] P1.2 Honest place identity: county seat name (Census, staged
+- [x] P1.2 LIVE 3b6d28d - Honest place identity: county seat name (Census, staged
       inventory) anchors the district name; place labels stay archetype-
       descriptive (no invented proper names). Tray copy for generated
       places generated from spec facts (tier, water, archetype).
