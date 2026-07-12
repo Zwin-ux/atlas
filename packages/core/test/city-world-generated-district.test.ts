@@ -31,6 +31,7 @@ import {
   GENERATED_ART_PROFILES,
   densityPerSqMiForFacts,
   generatedArtProfileForId,
+  resolveGeneratedLayoutGrammar,
   urbanizationTierForDensity,
 } from "../src/voxel/cityWorldCountyParameters.js";
 import type { CensusDivision, CityWorldProp, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
@@ -63,11 +64,11 @@ const VEGETATION_EXPECTATIONS: Record<
   { trees: number; bushes: number; minVegetation: number; maxVegetation: number; minParkVegetation?: number; desertScrubOnly?: true }
 > = {
   metro_grid: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
-  coastal_grid: { trees: 28, bushes: 1, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
-  desert_basin: { trees: 0, bushes: 6, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
-  mountain_valley: { trees: 32, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
-  prairie_town: { trees: 32, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
-  river_town: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
+  coastal_grid: { trees: 25, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
+  desert_basin: { trees: 0, bushes: 7, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
+  mountain_valley: { trees: 30, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
+  prairie_town: { trees: 38, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
+  river_town: { trees: 23, bushes: 5, minVegetation: 26, maxVegetation: 34 },
 };
 const E5_FILL_ZONE_KINDS = new Set<CityWorldZoneKind>([
   "farm_field",
@@ -407,6 +408,63 @@ describe("deterministic generated district specs", () => {
           expect(road.width).toBe(profile.drivewayWidth);
           expect(road.visualGrammar?.roadContact?.laneMarking).toBe("none");
         }
+      }
+    }
+  });
+
+  it("authors W4.4 deterministic organic road grammar by archetype", () => {
+    const curated = compileCityWorldScene(riversideDemoVoxelScene);
+    const curatedHash = createHash("sha256").update(JSON.stringify(curated)).digest("hex");
+    const curatedBaseline = readFileSync(new URL("../../../artifacts/engine-todo/curated-compile-baseline.txt", import.meta.url), "utf8").trim();
+    expect(curatedHash).toBe(curatedBaseline);
+
+    for (const archetype of GENERATED_DISTRICT_ARCHETYPES) {
+      const testCounty = countyForArchetype(archetype);
+      const first = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const second = createDeterministicGeneratedDistrictScene({ county: testCounty });
+      const parameters = first.generated.spec.countyParameters!;
+      const roadSeeds = first.generated.spec.roadSeeds;
+      const compiledRoads = first.result.scene.roadSegments.filter((road) => road.id.startsWith("gen-road-"));
+      const nonAxisRoads = roadSeeds.filter((road) => road.kind !== "crosswalk" && !roadIsAxisAligned(road));
+
+      expect(first.generated).toEqual(second.generated);
+      expect(first.result.scene).toEqual(second.result.scene);
+      expect(first.generated.archetype).toBe(archetype);
+      expect(parameters.layoutGrammar).toEqual(resolveGeneratedLayoutGrammar(archetype, parameters.urbanizationTier, first.generated.seed, parameters.modulation));
+      expect(compiledRoads.length).toBeGreaterThan(0);
+
+      for (const building of first.result.scene.buildings.filter((building) => building.id.startsWith("gen-building-") && !isAttachmentBuilding(building))) {
+        expect(buildingClearsRoadCorridors(building, first.result.scene)).toBe(true);
+      }
+
+      if (archetype === "metro_grid") {
+        expect(roadSeeds.filter((road) => road.kind !== "crosswalk" && roadIsAxisAligned(road)).length).toBeGreaterThanOrEqual(5);
+        expect(roadSeeds.filter((road) => road.kind === "avenue" && road.id.includes("diagonal")).length).toBeGreaterThanOrEqual(1);
+        expect(roadSeeds.filter((road) => road.kind === "avenue" && road.id.includes("diagonal")).length).toBeLessThanOrEqual(2);
+      } else {
+        expect(nonAxisRoads.length).toBeGreaterThanOrEqual(1);
+      }
+
+      if (archetype === "river_town") {
+        expect(roadSeeds.filter((road) => road.kind === "crosswalk" && road.id.includes("bridge")).length).toBeGreaterThanOrEqual(2);
+        expect(roadSeeds.filter((road) => road.id.includes("bank")).length).toBeGreaterThanOrEqual(4);
+      }
+      if (archetype === "coastal_grid") {
+        expect(roadSeeds.filter((road) => road.id.includes("shore-main")).length).toBeGreaterThanOrEqual(2);
+        expect(roadSeeds.filter((road) => road.id.includes("lane") && Math.abs(road.to.x - road.from.x) > Math.abs(road.to.y - road.from.y)).length).toBeGreaterThanOrEqual(3);
+      }
+      if (archetype === "mountain_valley") {
+        expect(roadSeeds.filter((road) => road.id.includes("valley-spine")).length).toBeGreaterThanOrEqual(1);
+        expect(roadSeeds.some((road) => road.id.includes("switchback") && !roadIsAxisAligned(road))).toBe(true);
+        expect(roadSeeds.some((road) => road.id.includes("terrace-branch") && !roadIsAxisAligned(road))).toBe(true);
+      }
+      if (archetype === "desert_basin") {
+        expect(roadSeeds.filter((road) => road.id.includes("desert-highway")).length).toBe(2);
+        expect(roadSeeds.filter((road) => road.kind === "avenue").length).toBeLessThanOrEqual(2);
+      }
+      if (archetype === "prairie_town") {
+        expect(roadSeeds.filter((road) => roadIsAxisAligned(road) && road.kind !== "crosswalk").length).toBeGreaterThanOrEqual(5);
+        expect(roadSeeds.filter((road) => road.id.includes("creek-rail-curve") && !roadIsAxisAligned(road)).length).toBeGreaterThanOrEqual(2);
       }
     }
   });
@@ -814,15 +872,34 @@ function isVegetation(prop: CityWorldProp): boolean {
   return prop.kind === "tree" || prop.kind === "bush";
 }
 
+function roadIsAxisAligned(road: { from: { x: number; y: number }; to: { x: number; y: number } }): boolean {
+  return Math.abs(road.to.x - road.from.x) < 0.001 || Math.abs(road.to.y - road.from.y) < 0.001;
+}
+
+function buildingClearsRoadCorridors(building: CityWorldBuilding, scene: CityWorldScene): boolean {
+  for (const road of scene.roadSegments) {
+    if (road.kind === "crosswalk") continue;
+    const halfCorridor = road.width / 2 + 0.35;
+    if (distanceToRoadSegment(building.position, road) <= halfCorridor + buildingRoadNormalRadius(building, road)) return false;
+  }
+  return true;
+}
+
+function buildingRoadNormalRadius(building: CityWorldBuilding, road: CityWorldRoadSegment): number {
+  const dx = road.to.x - road.from.x;
+  const dy = road.to.y - road.from.y;
+  const length = Math.hypot(dx, dy);
+  if (length <= 0) return Math.hypot(building.width / 2, building.depth / 2);
+  const normalX = -dy / length;
+  const normalY = dx / length;
+  return (building.width / 2) * Math.abs(normalX) + (building.depth / 2) * Math.abs(normalY);
+}
+
 function propClearsRoadCorridors(prop: CityWorldProp, scene: CityWorldScene): boolean {
   for (const road of scene.roadSegments) {
     if (road.kind === "crosswalk") continue;
     const halfCorridor = road.width / 2 + 0.35;
-    const minX = Math.min(road.from.x, road.to.x) - halfCorridor;
-    const maxX = Math.max(road.from.x, road.to.x) + halfCorridor;
-    const minY = Math.min(road.from.y, road.to.y) - halfCorridor;
-    const maxY = Math.max(road.from.y, road.to.y) + halfCorridor;
-    if (prop.position.x >= minX && prop.position.x <= maxX && prop.position.y >= minY && prop.position.y <= maxY) return false;
+    if (distanceToRoadSegment(prop.position, road) <= halfCorridor) return false;
   }
   return true;
 }
@@ -998,13 +1075,20 @@ function pointInRoadCorridor(point: { x: number; y: number }, roads: CityWorldRo
   for (const road of roads) {
     if (road.kind === "crosswalk") continue;
     const halfCorridor = road.width / 2 + 0.35;
-    const minX = Math.min(road.from.x, road.to.x) - halfCorridor;
-    const maxX = Math.max(road.from.x, road.to.x) + halfCorridor;
-    const minY = Math.min(road.from.y, road.to.y) - halfCorridor;
-    const maxY = Math.max(road.from.y, road.to.y) + halfCorridor;
-    if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) return true;
+    if (distanceToRoadSegment(point, road) <= halfCorridor) return true;
   }
   return false;
+}
+
+function distanceToRoadSegment(point: { x: number; y: number }, road: CityWorldRoadSegment): number {
+  const dx = road.to.x - road.from.x;
+  const dy = road.to.y - road.from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0) return Math.hypot(point.x - road.from.x, point.y - road.from.y);
+  const t = Math.max(0, Math.min(1, ((point.x - road.from.x) * dx + (point.y - road.from.y) * dy) / lengthSquared));
+  const nearestX = road.from.x + dx * t;
+  const nearestY = road.from.y + dy * t;
+  return Math.hypot(point.x - nearestX, point.y - nearestY);
 }
 
 function parameterDiversityScore(first: CountyGenerationParameters, second: CountyGenerationParameters): number {

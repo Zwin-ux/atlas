@@ -338,16 +338,10 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
 const ROAD_CLEARANCE_MARGIN = 0.35;
 
 function parcelClearsRoads(parcel: ParcelLayout, roads: CityWorldRoadSegment[]): boolean {
-  const halfW = parcel.width / 2;
-  const halfD = parcel.depth / 2;
   for (const road of roads) {
     if (road.kind === "crosswalk") continue; // painted on the road surface, not a corridor
     const halfCorridor = road.width / 2 + ROAD_CLEARANCE_MARGIN;
-    const minX = Math.min(road.from.x, road.to.x) - halfCorridor;
-    const maxX = Math.max(road.from.x, road.to.x) + halfCorridor;
-    const minY = Math.min(road.from.y, road.to.y) - halfCorridor;
-    const maxY = Math.max(road.from.y, road.to.y) + halfCorridor;
-    if (parcel.x + halfW > minX && parcel.x - halfW < maxX && parcel.y + halfD > minY && parcel.y - halfD < maxY) {
+    if (distanceToRoadSegment({ x: parcel.x, y: parcel.y }, road) <= halfCorridor + parcelRoadNormalRadius(parcel, road)) {
       return false;
     }
   }
@@ -815,7 +809,8 @@ function buildingForZone(
   regionalPalette?: RegionalPalette,
   countyParameters?: CountyGenerationParameters,
 ): CityWorldBuilding | null {
-  const spec = parcel.spec ?? buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
+  const rawSpec = parcel.spec ?? buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
+  const spec = rawSpec ? coastalCottageVariant(rawSpec, parcel, countyParameters) : null;
   if (!spec) return null;
   return {
     id: `gen-building-${zone.id}-${parcel.index}`,
@@ -839,6 +834,33 @@ function buildingForZone(
     roofShape: spec.roofShape,
     facadeStyle: spec.facadeStyle,
     detailLevel: spec.kind === "home" ? "medium" : "high",
+  };
+}
+
+function coastalCottageVariant(
+  spec: ZoneBuildingSpec,
+  parcel: ParcelLayout,
+  countyParameters?: CountyGenerationParameters,
+): ZoneBuildingSpec {
+  if (
+    countyParameters?.archetypeProfile.archetype !== "coastal_grid" ||
+    spec.kind !== "home" ||
+    spec.facadeStyle !== "cottage" ||
+    parcel.index % 2 !== 0
+  ) {
+    return spec;
+  }
+  const palette = countyParameters.palette;
+  const paletteIndex = Math.floor(parcel.index / 2);
+  const { paletteKey: _paletteKey, ...baseSpec } = spec;
+  return {
+    ...baseSpec,
+    facadeStyle: "ranch",
+    roofShape: "hip",
+    width: roundDimension(spec.width * 1.12),
+    height: roundDimension(spec.height + 0.18),
+    bodyColor: palette.body[paletteIndex % palette.body.length] ?? spec.bodyColor,
+    roofColor: palette.roof[(paletteIndex + 1) % palette.roof.length] ?? spec.roofColor,
   };
 }
 
@@ -1549,6 +1571,9 @@ function generatedTemplatePaletteIndex(
   ) {
     return { body: bodyIndex + 1, roof: roofIndex + 1 };
   }
+  if (countyParameters?.archetypeProfile.archetype === "prairie_town") {
+    return { body: 0, roof: roofIndex + 1 };
+  }
   return { body: bodyIndex, roof: roofIndex };
 }
 
@@ -1713,9 +1738,9 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       footprintScale: 1.02,
       heightScale: 1.02,
       heightBiasMultiplier: 3.1,
-      cottageWeight: 1.18,
-      ranchWeight: 1.08,
-      rowhomeWeight: 0.58,
+      cottageWeight: 0.86,
+      ranchWeight: 1.18,
+      rowhomeWeight: 0.92,
       cornerStoreMinParcels: 8,
     });
   }
@@ -2078,13 +2103,17 @@ function waterAccentProps(zone: CityWorldZoneSpec, rng: () => number): ZonePropS
 }
 
 function residentialStreetTreeCap(archetype: GeneratedDistrictArchetype | undefined): number {
-  if (archetype === "metro_grid" || archetype === "coastal_grid" || archetype === "river_town") return 5;
+  if (archetype === "coastal_grid") return 7;
+  if (archetype === "river_town") return 7;
+  if (archetype === "metro_grid") return 5;
   if (archetype === "mountain_valley" || archetype === "prairie_town") return 4;
   return 4;
 }
 
 function apartmentStreetTreeCap(archetype: GeneratedDistrictArchetype | undefined): number {
-  if (archetype === "metro_grid" || archetype === "coastal_grid" || archetype === "river_town") return 3;
+  if (archetype === "coastal_grid") return 4;
+  if (archetype === "river_town") return 4;
+  if (archetype === "metro_grid") return 3;
   return 2;
 }
 
@@ -2120,7 +2149,8 @@ function addStreetTreeRhythm(
 
 function streetTreeSpacing(context: PropPlacementContext): number {
   if (context.archetype === "metro_grid") return 3.1;
-  if (context.archetype === "coastal_grid" || context.archetype === "river_town") return 3.5;
+  if (context.archetype === "coastal_grid") return 3.5;
+  if (context.archetype === "river_town") return 3.2;
   if (context.archetype === "prairie_town") return 3.8;
   if (context.archetype === "mountain_valley") return 4.0;
   return 4.8 + (1 - context.vegetationDensity) * 1.2;
@@ -2226,7 +2256,14 @@ function addShorelineCluster(
 ): void {
   if (context.archetype !== "coastal_grid" && context.archetype !== "river_town") return;
   const wideBand = zone.rect.maxX - zone.rect.minX > (zone.rect.maxY - zone.rect.minY) * 1.6;
-  const count = wideBand ? vegetationBand(4, 5, context.vegetationDensity) : vegetationBand(4, 6, context.vegetationDensity);
+  const count =
+    context.archetype === "river_town"
+      ? wideBand
+        ? vegetationBand(6, 7, context.vegetationDensity)
+        : vegetationBand(5, 7, context.vegetationDensity)
+      : wideBand
+        ? vegetationBand(4, 5, context.vegetationDensity)
+        : vegetationBand(4, 6, context.vegetationDensity);
   if (wideBand) {
     addHorizontalShorelineCluster(specs, zone, context, rng, count);
     return;
@@ -2360,6 +2397,48 @@ function roadFrontagesForZone(
         offset: cityWorldClamp(roadX <= center.x ? roadX + half : roadX - half, zone.rect.minX + 0.85, zone.rect.maxX - 0.85),
         roadId: road.id,
       });
+    } else {
+      const dx = road.to.x - road.from.x;
+      const dy = road.to.y - road.from.y;
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        const roadMinX = Math.min(road.from.x, road.to.x);
+        const roadMaxX = Math.max(road.from.x, road.to.x);
+        const roadMinY = Math.min(road.from.y, road.to.y);
+        const roadMaxY = Math.max(road.from.y, road.to.y);
+        if (roadMaxX < zone.rect.minX - 2.6 || roadMinX > zone.rect.maxX + 2.6) continue;
+        if (roadMaxY < zone.rect.minY - 2.6 || roadMinY > zone.rect.maxY + 2.6) continue;
+        const start = Math.max(zone.rect.minX + 1, roadMinX + 1);
+        const end = Math.min(zone.rect.maxX - 1, roadMaxX - 1);
+        if (end - start < 2.2) continue;
+        const sampleX = cityWorldClamp(center.x, roadMinX, roadMaxX);
+        const roadY = road.from.y + dy * ((sampleX - road.from.x) / dx);
+        frontages.push({
+          axis: "x",
+          start,
+          end,
+          offset: cityWorldClamp(roadY <= center.y ? roadY + half : roadY - half, zone.rect.minY + 0.85, zone.rect.maxY - 0.85),
+          roadId: road.id,
+        });
+      } else {
+        const roadMinX = Math.min(road.from.x, road.to.x);
+        const roadMaxX = Math.max(road.from.x, road.to.x);
+        const roadMinY = Math.min(road.from.y, road.to.y);
+        const roadMaxY = Math.max(road.from.y, road.to.y);
+        if (roadMaxY < zone.rect.minY - 2.6 || roadMinY > zone.rect.maxY + 2.6) continue;
+        if (roadMaxX < zone.rect.minX - 2.6 || roadMinX > zone.rect.maxX + 2.6) continue;
+        const start = Math.max(zone.rect.minY + 1, roadMinY + 1);
+        const end = Math.min(zone.rect.maxY - 1, roadMaxY - 1);
+        if (end - start < 2.2) continue;
+        const sampleY = cityWorldClamp(center.y, roadMinY, roadMaxY);
+        const roadX = road.from.x + dx * ((sampleY - road.from.y) / dy);
+        frontages.push({
+          axis: "y",
+          start,
+          end,
+          offset: cityWorldClamp(roadX <= center.x ? roadX + half : roadX - half, zone.rect.minX + 0.85, zone.rect.maxX - 0.85),
+          roadId: road.id,
+        });
+      }
     }
   }
   return frontages.sort((a, b) => a.roadId.localeCompare(b.roadId));
@@ -2427,13 +2506,30 @@ function pointClearsRoads(point: CityWorldPoint, roads: CityWorldRoadSegment[]):
   for (const road of roads) {
     if (road.kind === "crosswalk") continue;
     const halfCorridor = road.width / 2 + ROAD_CLEARANCE_MARGIN;
-    const minX = Math.min(road.from.x, road.to.x) - halfCorridor;
-    const maxX = Math.max(road.from.x, road.to.x) + halfCorridor;
-    const minY = Math.min(road.from.y, road.to.y) - halfCorridor;
-    const maxY = Math.max(road.from.y, road.to.y) + halfCorridor;
-    if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) return false;
+    if (distanceToRoadSegment(point, road) <= halfCorridor) return false;
   }
   return true;
+}
+
+function distanceToRoadSegment(point: { x: number; y: number }, road: CityWorldRoadSegment): number {
+  const dx = road.to.x - road.from.x;
+  const dy = road.to.y - road.from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0) return Math.hypot(point.x - road.from.x, point.y - road.from.y);
+  const t = cityWorldClamp(((point.x - road.from.x) * dx + (point.y - road.from.y) * dy) / lengthSquared, 0, 1);
+  const nearestX = road.from.x + dx * t;
+  const nearestY = road.from.y + dy * t;
+  return Math.hypot(point.x - nearestX, point.y - nearestY);
+}
+
+function parcelRoadNormalRadius(parcel: ParcelLayout, road: CityWorldRoadSegment): number {
+  const dx = road.to.x - road.from.x;
+  const dy = road.to.y - road.from.y;
+  const length = Math.hypot(dx, dy);
+  if (length <= 0) return Math.hypot(parcel.width / 2, parcel.depth / 2);
+  const normalX = -dy / length;
+  const normalY = dx / length;
+  return (parcel.width / 2) * Math.abs(normalX) + (parcel.depth / 2) * Math.abs(normalY);
 }
 
 function pointInsideGeneratedBounds(point: CityWorldPoint, spec: CityWorldParametricSpec): boolean {
@@ -2458,7 +2554,7 @@ type ParametricCameraScenery = {
 };
 
 const WATER_AWARE_FRAME_TILE_FLOOR = 18;
-const WATER_AWARE_FRAME_BONUS_WEIGHT = 0.08;
+const WATER_AWARE_FRAME_BONUS_WEIGHT = 0.5;
 const WATER_AWARE_DESKTOP_LOWER_OCCUPANCY_FLOOR = 0.18;
 const WATER_AWARE_MOBILE_LOWER_OCCUPANCY_FLOOR = 0.1;
 
@@ -2538,23 +2634,38 @@ function generatedOverviewFocus(
   fallback: { x: number; y: number },
   scenery: ParametricCameraScenery,
   scorer: (center: CityWorldPoint, scenery: ParametricCameraScenery) => number = overviewFrameCompositionScore,
+  offsets: Array<{ x: number; y: number }> = DEFAULT_GENERATED_FOCUS_OFFSETS,
 ): { x: number; y: number } {
-  return bestGeneratedFocus(builtZones, fallback, scenery, scorer).focus;
+  return bestGeneratedFocus(builtZones, fallback, scenery, scorer, offsets).focus;
 }
+
+const DEFAULT_GENERATED_FOCUS_OFFSETS = [
+  { x: 0, y: 0 },
+  { x: -2, y: 0 },
+  { x: 2, y: 0 },
+  { x: 0, y: -2 },
+  { x: 0, y: 2 },
+];
+
+const RIVER_GENERATED_FOCUS_OFFSETS = [
+  ...DEFAULT_GENERATED_FOCUS_OFFSETS,
+  { x: -6, y: 0 },
+  { x: -4, y: 0 },
+  { x: 4, y: 0 },
+  { x: 6, y: 0 },
+  { x: 0, y: -6 },
+  { x: 0, y: -4 },
+  { x: 0, y: 4 },
+  { x: 0, y: 6 },
+];
 
 function bestGeneratedFocus(
   zones: CityWorldZoneSpec[],
   fallback: { x: number; y: number },
   scenery: ParametricCameraScenery,
   scorer: (center: CityWorldPoint, scenery: ParametricCameraScenery) => number,
+  offsets: Array<{ x: number; y: number }> = DEFAULT_GENERATED_FOCUS_OFFSETS,
 ): { focus: { x: number; y: number }; score: number } {
-  const offsets = [
-    { x: 0, y: 0 },
-    { x: -2, y: 0 },
-    { x: 2, y: 0 },
-    { x: 0, y: -2 },
-    { x: 0, y: 2 },
-  ];
   const anchors = zones.flatMap((zone) => {
     const center = zoneCenter(zone);
     return offsets.map((offset) => ({ x: center.x + offset.x, y: center.y + offset.y }));
@@ -2653,18 +2764,21 @@ function parametricCameraPresets(
     : archetype === "mountain_valley"
       ? reliefAwareMobileOverviewFrameCompositionScore
       : mobileOverviewFrameCompositionScore;
-  const openingZones = archetype === "mountain_valley" ? mountainOverviewCandidateZones(zones, built) : built;
+  const waterOpeningZones = waterAware ? waterOverviewCandidateZones(zones, built) : built;
+  const openingZones = archetype === "mountain_valley" ? mountainOverviewCandidateZones(zones, built) : waterOpeningZones;
+  const generatedFocusOffsets = archetype === "river_town" ? RIVER_GENERATED_FOCUS_OFFSETS : DEFAULT_GENERATED_FOCUS_OFFSETS;
   const openingFocus = countyParameters
     ? archetype === "mountain_valley"
       ? mountainOverviewFocus(openingZones, built, focus, scenery)
-      : generatedOverviewFocus(openingZones, focus, scenery, overviewScorer)
+      : generatedOverviewFocus(openingZones, focus, scenery, overviewScorer, generatedFocusOffsets)
     : focus;
   const mobileFocus = countyParameters
     ? generatedOverviewFocus(
-        built,
+        waterAware ? waterOpeningZones : built,
         { x: openingFocus.x, y: openingFocus.y + 3 },
         scenery,
         mobileOverviewScorer,
+        generatedFocusOffsets,
       )
     : { x: openingFocus.x, y: openingFocus.y + 4 };
   const center = { x: openingFocus.x, y: openingFocus.y, z: 0 };
@@ -2708,6 +2822,11 @@ function mountainOverviewCandidateZones(zones: CityWorldZoneSpec[], fallback: Ci
       zone.id === "mountain-inn-court",
   );
   return ridgeFabric.length > 0 ? ridgeFabric : fallback;
+}
+
+function waterOverviewCandidateZones(zones: CityWorldZoneSpec[], fallback: CityWorldZoneSpec[]): CityWorldZoneSpec[] {
+  const waterFabric = zones.filter((zone) => zone.kind === "water" || zone.kind === "shore_bank");
+  return waterFabric.length > 0 ? [...fallback, ...waterFabric] : fallback;
 }
 
 function mountainOverviewFocus(
@@ -2837,16 +2956,49 @@ function createParametricElevationModel(
   // Corridor roads: axis-aligned embedded streets/avenues (driveways and
   // crosswalks ride whatever ground they sit on).
   const corridorRoads = roads.filter((road) => road.kind === "avenue" || road.kind === "street");
-  const verticalLines = corridorRoads.filter((road) => road.from.x === road.to.x);
-  const horizontalLines = corridorRoads.filter((road) => road.from.y === road.to.y);
+  const reliefGuideZones =
+    spec.countyParameters?.archetype === "desert_basin"
+      ? spec.zones.filter((zone) => zone.kind === "dry_wash")
+      : [];
+  const reliefGuideXs = reliefGuideZones.flatMap((zone) => [zone.rect.minX, zone.rect.maxX]).filter((x) => x > bounds.minX && x < bounds.maxX);
+  const reliefGuideYs = reliefGuideZones.flatMap((zone) => [zone.rect.minY, zone.rect.maxY]).filter((y) => y > bounds.minY && y < bounds.maxY);
+  const verticalLineXs = corridorRoads
+    .filter((road) => road.from.x === road.to.x || Math.abs(road.to.y - road.from.y) > Math.abs(road.to.x - road.from.x))
+    .map((road) => (road.from.x + road.to.x) / 2)
+    .concat(reliefGuideXs);
+  const horizontalLineYs = corridorRoads
+    .filter((road) => road.from.y === road.to.y || Math.abs(road.to.x - road.from.x) >= Math.abs(road.to.y - road.from.y))
+    .map((road) => (road.from.y + road.to.y) / 2)
+    .concat(reliefGuideYs);
+  const sortedVerticalLineXs = [...new Set(verticalLineXs)].sort((a, b) => a - b);
+  const sortedHorizontalLineYs = [...new Set(horizontalLineYs)].sort((a, b) => a - b);
+  const corridorChecks = corridorRoads.map((road) => {
+    const half = road.width / 2 + 0.55;
+    const dx = road.to.x - road.from.x;
+    const dy = road.to.y - road.from.y;
+    const length = Math.hypot(dx, dy);
+    return {
+      road,
+      half,
+      minX: Math.min(road.from.x, road.to.x) - half,
+      maxX: Math.max(road.from.x, road.to.x) + half,
+      minY: Math.min(road.from.y, road.to.y) - half,
+      maxY: Math.max(road.from.y, road.to.y) + half,
+      dx,
+      dy,
+      length,
+      normalX: length > 0 ? -dy / length : 0,
+      normalY: length > 0 ? dx / length : 0,
+    };
+  });
 
   const blockZ = (x: number, y: number): number => {
-    const xLines = verticalLines.map((road) => road.from.x).sort((a, b) => a - b);
-    const yLines = horizontalLines.map((road) => road.from.y).sort((a, b) => a - b);
-    const minX = Math.max(bounds.minX, ...xLines.filter((line) => line <= x));
-    const maxX = Math.min(bounds.maxX, ...xLines.filter((line) => line > x));
-    const minY = Math.max(bounds.minY, ...yLines.filter((line) => line <= y));
-    const maxY = Math.min(bounds.maxY, ...yLines.filter((line) => line > y));
+    const xBounds = linePartitionBounds(sortedVerticalLineXs, x, bounds.minX, bounds.maxX);
+    const yBounds = linePartitionBounds(sortedHorizontalLineYs, y, bounds.minY, bounds.maxY);
+    const minX = xBounds.min;
+    const maxX = xBounds.max;
+    const minY = yBounds.min;
+    const maxY = yBounds.max;
     return quantizeElevation(reliefAtBilinear(spec, (minX + maxX) / 2, (minY + maxY) / 2));
   };
 
@@ -2862,16 +3014,14 @@ function createParametricElevationModel(
     } else {
       z = blockZ(x, y);
       // Road corridor: take the lower of the two bordering blocks.
-      for (const road of verticalLines) {
-        const half = road.width / 2 + 0.55;
-        if (Math.abs(x - road.from.x) <= half && y >= Math.min(road.from.y, road.to.y) - half && y <= Math.max(road.from.y, road.to.y) + half) {
-          z = Math.min(z, blockZ(road.from.x - half - 0.5, y), blockZ(road.from.x + half + 0.5, y));
-        }
-      }
-      for (const road of horizontalLines) {
-        const half = road.width / 2 + 0.55;
-        if (Math.abs(y - road.from.y) <= half && x >= Math.min(road.from.x, road.to.x) - half && x <= Math.max(road.from.x, road.to.x) + half) {
-          z = Math.min(z, blockZ(x, road.from.y - half - 0.5), blockZ(x, road.from.y + half + 0.5));
+      for (const check of corridorChecks) {
+        if (x < check.minX || x > check.maxX || y < check.minY || y > check.maxY) continue;
+        if (distanceToRoadSegmentPoint(x, y, check.road) <= check.half && check.length > 0) {
+          z = Math.min(
+            z,
+            blockZ(x + check.normalX * (check.half + 0.5), y + check.normalY * (check.half + 0.5)),
+            blockZ(x - check.normalX * (check.half + 0.5), y - check.normalY * (check.half + 0.5)),
+          );
         }
       }
     }
@@ -2880,6 +3030,31 @@ function createParametricElevationModel(
   };
 
   return { tileZ };
+}
+
+function linePartitionBounds(lines: number[], value: number, min: number, max: number): { min: number; max: number } {
+  let lower = min;
+  let upper = max;
+  for (const line of lines) {
+    if (line <= value) {
+      lower = line;
+    } else {
+      upper = line;
+      break;
+    }
+  }
+  return { min: lower, max: upper };
+}
+
+function distanceToRoadSegmentPoint(x: number, y: number, road: CityWorldRoadSegment): number {
+  const dx = road.to.x - road.from.x;
+  const dy = road.to.y - road.from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0) return Math.hypot(x - road.from.x, y - road.from.y);
+  const t = cityWorldClamp(((x - road.from.x) * dx + (y - road.from.y) * dy) / lengthSquared, 0, 1);
+  const nearestX = road.from.x + dx * t;
+  const nearestY = road.from.y + dy * t;
+  return Math.hypot(x - nearestX, y - nearestY);
 }
 
 function tileElevationGrammar(model: ParametricElevationModel, x: number, y: number): CityWorldTileElevationGrammar | undefined {

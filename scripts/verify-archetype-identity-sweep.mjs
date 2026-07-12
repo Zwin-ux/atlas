@@ -84,6 +84,14 @@ const VEGETATION_BANDS = {
   prairie_town: { minTrees: 28, maxTrees: 40, minBushes: 3, maxBushes: 6, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },
   river_town: { minTrees: 22, maxTrees: 30, minBushes: 3, maxBushes: 6, minVegetation: 26, maxVegetation: 34 },
 };
+const LAYOUT_GRAMMAR_PATTERNS = {
+  metro_grid: "metro_grid_diagonal",
+  coastal_grid: "shore_stepback",
+  desert_basin: "highway_offsets",
+  mountain_valley: "valley_switchback",
+  prairie_town: "section_creek_curve",
+  river_town: "river_follow",
+};
 const WATER_TILE_FLOORS = {
   coastal_grid: 250,
   river_town: 150,
@@ -430,6 +438,109 @@ function vegetationCounts(scene) {
   const tree = scene.props.filter((prop) => prop.kind === "tree").length;
   const bush = scene.props.filter((prop) => prop.kind === "bush").length;
   return { tree, bush, vegetation: tree + bush };
+}
+
+function layoutGrammarFingerprint(county) {
+  const first = createDeterministicGeneratedDistrictScene({ county });
+  const second = createDeterministicGeneratedDistrictScene({ county });
+  const archetype = first.generated.archetype;
+  const roads = first.result.scene.roadSegments ?? [];
+  const generatedRoads = roads.filter((road) => road.id.startsWith("gen-road-"));
+  const crosswalks = roads.filter((road) => road.id.startsWith("gen-cross-"));
+  const signature = roadSignature(roads);
+  const repeatedSignature = roadSignature(second.result.scene.roadSegments ?? []);
+  const metrics = layoutRoadMetrics(archetype, roads);
+  const pattern = first.generated.spec.countyParameters?.layoutGrammar?.pattern ?? "missing";
+  const failures = [];
+
+  if (signature !== repeatedSignature) failures.push("road signature is not deterministic");
+  if (pattern !== LAYOUT_GRAMMAR_PATTERNS[archetype]) failures.push(`pattern ${pattern} != ${LAYOUT_GRAMMAR_PATTERNS[archetype]}`);
+
+  if (archetype === "metro_grid") {
+    if (metrics.axisRoads < 5) failures.push(`metro axis roads ${metrics.axisRoads} below 5`);
+    if (metrics.diagonalAvenues < 1 || metrics.diagonalAvenues > 2) failures.push(`metro diagonal avenues ${metrics.diagonalAvenues} outside 1-2`);
+  } else if (archetype === "coastal_grid") {
+    if (metrics.shoreMainSegments < 2) failures.push(`coastal shore-main segments ${metrics.shoreMainSegments} below 2`);
+    if (metrics.stepbackLanes < 3) failures.push(`coastal stepback/perpendicular lanes ${metrics.stepbackLanes} below 3`);
+    if (metrics.nonAxisRoads < 3) failures.push(`coastal non-axis roads ${metrics.nonAxisRoads} below 3`);
+  } else if (archetype === "desert_basin") {
+    if (metrics.highwaySegments !== 2) failures.push(`desert highway segments ${metrics.highwaySegments} != 2`);
+    if (metrics.offsetRoads < 1 || metrics.offsetRoads > 3) failures.push(`desert sparse offsets ${metrics.offsetRoads} outside 1-3`);
+    if (metrics.avenues !== 2) failures.push(`desert avenues ${metrics.avenues} != 2 highway spine segments`);
+  } else if (archetype === "mountain_valley") {
+    if (metrics.contourRoads < 2) failures.push(`mountain contour roads ${metrics.contourRoads} below 2`);
+    if (metrics.valleySpines < 1) failures.push("mountain valley spine missing");
+    if (metrics.switchbacks < 2) failures.push(`mountain switchback/terrace branches ${metrics.switchbacks} below 2`);
+  } else if (archetype === "prairie_town") {
+    if (metrics.sectionGridRoads < 5) failures.push(`prairie section grid roads ${metrics.sectionGridRoads} below 5`);
+    if (metrics.creekCurveSegments < 2) failures.push(`prairie creek/rail curve segments ${metrics.creekCurveSegments} below 2`);
+    if (metrics.nonAxisRoads < 2) failures.push(`prairie non-axis roads ${metrics.nonAxisRoads} below 2`);
+  } else if (archetype === "river_town") {
+    if (metrics.bankRoadSegments < 4) failures.push(`river bank road segments ${metrics.bankRoadSegments} below 4`);
+    if (metrics.bridgeRoads < 2) failures.push(`river bridge roads ${metrics.bridgeRoads} below 2`);
+    if (metrics.bridgeCrosswalks < 2) failures.push(`river bridge crosswalks ${metrics.bridgeCrosswalks} below 2`);
+  }
+
+  return {
+    countySlug: county.countySlug,
+    archetype,
+    tier: first.generated.spec.countyParameters?.urbanizationTier ?? "missing",
+    pattern,
+    roadCount: roads.length,
+    generatedRoadCount: generatedRoads.length,
+    crosswalkCount: crosswalks.length,
+    ...metrics,
+    failures,
+  };
+}
+
+function roadSignature(roads) {
+  return roads
+    .map((road) =>
+      [
+        road.id,
+        road.kind,
+        roadCoord(road.from.x),
+        roadCoord(road.from.y),
+        roadCoord(road.to.x),
+        roadCoord(road.to.y),
+      ].join(":"),
+    )
+    .sort()
+    .join("|");
+}
+
+function layoutRoadMetrics(archetype, roads) {
+  const generatedRoads = roads.filter((road) => road.id.startsWith("gen-road-"));
+  const crosswalks = roads.filter((road) => road.id.startsWith("gen-cross-"));
+  const axisRoads = generatedRoads.filter(roadIsAxisAligned).length;
+  const nonAxisRoads = generatedRoads.length - axisRoads;
+  return {
+    axisRoads,
+    nonAxisRoads,
+    avenues: generatedRoads.filter((road) => road.kind === "avenue").length,
+    diagonalAvenues: generatedRoads.filter((road) => road.kind === "avenue" && !roadIsAxisAligned(road)).length,
+    shoreMainSegments: generatedRoads.filter((road) => road.id.startsWith("gen-road-coastal-shore-main")).length,
+    stepbackLanes: generatedRoads.filter((road) => /gen-road-coastal-(north|market|south)-lane|gen-road-coastal-back-step/.test(road.id)).length,
+    highwaySegments: generatedRoads.filter((road) => road.id.startsWith("gen-road-desert-highway")).length,
+    offsetRoads: generatedRoads.filter((road) => road.id.includes("offset")).length,
+    contourRoads: generatedRoads.filter((road) => road.id.includes("contour")).length,
+    valleySpines: generatedRoads.filter((road) => road.id.includes("valley-spine")).length,
+    switchbacks: generatedRoads.filter((road) => road.id.includes("switchback") || road.id.includes("terrace-branch")).length,
+    sectionGridRoads: generatedRoads.filter((road) => /gen-road-prairie-(grid|main|south|section|east-section)/.test(road.id)).length,
+    creekCurveSegments: generatedRoads.filter((road) => road.id.startsWith("gen-road-prairie-creek-rail-curve")).length,
+    bankRoadSegments: generatedRoads.filter((road) => /gen-road-river-(west|east|north|south)-bank/.test(road.id)).length,
+    bridgeRoads: generatedRoads.filter((road) => road.id.includes("bridge-road")).length,
+    bridgeCrosswalks: crosswalks.filter((road) => road.id.includes("river-bridge")).length,
+  };
+}
+
+function roadIsAxisAligned(road) {
+  return Math.abs(road.from.x - road.to.x) <= 0.001 || Math.abs(road.from.y - road.to.y) <= 0.001;
+}
+
+function roadCoord(value) {
+  return Number(value.toFixed(3));
 }
 
 function terrainFeatureFingerprint(county) {
@@ -1008,6 +1119,30 @@ log(
     ")",
 );
 
+const layoutGrammarByArchetype = {};
+for (const a of present) {
+  layoutGrammarByArchetype[a] = layoutGrammarFingerprint(representativeCountyByArchetype[a]);
+}
+const layoutGrammarFailures = Object.entries(layoutGrammarByArchetype).flatMap(([archetype, entry]) =>
+  entry.failures.map((failure) => `${archetype}: ${failure}`),
+);
+log("\nOrganic layout grammar - representative W4.4 road seeds:");
+for (const a of present) {
+  const entry = layoutGrammarByArchetype[a];
+  log(
+    "  " +
+      a.padEnd(16) +
+      entry.pattern.padEnd(23) +
+      `roads ${entry.roadCount}`.padEnd(11) +
+      `axis ${entry.axisRoads}`.padEnd(9) +
+      `nonAxis ${entry.nonAxisRoads}`.padEnd(13) +
+      `bridges ${entry.bridgeRoads}/${entry.bridgeCrosswalks}`.padEnd(14) +
+      `shore ${entry.shoreMainSegments}`.padEnd(10) +
+      `highway ${entry.highwaySegments}`.padEnd(12) +
+      `curve ${entry.creekCurveSegments}`,
+  );
+}
+
 const vegetationByArchetype = {};
 for (const a of present) {
   vegetationByArchetype[a] = vegetationFingerprint(representativeCountyByArchetype[a]);
@@ -1206,6 +1341,12 @@ const GATES = [
         : massingFailures.join("; "),
   },
   {
+    id: "organic_layout_grammar",
+    label: "W4.4 generated road seeds follow deterministic per-archetype organic layout grammar",
+    pass: layoutGrammarFailures.length === 0,
+    detail: layoutGrammarFailures.length === 0 ? "all representative W4.4 layout grammars pass" : layoutGrammarFailures.join("; "),
+  },
+  {
     id: "vegetation_presence",
     label: "representative generated archetypes hit E2 vegetation bands",
     pass: vegetationFailures.length === 0,
@@ -1317,6 +1458,11 @@ if (jsonOnly) {
         closest: massingDistinctness.closest,
         pairs: massingDistinctness.pairs,
         failures: massingFailures,
+      },
+      organicLayoutGrammar: {
+        patterns: LAYOUT_GRAMMAR_PATTERNS,
+        byArchetype: layoutGrammarByArchetype,
+        failures: layoutGrammarFailures,
       },
       vegetation: {
         bands: VEGETATION_BANDS,

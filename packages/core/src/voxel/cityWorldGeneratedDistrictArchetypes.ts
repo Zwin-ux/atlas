@@ -4,10 +4,12 @@ import type { DeterministicGeneratedDistrictInput, GeneratedDistrictArchetype } 
 import {
   ARCHETYPE_PROFILES,
   isWaterDependentGeneratedDistrictArchetype,
+  resolveGeneratedLayoutGrammar,
   resolveCountyParameters,
   type ArchetypeProfile,
   type CountyGenerationParameters,
   type CountyGenerationModulation,
+  type GeneratedLayoutGrammarProfile,
 } from "./cityWorldCountyParameters.js";
 
 export function selectGeneratedDistrictArchetype(
@@ -71,6 +73,7 @@ type LayoutContext = {
   reliefTerraceBoost: number;
   waterAffinity: number;
   urbanizationTier: CountyGenerationParameters["urbanizationTier"] | "urban_core";
+  layoutGrammar: GeneratedLayoutGrammarProfile;
 };
 
 function layoutContext(
@@ -83,6 +86,7 @@ function layoutContext(
   const yShift = (Math.floor(seed / 3) % 3) - 1;
   const densityScale = modulation?.densityScale ?? 1;
   const vegetationDensity = modulation?.vegetationDensity ?? 0.5;
+  const layoutGrammar = resolveGeneratedLayoutGrammar(profile.archetype, urbanizationTier, seed, modulation);
   return {
     profile,
     modulation,
@@ -95,6 +99,7 @@ function layoutContext(
     reliefTerraceBoost: ((modulation?.reliefScale ?? 1) - 1) * 0.38,
     waterAffinity: modulation?.waterAffinity ?? 0,
     urbanizationTier,
+    layoutGrammar,
   };
 }
 
@@ -237,91 +242,167 @@ function riverTownZones(context: LayoutContext, bonusZone: CityWorldZoneSpec): C
 }
 
 function metroGridRoads(context: LayoutContext): CityWorldRoadSeed[] {
+  const roads: CityWorldRoadSeed[] = [];
   if (context.waterAffinity >= 0.75) {
-    return [
+    roads.push(
       road("gen-road-metro-coastal-north", "avenue", 10, 9 + context.yShift, 33, 9 + context.yShift),
       road("gen-road-metro-coastal-main", "avenue", 10, 16, 33, 16),
       road("gen-road-metro-coastal-south", "street", 10, 25, 33, 25),
       road("gen-road-metro-coastal-west", "street", 18 + context.xShift, 4, 18 + context.xShift, 29),
       road("gen-road-metro-coastal-shore", "street", 33, 5, 33, 29),
       road("gen-cross-metro-coastal-pier", "crosswalk", 31, 16, 36, 16),
-    ];
+    );
+  } else {
+    roads.push(
+      road("gen-road-metro-north", "avenue", 3, 9 + context.yShift, 41, 9 + context.yShift),
+      road("gen-road-metro-main", "avenue", 3, 16, 41, 16),
+      road("gen-road-metro-south", "street", 3, 25, 41, 25),
+      road("gen-road-metro-west", "street", 14 + context.xShift, 4, 14 + context.xShift, 29),
+      road("gen-road-metro-core", "avenue", 26, 4, 26, 29),
+      road("gen-road-metro-east", "street", 35, 5, 35, 29),
+      road("gen-cross-metro-core", "crosswalk", 23, 16, 28, 16),
+    );
   }
-  return [
-    road("gen-road-metro-north", "avenue", 3, 9 + context.yShift, 41, 9 + context.yShift),
-    road("gen-road-metro-main", "avenue", 3, 16, 41, 16),
-    road("gen-road-metro-south", "street", 3, 25, 41, 25),
-    road("gen-road-metro-west", "street", 14 + context.xShift, 4, 14 + context.xShift, 29),
-    road("gen-road-metro-core", "avenue", 26, 4, 26, 29),
-    road("gen-road-metro-east", "street", 35, 5, 35, 29),
-    road("gen-cross-metro-core", "crosswalk", 23, 16, 28, 16),
-  ];
+
+  if (context.layoutGrammar.diagonalAvenueCount >= 1) {
+    roads.push(
+      context.waterAffinity >= 0.75
+        ? road("gen-road-metro-diagonal-avenue-a", "avenue", 29, 15, 33 + context.layoutGrammar.branchSkew * 0.25, 11)
+        : road("gen-road-metro-diagonal-avenue-a", "avenue", 16, 25, 26 + context.layoutGrammar.branchSkew * 0.4, 16),
+    );
+  }
+  if (context.layoutGrammar.diagonalAvenueCount >= 2) {
+    roads.push(
+      context.waterAffinity >= 0.75
+        ? road("gen-road-metro-diagonal-avenue-b", "avenue", 17, 9, 26 - context.layoutGrammar.branchSkew * 0.4, 16)
+        : road("gen-road-metro-diagonal-avenue-b", "avenue", 26, 16, 35 - context.layoutGrammar.branchSkew * 0.4, 9),
+    );
+  }
+  return roads;
 }
 
 function desertBasinRoads(context: LayoutContext): CityWorldRoadSeed[] {
+  const y = 14 + context.yShift + context.layoutGrammar.spineOffset * 0.4;
+  const bend = context.layoutGrammar.curveAmplitude;
+  const skew = context.layoutGrammar.branchSkew;
+  const offsets = [
+    road("gen-road-desert-north-offset", "driveway", 10 + skew, y - 0.2, 6, 7.5),
+    road("gen-road-desert-south-offset", "driveway", 13 - skew, y + 0.55, 8, 28),
+    road("gen-road-desert-service-offset", "driveway", 31, 22, 40, 27 + skew),
+  ];
   return [
-    road("gen-road-desert-frontage", "avenue", 3, 14 + context.yShift, 42, 14 + context.yShift),
-    road("gen-road-desert-south", "street", 5, 22, 42, 22),
-    road("gen-road-desert-arterial", "avenue", 19 + context.xShift, 5, 19 + context.xShift, 29),
-    road("gen-road-desert-plaza", "driveway", 31, 26, 42, 26),
-    road("gen-cross-desert-civic", "crosswalk", 20, 14 + context.yShift, 25, 14 + context.yShift),
+    ...polylineRoad("gen-road-desert-highway", "avenue", [
+      { x: 3, y },
+      { x: 22, y: y - bend },
+      { x: 42, y: y + bend * 0.55 },
+    ]),
+    ...offsets.slice(0, context.layoutGrammar.sparseOffsetCount),
+    road("gen-cross-desert-civic", "crosswalk", 20, y - 0.2, 25, y - 0.2),
   ];
 }
 
 function coastalGridRoads(context: LayoutContext): CityWorldRoadSeed[] {
-  const shoreX = 33;
+  const shoreX = 33.35 + context.layoutGrammar.spineOffset * 0.18;
+  const bend = context.layoutGrammar.curveAmplitude;
   return [
-    road("gen-road-coastal-shoreline", "avenue", shoreX, 5, shoreX, 30),
-    road("gen-road-coastal-north", "street", 4, 9 + context.yShift, shoreX, 9 + context.yShift),
-    road("gen-road-coastal-mid", "avenue", 5, 16, shoreX, 16),
-    road("gen-road-coastal-south", "street", 5, 25, shoreX, 25),
-    road("gen-road-coastal-back", "street", 21 + context.xShift, 5, 21 + context.xShift, 29),
-    road("gen-cross-coastal-pier", "crosswalk", shoreX - 2, 25, shoreX + 3, 25),
+    ...polylineRoad("gen-road-coastal-shore-main", "avenue", [
+      { x: shoreX - 0.28, y: 5 },
+      { x: shoreX + bend * 0.42, y: 17 },
+      { x: shoreX - 0.18, y: 30 },
+    ]),
+    road("gen-road-coastal-north-lane", "street", 4, 9 + context.yShift, shoreX - 0.8, 8.4 + context.yShift * 0.4),
+    road("gen-road-coastal-market-lane", "avenue", 5, 16, shoreX - 0.25, 16 + bend * 0.35),
+    road("gen-road-coastal-south-lane", "street", 5, 25, shoreX - 0.7, 24.3),
+    road("gen-road-coastal-back-step", "street", 21 + context.xShift, 5, 22.2 + context.xShift, 29),
+    road("gen-cross-coastal-pier", "crosswalk", shoreX - 2, 25, shoreX + 3, 24.8),
   ];
 }
 
 function mountainValleyRoads(context: LayoutContext): CityWorldRoadSeed[] {
+  const bend = context.layoutGrammar.curveAmplitude;
+  const skew = context.layoutGrammar.branchSkew;
   return [
     road("gen-road-mountain-upper-contour", "street", 4, 13 + context.yShift, 24, 13 + context.yShift),
-    road("gen-road-mountain-mid-contour", "avenue", 10, 23, 38, 23),
+    road("gen-road-mountain-valley-spine", "avenue", 10, 23, 38, 23),
     road("gen-road-mountain-lower-contour", "street", 18, 30, 41, 30),
-    road("gen-road-mountain-switchback", "street", 24 + context.xShift, 8, 24 + context.xShift, 27),
-    road("gen-road-mountain-ridge", "driveway", 16, 8, 25, 8),
-    road("gen-cross-mountain-main", "crosswalk", 22, 20, 26, 20),
+    road("gen-road-mountain-switchback-spine", "street", 24 + context.xShift, 8, 24 + context.xShift, 27),
+    road("gen-road-mountain-switchback-branch", "street", 24 + context.xShift, 18, 18 + skew, 24),
+    road("gen-road-mountain-terrace-branch", "street", 14, 13 + context.yShift, 27, 18.6 - bend * 0.25),
+    road("gen-road-mountain-ridge", "driveway", 16, 8, 25, 8.8 + bend * 0.2),
+    road("gen-cross-mountain-main", "crosswalk", 22, 20, 26, 19.7),
   ];
 }
 
 function prairieTownRoads(context: LayoutContext): CityWorldRoadSeed[] {
+  const bend = context.layoutGrammar.curveAmplitude;
+  const skew = context.layoutGrammar.branchSkew;
   return [
-    road("gen-road-prairie-north", "avenue", 3, 4 + context.yShift, 42, 4 + context.yShift),
+    road("gen-road-prairie-grid-north", "avenue", 3, 4 + context.yShift, 42, 4 + context.yShift),
     road("gen-road-prairie-main", "avenue", 3, 18, 42, 18),
     road("gen-road-prairie-south", "street", 3, 30, 42, 30),
     road("gen-road-prairie-section", "street", 22 + context.xShift, 4, 22 + context.xShift, 30),
     road("gen-road-prairie-east-section", "street", 36, 4, 36, 30),
+    ...polylineRoad("gen-road-prairie-creek-rail-curve", "street", [
+      { x: 3, y: 12 + skew * 0.5 },
+      { x: 21, y: 14 + bend },
+      { x: 42, y: 11.8 - bend * 0.45 },
+    ]),
     road("gen-cross-prairie-civic", "crosswalk", 22, 18, 27, 18),
   ];
 }
 
 function riverTownRoads(context: LayoutContext): CityWorldRoadSeed[] {
+  const bend = context.layoutGrammar.curveAmplitude;
+  const skew = context.layoutGrammar.branchSkew;
   if (context.riverAxis === "vertical") {
     return [
-      road("gen-road-river-west-bank", "avenue", 18, 5, 18, 30),
-      road("gen-road-river-east-bank", "avenue", 28, 5, 28, 30),
-      road("gen-road-river-north-cross", "street", 5, 10 + context.yShift, 39, 10 + context.yShift),
-      road("gen-road-river-mid-cross", "avenue", 6, 18, 39, 18),
-      road("gen-road-river-dock-cross", "street", 6, 26, 39, 26),
-      road("gen-cross-river-bridge", "crosswalk", 20, 18, 26, 18),
+      ...polylineRoad("gen-road-river-west-bank", "street", [
+        { x: 18 - bend * 0.35, y: 5 },
+        { x: 18 + skew * 0.35, y: 17 },
+        { x: 17.6 - bend * 0.2, y: 30 },
+      ]),
+      ...polylineRoad("gen-road-river-east-bank", "street", [
+        { x: 28 + bend * 0.25, y: 5 },
+        { x: 27.7 + skew * 0.3, y: 18 },
+        { x: 28.4 + bend * 0.25, y: 30 },
+      ]),
+      road("gen-road-river-main-bridge-road", "street", 6, 18, 39, 17.6),
+      road("gen-road-river-dock-bridge-road", "street", 6, 26, 39, 25.4),
+      road("gen-road-river-landing-towpath", "driveway", 21, 6, 25, 13),
+      road("gen-cross-river-bridge-main", "crosswalk", 20, 18, 26, 17.8),
+      road("gen-cross-river-bridge-dock", "crosswalk", 20.5, 26, 25.6, 25.5),
     ];
   }
 
   return [
-    road("gen-road-river-main", "avenue", 34, 5, 34, 30),
-    road("gen-road-river-west", "street", 22 + context.xShift, 5, 22 + context.xShift, 29),
-    road("gen-road-river-north-cross", "street", 5, 10 + context.yShift, 36, 10 + context.yShift),
-    road("gen-road-river-mid-cross", "avenue", 6, 18, 36, 18),
-    road("gen-road-river-dock-cross", "street", 6, 31, 37, 31),
-    road("gen-cross-river-bridge", "crosswalk", 34, 14, 34, 21),
+    ...polylineRoad("gen-road-river-north-bank", "street", [
+      { x: 5, y: 12.4 - bend * 0.25 },
+      { x: 22, y: 12 + skew * 0.35 },
+      { x: 39, y: 12.7 + bend * 0.2 },
+    ]),
+    ...polylineRoad("gen-road-river-south-bank", "street", [
+      { x: 5, y: 23.1 + bend * 0.2 },
+      { x: 23, y: 22.6 + skew * 0.28 },
+      { x: 39, y: 23.4 - bend * 0.15 },
+    ]),
+    road("gen-road-river-main-bridge-road", "street", 24, 5, 23.4, 29),
+    road("gen-road-river-dock-bridge-road", "street", 34, 6, 34.4, 30),
+    road("gen-road-river-landing-towpath", "driveway", 36, 20, 42, 20),
+    road("gen-cross-river-bridge-main", "crosswalk", 24, 14, 23.7, 21),
+    road("gen-cross-river-bridge-dock", "crosswalk", 34, 14, 34.3, 21),
   ];
+}
+
+type RoadPoint2D = { x: number; y: number };
+
+function polylineRoad(id: string, kind: CityWorldRoadSeed["kind"], points: RoadPoint2D[]): CityWorldRoadSeed[] {
+  const roads: CityWorldRoadSeed[] = [];
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const from = points[index]!;
+    const to = points[index + 1]!;
+    roads.push(road(`${id}-${index + 1}`, kind, from.x, from.y, to.x, to.y));
+  }
+  return roads;
 }
 
 export function generatedHeightGrid(
@@ -461,7 +542,11 @@ function road(
   toX: number,
   toY: number,
 ): CityWorldRoadSeed {
-  return { id, kind, from: { x: fromX, y: fromY }, to: { x: toX, y: toY } };
+  return { id, kind, from: { x: roadCoord(fromX), y: roadCoord(fromY) }, to: { x: roadCoord(toX), y: roadCoord(toY) } };
+}
+
+function roadCoord(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function layoutDensity(base: number, context: LayoutContext): number {

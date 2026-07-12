@@ -105,6 +105,24 @@ export type GeneratedRoadArtProfile = {
   treeSpecies: readonly GeneratedTreeSpecies[];
 };
 
+export type GeneratedLayoutPattern =
+  | "metro_grid_diagonal"
+  | "river_follow"
+  | "shore_stepback"
+  | "valley_switchback"
+  | "highway_offsets"
+  | "section_creek_curve";
+
+export type GeneratedLayoutGrammarProfile = {
+  pattern: GeneratedLayoutPattern;
+  curveAmplitude: number;
+  spineOffset: number;
+  branchSkew: number;
+  diagonalAvenueCount: 0 | 1 | 2;
+  sparseOffsetCount: number;
+  bridgeCount: number;
+};
+
 export const GENERATED_ART_PROFILES: Record<GeneratedDistrictArchetype, GeneratedRoadArtProfile> = {
   metro_grid: {
     roadTone: "metro_asphalt",
@@ -148,6 +166,18 @@ export const GENERATED_ART_PROFILES: Record<GeneratedDistrictArchetype, Generate
     drivewayWidth: 0.6,
     treeSpecies: ["round_canopy", "conifer", "palm"],
   },
+};
+
+const GENERATED_LAYOUT_GRAMMAR_PROFILES: Record<
+  GeneratedDistrictArchetype,
+  Pick<GeneratedLayoutGrammarProfile, "pattern" | "curveAmplitude" | "sparseOffsetCount" | "bridgeCount">
+> = {
+  metro_grid: { pattern: "metro_grid_diagonal", curveAmplitude: 0, sparseOffsetCount: 0, bridgeCount: 0 },
+  coastal_grid: { pattern: "shore_stepback", curveAmplitude: 0.55, sparseOffsetCount: 0, bridgeCount: 0 },
+  desert_basin: { pattern: "highway_offsets", curveAmplitude: 0.42, sparseOffsetCount: 3, bridgeCount: 0 },
+  mountain_valley: { pattern: "valley_switchback", curveAmplitude: 0.72, sparseOffsetCount: 0, bridgeCount: 0 },
+  prairie_town: { pattern: "section_creek_curve", curveAmplitude: 0.36, sparseOffsetCount: 0, bridgeCount: 0 },
+  river_town: { pattern: "river_follow", curveAmplitude: 0.78, sparseOffsetCount: 0, bridgeCount: 2 },
 };
 
 const GENERATED_DEFAULT_ART_PROFILE: GeneratedRoadArtProfile = {
@@ -220,6 +250,7 @@ export type CountyGenerationParameters = {
   archetype: GeneratedDistrictArchetype;
   archetypeProfile: ArchetypeProfile;
   artProfile: GeneratedRoadArtProfile;
+  layoutGrammar: GeneratedLayoutGrammarProfile;
   population2024: number;
   landAreaSqMi: number;
   densityPerSqMi: number;
@@ -558,12 +589,14 @@ export function resolveCountyParameters(county: CountyParameterInput, seed: numb
   const archetype = resolveArchetype(county, seed, climate, nameSignal, urbanizationTier);
   const archetypeProfile = ARCHETYPE_PROFILES[archetype];
   const modulation = resolveModulation(archetypeProfile, regionProfile, climate, nameSignal, seed, urbanizationTier);
+  const layoutGrammar = resolveGeneratedLayoutGrammar(archetype, urbanizationTier, seed, modulation);
   const palette = resolveCountyPalette(archetypeProfile.palette, modulation.paletteVariantOffset);
 
   return {
     archetype,
     archetypeProfile,
     artProfile: GENERATED_ART_PROFILES[archetype],
+    layoutGrammar,
     population2024: facts.population2024,
     landAreaSqMi: facts.landAreaSqMi,
     densityPerSqMi: facts.densityPerSqMi,
@@ -581,6 +614,34 @@ export function resolveCountyParameters(county: CountyParameterInput, seed: numb
       forbidsCoastalDesert: true,
       forbidsSubtropicalSnowRoof: true,
     },
+  };
+}
+
+export function resolveGeneratedLayoutGrammar(
+  archetype: GeneratedDistrictArchetype,
+  urbanizationTier: UrbanizationTier,
+  seed: number,
+  modulation?: CountyGenerationModulation,
+): GeneratedLayoutGrammarProfile {
+  const base = GENERATED_LAYOUT_GRAMMAR_PROFILES[archetype];
+  const waterBend = (modulation?.waterAffinity ?? 0) * 0.18;
+  const reliefBend = Math.max(0, (modulation?.reliefScale ?? 1) - 1) * 1.4;
+  const sparseTierTrim = urbanizationTier === "frontier" ? -1 : urbanizationTier === "rural" ? -0.5 : 0;
+  const metroDiagonalCount =
+    archetype === "metro_grid" && urbanizationTier === "urban_core"
+      ? (modulation?.waterAffinity ?? 0) >= 0.75
+        ? 1
+        : (((seed >>> 18) % 3 === 0 ? 2 : 1) as 1 | 2)
+      : 0;
+
+  return {
+    pattern: base.pattern,
+    curveAmplitude: roundModulator(clamp(base.curveAmplitude + waterBend + reliefBend + deterministicLayoutJitter(seed, 3, 0.04), 0, 1.05)),
+    spineOffset: roundModulator(deterministicLayoutJitter(seed, 8, 0.42)),
+    branchSkew: roundModulator(deterministicLayoutJitter(seed, 13, 0.5)),
+    diagonalAvenueCount: metroDiagonalCount,
+    sparseOffsetCount: base.sparseOffsetCount === 0 ? 0 : Math.max(1, Math.round(base.sparseOffsetCount + sparseTierTrim)),
+    bridgeCount: archetype === "river_town" && urbanizationTier !== "frontier" ? Math.min(3, base.bridgeCount + 1) : base.bridgeCount,
   };
 }
 
@@ -899,6 +960,10 @@ function resolveCountyPalette(base: RegionalPalette, paletteVariantOffset: 0 | 1
 
 function roundModulator(value: number): number {
   return Math.round(value * 1_000) / 1_000;
+}
+
+function deterministicLayoutJitter(seed: number, shift: number, scale: number): number {
+  return (((seed >>> shift) % 5) - 2) * scale;
 }
 
 function positiveModulo(value: number, divisor: number): number {
