@@ -288,6 +288,38 @@ describe("CityWorld compiler", () => {
     expect(legacyRoad.visualGrammar?.roadContact?.profile).toBe("embedded");
   });
 
+  it("compiles county shell scenes deterministically from JSON-round-tripped coverage summaries", () => {
+    const coverage = {
+      countySlug: "orange-ca",
+      countyLabel: "Orange County",
+      coverageTier: "L1_COUNTY_SHELL",
+      coverageLabel: "County shell",
+      message: "Orange County is indexed, but not playable yet.",
+      stateCode: "CA",
+    } as const;
+    const compileFromSummary = (summary: typeof coverage) =>
+      compileCountyShellCityWorldScene({
+        countySlug: summary.countySlug,
+        countyName: summary.countyLabel ?? summary.countySlug,
+        stateCode: summary.stateCode,
+        coverage: {
+          countySlug: summary.countySlug,
+          coverageTier: summary.coverageTier,
+          coverageLabel: summary.coverageLabel,
+          coverageMessage: summary.message,
+          playable: false,
+        },
+      });
+
+    const direct = compileFromSummary(coverage);
+    const roundTripped = compileFromSummary(JSON.parse(JSON.stringify(coverage)));
+
+    expect(roundTripped).toEqual(direct);
+    expect(roundTripped.coverage?.coverageTier).toBe("L1_COUNTY_SHELL");
+    expect(roundTripped.places).toEqual([]);
+    expect(roundTripped.actors).toEqual([]);
+  });
+
   it("attaches terrain and parcel composition grammar without changing playable boundaries", () => {
     const city = compileCityWorldScene(riversideDemoVoxelScene);
     const shell = compileCountyShellCityWorldScene({

@@ -131,21 +131,8 @@ try {
   assertNoForbiddenProductClaims(shellCountyText, "select_county shell county");
   assertNoInternalLanguage(shellCountyText, "select_county shell county");
   assert(!shellCountyResult._meta?.scene, "Shell county selection must not return a fake scene.");
-  assert(shellCountyResult._meta?.coverageShellScene?.type === "cityWorldScene", "Shell county selection must return a coverage shell scene.");
-  assert(
-    shellCountyResult._meta.coverageShellScene.coverage?.coverageTier === "L1_COUNTY_SHELL",
-    "Shell coverage scene must carry L1 coverage metadata.",
-  );
-  assert(
-    Array.isArray(shellCountyResult._meta.coverageShellScene.places) &&
-      shellCountyResult._meta.coverageShellScene.places.length === 0,
-    "Shell coverage scene must not include fake places.",
-  );
-  assert(
-    Array.isArray(shellCountyResult._meta.coverageShellScene.actors) &&
-      shellCountyResult._meta.coverageShellScene.actors.length === 0,
-    "Shell coverage scene must not include actors.",
-  );
+  assert(!("coverageShellScene" in (shellCountyResult._meta ?? {})), "Shell county selection must not ship _meta.coverageShellScene.");
+  assert(typeof shellCounty.stateCode === "string" && shellCounty.stateCode.length === 2, "Shell county summary must include stateCode for widget-side shell compile.");
   const shellCountyPacket = assertScenePacketMeta(shellCountyResult, "shell_only", "select_county shell county");
   assert(shellCountyPacket.packet?.containsScene === false, "Shell county scenePacket must not contain scene payload.");
 
@@ -226,7 +213,8 @@ try {
   assertNoForbiddenProductClaims(shellRenderText, "render_voxel_county shell county");
   assertNoInternalLanguage(shellRenderText, "render_voxel_county shell county");
   assert(!shellRenderResult._meta?.scene, "Shell county render must not return a fake scene.");
-  assert(shellRenderResult._meta?.coverageShellScene?.type === "cityWorldScene", "Shell county render must return a coverage shell scene.");
+  assert(!("coverageShellScene" in (shellRenderResult._meta ?? {})), "Shell county render must not ship _meta.coverageShellScene.");
+  assert(typeof shellRender.stateCode === "string" && shellRender.stateCode.length === 2, "Shell render summary must include stateCode for widget-side shell compile.");
   const shellRenderPacket = assertScenePacketMeta(shellRenderResult, "shell_only", "render_voxel_county shell county");
   assert(shellRenderPacket.packet?.containsScene === false, "Shell county render scenePacket must not contain scene payload.");
 

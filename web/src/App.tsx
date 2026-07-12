@@ -165,6 +165,22 @@ const orangeShellScene = compileCountyShellCityWorldScene({
   },
 });
 
+function compileCoverageShellSceneFromSummary(coverage: CountyCoverageStructuredContent | null): CityWorldScene | null {
+  if (!coverage || coverage.coverageTier !== "L1_COUNTY_SHELL" || !coverage.stateCode) return null;
+  return compileCountyShellCityWorldScene({
+    countySlug: coverage.countySlug,
+    countyName: coverage.countyLabel ?? coverage.countySlug,
+    stateCode: coverage.stateCode,
+    coverage: {
+      countySlug: coverage.countySlug,
+      coverageTier: coverage.coverageTier,
+      coverageLabel: coverage.coverageLabel,
+      coverageMessage: coverage.message,
+      playable: false,
+    },
+  });
+}
+
 const defaultPlace = riversideDemoVoxelScene.world?.places[0];
 
 const defaultWidgetState: WidgetState = {
@@ -518,7 +534,9 @@ export function App() {
   const metaCameraFocus = isCameraFocus(meta?.cameraFocus) ? meta.cameraFocus : null;
   const metaHostedClawd = isHostedClawdContext(meta?.hostedClawd) ? meta.hostedClawd : null;
   const coverageSummary = isCountyCoverageStructuredContent(structuredContent) ? structuredContent : null;
-  const coverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
+  const legacyCoverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
+  const compiledCoverageShellScene = useMemo(() => compileCoverageShellSceneFromSummary(coverageSummary), [coverageSummary]);
+  const coverageShellScene = compiledCoverageShellScene ?? legacyCoverageShellScene;
   const rawGeneratedDraftSpec = isDeterministicGeneratedDistrictSpec(meta?.generatedDraftSpec) ? meta.generatedDraftSpec : null;
   const generatedDraftSpecScene = useMemo(() => {
     if (!rawGeneratedDraftSpec) return null;

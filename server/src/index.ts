@@ -22,7 +22,6 @@ import {
   CountyPackService,
   CountyQuestionService,
   compileCityWorldScene,
-  compileCountyShellCityWorldScene,
   compileVoxelSceneFromCountyPack,
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
@@ -86,6 +85,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = resolve(__dirname, "../..");
 const MAX_WORLD_LOOKUP_CACHE_ENTRIES = 100;
 const MAX_SCENE_PACKET_MEMORY_ENTRIES = 32;
+const MAX_MCP_SESSIONS = 100;
+const MCP_SESSION_IDLE_TTL_MS = 30 * 60_000;
 const PLAYABLE_ENGINE_BETA_COUNTY_SLUG = "riverside-ca";
 
 loadLocalEnv();
@@ -210,6 +211,13 @@ type McpToolMetric = {
   };
 };
 
+type McpSessionEntry = {
+  server: McpServer;
+  transport: StreamableHTTPServerTransport;
+  sessionId?: string;
+  lastSeenAtMs: number;
+};
+
 const mcpToolMetrics = new Map<McpToolName, McpToolMetric>(
   MCP_TOOL_NAMES.map((toolName) => [
     toolName,
@@ -224,6 +232,7 @@ const mcpToolMetrics = new Map<McpToolName, McpToolMetric>(
     },
   ]),
 );
+const mcpSessions = new Map<string, McpSessionEntry>();
 
 type CameraIntent = {
   type: "focus_place" | "focus_district" | "focus_water_edge" | "focus_landmark";
@@ -1093,24 +1102,6 @@ function countyCoverageForSlug(countySlug: string): CountyCoverageStructuredCont
   } catch {
     return countyCoverageStructuredContent(worldService.getUnsupportedCounty(countySlug));
   }
-}
-
-function coverageShellSceneForSummary(coverage: CountyCoverageStructuredContent): CityWorldScene | undefined {
-  if (coverage.coverageTier !== "L1_COUNTY_SHELL" || !coverage.stateCode) {
-    return undefined;
-  }
-  return compileCountyShellCityWorldScene({
-    countySlug: coverage.countySlug,
-    countyName: coverage.countyLabel ?? coverage.countySlug,
-    stateCode: coverage.stateCode,
-    coverage: {
-      countySlug: coverage.countySlug,
-      coverageTier: coverage.coverageTier,
-      coverageLabel: coverage.coverageLabel,
-      coverageMessage: coverage.message,
-      playable: false,
-    },
-  });
 }
 
 function isPlayableEngineBetaCounty(countySlug: string | undefined): boolean {
@@ -2869,7 +2860,6 @@ function createAtlasServer(): McpServer {
       await enforceMcpExpensiveToolRateLimit("select_county");
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
-        const coverageShellScene = coverageShellSceneForSummary(coverage);
         const scenePacket = await scenePacketStatusForCoverage(coverage);
         const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
@@ -2886,7 +2876,6 @@ function createAtlasServer(): McpServer {
               countySlug: coverage.countySlug,
               countyLabel: coverage.countyLabel,
             })),
-            ...(coverageShellScene ? { coverageShellScene } : {}),
             ...(generatedDraft ?? {}),
           },
           content: [
@@ -3008,7 +2997,6 @@ function createAtlasServer(): McpServer {
       await enforceMcpExpensiveToolRateLimit("render_voxel_county");
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
-        const coverageShellScene = coverageShellSceneForSummary(coverage);
         const scenePacket = await scenePacketStatusForCoverage(coverage);
         const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
@@ -3025,7 +3013,6 @@ function createAtlasServer(): McpServer {
               countySlug: coverage.countySlug,
               countyLabel: coverage.countyLabel,
             })),
-            ...(coverageShellScene ? { coverageShellScene } : {}),
             ...(generatedDraft ?? {}),
           },
           content: [
@@ -3222,6 +3209,82 @@ function createAtlasServer(): McpServer {
   return server;
 }
 
+function mcpSessionIdFor(req: IncomingMessage): string | undefined {
+  const raw = req.headers["mcp-session-id"];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+function mcpJsonRpcError(res: ServerResponse, status: number, code: number, message: string): void {
+  jsonResponse(res, status, {
+    jsonrpc: "2.0",
+    error: { code, message },
+    id: null,
+  });
+}
+
+function createMcpSessionEntry(): McpSessionEntry {
+  let entry: McpSessionEntry;
+  const transport = new StreamableHTTPServerTransport({
+    enableJsonResponse: true,
+    sessionIdGenerator: () => randomUUID(),
+    onsessioninitialized: (sessionId) => {
+      entry.sessionId = sessionId;
+      entry.lastSeenAtMs = Date.now();
+      mcpSessions.set(sessionId, entry);
+      evictMcpSessions(sessionId);
+    },
+  });
+  const server = createAtlasServer();
+  entry = {
+    server,
+    transport,
+    lastSeenAtMs: Date.now(),
+  };
+  transport.onclose = () => {
+    const sessionId = entry.sessionId;
+    if (sessionId && mcpSessions.get(sessionId) === entry) {
+      mcpSessions.delete(sessionId);
+    }
+  };
+  return entry;
+}
+
+function evictMcpSessions(preserveSessionId?: string): void {
+  const now = Date.now();
+  for (const [sessionId, entry] of mcpSessions) {
+    if (sessionId !== preserveSessionId && now - entry.lastSeenAtMs > MCP_SESSION_IDLE_TTL_MS) {
+      void closeMcpSession(sessionId, "idle_ttl");
+    }
+  }
+
+  const overflow = mcpSessions.size - MAX_MCP_SESSIONS;
+  if (overflow <= 0) return;
+
+  const oldest = [...mcpSessions.entries()]
+    .filter(([sessionId]) => sessionId !== preserveSessionId)
+    .sort((left, right) => left[1].lastSeenAtMs - right[1].lastSeenAtMs)
+    .slice(0, overflow);
+  for (const [sessionId] of oldest) {
+    void closeMcpSession(sessionId, "max_sessions");
+  }
+}
+
+async function closeMcpSession(sessionId: string, reason: "idle_ttl" | "max_sessions" | "uninitialized_error"): Promise<void> {
+  const entry = mcpSessions.get(sessionId);
+  if (!entry) return;
+  mcpSessions.delete(sessionId);
+  try {
+    await entry.server.close();
+  } catch (error) {
+    logBackendEvent("mcp_session_close_failed", {
+      reason,
+      error: error instanceof Error ? error.name : "unknown",
+    });
+  }
+}
+
 async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setCors(req, res);
 
@@ -3231,24 +3294,35 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
     return;
   }
 
-  const mcpServer = createAtlasServer();
-  const transport = new StreamableHTTPServerTransport({
-    enableJsonResponse: true,
-  });
+  evictMcpSessions();
+  const sessionId = mcpSessionIdFor(req);
+  const existingEntry = sessionId ? mcpSessions.get(sessionId) : undefined;
+  if (sessionId && !existingEntry) {
+    mcpJsonRpcError(res, 404, -32001, "Session not found");
+    return;
+  }
+  if (!sessionId && req.method !== "POST") {
+    mcpJsonRpcError(res, 400, -32000, "Bad Request: Mcp-Session-Id header is required");
+    return;
+  }
 
-  res.on("close", () => {
-    void transport.close();
-    void mcpServer.close();
-  });
+  const entry = existingEntry ?? createMcpSessionEntry();
+  entry.lastSeenAtMs = Date.now();
 
   await requestContext.run(requestContextFor(req, res), async () => {
     try {
-      await mcpServer.connect(transport);
-      await transport.handleRequest(req, res);
+      if (!existingEntry) {
+        await entry.server.connect(entry.transport);
+      }
+      await entry.transport.handleRequest(req, res);
     } catch (error) {
       console.error("MCP request failed:", error);
       if (!res.headersSent) {
         res.writeHead(500).end("Internal server error");
+      }
+    } finally {
+      if (!entry.sessionId) {
+        await entry.server.close();
       }
     }
   });

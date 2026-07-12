@@ -231,11 +231,11 @@ async function getShellToolResult(mcpUrl, countySlug, expectedTier) {
     if (result._meta?.scene) {
       throw new Error("Coverage county result must not include _meta.scene.");
     }
-    if (expectedTier === "L1_COUNTY_SHELL" && result._meta?.coverageShellScene?.type !== "cityWorldScene") {
-      throw new Error("Shell county result must include _meta.coverageShellScene.");
+    if (expectedTier === "L1_COUNTY_SHELL" && typeof result.structuredContent.stateCode !== "string") {
+      throw new Error("Shell county result must include stateCode for client-side shell compile.");
     }
-    if (expectedTier === "L0_UNSUPPORTED" && result._meta?.coverageShellScene) {
-      throw new Error("Unsupported county result must not include _meta.coverageShellScene.");
+    if (result._meta?.coverageShellScene) {
+      throw new Error("Coverage county result must not include _meta.coverageShellScene.");
     }
     return {
       structuredContent: result.structuredContent,
