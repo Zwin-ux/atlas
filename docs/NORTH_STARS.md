@@ -44,6 +44,47 @@ state. Gates keep us shippable; north stars keep us proud.
 
 ---
 
+## NS-0 · Real-host truth — nothing is done until ChatGPT itself shows it
+
+**Ideal:** every quality claim is grounded in what the REAL ChatGPT host
+renders, on a real account, in a real conversation.
+**Anchor:** the emulator (`/emulator`) is the ITERATION surface — 1:1 by
+design, but a replica. G8 real-ChatGPT sessions are the ACCEPTANCE surface.
+**You've hit it when:** every "shipped" rating cites its most recent
+real-host observation (date + `docs/G8_REAL_CHATGPT_FINDINGS.md` entry);
+emulator/real-host divergences found in G8 become emulator fixes the same
+week. **Current state (2026-07-11):** prod live and release-gate green, but
+zero real-host observations yet — G8 is the standing top priority until the
+first findings doc lands.
+
+---
+
+## Spend rules — what any driver (Fable, Opus, or codex) spends tokens on
+
+The evaluation function for every packet, in order:
+
+1. **Name the NS first.** A packet states which NS-0..7 it moves and the
+   expected before/after BEFORE work starts. No named NS → don't run it.
+2. **Product surface > engine > infra.** Infra work is only justified by a
+   named NS blocker (payload ceiling, crash, gate hang) — cite it.
+3. **Judgment vs volume.** Reviewer-class tokens (Fable/Opus) buy ONLY:
+   visual crop tests, fence audits, incident root-cause, real-host sessions,
+   taste calls, certification. Codex buys volume: implementation packets,
+   mechanical sweeps, doc generation. If the reviewer is doing something a
+   fenced codex packet could do, stop and delegate.
+4. **Kill-criteria in every brief.** What result means stop/revert — written
+   before launch (the camera-water-bias and brand-v1 lessons: rejection is a
+   normal, cheap outcome when criteria exist).
+5. **Evidence hierarchy for ratings:** real ChatGPT > emulator > node gates >
+   estimates. Never rate on estimates (the W4.1 Graphics 1621/1600 lesson).
+
+**Standing priority order (2026-07-11):** G8 real-host findings → directory
+bar art (W4.4 organic layouts, prairie/relief polish) → W3.3 compare intent →
+W6.1/6.2 renderer perf (ONLY if real-host shows jank) → landing page deploy.
+Directory submission itself stays HELD for the user's USA-region crop call.
+
+---
+
 ## NS-1 · The Diorama — every scene reads hand-built
 
 **Ideal:** any district, curated or generated, reads as a miniature town

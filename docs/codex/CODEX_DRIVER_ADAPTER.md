@@ -15,14 +15,40 @@ everything a Codex driver needs so nothing depends on Opus being in the room.
 
 ## Boot sequence (read in this order, every session)
 
+> **UPDATED 2026-07-11 (post-council, post-launch).** Production is LIVE
+> (release gate green). The 0.76 program below is COMPLETE; the queue is now
+> whatever `docs/NORTH_STARS.md` "Standing priority order" says, filtered
+> through its **Spend rules** — that section is the token-allocation law for
+> ANY driver. Also read `docs/COUNCIL_VERDICT.md` (closed program + deferred
+> items) and `docs/0.77_REGIONAL_TRUTH.md`.
+
 1. `AGENTS.md` — the standing product law, named-slice rule, architecture law,
    anti-scope. Binding. If a packet conflicts with it, STOP and report.
-2. `docs/NORTH_STARS.md` — NS-6 is the star this program moves. Every packet
-   names its NS and rates before/after honestly.
-3. `docs/0.76_USA_REGION_ARCHETYPES.md` — the program: honest baseline, four
-   levers, gate-promotion plan, packet sequence.
-4. This file — queue, verify recipe, sandbox limits, commit/report protocol.
-5. `docs/SHIP_READINESS.md` — the ship state you must not regress (G1–G6 green).
+2. `docs/NORTH_STARS.md` — **NS-0 real-host truth + Spend rules govern every
+   packet.** Name the NS you move BEFORE starting; kill-criteria in the brief.
+3. `docs/COUNCIL_VERDICT.md` + `docs/0.77_REGIONAL_TRUTH.md` — what is done,
+   deferred (W4.4, W3.3, W6.1/6.2, worker healthcheck), and why.
+4. This file — verify recipe, sandbox limits, commit/report protocol.
+5. `docs/SHIP_READINESS.md` — the ship state you must not regress.
+
+**Certification ladder (non-negotiable, reviewer-run where browser-bound):**
+`pnpm typecheck:starter` → `pnpm test:core` (curated byte-identity included) →
+`node scripts/verify-archetype-identity-sweep.mjs` (full 3,222) →
+`verify-server-hardening.mjs` (7/7) → build:web + restart :8787 →
+`verify-emulator-audit.mjs` (158/0/0 + anchor counties) →
+`verify-emulator-perf.mjs` → (prod) `scripts/verify-release-prod.mjs`.
+
+**Proven agent-launch recipe (survives session restarts):** stage the brief
+as a file, then detached
+`Start-Process cmd.exe '/c codex exec -C <repo> -s workspace-write -m gpt-5.5
+-c model_reasoning_effort=xhigh - < brief.txt > run.log 2>&1'`; watch for the
+REQUIRED result note in `artifacts/council/`. Rules that came from incidents:
+never `Stop-Process`/`taskkill` a PID you did not spawn AND record (an agent
+self-killed via its parent PID); full-tree `git status`/`git diff --stat`
+fence audit after EVERY packet; pre-existing dirty files stay untouched;
+commits are explicit-staged by the reviewer only, `-F` message files
+(PowerShell mangles quotes); deploys only from the clean worktree via
+`scripts/release-deploy.ps1` (both services, same commit).
 
 State the current packet, likely files, and anti-scope before substantial
 edits (AGENTS.md requirement).
