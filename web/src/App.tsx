@@ -19,7 +19,7 @@ import { CountyCoverageView } from "./CountyCoverageView";
 import { CountySwitcher, type CountySwitchSlug } from "./CountySwitcher";
 import { CityWorldView } from "./CityWorldView";
 import { readRequestedCountySwitcherVisible } from "./MapChrome";
-import type { HostedClawdActionKind, HostedClawdContext, HostedClawdScreenState, WidgetState } from "./types";
+import type { HostedClawdActionKind, HostedClawdContext, HostedClawdScreenState, WidgetSceneSession, WidgetState } from "./types";
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
   sceneId: string;
@@ -183,6 +183,16 @@ function compileCoverageShellSceneFromSummary(coverage: CountyCoverageStructured
 }
 
 const defaultPlace = riversideDemoVoxelScene.world?.places[0];
+const defaultRiversideSceneSession: WidgetSceneSession = {
+  selectedNodeId: defaultPlace?.nodeId ?? riversideDemoVoxelScene.selectedNodeId,
+  selectedDistrictId: riversideDemoVoxelScene.world?.selectedDistrictId,
+  selectedPlaceId: defaultPlace?.id,
+  activeStepId: "county",
+  stickerMode: "favorite",
+  stickers: [],
+  notes: [],
+  noteDraft: "",
+};
 
 const defaultWidgetState: WidgetState = {
   selectedNodeId: defaultPlace?.nodeId ?? riversideDemoVoxelScene.selectedNodeId,
@@ -190,12 +200,59 @@ const defaultWidgetState: WidgetState = {
   selectedPlaceId: defaultPlace?.id,
   compact: false,
   activeSceneId: riversideDemoVoxelScene.id,
+  sceneSessions: {
+    [riversideDemoVoxelScene.id]: defaultRiversideSceneSession,
+  },
   activeStepId: "county",
   stickerMode: "favorite",
   stickers: [],
   notes: [],
   noteDraft: "",
 };
+
+type InteractionPlace = {
+  id: string;
+  label: string;
+  kind: string;
+  districtId: string;
+  nodeId: string;
+};
+
+function sceneSessionForState(state: WidgetState, sceneId: string): WidgetSceneSession {
+  const stored = state.sceneSessions?.[sceneId];
+  if (stored) return stored;
+  if (state.activeSceneId !== sceneId) return {};
+  return {
+    selectedNodeId: state.selectedNodeId,
+    activeStepId: state.activeStepId,
+    selectedDistrictId: state.selectedDistrictId,
+    selectedPlaceId: state.selectedPlaceId,
+    stickerMode: state.stickerMode,
+    stickers: state.stickers,
+    notes: state.notes,
+    noteDraft: state.noteDraft,
+  };
+}
+
+function withSceneSession(state: WidgetState, sceneId: string, patch: WidgetSceneSession): WidgetState {
+  const nextSession = { ...sceneSessionForState(state, sceneId), ...patch };
+  return {
+    ...state,
+    activeSceneId: sceneId,
+    activeStepId: nextSession.activeStepId,
+    selectedDistrictId: nextSession.selectedDistrictId,
+    selectedPlaceId: nextSession.selectedPlaceId,
+    selectedNodeId: nextSession.selectedNodeId ?? state.selectedNodeId,
+    stickerMode: nextSession.stickerMode,
+    stickers: nextSession.stickers,
+    notes: nextSession.notes,
+    noteDraft: nextSession.noteDraft,
+    sceneSessions: {
+      ...(state.sceneSessions ?? {}),
+      [sceneId]: nextSession,
+    },
+  };
+}
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -574,6 +631,11 @@ export function App() {
   const toolScene = isVoxelScene(structuredContent) ? structuredContent : null;
   const scene = toolScene ?? campaignPreview?.scene ?? scoutPreview?.scene ?? metaScene ?? riversideDemoVoxelScene;
   const [widgetState, setWidgetState] = useWidgetState<WidgetState>(defaultWidgetState);
+  const activeInteractionSceneId = activeGeneratedScene?.id ?? scene.id;
+  const activeInteractionPlaces: InteractionPlace[] = activeGeneratedScene ? activeGeneratedScene.places : scene.world?.places ?? [];
+  const activeInteractionDefaultPlace =
+    activeInteractionPlaces.find((place) => place.id === activeGeneratedScene?.hudDefaults.selectedPlaceId) ?? activeInteractionPlaces[0];
+  const activeSceneSession = sceneSessionForState(widgetState, activeInteractionSceneId);
   const sessionResumeContextSentRef = useRef(false);
   const sessionResume = sessionResumeForWidgetState(widgetState);
   const currentScoutPreviewId = scoutPreview?.id ?? campaignPreview?.scoutPreviewId;
@@ -606,30 +668,29 @@ export function App() {
       if (current.activeSceneId === scene.id && current.selectedPlaceId === place.id && current.selectedNodeId === place.nodeId) {
         return current;
       }
-      return {
-        ...current,
-        activeSceneId: scene.id,
+      return withSceneSession(current, scene.id, {
         selectedDistrictId: place.districtId,
         selectedPlaceId: place.id,
         selectedNodeId: place.nodeId,
         activeStepId: "place",
         noteDraft: "",
-      };
+      });
     });
   }, [scene, setWidgetState, structuredContent, toolCameraIntent]);
 
-  const activeSceneMatches = widgetState.activeSceneId === scene.id;
-  const selectedDistrictId = activeSceneMatches ? widgetState.selectedDistrictId ?? scene.world?.selectedDistrictId : scene.world?.selectedDistrictId;
-  const selectedPlaceId = activeSceneMatches ? widgetState.selectedPlaceId ?? scene.world?.places[0]?.id : scene.world?.places[0]?.id;
-  const selectedPlace = useMemo(() => scene.world?.places.find((place) => place.id === selectedPlaceId), [scene.world?.places, selectedPlaceId]);
-  const selectedNodeId = activeSceneMatches
-    ? widgetState.selectedNodeId
-    : selectedPlace?.nodeId ?? scene.selectedNodeId;
-  const stickers = activeSceneMatches ? widgetState.stickers ?? [] : [];
-  const notes = activeSceneMatches ? widgetState.notes ?? [] : [];
-  const stickerMode = activeSceneMatches ? widgetState.stickerMode ?? "favorite" : "favorite";
-  const noteDraft = activeSceneMatches ? widgetState.noteDraft ?? "" : "";
-  const storedHostedClawdContext = activeSceneMatches && isHostedClawdContext(widgetState.hostedClawdContext)
+  const activeSceneMatches = widgetState.activeSceneId === activeInteractionSceneId;
+  const selectedDistrictId = activeSceneSession.selectedDistrictId ?? activeInteractionDefaultPlace?.districtId ?? scene.world?.selectedDistrictId;
+  const selectedPlaceId = activeSceneSession.selectedPlaceId ?? activeInteractionDefaultPlace?.id;
+  const selectedPlace = useMemo(
+    () => activeInteractionPlaces.find((place) => place.id === selectedPlaceId),
+    [activeInteractionPlaces, selectedPlaceId],
+  );
+  const selectedNodeId = activeSceneSession.selectedNodeId ?? selectedPlace?.nodeId ?? scene.selectedNodeId;
+  const stickers = activeSceneSession.stickers ?? [];
+  const notes = activeSceneSession.notes ?? [];
+  const stickerMode = activeSceneSession.stickerMode ?? "favorite";
+  const noteDraft = activeSceneSession.noteDraft ?? "";
+  const storedHostedClawdContext = activeSceneMatches && !activeGeneratedScene && isHostedClawdContext(widgetState.hostedClawdContext)
     ? publicHostedClawdContext(widgetState.hostedClawdContext)
     : null;
   const hostedClawdReturnStatus = hostedClawdSubscriptionStatusFromUrl();
@@ -647,8 +708,8 @@ export function App() {
             ...(hostedClawdReturnStatus ? { subscriptionStatus: hostedClawdReturnStatus } : {}),
           })
         : null;
-  const hostedClawdOpen = activeSceneMatches && hostedClawdContext ? widgetState.hostedClawdOpen ?? false : false;
-  const hostedClawdActionMessage = activeSceneMatches && hostedClawdContext ? widgetState.hostedClawdActionMessage : undefined;
+  const hostedClawdOpen = activeSceneMatches && !activeGeneratedScene && hostedClawdContext ? widgetState.hostedClawdOpen ?? false : false;
+  const hostedClawdActionMessage = activeSceneMatches && !activeGeneratedScene && hostedClawdContext ? widgetState.hostedClawdActionMessage : undefined;
 
   const selectCountyFromSwitcher = (countySlug: CountySwitchSlug) => {
     setGeneratedScene(null);
@@ -656,9 +717,7 @@ export function App() {
     setLocalCountySlug(countySlug);
     if (countySlug === "riverside-ca") {
       const firstPlace = riversideDemoVoxelScene.world?.places[0];
-      setWidgetState((current) => ({
-        ...current,
-        activeSceneId: riversideDemoVoxelScene.id,
+      setWidgetState((current) => withSceneSession(current, riversideDemoVoxelScene.id, {
         selectedDistrictId: riversideDemoVoxelScene.world?.selectedDistrictId,
         selectedPlaceId: firstPlace?.id,
         selectedNodeId: firstPlace?.nodeId ?? riversideDemoVoxelScene.selectedNodeId,
@@ -688,9 +747,7 @@ export function App() {
     }
     setGeneratedScene(null);
     setLocalCountySlug("riverside-ca");
-    setWidgetState((current) => ({
-      ...current,
-      activeSceneId: riversideDemoVoxelScene.id,
+    setWidgetState((current) => withSceneSession(current, riversideDemoVoxelScene.id, {
       selectedDistrictId: riversideDemoVoxelScene.world?.selectedDistrictId,
       selectedPlaceId: firstPlace?.id,
       selectedNodeId: firstPlace?.nodeId ?? riversideDemoVoxelScene.selectedNodeId,
@@ -717,9 +774,7 @@ export function App() {
   const selectDistrict = (districtId: string) => {
     const district = scene.world?.districts.find((item) => item.id === districtId);
     const firstPlace = scene.world?.places.find((place) => place.districtId === districtId);
-    setWidgetState((current) => ({
-      ...current,
-      activeSceneId: scene.id,
+    setWidgetState((current) => withSceneSession(current, scene.id, {
       selectedDistrictId: districtId,
       selectedPlaceId: firstPlace?.id,
       selectedNodeId: firstPlace?.nodeId ?? current.selectedNodeId,
@@ -729,10 +784,8 @@ export function App() {
   };
 
   const selectPlace = (placeId: string) => {
-    const place = scene.world?.places.find((item) => item.id === placeId);
-    setWidgetState((current) => ({
-      ...current,
-      activeSceneId: scene.id,
+    const place = activeInteractionPlaces.find((item) => item.id === placeId);
+    setWidgetState((current) => withSceneSession(current, activeInteractionSceneId, {
       selectedDistrictId: place?.districtId ?? current.selectedDistrictId,
       selectedPlaceId: placeId,
       selectedNodeId: place?.nodeId ?? current.selectedNodeId,
@@ -740,38 +793,44 @@ export function App() {
       noteDraft: "",
     }));
     if (place) {
-      void updateModelContext(`User selected ${place.label} in the ${scene.county.name} city map. Place kind: ${place.kind}.`);
+      const countyLabel = activeGeneratedScene?.region.county ?? scene.county.name;
+      void updateModelContext(`User selected ${place.label} in the ${countyLabel} city map. Place kind: ${place.kind}.`);
     }
   };
 
   const placeSticker = (placeId: string, kind: VoxelStickerKind) => {
+    const place = activeInteractionPlaces.find((item) => item.id === placeId);
+    if (!place) return;
     setWidgetState((current) => {
-      const nextCount = (current.stickers ?? []).length + 1;
-      const sticker = uniqueSticker(createVoxelSticker(scene, { placeId, kind, label: stickerLabel(kind) }), nextCount);
-      return {
-        ...current,
-        activeSceneId: scene.id,
+      const session = sceneSessionForState(current, activeInteractionSceneId);
+      const nextCount = (session.stickers ?? []).length + 1;
+      const sticker = uniqueSticker(createSceneSticker({ scene, generatedScene: activeGeneratedScene, placeId, kind }), nextCount);
+      return withSceneSession(current, activeInteractionSceneId, {
         selectedPlaceId: placeId,
-        selectedNodeId: scene.world?.places.find((place) => place.id === placeId)?.nodeId ?? current.selectedNodeId,
+        selectedDistrictId: place.districtId,
+        selectedNodeId: place.nodeId,
         activeStepId: "collect",
         stickerMode: kind,
-        stickers: [...(current.stickers ?? []), sticker],
-      };
+        stickers: [...(session.stickers ?? []), sticker],
+      });
     });
   };
 
   const saveNote = (placeId: string, body: string) => {
+    const place = activeInteractionPlaces.find((item) => item.id === placeId);
+    if (!place) return;
     setWidgetState((current) => {
-      const nextCount = (current.notes ?? []).length + 1;
-      const note = uniqueNote(createVoxelNote(scene, { placeId, body }), nextCount);
-      return {
-        ...current,
-        activeSceneId: scene.id,
+      const session = sceneSessionForState(current, activeInteractionSceneId);
+      const nextCount = (session.notes ?? []).length + 1;
+      const note = uniqueNote(createSceneNote({ scene, generatedScene: activeGeneratedScene, placeId, body }), nextCount);
+      return withSceneSession(current, activeInteractionSceneId, {
+        selectedDistrictId: place.districtId,
         selectedPlaceId: placeId,
-        notes: [...(current.notes ?? []), note],
+        selectedNodeId: place.nodeId,
+        notes: [...(session.notes ?? []), note],
         noteDraft: "",
         activeStepId: "collect",
-      };
+      });
     });
   };
 
@@ -906,12 +965,53 @@ export function App() {
         : {})}
       onExitGeneratedPreview={exitGeneratedPreview}
       onSelectPlace={selectPlace}
-      onSelectStickerMode={(kind) => setWidgetState((current) => ({ ...current, stickerMode: kind }))}
+      onSelectStickerMode={(kind) => setWidgetState((current) => withSceneSession(current, activeInteractionSceneId, { stickerMode: kind }))}
       onPlaceSticker={placeSticker}
-      onNoteDraftChange={(value) => setWidgetState((current) => ({ ...current, activeSceneId: scene.id, noteDraft: value }))}
+      onNoteDraftChange={(value) => setWidgetState((current) => withSceneSession(current, activeInteractionSceneId, { noteDraft: value }))}
       onSaveNote={saveNote}
     />
   );
+}
+
+function createSceneSticker({
+  scene,
+  generatedScene,
+  placeId,
+  kind,
+}: {
+  scene: VoxelScene;
+  generatedScene: CityWorldScene | null;
+  placeId: string;
+  kind: VoxelStickerKind;
+}): VoxelSticker {
+  const label = stickerLabel(kind);
+  if (!generatedScene) return createVoxelSticker(scene, { placeId, kind, label });
+  return {
+    id: `sticker-${slugify(`${generatedScene.id}-${placeId}-${kind}-${label}`)}`,
+    placeId,
+    kind,
+    label,
+  };
+}
+
+function createSceneNote({
+  scene,
+  generatedScene,
+  placeId,
+  body,
+}: {
+  scene: VoxelScene;
+  generatedScene: CityWorldScene | null;
+  placeId: string;
+  body: string;
+}): VoxelNote {
+  if (!generatedScene) return createVoxelNote(scene, { placeId, body });
+  const trimmed = body.trim();
+  return {
+    id: `note-${slugify(`${generatedScene.id}-${placeId}-${trimmed}`).slice(0, 96)}`,
+    placeId,
+    body: trimmed,
+  };
 }
 
 function uniqueSticker(sticker: VoxelSticker, count: number): VoxelSticker {
@@ -920,6 +1020,14 @@ function uniqueSticker(sticker: VoxelSticker, count: number): VoxelSticker {
 
 function uniqueNote(note: VoxelNote, count: number): VoxelNote {
   return { ...note, id: `${note.id}-${count}` };
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
 }
 
 function endpointForHostedClawdAction(action: HostedClawdActionKind): string {
@@ -1285,8 +1393,10 @@ function switchSlugFromCoverage(coverage: CountyCoverageStructuredContent | null
 }
 
 function sessionResumeForWidgetState(state: WidgetState): { label: string; modelContext: string } | null {
-  const pinCount = state.stickers?.length ?? 0;
-  const noteCount = state.notes?.length ?? 0;
+  const sceneSessions = Object.values(state.sceneSessions ?? {});
+  const resumeSessions = sceneSessions.length > 0 ? sceneSessions : [sceneSessionForState(state, state.activeSceneId ?? "legacy")];
+  const pinCount = resumeSessions.reduce((count, session) => count + (session.stickers?.length ?? 0), 0);
+  const noteCount = resumeSessions.reduce((count, session) => count + (session.notes?.length ?? 0), 0);
   const scoutPreviewId = state.scoutPreviewId?.trim();
   if (pinCount === 0 && noteCount === 0 && !scoutPreviewId) return null;
 

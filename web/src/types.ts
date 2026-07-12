@@ -6,10 +6,22 @@ export type ToolResult<T> = {
   _meta?: Record<string, unknown>;
 } | null;
 
+export type WidgetSceneSession = {
+  selectedNodeId?: string | undefined;
+  activeStepId?: "county" | "district" | "place" | "collect" | "drop" | "report" | "campaign" | undefined;
+  selectedDistrictId?: string | undefined;
+  selectedPlaceId?: string | undefined;
+  stickerMode?: VoxelStickerKind | undefined;
+  stickers?: VoxelSticker[] | undefined;
+  notes?: VoxelNote[] | undefined;
+  noteDraft?: string | undefined;
+};
+
 export type WidgetState = {
   selectedNodeId: string;
   compact: boolean;
   activeSceneId?: string | undefined;
+  sceneSessions?: Record<string, WidgetSceneSession> | undefined;
   scoutPreviewId?: string | undefined;
   activeStepId?: "county" | "district" | "place" | "collect" | "drop" | "report" | "campaign" | undefined;
   selectedDistrictId?: string | undefined;

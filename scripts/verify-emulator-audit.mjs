@@ -148,6 +148,7 @@ function normalizeBase(value) {
 
 function resolveAuditCells(args) {
   const countyPlan = args.counties.length > 0 ? resolveRequestedCounties(args.counties) : [...resolveGeneratedMatrix(), riversideCounty()];
+  const generatedInteractionAnchor = countyPlan.find((county) => county.draft)?.county ?? null;
   const viewportKeys = resolveViewportKeys(args.viewport);
   const explicitThemeKeys = args.theme ? resolveThemeKeys(args.theme) : null;
   const cells = [];
@@ -156,7 +157,14 @@ function resolveAuditCells(args) {
     for (const viewport of viewportKeys) {
       const themes = explicitThemeKeys ?? defaultThemesForCounty(county);
       for (const theme of themes) {
-        cells.push({ ...county, viewport, theme, checksCta: false });
+        cells.push({
+          ...county,
+          viewport,
+          theme,
+          checksCta: false,
+          checksGeneratedInteraction:
+            Boolean(county.draft && county.county === generatedInteractionAnchor && viewport === "mobile" && theme === themes[0]),
+        });
       }
     }
   }
@@ -398,8 +406,15 @@ async function runMobileChecks(client, cell, cellSpec) {
   if (cellSpec.county === "riverside-ca") {
     await runTouchTapSelectCheck(client, cell);
   }
+  if (cellSpec.checksGeneratedInteraction) {
+    await runTouchTapSelectCheck(client, cell);
+    await runGeneratedPinNoteChecks(client, cell);
+  }
   await runTouchPanCheck(client, cell);
   await runTouchPinchCheck(client, cell);
+  if (cellSpec.checksGeneratedInteraction) {
+    await runGeneratedSceneIsolationCheck(client, cell);
+  }
 }
 
 async function runTouchPanCheck(client, cell) {
@@ -476,6 +491,82 @@ async function runTouchTapSelectCheck(client, cell) {
       }
     }
     return { level: "fail", detail: `selected label did not change after ${Math.min(candidates.length, 8)} marker taps; before=${before || "(empty)"}` };
+  });
+}
+
+async function runGeneratedPinNoteChecks(client, cell) {
+  await addAsyncCheck(cell, "generated_pin_drop", async () => {
+    const before = await innerInteractionSnapshot(client);
+    if (!before.generated) return { level: "fail", detail: "cell is not in generated mode" };
+    if (!before.trayVisible || !before.stickerToolsVisible) {
+      return { level: "fail", detail: `tray=${before.trayVisible}; stickerTools=${before.stickerToolsVisible}` };
+    }
+    await clickInnerQaButton(client, "drop-sticker-button", cell.viewport);
+    await delay(300);
+    const after = await innerInteractionSnapshot(client);
+    if (after.pinCount === before.pinCount + 1) {
+      return { level: "pass", detail: `pin count ${before.pinCount} -> ${after.pinCount}; place=${after.placeLabel}` };
+    }
+    return { level: "fail", detail: `pin count ${before.pinCount} -> ${after.pinCount}; place=${after.placeLabel}` };
+  });
+
+  await addAsyncCheck(cell, "generated_note_save", async () => {
+    const before = await innerInteractionSnapshot(client);
+    const body = `Generated audit note ${Date.now()}`;
+    await setInnerNoteDraft(client, body);
+    await waitFor(
+      client,
+      `(() => {
+        const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
+        return doc?.querySelector("[data-qa='save-note-button']")?.disabled === false;
+      })()`,
+      5_000,
+    );
+    await clickInnerQaButton(client, "save-note-button", cell.viewport);
+    await delay(300);
+    const after = await innerInteractionSnapshot(client);
+    if (after.noteCount === before.noteCount + 1 && after.latestNote === body) {
+      return { level: "pass", detail: `note count ${before.noteCount} -> ${after.noteCount}; latest=${after.latestNote}` };
+    }
+    return { level: "fail", detail: `note count ${before.noteCount} -> ${after.noteCount}; latest=${after.latestNote}` };
+  });
+}
+
+async function runGeneratedSceneIsolationCheck(client, cell) {
+  await addAsyncCheck(cell, "generated_state_isolation", async () => {
+    const generated = await innerInteractionSnapshot(client);
+    if (!generated.generated || generated.pinCount < 1 || generated.noteCount < 1) {
+      return { level: "fail", detail: `generated pre-exit counts pin=${generated.pinCount}; note=${generated.noteCount}` };
+    }
+    await clickInnerQaButton(client, "exit-generated", cell.viewport);
+    await waitFor(
+      client,
+      `(() => {
+        const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
+        return Boolean(doc?.querySelector("[data-qa='current-city-map']")) &&
+          !doc?.querySelector("[data-qa='generated-boundary']");
+      })()`,
+      10_000,
+    );
+    const riverside = await innerInteractionSnapshot(client);
+    const resumeCountsGeneratedWork = /1 pin/.test(riverside.sessionResume) && /1 note/.test(riverside.sessionResume);
+    // Riverside's curated demo scene ships ONE authored world pin and zero
+    // notes (riversideDemoVoxelScene) — isolation means returning to exactly
+    // that baseline, not 0/0. A leaked generated pin would read 2/0.
+    const RIVERSIDE_BASELINE_PINS = 1;
+    const RIVERSIDE_BASELINE_NOTES = 0;
+    if (
+      !riverside.generated &&
+      riverside.pinCount === RIVERSIDE_BASELINE_PINS &&
+      riverside.noteCount === RIVERSIDE_BASELINE_NOTES &&
+      resumeCountsGeneratedWork
+    ) {
+      return { level: "pass", detail: `Riverside back at baseline pin=${riverside.pinCount}; note=${riverside.noteCount}; resume=${riverside.sessionResume}` };
+    }
+    return {
+      level: "fail",
+      detail: `generated=${riverside.generated}; pin=${riverside.pinCount}; note=${riverside.noteCount}; resume=${riverside.sessionResume}`,
+    };
   });
 }
 
@@ -754,6 +845,39 @@ function selectedPlaceLabel(client) {
   return evaluate(client, `(() => {
     const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
     return doc?.querySelector("[data-qa='selected-place-label']")?.textContent?.replace(/\\s+/g, " ").trim() ?? "";
+  })()`);
+}
+
+function innerInteractionSnapshot(client) {
+  return evaluate(client, `(() => {
+    const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
+    const shell = doc?.querySelector("[data-qa='alpha-city-world']");
+    const tray = doc?.querySelector("[data-qa='selected-place-tray']");
+    return {
+      generated: shell?.getAttribute("data-qa-generated") === "true",
+      trayVisible: Boolean(tray),
+      stickerToolsVisible: Boolean(doc?.querySelector("[data-qa='sticker-tools']")),
+      placeLabel: doc?.querySelector("[data-qa='selected-place-label']")?.textContent?.replace(/\\s+/g, " ").trim() ?? "",
+      pinCount: Number(shell?.getAttribute("data-qa-pin-count") || tray?.getAttribute("data-qa-pin-count") || 0),
+      noteCount: Number(shell?.getAttribute("data-qa-note-count") || tray?.getAttribute("data-qa-note-count") || 0),
+      latestNote: shell?.getAttribute("data-qa-latest-note") || tray?.getAttribute("data-qa-latest-note") || "",
+      sessionResume: doc?.querySelector("[data-qa='session-resume']")?.textContent?.replace(/\\s+/g, " ").trim() ?? "",
+    };
+  })()`);
+}
+
+function setInnerNoteDraft(client, value) {
+  const json = JSON.stringify(value);
+  return evaluate(client, `(() => {
+    const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
+    const input = doc?.querySelector("[data-qa='note-input']");
+    if (!doc || !(input instanceof doc.defaultView.HTMLInputElement)) throw new Error("missing note input");
+    const setter = Object.getOwnPropertyDescriptor(doc.defaultView.HTMLInputElement.prototype, "value")?.set;
+    if (!setter) throw new Error("missing HTMLInputElement value setter");
+    setter.call(input, ${json});
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return input.value;
   })()`);
 }
 

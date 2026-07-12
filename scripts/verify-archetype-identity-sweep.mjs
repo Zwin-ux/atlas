@@ -132,6 +132,17 @@ const DEFAULT_MATERIAL_PROFILE = "socal_stucco_warm";
 const DEFAULT_ROOF_PROFILE = "terracotta_barrel_tile";
 const GENERATED_PROFILE_RATE_FLOOR = 0.6;
 const UTILITY_TOWER_ARCHETYPES = new Set(["desert_basin", "prairie_town"]);
+const P12_PLACE_IDENTITY_SAMPLE_COUNTIES = [
+  "mobile-al",
+  "miami-dade-fl",
+  "loving-tx",
+  "kalawao-hi",
+  "summit-co",
+  "cook-il",
+  "sedgwick-ks",
+  "honolulu-hi",
+];
+const P12_PLACE_IDENTITY_BANNED_WORDS = /\b(alpha|tier|spec|generated|draft|archetype)\b/i;
 
 function log(...args) {
   if (!jsonOnly) console.log(...args);
@@ -240,6 +251,60 @@ function anchorTruthReadouts() {
       failures,
     };
   });
+}
+
+function placeIdentitySweep() {
+  const failures = [];
+  const samples = {};
+
+  for (const county of US_COUNTY_INDEX) {
+    try {
+      const first = createDeterministicGeneratedDistrictScene({ county });
+      const second = createDeterministicGeneratedDistrictScene({ county });
+      const firstLabels = placeIdentityReadout(first.result.scene);
+      const secondLabels = placeIdentityReadout(second.result.scene);
+      const firstWire = JSON.stringify(firstLabels);
+      const secondWire = JSON.stringify(secondLabels);
+
+      if (firstWire !== secondWire) failures.push(`${county.countySlug}: place labels/descriptions are not deterministic`);
+      for (const place of firstLabels) {
+        if (P12_PLACE_IDENTITY_BANNED_WORDS.test(place.label)) failures.push(`${county.countySlug}:${place.id}: banned label word in "${place.label}"`);
+        if (P12_PLACE_IDENTITY_BANNED_WORDS.test(place.description)) {
+          failures.push(`${county.countySlug}:${place.id}: banned description word in "${place.description}"`);
+        }
+      }
+      if (P12_PLACE_IDENTITY_SAMPLE_COUNTIES.includes(county.countySlug)) {
+        samples[county.countySlug] = {
+          districtLabel: first.result.scene.label,
+          archetype: first.generated.archetype,
+          tier: first.generated.spec.countyParameters?.urbanizationTier ?? "missing",
+          waterFactBand: first.generated.spec.countyParameters?.waterFactBand ?? "missing",
+          labels: firstLabels.map((place) => place.label),
+          descriptions: firstLabels.slice(0, 3).map((place) => place.description),
+        };
+      }
+    } catch (error) {
+      failures.push(`${county.countySlug}: compile threw during P1.2 label sweep: ${formatError(error)}`);
+    }
+  }
+
+  return {
+    checked: US_COUNTY_INDEX.length,
+    bannedWords: ["alpha", "tier", "spec", "generated", "draft", "archetype"],
+    failures,
+    samples,
+  };
+}
+
+function placeIdentityReadout(scene) {
+  return (scene.places ?? [])
+    .filter((place) => place.id?.startsWith("gen-place-"))
+    .map((place) => ({
+      id: place.id,
+      label: place.label ?? "",
+      description: place.description ?? "",
+    }))
+    .sort((first, second) => first.id.localeCompare(second.id));
 }
 
 function structuralInspection(county) {
@@ -969,6 +1034,7 @@ const representativeCountyByArchetype = representativeCountiesByArchetype();
 const tierHistogramReadout = tierHistogram();
 const anchorReadouts = anchorTruthReadouts();
 const anchorFailures = anchorReadouts.flatMap((entry) => entry.failures.map((failure) => `${entry.countySlug}: ${failure}`));
+const placeIdentity = placeIdentitySweep();
 
 log("Index coverage — " + totalClassified + " counties classified:");
 for (const a of ARCHETYPES) {
@@ -1013,6 +1079,29 @@ for (const entry of anchorReadouts) {
       `density ${entry.densityPerSqMi}`.padEnd(16) +
       `buildings ${entry.buildingCount}`.padEnd(14) +
       `roads ${entry.roadKinds.join(",")}`,
+  );
+}
+
+log("\nP1.2 honest place identity - full-index deterministic label sweep:");
+log(
+  "  checked " +
+    placeIdentity.checked +
+    " counties; failures " +
+    placeIdentity.failures.length +
+    "; banned words " +
+    placeIdentity.bannedWords.join(", "),
+);
+for (const countySlug of P12_PLACE_IDENTITY_SAMPLE_COUNTIES) {
+  const sample = placeIdentity.samples[countySlug];
+  if (!sample) continue;
+  log(
+    "  " +
+      countySlug.padEnd(18) +
+      sample.archetype.padEnd(16) +
+      sample.tier.padEnd(11) +
+      `water ${sample.waterFactBand}`.padEnd(18) +
+      `district ${sample.districtLabel}`.padEnd(24) +
+      `labels ${sample.labels.slice(0, 4).join(" | ")}`,
   );
 }
 
@@ -1308,6 +1397,12 @@ const GATES = [
     detail: anchorFailures.length === 0 ? "all anchors pass" : anchorFailures.join("; "),
   },
   {
+    id: "p12_place_identity_labels",
+    label: "P1.2 generated place labels are deterministic full-index and free of banned jargon",
+    pass: placeIdentity.failures.length === 0,
+    detail: placeIdentity.failures.length === 0 ? `${placeIdentity.checked} counties pass` : placeIdentity.failures.slice(0, 12).join("; "),
+  },
+  {
     id: "palette_distinctness",
     label: "no two archetypes share body+roof palette (worst Jaccard <= " + MAX_PAIR_JACCARD + ")",
     pass: worst.jaccard <= MAX_PAIR_JACCARD,
@@ -1437,6 +1532,7 @@ if (jsonOnly) {
           Object.entries(representativeCountyByArchetype).map(([archetype, county]) => [archetype, county.countySlug]),
         ),
       },
+      placeIdentityP12: placeIdentity,
       distinctness: { worst, pairs },
       landmarks: {
         byArchetype: landmarkByArchetype,

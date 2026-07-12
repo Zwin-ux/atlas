@@ -5,6 +5,8 @@ import {
   compileCityWorldScene,
   cityWorldDiamondPoints,
   projectCityWorldPoint,
+  type CityWorldPin,
+  type CityWorldPlace,
   type CityWorldScene,
   type VoxelNote,
   type VoxelScene,
@@ -128,7 +130,7 @@ export function CityWorldView({
   const [navigatorActivePlaceId, setNavigatorActivePlaceId] = useState<string | null>(null);
   const cityScene = useMemo<CityWorldScene>(
     () => {
-      if (generatedScene) return generatedScene;
+      if (generatedScene) return withGeneratedSessionPins(generatedScene, stickers, notes);
       const compiled = compileCityWorldScene(scene, {
         selectedDistrictId,
         selectedPlaceId,
@@ -156,8 +158,8 @@ export function CityWorldView({
   const hudDefaultPlace = cityScene.places.find((place) => place.id === cityScene.hudDefaults.selectedPlaceId);
   const activePlace = requestedPlace ?? hudDefaultPlace ?? cityScene.places[0];
   const placePins = activePlace ? cityScene.pins.filter((pin) => pin.placeId === activePlace.id) : [];
-  const worldStickers = scene.world?.stickers ?? [];
-  const worldNotes = scene.world?.notes ?? [];
+  const worldStickers = isGeneratedMode ? [] : scene.world?.stickers ?? [];
+  const worldNotes = isGeneratedMode ? [] : scene.world?.notes ?? [];
   const stickerCount = stickers.length + worldStickers.length;
   const noteCount = notes.length + worldNotes.length;
   const placeNotes = activePlace ? [...worldNotes, ...notes].filter((note) => note.placeId === activePlace.id) : [];
@@ -166,7 +168,7 @@ export function CityWorldView({
   const cameraPresetId = readRequestedCameraPreset(cityScene);
   const debugMode = readRequestedDebugMode();
   const displayMode = useOpenAiDisplayMode();
-  const canNavigatePlaces = !isGeneratedMode && cityScene.places.length > 0;
+  const canNavigatePlaces = cityScene.places.length > 0;
   const renderedDistrictCount = cityScene.region.district ? 1 : 0;
   const mapSummary = `Voxel map of ${cityScene.region.county}: ${cityScene.places.length} ${cityScene.places.length === 1 ? "place" : "places"}, ${renderedDistrictCount} ${renderedDistrictCount === 1 ? "district" : "districts"}.`;
   const navigatorActiveIndex = cityScene.places.findIndex((place) => place.id === navigatorActivePlaceId);
@@ -363,8 +365,7 @@ export function CityWorldView({
             selectedPlaceId={activePlace?.id}
             cameraPresetId={cameraPresetId}
             debugMode={debugMode}
-            suppressPlaceLabels={isGeneratedMode}
-            onSelectPlace={isGeneratedMode ? () => undefined : onSelectPlace}
+            onSelectPlace={onSelectPlace}
           />
         </Suspense>
       </section>
@@ -444,7 +445,7 @@ export function CityWorldView({
         </div>
       ) : null}
 
-      {!hasPreview && !hasHostedClawdTray && !isGeneratedMode ? (
+      {!hasPreview && !hasHostedClawdTray ? (
       <div className="city-world-stickers" aria-label="Sticker tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
         {STICKER_ORDER.map((kind) => (
           <button
@@ -477,7 +478,7 @@ export function CityWorldView({
 
       {hasHostedClawdTray ? null : hasPreview ? (
         <PreviewPanel scoutPreview={scoutPreview} campaignPreview={campaignPreview} {...(onAdvancePreview ? { onAdvance: onAdvancePreview } : {})} />
-      ) : !isGeneratedMode ? (
+      ) : (
       <section
         className="city-world-tray"
         aria-label="Selected place"
@@ -534,7 +535,7 @@ export function CityWorldView({
           </div>
         ) : null}
       </section>
-      ) : null}
+      )}
       </div>
 
       {hasHostedClawdTray && hostedClawdContext && onCloseHostedClawd && onHostedClawdPrimaryAction ? (
@@ -560,6 +561,55 @@ export function CityWorldView({
       ) : null}
     </main>
   );
+}
+
+function withGeneratedSessionPins(scene: CityWorldScene, stickers: VoxelSticker[], notes: VoxelNote[]): CityWorldScene {
+  const sessionPins = createSessionPins(scene.places, stickers, notes);
+  if (sessionPins.length === 0) return scene;
+  const sessionPinIds = new Set(sessionPins.map((pin) => pin.id));
+  return {
+    ...scene,
+    pins: [...scene.pins.filter((pin) => !sessionPinIds.has(pin.id)), ...sessionPins],
+  };
+}
+
+function createSessionPins(places: CityWorldPlace[], stickers: VoxelSticker[], notes: VoxelNote[]): CityWorldPin[] {
+  const placeById = new Map(places.map((place) => [place.id, place]));
+  const pins: CityWorldPin[] = [];
+
+  for (const sticker of stickers) {
+    const place = placeById.get(sticker.placeId);
+    if (!place) continue;
+    pins.push({
+      id: sticker.id,
+      placeId: sticker.placeId,
+      kind: sticker.kind,
+      label: sticker.label,
+      anchor: { x: place.anchor.x + 0.7, y: place.anchor.y - 0.6, z: 1.8 },
+      ...(sticker.noteId ? { noteId: sticker.noteId } : {}),
+      spriteKey: `pin.sticker.${sticker.kind}`,
+      paletteKey: `pin.${sticker.kind}`,
+      detailLevel: "high",
+    });
+  }
+
+  for (const note of notes) {
+    const place = placeById.get(note.placeId);
+    if (!place) continue;
+    pins.push({
+      id: `pin-${note.id}`,
+      placeId: note.placeId,
+      kind: "note",
+      label: note.body,
+      anchor: { x: place.anchor.x - 0.75, y: place.anchor.y - 0.5, z: 1.6 },
+      noteId: note.id,
+      spriteKey: "pin.note.default",
+      paletteKey: "pin.note",
+      detailLevel: "high",
+    });
+  }
+
+  return pins;
 }
 
 function PinIcon() {

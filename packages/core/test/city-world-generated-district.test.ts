@@ -30,9 +30,11 @@ import {
 import {
   GENERATED_ART_PROFILES,
   densityPerSqMiForFacts,
+  districtDisplayNameForCountyName,
   generatedArtProfileForId,
   resolveGeneratedLayoutGrammar,
   urbanizationTierForDensity,
+  waterFactBandForFraction,
 } from "../src/voxel/cityWorldCountyParameters.js";
 import type { CensusDivision, CityWorldProp, CityWorldScene, CountyGenerationParameters, GeneratedDistrictArchetype } from "../src/index.js";
 import type { CityWorldBuilding, CityWorldRoadSegment, CityWorldTerrainTile, CityWorldZoneKind, CityWorldZoneSpec } from "../src/index.js";
@@ -93,6 +95,7 @@ const DEFAULT_ROOF_PROFILE = "terracotta_barrel_tile";
 const GENERATED_PROFILE_RATE_FLOOR = 0.6;
 const ATTACHMENT_RATE_FLOOR = 0.4;
 const ATTACHMENT_RATE_CEILING = 0.7;
+const GENERATED_IDENTITY_BANNED_WORDS = /\b(alpha|tier|spec|generated|draft|archetype)\b/i;
 const GENERATED_ATTACHMENT_KINDS = [
   "chimney",
   "porch_step",
@@ -188,6 +191,76 @@ describe("deterministic generated district specs", () => {
     }
   });
 
+  it("derives P1.2 district display labels from Census county names without fake town names", () => {
+    expect(districtDisplayNameForCountyName("Mobile County")).toBe("Mobile");
+    expect(districtDisplayNameForCountyName("Miami-Dade County")).toBe("Miami-Dade");
+    expect(districtDisplayNameForCountyName("Juneau City and Borough")).toBe("Juneau");
+    expect(districtDisplayNameForCountyName("St. Louis city")).toBe("St. Louis");
+    expect(districtDisplayNameForCountyName("District of Columbia")).toBe("District of Columbia");
+
+    const expectedDistrictLabels: Record<string, string> = {
+      "mobile-al": "Mobile",
+      "miami-dade-fl": "Miami-Dade",
+      "loving-tx": "Loving",
+      "kalawao-hi": "Kalawao",
+      "summit-co": "Summit",
+      "cook-il": "Cook",
+      "sedgwick-ks": "Sedgwick",
+      "honolulu-hi": "Honolulu",
+    };
+
+    for (const [countySlug, expectedLabel] of Object.entries(expectedDistrictLabels)) {
+      const { result } = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
+
+      expect(result.scene.label).toBe(expectedLabel);
+      expect(result.scene.region.district).toBe(expectedLabel);
+      expect(result.scene.hudDefaults.districtLabel).toBe(expectedLabel);
+      expect(result.scene.label).not.toMatch(/generated district/i);
+    }
+  });
+
+  it("uses deterministic P1.2 common-noun place labels and one-line fact descriptions", () => {
+    const sampleCountySlugs = [
+      "mobile-al",
+      "miami-dade-fl",
+      "loving-tx",
+      "kalawao-hi",
+      "summit-co",
+      "cook-il",
+      "sedgwick-ks",
+      "honolulu-hi",
+      "benton-ar",
+    ];
+    const retiredLandmarkLabels = new Set(["Civic tower", "Bank boathouse", "Waterfront pier hall", "Pier hall", "Working pier hall"]);
+
+    for (const countySlug of sampleCountySlugs) {
+      const first = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
+      const second = createDeterministicGeneratedDistrictScene({ county: county(countySlug) });
+      const firstReadout = placeIdentityReadout(first.result.scene);
+      const secondReadout = placeIdentityReadout(second.result.scene);
+      const districtLabel = first.result.scene.label.toLowerCase();
+
+      expect(firstReadout).toEqual(secondReadout);
+      expect(firstReadout.length).toBeGreaterThan(0);
+
+      for (const place of firstReadout) {
+        expect(place.label).not.toMatch(GENERATED_IDENTITY_BANNED_WORDS);
+        expect(place.description).not.toMatch(GENERATED_IDENTITY_BANNED_WORDS);
+        expect(place.description).toMatch(/\.$/);
+        expect(place.description.replace(/\.$/, "")).not.toContain(".");
+        expect(place.label.toLowerCase()).not.toContain(districtLabel);
+        expect(retiredLandmarkLabels.has(place.label)).toBe(false);
+      }
+    }
+
+    expect(placeIdentityReadout(createDeterministicGeneratedDistrictScene({ county: county("cook-il") }).result.scene).map((place) => place.label)).toContain(
+      "Courthouse square",
+    );
+    expect(
+      placeIdentityReadout(createDeterministicGeneratedDistrictScene({ county: county("benton-ar") }).result.scene).map((place) => place.label),
+    ).toContain("Riverfront landing");
+  });
+
   it("guards 0.77-1 density derivation edges", () => {
     expect(urbanizationTierForDensity(1400)).toBe("urban_core");
     expect(urbanizationTierForDensity(1399.9)).toBe("suburban");
@@ -200,6 +273,13 @@ describe("deterministic generated district specs", () => {
     expect(() => densityPerSqMiForFacts(100, 0)).toThrow(/Invalid landAreaSqMi/);
     expect(() => densityPerSqMiForFacts(-1, 10)).toThrow(/Invalid population2024/);
     expect(() => urbanizationTierForDensity(Number.NaN)).toThrow(/Invalid densityPerSqMi/);
+    expect(waterFactBandForFraction(0)).toBe("dry");
+    expect(waterFactBandForFraction(0.009)).toBe("trace");
+    expect(waterFactBandForFraction(0.049)).toBe("low");
+    expect(waterFactBandForFraction(0.149)).toBe("moderate");
+    expect(waterFactBandForFraction(0.399)).toBe("high");
+    expect(waterFactBandForFraction(0.4)).toBe("very_high");
+    expect(() => waterFactBandForFraction(Number.NaN)).toThrow(/Invalid waterFraction/);
     expect(() => resolveCountyParameters({ ...county("loving-tx"), geoid: "99999" }, 1)).toThrow(/Missing Census county facts/);
   });
 
@@ -301,7 +381,7 @@ describe("deterministic generated district specs", () => {
     expect(resolveCountyParameters(bayCounty, bayGenerated.generated.seed).nameSignal).toContain("bay");
     expect(bayLandmark?.kind).toBe("coastal_pier_hall");
     expect(bayGenerated.result.scene.buildings.find((building) => building.id === bayLandmark?.buildingId)?.label).toBe(
-      "Waterfront pier hall",
+      "Waterfront landing",
     );
   });
 
@@ -843,6 +923,17 @@ function parametersForCounty(countySlug: string): CountyGenerationParameters {
   const sampleCounty = county(countySlug);
   const seed = deterministicGeneratedDistrictSeedForCounty({ county: sampleCounty });
   return resolveCountyParameters(sampleCounty, seed);
+}
+
+function placeIdentityReadout(scene: CityWorldScene): Array<{ id: string; label: string; description: string }> {
+  return scene.places
+    .filter((place) => place.id.startsWith("gen-place-"))
+    .map((place) => ({
+      id: place.id,
+      label: place.label,
+      description: place.description ?? "",
+    }))
+    .sort((first, second) => first.id.localeCompare(second.id));
 }
 
 function vegetationCounts(scene: CityWorldScene): { tree: number; bush: number; vegetation: number } {

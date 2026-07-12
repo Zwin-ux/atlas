@@ -17,6 +17,7 @@ export type CensusDivision =
 export type LatitudeBand = "tropical" | "subtropical" | "warm_temperate" | "cool_temperate" | "northern" | "arctic";
 export type AridityBand = "humid" | "balanced" | "dry" | "arid";
 export type UrbanizationTier = "urban_core" | "suburban" | "town" | "rural" | "frontier";
+export type CountyWaterFactBand = "dry" | "trace" | "low" | "moderate" | "high" | "very_high";
 
 export type NameSignal =
   | "bay"
@@ -78,7 +79,10 @@ export type CountyGenerationEnvelope = {
 export type CountyGenerationFacts = {
   population2024: number;
   landAreaSqMi: number;
+  waterAreaSqMi: number;
+  waterFraction: number;
   densityPerSqMi: number;
+  waterFactBand: CountyWaterFactBand;
 };
 
 export type ArchetypeZoneProfile = {
@@ -247,12 +251,16 @@ type ArchetypeSelectionRule = {
 };
 
 export type CountyGenerationParameters = {
+  districtDisplayName: string;
   archetype: GeneratedDistrictArchetype;
   archetypeProfile: ArchetypeProfile;
   artProfile: GeneratedRoadArtProfile;
   layoutGrammar: GeneratedLayoutGrammarProfile;
   population2024: number;
   landAreaSqMi: number;
+  waterAreaSqMi: number;
+  waterFraction: number;
+  waterFactBand: CountyWaterFactBand;
   densityPerSqMi: number;
   urbanizationTier: UrbanizationTier;
   region: CensusDivision;
@@ -427,6 +435,17 @@ export const NAME_SIGNAL_TOKENS: Record<NameSignal, readonly string[]> = {
 const COASTAL_INTENT_STATES = ["CA", "FL", "HI", "LA", "ME", "MA", "MD", "NJ", "NY", "OR", "PR", "RI", "SC", "VA", "WA"] as const;
 const WATER_DEPENDENT_ARCHETYPES = ["coastal_grid", "river_town"] as const;
 
+export const COUNTY_NAME_DISTRICT_LABEL_SUFFIXES = [
+  " City and Borough",
+  " Census Area",
+  " Municipality",
+  " Municipio",
+  " Borough",
+  " Parish",
+  " County",
+  " city",
+] as const;
+
 export const URBANIZATION_TIER_CUTS: Record<Exclude<UrbanizationTier, "frontier">, number> = {
   urban_core: 1400,
   suburban: 300,
@@ -593,12 +612,16 @@ export function resolveCountyParameters(county: CountyParameterInput, seed: numb
   const palette = resolveCountyPalette(archetypeProfile.palette, modulation.paletteVariantOffset);
 
   return {
+    districtDisplayName: districtDisplayNameForCountyName(county.name),
     archetype,
     archetypeProfile,
     artProfile: GENERATED_ART_PROFILES[archetype],
     layoutGrammar,
     population2024: facts.population2024,
     landAreaSqMi: facts.landAreaSqMi,
+    waterAreaSqMi: facts.waterAreaSqMi,
+    waterFraction: facts.waterFraction,
+    waterFactBand: facts.waterFactBand,
     densityPerSqMi: facts.densityPerSqMi,
     urbanizationTier,
     region,
@@ -865,12 +888,21 @@ function waterNameSignalWeight(signals: readonly NameSignal[]): number {
 function resolveCountyFacts(county: CountyParameterInput): CountyGenerationFacts {
   const row = US_COUNTY_FACTS_BY_GEOID.get(county.geoid);
   if (!row) throw new Error(`Missing Census county facts for GEOID ${county.geoid}`);
-  const [, population2024, landAreaSqMi] = row;
+  const [, population2024, landAreaSqMi, waterAreaSqMi, waterFraction] = row;
   return {
     population2024,
     landAreaSqMi,
+    waterAreaSqMi,
+    waterFraction,
     densityPerSqMi: densityPerSqMiForFacts(population2024, landAreaSqMi),
+    waterFactBand: waterFactBandForFraction(waterFraction),
   };
+}
+
+export function districtDisplayNameForCountyName(countyName: string): string {
+  const trimmed = countyName.trim();
+  const stripped = COUNTY_NAME_DISTRICT_LABEL_SUFFIXES.find((suffix) => trimmed.endsWith(suffix));
+  return stripped ? trimmed.slice(0, -stripped.length).trim() || trimmed : trimmed;
 }
 
 export function densityPerSqMiForFacts(population2024: number, landAreaSqMi: number): number {
@@ -892,6 +924,18 @@ export function urbanizationTierForDensity(densityPerSqMi: number): Urbanization
   if (densityPerSqMi >= URBANIZATION_TIER_CUTS.town) return "town";
   if (densityPerSqMi >= URBANIZATION_TIER_CUTS.rural) return "rural";
   return "frontier";
+}
+
+export function waterFactBandForFraction(waterFraction: number): CountyWaterFactBand {
+  if (!Number.isFinite(waterFraction) || waterFraction < 0) {
+    throw new Error(`Invalid waterFraction ${waterFraction}`);
+  }
+  if (waterFraction === 0) return "dry";
+  if (waterFraction < 0.01) return "trace";
+  if (waterFraction < 0.05) return "low";
+  if (waterFraction < 0.15) return "moderate";
+  if (waterFraction < 0.4) return "high";
+  return "very_high";
 }
 
 function resolveModulation(
