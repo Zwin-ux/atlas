@@ -231,10 +231,15 @@ const DEFAULT_LOCK_WAIT_MS = 2_000;
 const PLAYABLE_RUNTIME_TTL_MS = 60 * 60 * 1000;
 const REDIS_CACHE_PREFIX = "atlas:scene-packet-cache:";
 const REDIS_LOCK_PREFIX = "atlas:scene-packet-lock:";
-const REDIS_JOB_QUEUE_KEY = "atlas:scene-packet-jobs:pending";
-const REDIS_JOB_CLAIMED_KEY = "atlas:scene-packet-jobs:claimed";
-const REDIS_JOB_DONE_PREFIX = "atlas:scene-packet-jobs:done:";
-const REDIS_JOB_FAILED_PREFIX = "atlas:scene-packet-jobs:failed:";
+// v2 namespace: the pre-W6 deployment stored the queue under
+// atlas:scene-packet-jobs:* with different value types; reusing those key
+// names on a live Redis returned WRONGTYPE replies (crashed the first W6
+// deploy). Fresh names sidestep any legacy-typed keys; the old ones expire
+// or sit unused (queue work is transient).
+const REDIS_JOB_QUEUE_KEY = "atlas:scene-packet-jobs:v2:pending";
+const REDIS_JOB_CLAIMED_KEY = "atlas:scene-packet-jobs:v2:claimed";
+const REDIS_JOB_DONE_PREFIX = "atlas:scene-packet-jobs:v2:done:";
+const REDIS_JOB_FAILED_PREFIX = "atlas:scene-packet-jobs:v2:failed:";
 const DEFAULT_JOB_CLAIM_TTL_MS = DEFAULT_LOCK_TTL_SECONDS * 1000;
 
 export function readScenePacketRuntimeConfig(
@@ -841,20 +846,28 @@ export function createRedisScenePacketJobQueue<TJob extends { id: string; enqueu
       });
     },
     async status(now) {
-      const client = await connector.client();
-      await requeueExpiredRedisClaims(client, now);
-      const queueDepth = await client.zCard(REDIS_JOB_QUEUE_KEY);
-      const claimedCount = await client.zCard(REDIS_JOB_CLAIMED_KEY);
-      const values = await client.zRange(REDIS_JOB_QUEUE_KEY, 0, 0);
-      const oldest = values[0] ? parseJson<TJob>(values[0]) : undefined;
-      const claimedValues = await client.zRange(REDIS_JOB_CLAIMED_KEY, 0, 0);
-      const oldestClaimed = claimedValues[0] ? parseJson<RedisClaimedJobEnvelope<TJob>>(claimedValues[0]) : undefined;
-      return {
-        queueDepth,
-        claimedCount,
-        oldestQueuedMs: oldest ? Math.max(0, now - oldest.enqueuedAtMs) : null,
-        oldestClaimedMs: oldestClaimed?.claim ? Math.max(0, now - oldestClaimed.claim.claimedAtMs) : null,
-      };
+      // Readiness must never fail because queue introspection hit a Redis
+      // reply error — degrade to safe zeros and log (fail-open, W6 contract).
+      try {
+        const client = await connector.client();
+        await requeueExpiredRedisClaims(client, now);
+        const queueDepth = await client.zCard(REDIS_JOB_QUEUE_KEY);
+        const claimedCount = await client.zCard(REDIS_JOB_CLAIMED_KEY);
+        const values = await client.zRange(REDIS_JOB_QUEUE_KEY, 0, 0);
+        const oldest = values[0] ? parseJson<TJob>(values[0]) : undefined;
+        const claimedValues = await client.zRange(REDIS_JOB_CLAIMED_KEY, 0, 0);
+        const oldestClaimed = claimedValues[0] ? parseJson<RedisClaimedJobEnvelope<TJob>>(claimedValues[0]) : undefined;
+        return {
+          queueDepth,
+          claimedCount,
+          oldestQueuedMs: oldest ? Math.max(0, now - oldest.enqueuedAtMs) : null,
+          oldestClaimedMs: oldestClaimed?.claim ? Math.max(0, now - oldestClaimed.claim.claimedAtMs) : null,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(JSON.stringify({ ts: new Date().toISOString(), level: "error", event: "scene_packet_queue_status_fail_open", message }));
+        return { queueDepth: 0, claimedCount: 0, oldestQueuedMs: null, oldestClaimedMs: null };
+      }
     },
   };
 }
@@ -869,7 +882,7 @@ local owner_id = ARGV[3]
 local expired = redis.call('zrangebyscore', claimed_key, '-inf', now)
 for _, raw_envelope in ipairs(expired) do
   local decoded_ok, envelope = pcall(cjson.decode, raw_envelope)
-  if decoded_ok and envelope and envelope.job and envelope.job.id and not redis.call('get', 'atlas:scene-packet-jobs:done:' .. envelope.job.id) then
+  if decoded_ok and envelope and envelope.job and envelope.job.id and not redis.call('get', 'atlas:scene-packet-jobs:v2:done:' .. envelope.job.id) then
     redis.call('zadd', pending_key, envelope.job.enqueuedAtMs or now, cjson.encode(envelope.job))
   end
   redis.call('zrem', claimed_key, raw_envelope)
@@ -910,7 +923,7 @@ local now = tonumber(ARGV[1])
 local expired = redis.call('zrangebyscore', claimed_key, '-inf', now)
 for _, raw_envelope in ipairs(expired) do
   local decoded_ok, envelope = pcall(cjson.decode, raw_envelope)
-  if decoded_ok and envelope and envelope.job and envelope.job.id and not redis.call('get', 'atlas:scene-packet-jobs:done:' .. envelope.job.id) then
+  if decoded_ok and envelope and envelope.job and envelope.job.id and not redis.call('get', 'atlas:scene-packet-jobs:v2:done:' .. envelope.job.id) then
     redis.call('zadd', pending_key, envelope.job.enqueuedAtMs or now, cjson.encode(envelope.job))
   end
   redis.call('zrem', claimed_key, raw_envelope)
@@ -1037,10 +1050,37 @@ export function createLazyRedisConnector(url: string): LazyRedisConnector {
   async function getClient(): Promise<LazyRedisClient> {
     if (!client) {
       const redis = await import("redis");
-      client = redis.createClient({ url }) as unknown as LazyRedisClient;
+      const created = redis.createClient({
+        url,
+        socket: {
+          connectTimeout: 2_000,
+          // Bounded retries so connect() REJECTS on an unreachable Redis
+          // instead of retrying forever — callers' fail-open depends on a
+          // prompt rejection (the unbounded default hung /api/world/lookup
+          // and the hardening gate).
+          reconnectStrategy: (retries: number) => (retries >= 2 ? new Error("redis unreachable after 3 attempts") : Math.min(200 * (retries + 1), 600)),
+        },
+      });
+      // node-redis turns any socket/protocol error into a process-killing
+      // unhandled 'error' event unless a listener exists (crashed the first
+      // W6 production deploy). In-flight commands still reject; callers
+      // fail open.
+      created.on("error", (error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(JSON.stringify({ ts: new Date().toISOString(), level: "error", event: "redis_client_error", message }));
+      });
+      client = created as unknown as LazyRedisClient;
     }
     if (!client.isOpen) {
-      connectPromise ??= client.connect().then(() => undefined);
+      // Reset on failure so a later call can retry a fresh connect instead
+      // of awaiting a permanently rejected cached promise.
+      connectPromise ??= client.connect().then(
+        () => undefined,
+        (error) => {
+          connectPromise = undefined;
+          throw error;
+        },
+      );
       await connectPromise;
     }
     return client;
