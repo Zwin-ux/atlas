@@ -50,7 +50,7 @@ export class ScoutDropService {
     ];
     const nextActions = buildNextActions(context, route, businessType);
     const summary =
-      `${context.selectedLabel} in ${context.countyLabel} is the first Scout Drop for ${businessType}: use the visible place mix, route friction, and manual outreach surfaces as a session-only planning preview.`;
+      `${context.selectedLabel} in ${context.countyLabel} is the first Scout Drop for ${businessType}: use the visible place mix, route friction, and manual outreach surfaces as a planning preview that stays in this chat.`;
 
     return {
       type: "scoutPreview",
@@ -69,11 +69,11 @@ export class ScoutDropService {
       upgradePrompt: "This Scout Drop stays in this chat.",
       limitations: [
         context.source === "curated"
-          ? `Session-only Alpha preview using curated ${context.countyLabel} scene signals and template planning logic, not live market claims.`
-          : `Session-only Alpha preview using requested ${context.countyLabel} and ${context.selectedLabel} labels with synthetic template signals, not live coverage or market proof.`,
+          ? `Preview only. Uses built-in ${context.countyLabel} map signals and planning logic, not live market claims.`
+          : `Preview only. Uses requested ${context.countyLabel} and ${context.selectedLabel} labels with planning signals, not real coverage or market proof.`,
         "No posting, DM automation, ad execution, saved state, evidence, or XP is performed.",
-        budgetNote ? `Budget note is treated as planning context only: ${budgetNote}.` : "Budget is not spent or optimized in Alpha.",
-        radiusNote ? `Service radius note is treated as planning context only: ${radiusNote}.` : "Service radius is not routed with live traffic in Alpha.",
+        budgetNote ? `Budget note is treated as planning context only: ${budgetNote}.` : "Budget is not spent or optimized.",
+        radiusNote ? `Service radius note is treated as planning context only: ${radiusNote}.` : "Service radius is not routed with live traffic.",
       ],
       alphaBoundary: {
         mode: "session_only_alpha",
@@ -238,12 +238,12 @@ function buildRisks(context: ScoutSceneContext): ScoutRisk[] {
     },
     {
       id: "synthetic-boundary",
-      label: context.source === "curated" ? "Live-market boundary" : "Synthetic preview boundary",
+      label: context.source === "curated" ? "Market boundary" : "Preview boundary",
       severity: context.source === "curated" ? "medium" : "low",
       mitigation:
         context.source === "curated"
-          ? `${context.countyLabel} Scout Drops use curated scene signals and do not prove live demand.`
-          : `${context.countyLabel} Scout Drops outside curated Riverside are template previews, not playable local coverage.`,
+          ? `${context.countyLabel} Scout Drops use built-in map signals and do not prove live demand.`
+          : `${context.countyLabel} Scout Drops outside Riverside are planning previews, not real local coverage.`,
     },
   ];
 }
@@ -337,7 +337,7 @@ function buildScoutScene(
     stats: [
       { label: "Top signal", value: shortStatValue(signals[0]?.label ?? "Route"), tone: "good" },
       { label: "Route drag", value: "Manual", tone: "neutral" },
-      { label: "Watch", value: context.source === "curated" ? "Live demand" : "Synthetic", tone: "watch" },
+      { label: "Watch", value: context.source === "curated" ? "Market check" : "Preview", tone: "watch" },
     ],
     upgradePrompt: "This Scout Drop stays in this chat.",
   };
@@ -457,7 +457,7 @@ function buildSyntheticScoutScene(input: {
       districtId,
       nodeId: homeNodeId,
       position: { x: 34, y: 17, z: 1.32 },
-      description: "Synthetic home-area proxy for route density.",
+      description: "Home-area planning area for route density.",
       activity: 0.78,
     },
     {
@@ -467,7 +467,7 @@ function buildSyntheticScoutScene(input: {
       districtId,
       nodeId: plazaNodeId,
       position: { x: 36, y: 20, z: 1.32 },
-      description: "Synthetic errand-overlap proxy for a QR or partner test.",
+      description: "Errand-overlap planning area for a QR or partner test.",
       activity: 0.72,
     },
     {
@@ -477,7 +477,7 @@ function buildSyntheticScoutScene(input: {
       districtId,
       nodeId: accessNodeId,
       position: { x: 38, y: 23, z: 1.34 },
-      description: "Synthetic permission-check proxy for property or resident access.",
+      description: "Access check for property or resident permission.",
       activity: 0.66,
     },
     {
@@ -487,7 +487,7 @@ function buildSyntheticScoutScene(input: {
       districtId,
       nodeId: routeNodeId,
       position: { x: 28, y: 21, z: 1.18 },
-      description: "Synthetic route-edge proxy; not live traffic.",
+      description: "Route edge preview. Not live traffic.",
       activity: 0.6,
     },
     {
@@ -497,7 +497,7 @@ function buildSyntheticScoutScene(input: {
       districtId,
       nodeId: parkNodeId,
       position: { x: 35, y: 22, z: 1.22 },
-      description: "Synthetic community-surface proxy for a low-pressure manual test.",
+      description: "Community surface for a low-pressure manual test.",
       activity: 0.58,
     },
   ];
@@ -506,7 +506,7 @@ function buildSyntheticScoutScene(input: {
     { id: "us", label: "United States", scale: "country", slug: "us" },
     { id: stateNodeId, label: stateCode, scale: "state", parentId: "us", slug: stateCode.toLowerCase() },
     { id: input.countySlug, label: input.countyLabel, scale: "county", parentId: stateNodeId, slug: input.countySlug, position: { x: 32, y: 18, z: 0 } },
-    { id: districtId, label: `${input.selectedLabel} synthetic Scout preview`, scale: "district", parentId: input.countySlug, slug: selectedSlug, position: { x: 32, y: 18, z: 1 } },
+    { id: districtId, label: `${input.selectedLabel} Scout preview`, scale: "district", parentId: input.countySlug, slug: selectedSlug, position: { x: 32, y: 18, z: 1 } },
     ...places.map((place) => ({
       id: place.id,
       label: place.label,
@@ -566,10 +566,10 @@ function buildSyntheticScoutScene(input: {
       districts: [
         {
           id: districtId,
-          label: `${input.selectedLabel} synthetic Scout preview`,
+          label: `${input.selectedLabel} Scout preview`,
           countySlug: input.countySlug,
           worldNodeId: districtId,
-          summary: `Session-only synthetic Scout preview for ${input.selectedLabel} in ${input.countyLabel}.`,
+          summary: `Planning preview for ${input.selectedLabel} in ${input.countyLabel}. Stays in this chat.`,
           playable: false,
           focusNodeIds: nodes.map((node) => node.id),
           position: { x: 32, y: 18, z: 1 },

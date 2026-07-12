@@ -37,7 +37,7 @@ function getTextContent(result, toolName) {
 }
 
 function assertNoForbiddenProductClaims(text, label) {
-  assert(!/saved campaign|saved to your account|XP granted|evidence submitted|automation started|paid ads launched/i.test(text), `${label} makes a forbidden Alpha claim.`);
+  assert(!/saved campaign|saved to your account|XP granted|evidence submitted|automation started|paid ads launched/i.test(text), `${label} makes a forbidden product claim.`);
 }
 
 function assertNoInternalLanguage(text, label) {
@@ -48,7 +48,7 @@ function assertLookupBoundaryText(text, label) {
   assert(/lookup-only/i.test(text), `${label} must say lookup-only.`);
   assert(/not saved/i.test(text), `${label} must say lookup results are not saved.`);
   assert(/not coverage proof/i.test(text), `${label} must say lookup is not coverage proof.`);
-  assert(/does not unlock a playable county map/i.test(text), `${label} must block playable-map promotion.`);
+  assert(/does not unlock a full county map/i.test(text), `${label} must block full-map promotion.`);
 }
 
 function assertScenePacketMeta(result, expectedReadiness, label) {
@@ -101,8 +101,8 @@ try {
   const selectedCounty = getStructuredContent(selectCountyResult, "select_county");
   assert(selectedCounty.type === "voxelSceneSummary", "select_county returned the wrong structured type.");
   assert(selectedCounty.selectedNodeId === "eastvale", "select_county must highlight Eastvale.");
-  assert(/playable district/i.test(selectCountyText), "select_county text must describe Eastvale as the playable district.");
-  assert(/session-only notes/i.test(selectCountyText), "select_county text must explain session-only notes.");
+  assert(/Eastvale is the full map/i.test(selectCountyText), "select_county text must describe Eastvale as the full map.");
+  assert(/notes that stay in this chat/i.test(selectCountyText), "select_county text must explain notes stay in this chat.");
   assertNoForbiddenProductClaims(selectCountyText, "select_county");
   assertNoInternalLanguage(selectCountyText, "select_county");
   assert(selectCountyResult._meta?.scene?.world?.places?.length > 0, "select_county must return full scene in _meta.scene.");
@@ -121,13 +121,13 @@ try {
   const shellCountyText = getTextContent(shellCountyResult, "select_county shell county");
   const shellCounty = getStructuredContent(shellCountyResult, "select_county shell county");
   assert(shellCounty.type === "countyCoverageSummary", "Shell county selection must return coverage summary.");
-  assert(shellCounty.countySlug === "orange-ca", "Shell county selection must preserve county slug.");
+  assert(shellCounty.countySlug === "orange-ca", "Preview county selection must preserve county id.");
   assert(shellCounty.coverageTier === "L1_COUNTY_SHELL", "Orange County should be an L1 county shell.");
   assert(shellCounty.playableDistrictCount === 0, "Shell counties must not claim playable districts.");
-  assert(/browse-only/i.test(shellCountyText), "Shell county text must say shells are browse-only.");
-  assert(/Riverside\/Eastvale is playable now/i.test(shellCountyText), "Shell county text must point to the playable map.");
-  assert(/does not invent local places/i.test(shellCountyText), "Shell county text must block fake local places.");
-  assert(/saves, XP, evidence, or automation/i.test(shellCountyText), "Shell county text must block saved/progression/automation claims.");
+  assert(/preview only/i.test(shellCountyText), "Preview county text must say preview only.");
+  assert(/Riverside\/Eastvale is fully explorable today/i.test(shellCountyText), "Preview county text must point to the full map.");
+  assert(/does not add local places/i.test(shellCountyText), "Preview county text must block fake local places.");
+  assert(/saved work, XP, evidence, outreach, or automation/i.test(shellCountyText), "Preview county text must block saved/progression/outreach/automation claims.");
   assertNoForbiddenProductClaims(shellCountyText, "select_county shell county");
   assertNoInternalLanguage(shellCountyText, "select_county shell county");
   assert(!shellCountyResult._meta?.scene, "Shell county selection must not return a fake scene.");
@@ -140,13 +140,13 @@ try {
       name: "ask_county_question",
       arguments: {
         countySlug: "riverside-ca",
-        question: "Which curated signals support mobile detailing in Eastvale?",
+        question: "Which map signals support mobile detailing in Eastvale?",
         businessType: "mobile detailing",
       },
     });
   const countyQuestionText = getTextContent(countyQuestionResult, "ask_county_question");
   const countyQuestion = getStructuredContent(countyQuestionResult, "ask_county_question");
-  assert(/Curated Riverside\/Eastvale answer/i.test(countyQuestionText), "ask_county_question text must name the curated answer boundary.");
+  assert(/Riverside\/Eastvale answer/i.test(countyQuestionText), "ask_county_question text must name the Riverside/Eastvale answer boundary.");
   assert(/No saves, XP, evidence, or automation/i.test(countyQuestionText), "ask_county_question text must block saved/progression/automation claims.");
   assertNoForbiddenProductClaims(countyQuestionText, "ask_county_question");
   assertNoInternalLanguage(countyQuestionText, "ask_county_question");
@@ -155,11 +155,11 @@ try {
   assert(countyQuestion.topic === "business_signals", "Supported mobile detailing question should use business_signals topic.");
   assert(
     /Residential Demand|QR Flyer Opportunity|Partnership Target/i.test(countyQuestion.answer),
-    "ask_county_question did not cite expected curated mobile detailing signals.",
+    "ask_county_question did not cite expected mobile detailing signals.",
   );
   assert(
-    countyQuestion.limitations.some((limitation) => /curated|Alpha|live market/i.test(limitation)),
-    "ask_county_question must expose curated Alpha limitations.",
+    countyQuestion.limitations.some((limitation) => /built-in|live market/i.test(limitation)),
+    "ask_county_question must expose built-in data and live-market limitations.",
   );
 
   const unsupportedCountyQuestionResult = await client.callTool({
@@ -174,7 +174,7 @@ try {
   const unsupportedCountyQuestion = getStructuredContent(unsupportedCountyQuestionResult, "ask_county_question unsupported");
   assert(unsupportedCountyQuestion.type === "countyQuestionAnswer", "Unsupported county question returned wrong type.");
   assert(unsupportedCountyQuestion.supported === false, "Unsupported county/business question should be refused.");
-  assert(/only answer curated Riverside\/Eastvale/i.test(unsupportedCountyQuestionText), "Unsupported county answer must point back to Riverside/Eastvale boundary.");
+  assert(/only answer Riverside\/Eastvale/i.test(unsupportedCountyQuestionText), "Unsupported county answer must point back to Riverside/Eastvale boundary.");
   assertNoForbiddenProductClaims(unsupportedCountyQuestionText, "ask_county_question unsupported");
   assertNoInternalLanguage(unsupportedCountyQuestionText, "ask_county_question unsupported");
   assert(
@@ -190,8 +190,8 @@ try {
   const county = getStructuredContent(countyResult, "render_voxel_county");
   assert(county.type === "voxelSceneSummary", "render_voxel_county returned the wrong structured type.");
   assert(county.selectedNodeId === "eastvale", "render_voxel_county did not preserve selectedNodeId.");
-  assert(/Riverside\/Eastvale playable map/i.test(countyText), "render_voxel_county text must name the playable map.");
-  assert(/Pins and notes stay in this chat/i.test(countyText), "render_voxel_county text must preserve session-only boundary.");
+  assert(/Riverside\/Eastvale full map/i.test(countyText), "render_voxel_county text must name the full map.");
+  assert(/Pins and notes stay in this chat/i.test(countyText), "render_voxel_county text must preserve chat boundary.");
   assertNoForbiddenProductClaims(countyText, "render_voxel_county");
   assertNoInternalLanguage(countyText, "render_voxel_county");
   assert(countyResult._meta?.scene?.world?.places?.length > 0, "render_voxel_county must return full scene in _meta.scene.");
@@ -207,8 +207,8 @@ try {
   const shellRender = getStructuredContent(shellRenderResult, "render_voxel_county shell county");
   assert(shellRender.type === "countyCoverageSummary", "Shell county render must return coverage summary.");
   assert(shellRender.coverageTier === "L1_COUNTY_SHELL", "Shell county render should identify L1 coverage.");
-  assert(/browse-only/i.test(shellRenderText), "Shell render text must identify browse-only state.");
-  assert(/after a curated playable district exists/i.test(shellRenderText), "Shell render text must require a curated playable district.");
+  assert(/preview only/i.test(shellRenderText), "Preview render text must identify preview-only state.");
+  assert(/after the full map is built/i.test(shellRenderText), "Preview render text must require the full map.");
   assert(/Open Riverside\/Eastvale/i.test(shellRenderText), "Shell render text must give the recovery path.");
   assertNoForbiddenProductClaims(shellRenderText, "render_voxel_county shell county");
   assertNoInternalLanguage(shellRenderText, "render_voxel_county shell county");
@@ -269,10 +269,10 @@ try {
     "preview_scout_drop did not return the expected Eastvale signal.",
   );
   assert(
-    Array.isArray(scout.limitations) && scout.limitations.some((limitation) => /temporary|Alpha|manual/i.test(limitation)),
-    "preview_scout_drop must keep temporary Alpha limitations visible.",
+    Array.isArray(scout.limitations) && scout.limitations.some((limitation) => /Preview only|manual|stays in this chat/i.test(limitation)),
+    "preview_scout_drop must keep preview/manual limitations visible.",
   );
-  assert(scout.alphaBoundary?.mode === "session_only_alpha", "preview_scout_drop must expose session-only Alpha boundary.");
+  assert(scout.alphaBoundary?.mode === "session_only_alpha", "preview_scout_drop must expose chat-only boundary.");
   assert(scout.alphaBoundary?.savesState === false, "preview_scout_drop must not claim saved state.");
   assert(scout.alphaBoundary?.executesActions === false, "preview_scout_drop must not execute actions.");
   assert(scout.alphaBoundary?.grantsXp === false, "preview_scout_drop must not grant XP.");
@@ -303,7 +303,7 @@ try {
     campaign.guardrails.some((guardrail) => /no DMs|no ad spend|manual/i.test(guardrail)),
     "Campaign preview must keep no-DM/no-ad/manual boundaries visible.",
   );
-  assert(campaign.alphaBoundary?.mode === "session_only_alpha", "preview_campaign_engine must expose session-only Alpha boundary.");
+  assert(campaign.alphaBoundary?.mode === "session_only_alpha", "preview_campaign_engine must expose chat-only boundary.");
   assert(campaign.alphaBoundary?.savesState === false, "preview_campaign_engine must not claim saved state.");
   assert(campaign.alphaBoundary?.executesActions === false, "preview_campaign_engine must not execute actions.");
   assert(campaign.alphaBoundary?.grantsXp === false, "preview_campaign_engine must not grant XP.");
@@ -324,8 +324,8 @@ try {
   if (upgrade.hosted?.status === "planned_beta") {
     assert(
       Array.isArray(upgrade.unavailableActions) &&
-        upgrade.unavailableActions.some((item) => item.includes("Stripe checkout")),
-      "Upgrade options must clearly say checkout is unavailable in Alpha.",
+        upgrade.unavailableActions.some((item) => item.includes("Checkout is not live")),
+      "Upgrade options must clearly say checkout is not live.",
     );
   } else {
     assert(

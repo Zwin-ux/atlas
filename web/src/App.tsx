@@ -111,8 +111,8 @@ const orangeCoverageSummary: CountyCoverageStructuredContent = {
   countyLabel: "Orange County",
   supported: true,
   coverageTier: "L1_COUNTY_SHELL",
-  coverageLabel: "County shell",
-  message: "Orange County is indexed from Census county identity data, but Atlas has not built a playable local scene for it yet.",
+  coverageLabel: "Preview available",
+  message: "Orange County can be previewed, but its full local map is not built yet.",
   stateCode: "CA",
   geoid: "06059",
   playableDistrictCount: 0,
@@ -120,8 +120,8 @@ const orangeCoverageSummary: CountyCoverageStructuredContent = {
   districts: [],
   sourceNotes: [coverageSourceNote],
   limitations: [
-    "County shells are identity coverage only until a curated playable district exists.",
-    "Atlas does not claim live local data, saved state, XP, evidence, outreach, or automation from coverage shells.",
+    "Full map not built yet for this county.",
+    "Atlas does not add local places, saved work, XP, evidence, outreach, or automation here.",
   ],
   suggestedNextCountySlug: "riverside-ca",
 };
@@ -133,21 +133,21 @@ const unsupportedCoverageSummary: CountyCoverageStructuredContent = {
   coverageTier: "L0_UNSUPPORTED",
   coverageLabel: "Unsupported",
   message:
-    "Atlas does not have an indexed or curated county contract for this slug yet. Use Riverside County for the playable Engine Beta slice.",
+    "Atlas cannot preview this county yet. Open Riverside County for the full map.",
   playableDistrictCount: 0,
   placeCount: 0,
   districts: [],
   sourceNotes: [
     {
       source: "curated",
-      label: "Atlas curated Alpha world data",
-      attribution: "Atlas curated demo data",
+      label: "Atlas Riverside/Eastvale map data",
+      attribution: "Atlas built-in demo data",
       ttlSeconds: 60 * 60 * 24,
     },
   ],
   limitations: [
-    "Atlas only renders a playable scene for Riverside County in this Engine Beta slice.",
-    "Unsupported counties do not use Riverside data as a stand-in.",
+    "Riverside County is fully explorable today.",
+    "Atlas does not use Riverside data as a stand-in.",
   ],
   suggestedNextCountySlug: "riverside-ca",
 };
@@ -532,7 +532,7 @@ export function App() {
   const metaScoutPreview = isScoutPreview(meta?.scoutPreview) ? meta.scoutPreview : null;
   const metaScene = isVoxelScene(meta?.scene) ? meta.scene : null;
   const metaCameraFocus = isCameraFocus(meta?.cameraFocus) ? meta.cameraFocus : null;
-  const metaHostedClawd = isHostedClawdContext(meta?.hostedClawd) ? meta.hostedClawd : null;
+  const metaHostedClawd = isHostedClawdContext(meta?.hostedClawd) ? publicHostedClawdContext(meta.hostedClawd) : null;
   const coverageSummary = isCountyCoverageStructuredContent(structuredContent) ? structuredContent : null;
   const legacyCoverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
   const compiledCoverageShellScene = useMemo(() => compileCoverageShellSceneFromSummary(coverageSummary), [coverageSummary]);
@@ -629,7 +629,7 @@ export function App() {
   const stickerMode = activeSceneMatches ? widgetState.stickerMode ?? "favorite" : "favorite";
   const noteDraft = activeSceneMatches ? widgetState.noteDraft ?? "" : "";
   const storedHostedClawdContext = activeSceneMatches && isHostedClawdContext(widgetState.hostedClawdContext)
-    ? widgetState.hostedClawdContext
+    ? publicHostedClawdContext(widgetState.hostedClawdContext)
     : null;
   const hostedClawdReturnStatus = hostedClawdSubscriptionStatusFromUrl();
   const hostedClawdContext =
@@ -673,10 +673,10 @@ export function App() {
     setGeneratedScene(null);
     setDismissedGeneratedDraftSceneId(null);
     void updateModelContext(
-      `Atlas requested a generated draft scene packet for ${draftCountySlug}. The draft must stay session-only, non-playable, provider-free, and widget-meta only.`,
+      `Atlas requested a generated district preview for ${draftCountySlug}. It must stay in this chat and remain non-playable, provider-free, and not real local coverage.`,
     );
     void sendUserMessage(
-      `Open an Atlas generated draft for ${draftCountySlug}. Use render_voxel_county with countySlug "${draftCountySlug}" and includeGeneratedDraft true. Keep structuredContent as the county coverage summary and put the generated draft spec only in _meta.`,
+      `Open an Atlas generated district preview for ${draftCountySlug}. Keep it preview only: not real coverage, not playable, and not saved.`,
     );
   };
 
@@ -696,7 +696,7 @@ export function App() {
       activeStepId: "county",
       noteDraft: "",
     }));
-    void updateModelContext("Atlas exited the generated synthetic preview and returned to Riverside/Eastvale.");
+    void updateModelContext("Atlas exited the generated preview and returned to Riverside/Eastvale.");
   };
 
   const countySwitcher = (
@@ -704,7 +704,7 @@ export function App() {
       <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} />
       <button type="button" className="city-world-generate-district" data-qa="generate-district-button" onClick={openGeneratedPreview}>
         <strong>Generate a district</strong>
-        <span>generated · session-only</span>
+        <span>Preview only - stays in this chat</span>
       </button>
     </>
   );
@@ -813,12 +813,16 @@ export function App() {
           const isAuthBoundary =
             isRecord(body.result) && (body.result.reason === "auth_required" || body.result.reason === "read_scope_required");
           const nextContext =
-            isHostedClawdContext(body.hostedClawd) ? body.hostedClawd : isHostedClawdContext(body.result?.context) ? body.result.context : null;
+            isHostedClawdContext(body.hostedClawd)
+              ? publicHostedClawdContext(body.hostedClawd)
+              : isHostedClawdContext(body.result?.context)
+                ? publicHostedClawdContext(body.result.context)
+                : null;
           setWidgetState((current) => ({
             ...current,
             activeSceneId: scene.id,
             hostedClawdOpen: true,
-            hostedClawdActionMessage: body.result?.message ?? body.error ?? "Saved state is not available yet.",
+            hostedClawdActionMessage: publicHostedClawdCopy(body.result?.message ?? body.error ?? "Saved state is not available yet."),
             ...(nextContext && !isAuthBoundary ? { hostedClawdContext: nextContext } : {}),
           }));
         })
@@ -841,7 +845,7 @@ export function App() {
     })
       .then((response) => response.json() as Promise<{ result?: { message?: string; redirectUrl?: string } }>)
       .then((body) => {
-        const message = body.result?.message ?? context.primaryCopy;
+        const message = publicHostedClawdCopy(body.result?.message ?? context.primaryCopy);
         setWidgetState((current) => ({
           ...current,
           activeSceneId: scene.id,
@@ -972,6 +976,54 @@ function hostedClawdPayload({
   };
 }
 
+function publicHostedClawdContext(context: HostedClawdContext): HostedClawdContext {
+  return {
+    ...context,
+    statusLabel: publicHostedClawdCopy(context.statusLabel),
+    primaryCopy: publicHostedClawdCopy(context.primaryCopy),
+    secondaryCopy: publicHostedClawdCopy(context.secondaryCopy),
+    sessionBoundary: publicHostedClawdCopy(context.sessionBoundary),
+    paymentCopy: publicHostedClawdCopy(context.paymentCopy),
+    billing: {
+      ...context.billing,
+      title: publicHostedClawdCopy(context.billing.title),
+      detail: publicHostedClawdCopy(context.billing.detail),
+      checkoutLabel: publicHostedClawdCopy(context.billing.checkoutLabel),
+      webhookLabel: publicHostedClawdCopy(context.billing.webhookLabel),
+      returnLabel: publicHostedClawdCopy(context.billing.returnLabel),
+      portalLabel: publicHostedClawdCopy(context.billing.portalLabel),
+    },
+    primaryAction: {
+      ...context.primaryAction,
+      label: publicHostedClawdCopy(context.primaryAction.label),
+    },
+    savePreview: context.savePreview.map((item) => ({
+      ...item,
+      label: publicHostedClawdCopy(item.label),
+      value: publicHostedClawdCopy(item.value),
+    })),
+    gates: context.gates.map((gate) => ({
+      ...gate,
+      requiredFor: publicHostedClawdCopy(gate.requiredFor),
+    })),
+  };
+}
+
+function publicHostedClawdCopy(value: string): string {
+  return value
+    .replace(/\bAlpha Free\b/g, "Preview")
+    .replace(/\bBeta Invite\b/g, "Save invite")
+    .replace(/\bBeta paid\b/gi, "Paid saves")
+    .replace(/\bBilling is off in Alpha\./g, "Billing is not live.")
+    .replace(/\bTest billing\b/g, "Billing setup")
+    .replace(/\bTest-mode Checkout\b/g, "Checkout setup")
+    .replace(/\bTest Checkout\b/g, "Checkout setup")
+    .replace(/\btest Checkout\b/g, "checkout setup")
+    .replace(/\bStripe Checkout\b/g, "Checkout")
+    .replace(/\bStripe test Checkout\b/g, "checkout setup")
+    .replace(/\bexternal Beta promotion\b/g, "public save promotion");
+}
+
 function defaultHostedClawdContext({
   scene,
   selectedPlaceLabel,
@@ -1031,7 +1083,7 @@ function defaultHostedClawdContext({
     primaryCopy: primaryCopyForHostedClawdScreen(screenState),
     secondaryCopy: secondaryCopyForHostedClawdScreen(screenState),
     sessionBoundary: screenState === "active" ? "Saved state on." : screenState === "inactive_payment_failed" ? "Saved items are read only." : "Lives in this chat.",
-    paymentCopy: screenState === "waitlist" ? "Billing is off in Alpha." : "Atlas checks billing before saving.",
+    paymentCopy: screenState === "waitlist" ? "Billing is not live." : "Atlas checks billing before saving.",
     billing: billingSummaryForHostedClawdScreen(screenState),
     primaryAction: {
       kind:
@@ -1046,7 +1098,7 @@ function defaultHostedClawdContext({
                 : "join_waitlist",
       label:
         screenState === "checkout_pending"
-          ? "Open test Checkout"
+          ? "Open checkout setup"
           : screenState === "inactive_payment_failed"
             ? "Fix billing"
             : screenState === "active"
@@ -1073,13 +1125,13 @@ function defaultHostedClawdContext({
         gate: "HUMAN_APPROVAL_BEFORE_MONEY",
         flag: "ATLAS_HOSTED_CLAWD_MONEY_ENABLED",
         approved: screenState !== "waitlist",
-        requiredFor: "Stripe Checkout, Billing Portal, paid limits, and subscription-gated writes",
+        requiredFor: "Checkout, billing portal, paid limits, and subscription-gated writes",
       },
       {
         gate: "HUMAN_APPROVAL_BEFORE_PUBLIC_CLAIM",
         flag: "ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED",
         approved: false,
-        requiredFor: "public pricing copy, saved-state launch claims, and external Beta promotion",
+        requiredFor: "public pricing copy, saved-state launch claims, and public save promotion",
       },
     ],
     canPersist: screenState !== "waitlist",
@@ -1113,11 +1165,11 @@ function screenStateFromSubscription(status: HostedClawdContext["billing"]["subs
 function statusLabelForHostedClawdScreen(screenState: HostedClawdScreenState): string {
   switch (screenState) {
     case "waitlist":
-      return "Alpha Free";
+      return "Preview";
     case "confirm_save":
-      return "Beta Invite";
+      return "Save invite";
     case "checkout_pending":
-      return "Test billing";
+      return "Billing setup";
     case "activating":
       return "Activating";
     case "active":
@@ -1130,7 +1182,7 @@ function statusLabelForHostedClawdScreen(screenState: HostedClawdScreenState): s
 function primaryCopyForHostedClawdScreen(screenState: HostedClawdScreenState): string {
   switch (screenState) {
     case "checkout_pending":
-      return "Test Checkout can open after setup is confirmed.";
+      return "Checkout setup can open after setup is confirmed.";
     case "activating":
       return "Return received. Checking billing.";
     case "active":
@@ -1215,9 +1267,9 @@ function billingSummaryForHostedClawdScreen(screenState: HostedClawdScreenState)
     confirmationSource: "none",
     returnUrlGrantsAccess: false,
     paidWrites: "read_only",
-    title: screenState === "checkout_pending" ? "Test billing ready" : "Billing off",
-    detail: screenState === "checkout_pending" ? "Checkout opens only after setup is confirmed. Stripe test mode." : "Billing is not live in Alpha.",
-    checkoutLabel: screenState === "checkout_pending" ? "Test Checkout" : "Checkout off",
+    title: screenState === "checkout_pending" ? "Billing setup ready" : "Billing off",
+    detail: screenState === "checkout_pending" ? "Checkout opens only after setup is confirmed." : "Billing is not live.",
+    checkoutLabel: screenState === "checkout_pending" ? "Checkout setup" : "Checkout off",
     webhookLabel: screenState === "checkout_pending" ? "Confirmation required" : "Idle",
     returnLabel: screenState === "checkout_pending" ? "Not confirmed" : "No return",
     portalLabel: screenState === "checkout_pending" ? "Portal checked" : "Portal off",
@@ -1249,8 +1301,8 @@ function sessionResumeForWidgetState(state: WidgetState): { label: string; model
   ];
 
   return {
-    label: `${labelParts.join(" · ")} in this chat`,
-    modelContext: `Atlas resumed this chat with ${contextParts.join(", ")}. Treat these as in-chat session state only.`,
+    label: `${labelParts.join(" / ")} in this chat`,
+    modelContext: `Atlas resumed this chat with ${contextParts.join(", ")}. Treat these as work from this chat only.`,
   };
 }
 
@@ -1269,11 +1321,11 @@ function campaignAdvancePrompt(preview: ScoutPreviewState): string {
 function countyLabelForSwitch(countySlug: CountySwitchSlug): string {
   switch (countySlug) {
     case "riverside-ca":
-      return "Riverside playable";
+      return "Riverside full map";
     case "orange-ca":
-      return "Orange indexed shell";
+      return "Orange preview";
     case "made-up-ca":
-      return "unsupported county state";
+      return "unsupported county";
   }
 }
 

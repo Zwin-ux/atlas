@@ -31,18 +31,18 @@ function parseSubmission() {
   assert(
     typeof subtitle === "string" &&
       /Riverside\/Eastvale/i.test(subtitle) &&
-      /generated US county drafts/i.test(subtitle) &&
+      /generated county districts/i.test(subtitle) &&
       !/your county/i.test(subtitle),
-    "Submission subtitle must name Riverside/Eastvale and generated US county drafts without a your-county promise.",
+    "Submission subtitle must name Riverside/Eastvale and generated county districts without a your-county promise.",
   );
   assert(
     typeof description === "string" &&
       description.includes("playable voxel town map") &&
-      description.includes("generated draft previews") &&
+      description.includes("generated district previews") &&
       description.includes("Things live in this chat") &&
       description.includes("does not save state") &&
       !/your county|waitlist/i.test(description),
-    "Submission description must explain playable Riverside, generated drafts, session-only state, and V1 limits.",
+    "Submission description must explain playable Riverside, generated districts, chat-only state, and V1 limits.",
   );
 
   const submissionTools = Object.keys(submission.tools ?? {}).sort();
@@ -133,7 +133,7 @@ try {
   assert(selectCountyResult._meta?.scene?.world?.places?.length > 0, "select_county must keep full scene in _meta.scene.");
   assert(
     selectCountyResult._meta?.scene?.nodes?.some((node) => node.id === "eastvale"),
-    "select_county must compile Eastvale from the curated county pack.",
+    "select_county must compile Eastvale from built-in map data.",
   );
   const selectCountyPacket = assertScenePacketMeta(selectCountyResult, "public_playable", "select_county");
   assert(selectCountyPacket.packet?.containsScene === true, "select_county scenePacket must describe a scene-bearing packet.");
@@ -150,7 +150,7 @@ try {
   const countyQuestionText = textContent(countyQuestionResult);
   assert(countyQuestion.type === "countyQuestionAnswer", "ask_county_question returned wrong type.");
   assert(countyQuestion.supported === true, "Supported county question should be marked supported.");
-  assert(/curated|Alpha/i.test(countyQuestionText), "County question content must mention curated/Alpha limits.");
+  assert(/built-in|live market/i.test(countyQuestionText), "County question content must mention built-in data and live-market limits.");
   assert(
     countyQuestion.sourceNotes.every((source) => !("placeId" in source) && !("types" in source)),
     "ask_county_question leaked provider fields in source notes.",
@@ -226,8 +226,8 @@ try {
   const scout = structuredContent(scoutResult, "preview_scout_drop");
   const scoutText = textContent(scoutResult);
   assert(scout.type === "scoutPreview", "preview_scout_drop returned wrong type.");
-  assert(/temporary|Alpha/i.test(scoutText), "Scout Drop content must mention temporary/Alpha limits.");
-  assert(scout.alphaBoundary?.mode === "session_only_alpha", "Scout Drop must expose session-only Alpha boundary.");
+  assert(/stays in this chat|does not save/i.test(scoutText), "Scout Drop content must mention chat-only save limits.");
+  assert(scout.alphaBoundary?.mode === "session_only_alpha", "Scout Drop must expose chat-only boundary.");
   assert(scout.alphaBoundary?.savesState === false, "Scout Drop must not claim saved state.");
   assert(scout.alphaBoundary?.executesActions === false, "Scout Drop must not claim action execution.");
   assert(scout.alphaBoundary?.nextTool === "preview_campaign_engine", "Scout Drop should point to campaign preview next.");
@@ -246,7 +246,7 @@ try {
   const campaignText = textContent(campaignResult);
   assert(campaign.type === "campaignPreview", "preview_campaign_engine returned wrong type.");
   assert(campaign.guardrails.some((guardrail) => /manual|no posts|no DMs|no ad spend/i.test(guardrail)), "Campaign guardrails must stay manual.");
-  assert(campaign.alphaBoundary?.mode === "session_only_alpha", "Campaign preview must expose session-only Alpha boundary.");
+  assert(campaign.alphaBoundary?.mode === "session_only_alpha", "Campaign preview must expose chat-only boundary.");
   assert(campaign.alphaBoundary?.savesState === false, "Campaign preview must not claim saved state.");
   assert(campaign.alphaBoundary?.executesActions === false, "Campaign preview must not execute actions.");
   assert(campaign.alphaBoundary?.nextTool === "get_upgrade_options", "Campaign preview should point to Hosted Clawd options next.");

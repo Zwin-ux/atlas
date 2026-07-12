@@ -9,9 +9,9 @@ type CountySwitchOption = {
 };
 
 const COUNTY_SWITCH_OPTIONS: CountySwitchOption[] = [
-  { slug: "riverside-ca", label: "Riverside", status: "Playable" },
-  { slug: "orange-ca", label: "Orange", status: "Shell" },
-  { slug: "made-up-ca", label: "Unknown", status: "Not indexed" },
+  { slug: "riverside-ca", label: "Riverside", status: "Full map" },
+  { slug: "orange-ca", label: "Orange", status: "Preview" },
+  { slug: "made-up-ca", label: "Unknown", status: "Unavailable" },
 ];
 
 type CountySwitcherProps = {
@@ -52,7 +52,7 @@ export function CountySwitcher({ activeCountySlug, onSelectCounty }: CountySwitc
         data-qa="county-switcher-summary"
         onClick={() => setCoverageExpanded((current) => !current)}
       >
-        Riverside is fully explorable. Other counties preview as outlines. Nothing saves between chats.
+        Riverside is fully explorable. Other counties preview as outlines. Pins and notes stay in this chat.
       </button>
     </nav>
   );

@@ -373,7 +373,7 @@ export function CityWorldView({
       {isGeneratedMode ? (
         <div className="city-world-generated-boundary" data-qa="generated-boundary">
           <div>
-            <span>GENERATED PREVIEW</span>
+            <span>PREVIEW ONLY</span>
             <strong>Generated district. Not real coverage. Preview stays in this chat.</strong>
           </div>
           <button type="button" data-qa="exit-generated" onClick={onExitGeneratedPreview}>

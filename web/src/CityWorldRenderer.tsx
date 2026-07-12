@@ -1158,11 +1158,16 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     <div
       ref={mountRef}
       className="city-world-renderer"
-      aria-label={`${scene.region.district} voxel city map`}
+      aria-label={cityWorldRendererLabel(scene)}
       data-qa-place-labels={suppressPlaceLabels ? "suppressed" : "visible"}
     />
   );
 });
+
+function cityWorldRendererLabel(scene: CityWorldScene): string {
+  const mapLabel = scene.coverage && !scene.coverage.playable ? `${scene.region.county} county preview` : scene.region.district;
+  return `${mapLabel} voxel city map`;
+}
 
 function pointerDistance(pointers: Map<number, { x: number; y: number }>): number | undefined {
   if (pointers.size < 2) return undefined;

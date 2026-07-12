@@ -276,7 +276,7 @@ function SessionFooter({ note, advanceLabel, onAdvance }: { note?: string; advan
   return (
     <footer className="city-world-preview-foot">
       <div className="city-world-preview-boundary" data-qa="preview-session-boundary">
-        Session preview. Nothing is saved, sent, or scheduled.
+        Preview only. Nothing is saved, sent, or scheduled.
       </div>
       {note ? <p className="city-world-preview-upgrade">{note}</p> : null}
       {onAdvance && advanceLabel ? (

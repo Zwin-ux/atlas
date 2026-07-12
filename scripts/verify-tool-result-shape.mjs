@@ -49,7 +49,7 @@ if (!server.includes("atlasLookupPlaceId")) {
   blockers.push("lookup_world_places must create Atlas-owned lookup ids instead of provider ids.");
 }
 
-for (const token of ["lookup-only", "not saved", "not coverage proof", "does not unlock a playable county map"]) {
+for (const token of ["lookup-only", "not saved", "not coverage proof", "does not unlock a full county map"]) {
   if (!server.includes(token)) {
     blockers.push(`lookup_world_places content copy missing "${token}".`);
   }

@@ -53,7 +53,7 @@ export class CampaignPreviewService {
         grantsXp: false,
         requiresHostedClawdForSave: true,
         nextTool: "get_upgrade_options",
-        userActionLabel: "Review Alpha limits",
+        userActionLabel: "Review save limits",
       },
       scene,
     };

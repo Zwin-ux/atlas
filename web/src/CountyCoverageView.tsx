@@ -15,16 +15,16 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
   const rendererRef = useRef<CityWorldRendererHandle | null>(null);
   const isShell = coverage.coverageTier === "L1_COUNTY_SHELL";
   const countyLabel = coverage.countyLabel ?? coverage.countySlug;
-  const statusLabel = isShell ? "Indexed shell" : coverage.coverageLabel;
-  const stateLabel = isShell ? "Shell state" : "Not indexed";
-  const sourceLabel = coverage.sourceNotes[0]?.label ?? "Atlas coverage index";
+  const statusLabel = isShell ? "Preview available" : coverage.coverageLabel;
+  const stateLabel = isShell ? "Map preview" : "Not available yet";
+  const sourceLabel = coverage.sourceNotes[0]?.label ?? "Atlas county list";
   const cameraPresetId = shellScene ? readRequestedCameraPreset(shellScene) : undefined;
   const debugMode = readRequestedDebugMode();
   const displayMode = useOpenAiDisplayMode();
   const boundaryCopy = isShell
-    ? "Browse-only. Nothing is saved."
-    : "Not indexed yet. Nothing is saved.";
-  const recoveryText = "Open Riverside";
+    ? "Preview only. Stays in this chat."
+    : "Not available yet. Stays in this chat.";
+  const recoveryText = "Open Riverside/Eastvale";
 
   const openPlayableSlice = () => {
     void sendUserMessage("Open Riverside/Eastvale in Atlas.");
@@ -54,7 +54,7 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
       )}
 
       <div className="city-world-left-rail">
-        <div className="city-world-location" aria-label="Current county coverage" data-qa="current-county-coverage">
+        <div className="city-world-location" aria-label="Current county status" data-qa="current-county-coverage">
           <span>{countyLabel}</span>
           <strong>{statusLabel}</strong>
         </div>
@@ -65,7 +65,7 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
 
       <section
         className="city-world-tray city-world-coverage-tray"
-        aria-label="County coverage status"
+        aria-label="County status"
         data-qa="coverage-status-tray"
         data-qa-county-label={countyLabel}
         data-qa-coverage-message={coverage.message}
@@ -76,12 +76,12 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
             <strong data-qa="coverage-status-label">{coverage.coverageLabel}</strong>
             <p>{coverage.message}</p>
           </div>
-          <span className="city-world-place-pulse">{coverage.supported ? "Indexed" : "Unsupported"}</span>
+          <span className="city-world-place-pulse">{coverage.supported ? "Preview" : "Unavailable"}</span>
         </div>
 
-        <div className="city-world-tray-meta" aria-label="Coverage facts">
+        <div className="city-world-tray-meta" aria-label="Map facts">
           <span data-qa="coverage-playable-districts">
-            <b>{coverage.playableDistrictCount}</b> playable districts
+            <b>{coverage.playableDistrictCount}</b> full-map areas
           </span>
           <span data-qa="coverage-place-count">
             <b>{coverage.placeCount}</b> places
@@ -102,7 +102,7 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
         </button>
 
         <div className="city-world-latest-note city-world-coverage-source" data-qa="coverage-source-note">
-          Source: {sourceLabel}. Playable: Riverside/Eastvale.
+          Source: {sourceLabel}. Full map: Riverside/Eastvale.
         </div>
       </section>
     </main>

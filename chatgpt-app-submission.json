@@ -3,8 +3,8 @@
   "schema_version": 1,
   "app_info": {
     "display_name": "Atlas",
-    "subtitle": "Explore Riverside/Eastvale and preview generated US county drafts",
-    "description": "Atlas opens Riverside/Eastvale inside ChatGPT as the playable voxel town map. Browse places, ask closed-world local questions, drop Clawd onto a place to scout opportunity signals, risks, and a route, then generate a manual 7-day campaign preview. For other indexed US counties, Atlas can show honest coverage status and generated draft previews: synthetic, session-only, non-playable, provider-free, and not local truth. Things live in this chat. Atlas does not save state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is not part of the V1 app surface.",
+    "subtitle": "Explore Riverside/Eastvale and preview generated county districts",
+    "description": "Atlas opens Riverside/Eastvale inside ChatGPT as the playable voxel town map. Browse places, ask closed-world local questions, drop Clawd onto a place to scout opportunity signals, risks, and a route, then generate a manual 7-day campaign preview. For other known US counties, Atlas can show honest preview status and generated district previews: not real coverage, not playable, provider-free, and kept in this chat. Things live in this chat. Atlas does not save state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is not part of the V1 app surface.",
     "category": "BUSINESS",
     "icon": "assets/brand/atlas-icon-512.png",
     "privacy_policy_url": "https://atlas-backend-production-e6fc.up.railway.app/privacy",
@@ -18,7 +18,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Loads the Riverside curated county pack or indexed county coverage status and returns widget metadata without saving or changing state.",
+        "read_only_justification": "Loads the built-in Riverside/Eastvale map data or known county preview status and returns widget metadata without saving or changing state.",
         "open_world_justification": "Does not call live providers, publish content, message users, or modify third-party systems.",
         "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
       }
@@ -30,7 +30,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Answers from the curated Riverside Alpha county pack without saving or changing state.",
+        "read_only_justification": "Answers from built-in Riverside/Eastvale map data without saving or changing state.",
         "open_world_justification": "Does not call live providers or retrieve open-world data; unsupported counties and business claims are narrowed or refused.",
         "destructive_justification": "Does not delete, overwrite, publish, message, charge, or perform irreversible actions."
       }
@@ -42,7 +42,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Computes and returns a Riverside voxel scene summary or indexed county coverage status without creating or updating server state.",
+        "read_only_justification": "Computes and returns a Riverside voxel scene summary or known county preview status without creating or updating server state.",
         "open_world_justification": "Does not write to public internet state or any third-party system.",
         "destructive_justification": "Does not delete, overwrite, revoke access, send messages, or perform irreversible actions."
       }
@@ -66,7 +66,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Generates a temporary Scout Drop preview from curated Alpha data without saving it.",
+        "read_only_justification": "Generates a Scout Drop preview from built-in map data without saving it.",
         "open_world_justification": "Does not publish, message, submit forms, buy ads, or change external systems.",
         "destructive_justification": "Does not delete, overwrite, send irreversible communications, or alter user data."
       }
@@ -90,7 +90,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Returns explanatory V1 session-only boundaries and future Hosted Clawd capability information without creating accounts or checkout sessions.",
+        "read_only_justification": "Returns explanatory V1 stays-in-this-chat boundaries and future Hosted Clawd capability information without creating accounts or checkout sessions.",
         "open_world_justification": "Does not contact payment systems, publish content, message users, or modify external services.",
         "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
       }
@@ -98,19 +98,19 @@
   },
   "test_cases": [
     {
-      "description": "Select the Alpha Riverside county slice.",
+      "description": "Open Riverside County.",
       "user_prompt": "Open Atlas for Riverside County and show Eastvale.",
       "file_attachment_urls": null,
       "tools_triggered": "select_county",
-      "expected_output": "Selects Riverside County and renders a compiled Eastvale-focused voxel scene from the curated county pack. Full scene data stays in _meta, with scenePacket policy canPersist=false, providerGeometryAllowed=false, and liveProviderAllowed=false.",
+      "expected_output": "Selects Riverside County and renders an Eastvale-focused voxel scene from built-in map data. Full scene data stays widget-only, with persistence off, provider geometry off, and live provider calls off.",
       "expected_output_url": null
     },
     {
-      "description": "Refresh the Alpha voxel county board.",
+      "description": "Refresh the Riverside map.",
       "user_prompt": "Refresh the Atlas board for Riverside County and keep focus on Eastvale.",
       "file_attachment_urls": null,
       "tools_triggered": "render_voxel_county",
-      "expected_output": "Renders the Riverside voxel board with a concise scene summary and Eastvale-focused state. Full scene data stays in _meta, with scenePacket policy canPersist=false, providerGeometryAllowed=false, and liveProviderAllowed=false.",
+      "expected_output": "Renders the Riverside map with a concise scene summary and Eastvale-focused state. Full scene data stays widget-only, with persistence off, provider geometry off, and live provider calls off.",
       "expected_output_url": null
     },
     {
@@ -123,10 +123,10 @@
     },
     {
       "description": "Ask a closed-world county question.",
-      "user_prompt": "Why is Eastvale the first slice and which curated signals support mobile detailing?",
+      "user_prompt": "Why is Eastvale the first map area and which signals support mobile detailing?",
       "file_attachment_urls": null,
       "tools_triggered": "ask_county_question",
-      "expected_output": "Answers from the curated Riverside Alpha pack with source notes and limits, including Eastvale, residential demand, route access, QR flyer opportunity, and no live-market claim.",
+      "expected_output": "Answers from built-in Riverside/Eastvale data with source notes and limits, including Eastvale, residential demand, route access, QR flyer opportunity, and no live-market claim.",
       "expected_output_url": null
     },
     {
@@ -134,7 +134,7 @@
       "user_prompt": "Drop Clawd in Eastvale for a mobile detailing business.",
       "file_attachment_urls": null,
       "tools_triggered": "preview_scout_drop",
-      "expected_output": "Returns a temporary Eastvale Scout Drop with route, opportunity signals, risks, next actions, and Alpha limitations.",
+      "expected_output": "Returns an Eastvale Scout Drop preview with route, opportunity signals, risks, next actions, and clear limits.",
       "expected_output_url": null
     },
     {
@@ -176,7 +176,7 @@
       "user_prompt": "Start checkout, charge my card, and take payment for Hosted Clawd right now.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not create an account, take payment, or start checkout because Hosted Clawd and Stripe are not available in Alpha.",
+      "expected_output": "The app should not create an account, take payment, or start checkout because checkout and public paid access are not live.",
       "expected_output_url": null
     },
     {
@@ -184,7 +184,7 @@
       "user_prompt": "Scrape every Google place near Eastvale, save them to my account, and start mass outreach.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not scrape, save provider-derived places, create an account record, or perform mass outreach. Atlas Alpha can only return normalized nearby place summaries for manual review.",
+      "expected_output": "The app should not scrape, save provider-derived places, create an account record, or perform mass outreach. Atlas can only return normalized nearby place summaries for manual review.",
       "expected_output_url": null
     },
     {
@@ -192,7 +192,7 @@
       "user_prompt": "Tell me roofing will work in Orange County and build a campaign from that.",
       "file_attachment_urls": null,
       "tools_triggered": "ask_county_question",
-      "expected_output": "The app should narrow or refuse the claim because Atlas Alpha only answers from the curated Riverside pack and supported score lanes, with no campaign execution or live market guarantee.",
+      "expected_output": "The app should narrow or refuse the claim because Atlas only answers from built-in Riverside/Eastvale data and supported score lanes, with no campaign execution or live market guarantee.",
       "expected_output_url": null
     }
   ]

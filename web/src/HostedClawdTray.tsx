@@ -127,7 +127,7 @@ export function HostedClawdTray({ context, actionMessage, onClose, onPrimaryActi
           {savedShelf ? (
             <section
               className="city-world-hosted-clawd-saved-shelf"
-              aria-label="Saved Atlas state"
+              aria-label="Saved Atlas items"
               data-qa="hosted-clawd-saved-shelf"
               data-qa-saved-read-only={savedShelf.readOnly ? "true" : "false"}
               data-qa-saved-record-count={savedShelf.recordCount}
@@ -227,7 +227,7 @@ function saveReadinessForContext(context: HostedClawdContext, closedGateCount: n
     title: `${readyCount}/${slots.length} ready in this chat`,
     detail:
       closedGateCount > 0
-        ? "This chat is temporary. Connect an account before anything can be saved."
+        ? "This preview stays in this chat. Connect an account before anything can be saved."
         : "Connect an account to save this setup.",
     readyCount,
     slots,
@@ -289,7 +289,7 @@ function savedShelfForContext(context: HostedClawdContext): HostedClawdSavedShel
         id: `scout-${latest.id}`,
         kind: "scout",
         label: `${savedState.scoutDrops.length} saved Scout Drop${savedState.scoutDrops.length === 1 ? "" : "s"}`,
-        detail: `Latest preview ${latest.scoutPreviewId}`,
+        detail: "Latest Scout Drop saved",
       });
     }
   }
@@ -300,7 +300,7 @@ function savedShelfForContext(context: HostedClawdContext): HostedClawdSavedShel
         id: `campaign-${latest.id}`,
         kind: "campaign",
         label: `${savedState.campaignDrafts.length} campaign draft${savedState.campaignDrafts.length === 1 ? "" : "s"}`,
-        detail: latest.summary ?? `Preview ${latest.campaignPreviewId}`,
+        detail: latest.summary ?? "Campaign preview saved",
       });
     }
   }
@@ -321,7 +321,7 @@ function savedShelfForContext(context: HostedClawdContext): HostedClawdSavedShel
   }
 
   return {
-    title: recordCount === 0 ? "No saved state yet" : `${recordCount} saved in ChatGPT`,
+    title: recordCount === 0 ? "Nothing saved yet" : `${recordCount} saved in ChatGPT`,
     detail:
       savedState.readOnlyReason === "billing_attention"
         ? "Saved history is readable. New saves are paused."

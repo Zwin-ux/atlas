@@ -353,7 +353,7 @@ async function runViewport({ previewUrl, viewport, screenshotDir, chrome, camera
     await clickSelector(client, "[data-qa='sticker-mode-idea']");
     await clickSelector(client, "[data-qa='drop-sticker-button']");
 
-    const noteText = `Alpha verifier ${viewport.label} session note`;
+    const noteText = `QA ${viewport.label} chat note`;
     await fillInput(client, "[data-qa='note-input']", noteText);
     await waitFor(client, `document.querySelector("[data-qa='save-note-button']")?.disabled === false`, 5_000);
     await clickSelector(client, "[data-qa='save-note-button']");
@@ -425,8 +425,8 @@ function assertCameraProofResult(label, state, errors, expectedCameraPreset) {
   if (!state.trayVisible) failures.push("selected place tray is not visible");
   if (state.canvasCount !== 1) failures.push(`expected one canvas, got ${state.canvasCount}`);
   if (state.horizontalOverflow) failures.push("horizontal overflow detected");
-  if (state.boundary !== "session-only") failures.push("session boundary data hook is wrong");
-  if (!state.boundaryText.includes("Pins and notes stay in this chat.")) failures.push("session-only boundary copy is missing");
+  if (state.boundary !== "session-only") failures.push("chat boundary data hook is wrong");
+  if (!state.boundaryText.includes("Pins and notes stay in this chat.")) failures.push("chat boundary copy is missing");
   if (expectedCameraPreset && state.cameraPreset !== expectedCameraPreset) failures.push(`camera preset ${state.cameraPreset || "(none)"}`);
   if (errors.length > 0) failures.push(`console errors: ${errors.join(" | ")}`);
 
@@ -445,8 +445,8 @@ function assertViewportResult(label, initial, finalState, errors) {
   if (!finalState.latestNote) failures.push("latest note data hook is empty");
   if (!finalState.latestNoteVisible.includes(finalState.latestNote)) failures.push("latest note is not visible in the tray");
   if (!finalState.latestNoteInViewport) failures.push("latest note is not visible in the viewport");
-  if (finalState.boundary !== "session-only") failures.push("session boundary data hook is wrong");
-  if (!finalState.boundaryText.includes("Pins and notes stay in this chat.")) failures.push("session-only boundary copy is missing");
+  if (finalState.boundary !== "session-only") failures.push("chat boundary data hook is wrong");
+  if (!finalState.boundaryText.includes("Pins and notes stay in this chat.")) failures.push("chat boundary copy is missing");
   if (errors.length > 0) failures.push(`console errors: ${errors.join(" | ")}`);
 
   if (failures.length > 0) {

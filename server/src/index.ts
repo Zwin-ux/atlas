@@ -1055,27 +1055,30 @@ function countyCoverageStructuredContent(
       supported: false,
       coverageTier: response.coverageTier,
       coverageLabel: "Unsupported",
-      message: response.message,
+      message: "Atlas cannot preview this county yet. Open Riverside County for the full map.",
       playableDistrictCount: 0,
       placeCount: 0,
       districts: [],
-      sourceNotes: response.cache.sourceNotes,
+      sourceNotes: response.cache.sourceNotes.map(publicSourceNote),
       limitations: [
-        "Atlas only has a playable map for Riverside/Eastvale right now.",
-        "Unsupported counties do not use Riverside data as a stand-in.",
+        "Riverside County is fully explorable today.",
+        "Atlas does not use Riverside data as a stand-in.",
       ],
       suggestedNextCountySlug: response.suggestedNextCountySlug,
     };
   }
 
+  const isPreviewOnlyCounty = response.county.coverageTier === "L1_COUNTY_SHELL";
   return {
     type: "countyCoverageSummary",
     countySlug: response.county.countySlug,
     countyLabel: response.county.label,
     supported: response.county.supported,
     coverageTier: response.county.coverageTier,
-    coverageLabel: response.county.coverageLabel,
-    message: response.county.coverageMessage,
+    coverageLabel: isPreviewOnlyCounty ? "Preview available" : "Full map available",
+    message: isPreviewOnlyCounty
+      ? `${response.county.label} can be previewed, but its full local map is not built yet.`
+      : response.county.coverageMessage,
     stateCode: response.county.stateCode,
     ...(response.county.geoid ? { geoid: response.county.geoid } : {}),
     playableDistrictCount: response.county.playableDistrictCount,
@@ -1087,12 +1090,21 @@ function countyCoverageStructuredContent(
       ...(district.geoid ? { geoid: district.geoid } : {}),
       ...(district.coverageTier ? { coverageTier: district.coverageTier } : {}),
     })),
-    sourceNotes: response.cache.sourceNotes,
+    sourceNotes: response.cache.sourceNotes.map(publicSourceNote),
     limitations: [
-      "County shells are browse-only until a curated playable district exists.",
-      "Atlas does not invent local places, saves, XP, evidence, outreach, or automation for shells.",
+      "Full map not built yet for this county.",
+      "Atlas does not add local places, saved work, XP, evidence, outreach, or automation here.",
     ],
     suggestedNextCountySlug: PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
+  };
+}
+
+function publicSourceNote(note: CountyCoverageStructuredContent["sourceNotes"][number]): CountyCoverageStructuredContent["sourceNotes"][number] {
+  if (note.source !== "curated" || !/alpha|curated/i.test(note.label)) return note;
+  return {
+    ...note,
+    label: "Atlas Riverside/Eastvale map data",
+    attribution: "Atlas built-in demo data",
   };
 }
 
@@ -1110,7 +1122,7 @@ function isPlayableEngineBetaCounty(countySlug: string | undefined): boolean {
 
 function compileCountyScene(countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG, selectedNodeId?: string): ScoutPreviewState["scene"] {
   if (countySlug !== PLAYABLE_ENGINE_BETA_COUNTY_SLUG) {
-    throw new Error(`Atlas Engine Beta only renders a playable scene for ${PLAYABLE_ENGINE_BETA_COUNTY_SLUG}.`);
+    throw new Error(`Atlas only renders a full map for ${PLAYABLE_ENGINE_BETA_COUNTY_SLUG} right now.`);
   }
   const pack = countyPackService.loadCountyPack(countySlug);
   return compileVoxelSceneFromCountyPack(pack, { selectedNodeId });
@@ -1132,7 +1144,7 @@ async function getOrCreatePlayableScenePacket(
   });
 
   if (!packet.payload) {
-    throw new Error(`Scene packet cache did not return a playable scene for ${countySlug}.`);
+    throw new Error(`Atlas could not load the Riverside/Eastvale map for ${countySlug}.`);
   }
 
   return {
@@ -1295,6 +1307,47 @@ function normalizedLabel(value: string | undefined): string {
   return value?.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() ?? "";
 }
 
+function publicCountyQuestionAnswer(answer: CountyQuestionAnswer): CountyQuestionAnswer {
+  return {
+    ...answer,
+    answer: publicAtlasCopy(answer.answer),
+    facts: answer.facts.map((fact) => ({
+      ...fact,
+      label: publicAtlasCopy(fact.label),
+      value: publicAtlasCopy(fact.value),
+    })),
+    sourceNotes: answer.sourceNotes.map((note) => ({
+      ...note,
+      name: publicAtlasCopy(note.name),
+    })),
+    limitations: answer.limitations.map(publicAtlasCopy),
+  };
+}
+
+function publicAtlasCopy(value: string): string {
+  return value
+    .replace(/\bcurated Riverside Alpha pack\b/gi, "built-in Riverside/Eastvale data")
+    .replace(/\bcurated Atlas data\b/gi, "built-in Atlas data")
+    .replace(/\bcurated pack\b/gi, "built-in map data")
+    .replace(/\bcurated supported county packs\b/gi, "built-in supported county data")
+    .replace(/\bcurated Riverside pack\b/gi, "built-in Riverside/Eastvale data")
+    .replace(/\bRiverside Alpha pack\b/gi, "Riverside/Eastvale map data")
+    .replace(/\bAtlas curated Riverside preview data\b/gi, "Atlas Riverside/Eastvale map data")
+    .replace(/\bcurated Riverside\/Eastvale pack\b/gi, "built-in Riverside/Eastvale data")
+    .replace(/\bcurated Alpha data\b/gi, "built-in map data")
+    .replace(/\bAtlas Alpha\b/g, "Atlas")
+    .replace(/\bAlpha\b/g, "preview")
+    .replace(/\bEngine Beta\b/g, "preview")
+    .replace(/\bsession-only\b/gi, "in-chat")
+    .replace(/\bclosed-world demo data\b/gi, "built-in map data")
+    .replace(/\bcurated map zone\b/gi, "map zone")
+    .replace(/\bcurated map place\b/gi, "map place")
+    .replace(/\bcurated nodes\b/gi, "map nodes")
+    .replace(/\bcurated edges\b/gi, "map routes")
+    .replace(/\bcurated signals\b/gi, "map signals")
+    .replace(/\bcurated\b/gi, "built-in");
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -1408,7 +1461,7 @@ function upgradeOptionsStructuredContent(trigger?: string) {
       ]
     : [
         "Saved business profile and Scout Drop history.",
-        "Campaign drafts after Beta storage is approved.",
+        "Campaign drafts after saved work is approved.",
         "New saves after account and billing approval.",
       ];
   const unavailableActions = ownerGatedTest
@@ -1418,13 +1471,13 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
       ]
     : [
-        "Stripe checkout is not available in Alpha.",
+        "Checkout is not live.",
         "Atlas cannot create an account or persist campaign history yet.",
         "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
       ];
   const nextStep = ownerGatedTest
     ? "Use Hosted Clawd as a closed test surface only; public paid access stays closed."
-    : "Use the free Alpha preview now; Hosted Clawd adds saving after the next approval gate.";
+    : "Use the preview now; Hosted Clawd adds saving after the next approval gate.";
 
   if (!atlasSaveSurfaceEnabled) {
     return {
@@ -1434,7 +1487,7 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         label: "Atlas V1",
         included: [
           "Explore the Riverside/Eastvale playable map.",
-          "Preview generated draft scenes for indexed US counties when requested.",
+          "Preview generated districts for US counties when requested.",
           "Keep pins, notes, Scout Drops, and campaign previews in this chat.",
         ],
         limits: [
@@ -1448,7 +1501,7 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         status: ownerGatedTest ? ("owner_gated_test" as const) : ("planned_beta" as const),
         included: [
           "Future saved business memory and campaign history stay behind a later gate.",
-          "The V1 app surface stays session-only.",
+          "The V1 app keeps work in this chat.",
         ],
       },
       unavailableActions: [
@@ -1456,8 +1509,8 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         "Atlas does not start checkout, charge money, grant XP, collect evidence, post, message, buy ads, or run automated outreach.",
         "Lookup results are for manual review; they are not saved state, scene geometry, or coverage proof.",
       ],
-      nextStep: "Use Atlas as a session-only map and planning preview; pins, notes, Scout Drops, and campaign previews live in this chat.",
-      hostedClawd,
+      nextStep: "Use Atlas as a map and planning preview; pins, notes, Scout Drops, and campaign previews stay in this chat.",
+      hostedClawd: publicHostedClawdContext(hostedClawd),
     };
   }
 
@@ -1484,27 +1537,75 @@ function upgradeOptionsStructuredContent(trigger?: string) {
     },
     unavailableActions,
     nextStep,
-    hostedClawd,
+    hostedClawd: publicHostedClawdContext(hostedClawd),
   };
 }
 
 function hostedClawdMeta(hostedClawd: HostedClawdContext): { hostedClawd: HostedClawdContext } | Record<string, never> {
-  return atlasSaveSurfaceEnabled ? { hostedClawd } : {};
+  return atlasSaveSurfaceEnabled ? { hostedClawd: publicHostedClawdContext(hostedClawd) } : {};
+}
+
+function publicHostedClawdContext(context: HostedClawdContext): HostedClawdContext {
+  return {
+    ...context,
+    statusLabel: publicHostedClawdCopy(context.statusLabel),
+    primaryCopy: publicHostedClawdCopy(context.primaryCopy),
+    secondaryCopy: publicHostedClawdCopy(context.secondaryCopy),
+    sessionBoundary: publicHostedClawdCopy(context.sessionBoundary),
+    paymentCopy: publicHostedClawdCopy(context.paymentCopy),
+    billing: {
+      ...context.billing,
+      title: publicHostedClawdCopy(context.billing.title),
+      detail: publicHostedClawdCopy(context.billing.detail),
+      checkoutLabel: publicHostedClawdCopy(context.billing.checkoutLabel),
+      webhookLabel: publicHostedClawdCopy(context.billing.webhookLabel),
+      returnLabel: publicHostedClawdCopy(context.billing.returnLabel),
+      portalLabel: publicHostedClawdCopy(context.billing.portalLabel),
+    },
+    primaryAction: {
+      ...context.primaryAction,
+      label: publicHostedClawdCopy(context.primaryAction.label),
+    },
+    savePreview: context.savePreview.map((item) => ({
+      ...item,
+      label: publicHostedClawdCopy(item.label),
+      value: publicHostedClawdCopy(item.value),
+    })),
+    gates: context.gates.map((gate) => ({
+      ...gate,
+      requiredFor: publicHostedClawdCopy(gate.requiredFor),
+    })),
+  };
+}
+
+function publicHostedClawdCopy(value: string): string {
+  return publicAtlasCopy(value)
+    .replace(/\bpreview Free\b/g, "Preview")
+    .replace(/\bpreview Invite\b/g, "Save invite")
+    .replace(/\bpreview paid\b/gi, "Paid saves")
+    .replace(/\bTest billing\b/g, "Billing setup")
+    .replace(/\bTest-mode Checkout\b/g, "Checkout setup")
+    .replace(/\bTest Checkout\b/g, "Checkout setup")
+    .replace(/\btest Checkout\b/g, "checkout setup")
+    .replace(/\bStripe Checkout\b/g, "Checkout")
+    .replace(/\bStripe test Checkout\b/g, "checkout setup")
+    .replace(/\bBilling is off in preview\./g, "Billing is not live.")
+    .replace(/\bexternal preview promotion\b/g, "public save promotion");
 }
 
 function hostedClawdContextForScene(scene: ScoutPreviewState["scene"], trigger: HostedClawdContextInput["trigger"]): HostedClawdContext {
   const selectedPlace = scene.world?.places.find((place) => place.nodeId === scene.selectedNodeId) ?? scene.world?.places[0];
-  return hostedClawdService.getContext({
+  return publicHostedClawdContext(hostedClawdService.getContext({
     trigger,
     countySlug: scene.county.slug,
     countyLabel: scene.county.name,
     placeLabel: selectedPlace?.label ?? scene.county.name,
-  });
+  }));
 }
 
 function hostedClawdContextForScout(preview: ScoutPreviewState): HostedClawdContext {
   const selectedPlace = preview.scene.world?.places.find((place) => place.nodeId === preview.selectedNodeId) ?? preview.scene.world?.places[0];
-  return hostedClawdService.getContext({
+  return publicHostedClawdContext(hostedClawdService.getContext({
     trigger: "scout_drop",
     businessType: preview.businessType,
     primaryGoal: preview.goal,
@@ -1512,12 +1613,12 @@ function hostedClawdContextForScout(preview: ScoutPreviewState): HostedClawdCont
     countyLabel: preview.scene.county.name,
     placeLabel: selectedPlace?.label ?? "Eastvale",
     scoutPreviewId: preview.id,
-  });
+  }));
 }
 
 function hostedClawdContextForCampaign(preview: CampaignPreviewState): HostedClawdContext {
   const selectedPlace = preview.scene.world?.places.find((place) => place.nodeId === preview.selectedNodeId) ?? preview.scene.world?.places[0];
-  return hostedClawdService.getContext({
+  return publicHostedClawdContext(hostedClawdService.getContext({
     trigger: "campaign_preview",
     businessType: preview.businessType,
     countySlug: preview.countySlug,
@@ -1525,7 +1626,7 @@ function hostedClawdContextForCampaign(preview: CampaignPreviewState): HostedCla
     placeLabel: selectedPlace?.label ?? "Eastvale",
     scoutPreviewId: preview.scoutPreviewId,
     campaignPreviewId: preview.id,
-  });
+  }));
 }
 
 // The widget shell is intentionally small; Pixi and renderer code live in lazy
@@ -1979,7 +2080,7 @@ function legalPageShell(title: string, bodyHtml: string): string {
   </head>
   <body>
     <h1>Atlas — ${title}</h1>
-    <p class="meta">Last updated ${LEGAL_LAST_UPDATED}. Atlas is an Alpha ChatGPT app.</p>
+    <p class="meta">Last updated ${LEGAL_LAST_UPDATED}. Atlas is a ChatGPT app.</p>
     ${bodyHtml}
     <p style="margin-top:2.5rem"><a href="/preview">Open Atlas</a></p>
   </body>
@@ -1989,21 +2090,21 @@ function legalPageShell(title: string, bodyHtml: string): string {
 function privacyPageHtml(): string {
   return legalPageShell(
     "Privacy Policy",
-    `<p>Atlas is a ChatGPT app that renders a voxel county map and session-only
-      previews. It is built to store as little as possible about you.</p>
+    `<p>Atlas is a ChatGPT app that renders a voxel county map and previews that
+      stay in this chat. It is built to store as little as possible about you.</p>
     <h2>What Atlas does not collect</h2>
     <ul>
       <li>No accounts, no sign-in, no user profiles.</li>
       <li>No persistent storage of your activity. Pins, notes, scout drops, and
-        campaign previews exist only for the current session and are discarded
-        when it ends. Nothing is saved to a database.</li>
+        campaign previews stay in this chat and are discarded when it ends.
+        Nothing is saved to a database.</li>
       <li>No advertising identifiers, no cross-site tracking, no data sales.</li>
     </ul>
     <h2>Location lookups</h2>
     <p>When you ask Atlas to look up a place, the location text you provide may be
       sent to Google Maps Platform to resolve it into map results. This is
       read-only and used solely to answer that request; Atlas does not store the
-      query or the result beyond the session. Google's handling of that request
+      query or the result after this chat. Google's handling of that request
       is governed by Google's own privacy terms.</p>
     <h2>Data shared with OpenAI / ChatGPT</h2>
     <p>Atlas runs inside ChatGPT via the Apps SDK. Your interaction with the
@@ -2019,19 +2120,18 @@ function privacyPageHtml(): string {
 function termsPageHtml(): string {
   return legalPageShell(
     "Terms of Service",
-    `<p>By using Atlas you agree to these terms. Atlas is Alpha software provided
-      as-is, for exploration and preview only.</p>
+    `<p>By using Atlas you agree to these terms. Atlas is provided as-is, for
+      exploration and preview only.</p>
     <h2>What Atlas is</h2>
-    <p>A session-only voxel map and business-scouting preview tool inside ChatGPT.
+    <p>A voxel map and business-scouting preview tool inside ChatGPT.
       Scout Drop and campaign previews are illustrative planning aids — they are
       not guarantees of results, and they do not post, message, advertise, or take
       any action on your behalf.</p>
     <h2>What Atlas is not (yet)</h2>
     <ul>
       <li>It does not save data, run automations, or process payments.</li>
-      <li>Coverage is honest: only counties marked playable are interactive; shell
-        and unsupported counties are clearly labeled and are not real playable
-        worlds.</li>
+      <li>Coverage is honest: only counties marked as full maps are interactive; preview-only
+        and unavailable counties are clearly labeled.</li>
     </ul>
     <h2>Acceptable use</h2>
     <p>Do not use Atlas to attempt to extract provider data, to misrepresent its
@@ -2181,7 +2281,7 @@ function handleWorldRoute(url: URL, res: ServerResponse): boolean {
   if (countyMatch) {
     const countySlug = countyMatch[1];
     if (!countySlug) {
-      jsonResponse(res, 400, { ok: false, error: "Missing county slug." });
+      jsonResponse(res, 400, { ok: false, error: "Missing county id." });
       return true;
     }
     try {
@@ -2201,7 +2301,7 @@ function handleWorldRoute(url: URL, res: ServerResponse): boolean {
     const countySlug = districtMatch[1];
     const districtSlug = districtMatch[2];
     if (!countySlug || !districtSlug) {
-      jsonResponse(res, 400, { ok: false, error: "Missing county or district slug." });
+      jsonResponse(res, 400, { ok: false, error: "Missing county or district id." });
       return true;
     }
     try {
@@ -2767,7 +2867,7 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Use select_county to open Riverside/Eastvale, the playable Atlas map right now. Use render_voxel_county when the user asks to refresh or focus that map. Shell counties are browse-only and must not invent places or tools. Use ask_county_question for closed-world questions answered from the curated Riverside/Eastvale Alpha pack. Use lookup_world_places for lookup-only nearby places; lookup results are not saved and are not coverage proof. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for Hosted Clawd limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution in Alpha.",
+        "Use select_county to open Riverside/Eastvale, the full Atlas map available today. Use render_voxel_county when the user asks to refresh or focus that map. Preview-only counties must not invent places or tools. Use ask_county_question for questions answered from built-in Riverside/Eastvale map data. Use lookup_world_places for lookup-only nearby places; lookup results are not saved and are not coverage proof. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for save limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution.",
     },
   );
 
@@ -2786,7 +2886,7 @@ function createAtlasServer(): McpServer {
               resourceDomains: widgetResourceDomains(),
             },
           },
-          "openai/widgetDescription": "Shows the Atlas Riverside voxel city map with places, stickers, notes, and temporary Alpha planning previews.",
+          "openai/widgetDescription": "Shows the Atlas Riverside voxel city map with places, stickers, notes, and planning previews that stay in this chat.",
         },
       },
     ],
@@ -2829,7 +2929,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `Found ${lookup.places.length} lookup-only places around ${lookup.resolvedLocation.label}. Categories: ${categoryText}. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a playable county map.`,
+            text: `Found ${lookup.places.length} lookup-only places around ${lookup.resolvedLocation.label}. Categories: ${categoryText}. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a full county map.`,
           },
         ],
       };
@@ -2842,13 +2942,13 @@ function createAtlasServer(): McpServer {
     {
       title: "Select county",
       description:
-        "Use this when the user asks to show, open, load, view, map, or switch to a US county in Atlas, including bare requests like \"show me Riverside County.\" This is the entry point for county maps: safe, read-only, and normally instant for open/show requests. Riverside opens the playable Eastvale voxel map; other indexed counties show honest browse-only coverage. For refreshing or focusing an already-open map, use render_voxel_county.",
+        "Use this when the user asks to show, open, load, view, map, or switch to a US county in Atlas, including bare requests like \"show me Riverside County.\" This is the entry point for county maps: safe, read-only, and normally instant for open/show requests. Riverside opens the full Eastvale voxel map; other known counties show honest preview-only status. For refreshing or focusing an already-open map, use render_voxel_county.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca and browse-only shells for indexed US counties."),
+        countySlug: z.string().optional().describe("County id. Riverside opens the full map; other known US counties show preview-only outlines."),
         includeGeneratedDraft: z
           .boolean()
           .optional()
-          .describe("When true for an indexed shell county, attach a non-playable generated draft scene packet in widget-only _meta."),
+          .describe("When true for a preview-only county, include a generated district for the widget. It is not real coverage and stays in this chat."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -2871,8 +2971,8 @@ function createAtlasServer(): McpServer {
         const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
           ? generatedDraft.generatedDraftSpec
-            ? " A generated draft packet is attached for the widget only: session-only, non-playable, provider-free, and not local truth."
-            : " The generated draft is preparing; the widget can keep the county shell while the packet cache warms."
+            ? " Generated district. Not real coverage. Preview stays in this chat."
+            : " The generated district is preparing. Keep browsing the county preview."
           : "";
         return {
           structuredContent: coverage,
@@ -2888,7 +2988,7 @@ function createAtlasServer(): McpServer {
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is browse-only in Atlas right now. Riverside/Eastvale is playable now. Atlas does not invent local places, saves, XP, evidence, or automation for shell counties.${generatedDraftCopy}`,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas right now. Riverside/Eastvale is fully explorable today. Atlas does not add local places, saved work, XP, evidence, outreach, or automation here.${generatedDraftCopy}`,
             },
           ],
         };
@@ -2907,7 +3007,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `Selected ${scene.county.name}. Eastvale is the playable district in this county. Use the map for places, pins, and session-only notes.`,
+            text: `Selected ${scene.county.name}. Eastvale is the full map in this county. Use the map for places, pins, and notes that stay in this chat.`,
           },
         ],
       };
@@ -2920,10 +3020,10 @@ function createAtlasServer(): McpServer {
     {
       title: "Ask county question",
       description:
-        "Use this when the user asks a factual Riverside/Eastvale county, map, or local-business question. It answers from the curated Atlas Alpha pack only; it does not open or refresh the map and does not search live nearby places. Closed-world and read-only; unsupported questions are refused rather than guessed.",
+        "Use this when the user asks a factual Riverside/Eastvale county, map, or local-business question. It answers from built-in Riverside/Eastvale map data only; it does not open or refresh the map and does not search live nearby places. Closed-world and read-only; unsupported questions are refused rather than guessed.",
       inputSchema: {
-        question: z.string().min(1).describe("County or business question to answer from curated Atlas data."),
-        countySlug: z.string().optional().describe("County slug. Alpha supports riverside-ca."),
+        question: z.string().min(1).describe("County or business question to answer from built-in Atlas data."),
+        countySlug: z.string().optional().describe("County id. Riverside is supported for answers today."),
         businessType: z
           .string()
           .optional()
@@ -2938,12 +3038,12 @@ function createAtlasServer(): McpServer {
       _meta: {
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Checking curated county data...",
+        "openai/toolInvocation/invoking": "Checking Riverside map data...",
         "openai/toolInvocation/invoked": "County answer ready.",
       },
     },
     async ({ question, countySlug, businessType }) => instrumentMcpTool("ask_county_question", async () => {
-      const answer = countyQuestionService.answer({ question, countySlug, businessType });
+      const answer = publicCountyQuestionAnswer(countyQuestionService.answer({ question, countySlug, businessType }));
       const requestedNodeId = answer.supported && answer.targetNodeId ? answer.targetNodeId : "eastvale";
       const { scene, scenePacket } = await getOrCreatePlayableScenePacket(PLAYABLE_ENGINE_BETA_COUNTY_SLUG, requestedNodeId);
       const decoration = decorateCityWorldSceneWithCameraIntent(scene, cameraIntentForCountyAnswer(scene, answer));
@@ -2952,8 +3052,8 @@ function createAtlasServer(): McpServer {
         ...(decoration ? { cameraIntent: decoration.cameraIntent } : {}),
       };
       const answerPrefix = answer.supported
-        ? "Curated Riverside/Eastvale answer."
-        : "Atlas can only answer curated Riverside/Eastvale county questions right now.";
+        ? "Riverside/Eastvale answer."
+        : "Atlas can only answer Riverside/Eastvale county questions right now.";
       return {
         structuredContent,
         _meta: {
@@ -2980,12 +3080,12 @@ function createAtlasServer(): McpServer {
       description:
         "Use this when the user asks to refresh, re-render, refocus, or move the Atlas county map that is already open. It updates the widget scene or coverage state for the current county; it is not the entry point for bare \"show me X county\" requests. To show, open, map, or switch counties, use select_county.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County slug. Engine Beta renders riverside-ca; other indexed US slugs return honest coverage shells."),
+        countySlug: z.string().optional().describe("County id. Riverside opens the full map; other known US counties show preview-only outlines."),
         selectedNodeId: z.string().optional().describe("Atlas node id to focus, such as eastvale."),
         includeGeneratedDraft: z
           .boolean()
           .optional()
-          .describe("When true for an indexed shell county, attach a non-playable generated draft scene packet in widget-only _meta."),
+          .describe("When true for a preview-only county, include a generated district for the widget. It is not real coverage and stays in this chat."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -3008,8 +3108,8 @@ function createAtlasServer(): McpServer {
         const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
           ? generatedDraft.generatedDraftSpec
-            ? " A generated draft packet is attached for the widget only: session-only, non-playable, provider-free, and not local truth."
-            : " The generated draft is preparing; the widget can keep the county shell while the packet cache warms."
+            ? " Generated district. Not real coverage. Preview stays in this chat."
+            : " The generated district is preparing. Keep browsing the county preview."
           : "";
         return {
           structuredContent: coverage,
@@ -3025,7 +3125,7 @@ function createAtlasServer(): McpServer {
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is browse-only in Atlas right now. Atlas only draws a local world after a curated playable district exists. Open Riverside/Eastvale for the playable map.${generatedDraftCopy}`,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas right now. Atlas draws a full local world after the full map is built. Open Riverside/Eastvale for the full map.${generatedDraftCopy}`,
             },
           ],
         };
@@ -3047,7 +3147,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `Showing the Riverside/Eastvale playable map. Pins and notes stay in this chat.`,
+            text: `Showing the Riverside/Eastvale full map. Pins and notes stay in this chat.`,
           },
         ],
       };
@@ -3060,9 +3160,9 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Scout Drop",
       description:
-        "Use this when the user asks to drop Clawd, scout a chosen location, or find where to launch a local offer. It creates a session-only Scout Drop preview with route, signals, risks, channels, and next actions; it does not open or refresh county maps. Uses curated scene data where available and synthetic session-only template signals elsewhere; nothing is saved, posted, or executed.",
+        "Use this when the user asks to drop Clawd, scout a chosen location, or find where to launch a local offer. It creates a Scout Drop preview that stays in this chat, with route, signals, risks, channels, and next actions; it does not open or refresh county maps. Uses built-in scene data where available and planning signals elsewhere; nothing is saved, posted, or executed.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County slug for the Scout context."),
+        countySlug: z.string().optional().describe("County id for the Scout context."),
         nodeId: z.string().optional().describe("Atlas node id when known."),
         locationLabel: z.string().optional().describe("Fallback location label, such as Eastvale or a requested place."),
         businessType: z.string().optional().describe("Business type to scout, such as mobile detailing."),
@@ -3105,7 +3205,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `${preview.summary} Best offer: ${preview.bestOffer}. This is a session-only Alpha preview; it does not save, post, message, spend, grant XP, or execute outreach. Next: ${preview.alphaBoundary.userActionLabel}.`,
+            text: `${preview.summary} Best offer: ${preview.bestOffer}. This preview stays in this chat; it does not save, post, message, spend, grant XP, or execute outreach. Next: ${preview.alphaBoundary.userActionLabel}.`,
           },
         ],
       };
@@ -3118,10 +3218,10 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Campaign Engine",
       description:
-        "Use this when the user wants a 7-day manual campaign plan after an Atlas Scout Drop exists. Pass the scoutPreviewId returned by preview_scout_drop when available; if the id is stale, Atlas rebuilds the Scout preview from the supplied args and continues. Session-only: Alpha does not post, DM, buy ads, persist state, or perform live campaign execution.",
+        "Use this when the user wants a 7-day manual campaign plan after an Atlas Scout Drop exists. Pass the scoutPreviewId returned by preview_scout_drop when available; if the id is stale, Atlas rebuilds the Scout preview from the supplied args and continues. The plan stays in this chat: Atlas does not post, DM, buy ads, save work, or perform live campaign execution.",
       inputSchema: {
         scoutPreviewId: z.string().describe("Scout Drop id returned by preview_scout_drop."),
-        countySlug: z.string().optional().describe("County slug from the Scout Drop."),
+        countySlug: z.string().optional().describe("County id from the Scout Drop."),
         nodeId: z.string().optional().describe("Atlas node id from the Scout Drop when known."),
         locationLabel: z.string().optional().describe("Fallback location label from the Scout Drop."),
         businessType: z.string().optional().describe("Business type from the Scout Drop, such as mobile detailing."),
@@ -3164,7 +3264,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `${rebuiltScoutPreview ? "Rebuilt scout preview from the supplied args. " : ""}${campaignPreview.summary} This is a session-only manual preview; no posting, messaging, ad spend, persistence, evidence, or XP is performed. Next: ${campaignPreview.alphaBoundary.userActionLabel}.`,
+            text: `${rebuiltScoutPreview ? "Rebuilt Scout Drop from the supplied details. " : ""}${campaignPreview.summary} This manual preview stays in this chat; no posting, messaging, ad spend, saved work, evidence, or XP is performed. Next: ${campaignPreview.alphaBoundary.userActionLabel}.`,
           },
         ],
       };
@@ -3177,7 +3277,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Get Hosted Clawd options",
       description:
-        "Use this when the user asks to save or persist their work, track evidence, or asks about pricing or Hosted Clawd. Explains the free Alpha limits and planned Hosted Clawd Beta options. Informational only — it does not start checkout, create an account, post, message, buy ads, or save campaign state.",
+        "Use this when the user asks to save or persist their work, track evidence, or asks about pricing or Hosted Clawd. Explains current save limits and planned Hosted Clawd options. Informational only - it does not start checkout, create an account, post, message, buy ads, or save campaign state.",
       inputSchema: {
         trigger: z
           .enum(["save_scout_drop", "save_campaign", "track_evidence", "pricing", "general"])
