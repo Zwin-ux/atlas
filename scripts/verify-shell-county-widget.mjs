@@ -380,21 +380,21 @@ function assertShellState(label, state, expectedTier, errors) {
   if (state.horizontalOverflow) failures.push("horizontal overflow detected");
   if (
     expectedTier === "L1_COUNTY_SHELL" &&
-    !state.boundaryText.includes("Browse-only")
+    !state.boundaryText.includes("Preview only")
   ) {
-    failures.push("shell boundary copy is missing");
+    failures.push("preview boundary copy is missing");
   }
   if (
     expectedTier === "L0_UNSUPPORTED" &&
-    !state.boundaryText.includes("Not indexed yet")
+    !state.boundaryText.includes("Not available yet")
   ) {
     failures.push("unsupported boundary copy is missing");
   }
-  // Boundary copy was shortened to plain voice ("Nothing is saved.") in the
+  // Boundary copy is kept in plain voice ("Stays in this chat.") in the
   // hosted-clawd pass; the XP/automation enumeration lives in the tool-layer
-  // honesty verifiers. Assert the session boundary in the current voice.
-  if (!/nothing is saved/i.test(state.boundaryText)) {
-    failures.push("session boundary copy is missing");
+  // honesty verifiers. Assert the chat boundary in the current voice.
+  if (!/stays in this chat/i.test(state.boundaryText)) {
+    failures.push("chat boundary copy is missing");
   }
   if (!state.sourceText.includes("Riverside/Eastvale")) failures.push("playable county guidance is missing");
   if (errors.length > 0) failures.push(`console errors: ${errors.join(" | ")}`);

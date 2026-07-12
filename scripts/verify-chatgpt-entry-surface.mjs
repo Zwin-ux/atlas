@@ -147,7 +147,7 @@ const proof = {
   miraAcceptance: false,
   productBoundary: {
     riversidePlayableNow: true,
-    shellCountiesBrowseOnly: true,
+    previewCountiesArePreviewOnly: true,
     lookupNotSaved: true,
     lookupNotCoverageProof: true,
     noInternalLanguage: true,
@@ -173,8 +173,8 @@ try {
   const selectPlayableText = textContent(selectPlayableResult, "select_county playable");
   const selectPlayable = structuredContent(selectPlayableResult, "select_county playable");
   checkPublicText("select_county playable", selectPlayableText, [
-    [/Eastvale is the playable district/i, "Eastvale is playable"],
-    [/session-only notes/i, "notes are session-only"],
+    [/Eastvale is the full map/i, "Eastvale is the full map"],
+    [/notes that stay in this chat/i, "notes stay in this chat"],
   ]);
   assert(selectPlayable.type === "voxelSceneSummary", "select_county playable must return a scene summary.");
   proof.scenarios.push(
@@ -186,8 +186,8 @@ try {
       selectPlayableText,
       selectPlayable,
       [
-        [/Eastvale is the playable district/i, "Eastvale is playable"],
-        [/session-only notes/i, "notes are session-only"],
+        [/Eastvale is the full map/i, "Eastvale is the full map"],
+        [/notes that stay in this chat/i, "notes stay in this chat"],
       ],
     ),
   );
@@ -204,10 +204,10 @@ try {
   const selectShellText = textContent(selectShellResult, "select_county shell");
   const selectShell = structuredContent(selectShellResult, "select_county shell");
   checkPublicText("select_county shell", selectShellText, [
-    [/browse-only/i, "shell counties are browse-only"],
-    [/Riverside\/Eastvale is playable now/i, "Riverside/Eastvale is playable now"],
-    [/does not invent local places/i, "Atlas does not invent places"],
-    [/saves, XP, evidence, or automation/i, "no saves, XP, evidence, or automation"],
+    [/preview only/i, "preview counties are preview only"],
+    [/Riverside\/Eastvale is fully explorable today/i, "Riverside/Eastvale is fully explorable today"],
+    [/does not add local places/i, "Atlas does not add places"],
+    [/saved work, XP, evidence, outreach, or automation/i, "no saved work, XP, evidence, outreach, or automation"],
   ]);
   assert(selectShell.coverageTier === "L1_COUNTY_SHELL", "select_county shell must return L1 shell coverage.");
   assert(selectShell.playableDistrictCount === 0, "select_county shell must not claim playable districts.");
@@ -220,10 +220,10 @@ try {
       selectShellText,
       selectShell,
       [
-        [/browse-only/i, "shell counties are browse-only"],
-        [/Riverside\/Eastvale is playable now/i, "Riverside/Eastvale is playable now"],
-        [/does not invent local places/i, "Atlas does not invent places"],
-        [/saves, XP, evidence, or automation/i, "no saves, XP, evidence, or automation"],
+        [/preview only/i, "preview counties are preview only"],
+        [/Riverside\/Eastvale is fully explorable today/i, "Riverside/Eastvale is fully explorable today"],
+        [/does not add local places/i, "Atlas does not add places"],
+        [/saved work, XP, evidence, outreach, or automation/i, "no saved work, XP, evidence, outreach, or automation"],
       ],
     ),
   );
@@ -242,7 +242,7 @@ try {
   const renderPlayableText = textContent(renderPlayableResult, "render_voxel_county playable");
   const renderPlayable = structuredContent(renderPlayableResult, "render_voxel_county playable");
   checkPublicText("render_voxel_county playable", renderPlayableText, [
-    [/Riverside\/Eastvale playable map/i, "Riverside/Eastvale playable map"],
+    [/Riverside\/Eastvale full map/i, "Riverside/Eastvale full map"],
     [/Pins and notes stay in this chat/i, "pins and notes stay in chat"],
   ]);
   assert(renderPlayable.type === "voxelSceneSummary", "render_voxel_county playable must return a scene summary.");
@@ -259,8 +259,8 @@ try {
   const renderShellText = textContent(renderShellResult, "render_voxel_county shell");
   const renderShell = structuredContent(renderShellResult, "render_voxel_county shell");
   checkPublicText("render_voxel_county shell", renderShellText, [
-    [/browse-only/i, "shell render is browse-only"],
-    [/curated playable district exists/i, "playability requires a curated district"],
+    [/preview only/i, "preview render is preview only"],
+    [/after the full map is built/i, "full map must be built first"],
     [/Open Riverside\/Eastvale/i, "Riverside/Eastvale recovery path"],
   ]);
   assert(renderShell.coverageTier === "L1_COUNTY_SHELL", "render_voxel_county shell must return L1 shell coverage.");
@@ -273,8 +273,8 @@ try {
       renderShellText,
       renderShell,
       [
-        [/browse-only/i, "Anaheim's county shell is browse-only"],
-        [/curated playable district exists/i, "playability requires a curated district"],
+        [/preview only/i, "Anaheim's county preview is preview only"],
+        [/after the full map is built/i, "full map must be built first"],
         [/Open Riverside\/Eastvale/i, "Riverside/Eastvale recovery path"],
       ],
     ),
@@ -298,7 +298,7 @@ try {
   const questionText = textContent(questionResult, "ask_county_question");
   const question = structuredContent(questionResult, "ask_county_question");
   checkPublicText("ask_county_question", questionText, [
-    [/Curated Riverside\/Eastvale answer/i, "curated Riverside/Eastvale boundary"],
+    [/Riverside\/Eastvale answer/i, "Riverside/Eastvale boundary"],
     [/No saves, XP, evidence, or automation/i, "no saves, XP, evidence, or automation"],
   ]);
   assert(question.type === "countyQuestionAnswer", "ask_county_question must return countyQuestionAnswer.");
@@ -319,7 +319,7 @@ try {
     [/lookup-only/i, "lookup-only results"],
     [/not saved/i, "lookup is not saved"],
     [/not coverage proof/i, "lookup is not coverage proof"],
-    [/does not unlock a playable county map/i, "lookup does not unlock a playable map"],
+    [/does not unlock a full county map/i, "lookup does not unlock a full map"],
   ]);
   assert(lookup.type === "worldPlaceLookup", "lookup_world_places must return worldPlaceLookup.");
   assert(Array.isArray(lookup.places) && lookup.places.length > 0, "lookup_world_places must return places.");
@@ -335,7 +335,7 @@ try {
         [/lookup-only/i, "lookup-only results"],
         [/not saved/i, "lookup is not saved"],
         [/not coverage proof/i, "lookup is not coverage proof"],
-        [/does not unlock a playable county map/i, "lookup does not unlock a playable map"],
+        [/does not unlock a full county map/i, "lookup does not unlock a full map"],
       ],
     ),
   );
@@ -354,10 +354,10 @@ try {
   const unsupportedText = textContent(unsupportedResult, "select_county unsupported");
   const unsupported = structuredContent(unsupportedResult, "select_county unsupported");
   checkPublicText("select_county unsupported", unsupportedText, [
-    [/browse-only/i, "unknown counties do not become playable"],
-    [/Riverside\/Eastvale is playable now/i, "Riverside/Eastvale recovery"],
-    [/does not invent local places/i, "Atlas does not invent places"],
-    [/saves, XP, evidence, or automation/i, "no saves, XP, evidence, or automation"],
+    [/cannot preview this county yet|preview only/i, "unknown counties do not become full maps"],
+    [/Riverside\/Eastvale is fully explorable today|Open Riverside\/Eastvale/i, "Riverside/Eastvale recovery"],
+    [/does not add local places|does not use Riverside data as a stand-in/i, "Atlas does not invent places"],
+    [/saved work, XP, evidence, outreach, or automation|saves, XP, evidence, or automation/i, "no saved work, XP, evidence, or automation"],
   ]);
   assert(unsupported.coverageTier === "L0_UNSUPPORTED", "Unsupported county must return L0 coverage.");
   assert(unsupported.playableDistrictCount === 0, "Unsupported county must not claim playable districts.");
@@ -370,10 +370,10 @@ try {
       unsupportedText,
       unsupported,
       [
-        [/browse-only/i, "unknown counties do not become playable"],
-        [/Riverside\/Eastvale is playable now/i, "Riverside/Eastvale recovery"],
-        [/does not invent local places/i, "Atlas does not invent places"],
-        [/saves, XP, evidence, or automation/i, "no saves, XP, evidence, or automation"],
+        [/cannot preview this county yet|preview only/i, "unknown counties do not become full maps"],
+        [/Riverside\/Eastvale is fully explorable today|Open Riverside\/Eastvale/i, "Riverside/Eastvale recovery"],
+        [/does not add local places|does not use Riverside data as a stand-in/i, "Atlas does not invent places"],
+        [/saved work, XP, evidence, outreach, or automation|saves, XP, evidence, or automation/i, "no saved work, XP, evidence, or automation"],
       ],
     ),
   );
@@ -389,7 +389,7 @@ try {
       "## Product Model Protected",
       "",
       "- Play Riverside/Eastvale now.",
-      "- Browse California shell counties honestly.",
+      "- Show preview-only counties honestly.",
       "- Lookup places without saving or proving county readiness.",
       "- Anaheim and Ontario remain non-public until visual/product/release gates pass.",
       "- Keep the seven-tool list stable.",

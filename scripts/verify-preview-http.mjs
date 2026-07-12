@@ -17,8 +17,8 @@ assert(!html.includes("pixi.js"), "/preview should not inline Pixi or renderer c
 assert(!/Scout Drop report|dashboard shell/i.test(html), "/preview contains old report/dashboard shell copy.");
 if (/Campaign Preview/i.test(html)) {
   assert(
-    html.includes("city-world-preview") && html.includes("Session preview. Nothing is saved, sent, or scheduled."),
-    "/preview contains campaign preview copy without the accepted session-only in-widget panel contract.",
+    html.includes("city-world-preview") && html.includes("Preview only. Nothing is saved, sent, or scheduled."),
+    "/preview contains campaign preview copy without the accepted preview-only in-widget panel contract.",
   );
 }
 assert(html.length < 300_000, `/preview response is too large for the split widget shell: ${html.length} bytes.`);
