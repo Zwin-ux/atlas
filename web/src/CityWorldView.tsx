@@ -220,9 +220,16 @@ export function CityWorldView({
 
   useEffect(() => {
     const openaiWindow = window as Window & {
-      openai?: { requestDisplayMode?: (payload: { mode: "inline" | "pip" | "fullscreen" }) => Promise<unknown> };
+      openai?: { requestDisplayMode?: (payload: { mode: "inline" | "pip" | "fullscreen" }) => unknown };
     };
-    void openaiWindow.openai?.requestDisplayMode?.({ mode: "fullscreen" }).catch(() => undefined);
+    // Real ChatGPT returns undefined (with a console warning) when this is
+    // called outside a user gesture — .catch on that crashed the widget in
+    // the first G8 session. Treat every host API result as maybe-undefined.
+    try {
+      void Promise.resolve(openaiWindow.openai?.requestDisplayMode?.({ mode: "fullscreen" })).catch(() => undefined);
+    } catch {
+      // Host rejected the call synchronously — inline mode is fine.
+    }
   }, []);
 
   // First-run gesture hint: one quiet line, gone on first interaction or

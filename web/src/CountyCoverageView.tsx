@@ -27,9 +27,15 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
 
   useEffect(() => {
     const openaiWindow = window as Window & {
-      openai?: { requestDisplayMode?: (payload: { mode: "inline" | "pip" | "fullscreen" }) => Promise<unknown> };
+      openai?: { requestDisplayMode?: (payload: { mode: "inline" | "pip" | "fullscreen" }) => unknown };
     };
-    void openaiWindow.openai?.requestDisplayMode?.({ mode: "fullscreen" }).catch(() => undefined);
+    // Real host returns undefined outside a user gesture (G8 crash) —
+    // never assume a Promise from a host API.
+    try {
+      void Promise.resolve(openaiWindow.openai?.requestDisplayMode?.({ mode: "fullscreen" })).catch(() => undefined);
+    } catch {
+      // Inline mode is fine.
+    }
   }, []);
 
   const openPlayableSlice = () => {
