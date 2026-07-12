@@ -17,6 +17,7 @@ export {
   US_COUNTY_FACTS_FALLBACK_GEOIDS,
   US_COUNTY_FACTS_LAND_AREA_YEAR,
   US_COUNTY_FACTS_POPULATION_YEAR,
+  US_COUNTY_FACTS_WATER_AREA_YEAR,
 } from "./usCountyFacts.js";
 export type { UsCountyFactRow } from "./usCountyFacts.js";
 export {
