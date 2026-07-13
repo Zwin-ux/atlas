@@ -345,7 +345,7 @@ void main(void)
 
     // S-curve for form contrast — firmer than before so directional wall
     // shading survives the grade instead of washing to a matte pastel.
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.46);
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.38);
 
     // 0.54E — highlight rolloff. Sunlit stucco and lit roofs ride near-white
     // luma and used to blow out into one paper tone; compressing the top of
@@ -353,17 +353,17 @@ void main(void)
     // legible while the scene still reads sunlit. This is the single biggest
     // wash fix and applies to every scene the engine serves.
     float luma = dot(c, vec3(0.299, 0.587, 0.114));
-    c *= mix(1.0, 0.87, smoothstep(0.68, 1.0, luma));
+    c *= mix(1.0, 0.93, smoothstep(0.76, 1.0, luma));
 
     // Gentler saturation trim: calm SoCal palette, but material identity
     // (clay vs metal vs glass, per-home tint spread) survives the grade.
     luma = dot(c, vec3(0.299, 0.587, 0.114));
-    c = mix(vec3(luma), c, 0.96);
+    c = mix(vec3(luma), c, 1.06);
 
     // Golden-hour split tone: warm sunlit highlights, cool shadows.
-    vec3 warm = vec3(1.055, 1.005, 0.915);
-    vec3 cool = vec3(0.925, 0.975, 1.065);
-    c *= mix(cool, warm, smoothstep(0.16, 0.86, luma));
+    vec3 warm = vec3(1.07, 1.015, 0.895);
+    vec3 cool = vec3(0.905, 0.968, 1.09);
+    c *= mix(cool, warm, smoothstep(0.12, 0.88, luma));
 
     // Soft vignette pulls focus to the district.
     vec2 p = vFrameCoord - 0.5;
@@ -374,7 +374,7 @@ void main(void)
     // Light atmospheric haze toward a warm sky tone at the frame edges — kept
     // to the outer corners only so it frames without flattening the district.
     float haze = smoothstep(0.34, 0.66, radius);
-    c = mix(c, vec3(0.955, 0.93, 0.83), haze * 0.07);
+    c = mix(c, vec3(0.965, 0.935, 0.79), haze * 0.045);
 
     // Fine dither hides banding in the large ground gradients.
     float noise = fract(sin(dot(vFrameCoord, vec2(12.9898, 78.233))) * 43758.5453);
@@ -7393,9 +7393,9 @@ function sunlitColor(color: number, face: SunFace): number {
   // legible light-to-shade gradient without going cartoon.
   // 0.53E item D — the top face carries most of the frame; a slightly stronger
   // lift + warm tint makes roofs read lit instead of matte next to the walls.
-  if (face === "top") return mixColor(scaleColor(color, 1.22), SUN_WARM_TINT, 0.15);
-  if (face === "sun") return mixColor(scaleColor(color, 1.12), SUN_WARM_TINT, 0.12);
-  return mixColor(scaleColor(color, 0.4), SUN_COOL_TINT, 0.32);
+  if (face === "top") return mixColor(scaleColor(color, 1.26), SUN_WARM_TINT, 0.17);
+  if (face === "sun") return mixColor(scaleColor(color, 1.18), SUN_WARM_TINT, 0.15);
+  return mixColor(mixColor(scaleColor(color, 0.36), SUN_COOL_TINT, 0.24), SUN_WARM_TINT, 0.06);
 }
 
 // 0.68H face/material read — building faces get their own light response,
@@ -7406,9 +7406,9 @@ function sunlitColor(color: number, face: SunFace): number {
 // sun wall, and a firmly darker cool shade wall — three distinct values per
 // box, separated by tone instead of outlines.
 function buildingFaceColor(color: number, face: SunFace): number {
-  if (face === "top") return mixColor(scaleColor(color, 1.12), SUN_WARM_TINT, 0.08);
-  if (face === "sun") return mixColor(scaleColor(color, 1.04), SUN_WARM_TINT, 0.09);
-  return mixColor(scaleColor(color, 0.52), SUN_COOL_TINT, 0.24);
+  if (face === "top") return mixColor(scaleColor(color, 1.17), SUN_WARM_TINT, 0.08);
+  if (face === "sun") return mixColor(scaleColor(color, 1.11), SUN_WARM_TINT, 0.09);
+  return mixColor(mixColor(scaleColor(color, 0.46), SUN_COOL_TINT, 0.16), SUN_WARM_TINT, 0.04);
 }
 
 function stickerGlyph(kind: CityWorldPin["kind"]): string {
