@@ -17,6 +17,7 @@ import {
   compileCityWorldSceneWindow,
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
+  CITY_WORLD_TILE_BASIS,
   cityWorldViewportFrameForPreset,
   deterministicGeneratedDistrictSeedForCounty,
   evaluateCityWorldSceneWindowBudget,
@@ -63,6 +64,7 @@ const COASTAL_OPENING_WATER_TILE_FLOOR = 18;
 const TROPICAL_PALM_RATE_FLOOR = 0.7;
 const MOUNTAIN_OPENING_DROP_TILE_FLOOR = 48;
 const FRONTIER_MOUNTAIN_OPENING_DROP_TILE_FLOOR = 30;
+const LANDMARK_IN_FRAME_MARGIN_TILES = 2;
 const VEGETATION_EXPECTATIONS: Record<
   GeneratedDistrictArchetype,
   { trees: number; bushes: number; minVegetation: number; maxVegetation: number; minParkVegetation?: number; desertScrubOnly?: true }
@@ -810,6 +812,10 @@ describe("deterministic generated district specs", () => {
     expect(generated.spec.countyParameters?.urbanizationTier).toBe("frontier");
     expect(opening.primaryBuildings).toBeGreaterThanOrEqual(Math.max(3, Math.ceil(primaryBuildings.length / 2)));
     expect(opening.landmarkFullyInside).toBe(true);
+    expect(opening.landmarkFrameMargin?.top).toBeGreaterThanOrEqual(LANDMARK_IN_FRAME_MARGIN_TILES);
+    expect(opening.landmarkFrameMargin?.left).toBeGreaterThanOrEqual(LANDMARK_IN_FRAME_MARGIN_TILES);
+    expect(opening.landmarkFrameMargin?.right).toBeGreaterThanOrEqual(LANDMARK_IN_FRAME_MARGIN_TILES);
+    expect(opening.landmarkFrameMargin?.bottom).toBeGreaterThanOrEqual(LANDMARK_IN_FRAME_MARGIN_TILES);
     expect(opening.elevationSpread).toBeGreaterThanOrEqual(1);
     expect(opening.dropTileCount).toBeGreaterThanOrEqual(FRONTIER_MOUNTAIN_OPENING_DROP_TILE_FLOOR);
     expect(vegetation.vegetation).toBeGreaterThanOrEqual(VEGETATION_EXPECTATIONS.mountain_valley.minVegetation);
@@ -1097,7 +1103,7 @@ function openingFrameReadout(
 function openingPrimaryFrameReadout(
   scene: CityWorldScene,
   cameraId: "desktop" | "mobile",
-): { primaryBuildings: number; landmarkFullyInside: boolean; elevationSpread: number; dropTileCount: number } {
+): { primaryBuildings: number; landmarkFullyInside: boolean; landmarkFrameMargin: { left: number; right: number; top: number; bottom: number } | null; elevationSpread: number; dropTileCount: number } {
   const preset = scene.cameraPresets.find((candidate) => candidate.id === cameraId);
   if (!preset) throw new Error(`Missing ${cameraId} camera preset`);
   const frame = cityWorldViewportFrameForPreset(preset.id, preset.center, preset.zoom);
@@ -1105,24 +1111,69 @@ function openingPrimaryFrameReadout(
   const elevations = sample.terrainTiles.map((tile) => tile.position.z ?? 0);
   const primaryBuildings = sample.buildings.filter(isPrimaryBuilding);
   const landmark = scene.buildings.filter(isPrimaryBuilding).find((building) => building.id.startsWith("gen-landmark-"));
+  const landmarkFrame = landmark ? buildingProjectedFrameReadout(landmark, frame, LANDMARK_IN_FRAME_MARGIN_TILES) : null;
   return {
     primaryBuildings: primaryBuildings.length,
-    landmarkFullyInside: landmark ? buildingFootprintInsideFrame(landmark, frame) : true,
+    landmarkFullyInside: landmarkFrame ? landmarkFrame.inFrame : true,
+    landmarkFrameMargin: landmarkFrame?.margins ?? null,
     elevationSpread: elevations.length > 0 ? Math.max(...elevations) - Math.min(...elevations) : 0,
     dropTileCount: sample.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
   };
 }
 
-function buildingFootprintInsideFrame(
+function buildingProjectedFrameReadout(
   building: CityWorldBuilding,
   frame: { minX: number; maxX: number; minY: number; maxY: number },
-): boolean {
-  return (
-    building.position.x - building.width / 2 >= frame.minX &&
-    building.position.x + building.width / 2 <= frame.maxX &&
-    building.position.y - building.depth / 2 >= frame.minY &&
-    building.position.y + building.depth / 2 <= frame.maxY
-  );
+  marginTiles: number,
+): { inFrame: boolean; margins: { left: number; right: number; top: number; bottom: number } } {
+  const landmark = projectedBuildingBounds(building);
+  const window = projectedFrameBounds(frame);
+  const margins = {
+    left: landmark.minScreenX - window.minScreenX,
+    right: window.maxScreenX - landmark.maxScreenX,
+    top: landmark.minScreenY - window.minScreenY,
+    bottom: window.maxScreenY - landmark.maxScreenY,
+  };
+  return {
+    inFrame: margins.left >= marginTiles && margins.right >= marginTiles && margins.top >= marginTiles && margins.bottom >= marginTiles,
+    margins,
+  };
+}
+
+function projectedBuildingBounds(building: CityWorldBuilding): { minScreenX: number; maxScreenX: number; minScreenY: number; maxScreenY: number } {
+  const minX = building.position.x - building.width / 2;
+  const maxX = building.position.x + building.width / 2;
+  const minY = building.position.y - building.depth / 2;
+  const maxY = building.position.y + building.depth / 2;
+  const corners = [
+    { x: minX, y: minY },
+    { x: maxX, y: minY },
+    { x: minX, y: maxY },
+    { x: maxX, y: maxY },
+  ];
+  const topZ = (building.position.z ?? 0) + building.height;
+  const zToScreenTileUnits = CITY_WORLD_TILE_BASIS.tileDepth / (CITY_WORLD_TILE_BASIS.tileHeight / 2);
+  return {
+    minScreenX: Math.min(...corners.map((corner) => corner.x - corner.y)),
+    maxScreenX: Math.max(...corners.map((corner) => corner.x - corner.y)),
+    minScreenY: Math.min(...corners.map((corner) => corner.x + corner.y - topZ * zToScreenTileUnits)),
+    maxScreenY: Math.max(...corners.map((corner) => corner.x + corner.y)),
+  };
+}
+
+function projectedFrameBounds(frame: { minX: number; maxX: number; minY: number; maxY: number }): { minScreenX: number; maxScreenX: number; minScreenY: number; maxScreenY: number } {
+  const corners = [
+    { x: frame.minX, y: frame.minY },
+    { x: frame.maxX, y: frame.minY },
+    { x: frame.minX, y: frame.maxY },
+    { x: frame.maxX, y: frame.maxY },
+  ];
+  return {
+    minScreenX: Math.min(...corners.map((corner) => corner.x - corner.y)),
+    maxScreenX: Math.max(...corners.map((corner) => corner.x - corner.y)),
+    minScreenY: Math.min(...corners.map((corner) => corner.x + corner.y)),
+    maxScreenY: Math.max(...corners.map((corner) => corner.x + corner.y)),
+  };
 }
 
 function landTerrainPaletteKeys(scene: CityWorldScene): string[] {

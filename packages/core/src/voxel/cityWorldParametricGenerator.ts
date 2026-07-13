@@ -2897,14 +2897,31 @@ const WATER_AWARE_FRAME_BONUS_WEIGHT = 0.5;
 const WATER_AWARE_DESKTOP_LOWER_OCCUPANCY_FLOOR = 0.18;
 const WATER_AWARE_MOBILE_LOWER_OCCUPANCY_FLOOR = 0.1;
 const GENERATED_OPENING_MIN_BUILDINGS = 3;
+const GENERATED_LANDMARK_FRAME_MARGIN_TILES = 2;
+const GENERATED_LANDMARK_PULLBACK_MARGIN_TILES = 4;
+const GENERATED_FOCUS_ZOOM_STEP = 0.08;
 
 type GeneratedFocusFrameProfile = {
   presetId: "desktop" | "mobile";
   zoom: number;
+  minZoom: number;
 };
 
-const DESKTOP_GENERATED_FOCUS_FRAME: GeneratedFocusFrameProfile = { presetId: "desktop", zoom: 1.32 };
-const MOBILE_GENERATED_FOCUS_FRAME: GeneratedFocusFrameProfile = { presetId: "mobile", zoom: 0.92 };
+type GeneratedFocusCamera = {
+  x: number;
+  y: number;
+  zoom: number;
+};
+
+type BestGeneratedFocusResult = {
+  focus: { x: number; y: number };
+  score: number;
+  zoom: number | undefined;
+  landmarkMargin: number | undefined;
+};
+
+const DESKTOP_GENERATED_FOCUS_FRAME: GeneratedFocusFrameProfile = { presetId: "desktop", zoom: 1.32, minZoom: 0.75 };
+const MOBILE_GENERATED_FOCUS_FRAME: GeneratedFocusFrameProfile = { presetId: "mobile", zoom: 0.92, minZoom: 0.75 };
 
 // Mirrors the diagnostics viewport-composition formula (massing 0.25 +
 // feature density 0.45 + object-family variety 0.3) over the REAL projected
@@ -2977,15 +2994,17 @@ function frameLowerBuildingOccupancy(
   return cityWorldClamp(lowerArea / bandArea, 0, 1);
 }
 
-function generatedOverviewFocus(
+function generatedOverviewCamera(
   builtZones: CityWorldZoneSpec[],
   fallback: { x: number; y: number },
   scenery: ParametricCameraScenery,
   scorer: (center: CityWorldPoint, scenery: ParametricCameraScenery) => number = overviewFrameCompositionScore,
   offsets: Array<{ x: number; y: number }> = DEFAULT_GENERATED_FOCUS_OFFSETS,
   frameProfile: GeneratedFocusFrameProfile | null = DESKTOP_GENERATED_FOCUS_FRAME,
-): { x: number; y: number } {
-  return bestGeneratedFocus(builtZones, fallback, scenery, scorer, offsets, frameProfile).focus;
+  fallbackZoom = frameProfile?.zoom ?? DESKTOP_GENERATED_FOCUS_FRAME.zoom,
+): GeneratedFocusCamera {
+  const result = bestGeneratedFocus(builtZones, fallback, scenery, scorer, offsets, frameProfile);
+  return { x: result.focus.x, y: result.focus.y, zoom: result.zoom ?? fallbackZoom };
 }
 
 const DEFAULT_GENERATED_FOCUS_OFFSETS = [
@@ -3028,7 +3047,8 @@ function bestGeneratedFocus(
   scorer: (center: CityWorldPoint, scenery: ParametricCameraScenery) => number,
   offsets: Array<{ x: number; y: number }> = DEFAULT_GENERATED_FOCUS_OFFSETS,
   frameProfile: GeneratedFocusFrameProfile | null = DESKTOP_GENERATED_FOCUS_FRAME,
-): { focus: { x: number; y: number }; score: number } {
+): BestGeneratedFocusResult {
+  const priorityAnchors: Array<{ x: number; y: number }> = [fallback];
   const anchors = zones.flatMap((zone) => {
     const center = zoneCenter(zone);
     return offsets.map((offset) => ({ x: center.x + offset.x, y: center.y + offset.y }));
@@ -3038,12 +3058,15 @@ function bestGeneratedFocus(
     const landmark = primaryBuildings.find((building) => building.id.startsWith("gen-landmark-"));
     if (primaryBuildings.length > 0) {
       const fabricCenter = averagePoint(primaryBuildings.map((building) => building.position));
+      priorityAnchors.push(fabricCenter);
       for (const offset of offsets) anchors.push({ x: fabricCenter.x + offset.x, y: fabricCenter.y + offset.y });
     }
     if (landmark) {
+      priorityAnchors.push(landmark.position);
       for (const offset of offsets) anchors.push({ x: landmark.position.x + offset.x, y: landmark.position.y + offset.y });
       for (const zone of zones) {
         const midpoint = averagePoint([landmark.position, zoneCenter(zone)]);
+        priorityAnchors.push(midpoint);
         for (const offset of offsets) anchors.push({ x: midpoint.x + offset.x, y: midpoint.y + offset.y });
       }
     }
@@ -3060,49 +3083,175 @@ function bestGeneratedFocus(
   }
   if (anchors.length === 0) anchors.push(fallback);
 
-  let focus = anchors[0] ?? fallback;
-  let score = -1;
+  if (!frameProfile) {
+    let best: BestGeneratedFocusResult = { focus: anchors[0] ?? fallback, score: -1, zoom: undefined, landmarkMargin: undefined };
+    for (const candidate of anchors) {
+      const center = { x: candidate.x, y: candidate.y, z: 0 };
+      const candidateScore = scorer(center, scenery);
+      if (candidateScore > best.score) best = { focus: candidate, score: candidateScore, zoom: undefined, landmarkMargin: undefined };
+    }
+    return best;
+  }
+
+  let bestFallback: BestGeneratedFocusResult | null = null;
+  let bestEligible: BestGeneratedFocusResult | null = null;
+
   for (const candidate of anchors) {
-    const center = { x: candidate.x, y: candidate.y, z: 0 };
-    const candidateScore = scorer(center, scenery) + (frameProfile ? openingFrameComplianceScore(center, scenery, frameProfile) : 0);
-    if (candidateScore > score) {
-      score = candidateScore;
-      focus = candidate;
+    const scored = scoreGeneratedFocusCandidate(candidate, scenery, scorer, frameProfile);
+    if (!bestFallback || scored.score > bestFallback.score) bestFallback = scored;
+    if (!scored.landmarkMargin || scored.landmarkMargin < GENERATED_LANDMARK_FRAME_MARGIN_TILES) continue;
+    if (!bestEligible || scored.score > bestEligible.score) bestEligible = scored;
+  }
+
+  const shouldProbePullback = scorer === reliefAwareOverviewFrameCompositionScore;
+  if (bestEligible && (bestEligible.landmarkMargin ?? 0) >= GENERATED_LANDMARK_PULLBACK_MARGIN_TILES && !shouldProbePullback) {
+    return bestEligible;
+  }
+
+  let bestPullback = bestEligible;
+  const pullbackAnchors = uniqueFocusAnchors([
+    ...(bestFallback ? [bestFallback.focus] : []),
+    ...(bestEligible ? [bestEligible.focus] : []),
+    ...priorityAnchors,
+  ]);
+  for (const candidateZoom of generatedFocusZoomCandidates(frameProfile).filter((candidate) => candidate < frameProfile.zoom)) {
+    const activeFrameProfile = { ...frameProfile, zoom: candidateZoom };
+    for (const candidate of pullbackAnchors) {
+      const scored = scoreGeneratedFocusCandidate(candidate, scenery, scorer, activeFrameProfile);
+      if (!scored.landmarkMargin || scored.landmarkMargin < GENERATED_LANDMARK_FRAME_MARGIN_TILES) continue;
+      if (!bestPullback) {
+        bestPullback = scored;
+        continue;
+      }
+      const scoredPreferred = scored.landmarkMargin >= GENERATED_LANDMARK_PULLBACK_MARGIN_TILES;
+      const bestPreferred = (bestPullback.landmarkMargin ?? 0) >= GENERATED_LANDMARK_PULLBACK_MARGIN_TILES;
+      if ((scoredPreferred && !bestPreferred) || (scoredPreferred === bestPreferred && scored.score > bestPullback.score)) {
+        bestPullback = scored;
+      }
     }
   }
-  return { focus, score };
+
+  return bestPullback ?? bestEligible ?? bestFallback ?? { focus: fallback, score: -1, zoom: frameProfile.zoom, landmarkMargin: undefined };
 }
 
-function openingFrameComplianceScore(
+function scoreGeneratedFocusCandidate(
+  candidate: { x: number; y: number },
+  scenery: ParametricCameraScenery,
+  scorer: (center: CityWorldPoint, scenery: ParametricCameraScenery) => number,
+  frameProfile: GeneratedFocusFrameProfile,
+): BestGeneratedFocusResult {
+  const center = { x: candidate.x, y: candidate.y, z: 0 };
+  const compliance = openingFrameCompliance(center, scenery, frameProfile);
+  return {
+    focus: candidate,
+    score: scorer(center, scenery) + compliance.score,
+    zoom: frameProfile.zoom,
+    landmarkMargin: compliance.landmarkMargin,
+  };
+}
+
+function uniqueFocusAnchors(anchors: Array<{ x: number; y: number }>): Array<{ x: number; y: number }> {
+  const seen = new Set<string>();
+  const result: Array<{ x: number; y: number }> = [];
+  for (const anchor of anchors) {
+    const key = `${roundFocusZoom(anchor.x)}:${roundFocusZoom(anchor.y)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(anchor);
+  }
+  return result;
+}
+
+function generatedFocusZoomCandidates(frameProfile: GeneratedFocusFrameProfile): number[] {
+  const candidates: number[] = [];
+  const minZoom = Math.min(frameProfile.zoom, frameProfile.minZoom);
+  for (let zoom = frameProfile.zoom; zoom >= minZoom; zoom -= GENERATED_FOCUS_ZOOM_STEP) {
+    candidates.push(roundFocusZoom(zoom));
+  }
+  const roundedMin = roundFocusZoom(minZoom);
+  if (candidates[candidates.length - 1] !== roundedMin) candidates.push(roundedMin);
+  return [...new Set(candidates)];
+}
+
+function roundFocusZoom(value: number): number {
+  return Number(value.toFixed(2));
+}
+
+function openingFrameCompliance(
   center: CityWorldPoint,
   scenery: ParametricCameraScenery,
   frameProfile: GeneratedFocusFrameProfile,
-): number {
+): { score: number; landmarkInFrame: boolean; landmarkMargin: number | undefined } {
   const frame = cityWorldViewportFrameForCameraPreset({ id: frameProfile.presetId, center, zoom: frameProfile.zoom });
   const primaryBuildings = primarySceneryBuildings(scenery);
   const buildings = primaryBuildings.filter((building) => cityWorldPointInsideFrame(building.position, frame));
   const requiredBuildings = Math.max(GENERATED_OPENING_MIN_BUILDINGS, Math.ceil(primaryBuildings.length / 2));
   const buildingDeficit = Math.max(0, requiredBuildings - buildings.length);
   const landmark = primaryBuildings.find((building) => building.id.startsWith("gen-landmark-"));
-  const landmarkFullyInside = landmark ? buildingFootprintInsideFrame(landmark, frame) : true;
+  const landmarkMargins = landmark ? buildingProjectedFrameMargins(landmark, frame) : null;
+  const landmarkMargin = landmarkMargins ? Math.min(landmarkMargins.left, landmarkMargins.right, landmarkMargins.top, landmarkMargins.bottom) : undefined;
+  const landmarkInFrame = landmarkMargin === undefined || landmarkMargin >= GENERATED_LANDMARK_FRAME_MARGIN_TILES;
   const buildingBonus = cityWorldClamp(buildings.length / Math.max(1, requiredBuildings), 0, 1) * 1.2;
-  const landmarkBonus = landmarkFullyInside && landmark ? 0.45 : 0;
-  return buildingBonus + landmarkBonus - buildingDeficit * 1.15 - (landmarkFullyInside ? 0 : 3.25);
+  const landmarkBonus = landmarkInFrame && landmark ? 0.45 : 0;
+  return {
+    score: buildingBonus + landmarkBonus - buildingDeficit * 1.15 - (landmarkInFrame ? 0 : 3.25),
+    landmarkInFrame,
+    landmarkMargin,
+  };
 }
 
 function primarySceneryBuildings(scenery: ParametricCameraScenery): CityWorldBuilding[] {
   return scenery.buildings.filter((building) => !isGeneratedAttachmentBuilding(building));
 }
 
-function buildingFootprintInsideFrame(
+function buildingProjectedFrameMargins(
   building: CityWorldBuilding,
   frame: { minX: number; maxX: number; minY: number; maxY: number },
-): boolean {
+): { left: number; right: number; top: number; bottom: number } {
+  const landmark = projectedBuildingBounds(building);
+  const window = projectedFrameBounds(frame);
+  return {
+    left: landmark.minScreenX - window.minScreenX,
+    right: window.maxScreenX - landmark.maxScreenX,
+    top: landmark.minScreenY - window.minScreenY,
+    bottom: window.maxScreenY - landmark.maxScreenY,
+  };
+}
+
+function projectedBuildingBounds(building: CityWorldBuilding): { minScreenX: number; maxScreenX: number; minScreenY: number; maxScreenY: number } {
   const minX = building.position.x - building.width / 2;
   const maxX = building.position.x + building.width / 2;
   const minY = building.position.y - building.depth / 2;
   const maxY = building.position.y + building.depth / 2;
-  return minX >= frame.minX && maxX <= frame.maxX && minY >= frame.minY && maxY <= frame.maxY;
+  const corners = [
+    { x: minX, y: minY },
+    { x: maxX, y: minY },
+    { x: minX, y: maxY },
+    { x: maxX, y: maxY },
+  ];
+  const topZ = (building.position.z ?? 0) + building.height;
+  const zToScreenTileUnits = CITY_WORLD_TILE_BASIS.tileDepth / (CITY_WORLD_TILE_BASIS.tileHeight / 2);
+  return {
+    minScreenX: Math.min(...corners.map((corner) => corner.x - corner.y)),
+    maxScreenX: Math.max(...corners.map((corner) => corner.x - corner.y)),
+    minScreenY: Math.min(...corners.map((corner) => corner.x + corner.y - topZ * zToScreenTileUnits)),
+    maxScreenY: Math.max(...corners.map((corner) => corner.x + corner.y)),
+  };
+}
+
+function projectedFrameBounds(frame: { minX: number; maxX: number; minY: number; maxY: number }): { minScreenX: number; maxScreenX: number; minScreenY: number; maxScreenY: number } {
+  const corners = [
+    { x: frame.minX, y: frame.minY },
+    { x: frame.maxX, y: frame.minY },
+    { x: frame.minX, y: frame.maxY },
+    { x: frame.maxX, y: frame.maxY },
+  ];
+  return {
+    minScreenX: Math.min(...corners.map((corner) => corner.x - corner.y)),
+    maxScreenX: Math.max(...corners.map((corner) => corner.x - corner.y)),
+    minScreenY: Math.min(...corners.map((corner) => corner.x + corner.y)),
+    maxScreenY: Math.max(...corners.map((corner) => corner.x + corner.y)),
+  };
 }
 
 function mobileOverviewFrameCompositionScore(center: CityWorldPoint, scenery: ParametricCameraScenery): number {
@@ -3178,22 +3327,23 @@ function parametricCameraPresets(
   const waterOpeningZones = waterAware ? waterOverviewCandidateZones(zones, built) : built;
   const openingZones = archetype === "mountain_valley" ? mountainOverviewCandidateZones(zones, built) : waterOpeningZones;
   const generatedFocusOffsets = archetype === "river_town" ? RIVER_GENERATED_FOCUS_OFFSETS : DEFAULT_GENERATED_FOCUS_OFFSETS;
-  const openingFocus = countyParameters
+  const openingCamera = countyParameters
     ? archetype === "mountain_valley"
-      ? mountainOverviewFocus(openingZones, built, focus, scenery, countyParameters.urbanizationTier)
-      : generatedOverviewFocus(openingZones, focus, scenery, overviewScorer, generatedFocusOffsets, waterAware ? null : DESKTOP_GENERATED_FOCUS_FRAME)
-    : focus;
-  const mobileFocus = countyParameters
-    ? generatedOverviewFocus(
+      ? mountainOverviewCamera(openingZones, built, focus, scenery, countyParameters.urbanizationTier)
+      : generatedOverviewCamera(openingZones, focus, scenery, overviewScorer, generatedFocusOffsets, waterAware ? null : DESKTOP_GENERATED_FOCUS_FRAME)
+    : { x: focus.x, y: focus.y, zoom: DESKTOP_GENERATED_FOCUS_FRAME.zoom };
+  const mobileCamera = countyParameters
+    ? generatedOverviewCamera(
         waterAware ? waterOpeningZones : built,
-        { x: openingFocus.x, y: openingFocus.y + 3 },
+        { x: openingCamera.x, y: openingCamera.y + 3 },
         scenery,
         mobileOverviewScorer,
         generatedFocusOffsets,
         waterAware ? null : MOBILE_GENERATED_FOCUS_FRAME,
+        MOBILE_GENERATED_FOCUS_FRAME.zoom,
       )
-    : { x: openingFocus.x, y: openingFocus.y + 4 };
-  const center = { x: openingFocus.x, y: openingFocus.y, z: 0 };
+    : { x: openingCamera.x, y: openingCamera.y + 4, zoom: MOBILE_GENERATED_FOCUS_FRAME.zoom };
+  const center = { x: openingCamera.x, y: openingCamera.y, z: 0 };
   const residentialZone = zones.find((zone) => zone.kind === "residential");
   // Frame the "downtown mass" (mixed non-residential families) for the commerce
   // detail camera so it reads more than one object family.
@@ -3204,16 +3354,16 @@ function parametricCameraPresets(
   // frame in the road gap between blocks, where it reads as empty field.
   // Candidates are zone centers plus pairwise midpoints; each is scored by
   // building mass and distinct object families inside an approximate frame.
-  const downtownFocus = bestGeneratedFocus(downtownZones, focus, scenery, commerceFrameCompositionScore);
-  const fabricFocus = bestGeneratedFocus(built, focus, scenery, commerceFrameCompositionScore);
+  const downtownFocus = bestGeneratedFocus(downtownZones, focus, scenery, commerceFrameCompositionScore, DEFAULT_GENERATED_FOCUS_OFFSETS, null);
+  const fabricFocus = bestGeneratedFocus(built, focus, scenery, commerceFrameCompositionScore, DEFAULT_GENERATED_FOCUS_OFFSETS, null);
   const commercialFocus = downtownFocus.score >= 0.6 || downtownFocus.score >= fabricFocus.score ? downtownFocus.focus : fabricFocus.focus;
 
   return [
     // Legacy parametric demos still need the southward bias. Generated
     // districts use scored centers, so adding the bias can move sparse
     // archetypes off their strongest overview fabric.
-    { id: "desktop", center: countyParameters ? center : { ...center, y: center.y + 1.5 }, zoom: 1.32, minZoom: 0.6, maxZoom: 1.9 },
-    { id: "mobile", center: { x: mobileFocus.x, y: mobileFocus.y, z: 0 }, zoom: 0.92, minZoom: 0.5, maxZoom: 1.5 },
+    { id: "desktop", center: countyParameters ? center : { ...center, y: center.y + 1.5 }, zoom: countyParameters ? openingCamera.zoom : 1.32, minZoom: 0.6, maxZoom: 1.9 },
+    { id: "mobile", center: { x: mobileCamera.x, y: mobileCamera.y, z: 0 }, zoom: countyParameters ? mobileCamera.zoom : 0.92, minZoom: 0.5, maxZoom: 1.5 },
     { id: "residential_detail", center: { x: residentialFocus.x, y: residentialFocus.y, z: 0 }, zoom: 1.62, minZoom: 0.7, maxZoom: 1.9 },
     { id: "commerce_detail", center: { x: commercialFocus.x, y: commercialFocus.y, z: 0 }, zoom: 1.58, minZoom: 0.7, maxZoom: 1.95 },
   ];
@@ -3241,24 +3391,24 @@ function waterOverviewCandidateZones(zones: CityWorldZoneSpec[], fallback: CityW
   return waterFabric.length > 0 ? [...fallback, ...waterFabric] : fallback;
 }
 
-function mountainOverviewFocus(
+function mountainOverviewCamera(
   ridgeZones: CityWorldZoneSpec[],
   builtZones: CityWorldZoneSpec[],
   fallback: { x: number; y: number },
   scenery: ParametricCameraScenery,
   tier?: UrbanizationTier,
-): { x: number; y: number } {
+): GeneratedFocusCamera {
   if (tier === "frontier" || tier === "rural") {
     const mountainZones = uniqueZones([...ridgeZones, ...builtZones]);
-    return generatedOverviewFocus(mountainZones, fallback, scenery, reliefAwareOverviewFrameCompositionScore, MOUNTAIN_GENERATED_FOCUS_OFFSETS);
+    return generatedOverviewCamera(mountainZones, fallback, scenery, reliefAwareOverviewFrameCompositionScore, MOUNTAIN_GENERATED_FOCUS_OFFSETS);
   }
-  return generatedOverviewFocus(
+  return generatedOverviewCamera(
     uniqueZones([...ridgeZones, ...builtZones]),
     fallback,
     scenery,
     reliefAwareOverviewFrameCompositionScore,
     MOUNTAIN_GENERATED_FOCUS_OFFSETS,
-    null,
+    DESKTOP_GENERATED_FOCUS_FRAME,
   );
 }
 

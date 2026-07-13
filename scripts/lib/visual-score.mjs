@@ -8,6 +8,7 @@ import {
   expectedGeneratedLandmarkKind,
   generatedDistrictMassingSignatureDistance,
   resolveCountyParameters,
+  CITY_WORLD_TILE_BASIS,
   cityWorldViewportFrameForPreset,
   sampleCityWorldViewportForCameraPreset,
 } from "../../packages/core/dist/index.js";
@@ -894,6 +895,7 @@ export function openingFrameReadout(scene, cameraId) {
   const boardBuildings = (scene.buildings ?? []).filter(isPrimaryGeneratedBuilding);
   const landmark = boardBuildings.find((building) => building.id.startsWith("gen-landmark-"));
   const frame = cityWorldViewportFrameForPreset(preset.id, preset.center, preset.zoom);
+  const landmarkFrame = landmark ? buildingProjectedFrameReadout(landmark, frame, LANDMARK_IN_FRAME_MARGIN_TILES) : null;
   const zValues = sample.terrainTiles.map((tile) => tile.position?.z ?? 0);
   const min = zValues.length > 0 ? Math.min(...zValues) : 0;
   const max = zValues.length > 0 ? Math.max(...zValues) : 0;
@@ -902,7 +904,10 @@ export function openingFrameReadout(scene, cameraId) {
     terrainTiles: sample.terrainTiles.length,
     buildings: sample.buildings.length,
     boardBuildings: boardBuildings.length,
-    landmarkFullyInside: landmark ? buildingFootprintInsideFrame(landmark, frame) : true,
+    landmarkFullyInside: landmarkFrame ? landmarkFrame.inFrame : true,
+    landmarkInFrame: landmarkFrame ? landmarkFrame.inFrame : true,
+    landmarkFrameMargin: landmarkFrame?.margins ?? null,
+    landmarkFrameMarginTiles: LANDMARK_IN_FRAME_MARGIN_TILES,
     elevationSpread: roundMetric(max - min),
     dropTileCount: sample.terrainTiles.filter((tile) => (tile.visualGrammar?.elevation?.dropDepth ?? 0) > 0).length,
   };
@@ -912,13 +917,55 @@ function isPrimaryGeneratedBuilding(building) {
   return !building.id?.startsWith("gen-attachment-") && !building.visualGrammar?.buildingAttachment;
 }
 
-function buildingFootprintInsideFrame(building, frame) {
-  return (
-    building.position.x - building.width / 2 >= frame.minX &&
-    building.position.x + building.width / 2 <= frame.maxX &&
-    building.position.y - building.depth / 2 >= frame.minY &&
-    building.position.y + building.depth / 2 <= frame.maxY
-  );
+function buildingProjectedFrameReadout(building, frame, marginTiles) {
+  const landmark = projectedBuildingBounds(building);
+  const window = projectedFrameBounds(frame);
+  const margins = {
+    left: roundMetric(landmark.minScreenX - window.minScreenX),
+    right: roundMetric(window.maxScreenX - landmark.maxScreenX),
+    top: roundMetric(landmark.minScreenY - window.minScreenY),
+    bottom: roundMetric(window.maxScreenY - landmark.maxScreenY),
+  };
+  return {
+    inFrame: margins.left >= marginTiles && margins.right >= marginTiles && margins.top >= marginTiles && margins.bottom >= marginTiles,
+    margins,
+  };
+}
+
+function projectedBuildingBounds(building) {
+  const minX = building.position.x - building.width / 2;
+  const maxX = building.position.x + building.width / 2;
+  const minY = building.position.y - building.depth / 2;
+  const maxY = building.position.y + building.depth / 2;
+  const corners = [
+    { x: minX, y: minY },
+    { x: maxX, y: minY },
+    { x: minX, y: maxY },
+    { x: maxX, y: maxY },
+  ];
+  const topZ = (building.position.z ?? 0) + building.height;
+  const zToScreenTileUnits = CITY_WORLD_TILE_BASIS.tileDepth / (CITY_WORLD_TILE_BASIS.tileHeight / 2);
+  return {
+    minScreenX: Math.min(...corners.map((corner) => corner.x - corner.y)),
+    maxScreenX: Math.max(...corners.map((corner) => corner.x - corner.y)),
+    minScreenY: Math.min(...corners.map((corner) => corner.x + corner.y - topZ * zToScreenTileUnits)),
+    maxScreenY: Math.max(...corners.map((corner) => corner.x + corner.y)),
+  };
+}
+
+function projectedFrameBounds(frame) {
+  const corners = [
+    { x: frame.minX, y: frame.minY },
+    { x: frame.maxX, y: frame.minY },
+    { x: frame.minX, y: frame.maxY },
+    { x: frame.maxX, y: frame.maxY },
+  ];
+  return {
+    minScreenX: Math.min(...corners.map((corner) => corner.x - corner.y)),
+    maxScreenX: Math.max(...corners.map((corner) => corner.x - corner.y)),
+    minScreenY: Math.min(...corners.map((corner) => corner.x + corner.y)),
+    maxScreenY: Math.max(...corners.map((corner) => corner.x + corner.y)),
+  };
 }
 
 export function landTerrainPaletteKeys(scene) {
@@ -1017,9 +1064,10 @@ export const WEIGHTS = Object.freeze({
   labelGrammarCoverage: 10,
 });
 
-export const VISUAL_SCORE_MEDIAN_FLOOR = 98.46;
-export const VISUAL_SCORE_HARD_FLOOR = 78.36;
+export const VISUAL_SCORE_MEDIAN_FLOOR = 98.6;
+export const VISUAL_SCORE_HARD_FLOOR = 79.36;
 export const VISUAL_SCORE_EXPECTED_COUNTY_COUNT = 3222;
+export const LANDMARK_IN_FRAME_MARGIN_TILES = 2;
 
 const OPENING_BUILDING_TARGET_BY_TIER = {
   urban_core: 12,
@@ -1046,6 +1094,15 @@ export function buildVisualScoreReport() {
   );
   const scores = counties.map((county) => county.score);
   const distribution = summarizeVisualScores(scores);
+  const landmarkInFrameFailures = counties
+    .filter((county) => county.signals.landmarkInFrame?.failures?.length > 0)
+    .map((county) => ({
+      countySlug: county.countySlug,
+      score: county.score,
+      detail: county.signals.landmarkInFrame.detail,
+      value: county.signals.landmarkInFrame.value,
+      failures: county.signals.landmarkInFrame.failures,
+    }));
   const worst50 = counties
     .slice()
     .sort((a, b) => a.score - b.score || a.countySlug.localeCompare(b.countySlug))
@@ -1078,11 +1135,16 @@ export function buildVisualScoreReport() {
       actual: distribution.min,
       pass: distribution.min >= VISUAL_SCORE_HARD_FLOOR,
     },
+    landmarkInFrame: {
+      floor: 0,
+      actual: landmarkInFrameFailures.length,
+      pass: landmarkInFrameFailures.length === 0,
+    },
   };
-  gates.pass = gates.expectedCountyCount.pass && gates.medianFloor.pass && gates.hardFloor.pass;
+  gates.pass = gates.expectedCountyCount.pass && gates.medianFloor.pass && gates.hardFloor.pass && gates.landmarkInFrame.pass;
 
   return {
-    packet: "0.79-1",
+    packet: "0.79-T2",
     schemaVersion: 1,
     source: "scripts/build-visual-score-report.mjs",
     countyCount: counties.length,
@@ -1094,6 +1156,7 @@ export function buildVisualScoreReport() {
     },
     distribution,
     gates,
+    landmarkInFrameFailures,
     worst50,
     counties,
   };
@@ -1117,6 +1180,7 @@ export function scoreCountyVisualSignals(county, context) {
 
     const signals = {
       compositionOccupancy: compositionOccupancySignal(frame, tier),
+      landmarkInFrame: landmarkInFrameSignal(archetype, frame, water),
       waterVisibility: waterVisibilitySignal(archetype, frame, water),
       vegetationBandFit: vegetationBandFitSignal(archetype, vegetation),
       paletteNeighborDistance: paletteNeighborDistanceSignal(archetype, palette, context.paletteByArchetype),
@@ -1199,8 +1263,28 @@ function compositionOccupancySignal(frame, tier) {
     buildings: frame.buildings,
     boardBuildings: frame.boardBuildings,
     landmarkFullyInside: frame.landmarkFullyInside,
+    landmarkInFrame: frame.landmarkInFrame,
     target,
     terrainTiles: frame.terrainTiles,
+  }, failures);
+}
+
+function landmarkInFrameSignal(archetype, frame, water) {
+  if (WATER_ARCHETYPES.has(archetype) || water.count > 0) {
+    return visualSignal(1, "water-aware opening frame owns composition", {
+      applicable: false,
+      landmarkInFrame: frame.landmarkInFrame,
+      marginTiles: LANDMARK_IN_FRAME_MARGIN_TILES,
+      margins: frame.landmarkFrameMargin,
+    }, []);
+  }
+
+  const inFrame = frame.landmarkInFrame === true;
+  const failures = inFrame ? [] : [`landmark projected bounds outside ${LANDMARK_IN_FRAME_MARGIN_TILES}-tile opening-frame margin`];
+  return visualSignal(inFrame ? 1 : 0, inFrame ? `inside opening frame with ${LANDMARK_IN_FRAME_MARGIN_TILES}-tile margin` : "edge-cut in opening frame", {
+    landmarkInFrame: inFrame,
+    marginTiles: LANDMARK_IN_FRAME_MARGIN_TILES,
+    margins: frame.landmarkFrameMargin,
   }, failures);
 }
 
@@ -1414,7 +1498,7 @@ function roundScore(value) {
 
 export function visualScoreReportMarkdown(report) {
   const lines = [
-    "# Atlas 0.79-1 Visual Score Report",
+    "# Atlas 0.79-T2 Visual Score Report",
     "",
     `Counties scored: ${report.countyCount}/${report.expectedCountyCount}`,
     `Median floor: ${report.floors.median} (observed ${report.distribution.median})`,
@@ -1435,6 +1519,10 @@ export function visualScoreReportMarkdown(report) {
     "## Distribution",
     "",
     `Min ${report.distribution.min}; p10 ${report.distribution.p10}; p25 ${report.distribution.p25}; median ${report.distribution.median}; p75 ${report.distribution.p75}; p90 ${report.distribution.p90}; max ${report.distribution.max}; mean ${report.distribution.mean}.`,
+    "",
+    "## Landmark In Frame Gate",
+    "",
+    `Failures: ${report.landmarkInFrameFailures.length}`,
     "",
     "## Worst 50",
     "",
