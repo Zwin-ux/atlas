@@ -22,8 +22,12 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { US_COUNTY_INDEX } from "../packages/core/dist/index.js";
 
 const COUNTY_LAYER = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/11/query";
+const WATER_LAYER = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Hydro/MapServer/1/query"; // Areal Hydrography
 const OUT_DIR = "data/geo-packs";
 const VERTEX_BUDGET = 480; // per county, post-simplification (LOD0 silhouette)
+const WATER_FEATURE_CAP = 18; // rank the county's water bodies by area, keep the biggest N
+const WATER_VERTEX_BUDGET = 280; // total water vertices in LOD0 (bay/ocean/big lakes, not every canal)
+const WATER_MAX_RINGS = 12; // distinct water polygons kept after simplification
 const CHALLENGE = [
   "riverside-ca", "miami-dade-fl", "mobile-al", "loving-tx", "kalawao-hi",
   "summit-co", "cook-il", "sedgwick-ks", "honolulu-hi", "king-wa",
@@ -95,19 +99,119 @@ function ringsOf(geometry) {
   throw new Error(`Unexpected geometry type ${geometry.type}`);
 }
 
-function simplifyToBudget(rings) {
-  // Keep the largest rings (main landmass + big islands), binary-search
-  // epsilon until the total vertex count fits the budget. Deterministic.
-  const byArea = [...rings].sort((r1, r2) => Math.abs(ringArea(r2)) - Math.abs(ringArea(r1))).slice(0, 6);
+function simplifyRingsToBudget(rings, budget, maxRings) {
+  // Keep the largest rings (main landmass + big islands, or bay + ocean +
+  // lakes for water), binary-search epsilon until the total vertex count
+  // fits the budget. Deterministic — same input, same output.
+  const byArea = [...rings].sort((r1, r2) => Math.abs(ringArea(r2)) - Math.abs(ringArea(r1))).slice(0, maxRings);
+  if (byArea.length === 0) return [];
   let lo = 0.0001, hi = 0.2, best = byArea.map((r) => simplifyRing(r, hi));
   for (let iter = 0; iter < 24; iter += 1) {
     const mid = (lo + hi) / 2;
     const simplified = byArea.map((r) => simplifyRing(r, mid));
     const count = simplified.reduce((sum, r) => sum + r.length, 0);
-    if (count > VERTEX_BUDGET) lo = mid;
+    if (count > budget) lo = mid;
     else { best = simplified; hi = mid; }
   }
   return best;
+}
+
+function simplifyToBudget(rings) {
+  return simplifyRingsToBudget(rings, VERTEX_BUDGET, 6);
+}
+
+function bboxOfRings(rings) {
+  let xmin = Infinity, ymin = Infinity, xmax = -Infinity, ymax = -Infinity;
+  for (const ring of rings) {
+    for (const [x, y] of ring) {
+      if (x < xmin) xmin = x;
+      if (x > xmax) xmax = x;
+      if (y < ymin) ymin = y;
+      if (y > ymax) ymax = y;
+    }
+  }
+  return [xmin, ymin, xmax, ymax];
+}
+
+// Coastal boards need the surrounding sea, which sits just OUTSIDE the land
+// boundary. Clipping water to a margin-expanded bbox keeps that offshore band
+// so the compiler can render a peninsula/island framed by ocean, not a bare
+// green cutout. Margin is a fraction of the county span on each side.
+function expandBbox([xmin, ymin, xmax, ymax], frac) {
+  const dx = (xmax - xmin) * frac;
+  const dy = (ymax - ymin) * frac;
+  return [xmin - dx, ymin - dy, xmax + dx, ymax + dy];
+}
+const WATER_CLIP_MARGIN = 0.12;
+
+// Sutherland-Hodgman clip of a closed ring against an axis-aligned bbox.
+// Water polygons (esp. the ocean) can span far past the county; clipping to
+// the county envelope bounds pack size and keeps the coastline edge intact.
+function clipRingToBbox(ring, [xmin, ymin, xmax, ymax]) {
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const clipEdge = (pts, inside, intersect) => {
+    const out = [];
+    for (let i = 0; i < pts.length; i += 1) {
+      const cur = pts[i];
+      const prev = pts[(i + pts.length - 1) % pts.length];
+      const curIn = inside(cur);
+      const prevIn = inside(prev);
+      if (curIn) {
+        if (!prevIn) out.push(intersect(prev, cur));
+        out.push(cur);
+      } else if (prevIn) {
+        out.push(intersect(prev, cur));
+      }
+    }
+    return out;
+  };
+  let pts = ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+    ? ring.slice(0, -1)
+    : ring.slice();
+  pts = clipEdge(pts, (p) => p[0] >= xmin, (a, b) => lerp(a, b, (xmin - a[0]) / (b[0] - a[0])));
+  if (pts.length === 0) return [];
+  pts = clipEdge(pts, (p) => p[0] <= xmax, (a, b) => lerp(a, b, (xmax - a[0]) / (b[0] - a[0])));
+  if (pts.length === 0) return [];
+  pts = clipEdge(pts, (p) => p[1] >= ymin, (a, b) => lerp(a, b, (ymin - a[1]) / (b[1] - a[1])));
+  if (pts.length === 0) return [];
+  pts = clipEdge(pts, (p) => p[1] <= ymax, (a, b) => lerp(a, b, (ymax - a[1]) / (b[1] - a[1])));
+  if (pts.length === 0) return [];
+  pts.push(pts[0]);
+  return pts;
+}
+
+async function fetchWater(bbox) {
+  const env = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]}`;
+  // Step 1 — attributes only (no geometry, cheap): rank every intersecting
+  // water body by AREAWATER, keep the largest N. Skips the thousand canals.
+  const attrUrl = `${WATER_LAYER}?where=1%3D1&geometry=${encodeURIComponent(env)}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OBJECTID,NAME,AREAWATER&returnGeometry=false&f=json`;
+  const attrRes = await fetch(attrUrl);
+  if (!attrRes.ok) throw new Error(`water attrs ${attrRes.status}`);
+  const attrs = (await attrRes.json()).features ?? [];
+  if (attrs.length === 0) return { rings: [], names: [] };
+  const ranked = attrs
+    .map((f) => ({ id: f.attributes.OBJECTID, name: f.attributes.NAME || null, area: parseFloat(f.attributes.AREAWATER) || 0 }))
+    .filter((r) => r.id != null && r.area > 0)
+    .sort((a, b) => b.area - a.area)
+    .slice(0, WATER_FEATURE_CAP);
+  if (ranked.length === 0) return { rings: [], names: [] };
+  // Step 2 — geometry for just those top bodies, clipped to the county bbox.
+  const ids = ranked.map((r) => r.id).join(",");
+  const geoUrl = `${WATER_LAYER}?where=OBJECTID%20IN%20(${ids})&returnGeometry=true&geometryPrecision=4&outSR=4326&f=geojson`;
+  const geoRes = await fetch(geoUrl);
+  if (!geoRes.ok) throw new Error(`water geom ${geoRes.status}`);
+  const feats = (await geoRes.json()).features ?? [];
+  const rings = [];
+  const names = new Set();
+  for (const feat of feats) {
+    if (!feat.geometry) continue;
+    for (const ring of ringsOf(feat.geometry)) {
+      const clipped = clipRingToBbox(ring, bbox);
+      if (clipped.length >= 4) rings.push(clipped);
+    }
+    if (feat.properties?.NAME) names.add(feat.properties.NAME);
+  }
+  return { rings, names: [...names] };
 }
 
 function ringArea(ring) {
@@ -122,8 +226,18 @@ async function bakeCounty(slug) {
   const county = countyBySlug(slug);
   const feature = await fetchBoundary(county.geoid);
   const rings = simplifyToBudget(ringsOf(feature.geometry));
+  const bbox = bboxOfRings(rings);
+  const waterBbox = expandBbox(bbox, WATER_CLIP_MARGIN);
+  let water = { rings: [], names: [] };
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 200)); // be polite between the boundary + water calls
+    water = await fetchWater(waterBbox);
+  } catch (error) {
+    console.log(`    water fetch failed for ${slug}: ${error.message}`);
+  }
+  const waterRings = simplifyRingsToBudget(water.rings, WATER_VERTEX_BUDGET, WATER_MAX_RINGS);
   const pack = {
-    packVersion: 1,
+    packVersion: 2,
     geoid: county.geoid,
     countySlug: slug,
     name: feature.properties?.NAME ?? county.name,
@@ -131,12 +245,22 @@ async function bakeCounty(slug) {
     lod0: {
       boundaryRings: rings,
       vertexCount: rings.reduce((sum, r) => sum + r.length, 0),
+      waterRings,
+      waterVertexCount: waterRings.reduce((sum, r) => sum + r.length, 0),
+      waterNames: water.names.slice(0, WATER_MAX_RINGS),
     },
   };
   mkdirSync(OUT_DIR, { recursive: true });
   const path = `${OUT_DIR}/${slug}.json`;
   writeFileSync(path, JSON.stringify(pack));
-  return { slug, vertices: pack.lod0.vertexCount, rings: rings.length, bytes: JSON.stringify(pack).length };
+  return {
+    slug,
+    vertices: pack.lod0.vertexCount,
+    rings: rings.length,
+    waterRings: waterRings.length,
+    waterVertices: pack.lod0.waterVertexCount,
+    bytes: JSON.stringify(pack).length,
+  };
 }
 
 const { counties } = parseArgs(process.argv.slice(2));
@@ -149,7 +273,7 @@ for (const slug of counties) {
   try {
     const r = await bakeCounty(slug);
     results.push(r);
-    console.log(`OK  ${r.slug} rings=${r.rings} vertices=${r.vertices} bytes=${r.bytes}`);
+    console.log(`OK  ${r.slug} rings=${r.rings} vertices=${r.vertices} water=${r.waterRings}/${r.waterVertices}v bytes=${r.bytes}`);
   } catch (error) {
     console.log(`ERR ${slug} ${error.message}`);
     process.exitCode = 1;
