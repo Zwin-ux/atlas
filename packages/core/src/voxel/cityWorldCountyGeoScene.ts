@@ -284,6 +284,12 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
         width: cell,
         depth: cell,
         variant: variant % 4,
+        // Land reads as a RAISED plateau (cliff faces + drop shadow) so the
+        // county silhouette separates from the same-green off-board void; water
+        // stays flat at sea level, so the land/water step forms a natural shore.
+        ...(kind === "grass"
+          ? { visualGrammar: { terrainElevation: "raised_parcel_shelf" as const, contactProfile: "soft_ground_shadow" as const } }
+          : {}),
       });
       variant += 1;
       tileMinX = Math.min(tileMinX, tx);
@@ -296,9 +302,11 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
   const centroidGround = unprojectCityWorldGroundPoint(centroidScreen);
   const center: CityWorldPoint = { x: round3(centroidGround.x), y: round3(centroidGround.y), z: 0 };
   const boardTileSpan = Math.max(tileMaxX - tileMinX, tileMaxY - tileMinY) || 1;
-  // Fit the whole county in the desktop frame (base half-extent ~15 tiles).
-  const desktopZoom = round3(Math.min(1.1, Math.max(0.55, 26 / boardTileSpan)));
-  const mobileZoom = round3(Math.min(1.0, Math.max(0.5, 20 / boardTileSpan)));
+  // Fill the frame with the county — the real silhouette is jagged and sits in
+  // an off-board void, so err toward zooming IN (a small county should not read
+  // as a dot lost in green). Clamped so a big county still fits.
+  const desktopZoom = round3(Math.min(1.5, Math.max(0.7, 34 / boardTileSpan)));
+  const mobileZoom = round3(Math.min(1.3, Math.max(0.6, 26 / boardTileSpan)));
 
   const cameraPresets: CityWorldCameraPreset[] = [
     { id: "desktop", center, zoom: desktopZoom, minZoom: 0.4, maxZoom: 2.2 },

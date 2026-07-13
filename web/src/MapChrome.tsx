@@ -73,6 +73,16 @@ export function readRequestedCountySwitcherVisible(): boolean {
   return new URLSearchParams(window.location.search).get("atlasCountySwitcher") === "1";
 }
 
+// Real-geography county boards (TIGER boundary + water) as the primary preview
+// view, replacing the flat coverage outline. Ships dark behind this flag until
+// the honesty-copy audit and county-scale screenshots pass; flip to default-on
+// only when the real board is the certified experience. Same opt-in pattern as
+// atlasCountySwitcher.
+export function readRequestedGeoBoardEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("atlasGeoBoard") === "1";
+}
+
 function ZoomInIcon() {
   return (
     <svg className="city-world-icon" viewBox="0 0 20 20" aria-hidden="true">

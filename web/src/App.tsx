@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
 import {
+  compileCountyGeoScene,
   compileCountyShellCityWorldScene,
   createDeterministicGeneratedDistrictScene,
   createVoxelNote,
@@ -8,6 +9,7 @@ import {
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
   riversideDemoVoxelScene,
   type CityWorldScene,
+  type CountyGeoPack,
   type DeterministicGeneratedDistrictSpec,
   type VoxelNote,
   type VoxelScene,
@@ -18,7 +20,7 @@ import { sendUserMessage, updateModelContext, useToolResult, useWidgetState } fr
 import { CountyCoverageView } from "./CountyCoverageView";
 import { CountySwitcher, type CountySwitchSlug } from "./CountySwitcher";
 import { CityWorldView } from "./CityWorldView";
-import { readRequestedCountySwitcherVisible } from "./MapChrome";
+import { readRequestedCountySwitcherVisible, readRequestedGeoBoardEnabled } from "./MapChrome";
 import type { HostedClawdActionKind, HostedClawdContext, HostedClawdScreenState, WidgetSceneSession, WidgetState } from "./types";
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
@@ -457,6 +459,17 @@ function isCityWorldScene(value: unknown): value is CityWorldScene {
   );
 }
 
+function isCountyGeoPack(value: unknown): value is CountyGeoPack {
+  return Boolean(
+    isRecord(value) &&
+      hasString(value, "countySlug") &&
+      hasString(value, "geoid") &&
+      isRecord(value.lod0) &&
+      Array.isArray(value.lod0.boundaryRings) &&
+      value.lod0.boundaryRings.length > 0,
+  );
+}
+
 function isGeneratedHeightGridValue(value: unknown): boolean {
   return (
     value === undefined ||
@@ -610,7 +623,30 @@ export function App() {
   }, [rawGeneratedDraftSpec]);
   const rawGeneratedDraftScene = generatedDraftSpecScene ?? (isCityWorldScene(meta?.generatedDraftScene) ? meta.generatedDraftScene : null);
   const generatedDraftScene = rawGeneratedDraftScene?.id === dismissedGeneratedDraftSceneId ? null : rawGeneratedDraftScene;
-  const activeGeneratedScene = generatedScene ?? generatedDraftScene;
+  // Real-geography county board: compile the TIGER pack (boundary + water)
+  // client-side, same spec-not-scene pattern as the generated draft. Ships
+  // dark behind ?atlasGeoBoard=1 until the copy audit + screenshots pass.
+  const geoBoardEnabled = readRequestedGeoBoardEnabled();
+  const rawCountyGeoPack = geoBoardEnabled && isCountyGeoPack(meta?.countyGeoPack) ? meta.countyGeoPack : null;
+  const compiledCountyGeoScene = useMemo(() => {
+    if (!rawCountyGeoPack) return null;
+    try {
+      return compileCountyGeoScene(rawCountyGeoPack);
+    } catch {
+      return null;
+    }
+  }, [rawCountyGeoPack]);
+  // Respect the same dismissal channel as the generated draft, so the board's
+  // "Full map" button (which dismisses this scene id and returns to Riverside)
+  // actually leaves the board instead of it re-mounting from _meta.
+  const countyGeoScene = compiledCountyGeoScene?.id === dismissedGeneratedDraftSceneId ? null : compiledCountyGeoScene;
+  // The real board is the PRIMARY county view when present (it renders through
+  // the same CityWorldRenderer channel as the generated draft, so it also
+  // bypasses the flat coverage outline). The generated district stays as the
+  // drill-down fallback. isRealCountyBoard keeps honesty copy correct — real
+  // Census geography must never be labeled "generated".
+  const activeGeneratedScene = generatedScene ?? countyGeoScene ?? generatedDraftScene;
+  const isRealCountyBoard = Boolean(activeGeneratedScene && activeGeneratedScene === countyGeoScene);
   const forcedPlayableCounty = localCountySlug === "riverside-ca";
   const localCoverageState = localCountySlug === "orange-ca"
     ? { coverage: orangeCoverageSummary, shellScene: orangeShellScene }
@@ -758,7 +794,11 @@ export function App() {
       activeStepId: "county",
       noteDraft: "",
     }));
-    void updateModelContext("Atlas exited the generated preview and returned to Riverside/Eastvale.");
+    void updateModelContext(
+      isRealCountyBoard
+        ? "Atlas left the Census county-shape board and returned to the Riverside/Eastvale full map."
+        : "Atlas exited the generated preview and returned to Riverside/Eastvale.",
+    );
   };
 
   const countySwitcher = (
@@ -960,6 +1000,7 @@ export function App() {
       {...(scoutPreview || (campaignPreview && hostedClawdContext) ? { onAdvancePreview: advancePreview } : {})}
       countySwitcher={countySwitcher}
       generatedScene={activeGeneratedScene}
+      realCountyBoard={isRealCountyBoard}
       {...(hostedClawdContext
         ? {
             onOpenHostedClawd: openHostedClawd,

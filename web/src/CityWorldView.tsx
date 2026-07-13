@@ -29,6 +29,10 @@ export type CityWorldViewProps = {
   scene: VoxelScene;
   cameraFocus?: { sourceSceneId: string; preset: CityWorldScene["cameraPresets"][number] } | null;
   generatedScene?: CityWorldScene | null;
+  /** True when generatedScene is a REAL Census geo board (boundary + water),
+   *  not a synthetic generated district — flips the boundary chrome from the
+   *  "generated, not real coverage" banner to honest census-shape copy. */
+  realCountyBoard?: boolean;
   selectedDistrictId?: string | undefined;
   selectedPlaceId?: string | undefined;
   stickers?: VoxelSticker[];
@@ -88,6 +92,7 @@ export function CityWorldView({
   scene,
   cameraFocus = null,
   generatedScene = null,
+  realCountyBoard = false,
   selectedDistrictId,
   selectedPlaceId,
   stickers = [],
@@ -370,7 +375,17 @@ export function CityWorldView({
         </Suspense>
       </section>
 
-      {isGeneratedMode ? (
+      {isGeneratedMode && realCountyBoard ? (
+        <div className="city-world-generated-boundary" data-qa="census-boundary">
+          <div>
+            <span>CENSUS SHAPE</span>
+            <strong>Real county boundary and waters. Streets and places aren't mapped here yet — Riverside/Eastvale is the full explorable map.</strong>
+          </div>
+          <button type="button" data-qa="exit-census-board" onClick={onExitGeneratedPreview}>
+            Full map
+          </button>
+        </div>
+      ) : isGeneratedMode ? (
         <div className="city-world-generated-boundary" data-qa="generated-boundary">
           <div>
             <span>PREVIEW ONLY</span>
