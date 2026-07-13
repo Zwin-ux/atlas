@@ -97,6 +97,31 @@ const MCP_PATH = process.env.MCP_PATH ?? "/mcp";
 const serverSecurityConfig = readServerSecurityConfig(process.env);
 const countyPackService = new CountyPackService(resolve(ROOT_DIR, "data", "county_packs"));
 const countyQuestionService = new CountyQuestionService(countyPackService);
+
+// Real-geography county boards: TIGER geo packs (boundary + water) baked to
+// data/geo-packs. Loaded on demand and cached (negatives too — most counties
+// aren't baked yet, so a miss returns null and the widget keeps the preview).
+const GEO_PACKS_DIR = resolve(ROOT_DIR, "data", "geo-packs");
+const countyGeoPackCache = new Map<string, unknown | null>();
+function loadCountyGeoPack(slug: string | undefined): unknown | null {
+  if (!slug || !/^[a-z0-9-]+$/.test(slug)) return null; // guard path traversal
+  const cached = countyGeoPackCache.get(slug);
+  if (cached !== undefined) return cached;
+  let pack: unknown | null = null;
+  try {
+    const packPath = resolve(GEO_PACKS_DIR, `${slug}.json`);
+    if (existsSync(packPath)) {
+      const parsed = JSON.parse(readFileSync(packPath, "utf8")) as { lod0?: { boundaryRings?: unknown } };
+      if (parsed?.lod0 && Array.isArray(parsed.lod0.boundaryRings) && parsed.lod0.boundaryRings.length > 0) {
+        pack = parsed;
+      }
+    }
+  } catch {
+    pack = null;
+  }
+  countyGeoPackCache.set(slug, pack);
+  return pack;
+}
 const worldService = createNationalWorldService([riversideDemoVoxelScene]);
 const scenePacketRuntimeConfig = readScenePacketRuntimeConfig(process.env);
 if (scenePacketRuntimeConfig.production && scenePacketRuntimeConfig.blockers.length > 0) {
@@ -2989,6 +3014,7 @@ function createAtlasServer(): McpServer {
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const scenePacket = await scenePacketStatusForCoverage(coverage);
+        const countyGeoPack = loadCountyGeoPack(coverage.countySlug);
         const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
           ? generatedDraft.generatedDraftSpec
@@ -3005,6 +3031,7 @@ function createAtlasServer(): McpServer {
               countyLabel: coverage.countyLabel,
             })),
             ...(generatedDraft ?? {}),
+            ...(countyGeoPack ? { countyGeoPack } : {}),
           },
           content: [
             {
@@ -3167,6 +3194,7 @@ function createAtlasServer(): McpServer {
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const scenePacket = await scenePacketStatusForCoverage(coverage);
+        const countyGeoPack = loadCountyGeoPack(coverage.countySlug);
         const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
           ? generatedDraft.generatedDraftSpec
@@ -3183,6 +3211,7 @@ function createAtlasServer(): McpServer {
               countyLabel: coverage.countyLabel,
             })),
             ...(generatedDraft ?? {}),
+            ...(countyGeoPack ? { countyGeoPack } : {}),
           },
           content: [
             {
