@@ -10,7 +10,9 @@
 // Projection: county lon/lat -> UPRIGHT screen space (north up, longitude
 // latitude-corrected) -> inverse iso projection to tile (x,y), so the
 // isometric renderer paints the county in its true orientation. Land tiles
-// fill the interior; everything outside the boundary stays void (backdrop).
+// fill the interior; real TIGER water (bay/lake/river inside the boundary, and
+// the ocean/sea in a margin band just outside it) renders as water tiles;
+// everything else outside stays void (backdrop).
 import { CITY_WORLD_TILE_BASIS, unprojectCityWorldGroundPoint } from "./cityWorldBasis.js";
 import type {
   CityWorldAmbient,
@@ -25,6 +27,9 @@ import type {
 export type CountyGeoPackLod0 = {
   boundaryRings: number[][][]; // [ring][vertex][lon, lat]
   vertexCount: number;
+  waterRings?: number[][][]; // [ring][vertex][lon, lat] — bay/ocean/lake/river, real TIGER hydro
+  waterVertexCount?: number;
+  waterNames?: string[]; // "Florida Bay", "Lk Michigan" — for Phase 2 labels
 };
 
 export type CountyGeoPack = {
@@ -75,6 +80,27 @@ function pointInCounty(point: ScreenPoint, rings: ScreenPoint[][]): boolean {
     if (pointInRing(point, ring)) return true;
   }
   return false;
+}
+
+/**
+ * Even-odd fill across ALL water rings together. Unlike land, a sea polygon
+ * punches out the islands it surrounds as interior HOLES (Oahu is a hole in
+ * the Pacific, not separate water) — the union rule would flood those islands.
+ * Even-odd: inside an odd number of rings = water, so an island-in-a-sea
+ * (inside outer + inside hole = 2 = even) correctly reads as land.
+ */
+function pointInWater(point: ScreenPoint, rings: ScreenPoint[][]): boolean {
+  let crossings = 0;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+      const a = ring[i]!;
+      const b = ring[j]!;
+      if (a.y > point.y !== b.y > point.y && point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x) {
+        crossings += 1;
+      }
+    }
+  }
+  return crossings % 2 === 1;
 }
 
 function ringSignedArea(ring: ScreenPoint[]): number {
@@ -191,6 +217,15 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
   const mainRing = screenRings.reduce<ScreenPoint[]>((largest, ring) => (Math.abs(ringSignedArea(ring)) > Math.abs(ringSignedArea(largest)) ? ring : largest), screenRings[0] ?? []);
   const centroidScreen = ringCentroid(mainRing);
 
+  // Project the pack's water rings with the SAME transform (same lon0/lat0/
+  // scale) so bay/lake/river/ocean polygons register against the exact tile
+  // lattice as the land boundary. Water far from the anchored main landmass
+  // (island-chain counties) simply projects off-board and is never tested.
+  const waterScreenRings = (pack.lod0.waterRings ?? []).map((ring) =>
+    ring.map((v) => toScreen(v[0] ?? 0, v[1] ?? 0, lon0, lat0, scale)),
+  );
+  const hasWater = waterScreenRings.length > 0;
+
   // Iterate the iso TILE lattice directly (one tile per cell — solid fill,
   // no overlap, no aliasing) and keep the tiles whose projected center lands
   // inside the county polygon. `samplePx` controls tile granularity: one iso
@@ -207,21 +242,44 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
   const loTileY = Math.floor(Math.min(...cornerTiles.map((t) => t.y)));
   const hiTileY = Math.ceil(Math.max(...cornerTiles.map((t) => t.y)));
 
+  // Sea margin: extend the lattice a few tiles past the land bbox so the ocean
+  // or bay that FRAMES a coastal county (water baked with a margin-expanded
+  // clip) renders as surrounding sea, not a bare green cutout. Inland counties
+  // have no water out here, so their board stays tight to the land.
+  const seaMargin = hasWater
+    ? Math.min(8, Math.max(3, Math.round((((hiTileX - loTileX) + (hiTileY - loTileY)) / 2) * 0.14)))
+    : 0;
+  const loTileXM = loTileX - seaMargin * cell;
+  const hiTileXM = hiTileX + seaMargin * cell;
+  const loTileYM = loTileY - seaMargin * cell;
+  const hiTileYM = hiTileY + seaMargin * cell;
+
   const terrainTiles: CityWorldTerrainTile[] = [];
   let tileMinX = Infinity;
   let tileMaxX = -Infinity;
   let tileMinY = Infinity;
   let tileMaxY = -Infinity;
   let variant = 0;
-  for (let ty = loTileY; ty <= hiTileY; ty += cell) {
-    for (let tx = loTileX; tx <= hiTileX; tx += cell) {
-      // project tile center to screen and test against the upright polygon
+  let waterTileCount = 0;
+  for (let ty = loTileYM; ty <= hiTileYM; ty += cell) {
+    for (let tx = loTileXM; tx <= hiTileXM; tx += cell) {
+      // project tile center to screen and classify against the upright polygons
       const sx = (tx - ty) * (CITY_WORLD_TILE_BASIS.tileWidth / 2);
       const sy = (tx + ty) * (CITY_WORLD_TILE_BASIS.tileHeight / 2);
-      if (!pointInCounty({ x: sx, y: sy }, screenRings)) continue;
+      const inLand = pointInCounty({ x: sx, y: sy }, screenRings);
+      const inWater = hasWater && pointInWater({ x: sx, y: sy }, waterScreenRings);
+      let kind: CityWorldTerrainKind;
+      if (inLand) {
+        kind = inWater ? "water" : "grass"; // bay/lake/river inside the county
+      } else if (inWater) {
+        kind = "water"; // surrounding sea in the margin
+      } else {
+        continue; // outside both land and water — off-board void backdrop
+      }
+      if (kind === "water") waterTileCount += 1;
       terrainTiles.push({
         id: `county-tile-${terrainTiles.length}`,
-        kind: "grass" as CityWorldTerrainKind,
+        kind,
         position: { x: tx, y: ty, z: 0 },
         width: cell,
         depth: cell,
@@ -260,7 +318,7 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
     traffic: 0,
     residents: 0,
     clouds: 0,
-    waterShimmer: 0,
+    waterShimmer: waterTileCount > 0 ? 0.4 : 0,
   };
 
   const displayName = pack.name.replace(/\s+(County|Parish|Borough|Municipio|Census Area|City and Borough)$/i, "");

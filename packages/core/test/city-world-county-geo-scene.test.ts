@@ -12,11 +12,13 @@ function loadPack(slug: string): CountyGeoPack {
 }
 
 // Bounding-box fill ratio in screen space: how much of the county's projected
-// bounding box is land. A near-rectangular county (Loving TX) fills most of
-// its box; a jagged/peninsular one (Kalawao HI) fills much less. This proves
-// the silhouette reflects the REAL shape, not a generic board.
+// bounding box is LAND (grass). A near-rectangular county (Loving TX) fills
+// most of its box; a jagged/peninsular one (Kalawao HI) fills much less. This
+// proves the silhouette reflects the REAL shape, not a generic board. Grass
+// only — the surrounding sea margin must not inflate the land silhouette.
 function fillRatio(scene: ReturnType<typeof compileCountyGeoScene>): number {
-  const cells = scene.terrainTiles.map((tile) => ({
+  const landTiles = scene.terrainTiles.filter((tile) => tile.kind === "grass");
+  const cells = landTiles.map((tile) => ({
     sx: tile.position.x - tile.position.y,
     sy: tile.position.x + tile.position.y,
   }));
@@ -25,7 +27,13 @@ function fillRatio(scene: ReturnType<typeof compileCountyGeoScene>): number {
   const minY = Math.min(...cells.map((c) => c.sy));
   const maxY = Math.max(...cells.map((c) => c.sy));
   const boxCells = ((maxX - minX) / 2 + 1) * ((maxY - minY) / 2 + 1);
-  return scene.terrainTiles.length / boxCells;
+  return landTiles.length / boxCells;
+}
+
+function tileKindCounts(scene: ReturnType<typeof compileCountyGeoScene>): { grass: number; water: number; total: number } {
+  const grass = scene.terrainTiles.filter((tile) => tile.kind === "grass").length;
+  const water = scene.terrainTiles.filter((tile) => tile.kind === "water").length;
+  return { grass, water, total: scene.terrainTiles.length };
 }
 
 describe("compileCountyGeoScene", () => {
@@ -65,6 +73,29 @@ describe("compileCountyGeoScene", () => {
       expect(Number.isFinite(scene.cameraPresets[0]!.center.x)).toBe(true);
       expect(Number.isFinite(scene.cameraPresets[0]!.center.y)).toBe(true);
     }
+  });
+
+  it("classifies real water — coastal counties have substantial water, dry ones almost none", () => {
+    const miami = tileKindCounts(compileCountyGeoScene(loadPack("miami-dade-fl")));
+    const cook = tileKindCounts(compileCountyGeoScene(loadPack("cook-il")));
+    const loving = tileKindCounts(compileCountyGeoScene(loadPack("loving-tx")));
+    // Miami-Dade (Florida Bay + Atlantic) and Cook (Lake Michigan) are heavily coastal.
+    expect(miami.water / miami.total).toBeGreaterThan(0.2);
+    expect(cook.water / cook.total).toBeGreaterThan(0.3);
+    // Loving TX is bone-dry except a thread of the Pecos.
+    expect(loving.water / loving.total).toBeLessThan(0.1);
+    // Water present => shimmer on; effectively-dry board keeps it modest.
+    expect(compileCountyGeoScene(loadPack("miami-dade-fl")).ambient.waterShimmer).toBeGreaterThan(0);
+  });
+
+  it("island-in-a-sea reads as land, not flooded — even-odd hole fill (Honolulu regression)", () => {
+    // The Pacific polygon punches Oahu out as an interior hole; a naive union
+    // fill floods the island. Honolulu must keep a substantial LAND body AND a
+    // surrounding sea — not near-100% water.
+    const honolulu = tileKindCounts(compileCountyGeoScene(loadPack("honolulu-hi")));
+    expect(honolulu.grass).toBeGreaterThan(80);
+    expect(honolulu.water).toBeGreaterThan(40);
+    expect(honolulu.water / honolulu.total).toBeLessThan(0.85);
   });
 
   it("frontier and metro counties both produce finite, bounded boards", () => {
