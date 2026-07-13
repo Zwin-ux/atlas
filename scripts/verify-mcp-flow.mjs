@@ -44,6 +44,10 @@ function assertNoInternalLanguage(text, label) {
   assert(!/\b(compiler|GEOID|packet|verifier|structuredContent|_meta)\b/i.test(text), `${label} leaked internal implementation language.`);
 }
 
+function assertNoGeneratedPlaceJargon(text, label) {
+  assert(!/\b(alpha|tier|spec|generated|draft|archetype)\b/i.test(text), `${label} leaked generated-place jargon.`);
+}
+
 function assertLookupBoundaryText(text, label) {
   assert(/lookup-only/i.test(text), `${label} must say lookup-only.`);
   assert(/not saved/i.test(text), `${label} must say lookup results are not saved.`);
@@ -162,6 +166,63 @@ try {
     "ask_county_question must expose built-in data and live-market limitations.",
   );
 
+  const generatedPlaceQuestions = [
+    {
+      countySlug: "mobile-al",
+      question: "Where is the riverfront landing?",
+      expectedLabel: "Riverfront landing",
+    },
+    {
+      countySlug: "loving-tx",
+      question: "Where is the market?",
+      expectedLabel: "Desert market row",
+    },
+    {
+      countySlug: "miami-dade-fl",
+      question: "Where is the civic square?",
+      expectedLabel: "Civic square",
+    },
+  ];
+  const generatedQuestionSummaries = [];
+  for (const sample of generatedPlaceQuestions) {
+    const generatedQuestionResult = await client.callTool({
+      name: "ask_county_question",
+      arguments: {
+        countySlug: sample.countySlug,
+        question: sample.question,
+      },
+    });
+    const label = `ask_county_question generated ${sample.countySlug}`;
+    const generatedQuestionText = getTextContent(generatedQuestionResult, label);
+    const generatedQuestion = getStructuredContent(generatedQuestionResult, label);
+    assert(generatedQuestion.type === "countyQuestionAnswer", `${label} returned wrong type.`);
+    assert(generatedQuestion.supported === true, `${label} should answer drawn-place questions.`);
+    assert(generatedQuestion.topic === "generated_place", `${label} should use generated_place topic.`);
+    assert(generatedQuestion.targetLabel === sample.expectedLabel, `${label} target label changed.`);
+    assert(generatedQuestion.targetNodeId, `${label} must include a target node id.`);
+    assert(generatedQuestion.targetPlaceId, `${label} must include a target place id.`);
+    assert(generatedQuestion.cameraIntent?.targetLabel === sample.expectedLabel, `${label} must attach a camera intent for the place.`);
+    assert(
+      generatedQuestion.cameraIntent?.type === "focus_place" || generatedQuestion.cameraIntent?.type === "focus_landmark",
+      `${label} camera intent must focus a place or landmark.`,
+    );
+    assert(/Preview map answer/i.test(generatedQuestionText), `${label} text must identify preview map answer.`);
+    assert(/Tap it on the map/i.test(generatedQuestionText), `${label} text must tell the user to use the map.`);
+    assert(!generatedQuestionResult._meta?.scene, `${label} must not return a fake playable VoxelScene.`);
+    assert(generatedQuestionResult._meta?.generatedDraftSpec, `${label} should carry the widget spec for the active preview scene.`);
+    assert(generatedQuestionResult._meta?.generatedDraftPacket, `${label} should carry generated draft packet metadata.`);
+    assertNoForbiddenProductClaims(generatedQuestionText, label);
+    assertNoInternalLanguage(generatedQuestionText, label);
+    assertNoGeneratedPlaceJargon(generatedQuestionText, label);
+    generatedQuestionSummaries.push({
+      countySlug: sample.countySlug,
+      question: sample.question,
+      answer: generatedQuestion.answer,
+      targetLabel: generatedQuestion.targetLabel,
+      cameraIntent: generatedQuestion.cameraIntent?.type,
+    });
+  }
+
   const unsupportedCountyQuestionResult = await client.callTool({
       name: "ask_county_question",
       arguments: {
@@ -174,12 +235,14 @@ try {
   const unsupportedCountyQuestion = getStructuredContent(unsupportedCountyQuestionResult, "ask_county_question unsupported");
   assert(unsupportedCountyQuestion.type === "countyQuestionAnswer", "Unsupported county question returned wrong type.");
   assert(unsupportedCountyQuestion.supported === false, "Unsupported county/business question should be refused.");
-  assert(/only answer Riverside\/Eastvale/i.test(unsupportedCountyQuestionText), "Unsupported county answer must point back to Riverside/Eastvale boundary.");
+  assert(/Preview boundary/i.test(unsupportedCountyQuestionText), "Unsupported generated county answer must identify the preview boundary.");
+  assert(/will not make local facts or business claims/i.test(unsupportedCountyQuestionText), "Unsupported generated county answer must refuse local/business claims.");
   assertNoForbiddenProductClaims(unsupportedCountyQuestionText, "ask_county_question unsupported");
   assertNoInternalLanguage(unsupportedCountyQuestionText, "ask_county_question unsupported");
+  assertNoGeneratedPlaceJargon(unsupportedCountyQuestionText, "ask_county_question unsupported");
   assert(
-    /Riverside County|Supported score lanes|unsupported/i.test(unsupportedCountyQuestion.answer),
-    "Unsupported county/business answer should narrow scope clearly.",
+    /drawn place labels|business claims|unsupported/i.test(unsupportedCountyQuestion.answer),
+    "Unsupported generated county/business answer should narrow scope clearly.",
   );
 
   const countyResult = await client.callTool({
@@ -355,6 +418,7 @@ try {
         selectedCountySceneId: selectedCounty.sceneId,
         shellCountyTier: shellCounty.coverageTier,
         countyQuestionTopic: countyQuestion.topic,
+        generatedQuestionSummaries,
         unsupportedCountyQuestion: unsupportedCountyQuestion.supported,
         scoutPreviewId: scout.id,
         campaignPreviewId: campaign.id,

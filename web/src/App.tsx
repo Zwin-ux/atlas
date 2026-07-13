@@ -568,14 +568,18 @@ function cameraIntentFromStructuredContent(value: unknown): CameraIntent | null 
   return value.cameraIntent;
 }
 
-function placeForCameraIntent(scene: VoxelScene, cameraIntent: CameraIntent | null): NonNullable<VoxelScene["world"]>["places"][number] | null {
+function placeForCameraIntent(places: InteractionPlace[], cameraIntent: CameraIntent | null): InteractionPlace | null {
   if (!cameraIntent || (cameraIntent.type !== "focus_place" && cameraIntent.type !== "focus_landmark")) return null;
-  const places = scene.world?.places ?? [];
   return (
     places.find((place) => cameraIntent.targetLabel && place.label === cameraIntent.targetLabel) ??
+    places.find((place) => cameraIntent.targetLabel && normalizeLabel(place.label) === normalizeLabel(cameraIntent.targetLabel)) ??
     places.find((place) => cameraIntent.targetNodeId && place.nodeId === cameraIntent.targetNodeId) ??
     null
   );
+}
+
+function normalizeLabel(value: string | undefined): string {
+  return value?.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() ?? "";
 }
 
 export function App() {
@@ -661,14 +665,14 @@ export function App() {
   const appliedCameraIntentForRef = useRef<unknown>(null);
   useEffect(() => {
     if (!toolCameraIntent || appliedCameraIntentForRef.current === structuredContent) return;
-    const place = placeForCameraIntent(scene, toolCameraIntent);
+    const place = placeForCameraIntent(activeInteractionPlaces, toolCameraIntent);
     if (!place) return;
     appliedCameraIntentForRef.current = structuredContent;
     setWidgetState((current) => {
-      if (current.activeSceneId === scene.id && current.selectedPlaceId === place.id && current.selectedNodeId === place.nodeId) {
+      if (current.activeSceneId === activeInteractionSceneId && current.selectedPlaceId === place.id && current.selectedNodeId === place.nodeId) {
         return current;
       }
-      return withSceneSession(current, scene.id, {
+      return withSceneSession(current, activeInteractionSceneId, {
         selectedDistrictId: place.districtId,
         selectedPlaceId: place.id,
         selectedNodeId: place.nodeId,
@@ -676,7 +680,7 @@ export function App() {
         noteDraft: "",
       });
     });
-  }, [scene, setWidgetState, structuredContent, toolCameraIntent]);
+  }, [activeInteractionPlaces, activeInteractionSceneId, setWidgetState, structuredContent, toolCameraIntent]);
 
   const activeSceneMatches = widgetState.activeSceneId === activeInteractionSceneId;
   const selectedDistrictId = activeSceneSession.selectedDistrictId ?? activeInteractionDefaultPlace?.districtId ?? scene.world?.selectedDistrictId;

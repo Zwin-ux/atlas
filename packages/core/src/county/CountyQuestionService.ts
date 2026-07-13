@@ -1,12 +1,14 @@
 import type { CountyMapNode, CountyPack, CountySource } from "./types.js";
 import { CountyPackService } from "./CountyPackService.js";
 import { compileVoxelSceneFromCountyPack } from "../voxel/VoxelSceneCompiler.js";
-import type { VoxelDistrict, VoxelPlace } from "../voxel/types.js";
+import type { CityWorldPlace, CityWorldScene } from "../voxel/cityWorldTypes.js";
+import type { VoxelDistrict, VoxelPlace, VoxelPlaceKind } from "../voxel/types.js";
 
 export type CountyQuestionTopic =
   | "eastvale_first_slice"
   | "business_signals"
   | "county_summary"
+  | "generated_place"
   | "source_limits"
   | "unsupported";
 
@@ -39,6 +41,8 @@ export type CountyQuestionInput = {
   countySlug?: string;
   question: string;
   businessType?: string;
+  generatedScene?: CityWorldScene;
+  generatedCountyLabel?: string;
 };
 
 const ALPHA_COUNTY_SLUG = "riverside-ca";
@@ -56,6 +60,16 @@ export class CountyQuestionService {
     const question = input.question.trim();
 
     if (countySlug !== ALPHA_COUNTY_SLUG) {
+      if (input.generatedScene) {
+        return generatedScenePlaceAnswer({
+          countySlug,
+          question,
+          scene: input.generatedScene,
+          ...(input.generatedCountyLabel ? { countyLabel: input.generatedCountyLabel } : {}),
+          ...(input.businessType ? { businessType: input.businessType } : {}),
+        });
+      }
+
       return unsupportedAnswer({
         countySlug,
         question,
@@ -230,6 +244,157 @@ function unsupportedPlaceAnswer(pack: CountyPack, question: string): CountyQuest
     limitations: alphaLimitations(pack),
     suggestedNextTool: "select_county",
   });
+}
+
+type GeneratedScenePlaceAnswerInput = {
+  countySlug: string;
+  countyLabel?: string;
+  question: string;
+  businessType?: string;
+  scene: CityWorldScene;
+};
+
+type GeneratedScenePlaceTarget = {
+  place: CityWorldPlace;
+  aliases: string[];
+};
+
+function generatedScenePlaceAnswer(input: GeneratedScenePlaceAnswerInput): CountyQuestionAnswer {
+  if (
+    !input.question ||
+    input.businessType?.trim() ||
+    detectBusinessFromQuestion(input.question) ||
+    isUnsupportedBusinessQuestion(input.question, undefined) ||
+    isGeneratedPreviewBusinessClaimQuestion(input.question) ||
+    isOutOfWorldQuestion(input.question) ||
+    isSourceQuestion(input.question)
+  ) {
+    return unsupportedGeneratedSceneAnswer(input);
+  }
+
+  const target = resolveGeneratedScenePlaceTarget(input.scene, input.question);
+  if (!target) {
+    return unsupportedGeneratedSceneAnswer(input);
+  }
+
+  const placeKind = generatedPlaceKindLabel(target.place.kind);
+  return {
+    type: "countyQuestionAnswer",
+    countySlug: input.countySlug,
+    question: input.question,
+    supported: true,
+    topic: "generated_place",
+    answer: `In this preview, ${target.place.label} is a ${placeKind} place. Tap it on the map.`,
+    facts: [
+      {
+        label: "Map label",
+        value: target.place.label,
+        sourceNodeIds: [target.place.nodeId],
+      },
+      {
+        label: "Place type",
+        value: placeKind,
+        sourceNodeIds: [target.place.nodeId],
+      },
+    ],
+    sourceNotes: generatedSceneSourceNotes(input.countyLabel),
+    limitations: generatedSceneLimitations(),
+    suggestedNextTool: "select_county",
+    targetNodeId: target.place.nodeId,
+    targetPlaceId: target.place.id,
+    targetLabel: target.place.label,
+    targetKind: target.place.kind === "landmark" ? "landmark" : "place",
+  };
+}
+
+function unsupportedGeneratedSceneAnswer(input: GeneratedScenePlaceAnswerInput): CountyQuestionAnswer {
+  return unsupportedAnswer({
+    countySlug: input.countySlug,
+    question: input.question || "(empty question)",
+    answer:
+      "Atlas cannot answer that from this preview. It only has drawn place labels and place types here, so it will not make local facts or business claims.",
+    facts: [
+      {
+        label: "Preview boundary",
+        value: "Ask where a visible map place is, such as a market, homes, civic place, park, riverfront, or tower.",
+      },
+    ],
+    sourceNotes: generatedSceneSourceNotes(input.countyLabel),
+    limitations: generatedSceneLimitations(),
+    suggestedNextTool: "select_county",
+  });
+}
+
+function resolveGeneratedScenePlaceTarget(scene: CityWorldScene, question: string): GeneratedScenePlaceTarget | undefined {
+  if (!isPlaceLocationQuestion(question)) return undefined;
+  const lower = normalizeSearchText(question);
+  return generatedScenePlaceTargets(scene)
+    .map((target) => ({
+      target,
+      matchedAliasLength: longestMatchedGeneratedAliasLength(target, lower),
+    }))
+    .filter((match) => match.matchedAliasLength > 0)
+    .sort((a, b) => b.matchedAliasLength - a.matchedAliasLength)[0]?.target;
+}
+
+function generatedScenePlaceTargets(scene: CityWorldScene): GeneratedScenePlaceTarget[] {
+  return scene.places.map((place) => ({
+    place,
+    aliases: aliasesForGeneratedPlace(place),
+  }));
+}
+
+function aliasesForGeneratedPlace(place: CityWorldPlace): string[] {
+  const raw = [place.id, place.nodeId, place.label, place.kind, ...place.label.split(/\s+/)];
+  if (place.kind === "shop") raw.push("shop", "shops", "market", "stores", "service");
+  if (place.kind === "home_area") raw.push("homes", "home", "houses", "residential", "neighborhood");
+  if (place.kind === "park") raw.push("park", "green", "common", "field");
+  if (place.kind === "plaza") raw.push("plaza", "square");
+  if (place.kind === "road") raw.push("road", "street", "main street");
+  if (place.kind === "landmark") raw.push("landmark", "civic", "tower", "courthouse", "landing");
+  return unique(raw.map(normalizeSearchText).filter((alias) => alias.length >= 3));
+}
+
+function longestMatchedGeneratedAliasLength(target: GeneratedScenePlaceTarget, normalizedQuestion: string): number {
+  return Math.max(0, ...target.aliases.filter((alias) => normalizedQuestion.includes(alias)).map((alias) => alias.length));
+}
+
+function generatedPlaceKindLabel(kind: VoxelPlaceKind): string {
+  switch (kind) {
+    case "home_area":
+      return "homes";
+    case "shop":
+      return "shop";
+    case "plaza":
+      return "plaza";
+    case "park":
+      return "park";
+    case "road":
+      return "street";
+    case "landmark":
+      return "landmark";
+  }
+}
+
+function generatedSceneSourceNotes(countyLabel: string | undefined): CountySource[] {
+  return [
+    {
+      name: countyLabel ? `${countyLabel} preview map labels` : "Atlas preview map labels",
+      sourceType: "preview_map",
+      confidenceScore: 0.7,
+    },
+  ];
+}
+
+function generatedSceneLimitations(): string[] {
+  return [
+    "Answers use only place labels and place types drawn in this preview.",
+    "No local facts, business claims, addresses, hours, prices, listings, saved state, XP, evidence, outreach, or automation.",
+  ];
+}
+
+function isGeneratedPreviewBusinessClaimQuestion(question: string): boolean {
+  return /\b(should i|will .{0,40} work|demand|customers?|leads?|roi|revenue|competition|competitors?|advertis|paid ads?|best business|launch)\b/i.test(question);
 }
 
 function sourceLimitsAnswer(pack: CountyPack, question: string): CountyQuestionAnswer {

@@ -952,7 +952,7 @@ const countyQuestionAnswerOutputSchema = {
   countySlug: z.string(),
   question: z.string(),
   supported: z.boolean(),
-  topic: z.enum(["eastvale_first_slice", "business_signals", "county_summary", "source_limits", "unsupported"]),
+  topic: z.enum(["eastvale_first_slice", "business_signals", "county_summary", "generated_place", "source_limits", "unsupported"]),
   answer: z.string(),
   facts: z.array(
     z.object({
@@ -1204,6 +1204,21 @@ function cameraIntentForCountyAnswer(scene: ScoutPreviewState["scene"], answer: 
   };
 }
 
+function cameraIntentForGeneratedCountyAnswer(cityScene: CityWorldScene | undefined, answer: CountyQuestionAnswer): CameraIntent | undefined {
+  if (!cityScene || !answer.supported || !answer.targetNodeId) return undefined;
+  const targetPlace =
+    cityScene.places.find((place) => place.nodeId === answer.targetNodeId && (!answer.targetLabel || place.label === answer.targetLabel)) ??
+    cityScene.places.find((place) => place.nodeId === answer.targetNodeId) ??
+    cityScene.places.find((place) => normalizedLabel(place.label) === normalizedLabel(answer.targetLabel));
+  if (!targetPlace) return undefined;
+
+  return {
+    type: targetPlace.kind === "landmark" ? "focus_landmark" : "focus_place",
+    targetNodeId: targetPlace.nodeId,
+    targetLabel: targetPlace.label,
+  };
+}
+
 function focusCameraPresetForIntent(
   scene: ScoutPreviewState["scene"],
   cityScene: CityWorldScene,
@@ -1354,7 +1369,12 @@ function clamp(value: number, min: number, max: number): number {
 
 async function getOrCreateGeneratedDraftScenePacket(
   coverage: CountyCoverageStructuredContent,
-): Promise<{ generatedDraftSpec?: DeterministicGeneratedDistrictSpec; generatedDraftPacket: ScenePacketMemorySummary } | undefined> {
+  options: { includeScenePayload?: boolean } = {},
+): Promise<{
+  generatedDraftSpec?: DeterministicGeneratedDistrictSpec;
+  generatedDraftScene?: CityWorldScene;
+  generatedDraftPacket: ScenePacketMemorySummary;
+} | undefined> {
   if (coverage.coverageTier !== "L1_COUNTY_SHELL" || !coverage.stateCode || !coverage.geoid) {
     return undefined;
   }
@@ -1418,6 +1438,7 @@ async function getOrCreateGeneratedDraftScenePacket(
 
   return {
     ...(packet.payload ? { generatedDraftSpec: generated } : {}),
+    ...(options.includeScenePayload && packet.payload ? { generatedDraftScene: packet.payload as CityWorldScene } : {}),
     generatedDraftPacket: packet.summary,
   };
 }
@@ -3020,10 +3041,10 @@ function createAtlasServer(): McpServer {
     {
       title: "Ask county question",
       description:
-        "Use this when the user asks a factual Riverside/Eastvale county, map, or local-business question. It answers from built-in Riverside/Eastvale map data only; it does not open or refresh the map and does not search live nearby places. Closed-world and read-only; unsupported questions are refused rather than guessed.",
+        "Use this when the user asks a factual Riverside/Eastvale county, map, or local-business question, or asks where a drawn place is in a preview county map. It answers from built-in map data and preview place labels only; it does not search live nearby places. Closed-world and read-only; unsupported questions are refused rather than guessed.",
       inputSchema: {
-        question: z.string().min(1).describe("County or business question to answer from built-in Atlas data."),
-        countySlug: z.string().optional().describe("County id. Riverside is supported for answers today."),
+        question: z.string().min(1).describe("County or map question to answer from built-in Atlas data."),
+        countySlug: z.string().optional().describe("County id. Riverside has the full map; preview counties can answer drawn-place questions only."),
         businessType: z
           .string()
           .optional()
@@ -3038,11 +3059,52 @@ function createAtlasServer(): McpServer {
       _meta: {
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Checking Riverside map data...",
+        "openai/toolInvocation/invoking": "Checking Atlas map data...",
         "openai/toolInvocation/invoked": "County answer ready.",
       },
     },
     async ({ question, countySlug, businessType }) => instrumentMcpTool("ask_county_question", async () => {
+      const requestedCountySlug = countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG;
+      if (!isPlayableEngineBetaCounty(requestedCountySlug)) {
+        const coverage = countyCoverageForSlug(requestedCountySlug);
+        const generatedDraft = await getOrCreateGeneratedDraftScenePacket(coverage, { includeScenePayload: true });
+        const answer = publicCountyQuestionAnswer(
+          countyQuestionService.answer({
+            question,
+            countySlug: coverage.countySlug,
+            businessType,
+            generatedScene: generatedDraft?.generatedDraftScene,
+            generatedCountyLabel: coverage.countyLabel,
+          }),
+        );
+        const cameraIntent = cameraIntentForGeneratedCountyAnswer(generatedDraft?.generatedDraftScene, answer);
+        const scenePacket = generatedDraft?.generatedDraftPacket ?? (await scenePacketStatusForCoverage(coverage));
+        const structuredContent = {
+          ...answer,
+          ...(cameraIntent ? { cameraIntent } : {}),
+        };
+        const answerPrefix = answer.supported ? "Preview map answer." : "Preview boundary.";
+        return {
+          structuredContent,
+          _meta: {
+            scenePacket,
+            ...hostedClawdMeta(hostedClawdService.getContext({
+              trigger: "map_tray",
+              countySlug: coverage.countySlug,
+              countyLabel: coverage.countyLabel,
+            })),
+            ...(generatedDraft?.generatedDraftSpec ? { generatedDraftSpec: generatedDraft.generatedDraftSpec } : {}),
+            ...(generatedDraft?.generatedDraftPacket ? { generatedDraftPacket: generatedDraft.generatedDraftPacket } : {}),
+          },
+          content: [
+            {
+              type: "text" as const,
+              text: `${answerPrefix} ${answer.answer}\n\nLimits: ${answer.limitations.join(" ")}`,
+            },
+          ],
+        };
+      }
+
       const answer = publicCountyQuestionAnswer(countyQuestionService.answer({ question, countySlug, businessType }));
       const requestedNodeId = answer.supported && answer.targetNodeId ? answer.targetNodeId : "eastvale";
       const { scene, scenePacket } = await getOrCreatePlayableScenePacket(PLAYABLE_ENGINE_BETA_COUNTY_SLUG, requestedNodeId);

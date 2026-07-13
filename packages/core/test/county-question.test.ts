@@ -1,13 +1,22 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { CountyPackService, CountyQuestionService } from "../src/index.js";
+import {
+  CountyPackService,
+  CountyQuestionService,
+  createDeterministicGeneratedDistrictScene,
+  createNationalWorldService,
+  riversideDemoVoxelScene,
+  type CityWorldScene,
+} from "../src/index.js";
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const countyPackDir = resolve(testDir, "../../../data/county_packs");
+const generatedQuestionBannedWords = /\b(alpha|tier|spec|generated|draft|archetype)\b/i;
 
 describe("CountyQuestionService", () => {
   const service = new CountyQuestionService(new CountyPackService(countyPackDir));
+  const worldService = createNationalWorldService([riversideDemoVoxelScene]);
 
   it("explains why Eastvale is the first slice from curated data", () => {
     const answer = service.answer({
@@ -129,4 +138,83 @@ describe("CountyQuestionService", () => {
     expect(unsupportedBusiness.answer).toContain("Supported score lanes");
     expect(unsupportedBusiness.limitations.join(" ")).toContain("Closed-world");
   });
+
+  it("answers generated preview place questions on anchor counties with map targets", () => {
+    const anchors = [
+      {
+        countySlug: "mobile-al",
+        question: "Where is the riverfront landing?",
+        expectedLabel: "Riverfront landing",
+      },
+      {
+        countySlug: "loving-tx",
+        question: "Where is the market?",
+        expectedLabel: "Desert market row",
+      },
+      {
+        countySlug: "miami-dade-fl",
+        question: "Where is the civic square?",
+        expectedLabel: "Civic square",
+      },
+    ];
+
+    for (const anchor of anchors) {
+      const scene = generatedSceneForCounty(anchor.countySlug);
+      const answer = service.answer({
+        countySlug: anchor.countySlug,
+        question: anchor.question,
+        generatedScene: scene,
+        generatedCountyLabel: scene.region.county,
+      });
+
+      expect(answer.supported).toBe(true);
+      expect(answer.topic).toBe("generated_place");
+      expect(answer.answer).toContain(anchor.expectedLabel);
+      expect(answer.answer).toContain("Tap it on the map");
+      expect(answer.targetNodeId).toBeTruthy();
+      expect(answer.targetPlaceId).toBeTruthy();
+      expect(answer.targetLabel).toBe(anchor.expectedLabel);
+      expect(answer.facts.map((fact) => fact.label)).toContain("Map label");
+      expect(`${answer.answer} ${answer.limitations.join(" ")} ${answer.facts.map((fact) => fact.value).join(" ")}`).not.toMatch(
+        generatedQuestionBannedWords,
+      );
+    }
+  });
+
+  it("refuses generated preview questions that require facts outside scene labels", () => {
+    for (const countySlug of ["mobile-al", "loving-tx", "miami-dade-fl"]) {
+      const scene = generatedSceneForCounty(countySlug);
+      const answer = service.answer({
+        countySlug,
+        question: "Will mobile detailing work here?",
+        businessType: "mobile detailing",
+        generatedScene: scene,
+        generatedCountyLabel: scene.region.county,
+      });
+
+      expect(answer.supported).toBe(false);
+      expect(answer.topic).toBe("unsupported");
+      expect(answer.answer).toContain("cannot answer that from this preview");
+      expect(answer.answer).toContain("will not make local facts or business claims");
+      expect(answer.targetNodeId).toBeUndefined();
+      expect(answer.targetLabel).toBeUndefined();
+      expect(`${answer.answer} ${answer.limitations.join(" ")} ${answer.facts.map((fact) => fact.value).join(" ")}`).not.toMatch(
+        generatedQuestionBannedWords,
+      );
+    }
+  });
+
+  function generatedSceneForCounty(countySlug: string): CityWorldScene {
+    const response = worldService.getCounty(countySlug);
+    if (!response.county.geoid) throw new Error(`Missing GEOID for ${countySlug}`);
+    return createDeterministicGeneratedDistrictScene({
+      county: {
+        geoid: response.county.geoid,
+        stateCode: response.county.stateCode,
+        name: response.county.label,
+        countySlug: response.county.countySlug,
+        ...(response.county.centroid ? { centroid: response.county.centroid } : {}),
+      },
+    }).result.scene;
+  }
 });
