@@ -8,6 +8,11 @@
   "selectedAxis": "real_geography_promotion_readiness",
   "recommendedNextQuest": "0.78-2 Real Town Anchors after production deploy and real-host G8",
   "decision": "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE",
+  "releaseCandidate": {
+    "baseSha": "0e94a6ce9d4ed362c03d2286696919b9cd6836bf",
+    "pathCount": 46,
+    "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html"
+  },
   "metricResult": {
     "featureFlag": "atlasGeoBoard=1",
     "defaultEnabled": false,

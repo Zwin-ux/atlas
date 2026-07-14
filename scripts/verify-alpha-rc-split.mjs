@@ -465,13 +465,16 @@ const rawArgs = process.argv.slice(2);
 const args = new Set(rawArgs);
 
 if (args.has("--help") || args.has("-h")) {
-  console.log(`Usage: node scripts/verify-alpha-rc-split.mjs [--working-tree] [--json-only] [--strict-selected-rc] [--rc-mode <mode>]
+  console.log(`Usage: node scripts/verify-alpha-rc-split.mjs [--working-tree | --git-range <base..head>] [--json-only] [--strict-selected-rc] [--rc-mode <mode>]
 
 Default mode inspects staged files with:
   git diff --cached --name-only
 
 --working-tree inspects dirty working-tree paths with:
   git status --short --untracked-files=all
+
+--git-range inspects committed paths with:
+  git diff --name-only <base..head> --
 
 --json-only suppresses human-readable blocker output and prints only the JSON
 summary. The exit code still fails when blockers are present.
@@ -530,6 +533,7 @@ that require hunk review, and unknown paths block a Functional Alpha RC.`);
 }
 
 const rcMode = getOptionValue(rawArgs, "--rc-mode") ?? "functional-alpha";
+const gitRange = getOptionValue(rawArgs, "--git-range");
 
 if (!RC_MODES.has(rcMode)) {
   throw new Error(`Unknown --rc-mode: ${rcMode}`);
@@ -537,7 +541,7 @@ if (!RC_MODES.has(rcMode)) {
 
 for (let index = 0; index < rawArgs.length; index += 1) {
   const arg = rawArgs[index];
-  if (arg === "--rc-mode") {
+  if (arg === "--rc-mode" || arg === "--git-range") {
     index += 1;
     continue;
   }
@@ -546,12 +550,21 @@ for (let index = 0; index < rawArgs.length; index += 1) {
   }
 }
 
-const mode = args.has("--working-tree") ? "working-tree" : "staged";
+if (args.has("--working-tree") && gitRange) {
+  throw new Error("--working-tree and --git-range are mutually exclusive.");
+}
+
+const mode = gitRange ? "git-range" : args.has("--working-tree") ? "working-tree" : "staged";
 const jsonOnly = args.has("--json-only");
 const strictSelectedRc = args.has("--strict-selected-rc");
-const sourceCommand = mode === "working-tree" ? "git status --short --untracked-files=all" : "git diff --cached --name-only";
+const sourceCommand =
+  mode === "working-tree"
+    ? "git status --short --untracked-files=all"
+    : mode === "git-range"
+      ? `git diff --name-only ${gitRange} --`
+      : "git diff --cached --name-only";
 const selectedRcAllowedPaths = getSelectedRcAllowedPaths(rcMode);
-const paths = mode === "working-tree" ? getWorkingTreePaths() : getStagedPaths();
+const paths = mode === "working-tree" ? getWorkingTreePaths() : mode === "git-range" ? getGitRangePaths(gitRange) : getStagedPaths();
 const results = paths.map((path) => ({ path, ...classifyPath(path) }));
 const filesByClassification = Object.fromEntries(CLASSIFICATIONS.map((classification) => [classification, []]));
 
@@ -606,6 +619,14 @@ if (blockers.length > 0) {
 
 function getStagedPaths() {
   return runGit(["diff", "--cached", "--name-only"])
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(normalizePath);
+}
+
+function getGitRangePaths(range) {
+  return runGit(["diff", "--name-only", range, "--"])
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)

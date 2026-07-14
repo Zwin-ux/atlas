@@ -116,6 +116,25 @@ if (-not $committedUpdateId.Equals($ExpectedUpdateId, [System.StringComparison]:
   throw "Current-update mismatch: expected '$ExpectedUpdateId', committed id is '$committedUpdateId'."
 }
 
+$releaseBaseSha = "$($currentUpdate.releaseCandidate.baseSha)"
+$releasePathCount = [int]$currentUpdate.releaseCandidate.pathCount
+if ($releaseBaseSha -notmatch "^[0-9a-fA-F]{40}$" -or $releasePathCount -le 0) {
+  throw "Committed current update must record a full releaseCandidate.baseSha and positive pathCount."
+}
+$releaseRange = "${releaseBaseSha}..${commit}"
+$splitOutput = & node scripts/verify-alpha-rc-split.mjs --git-range $releaseRange --strict-selected-rc --rc-mode national-generation-contract --json-only 2>&1
+if ($LASTEXITCODE -ne 0) {
+  throw "Committed release range failed the strict split guard: $(($splitOutput | Out-String).Trim())"
+}
+try {
+  $splitResult = ($splitOutput | Out-String) | ConvertFrom-Json
+} catch {
+  throw "Committed release split guard did not return valid JSON: $($_.Exception.Message)"
+}
+if ($splitResult.ok -ne $true -or [int]$splitResult.fileCount -ne $releasePathCount -or [int]$splitResult.blockerCount -ne 0) {
+  throw "Committed release range mismatch: expected $releasePathCount paths and 0 blockers; got paths=$($splitResult.fileCount), blockers=$($splitResult.blockerCount)."
+}
+
 $serverSource = Invoke-GitText -GitArguments @("show", "${commit}:server/src/index.ts")
 $widgetUris = @(
   [regex]::Matches($serverSource, "ui://widget/[A-Za-z0-9._/-]+") |
@@ -178,6 +197,7 @@ if ($env:ATLAS_DEPLOY_WORKER -eq "1" -and $workerInstances.Count -ne 1) {
 Write-Host "`nRelease identity preflight passed" -ForegroundColor Cyan
 Write-Host "  SHA:         $commit"
 Write-Host "  Update:      $committedUpdateId"
+Write-Host "  RC range:    $releaseRange ($releasePathCount paths)"
 Write-Host "  Widget URI:  $widgetUri"
 Write-Host "  Worktree:    $resolvedWorktree"
 Write-Host "  Railway:     project=$expectedProject environment=$expectedEnvironment service=$backendService serviceId=$($backendInstance.serviceId)"

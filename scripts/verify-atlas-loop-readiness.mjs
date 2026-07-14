@@ -106,22 +106,32 @@ if (existsSync(cutlinePath)) {
 let dirtyForbiddenPaths = [];
 let splitGuard = null;
 try {
-  const splitGuardOutput = execFileSync(
-    "node",
-    [
-      "scripts/verify-alpha-rc-split.mjs",
-      "--strict-selected-rc",
-      "--rc-mode",
-      "national-generation-contract",
-      "--json-only",
-    ],
-    { encoding: "utf8" },
-  );
+  const baseArgs = [
+    "scripts/verify-alpha-rc-split.mjs",
+    "--strict-selected-rc",
+    "--rc-mode",
+    "national-generation-contract",
+    "--json-only",
+  ];
+  let splitGuardOutput = execFileSync("node", baseArgs, { encoding: "utf8" });
   splitGuard = JSON.parse(splitGuardOutput);
+  if (splitGuard.fileCount === 0) {
+    const baseSha = currentUpdate.releaseCandidate?.baseSha;
+    if (!baseSha) throw new Error("Clean release verification requires currentUpdate.releaseCandidate.baseSha.");
+    splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..HEAD`], { encoding: "utf8" });
+    splitGuard = JSON.parse(splitGuardOutput);
+  }
   dirtyForbiddenPaths = splitGuard.strictUnexpectedPaths ?? [];
-  if (splitGuard.ok !== true || splitGuard.blockerCount !== 0 || dirtyForbiddenPaths.length > 0) {
+  const expectedPathCount = currentUpdate.releaseCandidate?.pathCount;
+  if (
+    splitGuard.ok !== true ||
+    splitGuard.blockerCount !== 0 ||
+    dirtyForbiddenPaths.length > 0 ||
+    !Number.isInteger(expectedPathCount) ||
+    splitGuard.fileCount !== expectedPathCount
+  ) {
     blockers.push(
-      `staged national-generation-contract split guard must pass with 0 blockers / 0 unknowns; got blockers=${splitGuard.blockerCount ?? "unknown"}, unknown=${dirtyForbiddenPaths.length}.`,
+      `release national-generation-contract split guard must pass with ${expectedPathCount ?? "a recorded number of"} paths, 0 blockers, and 0 unknowns; got paths=${splitGuard.fileCount ?? "unknown"}, blockers=${splitGuard.blockerCount ?? "unknown"}, unknown=${dirtyForbiddenPaths.length}.`,
     );
   }
 } catch (error) {

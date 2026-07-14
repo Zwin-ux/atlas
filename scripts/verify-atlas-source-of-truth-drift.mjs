@@ -1161,6 +1161,13 @@ function checkCensusBoardCurrentUpdate(update) {
   ) {
     blockers.push("0.78-1V must record the exact seven-tool production contract and versioned widget resource URI.");
   }
+  if (
+    update.releaseCandidate?.baseSha !== "0e94a6ce9d4ed362c03d2286696919b9cd6836bf" ||
+    update.releaseCandidate?.pathCount !== 46 ||
+    update.releaseCandidate?.widgetResourceUri !== "ui://widget/atlas-city-world-0781v.html"
+  ) {
+    blockers.push("0.78-1V must record the immutable release base, 46-path envelope, and widget resource URI.");
+  }
   if (!existsSync(resolve(update.verification?.proof ?? ""))) {
     blockers.push(`0.78-1V proof path is missing: ${update.verification?.proof ?? "missing"}.`);
   }
@@ -1940,7 +1947,7 @@ function checkAgentsDoctrine(agents) {
     requiredSnippets.push(
       "Current human-directed local-green slice is `0.78-1V Census County Board Product + Certification Gate`",
       "0.78-1V decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`",
-      "The next code slice is `0.78-2 Real Town Anchors` only after owner review",
+      "The next code slice is `0.78-2 Real Town Anchors` only after the exact certified commit is deployed and real-host G8 is recorded",
       "Use `national-generation-contract` for strict split checks on the current real-geography branch",
     );
   } else if (currentUpdate?.id === BACKEND_SPINE_UPDATE) {
@@ -1952,7 +1959,7 @@ function checkAgentsDoctrine(agents) {
     );
   }
   for (const snippet of requiredSnippets) {
-    if (!agents.includes(snippet)) {
+    if (!includesSnippet(agents, snippet)) {
       blockers.push(`AGENTS.md missing required doctrine: ${snippet}`);
     }
   }
