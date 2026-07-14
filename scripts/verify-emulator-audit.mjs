@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import process from "node:process";
 import {
   CdpClient,
@@ -16,10 +16,12 @@ import { innerCanvasCenter, touchPan, touchPinch, touchTap } from "./lib/touch.m
 import { US_COUNTY_INDEX, createDeterministicGeneratedDistrictSpec } from "../packages/core/dist/index.js";
 
 const WORLD_GRAPHICS_CEILING = 1600;
+const REBUILD_MS_CEILING = 350;
 const HOST_PAYLOAD_REPORT_CEILING = 900_000;
-const REPORT_DIR = "artifacts/emulator/audit";
-const REPORT_JSON_PATH = `${REPORT_DIR}/report.json`;
-const REPORT_MD_PATH = `${REPORT_DIR}/REPORT.md`;
+const DISPLAY_MODE_SETTLE_TIMEOUT_MS = 6_000;
+const DEFAULT_REPORT_DIR = "artifacts/emulator/audit";
+const GEO_BOARD_REPORT_DIR = `${DEFAULT_REPORT_DIR}/0.78-1v`;
+const GEO_BOARD_CHALLENGE_COUNTIES = ["miami-dade-fl", "loving-tx", "kalawao-hi"];
 
 const VIEWPORTS = {
   desktop: { width: 1280, height: 720, mobile: false, deviceScaleFactor: 1 },
@@ -44,7 +46,7 @@ await main().catch(async (error) => {
   const report = emptyReport(safeDefaultBase(), [
     { county: "audit", viewport: "n/a", theme: "n/a", check: "harness", detail: errorMessage(error) },
   ]);
-  await writeReports(report);
+  await writeReports(report, DEFAULT_REPORT_DIR);
   console.log(JSON.stringify(report, null, 2));
   process.exitCode = 1;
 });
@@ -52,6 +54,7 @@ await main().catch(async (error) => {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const base = normalizeBase(args.base);
+  const reportDir = args.geoBoard ? GEO_BOARD_REPORT_DIR : DEFAULT_REPORT_DIR;
   const cellsToRun = resolveAuditCells(args);
 
   const preflightFailure = await preflightEmulator(base);
@@ -59,7 +62,7 @@ async function main() {
     const report = emptyReport(base, [
       { county: "preflight", viewport: "n/a", theme: "n/a", check: "emulator", detail: preflightFailure },
     ]);
-    await writeAndPrint(report);
+    await writeAndPrint(report, reportDir);
     return;
   }
 
@@ -74,7 +77,7 @@ async function main() {
         detail: "Could not find Chrome or Edge. Set CHROME_PATH or pass --chrome-path.",
       },
     ]);
-    await writeAndPrint(report);
+    await writeAndPrint(report, reportDir);
     return;
   }
 
@@ -85,21 +88,21 @@ async function main() {
     const report = emptyReport(base, [
       { county: "preflight", viewport: "n/a", theme: "n/a", check: "chrome", detail: errorMessage(error) },
     ]);
-    await writeAndPrint(report);
+    await writeAndPrint(report, reportDir);
     return;
   }
 
   let cells = [];
   try {
     for (const cellSpec of cellsToRun) {
-      let cell = await runCell({ chrome, base, cellSpec });
+      let cell = await runCell({ chrome, base, cellSpec, reportDir });
       // SwiftShader software-GL starves under a fully-loaded run and a cell's
       // WebGL canvas can time out transiently (canvas_single). These are
       // harness artifacts, not product defects — one clean re-run of ONLY the
       // failing cell settles it. Retry once and keep the better result so the
       // full-run verdict stops paying interest on the known flake.
       if (cell.checks.some((check) => check.level === "fail")) {
-        const retry = await runCell({ chrome, base, cellSpec });
+        const retry = await runCell({ chrome, base, cellSpec, reportDir });
         if (retry.checks.filter((c) => c.level === "fail").length < cell.checks.filter((c) => c.level === "fail").length) {
           retry.retriedAfterFlake = true;
           cell = retry;
@@ -111,7 +114,7 @@ async function main() {
     await stopChrome(chrome);
   }
 
-  await writeAndPrint(buildReport({ base, cells }));
+  await writeAndPrint(buildReport({ base, cells }), reportDir);
 }
 
 function parseArgs(argv) {
@@ -121,6 +124,7 @@ function parseArgs(argv) {
     counties: [],
     viewport: "both",
     theme: "",
+    geoBoard: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
@@ -129,6 +133,7 @@ function parseArgs(argv) {
     else if (value === "--county") args.counties.push(requireArgValue(argv, ++index, value));
     else if (value === "--viewport") args.viewport = requireArgValue(argv, ++index, value);
     else if (value === "--theme") args.theme = requireArgValue(argv, ++index, value);
+    else if (value === "--geo-board") args.geoBoard = true;
     else if (value === "--json-only") { /* retained for parity with perf harness */ }
     else throw new Error(`Unknown argument: ${value}`);
   }
@@ -160,7 +165,14 @@ function normalizeBase(value) {
 }
 
 function resolveAuditCells(args) {
-  const countyPlan = args.counties.length > 0 ? resolveRequestedCounties(args.counties) : [...resolveGeneratedMatrix(), riversideCounty()];
+  const requestedCounties = args.counties.length > 0
+    ? args.counties
+    : args.geoBoard
+      ? GEO_BOARD_CHALLENGE_COUNTIES
+      : [];
+  const countyPlan = requestedCounties.length > 0
+    ? resolveRequestedCounties(requestedCounties, args.geoBoard)
+    : [...resolveGeneratedMatrix(), riversideCounty()];
   const generatedInteractionAnchor = countyPlan.find((county) => county.draft)?.county ?? null;
   const viewportKeys = resolveViewportKeys(args.viewport);
   const explicitThemeKeys = args.theme ? resolveThemeKeys(args.theme) : null;
@@ -176,7 +188,7 @@ function resolveAuditCells(args) {
           theme,
           checksCta: false,
           checksGeneratedInteraction:
-            Boolean(county.draft && county.county === generatedInteractionAnchor && viewport === "mobile" && theme === themes[0]),
+            Boolean(!args.geoBoard && county.draft && county.county === generatedInteractionAnchor && viewport === "mobile" && theme === themes[0]),
         });
       }
     }
@@ -207,19 +219,20 @@ function defaultThemesForCounty(county) {
 }
 
 function shouldIncludeCtaCell(args) {
+  if (args.geoBoard) return false;
   const viewportKeys = resolveViewportKeys(args.viewport);
   const themeKeys = args.theme ? resolveThemeKeys(args.theme) : ["light", "dark"];
   const countyAllows = args.counties.length === 0 || args.counties.includes("orange-ca");
   return countyAllows && viewportKeys.includes("desktop") && themeKeys.includes("light");
 }
 
-function resolveRequestedCounties(countySlugs) {
+function resolveRequestedCounties(countySlugs, geoBoard = false) {
   const seen = new Set();
   const counties = [];
   for (const countySlug of countySlugs) {
     if (seen.has(countySlug)) continue;
     seen.add(countySlug);
-    counties.push(resolveCountyForSlug(countySlug));
+    counties.push({ ...resolveCountyForSlug(countySlug), geoBoard });
   }
   return counties;
 }
@@ -229,11 +242,11 @@ function resolveCountyForSlug(countySlug) {
   const county = US_COUNTY_INDEX.find((entry) => entry.countySlug === countySlug);
   if (!county) throw new Error(`County is not indexed: ${countySlug}`);
   const generated = createDeterministicGeneratedDistrictSpec({ county });
-  return { county: countySlug, archetype: generated.archetype, draft: true };
+  return { county: countySlug, countyLabel: county.name, archetype: generated.archetype, draft: true, geoBoard: false };
 }
 
 function riversideCounty() {
-  return { county: "riverside-ca", archetype: "curated", draft: false };
+  return { county: "riverside-ca", countyLabel: "Riverside County", archetype: "curated", draft: false, geoBoard: false };
 }
 
 function resolveGeneratedMatrix() {
@@ -241,7 +254,7 @@ function resolveGeneratedMatrix() {
   for (const county of US_COUNTY_INDEX) {
     const generated = createDeterministicGeneratedDistrictSpec({ county });
     if (!found.has(generated.archetype)) {
-      found.set(generated.archetype, { county: county.countySlug, archetype: generated.archetype, draft: true });
+      found.set(generated.archetype, { county: county.countySlug, countyLabel: county.name, archetype: generated.archetype, draft: true, geoBoard: false });
       if (found.size === GENERATED_ARCHETYPES.length) break;
     }
   }
@@ -261,11 +274,12 @@ async function preflightEmulator(base) {
   }
 }
 
-async function runCell({ chrome, base, cellSpec }) {
+async function runCell({ chrome, base, cellSpec, reportDir }) {
   const cell = {
     county: cellSpec.county,
     archetype: cellSpec.archetype,
     draft: cellSpec.draft,
+    geoBoard: Boolean(cellSpec.geoBoard),
     viewport: cellSpec.viewport,
     theme: cellSpec.theme,
     checks: [],
@@ -291,6 +305,9 @@ async function runCell({ chrome, base, cellSpec }) {
       await waitForInnerDocument(client);
       await delay(500);
       await runStructuralChecks(client, cell, cellSpec);
+      await captureCellScreenshot(client, cell, reportDir).catch((error) => {
+        addCheck(cell, "screenshot", "warn", `initial screenshot capture failed: ${errorMessage(error)}`);
+      });
       if (cellSpec.viewport === "mobile") {
         await runMobileChecks(client, cell, cellSpec);
       }
@@ -304,9 +321,11 @@ async function runCell({ chrome, base, cellSpec }) {
   } finally {
     if (client) {
       addConsoleCheck(client, cell);
-      await captureCellScreenshot(client, cell).catch((error) => {
-        addCheck(cell, "screenshot", "warn", `screenshot capture failed: ${errorMessage(error)}`);
-      });
+      if (!cell.screenshot) {
+        await captureCellScreenshot(client, cell, reportDir).catch((error) => {
+          addCheck(cell, "screenshot", "warn", `screenshot capture failed: ${errorMessage(error)}`);
+        });
+      }
       try {
         await client.send("Page.close");
       } catch {
@@ -335,6 +354,7 @@ function emulatorUrl(base, cellSpec) {
   url.searchParams.set("draft", cellSpec.draft ? "1" : "0");
   url.searchParams.set("viewport", cellSpec.viewport);
   url.searchParams.set("theme", cellSpec.theme);
+  if (cellSpec.geoBoard) url.searchParams.set("atlasGeoBoard", "1");
   return url.toString();
 }
 
@@ -385,13 +405,74 @@ async function runStructuralChecks(client, cell, cellSpec) {
 
   if (cellSpec.draft) {
     await addAsyncCheck(cell, "honesty_banner", async () => {
-      const banner = await generatedBoundaryText(client);
-      if (!banner.present) return { level: "fail", detail: "missing [data-qa='generated-boundary']" };
-      const text = banner.text ?? "";
+      const banner = await boundaryBannerSnapshot(client);
+      if (cellSpec.geoBoard) {
+        if (!banner.censusPresent) return { level: "fail", detail: "missing [data-qa='census-boundary']" };
+        if (banner.generatedPresent) return { level: "fail", detail: "Census board also renders generated-preview copy" };
+        const text = banner.censusText ?? "";
+        const expectedCounty = cellSpec.countyLabel ?? "County";
+        if (
+          text.includes(expectedCounty) &&
+          /u\.s\. census/i.test(text) &&
+          /real boundary and water/i.test(text) &&
+          /streets and places aren't mapped yet/i.test(text) &&
+          /open riverside/i.test(text)
+        ) {
+          return { level: "pass", detail: compactText(text) };
+        }
+        return { level: "fail", detail: `unexpected Census copy: ${compactText(text)}` };
+      }
+      if (!banner.generatedPresent) return { level: "fail", detail: "missing [data-qa='generated-boundary']" };
+      const text = banner.generatedText ?? "";
       if (/generated/i.test(text) && /not real coverage/i.test(text) && /stays in this chat/i.test(text)) {
         return { level: "pass", detail: compactText(text) };
       }
       return { level: "fail", detail: `unexpected copy: ${compactText(text)}` };
+    });
+  }
+
+  if (cellSpec.geoBoard) {
+    await addAsyncCheck(cell, "county_board_controls", async () => {
+      const state = await countyBoardUiSnapshot(client);
+      if (!state.censusMode) {
+        return {
+          level: "fail",
+          detail: `missing data-qa-census-board=true; frameFlag=${state.frameFlag || "none"}; search=${state.locationSearch || "(empty)"}`,
+        };
+      }
+      if (state.trayVisible || state.stickerToolsVisible || state.placeNavigatorVisible) {
+        return {
+          level: "fail",
+          detail: `tray=${state.trayVisible}; stickerTools=${state.stickerToolsVisible}; placeNavigator=${state.placeNavigatorVisible}`,
+        };
+      }
+      return { level: "pass", detail: "unavailable place, pin, and note controls are hidden" };
+    });
+    await addAsyncCheck(cell, "county_board_framing", async () => {
+      const frame = await countyBoardFrameSnapshot(client);
+      const margin = 4;
+      if (
+        frame.left >= margin &&
+        frame.top >= margin &&
+        frame.right <= frame.viewportWidth - margin &&
+        frame.bottom <= frame.viewportHeight - margin
+      ) {
+        return {
+          level: "pass",
+          detail: `frame=${frame.left.toFixed(1)},${frame.top.toFixed(1)}..${frame.right.toFixed(1)},${frame.bottom.toFixed(1)}; viewport=${frame.viewportWidth}x${frame.viewportHeight}`,
+        };
+      }
+      return {
+        level: "fail",
+        detail: `county silhouette clipped: frame=${frame.left.toFixed(1)},${frame.top.toFixed(1)}..${frame.right.toFixed(1)},${frame.bottom.toFixed(1)}; viewport=${frame.viewportWidth}x${frame.viewportHeight}`,
+      };
+    });
+    await addAsyncCheck(cell, "rebuild_ms_ceiling", async () => {
+      const rebuildMs = await lastRebuildMs(client);
+      if (rebuildMs <= REBUILD_MS_CEILING) {
+        return { level: "pass", detail: `rebuild=${rebuildMs}ms; ceiling=${REBUILD_MS_CEILING}ms` };
+      }
+      return { level: "fail", detail: `rebuild=${rebuildMs}ms; ceiling=${REBUILD_MS_CEILING}ms` };
     });
   }
 
@@ -633,8 +714,7 @@ async function runDisplayModeProbe(client, viewportKey) {
     return { level: "fail", detail: `expected initial inline mode; got ${displayModeDetail(before)}` };
   }
 
-  await clickInnerQaButton(client, "expand-map-button", viewportKey);
-  await waitFor(client, displayModePredicate("fullscreen"), 2_000);
+  await toggleDisplayModeAndWait(client, viewportKey, "fullscreen");
   const expanded = await displayModeSnapshot(client);
   if (
     expanded.shellMode !== "fullscreen" ||
@@ -648,8 +728,7 @@ async function runDisplayModeProbe(client, viewportKey) {
     return { level: "fail", detail: `fullscreen did not settle; ${displayModeDetail(expanded)}` };
   }
 
-  await clickInnerQaButton(client, "expand-map-button", viewportKey);
-  await waitFor(client, displayModePredicate("inline"), 2_000);
+  await toggleDisplayModeAndWait(client, viewportKey, "inline");
   const collapsed = await displayModeSnapshot(client);
   if (
     collapsed.shellMode !== "inline" ||
@@ -665,6 +744,41 @@ async function runDisplayModeProbe(client, viewportKey) {
   await delay(100);
 
   return { level: "pass", detail: "expand button toggles display-mode inline->fullscreen->inline" };
+}
+
+async function toggleDisplayModeAndWait(client, viewportKey, mode) {
+  await clickInnerQaButton(client, "expand-map-button", viewportKey);
+  try {
+    await waitFor(client, displayModePredicate(mode), DISPLAY_MODE_SETTLE_TIMEOUT_MS);
+  } catch (firstError) {
+    const snapshot = await displayModeSnapshot(client);
+    if (snapshot.emulatorMode === mode || snapshot.buttonLabel === (mode === "fullscreen" ? "Collapse map" : "Expand map")) {
+      await waitFor(client, displayModePredicate(mode), DISPLAY_MODE_SETTLE_TIMEOUT_MS);
+      return;
+    }
+    await activateInnerQaButtonWithKeyboard(client, "expand-map-button");
+    try {
+      await waitFor(client, displayModePredicate(mode), DISPLAY_MODE_SETTLE_TIMEOUT_MS);
+    } catch {
+      throw firstError;
+    }
+  }
+}
+
+function activateInnerQaButtonWithKeyboard(client, qa) {
+  return evaluate(client, `(() => {
+    const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
+    const button = doc?.querySelector("[data-qa='${qa}']");
+    const KeyboardEventCtor = doc?.defaultView?.KeyboardEvent;
+    if (!doc || !(button instanceof doc.defaultView.HTMLButtonElement) || !KeyboardEventCtor) {
+      throw new Error("missing inner button [data-qa='${qa}']");
+    }
+    button.focus();
+    button.dispatchEvent(new KeyboardEventCtor("keydown", { key: "Enter", bubbles: true }));
+    button.click();
+    button.dispatchEvent(new KeyboardEventCtor("keyup", { key: "Enter", bubbles: true }));
+    return true;
+  })()`);
 }
 
 function displayModePredicate(mode) {
@@ -811,11 +925,74 @@ function innerDocumentMetrics(client) {
   })()`);
 }
 
-function generatedBoundaryText(client) {
+function boundaryBannerSnapshot(client) {
   return evaluate(client, `(() => {
     const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
-    const banner = doc?.querySelector("[data-qa='generated-boundary']");
-    return { present: Boolean(banner), text: banner?.textContent?.replace(/\\s+/g, " ").trim() ?? "" };
+    const generated = doc?.querySelector("[data-qa='generated-boundary']");
+    const census = doc?.querySelector("[data-qa='census-boundary']");
+    return {
+      generatedPresent: Boolean(generated),
+      generatedText: generated?.textContent?.replace(/\\s+/g, " ").trim() ?? "",
+      censusPresent: Boolean(census),
+      censusText: census?.textContent?.replace(/\\s+/g, " ").trim() ?? "",
+    };
+  })()`);
+}
+
+function countyBoardUiSnapshot(client) {
+  return evaluate(client, `(() => {
+    const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
+    const shell = doc?.querySelector("[data-qa='alpha-city-world']");
+    const innerWindow = doc?.defaultView;
+    return {
+      censusMode: shell?.getAttribute("data-qa-census-board") === "true",
+      frameFlag: innerWindow?.frameElement?.getAttribute("data-atlas-geo-board") ?? "",
+      locationSearch: innerWindow?.location?.search ?? "",
+      trayVisible: Boolean(doc?.querySelector("[data-qa='selected-place-tray']")),
+      stickerToolsVisible: Boolean(doc?.querySelector("[data-qa='sticker-tools']")),
+      placeNavigatorVisible: Boolean(doc?.querySelector("[data-qa='place-navigator']")),
+    };
+  })()`);
+}
+
+function countyBoardFrameSnapshot(client) {
+  return evaluate(client, `(() => {
+    const qa = window.__ATLAS_EMULATOR__?.qa?.();
+    const scene = qa?.scene;
+    const world = qa?.world;
+    const app = qa?.app;
+    if (!scene || !world || !app || !Array.isArray(scene.terrainTiles) || scene.terrainTiles.length === 0) {
+      throw new Error("missing county board renderer QA state");
+    }
+    const scaleX = Number(world.scale?.x);
+    const scaleY = Number(world.scale?.y);
+    const positionX = Number(world.position?.x);
+    const positionY = Number(world.position?.y);
+    if (![scaleX, scaleY, positionX, positionY].every(Number.isFinite)) {
+      throw new Error("invalid county board camera transform");
+    }
+    const local = scene.terrainTiles.reduce((box, tile) => {
+      const width = Number(tile.width ?? 1);
+      const depth = Number(tile.depth ?? 1);
+      const sx = (Number(tile.position.x) - Number(tile.position.y)) * 22;
+      const sy = (Number(tile.position.x) + Number(tile.position.y)) * 12;
+      const halfWidth = ((width + depth) * 44) / 4;
+      const halfHeight = ((width + depth) * 24) / 4;
+      return {
+        minX: Math.min(box.minX, sx - halfWidth),
+        maxX: Math.max(box.maxX, sx + halfWidth),
+        minY: Math.min(box.minY, sy - halfHeight),
+        maxY: Math.max(box.maxY, sy + halfHeight),
+      };
+    }, { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+    return {
+      left: positionX + local.minX * scaleX,
+      right: positionX + local.maxX * scaleX,
+      top: positionY + local.minY * scaleY,
+      bottom: positionY + local.maxY * scaleY,
+      viewportWidth: Number(app.screen.width),
+      viewportHeight: Number(app.screen.height),
+    };
   })()`);
 }
 
@@ -833,6 +1010,15 @@ function graphicsCount(client) {
     const count = qa?.perf?.graphicsCount?.();
     if (typeof count !== "number") throw new Error("missing qa().perf.graphicsCount()");
     return count;
+  })()`);
+}
+
+function lastRebuildMs(client) {
+  return evaluate(client, `(() => {
+    const qa = window.__ATLAS_EMULATOR__?.qa?.();
+    const value = qa?.perf?.lastRebuildMs;
+    if (typeof value !== "number" || !Number.isFinite(value)) throw new Error("missing qa().perf.lastRebuildMs");
+    return value;
   })()`);
 }
 
@@ -981,16 +1167,16 @@ function consoleErrorEntries(client) {
     .filter(Boolean);
 }
 
-async function captureCellScreenshot(client, cell) {
+async function captureCellScreenshot(client, cell, reportDir) {
   // UNCLIPPED on purpose: captureScreenshot with a clip forces a re-raster of
   // the WebGL surface, which starves for 30s+ under headless software GL on
   // the mobile cells (measured; unclipped returns the composited frame in
   // <1s). The full page also carries the emulator header (county/viewport/
   // theme) — useful provenance in the evidence.
   const result = await client.send("Page.captureScreenshot", { format: "png" });
-  await mkdir(REPORT_DIR, { recursive: true });
+  await mkdir(reportDir, { recursive: true });
   const filename = `${cell.county}-${cell.viewport}-${cell.theme}.png`;
-  const path = `${REPORT_DIR}/${filename}`;
+  const path = `${reportDir}/${filename}`;
   await writeFile(path, Buffer.from(result.data, "base64"));
   cell.screenshot = path;
 }
@@ -1033,16 +1219,16 @@ function summarizeChecks(cells) {
   return summary;
 }
 
-async function writeAndPrint(report) {
-  await writeReports(report);
+async function writeAndPrint(report, reportDir) {
+  await writeReports(report, reportDir);
   console.log(JSON.stringify(report, null, 2));
   if (!report.ok) process.exitCode = 1;
 }
 
-async function writeReports(report) {
-  await mkdir(dirname(resolve(REPORT_JSON_PATH)), { recursive: true });
-  await writeFile(REPORT_JSON_PATH, `${JSON.stringify(report, null, 2)}\n`);
-  await writeFile(REPORT_MD_PATH, renderMarkdownReport(report));
+async function writeReports(report, reportDir) {
+  await mkdir(resolve(reportDir), { recursive: true });
+  await writeFile(`${reportDir}/report.json`, `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(`${reportDir}/REPORT.md`, renderMarkdownReport(report));
 }
 
 function renderMarkdownReport(report) {
@@ -1087,20 +1273,19 @@ function renderMarkdownReport(report) {
 
   lines.push("## Matrix");
   lines.push("");
-  lines.push("| County | Draft | Archetype | Viewport | Theme | Delivered | Graphics | Payload | Console |");
+  lines.push("| County | Board | Archetype | Viewport | Theme | Delivered | Graphics | Payload | Console |");
   lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
   for (const cell of report.cells) {
     lines.push(
-      `| ${md(cell.county)} | ${cell.draft ? "1" : "0"} | ${md(cell.archetype)} | ${md(cell.viewport)} | ${md(cell.theme)} | ${matrixCheck(cell, "delivered")} | ${matrixCheck(cell, "graphics_ceiling")} | ${matrixCheck(cell, "payload_report")} | ${matrixCheck(cell, "console_errors")} |`,
+      `| ${md(cell.county)} | ${cell.geoBoard ? "census" : cell.draft ? "generated" : "curated"} | ${md(cell.archetype)} | ${md(cell.viewport)} | ${md(cell.theme)} | ${matrixCheck(cell, "delivered")} | ${matrixCheck(cell, "graphics_ceiling")} | ${matrixCheck(cell, "payload_report")} | ${matrixCheck(cell, "console_errors")} |`,
     );
   }
   lines.push("");
   lines.push("## Screenshots");
   lines.push("");
   for (const cell of report.cells) {
-    lines.push(`- ${cell.county} ${cell.viewport} ${cell.theme}: ${cell.screenshot ?? "(not captured)"}`);
+    lines.push(`- ${cell.county} ${cell.geoBoard ? "census " : ""}${cell.viewport} ${cell.theme}: ${cell.screenshot ?? "(not captured)"}`);
   }
-  lines.push("");
   return `${lines.join("\n")}\n`;
 }
 

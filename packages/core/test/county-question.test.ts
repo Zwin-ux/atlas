@@ -84,6 +84,17 @@ describe("CountyQuestionService", () => {
     expect(sourceLimits.topic).toBe("source_limits");
   });
 
+  it("keeps playable-slice intent ahead of overlapping source words", () => {
+    const answer = service.answer({
+      countySlug: "riverside-ca",
+      question: "What current data makes Eastvale playable?",
+    });
+
+    expect(answer.supported).toBe(true);
+    expect(answer.topic).toBe("eastvale_first_slice");
+    expect(answer.answer).toContain("Explore -> Ask -> Drop Clawd -> Scout -> Campaign");
+  });
+
   it("resolves curated place questions to map targets", () => {
     const park = service.answer({
       countySlug: "riverside-ca",

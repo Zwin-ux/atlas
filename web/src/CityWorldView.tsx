@@ -120,6 +120,7 @@ export function CityWorldView({
   onSaveNote,
 }: CityWorldViewProps) {
   const isGeneratedMode = Boolean(generatedScene);
+  const isCountyBoardMode = isGeneratedMode && realCountyBoard;
   const hasPreview = !isGeneratedMode && Boolean(scoutPreview || campaignPreview);
   const hasHostedClawdTray = !isGeneratedMode && hostedClawdOpen && Boolean(hostedClawdContext);
   const rendererRef = useRef<CityWorldRendererHandle | null>(null);
@@ -347,7 +348,8 @@ export function CityWorldView({
       data-qa-camera-preset={cameraPresetId ?? ""}
       data-qa-display-mode={displayMode}
       data-display-mode={displayMode}
-      data-qa-generated={isGeneratedMode ? "true" : undefined}
+      data-qa-generated={isGeneratedMode && !isCountyBoardMode ? "true" : undefined}
+      data-qa-census-board={isCountyBoardMode ? "true" : undefined}
       onPointerDownCapture={hintVisible ? onDismissFirstRunHint : undefined}
     >
       <span className="city-world-sr-only" data-qa="display-mode" data-display-mode={displayMode}>
@@ -378,11 +380,11 @@ export function CityWorldView({
       {isGeneratedMode && realCountyBoard ? (
         <div className="city-world-generated-boundary" data-qa="census-boundary">
           <div>
-            <span>CENSUS SHAPE</span>
-            <strong>Real county boundary and waters. Streets and places aren't mapped here yet — Riverside/Eastvale is the full explorable map.</strong>
+            <span>U.S. CENSUS · {cityScene.region.county}</span>
+            <strong>Real boundary and water. Streets and places aren't mapped yet.</strong>
           </div>
           <button type="button" data-qa="exit-census-board" onClick={onExitGeneratedPreview}>
-            Full map
+            Open Riverside
           </button>
         </div>
       ) : isGeneratedMode ? (
@@ -460,7 +462,7 @@ export function CityWorldView({
         </div>
       ) : null}
 
-      {!hasPreview && !hasHostedClawdTray ? (
+      {!hasPreview && !hasHostedClawdTray && !isCountyBoardMode ? (
       <div className="city-world-stickers" aria-label="Sticker tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
         {STICKER_ORDER.map((kind) => (
           <button
@@ -491,7 +493,7 @@ export function CityWorldView({
       </div>
       ) : null}
 
-      {hasHostedClawdTray ? null : hasPreview ? (
+      {hasHostedClawdTray || isCountyBoardMode ? null : hasPreview ? (
         <PreviewPanel scoutPreview={scoutPreview} campaignPreview={campaignPreview} {...(onAdvancePreview ? { onAdvance: onAdvancePreview } : {})} />
       ) : (
       <section

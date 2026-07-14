@@ -17,6 +17,11 @@ describe("normalizeProviderPlaceCategory", () => {
     expect(normalizeProviderPlaceCategory({ types: ["point_of_interest", "park"] })).toBe("park");
   });
 
+  it("keeps hotel identity ahead of mixed amenity types", () => {
+    expect(normalizeProviderPlaceCategory({ primaryType: "hotel", types: ["lodging", "spa", "fitness_center"] })).toBe("service");
+    expect(normalizeProviderPlaceCategory({ primaryType: "spa", types: ["extended_stay_hotel", "fitness_center"] })).toBe("service");
+  });
+
   it("falls back to unknown for unsupported provider types", () => {
     expect(normalizeProviderPlaceCategory({ primaryType: "very_specific_new_google_type", types: [] })).toBe("unknown");
   });

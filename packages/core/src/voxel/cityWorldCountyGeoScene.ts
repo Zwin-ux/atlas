@@ -50,6 +50,10 @@ export type CompileCountyGeoSceneOptions = {
 
 const DEFAULT_TARGET_SPAN_PX = 560;
 const DEFAULT_SAMPLE_PX = CITY_WORLD_TILE_BASIS.tileWidth / 2; // one land tile per iso cell
+const DESKTOP_BOARD_TARGET_WIDTH_PX = 1120;
+const DESKTOP_BOARD_TARGET_HEIGHT_PX = 620;
+const MOBILE_BOARD_TARGET_WIDTH_PX = 340;
+const MOBILE_BOARD_TARGET_HEIGHT_PX = 560;
 
 type ScreenPoint = { x: number; y: number };
 
@@ -215,8 +219,6 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
   // Rescale the LOCAL rings to projected px (far islands dropped).
   const screenRings = localUnitRings.map((ring) => ring.map((p) => ({ x: p.x * scale, y: p.y * scale })));
   const mainRing = screenRings.reduce<ScreenPoint[]>((largest, ring) => (Math.abs(ringSignedArea(ring)) > Math.abs(ringSignedArea(largest)) ? ring : largest), screenRings[0] ?? []);
-  const centroidScreen = ringCentroid(mainRing);
-
   // Project the pack's water rings with the SAME transform (same lon0/lat0/
   // scale) so bay/lake/river/ocean polygons register against the exact tile
   // lattice as the land boundary. Water far from the anchored main landmass
@@ -284,6 +286,7 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
         width: cell,
         depth: cell,
         variant: variant % 4,
+        ...(kind === "grass" ? { paletteKey: "terrain.region.county_map" } : {}),
         // Land reads as a RAISED plateau (cliff faces + drop shadow) so the
         // county silhouette separates from the same-green off-board void; water
         // stays flat at sea level, so the land/water step forms a natural shore.
@@ -299,14 +302,43 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
     }
   }
 
-  const centroidGround = unprojectCityWorldGroundPoint(centroidScreen);
-  const center: CityWorldPoint = { x: round3(centroidGround.x), y: round3(centroidGround.y), z: 0 };
-  const boardTileSpan = Math.max(tileMaxX - tileMinX, tileMaxY - tileMinY) || 1;
+  // Camera fitting must use the actual projected terrain footprint. The old
+  // tile-axis span heuristic cropped wide and tall counties on 390px screens.
+  const projectedBounds = terrainTiles.reduce(
+    (box, tile) => {
+      const tileWidth = tile.width ?? 1;
+      const tileDepth = tile.depth ?? 1;
+      const sx = (tile.position.x - tile.position.y) * (CITY_WORLD_TILE_BASIS.tileWidth / 2);
+      const sy = (tile.position.x + tile.position.y) * (CITY_WORLD_TILE_BASIS.tileHeight / 2);
+      const halfWidth = ((tileWidth + tileDepth) * CITY_WORLD_TILE_BASIS.tileWidth) / 4;
+      const halfHeight = ((tileWidth + tileDepth) * CITY_WORLD_TILE_BASIS.tileHeight) / 4;
+      return {
+        minX: Math.min(box.minX, sx - halfWidth),
+        maxX: Math.max(box.maxX, sx + halfWidth),
+        minY: Math.min(box.minY, sy - halfHeight),
+        maxY: Math.max(box.maxY, sy + halfHeight),
+      };
+    },
+    { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity },
+  );
+  const projectedCenter = {
+    x: (projectedBounds.minX + projectedBounds.maxX) / 2,
+    y: (projectedBounds.minY + projectedBounds.maxY) / 2,
+  };
+  const centerGround = unprojectCityWorldGroundPoint(projectedCenter);
+  const center: CityWorldPoint = { x: round3(centerGround.x), y: round3(centerGround.y), z: 0 };
+  // Size both presets from projected pixels rather than tile-space axes.
   // Fill the frame with the county — the real silhouette is jagged and sits in
   // an off-board void, so err toward zooming IN (a small county should not read
   // as a dot lost in green). Clamped so a big county still fits.
-  const desktopZoom = round3(Math.min(1.5, Math.max(0.7, 34 / boardTileSpan)));
-  const mobileZoom = round3(Math.min(1.3, Math.max(0.6, 26 / boardTileSpan)));
+  const projectedWidth = Math.max(1, projectedBounds.maxX - projectedBounds.minX);
+  const projectedHeight = Math.max(1, projectedBounds.maxY - projectedBounds.minY);
+  const desktopZoom = round3(
+    Math.min(1.5, Math.max(0.4, Math.min(DESKTOP_BOARD_TARGET_WIDTH_PX / projectedWidth, DESKTOP_BOARD_TARGET_HEIGHT_PX / projectedHeight))),
+  );
+  const mobileZoom = round3(
+    Math.min(1.3, Math.max(0.35, Math.min(MOBILE_BOARD_TARGET_WIDTH_PX / projectedWidth, MOBILE_BOARD_TARGET_HEIGHT_PX / projectedHeight))),
+  );
 
   const cameraPresets: CityWorldCameraPreset[] = [
     { id: "desktop", center, zoom: desktopZoom, minZoom: 0.4, maxZoom: 2.2 },

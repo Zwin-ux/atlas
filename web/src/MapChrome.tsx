@@ -80,7 +80,11 @@ export function readRequestedCountySwitcherVisible(): boolean {
 // atlasCountySwitcher.
 export function readRequestedGeoBoardEnabled(): boolean {
   if (typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).get("atlasGeoBoard") === "1";
+  if (new URLSearchParams(window.location.search).get("atlasGeoBoard") === "1") return true;
+  // The production-fidelity emulator hosts the widget in srcdoc, so it passes
+  // opt-in flags on the same-origin frame element instead of a child URL.
+  const frame = window.frameElement;
+  return frame?.getAttribute("data-atlas-geo-board") === "1";
 }
 
 function ZoomInIcon() {

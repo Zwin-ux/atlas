@@ -16,19 +16,29 @@ Hosted Clawd DB/Auth persistence is now local-green only for owner-protected row
 The human explicitly reopened DB/Auth preparation on 2026-07-05.
 The human explicitly reopened test-mode Stripe billing on 2026-07-05.
 
-Current human-directed local-green slice is `0.72B Redis Scene Packet Cache / Job Spine`. It uses `postalpha-0.71h-scene-packet-service-boundary` as input, keeps branch `codex/integrate-hosted-clawd-fable-058e` as the local canonical candidate, and moves generated draft packet work onto a memory-or-Redis cache spine with widget-only `_meta` delivery.
+Current human-directed local-green slice is `0.78-1V Census County Board Product + Certification Gate` on branch `codex/integrate-hosted-clawd-fable-058e`.
 
-0.72B decision is `REDIS_PACKET_SPINE_NOT_RENDER_LOOP` with selected axis `backend_production_spine`. `select_county` and `render_voxel_county` may accept `includeGeneratedDraft?: boolean`; default behavior remains shell-only. When explicitly requested for an indexed shell county, `structuredContent` stays the county coverage summary and `_meta.generatedDraftScene` / `_meta.generatedDraftPacket` carry widget-only generated draft state. Generated drafts stay non-playable, non-public, provider-free, DB-unpersisted, and meta-only. Local/dev may fall back to memory, but Railway production requires Redis for generated draft packet cache/job readiness. Railway/server may compile/cache scene packets, but browser retained Pixi pan/zoom must not wait on Railway.
+0.78-1V decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE` with selected axis `real_geography_promotion_readiness`. The widget may compile a baked U.S. Census boundary-and-water pack client-side, but only when `?atlasGeoBoard=1` is explicitly requested. The default flag-off experience is unchanged. Census boards identify the county, state that streets and places are not mapped, and hide place, pin, note, and save controls until real anchors exist. The current evidence covers 16 challenge packs, not a national 3,222-county bake or a public-playable claim.
 
-Default next slice after 0.72B is `0.72H Fable Generated Draft Visual Quality Gate`. It should use the packet path to inspect generated draft visuals and set measurable gates for object grammar, density, contact shadows, silhouettes, and desktop/mobile proof without reopening service routing, persistence, money, provider geometry, or public promotion.
+The owner approved the 12 desktop/mobile light/dark screenshots and authorized
+release preparation on 2026-07-13. The next code slice is `0.78-2 Real Town
+Anchors` only after the exact certified commit is deployed and real-host G8 is
+recorded. `0.80-2` remains parallel queued graphics work; it does not expand
+the 0.78-1V packet.
 
 Live Stripe billing, new public MCP tools, public paid claims, pricing pages, evidence, XP, reports, exports, automation, and public Anaheim/Ontario remain blocked unless a later named gate explicitly opens that scope.
 
-Use `national-generation-contract` for strict split checks on the 0.72B Redis scene packet backend spine branch.
+Use `national-generation-contract` for strict split checks on the current real-geography branch.
 
 The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly. Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
 
-Do not continue commerce, terrain, Anaheim, paid public launch, or live Stripe implementation unless a new verifier or selector names a real blocker that changes the axis. DB/Auth persistence, map-first save UX, test-mode Stripe billing, protected paid-write gating, saved reads, browser proof, mobile interaction hardening, product feel cleanup, national generation production contract, nationwide shell coverage, deterministic generated district specs, scene packet service boundary, and Redis scene packet backend spine are now local-green only inside their named gates; continue into `0.72H Fable Generated Draft Visual Quality Gate` only as generated-draft visual-quality work. Do not continue commerce unless a human names one exact Plaza Row blocker. Do not turn provider lookup into geometry, readiness, persisted provider data, or playable county claims.
+Do not default-enable Census boards, start the national pack bake, add roads,
+begin town detail, or claim playable real-county coverage inside 0.78-1V. The
+only named continuation is the owner-authorized release of one coherent,
+certified full SHA plus real-host G8, followed by `0.78-2 Real Town Anchors` if
+those gates pass. Do not continue commerce unless a human names one exact Plaza
+Row blocker. Do not turn provider lookup into geometry, readiness, persisted
+provider data, or playable county claims.
 
 ## Named-Slice Rule
 
@@ -118,7 +128,7 @@ For Engine Beta source-of-truth and code slices, default to:
 - focused verifier for the slice
 - provider boundary guard
 - tool-result shape guard
-- strict `engine-beta-data` split guard, strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice, strict `hosted-clawd-fable-integration` split guard for the integrated local canonical candidate, strict `hosted-clawd-persistence-foundation` split guard for the 0.60H DB/Auth foundation, strict `hosted-clawd-save-ux` split guard for the 0.61H save UX branch, strict `hosted-clawd-stripe-billing` split guard for the 0.62H billing branch, strict `hosted-clawd-protected-tool-gate` split guard for the 0.63H protected gate branch, strict `hosted-clawd-saved-read-surface` split guard for the 0.64H saved read branch, strict `hosted-clawd-browser-proof` split guard for the 0.65H browser proof branch, strict `mobile-interaction-hardening` split guard for the 0.66H mobile hardening branch, strict `product-feel-cleanup` split guard for the 0.67H graphics cleanup branch, or strict `national-generation-contract` split guard for the 0.72B Redis scene packet backend spine branch
+- strict `engine-beta-data` split guard, strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice, strict `hosted-clawd-fable-integration` split guard for the integrated local canonical candidate, strict `hosted-clawd-persistence-foundation` split guard for the 0.60H DB/Auth foundation, strict `hosted-clawd-save-ux` split guard for the 0.61H save UX branch, strict `hosted-clawd-stripe-billing` split guard for the 0.62H billing branch, strict `hosted-clawd-protected-tool-gate` split guard for the 0.63H protected gate branch, strict `hosted-clawd-saved-read-surface` split guard for the 0.64H saved read branch, strict `hosted-clawd-browser-proof` split guard for the 0.65H browser proof branch, strict `mobile-interaction-hardening` split guard for the 0.66H mobile hardening branch, strict `product-feel-cleanup` split guard for the 0.67H graphics cleanup branch, or strict `national-generation-contract` split guard for the current national-generation and real-geography branch
 
 Browser screenshot proof is required only when renderer or UI output changes.
 

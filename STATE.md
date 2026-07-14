@@ -1,6 +1,6 @@
 # Atlas Loop State
 
-Last run: 2026-07-06 - 0.72B Redis Scene Packet Cache / Job Spine
+Last run: 2026-07-13 - 0.78-1V Census County Board Product + Certification Gate
 Loop level: L2 assisted
 Kill switch: active only if `loop-constraints.md` says `pause: true`
 
@@ -9,22 +9,11 @@ Kill switch: active only if `loop-constraints.md` says `pause: true`
 Local canonical candidate:
 `C:/Users/mzwin/Documents/Atlas` on `codex/integrate-hosted-clawd-fable-058e`.
 
-Input update:
-`0.58I Integration Canonicalization / Release Decision Packet` at base commit
-`920cf8a`.
-
-This branch combines:
-- `7804ed0` - gated Hosted Clawd rental scaffold.
-- `0c4c350` - Fable 0.58E map-mascot removal and shell grammar cleanup.
-- The Fable 0.53E-0.57E visual chain and proof artifacts.
-
-Extra local worktree:
-- `C:/Users/mzwin/Documents/atlas-53e-fable` on `fable/0.58e-prop-cleanup`.
-
 Deploy status:
-Not deployed and not pushed by default. The integrated branch still needs live
-deploy proof before public promotion, but the human has explicitly reopened
-DB/Auth preparation for Hosted Clawd.
+The committed 0.78-1 board wire is pushed through `0e94a6c`. The 0.78-1V
+certification packet is local-green but not deployed. Production deploy remains
+an explicit owner action through `scripts/release-deploy.ps1`, followed by
+post-deploy and real-ChatGPT proof.
 
 Merge status (0.75R, 2026-07-06):
 `fable/0.58e-prop-cleanup` (0.57E parity + 0.72H-b/0.73F engine clarity +
@@ -33,34 +22,49 @@ lives in BUILD_LOG (fable entries) and artifacts/0.73f-*/0.74f-*.
 
 ## Current Slice
 
-`0.72B Redis Scene Packet Cache / Job Spine` is local green.
+`0.78-1V Census County Board Product + Certification Gate` is local green and
+owner-approved. Release preparation is authorized; the coherent commit,
+production deploy, and real-host G8 proof remain incomplete.
 
 Decision:
-`REDIS_PACKET_SPINE_NOT_RENDER_LOOP`.
+`CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`.
 
 Selected axis:
-`backend_production_spine`.
+`real_geography_promotion_readiness`.
 
 Scope:
-Atlas now has a production-leaning scene packet spine without putting Railway
-in the render loop. Generated draft packet work can use local memory or Redis,
-with Redis compile locks and a queued worker path for Railway production.
-Indexed shell counties still opt into `includeGeneratedDraft`; `structuredContent`
-remains the county coverage summary, while `_meta.generatedDraftScene` and
-`_meta.generatedDraftPacket` carry widget-only draft state. Lock contention can
-return queued-safe `generatedDraftPacket` metadata without a scene payload.
-Railway production requires Redis, but browser Pixi pan/zoom stays retained and
-local after a packet arrives. Railway is not in the frame loop. The seven public MCP tools remain unchanged, and
-there is no HTTP generated-scene render route, scene packet DB persistence,
-public renderer route, public paid claim, public Anaheim/Ontario, provider
-geometry, or nationwide playable claim.
+Atlas can now render a baked U.S. Census county boundary and water pack as the
+primary widget scene when `?atlasGeoBoard=1` is explicitly requested. County
+land uses a dedicated readable palette, the banner names the Census source and
+unmapped streets/places, and unavailable place/pin/note/save controls stay
+hidden. The feature-on audit covers Miami-Dade FL, Loving TX, and Kalawao HI at
+desktop/mobile and light/dark: 138 checks passed, 0 warned, 0 failed; all 12
+first frames keep the full projected county terrain/water footprint inside the
+viewport; max Graphics 40/1600 and max rebuild 6.2ms/350ms. The separate flag-off audit
+passed 162 checks with 0 warnings and 0 failures. The seven public MCP tools
+remain unchanged. This is not a national bake, default-on promotion, public
+playable-county claim, provider geometry path, or production deploy.
 
 Next quest:
-`0.72H Fable Generated Draft Visual Quality Gate`.
+Build and certify one coherent release commit, deploy it through the explicit
+release gate, and record real-host G8. After those gates, the next code slice
+is `0.78-2 Real Town Anchors`.
+`0.80-2` remains parallel queued graphics work.
 
-0.72H should use the packet path to judge generated-draft visuals and push the
-engine forward with measurable object grammar, density, contact, and
-desktop/mobile proof gates.
+Release governance:
+The source-of-truth and loop-readiness verifiers now validate this 0.78-1V
+packet instead of the retired 0.72B current-update assumption. Both are green;
+loop readiness is `L2_ASSISTED` and reads the staged 46-file release envelope
+without claiming unrelated working-tree artifacts as part of this packet.
+
+Public tool truth:
+The seven-tool surface remains unchanged. The save surface now defaults closed;
+when it is closed, `get_upgrade_options` omits owner-gated persistence and
+checkout capabilities instead of contradicting its Atlas V1 copy. Overlapping
+"what data makes Eastvale playable" questions resolve to the playable-loop
+answer, and hotel-family provider types outrank mixed spa/fitness amenities in
+lookup-only normalization. These are local contract corrections, not a deploy
+or a commerce continuation.
 
 ## Branch Map
 
@@ -90,7 +94,8 @@ desktop/mobile proof gates.
 - Mobile `390x844` product comprehension.
 - Hosted Clawd billing UX must stay as a compact tray rail over the Fable map;
   no dashboard, pricing page, plan comparison, or geometry change.
-- Dirty tree size: strict split guard must stay `0 blockers / 0 unknowns`.
+- Dirty tree size: strict split guard must stay `0 blockers / 0 unknowns` for
+  the selected release envelope.
 - Public URL baseline: `https://atlas-backend-production-e6fc.up.railway.app/preview`.
 
 ## Recent Proof

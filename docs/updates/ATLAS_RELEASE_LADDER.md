@@ -6,43 +6,35 @@ proof packet.
 
 ## Current Update
 
-### Post-Alpha 0.72B - Redis Scene Packet Cache / Job Spine
+### Post-Alpha 0.78-1V - Census County Board Product + Certification Gate
 
-Player-facing promise: Atlas can prepare generated draft scene packets for
-indexed shell counties without making map pan/zoom depend on Railway or
-claiming those drafts are public playable local truth.
+Player-facing promise: Atlas can show a county's real U.S. Census boundary and
+water without implying that streets, places, buildings, or playable local
+coverage are present.
 
-Engineering promise: Move generated draft packet work onto a memory-or-Redis
-cache spine with compile locks, queued-safe metadata, a worker entrypoint, safe
-status/readiness output, request IDs, structured backend logs, and first-pass
-rate limits.
+Engineering promise: Certify the flag-gated Census board in a
+production-fidelity browser matrix while keeping the default flag-off
+experience unchanged.
 
 Spec:
-Use `postalpha-0.71h-scene-packet-service-boundary` as the input update. Keep
-`server/src/scenePacketMemoryAdapter.ts`, `server/src/scenePacketWorker.ts`,
-`server/src/index.ts`, `.env.example`, `package.json`,
-`scripts/verify-production-backend-spine.mjs`,
-`docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md`,
-`scripts/verify-generated-draft-scene-packet.mjs`,
-`scripts/verify-atlas-source-of-truth-drift.mjs`, and strict
-`national-generation-contract` split mode as the 0.72B guard.
+Compile the baked U.S. Census boundary-and-water pack only behind
+`?atlasGeoBoard=1`. Identify the county and source, state that streets and
+places are not mapped, hide controls that imply real anchors, and fit the full
+projected terrain/water silhouette on desktop and mobile. Keep the seven-tool
+MCP surface unchanged.
 
 Status:
-Local green. Branch `codex/integrate-hosted-clawd-fable-058e` is the local
-canonical candidate. Decision is `REDIS_PACKET_SPINE_NOT_RENDER_LOOP`;
-selected axis is `backend_production_spine`. Local/dev falls back to memory.
-Railway production requires Redis for generated draft packet cache/job
-readiness. Lock contention returns queued-safe `_meta.generatedDraftPacket`
-metadata with no scene payload. Existing MCP tools can explicitly request
-`_meta.generatedDraftScene` / `_meta.generatedDraftPacket`;
-`structuredContent` remains the coverage summary. The status and ready routes
-expose safe summaries/booleans only. Railway/server may compile/cache packets,
-but Railway is not in the frame loop. Live public paid launch, scene packet DB
-persistence, evidence, XP, reports, exports, automation, public
-Anaheim/Ontario, provider geometry, dashboard shells, all-US playable claims,
-browser HTTP generated-scene routes, and new public MCP tools remain closed.
-Proof is captured in
-`artifacts/national-generation/0.72b/production-backend-spine.json`.
+Local green; owner review passed and release preparation authorized on
+2026-07-13. The coherent release commit, deploy execution, and post-deploy G8
+remain pending. Branch
+`codex/integrate-hosted-clawd-fable-058e` is the local canonical candidate.
+Decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`; selected axis
+is `real_geography_promotion_readiness`. The 12-cell desktop/mobile,
+light/dark matrix passes with full silhouette framing. Default enablement,
+production deploy, town detail, national bake, provider geometry, public
+playable promotion, new public MCP tools, and public paid claims remain closed.
+Proof is captured in `artifacts/emulator/audit/0.78-1v/`; owner approval is
+recorded in `artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md`.
 
 ## Parked Owner-Gate Ladder
 
@@ -64,15 +56,19 @@ Anaheim/Ontario stay hidden.
 
 ## Next Updates
 
+### Post-Alpha 0.78-2 - Real Town Anchors
+
+Next named quest: `0.78-2 Real Town Anchors`, only after owner screenshot
+review and a separate production deploy decision.
+
+Wire named town anchors to the certified board without turning provider lookup
+into geometry or claiming nationwide playable coverage. Do not begin this
+slice while any 0.78-1V owner gate is pending.
+
 ### Post-Alpha 0.72H - Fable Generated Draft Visual Quality Gate
 
-Next named quest: `0.72H Fable Generated Draft Visual Quality Gate`.
-
-Use the 0.72B packet path to judge generated draft visuals. Add measurable
-quality gates for silhouettes, object grammar, density, material discipline,
-contact shadows, and desktop/mobile proof. Do not add service routes,
-persistence, money, provider geometry, public promotion, or new public MCP
-tools.
+Queued graphics gate. It does not expand the 0.78-1V packet or bypass its
+owner review.
 
 ### Post-Alpha 0.46E - Owner Gate Review Packet
 

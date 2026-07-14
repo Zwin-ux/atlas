@@ -20,7 +20,10 @@ const requiredFiles = [
 
 const blockers = [];
 const warnings = [];
-const expectedCurrentUpdateId = "postalpha-0.72b-redis-scene-packet-cache-job-spine";
+const expectedCurrentUpdateId = "postalpha-0.78-1v-census-county-board-certification";
+const expectedDecision = "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE";
+const expectedSelectedAxis = "real_geography_promotion_readiness";
+const expectedApprovalEvidence = "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md";
 
 function read(path) {
   if (!existsSync(path)) {
@@ -49,7 +52,8 @@ requireText("loop-constraints.md", "Forbidden Scope", "loop-constraints.md must 
 requireText("loop-constraints.md", "package/lock/env", "loop-constraints.md must block package/lock/env drift.");
 requireText("docs/ATLAS_FULL_PROJECT_LOOP_SPEC.md", "country -> state -> county -> district -> place", "Full project loop spec must preserve the USA-scale hierarchy.");
 requireText("docs/ATLAS_FULL_PROJECT_LOOP_SPEC.md", "Atlas is currently L2 assisted", "Full project loop spec must state the current loop level.");
-requireText("docs/NEXT_QUESTS.md", "0.72B Redis Scene Packet Cache / Job Spine", "NEXT_QUESTS must point at the current 0.72B backend spine pass.");
+requireText("docs/NEXT_QUESTS.md", "0.78-1V Census County Board Product + Certification Gate", "NEXT_QUESTS must point at the current 0.78-1V Census board gate.");
+requireText("docs/NEXT_QUESTS.md", "0.78-2 Real Town Anchors", "NEXT_QUESTS must preserve the owner-gated 0.78-2 continuation.");
 requireText("scripts/verify-alpha-rc-split.mjs", "scripts/verify-atlas-loop-readiness.mjs", "Split guard must allow the Atlas loop readiness verifier.");
 requireText("scripts/verify-alpha-rc-split.mjs", "LOOP.md", "Split guard must allow LOOP.md.");
 
@@ -62,8 +66,24 @@ try {
   blockers.push(`artifacts/current-update.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
 }
 
-if (currentUpdate.id !== expectedCurrentUpdateId) {
-  warnings.push(`Current update is ${currentUpdate.id ?? "missing"}, expected ${expectedCurrentUpdateId}.`);
+if (currentUpdate.id !== expectedCurrentUpdateId) blockers.push(`Current update is ${currentUpdate.id ?? "missing"}, expected ${expectedCurrentUpdateId}.`);
+if (currentUpdate.status !== "local_green_owner_approved_release_authorized") blockers.push(`Current update status must be local_green_owner_approved_release_authorized; got ${currentUpdate.status ?? "missing"}.`);
+if (currentUpdate.decision !== expectedDecision) blockers.push(`Current update decision must be ${expectedDecision}; got ${currentUpdate.decision ?? "missing"}.`);
+if (currentUpdate.selectedAxis !== expectedSelectedAxis) blockers.push(`Current update selectedAxis must be ${expectedSelectedAxis}; got ${currentUpdate.selectedAxis ?? "missing"}.`);
+if (currentUpdate.metricResult?.defaultEnabled !== false) blockers.push("The Census board must remain flag-dark by default.");
+if (currentUpdate.metricResult?.newMcpTools !== 0) blockers.push("0.78-1V must keep the seven-tool MCP surface unchanged.");
+const currentGates = Array.isArray(currentUpdate.gates) ? currentUpdate.gates : [];
+const ownerGate = currentGates.find((gate) => gate?.id === "owner-screenshot-review");
+const deployGate = currentGates.find((gate) => gate?.id === "production-deploy");
+const realHostGate = currentGates.find((gate) => gate?.id === "real-host-g8");
+if (ownerGate?.required !== true || ownerGate?.status !== "passed" || ownerGate?.evidence !== expectedApprovalEvidence) {
+  blockers.push("Owner screenshot review must be passed with the recorded 0.78-1V approval artifact.");
+}
+if (deployGate?.required !== true || deployGate?.status !== "pending" || deployGate?.authorization !== "approved") {
+  blockers.push("Production deploy must remain pending but explicitly owner-authorized.");
+}
+if (realHostGate?.required !== true || realHostGate?.status !== "pending") {
+  blockers.push("Real-host G8 must remain pending until the deployed build is exercised in ChatGPT.");
 }
 
 const cutlinePath = "artifacts/second-district-readiness/latest/anaheim-candidate/owner-gate-cutline.json";
@@ -90,7 +110,6 @@ try {
     "node",
     [
       "scripts/verify-alpha-rc-split.mjs",
-      "--working-tree",
       "--strict-selected-rc",
       "--rc-mode",
       "national-generation-contract",
@@ -102,7 +121,7 @@ try {
   dirtyForbiddenPaths = splitGuard.strictUnexpectedPaths ?? [];
   if (splitGuard.ok !== true || splitGuard.blockerCount !== 0 || dirtyForbiddenPaths.length > 0) {
     blockers.push(
-      `national-generation-contract split guard must pass with 0 blockers / 0 unknowns; got blockers=${splitGuard.blockerCount ?? "unknown"}, unknown=${dirtyForbiddenPaths.length}.`,
+      `staged national-generation-contract split guard must pass with 0 blockers / 0 unknowns; got blockers=${splitGuard.blockerCount ?? "unknown"}, unknown=${dirtyForbiddenPaths.length}.`,
     );
   }
 } catch (error) {
@@ -111,7 +130,7 @@ try {
 
 const result = {
   ok: blockers.length === 0,
-  update: "postalpha-loop-engineering-setup",
+  update: "postalpha-0.78-1v-loop-readiness",
   readinessLevel: blockers.length === 0 ? "L2_ASSISTED" : "L0_BLOCKED",
   reference: "https://github.com/cobusgreyling/loop-engineering",
   currentUpdateId: currentUpdate.id ?? null,

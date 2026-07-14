@@ -4,14 +4,15 @@ Status: ACTIVE master queue as of 2026-07-12. Supersedes COUNCIL_VERDICT.md
 (closed) as the work thread. Any driver (Fable, Opus, Codex) boots here
 after `docs/NORTH_STARS.md` (NS-0 + Spend rules govern every packet).
 
-## Owner decisions (2026-07-12, binding)
+## Owner decisions (updated 2026-07-13, binding)
 
 1. **Interactive everywhere**: generated counties must be fully interactive
    at launch — tap places, pin, note in ANY county, honestly labeled preview.
 2. **Submission trigger**: full G8 real-ChatGPT battery green + owner
    screenshot approval. Nothing else blocks or substitutes.
-3. **Persistence is REQUIRED for launch**: the Hosted Clawd save surface
-   ships ON and working (accounts + saved state across chats).
+3. **Explore is the free front door; persistence remains later**: notes, pins,
+   and stickers stay session-only. Hosted Clawd and billing remain closed
+   until authenticated ownership, durability, and real-host proof exist.
 4. **Codex-driver human gates**: visual/band changes and production deploys
    need human eyes. Everything else self-certifies through the gate ladder.
 5. Current build is the approved **pre-alpha**.
@@ -56,11 +57,11 @@ Missing: interaction wiring + honest place identity + map-first answers.
       inventory) anchors the district name; place labels stay archetype-
       descriptive (no invented proper names). Tray copy for generated
       places generated from spec facts (tier, water, archetype).
-- [ ] P1.3 Map-first questions everywhere: ask_county_question routes
+- [x] P1.3 Map-first questions everywhere: ask_county_question routes
       through the generated spec's own places client-compiled; camera
       intents computed widget-side for generated scenes (server can't see
       the compiled scene anymore). Closed-world honesty unchanged.
-- [ ] P1.4 Inspector extension: audit gains generated-interaction cells
+- [x] P1.4 Inspector extension: audit gains generated-interaction cells
       (tap-select, pin, note on 3 anchor counties) — permanent.
 - [ ] P1.5 G8 battery re-run on generated interactivity. HUMAN: screenshots.
 
@@ -79,6 +80,17 @@ bake pipeline (reviewer machine, network) → 0.78-1 silhouette board (IoU
 gate ≥0.85) → 0.78-2 real town anchors → 0.78-3 town detail → 0.78-4 honesty
 copy re-line ("Real county shape, towns, and water from the U.S. Census.
 Buildings are a generated preview."). Sequenced after P1.1/P1.2 land.
+
+Current 0.78 status (2026-07-12): 0.78-1V is local-green behind
+`?atlasGeoBoard=1`. The 16 challenge packs include real Census boundary and
+water; the certified browser matrix covers Miami-Dade, Loving, and Kalawao at
+desktop/mobile and light/dark with 138/138 checks green, including full county
+terrain/water framing in all 12 first frames, max Graphics 40/1600, and max
+rebuild 6.2ms/350ms. The flag remains dark. Owner screenshot review passed on
+2026-07-13 and release preparation is authorized. One coherent commit, the
+production deploy action, and real-host G8 proof remain pending. After those
+gates, `0.78-2 Real Town Anchors` is next. The national 3,222-pack
+bake, roads, town detail, and default-on promotion are not complete.
 
 ## P2 — Persistence for launch (NS-7)
 

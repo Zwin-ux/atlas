@@ -1,5 +1,101 @@
 # Decisions
 
+## Decision 106: Explore is the face; Clawd is the transformation
+
+Atlas opens as a tactile living atlas, not a business workflow or dashboard.
+The free product loop is `Explore -> Ask -> Learn -> Note -> Wander`. Clawd
+appears only after explicit opportunity intent and transforms selected
+geography into a session-only Scout and Campaign preview.
+
+Notes, pins, and stickers remain session-only. Hosted Clawd persistence,
+billing, and public paid claims stay closed until authenticated ownership,
+durability, and real-host gates exist. The current Alpha may retain a bounded,
+intent-only Scout preview without presenting a paid entitlement that is not
+live.
+
+Decision id:
+`EXPLORE_FACE_CLAWD_TRANSFORMATION_SESSION_DEFAULT`.
+
+Reason:
+This preserves Atlas's strongest identity: ChatGPT grows a map. It also keeps
+the Scout payoff without turning the map into wallpaper behind reports,
+upgrade chrome, or generic SaaS controls.
+
+## Decision 105A: 0.78-1V owner review passed; release work is authorized
+
+The owner approved the 0.78-1V product backlog and directed the team to
+continue on 2026-07-13. The 12-cell screenshot gate is passed and production
+release preparation is authorized. Deployment and real-host G8 remain factual
+execution gates and cannot be self-attested.
+
+Evidence:
+`artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md`.
+
+## Decision 105: Public tool truth outranks owner-gated capability state
+
+`ATLAS_SAVE_SURFACE` is an explicit opt-in and defaults off. When it is off,
+`get_upgrade_options` may explain the Atlas V1 session boundary, but it must not
+return owner-gated Hosted Clawd persistence, checkout, paid mode, enabled
+actions, or billing state in `structuredContent` or `_meta`. Internal flags and
+adapters remain available to the fenced owner test surface; they are not public
+product truth.
+
+County-question routing resolves an explicit Eastvale playable-loop ask before
+the broader source-keyword fallback. Provider normalization gives a bounded
+hotel-family type priority over mixed spa or fitness amenities and represents
+accommodation as a local service. Neither rule makes provider results geometry,
+coverage readiness, persisted state, or a playable claim.
+
+## Decision 104: Loop readiness follows the canonical gated packet
+
+The source-of-truth and loop-readiness verifiers must validate the active
+`artifacts/current-update.json` packet, not retain a hard-coded earlier slice.
+For 0.78-1V they require the flag-dark Census board contract, passed owner
+review, owner-authorized but pending deploy, pending real-host G8, the
+seven-tool MCP surface, and the gated 0.78-2 continuation.
+
+The loop split check reads the staged `national-generation-contract` envelope.
+That is the releasable packet; unrelated pre-existing working-tree artifacts
+must not be silently adopted into it. This changes release governance only. It
+does not enable the flag, deploy production, add tools, or begin town detail.
+
+## Decision 103: Census county boards stay dark until product certification and owner review
+
+0.78-1V certifies the first real-geography county boards without promoting
+them to the default public experience.
+
+Decision:
+County boards compile the baked U.S. Census boundary and water pack in the
+widget, use an explicit county-map terrain palette, identify the county in the
+honesty banner, and hide place/pin/note controls until real anchors exist. The
+browser verifier must exercise `atlasGeoBoard=1` directly across desktop,
+mobile, light, and dark while preserving a separate flag-off regression
+matrix. County camera presets must center and fit the full projected isometric
+terrain/water footprint; tile-axis span is not a valid framing proxy. The
+feature audit must fail when any first-frame county silhouette leaves the
+certified viewport.
+
+Decision id:
+`CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`.
+
+Reason:
+The original wire was technically correct but the land nearly disappeared
+against the light surround, the board showed unusable place controls, and the
+standard audit did not enter the feature flag. A feature is not promotion-ready
+until its copy, first-frame screenshots, interaction surface, Graphics count,
+rebuild latency, and complete projected silhouette framing are all measured on
+the actual flagged path.
+
+Allowed next:
+- Build one coherent certified release commit and run the authorized deploy.
+- Record post-deploy G8 in real ChatGPT.
+- `0.78-2 Real Town Anchors` after those release gates.
+
+Still blocked:
+- Default-on Census boards, national 3,222-pack claims, roads, town detail,
+  persistence, new MCP tools, provider geometry, public Anaheim/Ontario,
+  public paid claims, reports, exports, evidence, XP, and automation.
+
 ## Decision 102: Generated landmarks read county parameters
 
 0.76-2 replaces the universal generated water-tower landmark with

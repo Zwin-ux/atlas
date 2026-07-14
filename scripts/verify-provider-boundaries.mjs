@@ -64,7 +64,7 @@ const server = read("server/src/index.ts");
 assertIncludes(server, "lookup-only", "lookup_world_places copy must say lookup-only.");
 assertIncludes(server, "not saved", "lookup_world_places copy must say lookup results are not saved.");
 assertIncludes(server, "not coverage proof", "lookup_world_places copy must say lookup is not coverage proof.");
-assertIncludes(server, "does not unlock a playable county map", "lookup_world_places copy must block playable county claims.");
+assertIncludes(server, "does not open, show, refresh, or unlock a county map", "lookup_world_places copy must block county map claims.");
 
 const summary = {
   ok: blockers.length === 0,

@@ -19,6 +19,7 @@ const PRODUCT_FEEL_UPDATE = "postalpha-0.67h-product-feel-cleanup";
 const NATIONAL_GENERATION_UPDATE = "postalpha-0.70h-deterministic-generated-district-specs";
 const SCENE_PACKET_UPDATE = "postalpha-0.71h-scene-packet-service-boundary";
 const BACKEND_SPINE_UPDATE = "postalpha-0.72b-redis-scene-packet-cache-job-spine";
+const CENSUS_BOARD_UPDATE = "postalpha-0.78-1v-census-county-board-certification";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
@@ -68,6 +69,11 @@ const SCENE_PACKET_NEXT_QUEST = "0.72H Fable Generated Draft Visual Quality Gate
 const SCENE_PACKET_SELECTED_AXIS = "scene_packet_service_boundary";
 const BACKEND_SPINE_NEXT_QUEST = "0.72H Fable Generated Draft Visual Quality Gate";
 const BACKEND_SPINE_SELECTED_AXIS = "backend_production_spine";
+const CENSUS_BOARD_INPUT_UPDATE = "postalpha-0.78-1-real-county-board";
+const CENSUS_BOARD_NEXT_QUEST = "0.78-2 Real Town Anchors after production deploy and real-host G8";
+const CENSUS_BOARD_NEXT_QUEST_TITLE = "0.78-2 Real Town Anchors";
+const CENSUS_BOARD_SELECTED_AXIS = "real_geography_promotion_readiness";
+const CENSUS_BOARD_APPROVAL_EVIDENCE = "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md";
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -138,7 +144,9 @@ checkRepairScope();
 const result = {
   ok: blockers.length === 0,
   update:
-    currentUpdate?.id === SETUP_UI_UPDATE
+    currentUpdate?.id === CENSUS_BOARD_UPDATE
+      ? "postalpha-0.78-1v-census-county-board-source-of-truth-drift-check"
+      : currentUpdate?.id === SETUP_UI_UPDATE
       ? "postalpha-0.58j-setup-ui-source-of-truth-drift-check"
       : currentUpdate?.id === STORAGE_AUTH_UPDATE
       ? "postalpha-0.59h-storage-auth-source-of-truth-drift-check"
@@ -269,7 +277,11 @@ function checkCurrentUpdate(update) {
     checkBackendSpineCurrentUpdate(update);
     return;
   }
-  blockers.push(`artifacts/current-update.json id must be ${OWNER_GATE_UPDATE}, ${HOSTED_CLAWD_UPDATE}, ${INTEGRATION_UPDATE}, ${SETUP_UI_UPDATE}, ${STORAGE_AUTH_UPDATE}, ${PERSISTENCE_FOUNDATION_UPDATE}, ${SAVE_UX_UPDATE}, ${STRIPE_BILLING_UPDATE}, ${PROTECTED_TOOL_GATE_UPDATE}, ${SAVED_READ_SURFACE_UPDATE}, ${BROWSER_PROOF_UPDATE}, ${MOBILE_HARDENING_UPDATE}, ${PRODUCT_FEEL_UPDATE}, ${NATIONAL_GENERATION_UPDATE}, ${SCENE_PACKET_UPDATE}, or ${BACKEND_SPINE_UPDATE}; got ${update.id ?? "missing"}.`);
+  if (update.id === CENSUS_BOARD_UPDATE) {
+    checkCensusBoardCurrentUpdate(update);
+    return;
+  }
+  blockers.push(`artifacts/current-update.json id is not a recognized gated update; got ${update.id ?? "missing"}.`);
 }
 
 function checkOwnerGateCurrentUpdate(update) {
@@ -1108,6 +1120,80 @@ function checkBackendSpineCurrentUpdate(update) {
   }
 }
 
+function checkCensusBoardCurrentUpdate(update) {
+  if (update.status !== "local_green_owner_approved_release_authorized") {
+    blockers.push(`0.78-1V status must be local_green_owner_approved_release_authorized; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== CENSUS_BOARD_SELECTED_AXIS) {
+    blockers.push(`0.78-1V selectedAxis must be ${CENSUS_BOARD_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== CENSUS_BOARD_NEXT_QUEST || update.nextCodeStep !== CENSUS_BOARD_NEXT_QUEST) {
+    blockers.push(`0.78-1V must keep the owner-gated next code step at ${CENSUS_BOARD_NEXT_QUEST}.`);
+  }
+  if (update.inputUpdate !== CENSUS_BOARD_INPUT_UPDATE) {
+    blockers.push(`0.78-1V inputUpdate must be ${CENSUS_BOARD_INPUT_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE") {
+    blockers.push(`0.78-1V decision is invalid: ${update.decision ?? "missing"}.`);
+  }
+
+  const metric = update.metricResult;
+  if (
+    metric?.featureFlag !== "atlasGeoBoard=1" ||
+    metric?.defaultEnabled !== false ||
+    metric?.featureAudit?.cells !== 12 ||
+    metric?.featureAudit?.fail !== 0 ||
+    metric?.featureAudit?.framingChecks !== 12 ||
+    metric?.desktopMobileProof !== true ||
+    metric?.lightDarkProof !== true ||
+    metric?.newMcpTools !== 0 ||
+    metric?.providerGeometry !== false ||
+    metric?.publicPlayablePromotion !== false
+  ) {
+    blockers.push("0.78-1V must record 12 green flag-on cells with full framing, desktop/mobile and light/dark proof, flag-dark default, zero new tools, no provider geometry, and no public playable promotion.");
+  }
+  for (const key of ["core", "typecheck", "toolResultShape", "providerBoundary", "splitGuard", "censusBrowser", "framing", "proof", "releaseToolContract", "releasePreflight"]) {
+    if (!update.verification?.[key]) blockers.push(`0.78-1V verification is missing ${key}.`);
+  }
+  if (
+    metric?.publicToolTruth?.exactProductionToolSet !== true ||
+    metric?.publicToolTruth?.widgetResourceUri !== "ui://widget/atlas-city-world-0781v.html"
+  ) {
+    blockers.push("0.78-1V must record the exact seven-tool production contract and versioned widget resource URI.");
+  }
+  if (!existsSync(resolve(update.verification?.proof ?? ""))) {
+    blockers.push(`0.78-1V proof path is missing: ${update.verification?.proof ?? "missing"}.`);
+  }
+  const expectedGates = ["owner-screenshot-review", "production-deploy", "real-host-g8"];
+  const gates = Array.isArray(update.gates) ? update.gates : [];
+  for (const id of expectedGates) {
+    const gate = gates.find((candidate) => candidate?.id === id);
+    if (gate?.required !== true) {
+      blockers.push(`0.78-1V gate ${id} must remain required.`);
+    }
+  }
+  const ownerGate = gates.find((candidate) => candidate?.id === "owner-screenshot-review");
+  const deployGate = gates.find((candidate) => candidate?.id === "production-deploy");
+  const realHostGate = gates.find((candidate) => candidate?.id === "real-host-g8");
+  if (ownerGate?.status !== "passed" || ownerGate?.evidence !== CENSUS_BOARD_APPROVAL_EVIDENCE) {
+    blockers.push("0.78-1V owner screenshot gate must be passed with its approval artifact.");
+  }
+  if (!existsSync(resolve(CENSUS_BOARD_APPROVAL_EVIDENCE))) {
+    blockers.push(`0.78-1V owner approval artifact is missing: ${CENSUS_BOARD_APPROVAL_EVIDENCE}.`);
+  }
+  if (deployGate?.status !== "pending" || deployGate?.authorization !== "approved") {
+    blockers.push("0.78-1V production deploy must be pending and owner-authorized.");
+  }
+  if (realHostGate?.status !== "pending") {
+    blockers.push("0.78-1V real-host G8 must remain pending until real ChatGPT proof exists.");
+  }
+  for (const phrase of ["default-enable", "production deploy", "roads or town-detail", "national 3,222-pack", "new public MCP tools", "provider-created geometry", "persistence or public paid claims", "public Anaheim/Ontario"]) {
+    if (!update.forbiddenScope?.some((item) => item.includes(phrase))) {
+      blockers.push(`0.78-1V forbiddenScope is missing the ${phrase} boundary.`);
+    }
+  }
+}
+
 function checkPriorSelectorArtifact(artifact) {
   if (!artifact) return;
   if (artifact.update !== "postalpha-0.43e-engine-quality-axis-review-next-target-selection") {
@@ -1178,12 +1264,13 @@ function checkOwnerGateSelector(selectorArtifact) {
 
 function checkNextQuestAlignment(update, nextQuests, releaseLadder) {
   if (!update?.recommendedNextQuest) return;
-  if (!nextQuests.includes(update.recommendedNextQuest)) {
+  const expectedQuest = update.id === CENSUS_BOARD_UPDATE ? CENSUS_BOARD_NEXT_QUEST_TITLE : update.recommendedNextQuest;
+  if (!nextQuests.includes(expectedQuest)) {
     blockers.push(`docs/NEXT_QUESTS.md does not include current recommended next quest: ${update.recommendedNextQuest}.`);
   }
   const ladderNext = extractFirstNextUpdate(releaseLadder);
   const normalizedLadderNext = normalizeQuestTitle(ladderNext);
-  if (normalizedLadderNext && normalizedLadderNext !== update.recommendedNextQuest) {
+  if (normalizedLadderNext && normalizedLadderNext !== expectedQuest) {
     blockers.push(`Release ladder first next update does not match ${update.recommendedNextQuest}; got ${ladderNext}.`);
   }
 }
@@ -1747,6 +1834,36 @@ function checkIntegrationReleaseDocs(update, docs) {
     };
   }
 
+  if (update?.id === CENSUS_BOARD_UPDATE) {
+    label = "0.78-1V Census county board certification";
+    requiredSnippetsByFile = {
+      "STATE.md": [
+        "0.78-1V Census County Board Product + Certification Gate",
+        "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE",
+        CENSUS_BOARD_NEXT_QUEST_TITLE,
+        "owner-approved",
+      ],
+      "docs/NEXT_QUESTS.md": [
+        "Current 0.78-1V Census county board gate",
+        "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE",
+        CENSUS_BOARD_NEXT_QUEST_TITLE,
+        "atlasGeoBoard=1",
+      ],
+      "docs/BUILD_LOG.md": [
+        "## Entry 092",
+        "0.78-1V Census county board product + certification gate",
+        "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE",
+        "full projected terrain/water footprint framed in all 12 first frames",
+      ],
+      "docs/DECISIONS.md": [
+        "## Decision 103",
+        "Census county boards stay dark until product certification and owner review",
+        "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE",
+        CENSUS_BOARD_NEXT_QUEST_TITLE,
+      ],
+    };
+  }
+
   if (!requiredSnippetsByFile) return;
 
   for (const [path, snippets] of Object.entries(requiredSnippetsByFile)) {
@@ -1809,9 +1926,6 @@ function checkAgentsDoctrine(agents) {
     "Hosted Clawd DB/Auth persistence is now local-green only for owner-protected rows",
     "The human explicitly reopened DB/Auth preparation on 2026-07-05",
     "If the human says \"continue,\" continue only the named next quest",
-    "Current human-directed local-green slice is `0.72B Redis Scene Packet Cache / Job Spine`",
-    "0.72B decision is `REDIS_PACKET_SPINE_NOT_RENDER_LOOP`",
-    "Default next slice after 0.72B is `0.72H Fable Generated Draft Visual Quality Gate`",
     "Stripe/money is open only for test-mode billing behind webhook-confirmed state",
     "The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`",
     "Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`",
@@ -1821,8 +1935,22 @@ function checkAgentsDoctrine(agents) {
     "Put large widget-only or renderer-only scene data in `_meta`",
     "Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays",
     "Do not add new MCP tools casually",
-    "Use `national-generation-contract` for strict split checks on the 0.72B Redis scene packet backend spine branch",
   ];
+  if (currentUpdate?.id === CENSUS_BOARD_UPDATE) {
+    requiredSnippets.push(
+      "Current human-directed local-green slice is `0.78-1V Census County Board Product + Certification Gate`",
+      "0.78-1V decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`",
+      "The next code slice is `0.78-2 Real Town Anchors` only after owner review",
+      "Use `national-generation-contract` for strict split checks on the current real-geography branch",
+    );
+  } else if (currentUpdate?.id === BACKEND_SPINE_UPDATE) {
+    requiredSnippets.push(
+      "Current human-directed local-green slice is `0.72B Redis Scene Packet Cache / Job Spine`",
+      "0.72B decision is `REDIS_PACKET_SPINE_NOT_RENDER_LOOP`",
+      "Default next slice after 0.72B is `0.72H Fable Generated Draft Visual Quality Gate`",
+      "Use `national-generation-contract` for strict split checks on the 0.72B Redis scene packet backend spine branch",
+    );
+  }
   for (const snippet of requiredSnippets) {
     if (!agents.includes(snippet)) {
       blockers.push(`AGENTS.md missing required doctrine: ${snippet}`);
@@ -1888,7 +2016,8 @@ function checkDbDrift(packageJson, serverIndex, envExample) {
     currentUpdate?.id === PRODUCT_FEEL_UPDATE ||
     currentUpdate?.id === NATIONAL_GENERATION_UPDATE ||
     currentUpdate?.id === SCENE_PACKET_UPDATE ||
-    currentUpdate?.id === BACKEND_SPINE_UPDATE
+    currentUpdate?.id === BACKEND_SPINE_UPDATE ||
+    currentUpdate?.id === CENSUS_BOARD_UPDATE
   ) {
     checkStripeBillingDbEnvelope(packageJson, serverIndex, envExample);
     return;

@@ -80,7 +80,7 @@ import {
 } from "./security.js";
 
 const SERVER_VERSION = "0.1.0";
-const WIDGET_URI = "ui://widget/atlas-city-world-v1.html";
+const WIDGET_URI = "ui://widget/atlas-city-world-0781v.html";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = resolve(__dirname, "../..");
 const MAX_WORLD_LOOKUP_CACHE_ENTRIES = 100;
@@ -177,7 +177,7 @@ const hostedClawdService = new HostedClawdService({
   billing: hostedClawdBilling,
 });
 const hostedClawdWriteRouterMounted = Boolean(hostedClawdPersistence);
-const atlasSaveSurfaceEnabled = (process.env.ATLAS_SAVE_SURFACE ?? "on").trim().toLowerCase() !== "off";
+const atlasSaveSurfaceEnabled = (process.env.ATLAS_SAVE_SURFACE ?? "off").trim().toLowerCase() === "on";
 
 type WorldLookupCacheEntry = {
   response: WorldPlaceLookupResponse;
@@ -880,7 +880,7 @@ const upgradeOptionsOutputSchema = {
   }),
   unavailableActions: z.array(z.string()),
   nextStep: z.string(),
-  hostedClawd: hostedClawdContextSchema,
+  hostedClawd: hostedClawdContextSchema.optional(),
 };
 
 const worldSourceNoteSchema = z.object({
@@ -1556,7 +1556,6 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         "Lookup results are for manual review; they are not saved state, scene geometry, or coverage proof.",
       ],
       nextStep: "Use Atlas as a map and planning preview; pins, notes, Scout Drops, and campaign previews stay in this chat.",
-      hostedClawd: publicHostedClawdContext(hostedClawd),
     };
   }
 
@@ -3392,7 +3391,7 @@ function createAtlasServer(): McpServer {
       return {
         structuredContent: options,
         _meta: {
-          ...hostedClawdMeta(options.hostedClawd),
+          ...("hostedClawd" in options && options.hostedClawd ? hostedClawdMeta(options.hostedClawd) : {}),
         },
         content: [
           {

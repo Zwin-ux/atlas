@@ -98,10 +98,6 @@ export class CountyQuestionService {
       return outOfWorldAnswer(pack, question);
     }
 
-    if (isSourceQuestion(question)) {
-      return sourceLimitsAnswer(pack, question);
-    }
-
     if (businessKey) {
       return businessSignalsAnswer(pack, question, businessKey);
     }
@@ -115,8 +111,15 @@ export class CountyQuestionService {
       return unsupportedPlaceAnswer(pack, question);
     }
 
+    // A player asking what data makes Eastvale playable is asking why this
+    // slice works, not only for a generic source disclaimer. Resolve the
+    // product-loop intent before the broader source-keyword fallback.
     if (isFirstSliceQuestion(question)) {
       return eastvaleFirstSliceAnswer(pack, question);
+    }
+
+    if (isSourceQuestion(question)) {
+      return sourceLimitsAnswer(pack, question);
     }
 
     return countySummaryAnswer(pack, question);

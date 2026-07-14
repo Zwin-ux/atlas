@@ -8,7 +8,49 @@ verifier/selector result created during the current slice. If the human says
 "continue," continue only the named next quest. If that quest conflicts with
 permanent gates, stop and report the conflict.
 
-## Current 0.76 USA-region quality track (2026-07-08)
+## Current 0.78-1V Census county board gate (2026-07-13)
+
+Current packet:
+`0.78-1V Census County Board Product + Certification Gate` is local-green,
+owner-approved, and authorized for release preparation. The exact release
+commit, deploy execution, and post-deploy real-host proof are not complete.
+
+Decision:
+`CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`.
+
+Proof:
+- `artifacts/council/CODEX_RESULT_0781V.md`
+- `artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md`
+- `artifacts/emulator/audit/0.78-1v/report.json`
+- `artifacts/emulator/audit/0.78-1v/REPORT.md`
+- 12 desktop/mobile light/dark PNGs in `artifacts/emulator/audit/0.78-1v/`
+- Recertified after the framing repair: 138 pass, 0 warn, 0 fail, with the
+  complete projected county terrain/water footprint inside all 12 first frames.
+- Source-of-truth drift is green with 0 blockers; loop readiness is
+  `L2_ASSISTED` against the exact staged 46-file release packet.
+- `0.78-1V-Q Public Tool Truth Pass` is locally green: save capabilities fail
+  closed, overlapping playable-question intent stays on the product loop, and
+  mixed hotel/amenity lookup types no longer present the hotel as fitness.
+
+Current gates:
+- PASSED: owner approved the 12 feature-on screenshots.
+- AUTHORIZED / PENDING EXECUTION: production deploy from one coherent,
+  certified full SHA.
+- PENDING: post-deploy G8 proof in real ChatGPT.
+
+Next READY packet after deploy and real-host G8:
+`0.78-2 Real Town Anchors`.
+
+Parallel queue:
+- QUEUED: `0.80-2` graphics work in its existing fenced packet.
+
+Anti-scope remains:
+The Census board stays dark behind `?atlasGeoBoard=1`. No default-on flag,
+production deploy, roads, town detail, national 3,222-pack bake, persistence,
+new MCP tools, provider geometry, public paid claim, or public
+Anaheim/Ontario promotion belongs in 0.78-1V.
+
+## Previous 0.76 USA-region quality track (2026-07-08)
 
 Current packet:
 `0.76-3 Massing & zone variants` is local-green and waiting for reviewer-run

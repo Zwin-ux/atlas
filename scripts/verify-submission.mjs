@@ -169,7 +169,10 @@ try {
   );
   assert(unsupportedQuestion.type === "countyQuestionAnswer", "Unsupported county question returned wrong type.");
   assert(unsupportedQuestion.supported === false, "Unsupported county/business question must be refused.");
-  assert(/Riverside County|Supported score lanes|unsupported/i.test(unsupportedQuestion.answer), "Unsupported answer must narrow scope.");
+  assert(
+    /Riverside County|Supported score lanes|cannot answer.*preview|unsupported/i.test(unsupportedQuestion.answer),
+    "Unsupported answer must narrow scope to the playable county, supported lanes, or preview-only facts.",
+  );
 
   const countyResult = await client.callTool({
     name: "render_voxel_county",
@@ -268,6 +271,7 @@ try {
         upgrade.unavailableActions.some((item) => /does not start checkout, charge money/i.test(item)),
       "V1 upgrade output must clearly keep checkout and money closed.",
     );
+    assert(!("hostedClawd" in upgrade), "V1 upgrade output must not expose owner-gated Hosted Clawd capabilities.");
   } else if (upgrade.hosted?.status === "owner_gated_test") {
     assert(
       Array.isArray(upgrade.unavailableActions) &&

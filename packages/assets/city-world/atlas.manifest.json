@@ -117,6 +117,15 @@
         "accent": "#866f4f"
       }
     },
+    "terrain.region.county_map": {
+      "key": "terrain.region.county_map",
+      "colors": {
+        "base": "#6f914d",
+        "shade": "#4f6d37",
+        "highlight": "#c2d68f",
+        "accent": "#d6b765"
+      }
+    },
     "road.asphalt": {
       "key": "road.asphalt",
       "colors": {

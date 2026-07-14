@@ -1,0 +1,835 @@
+{
+  "ok": true,
+  "ranAt": "2026-07-14T02:29:27.630Z",
+  "base": "http://127.0.0.1:8787",
+  "cells": [
+    {
+      "county": "miami-dade-fl",
+      "archetype": "metro_grid",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1280; clientWidth=1280"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=385.2,31.9..894.8,652.1; viewport=1280x720"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=5.8ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=39; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/miami-dade-fl-desktop-light.png"
+    },
+    {
+      "county": "miami-dade-fl",
+      "archetype": "metro_grid",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "desktop",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1280; clientWidth=1280"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=385.2,31.9..894.8,652.1; viewport=1280x720"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=6.2ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=39; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/miami-dade-fl-desktop-dark.png"
+    },
+    {
+      "county": "miami-dade-fl",
+      "archetype": "metro_grid",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=390; clientWidth=390"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=25.1,197.3..364.9,610.7; viewport=390x844"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=5.4ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=40; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (181.93,518.05) -> (-78.11,371.78); rebuilds=5 @ 2.4/s, fired=4, deferred=16"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.59 -> 1.07"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/miami-dade-fl-mobile-light.png"
+    },
+    {
+      "county": "miami-dade-fl",
+      "archetype": "metro_grid",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "mobile",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=390; clientWidth=390"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=25.1,197.3..364.9,610.7; viewport=390x844"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=5.8ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=40; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (181.93,518.05) -> (-77.31,372.22); rebuilds=5 @ 2.4/s, fired=4, deferred=16"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.59 -> 1.07"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/miami-dade-fl-mobile-dark.png"
+    },
+    {
+      "county": "loving-tx",
+      "archetype": "desert_basin",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1280; clientWidth=1280"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Loving CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=194.5,72.0..1085.5,612.0; viewport=1280x720"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=2.6ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=33; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/loving-tx-desktop-light.png"
+    },
+    {
+      "county": "loving-tx",
+      "archetype": "desert_basin",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "desktop",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1280; clientWidth=1280"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Loving CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=194.5,72.0..1085.5,612.0; viewport=1280x720"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=2.5ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=33; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/loving-tx-desktop-dark.png"
+    },
+    {
+      "county": "loving-tx",
+      "archetype": "desert_basin",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=390; clientWidth=390"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Loving CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=25.1,301.0..364.9,507.0; viewport=390x844"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=2.8ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=33; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (150.96,424.59) -> (-87.69,290.35); rebuilds=5 @ 2.3/s, fired=4, deferred=13"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.57 -> 1.03"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/loving-tx-mobile-light.png"
+    },
+    {
+      "county": "loving-tx",
+      "archetype": "desert_basin",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "mobile",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=390; clientWidth=390"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Loving CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=25.1,301.0..364.9,507.0; viewport=390x844"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=2.8ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=33; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (150.96,424.59) -> (-86.3,291.13); rebuilds=5 @ 2.4/s, fired=4, deferred=14"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.57 -> 1.03"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/loving-tx-mobile-dark.png"
+    },
+    {
+      "county": "kalawao-hi",
+      "archetype": "coastal_grid",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "desktop",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1280; clientWidth=1280"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Kalawao CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=284.9,32.1..995.1,651.9; viewport=1280x720"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=4.5ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=38; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/kalawao-hi-desktop-light.png"
+    },
+    {
+      "county": "kalawao-hi",
+      "archetype": "coastal_grid",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "desktop",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=1280; clientWidth=1280"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Kalawao CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=284.9,32.1..995.1,651.9; viewport=1280x720"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=4.1ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=38; ceiling=1600"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/kalawao-hi-desktop-dark.png"
+    },
+    {
+      "county": "kalawao-hi",
+      "archetype": "coastal_grid",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "mobile",
+      "theme": "light",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=390; clientWidth=390"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Kalawao CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=25.0,255.7..364.9,552.3; viewport=390x844"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=3.6ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=37; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (183.67,471.98) -> (-55.95,337.19); rebuilds=5 @ 2.4/s, fired=4, deferred=18"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.52 -> 0.93"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/kalawao-hi-mobile-light.png"
+    },
+    {
+      "county": "kalawao-hi",
+      "archetype": "coastal_grid",
+      "draft": true,
+      "geoBoard": true,
+      "viewport": "mobile",
+      "theme": "dark",
+      "checks": [
+        {
+          "id": "delivered",
+          "level": "pass",
+          "detail": "state=delivered; errors=0"
+        },
+        {
+          "id": "no_horizontal_overflow",
+          "level": "pass",
+          "detail": "scrollWidth=390; clientWidth=390"
+        },
+        {
+          "id": "honesty_banner",
+          "level": "pass",
+          "detail": "U.S. CENSUS · Kalawao CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+        },
+        {
+          "id": "county_board_controls",
+          "level": "pass",
+          "detail": "unavailable place, pin, and note controls are hidden"
+        },
+        {
+          "id": "county_board_framing",
+          "level": "pass",
+          "detail": "frame=25.0,255.7..364.9,552.3; viewport=390x844"
+        },
+        {
+          "id": "rebuild_ms_ceiling",
+          "level": "pass",
+          "detail": "rebuild=3.7ms; ceiling=350ms"
+        },
+        {
+          "id": "canvas_single",
+          "level": "pass",
+          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+        },
+        {
+          "id": "graphics_ceiling",
+          "level": "pass",
+          "detail": "graphics=37; ceiling=1600"
+        },
+        {
+          "id": "touch_targets_44",
+          "level": "pass",
+          "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
+        },
+        {
+          "id": "touch_pan",
+          "level": "pass",
+          "detail": "world moved (183.67,471.98) -> (-55.01,337.72); rebuilds=5 @ 2.3/s, fired=4, deferred=17"
+        },
+        {
+          "id": "touch_pinch",
+          "level": "pass",
+          "detail": "world scale 0.52 -> 0.93"
+        },
+        {
+          "id": "payload_report",
+          "level": "pass",
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
+        },
+        {
+          "id": "console_errors",
+          "level": "pass",
+          "detail": "console error entries=0"
+        }
+      ],
+      "screenshot": "artifacts/emulator/audit/0.78-1v/kalawao-hi-mobile-dark.png"
+    }
+  ],
+  "summary": {
+    "pass": 138,
+    "warn": 0,
+    "fail": 0
+  },
+  "failures": []
+}

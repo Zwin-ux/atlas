@@ -393,6 +393,7 @@ try {
         upgrade.unavailableActions.some((item) => /does not start checkout, charge money/i.test(item)),
       "V1 upgrade output must clearly keep checkout and money closed.",
     );
+    assert(!("hostedClawd" in upgrade), "V1 upgrade output must not expose owner-gated Hosted Clawd capabilities.");
   } else if (upgrade.hosted?.status === "planned_beta") {
     assert(
       Array.isArray(upgrade.unavailableActions) &&

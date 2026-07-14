@@ -9,22 +9,69 @@ const gates = [];
 const blockers = [];
 
 for (const testCase of [
-  { name: "save_surface_on_emits_hosted_clawd_meta", flag: "on", expectedHostedClawd: true },
-  { name: "save_surface_off_omits_hosted_clawd_meta", flag: "off", expectedHostedClawd: false },
+  {
+    name: "save_surface_on_emits_closed_hosted_clawd_context",
+    flag: "on",
+    persistenceEnabled: false,
+    moneyEnabled: false,
+    expectedHostedClawd: true,
+  },
+  {
+    name: "save_surface_off_omits_owner_gated_capabilities",
+    flag: "off",
+    persistenceEnabled: true,
+    moneyEnabled: true,
+    expectedHostedClawd: false,
+  },
+  {
+    name: "save_surface_defaults_closed",
+    flag: undefined,
+    persistenceEnabled: true,
+    moneyEnabled: true,
+    expectedHostedClawd: false,
+  },
 ]) {
   await gate(testCase.name, async () => {
     const port = Number(process.env.ATLAS_SAVE_SURFACE_VERIFY_PORT ?? 19_787 + Math.floor(Math.random() * 1000));
     const baseUrl = `http://127.0.0.1:${port}`;
-    const server = startServer({ port, baseUrl, saveSurface: testCase.flag });
+    const server = startServer({
+      port,
+      baseUrl,
+      saveSurface: testCase.flag,
+      persistenceEnabled: testCase.persistenceEnabled,
+      moneyEnabled: testCase.moneyEnabled,
+    });
 
     try {
       await waitForServer(server, port);
-      const result = await callSelectCounty(`${baseUrl}/mcp`);
-      const hasHostedClawd = hasOwn(result?._meta, "hostedClawd");
+      const { countyResult, upgradeResult } = await callAtlasTools(`${baseUrl}/mcp`);
+      const hasHostedClawd = hasOwn(countyResult?._meta, "hostedClawd");
+      const structuredUpgrade = upgradeResult?.structuredContent;
+      const hasStructuredHostedClawd = hasOwn(structuredUpgrade, "hostedClawd");
+      const hasMetaHostedClawd = hasOwn(upgradeResult?._meta, "hostedClawd");
       assert(
         hasHostedClawd === testCase.expectedHostedClawd,
         `ATLAS_SAVE_SURFACE=${testCase.flag} expected hostedClawd meta ${testCase.expectedHostedClawd}, got ${hasHostedClawd}.`,
       );
+      assert(
+        hasStructuredHostedClawd === testCase.expectedHostedClawd,
+        `ATLAS_SAVE_SURFACE=${testCase.flag} expected structured hostedClawd ${testCase.expectedHostedClawd}, got ${hasStructuredHostedClawd}.`,
+      );
+      assert(
+        hasMetaHostedClawd === testCase.expectedHostedClawd,
+        `ATLAS_SAVE_SURFACE=${testCase.flag} expected upgrade meta hostedClawd ${testCase.expectedHostedClawd}, got ${hasMetaHostedClawd}.`,
+      );
+      if (testCase.expectedHostedClawd) {
+        assert(structuredUpgrade?.hostedClawd?.canPersist === false, "Closed Hosted Clawd context must not claim persistence.");
+        assert(structuredUpgrade?.hostedClawd?.canStartCheckout === false, "Closed Hosted Clawd context must not claim checkout.");
+        assert(structuredUpgrade?.hostedClawd?.canUsePaidWrites === false, "Closed Hosted Clawd context must not claim paid writes.");
+      } else {
+        assert(structuredUpgrade?.free?.label === "Atlas V1", "Closed save surface must return the Atlas V1 boundary.");
+        assert(
+          structuredUpgrade?.unavailableActions?.some((item) => /does not start checkout, charge money/i.test(item)),
+          "Closed save surface must state that checkout and money are unavailable.",
+        );
+      }
     } finally {
       await stopServer(server);
     }
@@ -42,24 +89,29 @@ const summary = {
 console.log(JSON.stringify(summary, null, 2));
 if (!summary.ok) process.exitCode = 1;
 
-async function callSelectCounty(mcpUrl) {
+async function callAtlasTools(mcpUrl) {
   const client = new Client({ name: "atlas-save-surface-flag-verifier", version: "0.1.0" });
   const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
   try {
     await client.connect(transport);
-    return await client.callTool({
+    const countyResult = await client.callTool({
       name: "select_county",
       arguments: { countySlug: "riverside-ca" },
     });
+    const upgradeResult = await client.callTool({
+      name: "get_upgrade_options",
+      arguments: { trigger: "general" },
+    });
+    return { countyResult, upgradeResult };
   } finally {
     await client.close();
   }
 }
 
-function startServer({ port, baseUrl, saveSurface }) {
+function startServer({ port, baseUrl, saveSurface, persistenceEnabled, moneyEnabled }) {
   const child = process.platform === "win32"
-    ? spawn("pnpm exec tsx server/src/index.ts", [], spawnOptions({ shell: true, port, baseUrl, saveSurface }))
-    : spawn("pnpm", ["exec", "tsx", "server/src/index.ts"], spawnOptions({ shell: false, port, baseUrl, saveSurface }));
+    ? spawn("pnpm exec tsx server/src/index.ts", [], spawnOptions({ shell: true, port, baseUrl, saveSurface, persistenceEnabled, moneyEnabled }))
+    : spawn("pnpm", ["exec", "tsx", "server/src/index.ts"], spawnOptions({ shell: false, port, baseUrl, saveSurface, persistenceEnabled, moneyEnabled }));
   child.stdoutText = "";
   child.stderrText = "";
   child.stdout.on("data", (chunk) => {
@@ -71,20 +123,22 @@ function startServer({ port, baseUrl, saveSurface }) {
   return child;
 }
 
-function spawnOptions({ shell, port, baseUrl, saveSurface }) {
+function spawnOptions({ shell, port, baseUrl, saveSurface, persistenceEnabled, moneyEnabled }) {
+  const env = {
+    ...process.env,
+    PORT: String(port),
+    NODE_ENV: "test",
+    APP_BASE_URL: baseUrl,
+    ATLAS_HOSTED_CLAWD_PERSISTENCE_ENABLED: String(persistenceEnabled),
+    ATLAS_HOSTED_CLAWD_MONEY_ENABLED: String(moneyEnabled),
+    ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED: "false",
+    ATLAS_SCENE_PACKET_CACHE_BACKEND: "memory",
+  };
+  if (saveSurface === undefined) delete env.ATLAS_SAVE_SURFACE;
+  else env.ATLAS_SAVE_SURFACE = saveSurface;
   return {
     cwd: process.cwd(),
-    env: {
-      ...process.env,
-      PORT: String(port),
-      NODE_ENV: "test",
-      APP_BASE_URL: baseUrl,
-      ATLAS_HOSTED_CLAWD_PERSISTENCE_ENABLED: "false",
-      ATLAS_HOSTED_CLAWD_MONEY_ENABLED: "false",
-      ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED: "false",
-      ATLAS_SAVE_SURFACE: saveSurface,
-      ATLAS_SCENE_PACKET_CACHE_BACKEND: "memory",
-    },
+    env,
     shell,
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { CITY_WORLD_TILE_BASIS } from "../src/voxel/cityWorldBasis.js";
 import { compileCountyGeoScene, type CountyGeoPack } from "../src/voxel/cityWorldCountyGeoScene.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -36,6 +37,34 @@ function tileKindCounts(scene: ReturnType<typeof compileCountyGeoScene>): { gras
   return { grass, water, total: scene.terrainTiles.length };
 }
 
+function projectedTerrainFootprint(scene: ReturnType<typeof compileCountyGeoScene>): {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  width: number;
+  height: number;
+} {
+  const bounds = scene.terrainTiles.reduce(
+    (box, tile) => {
+      const width = tile.width ?? 1;
+      const depth = tile.depth ?? 1;
+      const sx = (tile.position.x - tile.position.y) * (CITY_WORLD_TILE_BASIS.tileWidth / 2);
+      const sy = (tile.position.x + tile.position.y) * (CITY_WORLD_TILE_BASIS.tileHeight / 2);
+      const halfWidth = ((width + depth) * CITY_WORLD_TILE_BASIS.tileWidth) / 4;
+      const halfHeight = ((width + depth) * CITY_WORLD_TILE_BASIS.tileHeight) / 4;
+      return {
+        minX: Math.min(box.minX, sx - halfWidth),
+        maxX: Math.max(box.maxX, sx + halfWidth),
+        minY: Math.min(box.minY, sy - halfHeight),
+        maxY: Math.max(box.maxY, sy + halfHeight),
+      };
+    },
+    { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity },
+  );
+  return { ...bounds, width: bounds.maxX - bounds.minX, height: bounds.maxY - bounds.minY };
+}
+
 describe("compileCountyGeoScene", () => {
   it("produces a substantial land board from a real county pack", () => {
     const scene = compileCountyGeoScene(loadPack("miami-dade-fl"));
@@ -44,6 +73,8 @@ describe("compileCountyGeoScene", () => {
     expect(scene.label).toBe("Miami-Dade — county map");
     expect(scene.region.state).toBe("FL");
     expect(scene.region.county).toBe("Miami-Dade County");
+    expect(scene.terrainTiles.filter((tile) => tile.kind === "grass").every((tile) => tile.paletteKey === "terrain.region.county_map")).toBe(true);
+    expect(scene.terrainTiles.filter((tile) => tile.kind === "water").every((tile) => tile.paletteKey !== "terrain.region.county_map")).toBe(true);
     // camera fits the whole county within sane zoom bounds
     const desktop = scene.cameraPresets.find((preset) => preset.id === "desktop");
     expect(desktop).toBeDefined();
@@ -107,6 +138,27 @@ describe("compileCountyGeoScene", () => {
         expect(Number.isFinite(tile.position.x)).toBe(true);
         expect(Number.isFinite(tile.position.y)).toBe(true);
       }
+    }
+  });
+
+  it("fits the full projected county footprint in certified desktop and mobile frames", () => {
+    for (const slug of ["miami-dade-fl", "loving-tx", "kalawao-hi"]) {
+      const scene = compileCountyGeoScene(loadPack(slug));
+      const footprint = projectedTerrainFootprint(scene);
+      const desktop = scene.cameraPresets.find((preset) => preset.id === "desktop")!;
+      const mobile = scene.cameraPresets.find((preset) => preset.id === "mobile")!;
+      const desktopCenterX = (desktop.center.x - desktop.center.y) * (CITY_WORLD_TILE_BASIS.tileWidth / 2);
+      const desktopCenterY = (desktop.center.x + desktop.center.y) * (CITY_WORLD_TILE_BASIS.tileHeight / 2);
+      const footprintCenterX = (footprint.minX + footprint.maxX) / 2;
+      const footprintCenterY = (footprint.minY + footprint.maxY) / 2;
+
+      expect(footprint.width * desktop.zoom).toBeLessThanOrEqual(1120.5);
+      expect(footprint.height * desktop.zoom).toBeLessThanOrEqual(620.5);
+      expect(footprint.width * mobile.zoom).toBeLessThanOrEqual(340.5);
+      expect(footprint.height * mobile.zoom).toBeLessThanOrEqual(560.5);
+      expect(desktopCenterX).toBeCloseTo(footprintCenterX, 1);
+      expect(desktopCenterY).toBeCloseTo(footprintCenterY, 1);
+      expect(mobile.center).toEqual(desktop.center);
     }
   });
 });

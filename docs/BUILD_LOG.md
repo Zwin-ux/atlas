@@ -1,5 +1,33 @@
 # Build Log
 
+## Entry 220
+
+Quest:
+0.78-1V owner approval and release-integrity continuation.
+
+What changed:
+- Recorded the owner's 2026-07-13 approval of the 12-cell Census board review
+  and authorization to prepare the production release.
+- Kept production deploy and real-host G8 as factual pending gates.
+- Reconciled the product law: Explore is the free face of Atlas; Clawd is an
+  intent-driven transformation into session-only Scout and Campaign previews;
+  persistence and billing remain closed.
+- Began release hardening for immutable SHA preflight, widget-resource
+  versioning, and exact seven-tool production verification.
+
+Evidence:
+- `artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md`
+- `pnpm test:core`: 160 passed.
+- `pnpm typecheck:starter`: passed.
+- `node scripts/verify-save-surface-flag.mjs`: 3 passed.
+- Geo category normalization: 6 passed.
+
+Still pending:
+- One coherent certified commit.
+- Authorized production deploy.
+- Post-deploy G8 in real ChatGPT.
+- `0.78-2 Real Town Anchors` remains blocked until those release gates close.
+
 ## Entry 219
 
 Quest:
@@ -9528,3 +9556,72 @@ same next implementation slice.
 This is verifier/release-hygiene only. It does not change runtime behavior,
 MCP tools, public district promotion, persistence, money, provider geometry,
 deployment, or submission scope.
+
+## Entry 092
+
+**0.78-1V Census county board product + certification gate - local green,
+2026-07-12, Codex.** Took over the flag-gated 0.78-1 wire at `0e94a6c` and
+certified the actual Census-board path instead of treating the generated-scene
+audit as proof. The widget now distinguishes Census boards from generated
+previews, names the U.S. Census source, states that streets and places are not
+mapped, and hides place/pin/note/save controls until real anchors exist. A
+dedicated `terrain.region.county_map` palette keeps raised land readable in
+light and dark without adding renderer passes. The emulator forwards
+`atlasGeoBoard=1` into its srcdoc frame and writes a separate 0.78-1V evidence
+packet; settled first-frame screenshots are captured before gesture checks.
+The display-mode cell keeps a physical first touch and adds deterministic
+keyboard/click recovery for SwiftShader touch loss.
+
+Verified: `pnpm test:core` 159/159; `pnpm typecheck:starter` green;
+tool-result-shape and provider-boundary guards green; standard flag-off browser
+audit 162 pass, 0 warn, 0 fail; feature-on browser audit 138 pass, 0 warn,
+0 fail across Miami-Dade FL, Loving TX, and Kalawao HI at desktop/mobile and
+light/dark; full projected terrain/water footprint framed in all 12 first
+frames; max Graphics 40/1600; max rebuild 6.2ms/350ms. The recertification
+replaced the tile-axis camera heuristic with projected isometric bounds and
+added a browser assertion that fails on any clipped county silhouette. Evidence:
+`artifacts/emulator/audit/0.78-1v/` and
+`artifacts/council/CODEX_RESULT_0781V.md`. Decision:
+`CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`. The flag remains dark;
+owner screenshot review, production deploy, and real-host G8 proof remain
+pending. The strict staged `national-generation-contract` split guard passed
+the exact 32-file envelope with 0 blockers and 0 unknowns; unrelated pre-existing
+working-tree artifacts were not staged. Next code slice after those gates:
+`0.78-2 Real Town Anchors`.
+
+## Entry 094
+
+**0.78-1V source-of-truth and loop-readiness repair - local green,
+2026-07-13, Codex.** Replaced the verifiers' retired 0.72B current-update
+assumptions with the canonical 0.78-1V manifest contract. Source-of-truth drift
+now validates the flag-dark default, 12-cell framing proof, stable seven-tool
+MCP surface, pending owner/deploy/G8 gates, current docs, and the gated 0.78-2
+continuation. Loop readiness now validates the same packet and runs the strict
+staged `national-generation-contract` envelope instead of absorbing unrelated
+dirty-tree artifacts. Verified: source-of-truth drift 0 blockers / 0 warnings;
+loop readiness `L2_ASSISTED`, 0 blockers / 0 warnings; staged split envelope 32
+files, 0 blockers, 0 unknowns. No runtime, flag, deploy, commerce, provider
+geometry, public promotion, or tool-surface scope changed.
+
+## Entry 096
+
+**0.78-1V-Q Public Tool Truth Pass - local green, 2026-07-13, Codex.** A
+parallel product, MCP/backend, and architecture recon interpreted Atlas as a
+spatial decision companion inside ChatGPT: Explore -> Ask -> Drop Clawd ->
+Scout -> Campaign, with the voxel county as shared context rather than report
+wallpaper. Live tool proof exposed three truth failures. The Atlas V1 upgrade
+copy said no checkout while nested Hosted Clawd state exposed paid mode and
+enabled persistence/checkout; an overlapping playable/data question fell into
+a generic source answer; and Staybridge Suites normalized as fitness.
+
+The save surface now defaults off and omits owner-gated capability context when
+closed. The save-surface verifier exercises on, off with internal owner flags,
+and unset/default states across both county and upgrade tools. Playable-loop
+intent now wins over the broad source fallback, and bounded hotel-family types
+win over mixed amenity types in lookup-only normalization. Verified: core
+160/160; Geo normalizer 6/6; starter typecheck green; save-surface flag 3/3;
+zero new MCP tools. No flag enablement, persistence write, checkout execution,
+provider geometry, deploy, public promotion, or 0.78-2 town work was opened.
+The submission verifier now accepts the existing honest generated-preview
+refusal alongside the older Riverside/supported-lane refusal forms; it still
+requires `supported: false` and a concrete scope boundary.

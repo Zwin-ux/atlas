@@ -23,6 +23,7 @@ const includeGeneratedDraft = params.get("draft") !== "0";
 const viewportKey: EmulatorViewportKey = params.get("viewport") === "mobile" ? "mobile" : "desktop";
 const theme: EmulatorTheme = params.get("theme") === "dark" ? "dark" : "light";
 const truncateChars = Number(params.get("truncate") ?? "0") || 0;
+const geoBoardEnabled = params.get("atlasGeoBoard") === "1";
 const preferInjected = params.get("src") === "injected";
 const viewport = EMULATOR_VIEWPORTS[viewportKey];
 
@@ -91,6 +92,7 @@ async function boot(): Promise<void> {
   iframe.style.width = `${viewport.width}px`;
   iframe.style.height = `${viewport.height}px`;
   iframe.dataset.displayMode = "inline";
+  if (geoBoardEnabled) iframe.dataset.atlasGeoBoard = "1";
   frameBox.appendChild(iframe);
 
   setStatus("connecting tool source…");

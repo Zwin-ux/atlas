@@ -1,132 +1,104 @@
 {
-  "id": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
-  "name": "Post-Alpha 0.72B - Redis Scene Packet Cache / Job Spine",
-  "status": "local_green",
-  "playerPromise": "Atlas can prepare generated draft scene packets for indexed shell counties without making map pan/zoom depend on Railway or claiming those drafts are public playable local truth.",
-  "engineeringPromise": "Move generated draft packet work onto a memory-or-Redis cache spine with compile locks, queued-safe metadata, a worker entrypoint, safe status/readiness output, request IDs, structured backend logs, and first-pass rate limits.",
-  "inputUpdate": "postalpha-0.71h-scene-packet-service-boundary",
-  "selectedAxis": "backend_production_spine",
-  "recommendedNextQuest": "0.72H Fable Generated Draft Visual Quality Gate",
-  "decision": "REDIS_PACKET_SPINE_NOT_RENDER_LOOP",
+  "id": "postalpha-0.78-1v-census-county-board-certification",
+  "name": "Post-Alpha 0.78-1V - Census County Board Product + Certification Gate",
+  "status": "local_green_owner_approved_release_authorized",
+  "playerPromise": "Atlas can show a county's real U.S. Census boundary and water without implying that streets, places, buildings, or playable local coverage are present.",
+  "engineeringPromise": "Certify the flag-gated Census board in a production-fidelity browser matrix while keeping the default flag-off experience unchanged.",
+  "inputUpdate": "postalpha-0.78-1-real-county-board",
+  "selectedAxis": "real_geography_promotion_readiness",
+  "recommendedNextQuest": "0.78-2 Real Town Anchors after production deploy and real-host G8",
+  "decision": "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE",
   "metricResult": {
-    "scenePacketBackendSpine": {
-      "branch": "codex/integrate-hosted-clawd-fable-058e",
-      "artifactPath": "artifacts/national-generation/0.72b/production-backend-spine.json",
-      "cacheBackends": [
-        "memory",
-        "redis"
-      ],
-      "devMemoryFallback": true,
-      "productionRedisRequired": true,
-      "redisCompileLock": true,
-      "queuedSafeGeneratedDraftPacket": true,
-      "workerEntrypoint": "server/src/scenePacketWorker.ts",
-      "statusSafeSummariesOnly": true,
-      "readyEndpoint": true,
-      "requestIds": true,
-      "structuredBackendLogs": true,
-      "rateLimits": true,
-      "railwayRuntimeRequiredForPanZoom": false,
-      "nextRequiredSlice": "0.72H Fable Generated Draft Visual Quality Gate"
+    "featureFlag": "atlasGeoBoard=1",
+    "defaultEnabled": false,
+    "challengeCounties": [
+      "miami-dade-fl",
+      "loving-tx",
+      "kalawao-hi"
+    ],
+    "featureAudit": {
+      "cells": 12,
+      "pass": 138,
+      "warn": 0,
+      "fail": 0,
+      "framingChecks": 12,
+      "maxGraphics": 40,
+      "graphicsCeiling": 1600,
+      "maxRebuildMs": 6.2,
+      "rebuildCeilingMs": 350
     },
-    "productionRailwayStack": {
-      "artifactPath": "artifacts/ops/production-railway-stack.json",
-      "baseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
-      "backendService": "atlas-backend",
-      "workerService": "atlas-scene-packet-worker",
-      "cacheBackend": "redis",
-      "redisReachable": true,
-      "databaseReachable": true,
-      "persistenceEnabled": true,
-      "stripeConfigured": true,
-      "authConfigured": false,
-      "publicPaidClaimEnabled": false,
-      "statusSafeSummariesOnly": true,
-      "generatedDraftMetaOnly": true,
-      "generatedDraftRedisHitAfterFirst": true,
-      "launchSwitch": "Auth/OIDC account linking plus webhook-confirmed owner state"
+    "baselineAudit": {
+      "pass": 162,
+      "warn": 0,
+      "fail": 0
     },
-    "parallelFableCandidate": {
-      "worktree": "C:\\Users\\mzwin\\Documents\\atlas-53e-fable",
-      "artifactPath": "artifacts/0.72h-b-roof-label-cleanup/FABLE_RESULT.md",
-      "priorArtifactPath": "artifacts/0.72h-fable-generated-draft-visual-quality/FABLE_RESULT.md",
-      "status": "review_candidate_not_merged_no_label_cleanup",
-      "coreBuild": true,
-      "starterTypecheck": true,
-      "starterBuild": true,
-      "generatedDistrictParity": true,
-      "desktopMobileScreenshotProof": true,
-      "generatedPlaceLabelsSuppressed": true,
-      "knownCaveat": "preview banner still covers part of the top-left scene; residential detail still reads procedural at close inspection",
-      "recommendedNextVisualSlice": "0.72H-c Residential Object-Kit Authorship Pass"
+    "coreTests": 160,
+    "publicToolTruth": {
+      "saveSurfaceDefault": "off",
+      "closedSurfaceOmitsHostedClawdCapabilities": true,
+      "overlappingPlayableQuestionTopic": "eastvale_first_slice",
+      "accommodationLookupCategory": "service",
+      "exactProductionToolSet": true,
+      "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html",
+      "newMcpTools": 0
     },
-    "scope": {
-      "newMcpTools": 0,
-      "publicHttpRenderRoute": false,
-      "browserHttpRenderRouteAdded": false,
-      "scenePacketDbPersistence": false,
-      "authScopeAdded": false,
-      "stripePublicLaunch": false,
-      "publicPaidClaim": false,
-      "publicAnaheimPromotion": false,
-      "providerGeometry": false,
-      "nationwidePlayableClaim": false,
-      "railwayRuntimeRequiredForPanZoom": false
-    }
+    "cameraContract": "full projected terrain and water footprint fits the certified desktop and mobile viewport",
+    "copyContract": "U.S. Census county identity plus real boundary and water; streets and places explicitly not mapped",
+    "unavailableControlsHidden": true,
+    "desktopMobileProof": true,
+    "lightDarkProof": true,
+    "newMcpTools": 0,
+    "providerGeometry": false,
+    "publicPlayablePromotion": false
   },
   "verification": {
-    "serverBuild": "pnpm build:server",
-    "productionBackendSpine": "pnpm verify:production-backend-spine",
-    "generatedDraftScenePacket": "pnpm verify:generated-draft-scene-packet",
-    "scenePacketMemoryAdapter": "node scripts/verify-scene-packet-memory-adapter.mjs --json-only",
-    "railwayProductionStack": "pnpm verify:railway-production-stack",
-    "publicMcp": "ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp pnpm verify:mcp",
-    "publicSubmission": "ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp pnpm verify:submission",
-    "strictSplit": "node scripts\\verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode national-generation-contract --json-only",
-    "remainingGateLadder": "run build:core, typecheck:starter, build:starter, provider boundary, tool-result shape, source-of-truth drift, strict split guard, and preview HTTP before release handoff"
+    "core": "pnpm test:core",
+    "typecheck": "pnpm typecheck:starter",
+    "toolResultShape": "node scripts/verify-tool-result-shape.mjs --json-only",
+    "providerBoundary": "node scripts/verify-provider-boundaries.mjs --json-only",
+    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --strict-selected-rc --rc-mode national-generation-contract --json-only",
+    "sourceOfTruth": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
+    "loopReadiness": "node scripts/verify-atlas-loop-readiness.mjs --json-only",
+    "saveSurface": "node scripts/verify-save-surface-flag.mjs",
+    "geoCategory": "packages/core/node_modules/.bin/vitest.cmd --root packages/geo run test/place-category-normalizer.test.ts",
+    "releaseToolContract": "node scripts/verify-release-prod.mjs --self-test",
+    "releasePreflight": "powershell -ExecutionPolicy Bypass -File scripts/release-deploy.ps1 -ExpectedSha <full-sha> -ExpectedUpdateId postalpha-0.78-1v-census-county-board-certification -PreflightOnly",
+    "baselineBrowser": "node scripts/verify-emulator-audit.mjs --json-only",
+    "censusBrowser": "node scripts/verify-emulator-audit.mjs --geo-board --viewport both --theme both --json-only",
+    "framing": "county_board_framing passes in all 12 Census-board cells",
+    "proof": "artifacts/emulator/audit/0.78-1v/report.json"
   },
-  "nextCodeStep": "0.72H Fable Generated Draft Visual Quality Gate",
+  "nextCodeStep": "0.78-2 Real Town Anchors after production deploy and real-host G8",
   "forbiddenScope": [
-    "new public MCP tools before an explicit tool-surface gate",
-    "browser HTTP generated-scene render routes",
-    "Railway or any backend call in the pan/zoom frame loop",
-    "DB persistence for generated draft scene packets",
-    "provider-created geometry or readiness promotion",
-    "public paid launch claims",
-    "pricing page, dashboard shell, plan table, report surface, export, evidence, XP, automation, or scheduled outreach",
-    "public Anaheim/Ontario exposure",
-    "all-US playable claims before provider-normalized anchor and public-quality gates pass"
+    "default-enable the Census board before owner approval",
+    "production deploy without the separate owner deploy gate",
+    "roads or town-detail work inside the certification packet",
+    "national 3,222-pack bake before the pack-integrity gate",
+    "new public MCP tools",
+    "provider-created geometry",
+    "persistence or public paid claims",
+    "public Anaheim/Ontario promotion"
   ],
   "gates": [
     {
-      "id": "dev-memory-fallback-gate",
-      "label": "Local/dev can run without Redis and uses memory cache",
-      "required": true
+      "id": "owner-screenshot-review",
+      "label": "Owner reviews the 12 feature-on screenshots",
+      "required": true,
+      "status": "passed",
+      "evidence": "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md"
     },
     {
-      "id": "production-redis-config-gate",
-      "label": "Production Redis backend and URL are required for generated draft packet cache readiness",
-      "required": true
+      "id": "production-deploy",
+      "label": "Owner runs the release deploy and post-deploy proof ladder",
+      "required": true,
+      "status": "pending",
+      "authorization": "approved"
     },
     {
-      "id": "compile-lock-gate",
-      "label": "Redis compile locks prevent duplicate generated draft compiles across Railway instances",
-      "required": true
-    },
-    {
-      "id": "queued-safe-meta-gate",
-      "label": "Lock contention returns queued-safe generatedDraftPacket metadata with no scene payload",
-      "required": true
-    },
-    {
-      "id": "status-summary-gate",
-      "label": "Scene packet status exposes safe summaries only, not payload or scene geometry",
-      "required": true
-    },
-    {
-      "id": "no-render-loop-gate",
-      "label": "Railway is reserved for compile/cache/job work and never participates in browser pan/zoom",
-      "required": true
+      "id": "real-host-g8",
+      "label": "Real ChatGPT verifies the county board after deploy",
+      "required": true,
+      "status": "pending"
     }
   ]
 }
