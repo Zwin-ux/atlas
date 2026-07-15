@@ -24,14 +24,15 @@ projected terrain/water silhouette on desktop and mobile. Keep the seven-tool
 MCP surface unchanged.
 
 Status:
-Local green; owner review passed and release preparation authorized on
-2026-07-13. The coherent release commit, deploy execution, and post-deploy G8
-remain pending. Branch
+Production green. Owner review passed on 2026-07-13. Exact SHA `7016735`
+deployed on 2026-07-15 as Railway
+`232c69ee-63de-47d0-bb7c-257d9ca0c422`; 14/14 release gates and 3/3 public
+sanity checks passed. Post-deploy G8 remains pending. Branch
 `codex/integrate-hosted-clawd-fable-058e` is the local canonical candidate.
 Decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`; selected axis
 is `real_geography_promotion_readiness`. The 12-cell desktop/mobile,
 light/dark matrix passes with full silhouette framing. Default enablement,
-production deploy, town detail, national bake, provider geometry, public
+town detail, national bake, provider geometry, public
 playable promotion, new public MCP tools, and public paid claims remain closed.
 Proof is captured in `artifacts/emulator/audit/0.78-1v/`; owner approval is
 recorded in `artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md`.
@@ -58,8 +59,8 @@ Anaheim/Ontario stay hidden.
 
 ### Post-Alpha 0.78-2 - Real Town Anchors
 
-Next named quest: `0.78-2 Real Town Anchors`, only after owner screenshot
-review and a separate production deploy decision.
+Next named quest: `0.78-2 Real Town Anchors`, only after the remaining
+real-host G8 gate.
 
 Wire named town anchors to the certified board without turning provider lookup
 into geometry or claiming nationwide playable coverage. Do not begin this

@@ -70,7 +70,9 @@ const SCENE_PACKET_SELECTED_AXIS = "scene_packet_service_boundary";
 const BACKEND_SPINE_NEXT_QUEST = "0.72H Fable Generated Draft Visual Quality Gate";
 const BACKEND_SPINE_SELECTED_AXIS = "backend_production_spine";
 const CENSUS_BOARD_INPUT_UPDATE = "postalpha-0.78-1-real-county-board";
-const CENSUS_BOARD_NEXT_QUEST = "0.78-2 Real Town Anchors after production deploy and real-host G8";
+const CENSUS_BOARD_NEXT_QUEST = "0.78-2 Real Town Anchors after real-host G8";
+const CENSUS_BOARD_DEPLOYED_SHA = "70167356abfe746d0b2257b4211bc9c8d2ff1de3";
+const CENSUS_BOARD_RAILWAY_DEPLOYMENT = "232c69ee-63de-47d0-bb7c-257d9ca0c422";
 const CENSUS_BOARD_NEXT_QUEST_TITLE = "0.78-2 Real Town Anchors";
 const CENSUS_BOARD_SELECTED_AXIS = "real_geography_promotion_readiness";
 const CENSUS_BOARD_APPROVAL_EVIDENCE = "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md";
@@ -1121,8 +1123,8 @@ function checkBackendSpineCurrentUpdate(update) {
 }
 
 function checkCensusBoardCurrentUpdate(update) {
-  if (update.status !== "local_green_owner_approved_release_authorized") {
-    blockers.push(`0.78-1V status must be local_green_owner_approved_release_authorized; got ${update.status ?? "missing"}.`);
+  if (update.status !== "production_green_real_host_g8_pending") {
+    blockers.push(`0.78-1V status must be production_green_real_host_g8_pending; got ${update.status ?? "missing"}.`);
   }
   if (update.selectedAxis !== CENSUS_BOARD_SELECTED_AXIS) {
     blockers.push(`0.78-1V selectedAxis must be ${CENSUS_BOARD_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
@@ -1152,21 +1154,23 @@ function checkCensusBoardCurrentUpdate(update) {
   ) {
     blockers.push("0.78-1V must record 12 green flag-on cells with full framing, desktop/mobile and light/dark proof, flag-dark default, zero new tools, no provider geometry, and no public playable promotion.");
   }
-  for (const key of ["core", "typecheck", "toolResultShape", "providerBoundary", "splitGuard", "censusBrowser", "framing", "proof", "releaseToolContract", "releasePreflight"]) {
+  for (const key of ["core", "typecheck", "toolResultShape", "providerBoundary", "splitGuard", "censusBrowser", "framing", "proof", "releaseToolContract", "releasePreflight", "productionRelease", "publicSanity", "liveQuestionRouting"]) {
     if (!update.verification?.[key]) blockers.push(`0.78-1V verification is missing ${key}.`);
   }
   if (
     metric?.publicToolTruth?.exactProductionToolSet !== true ||
-    metric?.publicToolTruth?.widgetResourceUri !== "ui://widget/atlas-city-world-0781v.html"
+    metric?.publicToolTruth?.widgetResourceUri !== "ui://widget/atlas-city-world-0781v.html" ||
+    metric?.publicToolTruth?.ordinaryEastvaleSourceQuestionTopic !== "source_limits"
   ) {
     blockers.push("0.78-1V must record the exact seven-tool production contract and versioned widget resource URI.");
   }
   if (
     update.releaseCandidate?.baseSha !== "0e94a6ce9d4ed362c03d2286696919b9cd6836bf" ||
+    update.releaseCandidate?.headSha !== CENSUS_BOARD_DEPLOYED_SHA ||
     update.releaseCandidate?.pathCount !== 46 ||
     update.releaseCandidate?.widgetResourceUri !== "ui://widget/atlas-city-world-0781v.html"
   ) {
-    blockers.push("0.78-1V must record the immutable release base, 46-path envelope, and widget resource URI.");
+    blockers.push("0.78-1V must record the immutable release base/head, 46-path envelope, and widget resource URI.");
   }
   if (!existsSync(resolve(update.verification?.proof ?? ""))) {
     blockers.push(`0.78-1V proof path is missing: ${update.verification?.proof ?? "missing"}.`);
@@ -1188,8 +1192,22 @@ function checkCensusBoardCurrentUpdate(update) {
   if (!existsSync(resolve(CENSUS_BOARD_APPROVAL_EVIDENCE))) {
     blockers.push(`0.78-1V owner approval artifact is missing: ${CENSUS_BOARD_APPROVAL_EVIDENCE}.`);
   }
-  if (deployGate?.status !== "pending" || deployGate?.authorization !== "approved") {
-    blockers.push("0.78-1V production deploy must be pending and owner-authorized.");
+  if (
+    deployGate?.status !== "passed" ||
+    deployGate?.authorization !== "approved" ||
+    !deployGate?.evidence?.includes(CENSUS_BOARD_RAILWAY_DEPLOYMENT)
+  ) {
+    blockers.push("0.78-1V production deploy must be passed with the owner authorization and Railway deployment evidence.");
+  }
+  if (
+    update.deployment?.status !== "production_green" ||
+    update.deployment?.sha !== CENSUS_BOARD_DEPLOYED_SHA ||
+    update.deployment?.railwayDeploymentId !== CENSUS_BOARD_RAILWAY_DEPLOYMENT ||
+    update.deployment?.releaseGatesPassed !== 14 ||
+    update.deployment?.publicSanityChecksPassed !== 3 ||
+    update.deployment?.workerDeployed !== false
+  ) {
+    blockers.push("0.78-1V must record the green backend deploy, exact SHA/deployment id, 14 release gates, 3 public sanity checks, and worker safety skip.");
   }
   if (realHostGate?.status !== "pending") {
     blockers.push("0.78-1V real-host G8 must remain pending until real ChatGPT proof exists.");
@@ -1945,9 +1963,9 @@ function checkAgentsDoctrine(agents) {
   ];
   if (currentUpdate?.id === CENSUS_BOARD_UPDATE) {
     requiredSnippets.push(
-      "Current human-directed local-green slice is `0.78-1V Census County Board Product + Certification Gate`",
+      "Current human-directed production-green slice is `0.78-1V Census County Board Product + Certification Gate`",
       "0.78-1V decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`",
-      "The next code slice is `0.78-2 Real Town Anchors` only after the exact certified commit is deployed and real-host G8 is recorded",
+      "The next code slice is `0.78-2 Real Town Anchors` only after real-host G8 is recorded",
       "Use `national-generation-contract` for strict split checks on the current real-geography branch",
     );
   } else if (currentUpdate?.id === BACKEND_SPINE_UPDATE) {

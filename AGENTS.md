@@ -16,15 +16,16 @@ Hosted Clawd DB/Auth persistence is now local-green only for owner-protected row
 The human explicitly reopened DB/Auth preparation on 2026-07-05.
 The human explicitly reopened test-mode Stripe billing on 2026-07-05.
 
-Current human-directed local-green slice is `0.78-1V Census County Board Product + Certification Gate` on branch `codex/integrate-hosted-clawd-fable-058e`.
+Current human-directed production-green slice is `0.78-1V Census County Board Product + Certification Gate` on branch `codex/integrate-hosted-clawd-fable-058e`.
 
 0.78-1V decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE` with selected axis `real_geography_promotion_readiness`. The widget may compile a baked U.S. Census boundary-and-water pack client-side, but only when `?atlasGeoBoard=1` is explicitly requested. The default flag-off experience is unchanged. Census boards identify the county, state that streets and places are not mapped, and hide place, pin, note, and save controls until real anchors exist. The current evidence covers 16 challenge packs, not a national 3,222-county bake or a public-playable claim.
 
 The owner approved the 12 desktop/mobile light/dark screenshots and authorized
-release preparation on 2026-07-13. The next code slice is `0.78-2 Real Town
-Anchors` only after the exact certified commit is deployed and real-host G8 is
-recorded. `0.80-2` remains parallel queued graphics work; it does not expand
-the 0.78-1V packet.
+release preparation on 2026-07-13. Exact SHA `7016735` deployed green to the
+Railway backend on 2026-07-15 with 14/14 release gates and 3/3 public sanity
+checks. The next code slice is `0.78-2 Real Town Anchors` only after real-host
+G8 is recorded. `0.80-2` remains parallel queued graphics work; it does not
+expand the 0.78-1V packet.
 
 Live Stripe billing, new public MCP tools, public paid claims, pricing pages, evidence, XP, reports, exports, automation, and public Anaheim/Ontario remain blocked unless a later named gate explicitly opens that scope.
 
@@ -34,9 +35,8 @@ The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selecti
 
 Do not default-enable Census boards, start the national pack bake, add roads,
 begin town detail, or claim playable real-county coverage inside 0.78-1V. The
-only named continuation is the owner-authorized release of one coherent,
-certified full SHA plus real-host G8, followed by `0.78-2 Real Town Anchors` if
-those gates pass. Do not continue commerce unless a human names one exact Plaza
+only remaining 0.78-1V gate is real-host G8, followed by `0.78-2 Real Town
+Anchors` if that gate passes. Do not continue commerce unless a human names one exact Plaza
 Row blocker. Do not turn provider lookup into geometry, readiness, persisted
 provider data, or playable county claims.
 

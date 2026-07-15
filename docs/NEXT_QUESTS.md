@@ -8,12 +8,12 @@ verifier/selector result created during the current slice. If the human says
 "continue," continue only the named next quest. If that quest conflicts with
 permanent gates, stop and report the conflict.
 
-## Current 0.78-1V Census county board gate (2026-07-13)
+## Current 0.78-1V Census county board gate (2026-07-15)
 
 Current packet:
-`0.78-1V Census County Board Product + Certification Gate` is local-green,
-owner-approved, and authorized for release preparation. The exact release
-commit, deploy execution, and post-deploy real-host proof are not complete.
+`0.78-1V Census County Board Product + Certification Gate` is production-green
+and owner-approved. Exact SHA `70167356abfe746d0b2257b4211bc9c8d2ff1de3`
+is deployed; post-deploy real-host proof is not complete.
 
 Decision:
 `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`.
@@ -31,14 +31,17 @@ Proof:
 - `0.78-1V-Q Public Tool Truth Pass` is locally green: save capabilities fail
   closed, overlapping playable-question intent stays on the product loop, and
   mixed hotel/amenity lookup types no longer present the hotel as fitness.
+- Railway deployment `232c69ee-63de-47d0-bb7c-257d9ca0c422` passed 14/14
+  release gates and 3/3 public sanity checks. A direct production proof keeps
+  ordinary Eastvale data/provider questions on `source_limits` and the
+  explicit playable overlap on `eastvale_first_slice`.
 
 Current gates:
 - PASSED: owner approved the 12 feature-on screenshots.
-- AUTHORIZED / PENDING EXECUTION: production deploy from one coherent,
-  certified full SHA.
+- PASSED: production deploy from certified SHA `7016735`.
 - PENDING: post-deploy G8 proof in real ChatGPT.
 
-Next READY packet after deploy and real-host G8:
+Next READY packet after real-host G8:
 `0.78-2 Real Town Anchors`.
 
 Parallel queue:
@@ -46,7 +49,7 @@ Parallel queue:
 
 Anti-scope remains:
 The Census board stays dark behind `?atlasGeoBoard=1`. No default-on flag,
-production deploy, roads, town detail, national 3,222-pack bake, persistence,
+roads, town detail, national 3,222-pack bake, persistence,
 new MCP tools, provider geometry, public paid claim, or public
 Anaheim/Ontario promotion belongs in 0.78-1V.
 

@@ -1,5 +1,39 @@
 # Build Log
 
+## Entry 221
+
+Quest:
+0.78-1V exact-SHA production release and source-question repair.
+
+What changed:
+- Audited the 46-path release candidate before push and caught a user-facing
+  county-question routing regression: any question containing Eastvale could
+  outrank the source/data route.
+- Narrowed first-slice intent, added negative source/provider coverage, and
+  kept the explicit "current data makes Eastvale playable" overlap on the
+  product-loop answer.
+- Shipped exact SHA `70167356abfe746d0b2257b4211bc9c8d2ff1de3` to the
+  Railway backend. The worker stayed off behind the existing healthcheck
+  safety guard.
+
+Evidence:
+- `pnpm test:core`: 161 passed.
+- Full Atlas Node certification: passed.
+- `pnpm typecheck`: passed.
+- `pnpm build`: passed.
+- Strict release split: 46 paths, 0 blockers, 0 unknowns.
+- Railway deployment `232c69ee-63de-47d0-bb7c-257d9ca0c422`: SUCCESS.
+- Production release gate: 14/14 passed.
+- Public sanity: 3/3 passed.
+- Direct production question proof: three ordinary Eastvale source/provider
+  questions returned `source_limits`; the playable overlap returned
+  `eastvale_first_slice`.
+
+Still pending:
+- Post-deploy G8 in real ChatGPT. Headless ChatGPT returned 403, so the browser
+  was handed to the owner's visible Pro session.
+- `0.78-2 Real Town Anchors` remains blocked until G8 closes.
+
 ## Entry 220
 
 Quest:

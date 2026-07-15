@@ -1,5 +1,16 @@
 # Atlas Loop Run Log
 
+## 2026-07-15 - 0.78-1V production release
+
+- Caught and fixed an Eastvale source-question regression before push.
+- Certified exact SHA `70167356abfe746d0b2257b4211bc9c8d2ff1de3` against
+  the immutable 46-path release envelope.
+- Railway backend deployment `232c69ee-63de-47d0-bb7c-257d9ca0c422`
+  succeeded; release gate 14/14 and public sanity 3/3 passed.
+- Worker remained skipped behind the healthcheck safety guard.
+- Real-host G8 is the sole remaining 0.78-1V gate. Headless ChatGPT returned
+  403, so a visible Pro-session handoff is waiting for the owner.
+
 ## 2026-07-03 - Loop setup
 
 - Pattern adapted from `cobusgreyling/loop-engineering`.

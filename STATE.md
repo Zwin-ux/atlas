@@ -1,6 +1,6 @@
 # Atlas Loop State
 
-Last run: 2026-07-13 - 0.78-1V Census County Board Product + Certification Gate
+Last run: 2026-07-15 - 0.78-1V production release + question-routing repair
 Loop level: L2 assisted
 Kill switch: active only if `loop-constraints.md` says `pause: true`
 
@@ -10,10 +10,10 @@ Local canonical candidate:
 `C:/Users/mzwin/Documents/Atlas` on `codex/integrate-hosted-clawd-fable-058e`.
 
 Deploy status:
-The committed 0.78-1 board wire is pushed through `0e94a6c`. The 0.78-1V
-certification packet is local-green but not deployed. Production deploy remains
-an explicit owner action through `scripts/release-deploy.ps1`, followed by
-post-deploy and real-ChatGPT proof.
+Production is green at exact SHA `70167356abfe746d0b2257b4211bc9c8d2ff1de3`
+via Railway deployment `232c69ee-63de-47d0-bb7c-257d9ca0c422`. The release
+gate passed 14/14 and the public sanity sweep passed 3/3. The worker stayed
+skipped behind its healthcheck safety guard. Real-ChatGPT G8 is still pending.
 
 Merge status (0.75R, 2026-07-06):
 `fable/0.58e-prop-cleanup` (0.57E parity + 0.72H-b/0.73F engine clarity +
@@ -22,9 +22,9 @@ lives in BUILD_LOG (fable entries) and artifacts/0.73f-*/0.74f-*.
 
 ## Current Slice
 
-`0.78-1V Census County Board Product + Certification Gate` is local green and
-owner-approved. Release preparation is authorized; the coherent commit,
-production deploy, and real-host G8 proof remain incomplete.
+`0.78-1V Census County Board Product + Certification Gate` is production green
+and owner-approved. The coherent commit and production deploy are complete;
+real-host G8 proof remains incomplete.
 
 Decision:
 `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`.
@@ -43,12 +43,11 @@ first frames keep the full projected county terrain/water footprint inside the
 viewport; max Graphics 40/1600 and max rebuild 6.2ms/350ms. The separate flag-off audit
 passed 162 checks with 0 warnings and 0 failures. The seven public MCP tools
 remain unchanged. This is not a national bake, default-on promotion, public
-playable-county claim, provider geometry path, or production deploy.
+playable-county claim, or provider geometry path.
 
 Next quest:
-Build and certify one coherent release commit, deploy it through the explicit
-release gate, and record real-host G8. After those gates, the next code slice
-is `0.78-2 Real Town Anchors`.
+Record real-host G8 against the deployed `7016735` build. After that gate, the
+next code slice is `0.78-2 Real Town Anchors`.
 `0.80-2` remains parallel queued graphics work.
 
 Release governance:
@@ -63,8 +62,10 @@ when it is closed, `get_upgrade_options` omits owner-gated persistence and
 checkout capabilities instead of contradicting its Atlas V1 copy. Overlapping
 "what data makes Eastvale playable" questions resolve to the playable-loop
 answer, and hotel-family provider types outrank mixed spa/fitness amenities in
-lookup-only normalization. These are local contract corrections, not a deploy
-or a commerce continuation.
+lookup-only normalization. Ordinary Eastvale data/provider questions now stay
+on `source_limits`, while the explicit playable overlap stays on
+`eastvale_first_slice`; the same split is proven live in production. This is
+not a commerce continuation.
 
 ## Branch Map
 

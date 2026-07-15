@@ -67,7 +67,7 @@ try {
 }
 
 if (currentUpdate.id !== expectedCurrentUpdateId) blockers.push(`Current update is ${currentUpdate.id ?? "missing"}, expected ${expectedCurrentUpdateId}.`);
-if (currentUpdate.status !== "local_green_owner_approved_release_authorized") blockers.push(`Current update status must be local_green_owner_approved_release_authorized; got ${currentUpdate.status ?? "missing"}.`);
+if (currentUpdate.status !== "production_green_real_host_g8_pending") blockers.push(`Current update status must be production_green_real_host_g8_pending; got ${currentUpdate.status ?? "missing"}.`);
 if (currentUpdate.decision !== expectedDecision) blockers.push(`Current update decision must be ${expectedDecision}; got ${currentUpdate.decision ?? "missing"}.`);
 if (currentUpdate.selectedAxis !== expectedSelectedAxis) blockers.push(`Current update selectedAxis must be ${expectedSelectedAxis}; got ${currentUpdate.selectedAxis ?? "missing"}.`);
 if (currentUpdate.metricResult?.defaultEnabled !== false) blockers.push("The Census board must remain flag-dark by default.");
@@ -79,8 +79,8 @@ const realHostGate = currentGates.find((gate) => gate?.id === "real-host-g8");
 if (ownerGate?.required !== true || ownerGate?.status !== "passed" || ownerGate?.evidence !== expectedApprovalEvidence) {
   blockers.push("Owner screenshot review must be passed with the recorded 0.78-1V approval artifact.");
 }
-if (deployGate?.required !== true || deployGate?.status !== "pending" || deployGate?.authorization !== "approved") {
-  blockers.push("Production deploy must remain pending but explicitly owner-authorized.");
+if (deployGate?.required !== true || deployGate?.status !== "passed" || deployGate?.authorization !== "approved") {
+  blockers.push("Production deploy must be passed and retain its explicit owner authorization.");
 }
 if (realHostGate?.required !== true || realHostGate?.status !== "pending") {
   blockers.push("Real-host G8 must remain pending until the deployed build is exercised in ChatGPT.");
@@ -113,13 +113,21 @@ try {
     "national-generation-contract",
     "--json-only",
   ];
-  let splitGuardOutput = execFileSync("node", baseArgs, { encoding: "utf8" });
-  splitGuard = JSON.parse(splitGuardOutput);
-  if (splitGuard.fileCount === 0) {
-    const baseSha = currentUpdate.releaseCandidate?.baseSha;
-    if (!baseSha) throw new Error("Clean release verification requires currentUpdate.releaseCandidate.baseSha.");
-    splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..HEAD`], { encoding: "utf8" });
+  const baseSha = currentUpdate.releaseCandidate?.baseSha;
+  const headSha = currentUpdate.releaseCandidate?.headSha;
+  let splitGuardOutput;
+  if (currentUpdate.status === "production_green_real_host_g8_pending") {
+    if (!baseSha || !headSha) throw new Error("Production release verification requires currentUpdate.releaseCandidate baseSha and headSha.");
+    splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..${headSha}`], { encoding: "utf8" });
     splitGuard = JSON.parse(splitGuardOutput);
+  } else {
+    splitGuardOutput = execFileSync("node", baseArgs, { encoding: "utf8" });
+    splitGuard = JSON.parse(splitGuardOutput);
+    if (splitGuard.fileCount === 0) {
+      if (!baseSha) throw new Error("Clean release verification requires currentUpdate.releaseCandidate.baseSha.");
+      splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..HEAD`], { encoding: "utf8" });
+      splitGuard = JSON.parse(splitGuardOutput);
+    }
   }
   dirtyForbiddenPaths = splitGuard.strictUnexpectedPaths ?? [];
   const expectedPathCount = currentUpdate.releaseCandidate?.pathCount;

@@ -74,3 +74,29 @@ rate-limit behavior.
 Model text said 'L1 County Shell coverage' - structuredContent coverageTier enum leaks into prose. Fix: tool description instructs plain-words coverage descriptions; never recite internal codes.
 ### Finding G8-7 (OPEN): sandbox CSP blocks data: SVG fetch()
 connect-src violation x3 (strip store, sticker pin, road corner assets) - texture loads via fetch(dataUri) fail in real ChatGPT only; emulator has no such CSP. Fix: load data-URI textures via Image element (img-src allows data:), never fetch(). Emulator fidelity follow-up: mirror the sandbox connect-src CSP.
+
+## Session 4 preparation (2026-07-15, prod=`7016735`)
+
+- Railway backend deploy is green: deployment
+  `232c69ee-63de-47d0-bb7c-257d9ca0c422`, release gate 14/14, public sanity
+  3/3, widget `ui://widget/atlas-city-world-0781v.html`.
+- The pre-push audit caught and fixed an Eastvale question-routing regression.
+  Live MCP proof now keeps ordinary data/provider asks on `source_limits` while
+  the explicit playable overlap stays on `eastvale_first_slice`.
+- Automated headless navigation to ChatGPT returned HTTP 403 before login.
+  This is a host bot/auth boundary, not an Atlas verdict. A visible Chrome
+  handoff is open for the owner's existing Pro session.
+
+### Required G8-4 battery
+
+1. "Use Atlas to show me Miami-Dade County." Confirm the Census county board
+   renders with sea/water visible and the exact unmapped-streets/places copy.
+2. Expand, pan, and zoom from a real click. Confirm the map no longer feels
+   locked and the chat scroll does not steal the gesture.
+3. Ask "What current data is available for Eastvale?" Confirm the answer is a
+   source/data limitation, not the first-slice explanation.
+4. Ask "Where is the park?" Confirm the camera moves to the place.
+5. Exercise generated-county place select, pin, note, Scout, and Campaign.
+6. Check dark mode, a cold first call, and the ChatGPT storage-quota watch.
+7. Repeat the core render/explore check on the owner's phone and capture one
+   desktop plus one mobile screenshot.

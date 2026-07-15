@@ -1,15 +1,16 @@
 {
   "id": "postalpha-0.78-1v-census-county-board-certification",
   "name": "Post-Alpha 0.78-1V - Census County Board Product + Certification Gate",
-  "status": "local_green_owner_approved_release_authorized",
+  "status": "production_green_real_host_g8_pending",
   "playerPromise": "Atlas can show a county's real U.S. Census boundary and water without implying that streets, places, buildings, or playable local coverage are present.",
   "engineeringPromise": "Certify the flag-gated Census board in a production-fidelity browser matrix while keeping the default flag-off experience unchanged.",
   "inputUpdate": "postalpha-0.78-1-real-county-board",
   "selectedAxis": "real_geography_promotion_readiness",
-  "recommendedNextQuest": "0.78-2 Real Town Anchors after production deploy and real-host G8",
+  "recommendedNextQuest": "0.78-2 Real Town Anchors after real-host G8",
   "decision": "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE",
   "releaseCandidate": {
     "baseSha": "0e94a6ce9d4ed362c03d2286696919b9cd6836bf",
+    "headSha": "70167356abfe746d0b2257b4211bc9c8d2ff1de3",
     "pathCount": 46,
     "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html"
   },
@@ -37,11 +38,12 @@
       "warn": 0,
       "fail": 0
     },
-    "coreTests": 160,
+    "coreTests": 161,
     "publicToolTruth": {
       "saveSurfaceDefault": "off",
       "closedSurfaceOmitsHostedClawdCapabilities": true,
       "overlappingPlayableQuestionTopic": "eastvale_first_slice",
+      "ordinaryEastvaleSourceQuestionTopic": "source_limits",
       "accommodationLookupCategory": "service",
       "exactProductionToolSet": true,
       "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html",
@@ -68,12 +70,15 @@
     "geoCategory": "packages/core/node_modules/.bin/vitest.cmd --root packages/geo run test/place-category-normalizer.test.ts",
     "releaseToolContract": "node scripts/verify-release-prod.mjs --self-test",
     "releasePreflight": "powershell -ExecutionPolicy Bypass -File scripts/release-deploy.ps1 -ExpectedSha <full-sha> -ExpectedUpdateId postalpha-0.78-1v-census-county-board-certification -PreflightOnly",
+    "productionRelease": "node scripts/verify-release-prod.mjs",
+    "publicSanity": "node scripts/verify-alpha-public-sanity.mjs",
+    "liveQuestionRouting": "ask_county_question on production: three ordinary Eastvale source/provider questions -> source_limits; playable overlap -> eastvale_first_slice",
     "baselineBrowser": "node scripts/verify-emulator-audit.mjs --json-only",
     "censusBrowser": "node scripts/verify-emulator-audit.mjs --geo-board --viewport both --theme both --json-only",
     "framing": "county_board_framing passes in all 12 Census-board cells",
     "proof": "artifacts/emulator/audit/0.78-1v/report.json"
   },
-  "nextCodeStep": "0.78-2 Real Town Anchors after production deploy and real-host G8",
+  "nextCodeStep": "0.78-2 Real Town Anchors after real-host G8",
   "forbiddenScope": [
     "default-enable the Census board before owner approval",
     "production deploy without the separate owner deploy gate",
@@ -84,6 +89,18 @@
     "persistence or public paid claims",
     "public Anaheim/Ontario promotion"
   ],
+  "deployment": {
+    "status": "production_green",
+    "completedAt": "2026-07-15",
+    "sha": "70167356abfe746d0b2257b4211bc9c8d2ff1de3",
+    "railwayDeploymentId": "232c69ee-63de-47d0-bb7c-257d9ca0c422",
+    "service": "atlas-backend",
+    "publicBaseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
+    "releaseGatesPassed": 14,
+    "publicSanityChecksPassed": 3,
+    "workerDeployed": false,
+    "workerReason": "Safety guard remains active until the Railway worker healthcheck is cleared."
+  },
   "gates": [
     {
       "id": "owner-screenshot-review",
@@ -96,8 +113,9 @@
       "id": "production-deploy",
       "label": "Owner runs the release deploy and post-deploy proof ladder",
       "required": true,
-      "status": "pending",
-      "authorization": "approved"
+      "status": "passed",
+      "authorization": "approved",
+      "evidence": "Railway 232c69ee-63de-47d0-bb7c-257d9ca0c422; SHA 70167356abfe746d0b2257b4211bc9c8d2ff1de3; release 14/14; public sanity 3/3"
     },
     {
       "id": "real-host-g8",

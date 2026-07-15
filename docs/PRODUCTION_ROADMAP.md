@@ -1,6 +1,6 @@
 ﻿# Atlas — Production Roadmap (THE mandatory queue)
 
-Status: ACTIVE master queue as of 2026-07-12. Supersedes COUNCIL_VERDICT.md
+Status: ACTIVE master queue as of 2026-07-15. Supersedes COUNCIL_VERDICT.md
 (closed) as the work thread. Any driver (Fable, Opus, Codex) boots here
 after `docs/NORTH_STARS.md` (NS-0 + Spend rules govern every packet).
 
@@ -36,6 +36,9 @@ after `docs/NORTH_STARS.md` (NS-0 + Spend rules govern every packet).
 
 - [x] P0.1 Deploy the UI de-slop build — LIVE `f6a28d9` 2026-07-12,
       release gate 9/9 + public sanity 3/3 in one clean pass.
+- [x] P0.1b Deploy the certified 0.78-1V county board envelope — LIVE
+      `7016735` 2026-07-15, release gate 14/14 + public sanity 3/3. Worker
+      remained skipped behind its healthcheck safety guard.
 - [ ] P0.2 G8 round 3: fullscreen expand, exploration feel, copy audit,
       cold-call timing, dark mode — findings to G8 doc. HUMAN: phone pass.
 - [ ] P0.3 Emulator fidelity packet: serve widget assets from a second
@@ -81,15 +84,15 @@ gate ≥0.85) → 0.78-2 real town anchors → 0.78-3 town detail → 0.78-4 hon
 copy re-line ("Real county shape, towns, and water from the U.S. Census.
 Buildings are a generated preview."). Sequenced after P1.1/P1.2 land.
 
-Current 0.78 status (2026-07-12): 0.78-1V is local-green behind
+Current 0.78 status (2026-07-15): 0.78-1V is production-green behind
 `?atlasGeoBoard=1`. The 16 challenge packs include real Census boundary and
 water; the certified browser matrix covers Miami-Dade, Loving, and Kalawao at
 desktop/mobile and light/dark with 138/138 checks green, including full county
 terrain/water framing in all 12 first frames, max Graphics 40/1600, and max
 rebuild 6.2ms/350ms. The flag remains dark. Owner screenshot review passed on
-2026-07-13 and release preparation is authorized. One coherent commit, the
-production deploy action, and real-host G8 proof remain pending. After those
-gates, `0.78-2 Real Town Anchors` is next. The national 3,222-pack
+2026-07-13. Exact SHA `7016735` is deployed with 14/14 release gates and 3/3
+public sanity checks green. Real-host G8 proof remains pending. After that
+gate, `0.78-2 Real Town Anchors` is next. The national 3,222-pack
 bake, roads, town detail, and default-on promotion are not complete.
 
 ## P2 — Persistence for launch (NS-7)
