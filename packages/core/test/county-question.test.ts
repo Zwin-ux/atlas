@@ -95,6 +95,20 @@ describe("CountyQuestionService", () => {
     expect(answer.answer).toContain("Explore -> Ask -> Drop Clawd -> Scout -> Campaign");
   });
 
+  it("keeps ordinary Eastvale data and provider questions on source limits", () => {
+    const questions = [
+      "What current data is available for Eastvale?",
+      "What providers cover Eastvale?",
+      "Why is current data for Eastvale limited?",
+    ];
+
+    for (const question of questions) {
+      const answer = service.answer({ countySlug: "riverside-ca", question });
+      expect(answer.supported).toBe(true);
+      expect(answer.topic).toBe("source_limits");
+    }
+  });
+
   it("resolves curated place questions to map targets", () => {
     const park = service.answer({
       countySlug: "riverside-ca",

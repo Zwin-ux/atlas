@@ -536,11 +536,14 @@ function isUnsupportedBusinessQuestion(question: string, detectedBusinessKey: st
 }
 
 function isFirstSliceQuestion(question: string): boolean {
-  return /(why|first|start|slice|eastvale)/i.test(question) && /eastvale|slice|start|first/i.test(question);
+  const hasExplicitLoopIntent = /\b(first\s+slice|starting\s+slice|playable|product\s+loop|gameplay\s+loop)\b/i.test(question);
+  const asksWhyEastvale =
+    /\bwhy\b[^?]*\beastvale\b/i.test(question) || /\beastvale\b[^?]*\bwhy\b/i.test(question);
+  return hasExplicitLoopIntent || (asksWhyEastvale && !isSourceQuestion(question));
 }
 
 function isSourceQuestion(question: string): boolean {
-  return /\b(source|confidence|live|current|data|provider|google)\b/i.test(question);
+  return /\b(sources?|confidence|live|current|data|providers?|google)\b/i.test(question);
 }
 
 function isPlaceLocationQuestion(question: string): boolean {
