@@ -1,5 +1,40 @@
 # Build Log
 
+## Entry 225
+
+Quest:
+P0.3P production deploy and public plugin-contract proof.
+
+What changed:
+- Deployed certified commit `6320e577c648d367ffb46fe97c65d4bf84843fa1`
+  to Railway `atlas-chatgpt-app / production / atlas-backend` from the clean
+  detached deploy worktree.
+- Kept `atlas-scene-packet-worker` skipped behind the existing healthcheck
+  safety guard.
+- Reconciled the current-update artifact and loop/source-of-truth verifiers from
+  local-deploy-pending to production-green with portal domain verification and
+  real-host G8 still open.
+
+Evidence:
+- Railway deployment `b4683672-40fb-40c0-aa5e-1b78e3ac8d23`: `SUCCESS`.
+- Production release gate: 14/14, including deep readiness, exact seven-tool
+  set, widget resource, all seven calls, minimized world-lookup metadata, and
+  closed checkout/money boundary.
+- Public sanity: 3/3 for MCP flow, submission contract, and preview HTTP.
+- Live submission verifier: `/privacy` 200 (3522 bytes), `/terms` 200 (2736),
+  `/support` 200 (1862), challenge route 404 with exact `Not Found`, seven tools,
+  20 lookup results, and public lookup fields limited to `places`,
+  `radiusMeters`, `resolvedLocation`, and `type`.
+- The portal token is not configured yet, so the challenge route correctly
+  fails closed instead of exposing a placeholder.
+
+Still pending:
+- Create the OpenAI plugin portal draft, set its issued challenge token in
+  Railway, rescan the seven tools, and complete identity/permission/residency
+  checks.
+- Run the exact five positive and three negative tests on real ChatGPT web and
+  mobile. G8 remains open.
+
 ## Entry 224
 
 Quest:

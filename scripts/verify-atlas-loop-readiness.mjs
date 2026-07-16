@@ -67,7 +67,7 @@ try {
 }
 
 if (currentUpdate.id !== expectedCurrentUpdateId) blockers.push(`Current update is ${currentUpdate.id ?? "missing"}, expected ${expectedCurrentUpdateId}.`);
-if (currentUpdate.status !== "certified_local_production_deploy_pending") blockers.push(`Current update status must be certified_local_production_deploy_pending; got ${currentUpdate.status ?? "missing"}.`);
+if (currentUpdate.status !== "production_green_portal_and_real_host_pending") blockers.push(`Current update status must be production_green_portal_and_real_host_pending; got ${currentUpdate.status ?? "missing"}.`);
 if (currentUpdate.decision !== expectedDecision) blockers.push(`Current update decision must be ${expectedDecision}; got ${currentUpdate.decision ?? "missing"}.`);
 if (currentUpdate.selectedAxis !== expectedSelectedAxis) blockers.push(`Current update selectedAxis must be ${expectedSelectedAxis}; got ${currentUpdate.selectedAxis ?? "missing"}.`);
 if (currentUpdate.metricResult?.defaultEnabled !== false) blockers.push("The Census board must remain flag-dark by default.");
@@ -84,8 +84,8 @@ if (ownerGate?.required !== true || ownerGate?.status !== "passed" || ownerGate?
 if (priorDeployGate?.required !== true || priorDeployGate?.status !== "passed" || priorDeployGate?.authorization !== "approved") {
   blockers.push("The previous Census-board production deploy must stay passed with its explicit owner authorization.");
 }
-if (pluginDeployGate?.required !== true || pluginDeployGate?.status !== "pending" || pluginDeployGate?.authorization !== "approved") {
-  blockers.push("The plugin production deploy must be pending with explicit owner authorization.");
+if (pluginDeployGate?.required !== true || pluginDeployGate?.status !== "passed" || pluginDeployGate?.authorization !== "approved") {
+  blockers.push("The plugin production deploy must be passed with explicit owner authorization.");
 }
 if (domainGate?.required !== true || domainGate?.status !== "pending") {
   blockers.push("Plugin domain verification must remain pending until the portal-issued token is live.");
@@ -167,7 +167,7 @@ const result = {
   warnings,
   nextLoopAction:
     blockers.length === 0
-      ? "Run the clean release preflight, deploy the certified plugin candidate, and execute the production proof ladder."
+      ? "Create the plugin portal draft, close domain verification, and run the exact 5/3 real-ChatGPT test battery."
       : "Fix blockers before scheduling or executing the loop.",
 };
 

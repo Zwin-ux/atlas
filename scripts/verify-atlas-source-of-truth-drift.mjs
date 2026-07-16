@@ -79,6 +79,8 @@ const CENSUS_BOARD_SELECTED_AXIS = "real_geography_promotion_readiness";
 const CENSUS_BOARD_APPROVAL_EVIDENCE = "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md";
 const PLUGIN_SUBMISSION_SELECTED_AXIS = "chatgpt_plugin_submission_readiness";
 const PLUGIN_SUBMISSION_IMPLEMENTATION_SHA = "8bf5a4e139393d7ff208b058e32c6122dd70bb83";
+const PLUGIN_SUBMISSION_RELEASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1";
+const PLUGIN_SUBMISSION_RAILWAY_DEPLOYMENT = "b4683672-40fb-40c0-aa5e-1b78e3ac8d23";
 const PLUGIN_SUBMISSION_PATH_COUNT = 58;
 const EXPECTED_TOOLS = [
   "select_county",
@@ -1230,8 +1232,8 @@ function checkCensusBoardCurrentUpdate(update) {
 }
 
 function checkPluginSubmissionCurrentUpdate(update) {
-  if (update.status !== "certified_local_production_deploy_pending") {
-    blockers.push(`Plugin submission status must be certified_local_production_deploy_pending; got ${update.status ?? "missing"}.`);
+  if (update.status !== "production_green_portal_and_real_host_pending") {
+    blockers.push(`Plugin submission status must be production_green_portal_and_real_host_pending; got ${update.status ?? "missing"}.`);
   }
   if (update.selectedAxis !== PLUGIN_SUBMISSION_SELECTED_AXIS) {
     blockers.push(`Plugin submission selectedAxis must be ${PLUGIN_SUBMISSION_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
@@ -1249,11 +1251,11 @@ function checkPluginSubmissionCurrentUpdate(update) {
   const release = update.releaseCandidate;
   if (
     release?.baseSha !== "0e94a6ce9d4ed362c03d2286696919b9cd6836bf" ||
-    release?.headSha !== PLUGIN_SUBMISSION_IMPLEMENTATION_SHA ||
+    release?.headSha !== PLUGIN_SUBMISSION_RELEASE_SHA ||
     release?.pathCount !== PLUGIN_SUBMISSION_PATH_COUNT ||
     release?.widgetResourceUri !== "ui://widget/atlas-city-world-0781v.html"
   ) {
-    blockers.push("Plugin submission must record the reviewed base, implementation SHA, 58-path envelope, and versioned widget resource URI.");
+    blockers.push("Plugin submission must record the reviewed base, deployed release SHA, 58-path envelope, and versioned widget resource URI.");
   }
 
   const plugin = update.metricResult?.pluginSubmission;
@@ -1264,7 +1266,10 @@ function checkPluginSubmissionCurrentUpdate(update) {
     plugin?.starterPromptCount !== 4 ||
     plugin?.positiveTestCount !== 5 ||
     plugin?.negativeTestCount !== 3 ||
+    plugin?.implementationSha !== PLUGIN_SUBMISSION_IMPLEMENTATION_SHA ||
     plugin?.publicLookupDiagnosticsRemoved !== true ||
+    JSON.stringify(plugin?.productionLookupPublicFields) !== JSON.stringify(["places", "radiusMeters", "resolvedLocation", "type"]) ||
+    plugin?.productionChallengeStatus !== 404 ||
     plugin?.supportRoute !== "/support" ||
     plugin?.domainChallengeRoute !== "/.well-known/openai-apps-challenge" ||
     JSON.stringify(plugin?.publicLookupInputs) !== JSON.stringify(["countySlug", "placeId", "radiusMeters"])
@@ -1285,6 +1290,7 @@ function checkPluginSubmissionCurrentUpdate(update) {
     "releasePreflight",
     "productionRelease",
     "publicSanity",
+    "liveSubmission",
   ]) {
     if (!update.verification?.[key]) blockers.push(`Plugin submission verification is missing ${key}.`);
   }
@@ -1302,8 +1308,13 @@ function checkPluginSubmissionCurrentUpdate(update) {
       blockers.push(`Plugin submission gate ${id} must remain required.`);
     }
   }
-  if (gates.find((candidate) => candidate?.id === "plugin-production-deploy")?.status !== "pending") {
-    blockers.push("Plugin production deploy must remain pending until the production proof ladder passes.");
+  const pluginDeployGate = gates.find((candidate) => candidate?.id === "plugin-production-deploy");
+  if (
+    pluginDeployGate?.status !== "passed" ||
+    pluginDeployGate?.authorization !== "approved" ||
+    !pluginDeployGate?.evidence?.includes(PLUGIN_SUBMISSION_RAILWAY_DEPLOYMENT)
+  ) {
+    blockers.push("Plugin production deploy must be passed with owner authorization and exact Railway evidence.");
   }
   if (gates.find((candidate) => candidate?.id === "plugin-domain-verification")?.status !== "pending") {
     blockers.push("Plugin domain verification must remain pending until the portal-issued token is live.");
@@ -1312,12 +1323,15 @@ function checkPluginSubmissionCurrentUpdate(update) {
     blockers.push("Real-host G8 must remain pending until real ChatGPT proof exists.");
   }
   if (
-    update.deployment?.status !== "previous_release_green_plugin_candidate_pending" ||
-    update.deployment?.sha !== CENSUS_BOARD_DEPLOYED_SHA ||
-    update.deployment?.candidateSha !== PLUGIN_SUBMISSION_IMPLEMENTATION_SHA ||
-    update.deployment?.railwayDeploymentId !== CENSUS_BOARD_RAILWAY_DEPLOYMENT
+    update.deployment?.status !== "production_green" ||
+    update.deployment?.sha !== PLUGIN_SUBMISSION_RELEASE_SHA ||
+    update.deployment?.implementationSha !== PLUGIN_SUBMISSION_IMPLEMENTATION_SHA ||
+    update.deployment?.railwayDeploymentId !== PLUGIN_SUBMISSION_RAILWAY_DEPLOYMENT ||
+    update.deployment?.releaseGatesPassed !== 14 ||
+    update.deployment?.publicSanityChecksPassed !== 3 ||
+    update.deployment?.workerDeployed !== false
   ) {
-    blockers.push("Plugin submission must preserve the previous green Railway release while marking the reviewed candidate SHA pending.");
+    blockers.push("Plugin submission must record the exact green Railway release, implementation SHA, 14/14 release gates, 3/3 public sanity checks, and worker safety skip.");
   }
 }
 
