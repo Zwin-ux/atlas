@@ -41,9 +41,13 @@ after `docs/NORTH_STARS.md` (NS-0 + Spend rules govern every packet).
       remained skipped behind its healthcheck safety guard.
 - [ ] P0.2 G8 round 3: fullscreen expand, exploration feel, copy audit,
       cold-call timing, dark mode — findings to G8 doc. HUMAN: phone pass.
-- [ ] P0.3 Emulator fidelity packet: serve widget assets from a second
-      origin (catch CORS-class), gesture-gated requestDisplayMode already in;
-      add displayMode global parity tests.
+- [x] P0.3 Emulator fidelity packet — LOCAL GREEN 2026-07-15. Every audit
+      now loads component CSS/JS and lazy chunks from a second loopback origin,
+      preflights `ACAO: *` + `CORP: cross-origin`, mirrors the sandbox
+      `connect-src` / `img-src data:` split, and proves non-gesture `undefined`
+      plus gesture-driven displayMode globals. Full audit: 182 pass / 0 warn /
+      0 fail across 19 cells. Perf: 14 cells, max 829 Graphics and 30.5ms
+      rebuild, 0 warnings/failures. Real-host confirmation remains P0.2.
 - [ ] P0.4 Worker service: clear Healthcheck Path in Railway dashboard
       (HUMAN), redeploy worker at HEAD, remove release-script guard.
 

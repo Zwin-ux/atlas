@@ -164,6 +164,15 @@ function normalizeBase(value) {
   return new URL(value).origin;
 }
 
+function alternateLoopbackOrigin(base) {
+  const url = new URL(base);
+  if (url.hostname === "127.0.0.1") url.hostname = "localhost";
+  else if (url.hostname === "localhost") url.hostname = "127.0.0.1";
+  else if (url.hostname === "[::1]") url.hostname = "127.0.0.1";
+  else throw new Error(`Emulator audit requires a loopback base; got ${url.origin}`);
+  return url.origin;
+}
+
 function resolveAuditCells(args) {
   const requestedCounties = args.counties.length > 0
     ? args.counties
@@ -193,6 +202,10 @@ function resolveAuditCells(args) {
       }
     }
   }
+
+  // One cell exercises a deliberate CSP violation. Keep that proof singular
+  // so the full matrix stays fast and its expected diagnostic stays precise.
+  if (cells.length > 0) cells[0].checksHostParity = true;
 
   if (shouldIncludeCtaCell(args)) {
     cells.push({ county: "orange-ca", archetype: "shell", draft: false, viewport: "desktop", theme: "light", checksCta: true });
@@ -267,8 +280,17 @@ async function preflightEmulator(base) {
   const url = new URL("/emulator", base).toString();
   try {
     const response = await fetch(url, { cache: "no-cache" });
-    if (response.ok) return null;
-    return `server not running / bundle missing: GET ${url} returned HTTP ${response.status}`;
+    if (!response.ok) return `server not running / bundle missing: GET ${url} returned HTTP ${response.status}`;
+
+    const assetUrl = new URL("/widget/component.js", alternateLoopbackOrigin(base)).toString();
+    const assetResponse = await fetch(assetUrl, { cache: "no-cache", headers: { Origin: base } });
+    if (!assetResponse.ok) return `cross-origin widget preflight: GET ${assetUrl} returned HTTP ${assetResponse.status}`;
+    const allowOrigin = assetResponse.headers.get("access-control-allow-origin");
+    const resourcePolicy = assetResponse.headers.get("cross-origin-resource-policy");
+    if (allowOrigin !== "*" || resourcePolicy !== "cross-origin") {
+      return `cross-origin widget preflight headers: ACAO=${allowOrigin ?? "missing"}; CORP=${resourcePolicy ?? "missing"}`;
+    }
+    return null;
   } catch (error) {
     return `server not running / bundle missing: GET ${url} failed: ${errorMessage(error)}`;
   }
@@ -303,8 +325,11 @@ async function runCell({ chrome, base, cellSpec, reportDir }) {
     addDeliveredCheck(cell, settled);
     if (settled?.state === "delivered") {
       await waitForInnerDocument(client);
-      await delay(500);
+      await waitForInnerRenderer(client);
       await runStructuralChecks(client, cell, cellSpec);
+      if (cellSpec.checksHostParity) {
+        await runHostParityChecks(client, cell);
+      }
       await captureCellScreenshot(client, cell, reportDir).catch((error) => {
         addCheck(cell, "screenshot", "warn", `initial screenshot capture failed: ${errorMessage(error)}`);
       });
@@ -377,6 +402,17 @@ async function waitForInnerDocument(client) {
   );
 }
 
+async function waitForInnerRenderer(client) {
+  await waitFor(
+    client,
+    `(() => {
+      const inner = document.querySelector("[data-qa='emulator-frame']")?.contentWindow;
+      return Boolean(inner?.document?.querySelector("canvas")) && Boolean(inner?.__ATLAS_QA__?.perf);
+    })()`,
+    15_000,
+  );
+}
+
 function addDeliveredCheck(cell, handle) {
   if (!handle) {
     addCheck(cell, "delivered", "fail", "missing __ATLAS_EMULATOR__ handle");
@@ -395,6 +431,24 @@ function addDeliveredCheck(cell, handle) {
 }
 
 async function runStructuralChecks(client, cell, cellSpec) {
+  await addAsyncCheck(cell, "cross_origin_widget_assets", async () => {
+    const assets = await widgetAssetOriginSnapshot(client);
+    const distinct = assets.hostOrigin && assets.assetOrigin && assets.hostOrigin !== assets.assetOrigin;
+    const scriptMatches = assets.scriptOrigin === assets.assetOrigin;
+    const styleMatches = assets.styleOrigin === assets.assetOrigin;
+    const chunksMatch = assets.chunkCount > 0 && assets.chunkOrigins.every((origin) => origin === assets.assetOrigin);
+    if (distinct && scriptMatches && styleMatches && chunksMatch) {
+      return {
+        level: "pass",
+        detail: `host=${assets.hostOrigin}; assets=${assets.assetOrigin}; component script+style + ${assets.chunkCount} lazy chunks cross-origin`,
+      };
+    }
+    return {
+      level: "fail",
+      detail: `host=${assets.hostOrigin || "missing"}; expected=${assets.assetOrigin || "missing"}; script=${assets.scriptOrigin || "missing"}; style=${assets.styleOrigin || "missing"}; chunks=${assets.chunkCount}@${assets.chunkOrigins.join(",") || "missing"}`,
+    };
+  });
+
   await addAsyncCheck(cell, "no_horizontal_overflow", async () => {
     const overflow = await innerDocumentMetrics(client);
     if (overflow.scrollWidth <= overflow.clientWidth + 1) {
@@ -710,8 +764,26 @@ async function runCtaRoundtripCheck(client, cell) {
 async function runDisplayModeProbe(client, viewportKey) {
   const before = await displayModeSnapshot(client);
   if (!before.buttonPresent) return { level: "fail", detail: "missing [data-qa='expand-map-button']" };
-  if (before.shellMode !== "inline" || before.indicatorMode !== "inline" || before.emulatorMode !== "inline") {
+  if (
+    before.shellMode !== "inline" ||
+    before.indicatorMode !== "inline" ||
+    before.emulatorMode !== "inline" ||
+    before.openaiMode !== "inline"
+  ) {
     return { level: "fail", detail: `expected initial inline mode; got ${displayModeDetail(before)}` };
+  }
+
+  const outsideGesture = await requestDisplayModeOutsideGesture(client);
+  if (
+    outsideGesture.returnType !== "undefined" ||
+    outsideGesture.openaiMode !== "inline" ||
+    outsideGesture.emulatorMode !== "inline" ||
+    outsideGesture.frameMode !== "inline"
+  ) {
+    return {
+      level: "fail",
+      detail: `non-gesture request must return undefined and preserve inline; return=${outsideGesture.returnType}; openai=${outsideGesture.openaiMode}; emulator=${outsideGesture.emulatorMode}; frame=${outsideGesture.frameMode}`,
+    };
   }
 
   await toggleDisplayModeAndWait(client, viewportKey, "fullscreen");
@@ -720,6 +792,7 @@ async function runDisplayModeProbe(client, viewportKey) {
     expanded.shellMode !== "fullscreen" ||
     expanded.indicatorMode !== "fullscreen" ||
     expanded.emulatorMode !== "fullscreen" ||
+    expanded.openaiMode !== "fullscreen" ||
     expanded.frameMode !== "fullscreen" ||
     expanded.buttonLabel !== "Collapse map" ||
     expanded.buttonPressed !== "true" ||
@@ -734,6 +807,7 @@ async function runDisplayModeProbe(client, viewportKey) {
     collapsed.shellMode !== "inline" ||
     collapsed.indicatorMode !== "inline" ||
     collapsed.emulatorMode !== "inline" ||
+    collapsed.openaiMode !== "inline" ||
     collapsed.frameMode !== "inline" ||
     collapsed.buttonLabel !== "Expand map" ||
     collapsed.buttonPressed !== "false" ||
@@ -743,7 +817,25 @@ async function runDisplayModeProbe(client, viewportKey) {
   }
   await delay(100);
 
-  return { level: "pass", detail: "expand button toggles display-mode inline->fullscreen->inline" };
+  return {
+    level: "pass",
+    detail: "non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline",
+  };
+}
+
+function requestDisplayModeOutsideGesture(client) {
+  return evaluate(client, `(() => {
+    const frame = document.querySelector("[data-qa='emulator-frame']");
+    const inner = frame?.contentWindow;
+    const frameBox = document.getElementById("frame-box");
+    const result = inner?.openai?.requestDisplayMode?.({ mode: "fullscreen" });
+    return {
+      returnType: result === undefined ? "undefined" : result instanceof Promise ? "promise" : typeof result,
+      openaiMode: inner?.openai?.displayMode ?? "",
+      emulatorMode: window.__ATLAS_EMULATOR__?.displayMode ?? "",
+      frameMode: frameBox?.dataset.displayMode ?? "",
+    };
+  })()`);
 }
 
 async function toggleDisplayModeAndWait(client, viewportKey, mode) {
@@ -813,6 +905,7 @@ function displayModeSnapshot(client) {
       shellQaMode: shell?.getAttribute("data-qa-display-mode") ?? "",
       indicatorMode: indicator?.getAttribute("data-display-mode") ?? "",
       indicatorText: indicator?.textContent?.replace(/\\s+/g, " ").trim() ?? "",
+      openaiMode: frame?.contentWindow?.openai?.displayMode ?? "",
       emulatorMode: window.__ATLAS_EMULATOR__?.displayMode ?? "",
       frameMode: frameBox?.dataset.displayMode ?? "",
       frameFullscreen: Boolean(frameBox?.classList.contains("fullscreen")),
@@ -821,7 +914,89 @@ function displayModeSnapshot(client) {
 }
 
 function displayModeDetail(snapshot) {
-  return `shell=${snapshot.shellMode}/${snapshot.shellQaMode}; indicator=${snapshot.indicatorMode}:${snapshot.indicatorText}; emulator=${snapshot.emulatorMode}; frame=${snapshot.frameMode}/${snapshot.frameFullscreen ? "fullscreen" : "inline"}; button=${snapshot.buttonLabel}/${snapshot.buttonPressed}`;
+  return `shell=${snapshot.shellMode}/${snapshot.shellQaMode}; indicator=${snapshot.indicatorMode}:${snapshot.indicatorText}; openai=${snapshot.openaiMode}; emulator=${snapshot.emulatorMode}; frame=${snapshot.frameMode}/${snapshot.frameFullscreen ? "fullscreen" : "inline"}; button=${snapshot.buttonLabel}/${snapshot.buttonPressed}`;
+}
+
+async function runHostParityChecks(client, cell) {
+  await addAsyncCheck(cell, "sandbox_csp_data_split", async () => {
+    const probe = await sandboxCspProbe(client);
+    if (
+      probe.fetchBlocked &&
+      probe.imageLoaded &&
+      probe.connectDirective === "connect-src 'self'" &&
+      probe.scriptDirective.includes("'unsafe-eval'") &&
+      probe.imageDirective.includes("data:") &&
+      probe.violationDirective === "connect-src"
+    ) {
+      return {
+        level: "pass",
+        detail: `fetch(data:) blocked by ${probe.violationDirective}; Image(data:) loaded; ${probe.connectDirective}`,
+      };
+    }
+    return {
+      level: "fail",
+      detail: `fetchBlocked=${probe.fetchBlocked}; imageLoaded=${probe.imageLoaded}; violation=${probe.violationDirective || "missing"}; script=${probe.scriptDirective || "missing"}; connect=${probe.connectDirective || "missing"}; img=${probe.imageDirective || "missing"}`,
+    };
+  });
+}
+
+function sandboxCspProbe(client) {
+  return evaluate(client, `(async () => {
+    const frame = document.querySelector("[data-qa='emulator-frame']");
+    const inner = frame?.contentWindow;
+    const doc = inner?.document;
+    if (!inner || !doc) throw new Error("missing inner window for CSP probe");
+    const csp = doc.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content") ?? "";
+    const directive = (name) => csp.split(";").map((part) => part.trim()).find((part) => part.startsWith(name + " ")) ?? "";
+    let violationDirective = "";
+    const onViolation = (event) => {
+      if (event.blockedURI === "data") violationDirective = event.violatedDirective;
+    };
+    doc.addEventListener("securitypolicyviolation", onViolation);
+    let fetchBlocked = false;
+    try {
+      await inner.fetch("data:text/plain,atlas-emulator-csp-probe");
+    } catch {
+      fetchBlocked = true;
+    }
+    const imageLoaded = await new Promise((resolve) => {
+      const image = new inner.Image();
+      image.onload = () => resolve(true);
+      image.onerror = () => resolve(false);
+      image.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E";
+    });
+    await new Promise((resolve) => inner.setTimeout(resolve, 0));
+    doc.removeEventListener("securitypolicyviolation", onViolation);
+    return {
+      fetchBlocked,
+      imageLoaded,
+      violationDirective,
+      scriptDirective: directive("script-src"),
+      connectDirective: directive("connect-src"),
+      imageDirective: directive("img-src"),
+    };
+  })()`);
+}
+
+function widgetAssetOriginSnapshot(client) {
+  return evaluate(client, `(() => {
+    const frame = document.querySelector("[data-qa='emulator-frame']");
+    const doc = frame?.contentWindow?.document;
+    const script = doc?.querySelector('script[type="module"][src*="/widget/component.js"]');
+    const style = doc?.querySelector('link[rel="stylesheet"][href*="/widget/component.css"]');
+    const originOf = (value) => value ? new URL(value).origin : "";
+    const chunkUrls = Array.from(frame?.contentWindow?.performance?.getEntriesByType("resource") ?? [])
+      .map((entry) => entry.name)
+      .filter((name) => name.includes("/widget/chunks/") && name.endsWith(".js"));
+    return {
+      hostOrigin: window.__ATLAS_EMULATOR__?.hostOrigin ?? window.location.origin,
+      assetOrigin: window.__ATLAS_EMULATOR__?.assetOrigin ?? "",
+      scriptOrigin: originOf(script?.src),
+      styleOrigin: originOf(style?.href),
+      chunkCount: chunkUrls.length,
+      chunkOrigins: [...new Set(chunkUrls.map(originOf))],
+    };
+  })()`);
 }
 
 async function clickInnerQaButton(client, qa, viewportKey) {
@@ -872,12 +1047,16 @@ async function runPayloadChecks(client, cell) {
 
 function addConsoleCheck(client, cell) {
   if (!cell) return;
-  const errors = consoleErrorEntries(client);
+  const errors = consoleErrorEntries(client).filter((entry) => !isExpectedSandboxCspProbeDiagnostic(entry));
   if (errors.length === 0) {
     addCheck(cell, "console_errors", "pass", "console error entries=0");
     return;
   }
   addCheck(cell, "console_errors", "fail", errors.slice(0, 3).join(" | "));
+}
+
+function isExpectedSandboxCspProbeDiagnostic(entry) {
+  return entry.includes("atlas-emulator-csp-probe") && /content security policy|connect-src/i.test(entry);
 }
 
 async function addAsyncCheck(cell, id, fn) {
@@ -1153,6 +1332,7 @@ function consoleErrorEntries(client) {
     .filter((event) => {
       if (event.method === "Runtime.consoleAPICalled") return event.params?.type === "error";
       if (event.method === "Log.entryAdded") return event.params?.entry?.level === "error";
+      if (event.method === "Runtime.exceptionThrown") return true;
       return false;
     })
     .map((event) => {
@@ -1161,6 +1341,10 @@ function consoleErrorEntries(client) {
           .map((arg) => arg.value ?? arg.unserializableValue ?? arg.description ?? arg.type)
           .filter(Boolean)
           .join(" ");
+      }
+      if (event.method === "Runtime.exceptionThrown") {
+        const details = event.params?.exceptionDetails;
+        return details?.exception?.description ?? details?.exception?.value ?? details?.text ?? "Runtime.exceptionThrown";
       }
       return event.params?.entry?.text ?? event.params?.entry?.url ?? "Log.entryAdded error";
     })

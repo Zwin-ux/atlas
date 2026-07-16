@@ -11,7 +11,13 @@
 //   truncate=<chars>   host payload policy: strip generatedDraftScene above N serialized chars
 //   src=live|injected  tool-result strategy (injected = pre-parked by the CDP driver)
 import { EMULATOR_VIEWPORTS, type EmulatorViewportKey } from "./constants";
-import { buildWidgetSrcdoc, createMockHost, type EmulatorDisplayMode, type EmulatorTheme } from "./mockHost";
+import {
+  buildWidgetSrcdoc,
+  createMockHost,
+  resolveEmulatorAssetOrigin,
+  type EmulatorDisplayMode,
+  type EmulatorTheme,
+} from "./mockHost";
 import { createInjectedToolSource, createLiveMcpToolSource } from "./toolSource";
 
 const params = new URLSearchParams(window.location.search);
@@ -26,6 +32,7 @@ const truncateChars = Number(params.get("truncate") ?? "0") || 0;
 const geoBoardEnabled = params.get("atlasGeoBoard") === "1";
 const preferInjected = params.get("src") === "injected";
 const viewport = EMULATOR_VIEWPORTS[viewportKey];
+const assetOrigin = resolveEmulatorAssetOrigin(window.location.origin);
 
 const style = document.createElement("style");
 style.textContent = `
@@ -60,6 +67,7 @@ root.innerHTML = `
     <span>draft=${includeGeneratedDraft ? "1" : "0"}</span>
     <span>${viewport.label}</span>
     <span>${theme}</span>
+    <span>assets=<b>${assetOrigin}</b></span>
     ${link("desktop", { viewport: "desktop" })} ${link("mobile", { viewport: "mobile" })}
     ${link("light", { theme: "light" })} ${link("dark", { theme: "dark" })}
     ${link(includeGeneratedDraft ? "draft off" : "draft on", { draft: includeGeneratedDraft ? "0" : "1" })}
@@ -79,13 +87,13 @@ const setStatus = (text: string) => {
 
 async function boot(): Promise<void> {
   setStatus("fetching widget shell…");
-  const srcdoc = await buildWidgetSrcdoc("/preview");
+  const srcdoc = await buildWidgetSrcdoc("/preview", assetOrigin);
 
   const iframe = document.createElement("iframe");
   iframe.setAttribute("data-qa", "emulator-frame");
   // allow-same-origin is required for the openai bootstrap + CDP QA reads;
-  // postMessage (the JSON-RPC bridge) needs neither. See mockHost.ts header
-  // for the documented cross-origin fidelity compromise.
+  // postMessage (the JSON-RPC bridge) needs neither. Widget assets still load
+  // from a distinct loopback origin; see the mockHost.ts fidelity contract.
   iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
   iframe.width = String(viewport.width);
   iframe.height = String(viewport.height);
@@ -101,6 +109,7 @@ async function boot(): Promise<void> {
   const host = await createMockHost({
     iframe,
     toolSource,
+    assetOrigin,
     county,
     includeGeneratedDraft,
     theme,

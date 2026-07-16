@@ -11,9 +11,10 @@
 //   - window.openai (theme/widgetState/setWidgetState/requestDisplayMode) is
 //     installed by a synchronous bootstrap script injected into the widget
 //     document BEFORE its deferred module executes — same observable order as
-//     the real host's proxy injection. (Documented compromise: production is
-//     cross-origin; same-origin injection changes the mechanism, not anything
-//     the widget can observe.)
+//     the real host's proxy injection. The srcdoc stays same-origin for QA
+//     reads, while all widget assets and lazy chunks load from a second origin.
+//   - The iframe CSP mirrors the host split Atlas depends on: data: images are
+//     allowed, fetch(data:) is blocked, and Pixi's unsafe-eval path is allowed.
 //   - ui/message is answered immediately (the widget bridge has a 1200ms RPC
 //     timeout) and the model turn (real MCP tool call) runs async, exactly
 //     like the real host.
@@ -28,6 +29,7 @@ export type EmulatorDisplayMode = "inline" | "pip" | "fullscreen";
 export type MockHostOptions = {
   iframe: HTMLIFrameElement;
   toolSource: ToolSource;
+  assetOrigin: string;
   county: string;
   includeGeneratedDraft: boolean;
   theme: EmulatorTheme;
@@ -67,6 +69,8 @@ export type EmulatorQaHandle = {
   viewport: EmulatorViewportKey;
   theme: EmulatorTheme;
   displayMode: EmulatorDisplayMode;
+  hostOrigin: string;
+  assetOrigin: string;
   deliveries: DeliveryRecord[];
   messages: string[];
   modelContext: string[];
@@ -77,6 +81,23 @@ export type EmulatorQaHandle = {
 
 const SET_GLOBALS_EVENT_TYPE = "openai:set_globals";
 const DISPLAY_MODE_GESTURE_WINDOW_MS = 200;
+
+const LOOPBACK_ASSET_HOSTS: Record<string, string> = {
+  "127.0.0.1": "localhost",
+  localhost: "127.0.0.1",
+  "[::1]": "127.0.0.1",
+};
+
+/** Use a distinct browser origin without adding a second local process. */
+export function resolveEmulatorAssetOrigin(hostOrigin: string): string {
+  const url = new URL(hostOrigin);
+  const assetHost = LOOPBACK_ASSET_HOSTS[url.hostname];
+  if (!assetHost) {
+    throw new Error(`The production emulator requires a loopback host; got ${url.origin}.`);
+  }
+  url.hostname = assetHost;
+  return url.origin;
+}
 
 function serializedChars(value: unknown): number {
   if (value === undefined) return 0;
@@ -110,16 +131,36 @@ function applyHostPayloadPolicy(result: CallToolResult, truncateChars: number): 
   return { result: { ...result, _meta: keptMeta }, truncated: true };
 }
 
-/** Fetch the production /preview shell and prepend the synchronous window.openai bootstrap. */
-export async function buildWidgetSrcdoc(previewUrl: string): Promise<string> {
+function rewriteWidgetAssetOrigin(html: string, assetOrigin: string): string {
+  return html.replace(
+    /\b(href|src)=(['"])(?:https?:\/\/[^'"<>]+)?\/widget\//gi,
+    (_match, attribute: string, quote: string) => `${attribute}=${quote}${assetOrigin}/widget/`,
+  );
+}
+
+function sandboxCsp(assetOrigin: string): string {
+  return [
+    "default-src 'none'",
+    `script-src 'unsafe-inline' 'unsafe-eval' ${assetOrigin}`,
+    `style-src 'unsafe-inline' ${assetOrigin}`,
+    `img-src data: blob: ${assetOrigin}`,
+    `font-src data: ${assetOrigin}`,
+    "connect-src 'self'",
+    "worker-src blob:",
+  ].join("; ");
+}
+
+/** Fetch the production /preview shell and add the host bootstrap + sandbox contract. */
+export async function buildWidgetSrcdoc(previewUrl: string, assetOrigin: string): Promise<string> {
   const response = await fetch(previewUrl, { cache: "no-cache" });
   if (!response.ok) throw new Error(`Failed to fetch widget shell: HTTP ${response.status}`);
-  const html = await response.text();
+  const html = rewriteWidgetAssetOrigin(await response.text(), assetOrigin);
   // Classic inline scripts execute during parsing; the widget bundle is a
   // deferred module — so this runs strictly first, like the host proxy.
   const bootstrap = "<script>window.openai = window.parent.__ATLAS_EMULATOR_OPENAI_FACTORY__(window);</script>";
-  if (html.includes("<head>")) return html.replace("<head>", `<head>${bootstrap}`);
-  return `${bootstrap}${html}`;
+  const csp = `<meta http-equiv="Content-Security-Policy" content="${sandboxCsp(assetOrigin)}">`;
+  if (html.includes("<head>")) return html.replace("<head>", `<head>${csp}${bootstrap}`);
+  return `${csp}${bootstrap}${html}`;
 }
 
 export async function createMockHost(options: MockHostOptions): Promise<MockHostHandle> {
@@ -133,6 +174,8 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
     viewport: options.viewport,
     theme: options.theme,
     displayMode: "inline",
+    hostOrigin: window.location.origin,
+    assetOrigin: options.assetOrigin,
     deliveries: [],
     messages: [],
     modelContext: [],
@@ -152,7 +195,7 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
   // ---- window.openai (installed by the srcdoc bootstrap, synchronously) ----
   let widgetState: Record<string, unknown> | undefined;
   let innerWindow: Window | null = null;
-  let lastDisplayModeGestureAt = 0;
+  let lastDisplayModeGestureAt = Number.NEGATIVE_INFINITY;
   let gestureCleanup: (() => void) | null = null;
   const markDisplayModeGesture = () => {
     lastDisplayModeGestureAt = performance.now();

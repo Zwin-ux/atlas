@@ -14,13 +14,13 @@ connector added via developer mode, prod backend commit `89ed443`.
 
 ### Finding G8-1 (FIXED, `ef355f8`): widget assets blocked cross-origin
 Real ChatGPT loads widgets from a per-app sandbox origin and fetches our
-bundle cross-origin. W1's allowlist CORS blocked it — the emulator could not
-catch this because it is same-origin by design (documented compromise, now
-paid for). Fix: `ACAO: *` + `CORP: cross-origin` on `/widget/*` static assets
+bundle cross-origin. W1's allowlist CORS blocked it — the old emulator could
+not catch this because its assets were same-origin. Fix: `ACAO: *` +
+`CORP: cross-origin` on `/widget/*` static assets
 only; `/mcp` stays allowlisted. Release gate now asserts ACAO from a
-sandbox-style Origin. **Emulator follow-up filed: serve the inner widget from
-a second localhost origin to make asset cross-origin-ness part of every
-certification.**
+sandbox-style Origin. **P0.3 follow-up complete 2026-07-15:** every emulator
+audit now serves the widget bundle and lazy chunks from the alternate loopback
+origin and fails preflight unless both cross-origin headers are present.
 
 ### Finding G8-2 (WATCH): ChatGPT-side storage quota crash
 `system-connectors` cache write exceeded browser storage quota and the tab
@@ -43,8 +43,9 @@ like the others.
 `requestDisplayMode` outside a user gesture returns undefined in the real
 host (emulator always returned a Promise) — `.catch` on it crashed the
 widget at mount. All host-API results now Promise.resolve-wrapped.
-Emulator fidelity packet queued: mockHost must mirror both real-host
-behaviors (cross-origin assets, non-gesture undefined returns).
+P0.3 now mirrors both real-host behaviors: cross-origin assets and a
+non-gesture `undefined` return with no displayMode global change. A real click
+must update the OpenAI global, widget shell, indicator, and emulator frame.
 
 ### Finding G8-4 (OPEN, next priority): map exploration feels locked
 User report: "riverside just put to eastvale and you can't move around."
@@ -72,8 +73,30 @@ rate-limit behavior.
 - Widget renders; P1 build live; cold call fast (no 31s deliberation observed).
 ### Finding G8-6 (OPEN): model narrates internal tier codes
 Model text said 'L1 County Shell coverage' - structuredContent coverageTier enum leaks into prose. Fix: tool description instructs plain-words coverage descriptions; never recite internal codes.
-### Finding G8-7 (OPEN): sandbox CSP blocks data: SVG fetch()
-connect-src violation x3 (strip store, sticker pin, road corner assets) - texture loads via fetch(dataUri) fail in real ChatGPT only; emulator has no such CSP. Fix: load data-URI textures via Image element (img-src allows data:), never fetch(). Emulator fidelity follow-up: mirror the sandbox connect-src CSP.
+### Finding G8-7 (FIXED IN CODE; REAL-HOST RECHECK OPEN): sandbox CSP blocks data: SVG fetch()
+connect-src violation x3 (strip store, sticker pin, road corner assets) -
+texture loads via fetch(dataUri) failed in real ChatGPT only. The widget now
+loads data-URI textures through `Image`, never `fetch()`. P0.3 adds a
+browser-enforced sandbox check: `fetch(data:)` must fail under
+`connect-src 'self'`, `Image(data:)` must load under `img-src data:`, and the
+Pixi canvas must still render. Real-host confirmation stays in the Session 4
+battery.
+
+## P0.3 emulator fidelity certification (2026-07-15)
+
+- Host page: `http://127.0.0.1:<port>`; widget assets and every lazy chunk:
+  `http://localhost:<port>` (the reverse pairing also stays valid).
+- Asset preflight requires `Access-Control-Allow-Origin: *` and
+  `Cross-Origin-Resource-Policy: cross-origin` before Chrome launches.
+- Sandbox CSP preserves Pixi's host-proven `unsafe-eval` requirement while
+  keeping `connect-src 'self'` and `img-src data: blob:` distinct.
+- Full emulator audit: 19 cells, 182 pass, 0 warn, 0 fail. This covers all six
+  generated archetypes, Riverside, desktop/mobile, light/dark, CTA recovery,
+  touch gestures, generated pin/note isolation, CSP, CORS, and displayMode.
+- Emulator performance: 14 cells, 0 warnings/failures; max Graphics 829/1600,
+  max rebuild 30.5ms/350ms.
+- This closes the local fidelity follow-ups from G8-1, G8-3, and G8-7. It does
+  not close G8-4 or replace the visible ChatGPT desktop/phone session.
 
 ## Session 4 preparation (2026-07-15, prod=`7016735`)
 

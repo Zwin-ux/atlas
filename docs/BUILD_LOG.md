@@ -1,5 +1,36 @@
 # Build Log
 
+## Entry 222
+
+Quest:
+P0.3 ChatGPT-host emulator fidelity.
+
+What changed:
+- Moved the widget component bundle, stylesheet, and every lazy Pixi chunk to
+  the alternate loopback origin during emulator runs, while keeping the
+  srcdoc inspectable for deterministic QA.
+- Added a ChatGPT-like iframe CSP: Pixi's host-proven `unsafe-eval` path stays
+  legal, `fetch(data:)` is blocked by `connect-src 'self'`, and data-URI images
+  remain legal through `img-src data:`.
+- Strengthened the audit to preflight `ACAO: *` and `CORP: cross-origin`, wait
+  for the real Pixi renderer, report runtime exceptions, and assert both the
+  non-gesture `undefined` return and gesture-driven displayMode global updates.
+
+Evidence:
+- Full emulator audit: 19 cells, 182 pass, 0 warn, 0 fail.
+- Mobile generated-district focus pass: 16/16, including data-URI textures,
+  touch select, pin/note, pan, pinch, and state isolation.
+- Emulator performance: 14 cells, max 829 Graphics, max 30.5ms rebuild,
+  0 warnings, 0 failures.
+- `pnpm typecheck`, audit syntax/diff checks, loop readiness, and
+  source-of-truth drift: green; 0 blockers.
+- Official `scripts/certify.ps1 -NodeOnly` ladder: exit 0.
+
+Still pending:
+- Visible real-ChatGPT G8 desktop + phone battery. P0.3 improves the local
+  tripwire but does not substitute for host acceptance.
+- `0.78-2 Real Town Anchors` remains gated until that real-host pass closes.
+
 ## Entry 221
 
 Quest:
