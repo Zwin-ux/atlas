@@ -1,17 +1,17 @@
 {
-  "id": "postalpha-0.78-1v-census-county-board-certification",
-  "name": "Post-Alpha 0.78-1V - Census County Board Product + Certification Gate",
-  "status": "production_green_real_host_g8_pending",
-  "playerPromise": "Atlas can show a county's real U.S. Census boundary and water without implying that streets, places, buildings, or playable local coverage are present.",
-  "engineeringPromise": "Certify the flag-gated Census board in a production-fidelity browser matrix while keeping the default flag-off experience unchanged.",
-  "inputUpdate": "postalpha-0.78-1-real-county-board",
-  "selectedAxis": "real_geography_promotion_readiness",
+  "id": "postalpha-0.78-1v-chatgpt-plugin-submission-rc",
+  "name": "Post-Alpha 0.78-1V - ChatGPT Plugin Submission Release Candidate",
+  "status": "certified_local_production_deploy_pending",
+  "playerPromise": "Atlas County Scout opens a full-screen voxel county map, answers map-grounded questions, finds nearby places through bounded lookups, and turns a Scout Drop into a manual plan without pretending to save or automate work.",
+  "engineeringPromise": "Ship the current seven-tool read-only product with minimized public metadata, accurate legal and support pages, an exact plugin test packet, and a production-verifiable domain challenge route.",
+  "inputUpdate": "postalpha-0.78-1v-census-county-board-certification",
+  "selectedAxis": "chatgpt_plugin_submission_readiness",
   "recommendedNextQuest": "0.78-2 Real Town Anchors after real-host G8",
-  "decision": "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE",
+  "decision": "PLUGIN_SUBMISSION_PACKET_CERTIFIED_DEPLOY_PENDING",
   "releaseCandidate": {
     "baseSha": "0e94a6ce9d4ed362c03d2286696919b9cd6836bf",
-    "headSha": "70167356abfe746d0b2257b4211bc9c8d2ff1de3",
-    "pathCount": 46,
+    "headSha": "8bf5a4e139393d7ff208b058e32c6122dd70bb83",
+    "pathCount": 58,
     "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html"
   },
   "metricResult": {
@@ -49,6 +49,22 @@
       "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html",
       "newMcpTools": 0
     },
+    "pluginSubmission": {
+      "displayName": "Atlas County Scout",
+      "subtitle": "Explore voxel county maps",
+      "toolCount": 7,
+      "starterPromptCount": 4,
+      "positiveTestCount": 5,
+      "negativeTestCount": 3,
+      "publicLookupInputs": [
+        "countySlug",
+        "placeId",
+        "radiusMeters"
+      ],
+      "publicLookupDiagnosticsRemoved": true,
+      "supportRoute": "/support",
+      "domainChallengeRoute": "/.well-known/openai-apps-challenge"
+    },
     "cameraContract": "full projected terrain and water footprint fits the certified desktop and mobile viewport",
     "copyContract": "U.S. Census county identity plus real boundary and water; streets and places explicitly not mapped",
     "unavailableControlsHidden": true,
@@ -69,7 +85,7 @@
     "saveSurface": "node scripts/verify-save-surface-flag.mjs",
     "geoCategory": "packages/core/node_modules/.bin/vitest.cmd --root packages/geo run test/place-category-normalizer.test.ts",
     "releaseToolContract": "node scripts/verify-release-prod.mjs --self-test",
-    "releasePreflight": "powershell -ExecutionPolicy Bypass -File scripts/release-deploy.ps1 -ExpectedSha <full-sha> -ExpectedUpdateId postalpha-0.78-1v-census-county-board-certification -PreflightOnly",
+    "releasePreflight": "powershell -ExecutionPolicy Bypass -File scripts/release-deploy.ps1 -ExpectedSha <full-sha> -ExpectedUpdateId postalpha-0.78-1v-chatgpt-plugin-submission-rc -PreflightOnly",
     "productionRelease": "node scripts/verify-release-prod.mjs",
     "publicSanity": "node scripts/verify-alpha-public-sanity.mjs",
     "liveQuestionRouting": "ask_county_question on production: three ordinary Eastvale source/provider questions -> source_limits; playable overlap -> eastvale_first_slice",
@@ -78,7 +94,7 @@
     "framing": "county_board_framing passes in all 12 Census-board cells",
     "proof": "artifacts/emulator/audit/0.78-1v/report.json"
   },
-  "nextCodeStep": "0.78-2 Real Town Anchors after real-host G8",
+  "nextCodeStep": "Deploy the certified plugin contract, verify the production MCP and public pages, then run the exact portal test battery in real ChatGPT.",
   "forbiddenScope": [
     "default-enable the Census board before owner approval",
     "production deploy without the separate owner deploy gate",
@@ -90,9 +106,10 @@
     "public Anaheim/Ontario promotion"
   ],
   "deployment": {
-    "status": "production_green",
+    "status": "previous_release_green_plugin_candidate_pending",
     "completedAt": "2026-07-15",
     "sha": "70167356abfe746d0b2257b4211bc9c8d2ff1de3",
+    "candidateSha": "8bf5a4e139393d7ff208b058e32c6122dd70bb83",
     "railwayDeploymentId": "232c69ee-63de-47d0-bb7c-257d9ca0c422",
     "service": "atlas-backend",
     "publicBaseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
@@ -110,12 +127,25 @@
       "evidence": "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md"
     },
     {
-      "id": "production-deploy",
-      "label": "Owner runs the release deploy and post-deploy proof ladder",
+      "id": "census-board-production-deploy",
+      "label": "Owner ran the 0.78-1V Census-board release deploy and post-deploy proof ladder",
       "required": true,
       "status": "passed",
       "authorization": "approved",
       "evidence": "Railway 232c69ee-63de-47d0-bb7c-257d9ca0c422; SHA 70167356abfe746d0b2257b4211bc9c8d2ff1de3; release 14/14; public sanity 3/3"
+    },
+    {
+      "id": "plugin-production-deploy",
+      "label": "Deploy the ChatGPT plugin submission contract and pass production verification",
+      "required": true,
+      "status": "pending",
+      "authorization": "approved"
+    },
+    {
+      "id": "plugin-domain-verification",
+      "label": "Set the portal-issued challenge token and verify the production domain",
+      "required": true,
+      "status": "pending"
     },
     {
       "id": "real-host-g8",

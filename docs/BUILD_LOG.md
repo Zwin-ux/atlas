@@ -1,5 +1,34 @@
 # Build Log
 
+## Entry 224
+
+Quest:
+P0.3R certified release-envelope refresh for the plugin submission candidate.
+
+What changed:
+- Refreshed `artifacts/current-update.json` from the already-deployed Census
+  board record into the current ChatGPT plugin submission release candidate.
+- Kept the release base fixed and expanded the declared committed envelope from
+  46 to 58 paths, covering the emulator-fidelity and plugin-submission packets
+  that landed after the previous production SHA.
+- Added the 12 reviewed submission, legal, G8, emulator-host, and verifier paths
+  to the cumulative `national-generation-contract` strict allowlist.
+- Preserved the previous Railway deployment as historical evidence while
+  marking the new plugin candidate, portal challenge, and real-host G8 gates
+  pending.
+
+Evidence:
+- The first clean-worktree release preflight refused to deploy with 12 unknown
+  paths and the stale 46-path declaration. No Railway mutation occurred.
+- `node scripts/verify-alpha-rc-split.mjs --git-range
+  0e94a6ce9d4ed362c03d2286696919b9cd6836bf..<release-commit>
+  --strict-selected-rc --rc-mode national-generation-contract --json-only`
+  must return 58 paths and zero blockers before deployment.
+
+Still pending:
+- Commit this release-envelope refresh, rerun the no-mutation release preflight
+  from the clean deploy worktree, then deploy only if it passes.
+
 ## Entry 223
 
 Quest:

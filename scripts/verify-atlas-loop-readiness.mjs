@@ -20,9 +20,9 @@ const requiredFiles = [
 
 const blockers = [];
 const warnings = [];
-const expectedCurrentUpdateId = "postalpha-0.78-1v-census-county-board-certification";
-const expectedDecision = "CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE";
-const expectedSelectedAxis = "real_geography_promotion_readiness";
+const expectedCurrentUpdateId = "postalpha-0.78-1v-chatgpt-plugin-submission-rc";
+const expectedDecision = "PLUGIN_SUBMISSION_PACKET_CERTIFIED_DEPLOY_PENDING";
+const expectedSelectedAxis = "chatgpt_plugin_submission_readiness";
 const expectedApprovalEvidence = "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md";
 
 function read(path) {
@@ -67,20 +67,28 @@ try {
 }
 
 if (currentUpdate.id !== expectedCurrentUpdateId) blockers.push(`Current update is ${currentUpdate.id ?? "missing"}, expected ${expectedCurrentUpdateId}.`);
-if (currentUpdate.status !== "production_green_real_host_g8_pending") blockers.push(`Current update status must be production_green_real_host_g8_pending; got ${currentUpdate.status ?? "missing"}.`);
+if (currentUpdate.status !== "certified_local_production_deploy_pending") blockers.push(`Current update status must be certified_local_production_deploy_pending; got ${currentUpdate.status ?? "missing"}.`);
 if (currentUpdate.decision !== expectedDecision) blockers.push(`Current update decision must be ${expectedDecision}; got ${currentUpdate.decision ?? "missing"}.`);
 if (currentUpdate.selectedAxis !== expectedSelectedAxis) blockers.push(`Current update selectedAxis must be ${expectedSelectedAxis}; got ${currentUpdate.selectedAxis ?? "missing"}.`);
 if (currentUpdate.metricResult?.defaultEnabled !== false) blockers.push("The Census board must remain flag-dark by default.");
 if (currentUpdate.metricResult?.newMcpTools !== 0) blockers.push("0.78-1V must keep the seven-tool MCP surface unchanged.");
 const currentGates = Array.isArray(currentUpdate.gates) ? currentUpdate.gates : [];
 const ownerGate = currentGates.find((gate) => gate?.id === "owner-screenshot-review");
-const deployGate = currentGates.find((gate) => gate?.id === "production-deploy");
+const priorDeployGate = currentGates.find((gate) => gate?.id === "census-board-production-deploy");
+const pluginDeployGate = currentGates.find((gate) => gate?.id === "plugin-production-deploy");
+const domainGate = currentGates.find((gate) => gate?.id === "plugin-domain-verification");
 const realHostGate = currentGates.find((gate) => gate?.id === "real-host-g8");
 if (ownerGate?.required !== true || ownerGate?.status !== "passed" || ownerGate?.evidence !== expectedApprovalEvidence) {
   blockers.push("Owner screenshot review must be passed with the recorded 0.78-1V approval artifact.");
 }
-if (deployGate?.required !== true || deployGate?.status !== "passed" || deployGate?.authorization !== "approved") {
-  blockers.push("Production deploy must be passed and retain its explicit owner authorization.");
+if (priorDeployGate?.required !== true || priorDeployGate?.status !== "passed" || priorDeployGate?.authorization !== "approved") {
+  blockers.push("The previous Census-board production deploy must stay passed with its explicit owner authorization.");
+}
+if (pluginDeployGate?.required !== true || pluginDeployGate?.status !== "pending" || pluginDeployGate?.authorization !== "approved") {
+  blockers.push("The plugin production deploy must be pending with explicit owner authorization.");
+}
+if (domainGate?.required !== true || domainGate?.status !== "pending") {
+  blockers.push("Plugin domain verification must remain pending until the portal-issued token is live.");
 }
 if (realHostGate?.required !== true || realHostGate?.status !== "pending") {
   blockers.push("Real-host G8 must remain pending until the deployed build is exercised in ChatGPT.");
@@ -116,8 +124,8 @@ try {
   const baseSha = currentUpdate.releaseCandidate?.baseSha;
   const headSha = currentUpdate.releaseCandidate?.headSha;
   let splitGuardOutput;
-  if (currentUpdate.status === "production_green_real_host_g8_pending") {
-    if (!baseSha || !headSha) throw new Error("Production release verification requires currentUpdate.releaseCandidate baseSha and headSha.");
+  if (currentUpdate.id === expectedCurrentUpdateId || currentUpdate.status === "production_green_real_host_g8_pending") {
+    if (!baseSha || !headSha) throw new Error("Release verification requires currentUpdate.releaseCandidate baseSha and headSha.");
     splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..${headSha}`], { encoding: "utf8" });
     splitGuard = JSON.parse(splitGuardOutput);
   } else {
@@ -148,7 +156,7 @@ try {
 
 const result = {
   ok: blockers.length === 0,
-  update: "postalpha-0.78-1v-loop-readiness",
+  update: "postalpha-0.78-1v-chatgpt-plugin-submission-loop-readiness",
   readinessLevel: blockers.length === 0 ? "L2_ASSISTED" : "L0_BLOCKED",
   reference: "https://github.com/cobusgreyling/loop-engineering",
   currentUpdateId: currentUpdate.id ?? null,
@@ -159,7 +167,7 @@ const result = {
   warnings,
   nextLoopAction:
     blockers.length === 0
-      ? "Run the Atlas Engine Captain Loop: read STATE.md, choose one bounded Engine Beta artifact, verify it, update state and run log."
+      ? "Run the clean release preflight, deploy the certified plugin candidate, and execute the production proof ladder."
       : "Fix blockers before scheduling or executing the loop.",
 };
 

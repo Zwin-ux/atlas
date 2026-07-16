@@ -20,6 +20,7 @@ const NATIONAL_GENERATION_UPDATE = "postalpha-0.70h-deterministic-generated-dist
 const SCENE_PACKET_UPDATE = "postalpha-0.71h-scene-packet-service-boundary";
 const BACKEND_SPINE_UPDATE = "postalpha-0.72b-redis-scene-packet-cache-job-spine";
 const CENSUS_BOARD_UPDATE = "postalpha-0.78-1v-census-county-board-certification";
+const PLUGIN_SUBMISSION_UPDATE = "postalpha-0.78-1v-chatgpt-plugin-submission-rc";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
@@ -76,6 +77,9 @@ const CENSUS_BOARD_RAILWAY_DEPLOYMENT = "232c69ee-63de-47d0-bb7c-257d9ca0c422";
 const CENSUS_BOARD_NEXT_QUEST_TITLE = "0.78-2 Real Town Anchors";
 const CENSUS_BOARD_SELECTED_AXIS = "real_geography_promotion_readiness";
 const CENSUS_BOARD_APPROVAL_EVIDENCE = "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md";
+const PLUGIN_SUBMISSION_SELECTED_AXIS = "chatgpt_plugin_submission_readiness";
+const PLUGIN_SUBMISSION_IMPLEMENTATION_SHA = "8bf5a4e139393d7ff208b058e32c6122dd70bb83";
+const PLUGIN_SUBMISSION_PATH_COUNT = 58;
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -146,7 +150,9 @@ checkRepairScope();
 const result = {
   ok: blockers.length === 0,
   update:
-    currentUpdate?.id === CENSUS_BOARD_UPDATE
+    currentUpdate?.id === PLUGIN_SUBMISSION_UPDATE
+      ? "postalpha-0.78-1v-chatgpt-plugin-submission-source-of-truth-drift-check"
+      : currentUpdate?.id === CENSUS_BOARD_UPDATE
       ? "postalpha-0.78-1v-census-county-board-source-of-truth-drift-check"
       : currentUpdate?.id === SETUP_UI_UPDATE
       ? "postalpha-0.58j-setup-ui-source-of-truth-drift-check"
@@ -281,6 +287,10 @@ function checkCurrentUpdate(update) {
   }
   if (update.id === CENSUS_BOARD_UPDATE) {
     checkCensusBoardCurrentUpdate(update);
+    return;
+  }
+  if (update.id === PLUGIN_SUBMISSION_UPDATE) {
+    checkPluginSubmissionCurrentUpdate(update);
     return;
   }
   blockers.push(`artifacts/current-update.json id is not a recognized gated update; got ${update.id ?? "missing"}.`);
@@ -1219,6 +1229,98 @@ function checkCensusBoardCurrentUpdate(update) {
   }
 }
 
+function checkPluginSubmissionCurrentUpdate(update) {
+  if (update.status !== "certified_local_production_deploy_pending") {
+    blockers.push(`Plugin submission status must be certified_local_production_deploy_pending; got ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== PLUGIN_SUBMISSION_SELECTED_AXIS) {
+    blockers.push(`Plugin submission selectedAxis must be ${PLUGIN_SUBMISSION_SELECTED_AXIS}; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== CENSUS_BOARD_NEXT_QUEST) {
+    blockers.push(`Plugin submission must preserve the next product quest at ${CENSUS_BOARD_NEXT_QUEST}.`);
+  }
+  if (update.inputUpdate !== CENSUS_BOARD_UPDATE) {
+    blockers.push(`Plugin submission inputUpdate must be ${CENSUS_BOARD_UPDATE}; got ${update.inputUpdate ?? "missing"}.`);
+  }
+  if (update.decision !== "PLUGIN_SUBMISSION_PACKET_CERTIFIED_DEPLOY_PENDING") {
+    blockers.push(`Plugin submission decision is invalid: ${update.decision ?? "missing"}.`);
+  }
+
+  const release = update.releaseCandidate;
+  if (
+    release?.baseSha !== "0e94a6ce9d4ed362c03d2286696919b9cd6836bf" ||
+    release?.headSha !== PLUGIN_SUBMISSION_IMPLEMENTATION_SHA ||
+    release?.pathCount !== PLUGIN_SUBMISSION_PATH_COUNT ||
+    release?.widgetResourceUri !== "ui://widget/atlas-city-world-0781v.html"
+  ) {
+    blockers.push("Plugin submission must record the reviewed base, implementation SHA, 58-path envelope, and versioned widget resource URI.");
+  }
+
+  const plugin = update.metricResult?.pluginSubmission;
+  if (
+    plugin?.displayName !== "Atlas County Scout" ||
+    plugin?.subtitle !== "Explore voxel county maps" ||
+    plugin?.toolCount !== 7 ||
+    plugin?.starterPromptCount !== 4 ||
+    plugin?.positiveTestCount !== 5 ||
+    plugin?.negativeTestCount !== 3 ||
+    plugin?.publicLookupDiagnosticsRemoved !== true ||
+    plugin?.supportRoute !== "/support" ||
+    plugin?.domainChallengeRoute !== "/.well-known/openai-apps-challenge" ||
+    JSON.stringify(plugin?.publicLookupInputs) !== JSON.stringify(["countySlug", "placeId", "radiusMeters"])
+  ) {
+    blockers.push("Plugin submission metrics must preserve the exact listing, seven-tool packet, 5/3 tests, minimized lookup inputs, support route, and domain challenge route.");
+  }
+
+  for (const key of [
+    "core",
+    "typecheck",
+    "toolResultShape",
+    "providerBoundary",
+    "splitGuard",
+    "sourceOfTruth",
+    "loopReadiness",
+    "saveSurface",
+    "releaseToolContract",
+    "releasePreflight",
+    "productionRelease",
+    "publicSanity",
+  ]) {
+    if (!update.verification?.[key]) blockers.push(`Plugin submission verification is missing ${key}.`);
+  }
+
+  const gates = Array.isArray(update.gates) ? update.gates : [];
+  const expectedGates = [
+    "owner-screenshot-review",
+    "census-board-production-deploy",
+    "plugin-production-deploy",
+    "plugin-domain-verification",
+    "real-host-g8",
+  ];
+  for (const id of expectedGates) {
+    if (gates.find((candidate) => candidate?.id === id)?.required !== true) {
+      blockers.push(`Plugin submission gate ${id} must remain required.`);
+    }
+  }
+  if (gates.find((candidate) => candidate?.id === "plugin-production-deploy")?.status !== "pending") {
+    blockers.push("Plugin production deploy must remain pending until the production proof ladder passes.");
+  }
+  if (gates.find((candidate) => candidate?.id === "plugin-domain-verification")?.status !== "pending") {
+    blockers.push("Plugin domain verification must remain pending until the portal-issued token is live.");
+  }
+  if (gates.find((candidate) => candidate?.id === "real-host-g8")?.status !== "pending") {
+    blockers.push("Real-host G8 must remain pending until real ChatGPT proof exists.");
+  }
+  if (
+    update.deployment?.status !== "previous_release_green_plugin_candidate_pending" ||
+    update.deployment?.sha !== CENSUS_BOARD_DEPLOYED_SHA ||
+    update.deployment?.candidateSha !== PLUGIN_SUBMISSION_IMPLEMENTATION_SHA ||
+    update.deployment?.railwayDeploymentId !== CENSUS_BOARD_RAILWAY_DEPLOYMENT
+  ) {
+    blockers.push("Plugin submission must preserve the previous green Railway release while marking the reviewed candidate SHA pending.");
+  }
+}
+
 function checkPriorSelectorArtifact(artifact) {
   if (!artifact) return;
   if (artifact.update !== "postalpha-0.43e-engine-quality-axis-review-next-target-selection") {
@@ -1289,7 +1391,10 @@ function checkOwnerGateSelector(selectorArtifact) {
 
 function checkNextQuestAlignment(update, nextQuests, releaseLadder) {
   if (!update?.recommendedNextQuest) return;
-  const expectedQuest = update.id === CENSUS_BOARD_UPDATE ? CENSUS_BOARD_NEXT_QUEST_TITLE : update.recommendedNextQuest;
+  const expectedQuest =
+    update.id === CENSUS_BOARD_UPDATE || update.id === PLUGIN_SUBMISSION_UPDATE
+      ? CENSUS_BOARD_NEXT_QUEST_TITLE
+      : update.recommendedNextQuest;
   if (!nextQuests.includes(expectedQuest)) {
     blockers.push(`docs/NEXT_QUESTS.md does not include current recommended next quest: ${update.recommendedNextQuest}.`);
   }
@@ -1859,8 +1964,8 @@ function checkIntegrationReleaseDocs(update, docs) {
     };
   }
 
-  if (update?.id === CENSUS_BOARD_UPDATE) {
-    label = "0.78-1V Census county board certification";
+  if (update?.id === CENSUS_BOARD_UPDATE || update?.id === PLUGIN_SUBMISSION_UPDATE) {
+    label = update.id === PLUGIN_SUBMISSION_UPDATE ? "0.78-1V plugin submission release candidate" : "0.78-1V Census county board certification";
     requiredSnippetsByFile = {
       "STATE.md": [
         "0.78-1V Census County Board Product + Certification Gate",
@@ -1961,7 +2066,7 @@ function checkAgentsDoctrine(agents) {
     "Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays",
     "Do not add new MCP tools casually",
   ];
-  if (currentUpdate?.id === CENSUS_BOARD_UPDATE) {
+  if (currentUpdate?.id === CENSUS_BOARD_UPDATE || currentUpdate?.id === PLUGIN_SUBMISSION_UPDATE) {
     requiredSnippets.push(
       "Current human-directed production-green slice is `0.78-1V Census County Board Product + Certification Gate`",
       "0.78-1V decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE`",
@@ -2042,7 +2147,8 @@ function checkDbDrift(packageJson, serverIndex, envExample) {
     currentUpdate?.id === NATIONAL_GENERATION_UPDATE ||
     currentUpdate?.id === SCENE_PACKET_UPDATE ||
     currentUpdate?.id === BACKEND_SPINE_UPDATE ||
-    currentUpdate?.id === CENSUS_BOARD_UPDATE
+    currentUpdate?.id === CENSUS_BOARD_UPDATE ||
+    currentUpdate?.id === PLUGIN_SUBMISSION_UPDATE
   ) {
     checkStripeBillingDbEnvelope(packageJson, serverIndex, envExample);
     return;
