@@ -1,43 +1,47 @@
-# Atlas Privacy Policy
+# Atlas County Scout Privacy Policy
 
-Last updated: July 3, 2026
+Last updated: July 15, 2026
 
-Atlas is a ChatGPT app for exploring a county-scale voxel map. The current public playable slice is Riverside/Eastvale.
+Atlas County Scout is a read-only ChatGPT app for exploring voxel county maps, finding nearby places, and building local planning briefs.
 
-## What Atlas Stores
+## Data Atlas Processes
 
-Atlas Alpha is session-only. Atlas does not create accounts, save user profiles, save map notes, save stickers, save Scout Drops, save campaign previews, grant XP, or store progress for later use.
+Atlas processes only the information needed for the requested tool call:
 
-The app receives the text and tool inputs needed to answer your request during the active ChatGPT session. Atlas uses that information to return map, lookup, scout, and preview results. Atlas does not sell user data.
+- Atlas-owned county and place ids, business type, goal, and other scoped planning inputs;
+- map interactions such as pins and notes, which remain in the current ChatGPT conversation and are not written to an Atlas account; and
+- a nearby-place lookup and normalized results when the user requests live place information.
 
-## Google Maps Platform
+Atlas does not request passwords, API keys, payment-card data, government identifiers, health information, raw chat histories, GPS coordinates, or street addresses.
 
-Atlas can use Google Maps Platform in read-only mode for place lookups. For example, a user may ask Atlas to look up nearby places around Eastvale. Atlas returns normalized Atlas categories and short source notes. It does not expose raw provider payloads, save provider-derived place lists, or turn provider data into voxel scene geometry.
+## How Atlas Uses Data
 
-Google Maps Platform may process lookup requests under Google's own terms and privacy policies. Google Maps attribution should remain visible where provider lookup data is shown.
+Atlas uses the scoped inputs to return the requested map, place summary, Scout Drop, or manual campaign plan; keep the service reliable; and prevent abuse.
 
-## What Atlas Does Not Do
+Atlas does not sell personal data, serve advertisements, build user profiles, or use cross-site tracking.
 
-Atlas does not:
+## Recipients
 
-- save state or user progress;
-- create accounts;
-- start checkout or take payment;
-- auto-post, auto-DM, buy ads, submit forms, or contact anyone;
-- scrape private people or build outreach lists;
-- persist Google Maps lookup results;
-- claim that Hosted Clawd persistence is live.
+- OpenAI processes the conversation and tool call as the ChatGPT host.
+- When a user requests nearby places, Atlas sends an Atlas-derived area label and radius to Google Maps Platform. Atlas returns normalized Atlas categories and attribution, not raw provider payloads.
+- The production hosting provider processes the network request needed to run the service.
 
-Hosted Clawd, paid plans, accounts, database persistence, evidence tracking, and exports are planned work. They are not live in this Alpha app.
+Atlas does not send tool inputs to advertisers or data brokers.
 
-## Data Sharing
+## Retention
 
-Atlas does not sell user data. Atlas may send a place lookup request to Google Maps Platform when a user asks for live nearby place information. Otherwise, Atlas uses curated app data and session inputs to answer inside ChatGPT.
+- Atlas has no public user accounts and does not persist pins, notes, Scout Drops, or campaign plans in an Atlas database.
+- Nearby-place lookups and normalized results may remain in an in-memory provider cache for up to 24 hours, then expire. The cache is not tied to an account and is cleared when the server process restarts.
+- Atlas does not copy conversation content into a separate analytics store. ChatGPT and infrastructure-provider retention follow their own published policies and service settings.
 
-## Security
+## User Controls
 
-Atlas is designed to avoid saved user data in the Alpha phase. No system is perfect, but the current product posture reduces risk by not storing accounts, saved campaigns, or saved map state.
+Users can avoid the optional nearby-place lookup, stop using Atlas, and manage or delete the ChatGPT conversation through ChatGPT controls. Because Atlas has no public account database, there is no Atlas profile to delete.
+
+## Children
+
+Atlas is not directed to children under 13.
 
 ## Contact
 
-For privacy questions, use the contact information listed with the ChatGPT app submission or app listing.
+Privacy questions: mzwin3545@gmail.com

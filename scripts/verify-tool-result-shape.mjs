@@ -30,26 +30,50 @@ if (/structuredContent:\s*scenePacket\b/.test(server)) {
   blockers.push("Scene packet metadata must stay in _meta and not structuredContent.");
 }
 
-if (!/structuredContent:\s*lookup/.test(server)) {
-  blockers.push("lookup_world_places must return normalized lookup structuredContent.");
+if (!/structuredContent:\s*publicLookup/.test(server)) {
+  blockers.push("lookup_world_places must return the minimized public lookup projection.");
 }
 
 const lookupOutputSchema = sliceBetween(server, "const worldPlaceLookupOutputSchema", "const countyQuestionAnswerOutputSchema");
-for (const forbidden of ["placeId:", "primaryType:", "types:", "photos:", "phone:", "website:", "rating:", "reviews:", "priceLevel:", "openingHours:"]) {
+for (const forbidden of [
+  "query:",
+  "mode:",
+  "coordinates:",
+  "cache:",
+  "providerReadiness:",
+  "runtime:",
+  "ttlSeconds:",
+  "cachedAt:",
+  "expiresAt:",
+  "placeId:",
+  "primaryType:",
+  "types:",
+  "photos:",
+  "phone:",
+  "website:",
+  "rating:",
+  "reviews:",
+  "priceLevel:",
+  "openingHours:",
+]) {
   if (lookupOutputSchema.includes(forbidden)) {
-    blockers.push(`lookup_world_places output schema must not expose raw provider field ${forbidden}`);
+    blockers.push(`lookup_world_places output schema must not expose internal or raw provider field ${forbidden}`);
   }
 }
 
-if (!lookupOutputSchema.includes("structuredContentPolicy: z.literal(\"atlas_normalized_only\")")) {
-  blockers.push("lookup_world_places output schema must state Atlas-normalized structuredContent policy.");
+if (!server.includes("function publicWorldPlaceLookup")) {
+  blockers.push("lookup_world_places must project internal lookup data into a minimized public response.");
+}
+
+if (!/inputSchema:\s*{[\s\S]*?countySlug:[\s\S]*?placeId:[\s\S]*?radiusMeters:/.test(server)) {
+  blockers.push("lookup_world_places must use Atlas-owned county/place ids instead of a raw location query.");
 }
 
 if (!server.includes("atlasLookupPlaceId")) {
   blockers.push("lookup_world_places must create Atlas-owned lookup ids instead of provider ids.");
 }
 
-for (const token of ["lookup-only", "not saved", "not coverage proof", "does not unlock a full county map"]) {
+for (const token of ["lookup-only", "not saved to an Atlas account or map", "up to 24 hours", "not coverage proof", "does not unlock a full county map"]) {
   if (!server.includes(token)) {
     blockers.push(`lookup_world_places content copy missing "${token}".`);
   }

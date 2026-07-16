@@ -2,13 +2,36 @@
   "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
   "schema_version": 1,
   "app_info": {
-    "display_name": "Atlas",
-    "subtitle": "Explore Riverside/Eastvale and preview generated county districts",
-    "description": "Atlas opens Riverside/Eastvale inside ChatGPT as the playable voxel town map. Browse places, ask closed-world local questions, drop Clawd onto a place to scout opportunity signals, risks, and a route, then generate a manual 7-day campaign preview. For other known US counties, Atlas can show honest preview status and generated district previews: not real coverage, not playable, provider-free, and kept in this chat. Things live in this chat. Atlas does not save state, provider data, XP, accounts, checkout, posts, messages, ad buys, scraped lists, or live campaign execution. Google Maps Platform is used read-only for place lookups only; lookup results are not scene geometry or coverage proof. Hosted Clawd persistence is not part of the V1 app surface.",
+    "display_name": "Atlas County Scout",
+    "subtitle": "Explore voxel county maps",
+    "description": "Atlas County Scout turns a ChatGPT conversation into an explorable voxel map and a focused local-planning workspace. Riverside/Eastvale is the interactive map: open the county, focus places, ask questions grounded in built-in map data, find normalized nearby places, build a Scout Drop, and turn it into a manual 7-day plan. Other supported US counties open as clearly labeled generated district studies, not verified local coverage. Atlas is intentionally read-only. It does not create accounts, save public user work, post, message, buy ads, submit forms, or process payments. Nearby-place lookups may use Google Maps Platform and a provider cache for up to 24 hours; returned results are normalized and are never treated as map geometry or coverage proof.",
     "category": "BUSINESS",
     "icon": "assets/brand/atlas-icon-512.png",
+    "website_url": "https://atlas-backend-production-e6fc.up.railway.app/preview",
+    "support_url": "https://atlas-backend-production-e6fc.up.railway.app/support",
+    "support_email": "mzwin3545@gmail.com",
     "privacy_policy_url": "https://atlas-backend-production-e6fc.up.railway.app/privacy",
     "terms_of_service_url": "https://atlas-backend-production-e6fc.up.railway.app/terms"
+  },
+  "plugin_submission": {
+    "submission_type": "WITH_MCP",
+    "mcp_server_url": "https://atlas-backend-production-e6fc.up.railway.app/mcp",
+    "authentication": "NONE",
+    "availability": {
+      "countries": ["US"]
+    },
+    "starter_prompts": [
+      "Open Riverside County and focus the Eastvale map.",
+      "Which Eastvale map signals support a mobile detailing offer?",
+      "Find nearby service businesses around Eastvale.",
+      "Drop Clawd in Eastvale and build a manual 7-day plan."
+    ],
+    "release_notes": "Initial public submission of Atlas County Scout: an interactive Riverside/Eastvale voxel map, closed-world county questions, Atlas-scoped nearby-place lookup, Scout Drops, manual 7-day plans, and clearly labeled generated district studies.",
+    "domain_verification": {
+      "challenge_path": "/.well-known/openai-apps-challenge",
+      "status": "ROUTE_READY_PORTAL_TOKEN_REQUIRED",
+      "token_environment_variable": "ATLAS_OPENAI_APPS_CHALLENGE_TOKEN"
+    }
   },
   "tools": {
     "select_county": {
@@ -54,8 +77,8 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Resolves a location and returns normalized nearby place summaries without saving state or changing external systems.",
-        "open_world_justification": "May call Google Maps Platform to retrieve current nearby place data for the requested location.",
+        "read_only_justification": "Uses Atlas-owned county and place ids to return normalized nearby place summaries without creating user records or changing external systems. A provider cache may retain the lookup for up to 24 hours.",
+        "open_world_justification": "May call Google Maps Platform to retrieve current nearby place data for an Atlas-derived area label.",
         "destructive_justification": "Does not delete, overwrite, publish, message, charge, or perform irreversible actions."
       }
     },
@@ -98,28 +121,31 @@
   },
   "test_cases": [
     {
-      "description": "Open Riverside County.",
+      "description": "Open the interactive Riverside map.",
       "user_prompt": "Open Atlas for Riverside County and show Eastvale.",
       "file_attachment_urls": null,
       "tools_triggered": "select_county",
       "expected_output": "Selects Riverside County and renders an Eastvale-focused voxel scene from built-in map data. Full scene data stays widget-only, with persistence off, provider geometry off, and live provider calls off.",
-      "expected_output_url": null
+      "expected_output_url": null,
+      "fixture_data": "No login. Uses Atlas built-in Riverside/Eastvale map data."
     },
     {
-      "description": "Refresh the Riverside map.",
+      "description": "Refresh and focus the open county map.",
       "user_prompt": "Refresh the Atlas board for Riverside County and keep focus on Eastvale.",
       "file_attachment_urls": null,
       "tools_triggered": "render_voxel_county",
       "expected_output": "Renders the Riverside map with a concise scene summary and Eastvale-focused state. Full scene data stays widget-only, with persistence off, provider geometry off, and live provider calls off.",
-      "expected_output_url": null
+      "expected_output_url": null,
+      "fixture_data": "No login. Uses countySlug riverside-ca and Atlas place id eastvale."
     },
     {
-      "description": "Look up normalized nearby places for a city.",
-      "user_prompt": "Look up real nearby places around Eastvale and group them into Atlas categories.",
+      "description": "Find normalized nearby places from Atlas-owned map ids.",
+      "user_prompt": "Find real nearby service businesses around Eastvale and group them into Atlas categories.",
       "file_attachment_urls": null,
       "tools_triggered": "lookup_world_places",
-      "expected_output": "Returns nearby places normalized into Atlas-owned categories with source notes, without exposing raw provider fields or saving the results.",
-      "expected_output_url": null
+      "expected_output": "Uses the Atlas county and place ids for Riverside/Eastvale, returns normalized place summaries with attribution, and omits raw provider fields, coordinates, cache diagnostics, timestamps, and internal readiness metadata. Results are not saved to an Atlas account or map; a provider cache may retain the lookup for up to 24 hours.",
+      "expected_output_url": null,
+      "fixture_data": "No login. Uses countySlug riverside-ca, placeId eastvale, and the configured production Google Maps adapter."
     },
     {
       "description": "Ask a closed-world county question.",
@@ -127,31 +153,17 @@
       "file_attachment_urls": null,
       "tools_triggered": "ask_county_question",
       "expected_output": "Answers from built-in Riverside/Eastvale data with source notes and limits, including Eastvale, residential demand, route access, QR flyer opportunity, and no live-market claim.",
-      "expected_output_url": null
+      "expected_output_url": null,
+      "fixture_data": "No login. Uses Atlas built-in Riverside/Eastvale source notes and the mobile detailing score lane."
     },
     {
-      "description": "Run the core Scout Drop demo.",
-      "user_prompt": "Drop Clawd in Eastvale for a mobile detailing business.",
+      "description": "Build an Eastvale Scout Drop and manual plan.",
+      "user_prompt": "Drop Clawd in Eastvale for a mobile detailing business, build the first 7-day manual plan, and tell me whether this work is saved.",
       "file_attachment_urls": null,
-      "tools_triggered": "preview_scout_drop",
-      "expected_output": "Returns an Eastvale Scout Drop preview with route, opportunity signals, risks, next actions, and clear limits.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Generate a campaign preview after Scout Drop.",
-      "user_prompt": "Use that Scout Drop to draft the first 7-day manual campaign preview.",
-      "file_attachment_urls": null,
-      "tools_triggered": "preview_scout_drop, preview_campaign_engine",
-      "expected_output": "Creates a manual 7-day campaign preview tied to the Scout Drop id with route priorities, asset placeholders, and guardrails.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Explain upgrade boundaries when the user asks to save progress.",
-      "user_prompt": "Can Clawd save this map, campaign, and progress?",
-      "file_attachment_urls": null,
-      "tools_triggered": "get_upgrade_options",
-      "expected_output": "Explains that map pins, notes, Scout Drops, and campaign previews live only in this chat, with no account, checkout, saved progress, or XP created in V1.",
-      "expected_output_url": null
+      "tools_triggered": "preview_scout_drop, preview_campaign_engine, get_upgrade_options",
+      "expected_output": "Returns an Eastvale Scout Drop with route, signals, risks, and next actions; creates a manual 7-day plan tied to that Scout Drop; then explains that public Atlas work is not saved to an account and that no checkout or automated execution occurs.",
+      "expected_output_url": null,
+      "fixture_data": "No login. Uses Riverside/Eastvale, mobile detailing, and the Scout Drop id returned by the first tool."
     }
   ],
   "negative_test_cases": [
@@ -161,39 +173,26 @@
       "file_attachment_urls": null,
       "tools_triggered": null,
       "expected_output": "The app should not be invoked because the request is travel planning, not Atlas county scouting or campaign preview work.",
-      "expected_output_url": null
+      "expected_output_url": null,
+      "why_not_complete": "Atlas is not a hotel, restaurant, or itinerary search product."
     },
     {
-      "description": "Do not trigger for automatic messaging or spam execution.",
-      "user_prompt": "Send DMs to every property manager near Eastvale about my detailing deal.",
+      "description": "Refuse scraping, saved lists, and mass outreach.",
+      "user_prompt": "Scrape every Google place near Eastvale, save the list, and send DMs to all of them about my detailing deal.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not perform or offer automated messaging; it may answer that Atlas only supports manual planning guardrails.",
-      "expected_output_url": null
+      "expected_output": "The app should not scrape provider data, save an outreach list, or send messages. It may explain that Atlas only returns a bounded normalized lookup for manual review.",
+      "expected_output_url": null,
+      "why_not_complete": "The request exceeds provider authorization and Atlas has no saved-list or messaging capability."
     },
     {
-      "description": "Do not trigger for payments or account creation.",
+      "description": "Refuse payments and account creation.",
       "user_prompt": "Start checkout, charge my card, and take payment for Hosted Clawd right now.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not create an account, take payment, or start checkout because checkout and public paid access are not live.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Do not save or misuse live lookup results.",
-      "user_prompt": "Scrape every Google place near Eastvale, save them to my account, and start mass outreach.",
-      "file_attachment_urls": null,
-      "tools_triggered": null,
-      "expected_output": "The app should not scrape, save provider-derived places, create an account record, or perform mass outreach. Atlas can only return normalized nearby place summaries for manual review.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Do not invent unsupported county or business claims.",
-      "user_prompt": "Tell me roofing will work in Orange County and build a campaign from that.",
-      "file_attachment_urls": null,
-      "tools_triggered": "ask_county_question",
-      "expected_output": "The app should narrow or refuse the claim because Atlas only answers from built-in Riverside/Eastvale data and supported score lanes, with no campaign execution or live market guarantee.",
-      "expected_output_url": null
+      "expected_output": "The app should not create an account, collect card data, take payment, or start checkout. It should state the current read-only boundary.",
+      "expected_output_url": null,
+      "why_not_complete": "The public Atlas app has no account or commerce flow and must not collect restricted payment data."
     }
   ]
 }

@@ -1,37 +1,37 @@
-# Atlas Terms
+# Atlas County Scout Terms of Service
 
-Last updated: July 3, 2026
+Last updated: July 15, 2026
 
-Atlas is a ChatGPT app for exploring a county-scale voxel map and previewing local business scouting ideas. The current public playable district is Riverside/Eastvale.
+By using Atlas County Scout, you agree to these terms.
 
-## Alpha Scope
+## What Atlas Is
 
-Atlas Alpha is a session-only product. It can show a voxel city map, answer closed-world county questions, run read-only place lookups, preview Scout Drops, preview a manual 7-day campaign, and explain planned Hosted Clawd limits.
+Atlas is a read-only voxel county map and local planning tool inside ChatGPT. Riverside/Eastvale is the interactive map. Other supported counties may open as clearly labeled generated district studies rather than verified local coverage.
 
-Atlas does not save progress, create accounts, take payment, grant XP, run live campaigns, post content, send DMs, buy ads, submit forms, or schedule outreach.
+## Planning Boundaries
 
-## User Responsibility
+- Scout Drops and manual campaign plans are planning aids, not guarantees of business, legal, financial, or marketing results.
+- Atlas does not post, message, advertise, submit forms, create public user accounts, process payments, or save public user work to an Atlas database.
+- Nearby-place results are lookup-only and may be cached for up to 24 hours. They do not prove map coverage or business opportunity.
 
-Atlas outputs are planning previews. They are not legal, financial, regulatory, or business guarantees. Users are responsible for checking local rules, platform policies, permit requirements, advertising rules, and outreach requirements before acting on any plan.
+Users are responsible for checking applicable local rules, platform policies, permits, advertising requirements, and outreach requirements before acting on a plan.
 
-Do not use Atlas to request spam, scraping, harassment, sensitive-trait targeting, regulated outreach, or automated contact with private individuals.
+## Acceptable Use
+
+Do not use Atlas for spam, scraping, harassment, sensitive-trait targeting, regulated outreach, provider-data extraction, or activity that violates OpenAI's usage policies.
 
 ## Google Maps Platform
 
-Atlas may use Google Maps Platform in read-only mode for nearby place lookups. Provider data is used for normalized lookup summaries only. It is not saved by Atlas Alpha, not used as voxel scene geometry, and not treated as coverage proof.
-
-Google Maps Platform data is subject to Google's own terms and attribution requirements.
-
-## Hosted Clawd
-
-Hosted Clawd persistence is planned but not live. Any text about saving maps, saved campaigns, accounts, paid plans, evidence, exports, or automation describes future possibilities unless the app clearly says otherwise.
-
-Atlas Alpha should not start checkout, accept payment, or create an account.
+Atlas may use Google Maps Platform in read-only mode for nearby-place lookups. Provider data is used for normalized lookup summaries only, is not treated as voxel scene geometry or coverage proof, and remains subject to Google's terms and attribution requirements.
 
 ## Ownership
 
-Atlas, the voxel map interface, and the app content belong to the Atlas project or its licensors. Users keep responsibility for the business ideas and materials they bring into the session.
+Atlas, its voxel map interface, and app content belong to the Atlas project or its licensors. Users remain responsible for the ideas and materials they provide.
 
-## Changes
+## No Warranty
 
-Atlas may change as the app moves from Alpha toward later releases. The core Alpha limits remain: session-only, no saved state, no payment, no automated outreach, and no live campaign execution.
+Atlas is provided "as is" without warranties of any kind. To the maximum extent permitted by law, the operator is not liable for damages arising from its use.
+
+## Contact
+
+Support and terms questions: mzwin3545@gmail.com

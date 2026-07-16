@@ -96,6 +96,9 @@ try {
 
   const lookupTool = tools.find((tool) => tool.name === "lookup_world_places");
   assert(lookupTool?.annotations?.openWorldHint === true, "lookup_world_places must be marked openWorldHint=true.");
+  const lookupInputs = lookupTool?.inputSchema?.properties ?? {};
+  assert("countySlug" in lookupInputs && "placeId" in lookupInputs, "lookup_world_places must accept Atlas-owned location ids.");
+  assert(!("query" in lookupInputs), "lookup_world_places must not request a raw location query.");
 
   const selectCountyResult = await client.callTool({
     name: "select_county",
@@ -283,7 +286,7 @@ try {
 
   const lookupResult = await client.callTool({
       name: "lookup_world_places",
-      arguments: { query: "Eastvale, CA", radiusMeters: lookupRadiusMeters },
+      arguments: { countySlug: "riverside-ca", placeId: "eastvale", radiusMeters: lookupRadiusMeters },
     });
   const lookupText = getTextContent(lookupResult, "lookup_world_places");
   assertLookupBoundaryText(lookupText, "lookup_world_places");
@@ -300,18 +303,19 @@ try {
     lookup.places.every((place) => !("primaryType" in place) && !("types" in place) && !("placeId" in place)),
     "lookup_world_places leaked raw provider fields.",
   );
-  assert(typeof lookup.runtime?.cacheHit === "boolean", "lookup_world_places must report whether the cache was used.");
-  assert(lookup.runtime?.cachedAt && lookup.runtime?.expiresAt, "lookup_world_places must return cache runtime metadata.");
+  const lookupJson = JSON.stringify(lookup);
+  for (const forbidden of ["query", "mode", "coordinates", "cache", "providerReadiness", "runtime", "ttlSeconds", "cachedAt", "expiresAt"]) {
+    assert(!lookupJson.includes(`\"${forbidden}\"`), `lookup_world_places leaked internal ${forbidden} metadata.`);
+  }
 
   const cachedLookup = getStructuredContent(
     await client.callTool({
       name: "lookup_world_places",
-      arguments: { query: "Eastvale, CA", radiusMeters: lookupRadiusMeters },
+      arguments: { countySlug: "riverside-ca", placeId: "eastvale", radiusMeters: lookupRadiusMeters },
     }),
     "lookup_world_places cached",
   );
-  assert(cachedLookup.runtime?.cacheHit === true, "Second lookup_world_places call should hit the cache.");
-  assert(cachedLookup.cache?.key === lookup.cache?.key, "Cached lookup should preserve the cache key.");
+  assert(JSON.stringify(cachedLookup) === lookupJson, "Cached lookup must preserve the same minimized public result.");
 
   const scout = getStructuredContent(
     await client.callTool({
@@ -415,7 +419,7 @@ try {
         mcpUrl: mcpUrl.toString(),
         tools: actualTools,
         lookupPlaceCount: lookup.places.length,
-        cachedLookup: cachedLookup.runtime.cacheHit,
+        lookupPublicFields: Object.keys(lookup).sort(),
         selectedCountySceneId: selectedCounty.sceneId,
         shellCountyTier: shellCounty.coverageTier,
         countyQuestionTopic: countyQuestion.topic,

@@ -119,7 +119,6 @@ function summarizeStructuredContent(structured) {
       type: structured.type,
       placeCount: Array.isArray(structured.places) ? structured.places.length : 0,
       categories: Array.isArray(structured.places) ? [...new Set(structured.places.map((place) => place.category))].sort() : [],
-      cacheHit: structured.runtime?.cacheHit,
     };
   }
   return { type: structured.type ?? "unknown" };
@@ -311,7 +310,7 @@ try {
 
   const lookupResult = await client.callTool({
     name: "lookup_world_places",
-    arguments: { query: "Eastvale, CA", radiusMeters: 4187 },
+    arguments: { countySlug: "riverside-ca", placeId: "eastvale", radiusMeters: 4187 },
   });
   const lookupText = textContent(lookupResult, "lookup_world_places");
   const lookup = structuredContent(lookupResult, "lookup_world_places");
@@ -328,7 +327,7 @@ try {
       "lookup-places-not-saved",
       "Look up places near Eastvale. Do not save them or treat them as county readiness.",
       "lookup_world_places",
-      { query: "Eastvale, CA", radiusMeters: 4187 },
+      { countySlug: "riverside-ca", placeId: "eastvale", radiusMeters: 4187 },
       lookupText,
       lookup,
       [
@@ -344,7 +343,6 @@ try {
     type: lookup.type,
     placeCount: lookup.places.length,
     categories: [...new Set(lookup.places.map((place) => place.category))].sort(),
-    cacheHit: lookup.runtime?.cacheHit,
   };
 
   const unsupportedResult = await client.callTool({

@@ -61,7 +61,7 @@ for (const token of ["coveragePromotion: false", "sceneEligible: false", "public
   check(`provider-readiness:${token}`, worldTypes.includes(token) && worldService.includes(token), `Provider readiness preserves ${token}.`);
 }
 
-for (const forbidden of ["placeId:", "primaryType:", "types:", "photos:", "phone:", "website:", "rating:", "reviews:", "priceLevel:", "openingHours:"]) {
+for (const forbidden of ["query:", "mode:", "coordinates:", "cache:", "providerReadiness:", "runtime:", "ttlSeconds:", "cachedAt:", "expiresAt:", "placeId:", "primaryType:", "types:", "photos:", "phone:", "website:", "rating:", "reviews:", "priceLevel:", "openingHours:"]) {
   check(`structured-content-no:${forbidden}`, !lookupOutputSchema.includes(forbidden), `lookup_world_places output schema omits ${forbidden}.`);
 }
 check("server-removes-resolved-place-id", !performWorldLookup.includes("resolvedLocation.placeId") && !performWorldLookup.includes("{ placeId:"), "performWorldLookup omits provider placeId from structured response.");
@@ -71,7 +71,7 @@ check("server-no-scene-compile-in-lookup", !/compile(?:CityWorld|County|District
 for (const token of ["placeId\" in (lookup.resolvedLocation", "place.id.startsWith(\"lookup-\")", "sceneGeometry === false", "rawProviderPayloadExposed === false"]) {
   check(`runtime-verifier:${token}`, worldLookupBoundaryVerifier.includes(token), `World lookup boundary verifier checks ${token}.`);
 }
-for (const token of ["lookupOutputSchema", "atlasLookupPlaceId", "atlas_normalized_only"]) {
+for (const token of ["lookupOutputSchema", "atlasLookupPlaceId", "publicWorldPlaceLookup", "up to 24 hours"]) {
   check(`tool-shape-verifier:${token}`, toolShapeVerifier.includes(token), `Tool shape verifier checks ${token}.`);
 }
 

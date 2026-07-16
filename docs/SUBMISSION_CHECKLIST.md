@@ -1,75 +1,64 @@
-# Atlas — ChatGPT App Directory Submission Checklist (G6)
+# Atlas County Scout — Plugin Submission Checklist
 
-Requirements confirmed against OpenAI's official **App submission guidelines**
-(https://developers.openai.com/apps-sdk/app-submission-guidelines) — fetched 2026-07-03.
-Submission + review is done in the OpenAI Developer Platform (track status there); the
-help-center how-to (https://help.openai.com/en/articles/20001040) is auth-gated.
+Current requirements were rechecked on July 15, 2026 against OpenAI's official [Submit plugins](https://developers.openai.com/codex/submit-plugins), [app guidelines](https://developers.openai.com/apps-sdk/app-submission-guidelines), and [app submission preparation](https://developers.openai.com/apps-sdk/deploy/submission) pages.
 
-Legend: ✅ done/verified · ⚠️ risk to resolve · ⬜ human/network step (not code).
+Apps are now submitted as MCP-backed plugins. There is no separate App Directory submission flow.
 
-## 1. Identity verification (blocking, human)
-- ⬜ Complete **identity verification** in the OpenAI Platform Dashboard for the publish name
-  (individual verification to publish under your name; business verification for a business name).
-- ⬜ Submitter needs **Owner role or `api.apps.write`** permission on the org.
+Legend: ✅ verified or implemented · 🚢 implemented but not deployed · 🧪 real ChatGPT proof still required · ⬜ human/portal step
 
-## 2. Directory metadata
-- ⚠️ **App name** — "Atlas" is a generic single-word dictionary term; the guidelines explicitly
-  say to avoid those. Consider a more specific directory name (e.g. "Atlas — Voxel County Maps"
-  or "Atlas Maps"). **Decision needed.**
-- ✅ **Description** — accurate; explains the voxel county map + session-only behavior.
-- ⬜ **Support contact** — a monitored support email/URL (kept current). Human provides.
-- ⬜ **Privacy policy URL** — text drafted (`docs/legal/PRIVACY.md`); must be **hosted at a public URL**.
-- ⬜ **Terms URL** — text drafted (`docs/legal/TERMS.md`); must be **hosted at a public URL**.
-- ✅/⬜ **Screenshots** — we captured accurate desktop (1280×720) + mobile (390×844) shots this
-  session (map, scout panel, campaign panel, generated district). Curate a set; confirm the
-  directory's required dimensions and re-export if needed.
-- ✅/⬜ **App icon** — `assets/atlas-app-icon.svg` (on-brand, verified). Export **PNG raster** at
-  the directory's required size(s) if it doesn't accept SVG.
-- ⬜ **Categories** + **country/availability** — chosen in the dashboard at submission.
+## Requirement Matrix
 
-## 3. Technical / MCP (all ✅, verified live against the deployed server)
-- ✅ Unique, human-readable tool names; descriptions match actual behavior.
-- ✅ Correct annotations (`readOnlyHint`, `destructiveHint`, `openWorldHint`) — mirror the server;
-  only `lookup_world_places` is `openWorldHint: true`. (`verify-submission.mjs` passes live.)
-- ✅ Minimal, purpose-driven inputs; **no full conversation history**, no raw chat logs.
-- ✅ Predictable, auditable, no hidden side effects; session-only, no persistence.
-- ✅ **No login** required (session-only) → no test-credential/demo-account barrier (a plus).
+| Review area | Atlas evidence | Status | Finish line |
+| --- | --- | --- | --- |
+| Distinct product name | Listing name is **Atlas County Scout**, not the generic single word “Atlas.” | ✅ | Keep the product brand Atlas; use the specific listing name in the portal. |
+| Short description | “Explore voxel county maps” is 25 characters; schema maximum is 30. | ✅ | Copy exactly from `chatgpt-app-submission.json`. |
+| Complete-product framing | Listing describes the current interactive map, Scout Drop, manual plan, generated district studies, and deliberate read-only boundary without demo/trial/alpha/beta/coming-soon language. | ✅ | Do not reintroduce unfinished-product framing in portal copy. |
+| Logo | `assets/brand/atlas-icon-512.png` is the submission asset; verifier enforces PNG and 512×512 IHDR dimensions. | ✅ | Upload this file. |
+| Website | Production `/preview` is public and rendered the Atlas map during the July 15 browser check. | ✅ | Recheck immediately before submission. |
+| Support | Dedicated `/support` page and monitored email are implemented. | 🚢 | Deploy, then confirm `https://atlas-backend-production-e6fc.up.railway.app/support` returns 200. |
+| Privacy policy | Policy now lists processed categories, purposes, recipients, 24-hour lookup-cache retention, and user controls. | 🚢 | Deploy `/privacy`, reread the live copy, and make sure it matches production behavior. |
+| Terms | Terms frame Scout Drop/manual plans as the complete read-only product and disclose the 24-hour lookup cache. | 🚢 | Deploy `/terms` and verify live. |
+| Public MCP server | Production URL is `https://atlas-backend-production-e6fc.up.railway.app/mcp`; no login is required. | ✅ | Re-run live MCP and submission verification after deploy. |
+| Domain verification | `/.well-known/openai-apps-challenge` returns the exact `ATLAS_OPENAI_APPS_CHALLENGE_TOKEN` as plain text when configured. | 🚢/⬜ | Get the token from the portal, set the Railway variable, deploy/restart, and verify the exact response body. |
+| Content security policy | App resource CSP is scoped to the domains the component uses; emulator CSP and cross-origin asset loading are locally audited. | ✅/🧪 | Confirm the portal scan imports the intended CSP and complete the real-host G8 pass. |
+| Tool metadata | Seven unique tools have output schemas and explicit `readOnlyHint`, `openWorldHint`, and `destructiveHint` values with justifications. | ✅ | Select **Scan Tools** after the production deploy and compare every imported value. |
+| Minimal location input | `lookup_world_places` now accepts Atlas-owned `countySlug` and `placeId`; it no longer requests a raw city, address, coordinates, or conversation text. | 🚢 | Deploy and confirm the scanned input schema. |
+| Response minimization | The MCP lookup result omits coordinates, raw query, provider mode, cache keys, TTL fields, cache-hit flags, timestamps, field-mask diagnostics, and provider-readiness internals. | 🚢 | Deploy and inspect real ChatGPT tool output. Internal REST diagnostics remain outside the app tool response. |
+| Starter prompts | Four focused prompts cover map opening, grounded questions, nearby-place lookup, and the Scout Drop → manual plan loop. | ✅ | Enter them in the Prompts tab. |
+| Positive tests | Exactly five reviewer-ready cases collectively cover all seven tools and name fixture data. | ✅ | Run all five on ChatGPT web and mobile after deploy. |
+| Negative tests | Exactly three cases cover unrelated travel, provider scraping/mass outreach, and payment/account requests; each explains why Atlas must not complete the action. | ✅ | Confirm routing and refusals in real ChatGPT. |
+| Availability | Initial submission is US-only because the current product and support/legal scope are US county maps. | ✅/⬜ | Select United States in the Global tab. |
+| Release notes | Initial-submission notes are included in the local package. | ✅ | Paste into the Submit tab. |
+| Identity | Verified individual or business identity must match the listing, website, support, privacy, and terms. | ⬜ | Complete verification in the publishing organization. |
+| Portal permission | Submitter needs **Apps Management: Write**; owners already have app-management permissions. | ⬜ | Confirm the role before opening the draft. |
+| Data residency | Projects with EU data residency currently cannot submit MCP-backed plugins. | ⬜ | Use a global-data-residency project. |
+| Real-host quality | Local emulator fidelity, desktop/mobile map behavior, performance, and MCP gates are green. Real ChatGPT G8 is not complete. | 🧪 | Finish the visible ChatGPT web + mobile run; do not claim host approval from emulator evidence. |
 
-## 4. Quality & design
-- ✅ Clear purpose **beyond ChatGPT's native chat** (explore a county-scale voxel world, ask
-  local questions, scout/campaign planning) — not something plain chat does.
-- ✅ Tested, stable, low-latency, errors handled (build + 85/85 core tests + browser gates green;
-  deployed + health-checked).
-- ⚠️ **"Complete, not a trial/demo" — the main product risk.** Our honest posture (Alpha,
-  session-only, "not saved," Hosted Clawd "planned/coming") is great for trust but can read to a
-  reviewer as an *incomplete/coming-soon demo* — a listed disqualifier. Mitigation: present the
-  app as a **complete product for what it does now** (fully explore Riverside/Eastvale + generated
-  districts + scouting previews), and frame session-only/upgrade as a deliberate free-tier design,
-  not "unfinished." Audit all user-facing + listing copy for "demo/preview/coming soon" phrasing.
-- ✅ Follows map-first UX; no unrelated content; no interaction hijacking.
+## Portal Packet
 
-## 5. Safety, privacy, data (all ✅)
-- ✅ No prohibited categories (adult, gambling, drugs, weapons, malware, counterfeit, fraud, etc.).
-- ✅ Minimal data; **no restricted data** (no payment cards, PHI, gov IDs, credentials, secrets).
-- ✅ Data-minimized responses; no timestamps/IPs/session-IDs leaked; no chat-log reconstruction.
-- ✅ No precise-location requests (lookup takes a text query, not GPS).
-- ✅ General-audience suitable (13+). No model-manipulation to favor the app; no unauthorized scraping.
-- ✅ **No commerce** (no digital goods/subscriptions/in-app checkout; `get_upgrade_options` only
-  explains a planned tier — confirm its copy implies no in-app purchase).
+Use `chatgpt-app-submission.json` as the copy-and-evidence source. The portal currently expects:
 
-## 6. Disqualifiers — our watch-list
-- ⚠️ Demo/trial perception (see §4) — the top risk; resolve via copy + completeness framing.
-- ⚠️ Generic name (see §2).
-- ✅ Not misleading/copycat; correct annotations; no unauthorized 3rd-party APIs (Google Maps used
-  read-only behind the adapter, with attribution); not primarily advertising.
+- listing name, short and long descriptions, logo, category, website, support, privacy, and terms;
+- production MCP URL, authentication choice, CSP, domain verification, scanned tools, annotations, and justifications;
+- starter prompts;
+- exactly five positive and three negative test cases;
+- country availability;
+- release notes and policy attestations.
 
-## The actual path to submit (ordered)
-1. **Human:** identity/business verification + `api.apps.write` on the OpenAI dashboard.
-2. **Decide:** directory name (resolve the genericness risk).
-3. **Copy audit:** reconcile "honest Alpha" with "complete product, not a demo" across listing + app.
-4. **Host** `PRIVACY.md` + `TERMS.md` at public URLs; add a support contact.
-5. **Assets:** curate screenshots at required dims; export PNG icon if SVG isn't accepted.
-6. **Submit** in the dashboard (MCP URL = the Railway prod `/mcp`; categories; countries) and track review.
+## Ordered Finish Line
 
-Code side is essentially done (manifest compliant + verified live); the remaining work is
-human/account/hosting + the two judgment calls (name, demo-perception).
+1. Commit and push this isolated submission-hardening packet without staging unrelated worker/artifact changes.
+2. Deploy the committed server contract, including `/support`, updated legal pages, minimized lookup inputs/outputs, and the domain-challenge route.
+3. Verify production `/support`, `/privacy`, `/terms`, `/preview`, `/mcp`, and the challenge route's unconfigured 404 behavior.
+4. In the plugin portal, create a **With MCP** draft, set the portal challenge token in Railway, and verify the exact plain-text challenge response.
+5. Select **Scan Tools** and compare all seven tools, schemas, annotations, resource metadata, and CSP against the committed package.
+6. Run the five positive and three negative cases in ChatGPT web and mobile. Complete the open G8 real-host evidence packet.
+7. Confirm verified publisher identity, Apps Management write access, global data residency, US availability, public URLs, and support ownership.
+8. Submit for review. Approval is not publication; publish the approved version from the portal.
+
+## Do Not Claim Yet
+
+- Atlas County Scout is not submission-ready until the code-ready routes and MCP schema are deployed and rescanned.
+- G8 is not passed until the real ChatGPT web/mobile run is recorded.
+- Domain ownership is not verified until the portal-issued token is live at the exact well-known path.
+- Directory prominence is not guaranteed. Publishing makes the plugin searchable; enhanced placement is selective.

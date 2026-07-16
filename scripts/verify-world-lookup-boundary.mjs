@@ -88,6 +88,22 @@ function assertNormalizedLookup(lookup, label) {
   }
 }
 
+function assertPublicLookup(lookup, label) {
+  assert(lookup?.type === "worldPlaceLookup", `${label} returned wrong lookup type.`);
+  assert(Array.isArray(lookup.places) && lookup.places.length > 0, `${label} returned no places.`);
+  assert(typeof lookup.resolvedLocation?.label === "string", `${label} must return a resolved area label.`);
+  const serialized = JSON.stringify(lookup);
+  for (const forbidden of ["query", "mode", "coordinates", "cache", "providerReadiness", "runtime", "ttlSeconds", "cachedAt", "expiresAt"]) {
+    assert(!serialized.includes(`\"${forbidden}\"`), `${label} leaked internal ${forbidden} metadata.`);
+  }
+  for (const place of lookup.places) {
+    assert(typeof place.id === "string" && place.id.startsWith("lookup-"), `${label} place id must be Atlas-owned.`);
+    assert(typeof place.label === "string" && place.label.length > 0, `${label} place missing label.`);
+    assert(typeof place.category === "string" && place.category.length > 0, `${label} place missing category.`);
+    assert(Array.isArray(place.sourceNotes) && place.sourceNotes.length > 0, `${label} place missing attribution notes.`);
+  }
+}
+
 function structuredContent(result, toolName) {
   assert(result && typeof result === "object", `${toolName} returned no result object.`);
   assert(!result.isError, `${toolName} returned an MCP error.`);
@@ -106,7 +122,8 @@ function assertLookupToolCopy(text, label) {
   assert(normalized.includes("lookup-only"), `${label} text must say lookup-only.`);
   assert(normalized.includes("not saved"), `${label} text must say lookup results are not saved.`);
   assert(normalized.includes("not coverage proof"), `${label} text must say lookup is not coverage proof.`);
-  assert(normalized.includes("does not unlock a playable county map"), `${label} text must block county-playability claims.`);
+  assert(normalized.includes("does not unlock a full county map"), `${label} text must block county-playability claims.`);
+  assert(normalized.includes("up to 24 hours"), `${label} text must disclose provider-cache retention.`);
 }
 
 const beforeCoverage = await fetchJson("/api/world/us/coverage");
@@ -128,28 +145,29 @@ const client = new Client({
   version: "0.1.0",
 });
 const transport = new StreamableHTTPClientTransport(mcpUrl);
+let mcpPublicFields = [];
 
 try {
   await client.connect(transport);
   const lookupResult = await client.callTool({
     name: "lookup_world_places",
-    arguments: { query, radiusMeters: mcpRadiusMeters },
+    arguments: { countySlug: "riverside-ca", placeId: "eastvale", radiusMeters: mcpRadiusMeters },
   });
   const mcpLookupText = toolText(lookupResult, "lookup_world_places");
   assertLookupToolCopy(mcpLookupText, "lookup_world_places");
   const mcpLookup = structuredContent(lookupResult, "lookup_world_places");
-  assertNormalizedLookup(mcpLookup, "MCP first lookup");
+  assertPublicLookup(mcpLookup, "MCP first lookup");
+  mcpPublicFields = Object.keys(mcpLookup).sort();
 
   const cachedLookupResult = await client.callTool({
     name: "lookup_world_places",
-    arguments: { query, radiusMeters: mcpRadiusMeters },
+    arguments: { countySlug: "riverside-ca", placeId: "eastvale", radiusMeters: mcpRadiusMeters },
   });
   const mcpCachedLookupText = toolText(cachedLookupResult, "lookup_world_places cached");
   assertLookupToolCopy(mcpCachedLookupText, "lookup_world_places cached");
   const mcpCachedLookup = structuredContent(cachedLookupResult, "lookup_world_places cached");
-  assertNormalizedLookup(mcpCachedLookup, "MCP cached lookup");
-  assert(mcpCachedLookup.runtime.cacheHit === true, "Second MCP lookup should hit runtime cache.");
-  assert(mcpCachedLookup.cache.key === mcpLookup.cache.key, "Second MCP lookup must preserve cache key.");
+  assertPublicLookup(mcpCachedLookup, "MCP cached lookup");
+  assert(JSON.stringify(mcpCachedLookup) === JSON.stringify(mcpLookup), "Cached MCP lookup must preserve the public result shape.");
 
   const shellCounty = structuredContent(
     await client.callTool({
@@ -186,6 +204,7 @@ console.log(
       },
       mcp: {
         radiusMeters: mcpRadiusMeters,
+        publicFields: mcpPublicFields,
       },
       coverage: {
         playableCountyCount: afterCoverage.body.totals.playableCountyCount,

@@ -294,18 +294,17 @@ await gate("county_question_map_first", async () => {
 await gate("world_lookup_boundary", async () => {
   const result = await client.callTool({
     name: "lookup_world_places",
-    arguments: { query: "Eastvale, CA", radiusMeters: 3000 },
+    arguments: { countySlug: "riverside-ca", placeId: "eastvale", radiusMeters: 3000 },
   });
   const lookup = structuredContent(result, "lookup_world_places");
   assert(lookup.type === "worldPlaceLookup", "lookup_world_places returned the wrong structured type");
   assert(Array.isArray(lookup.places), "lookup_world_places places must be an array");
-  assert(lookup.providerReadiness?.sceneGeometry === false, "lookup_world_places must not create scene geometry");
-  assert(
-    lookup.providerReadiness?.rawProviderPayloadExposed === false,
-    "lookup_world_places must not expose raw provider payloads",
-  );
+  const lookupJson = JSON.stringify(lookup);
+  for (const forbidden of ["coordinates", "cache", "providerReadiness", "runtime", "ttlSeconds", "cachedAt", "expiresAt"]) {
+    assert(!lookupJson.includes(`\"${forbidden}\"`), `lookup_world_places must not expose internal ${forbidden} metadata`);
+  }
   assert(!("hostedClawd" in (result._meta ?? {})), "lookup_world_places must not expose Hosted Clawd with ATLAS_SAVE_SURFACE=off");
-  return `${lookup.places.length} normalized places, sceneGeometry=false`;
+  return `${lookup.places.length} normalized places, public metadata minimized`;
 });
 
 let releaseScoutPreview = null;

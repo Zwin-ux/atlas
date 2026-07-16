@@ -1,5 +1,59 @@
 # Build Log
 
+## Entry 223
+
+Quest:
+P0.3S OpenAI plugin-submission contract hardening.
+
+What changed:
+- Reconciled the local packet with OpenAI's July 15 plugin flow: specific
+  listing identity, starter prompts, exact five positive and three negative
+  tests, US availability, release notes, support/website URLs, and the portal
+  domain-verification handoff.
+- Renamed the listing to `Atlas County Scout`, reduced the subtitle to the
+  schema-valid 25-character `Explore voxel county maps`, and rewrote the long
+  description around the complete read-only product available today.
+- Added a dedicated support page plus privacy/terms copy that names processed
+  data, purposes, recipients, controls, and the real 24-hour in-memory provider
+  lookup cache.
+- Added `/.well-known/openai-apps-challenge`; when Railway receives
+  `ATLAS_OPENAI_APPS_CHALLENGE_TOKEN`, the route returns only that token as
+  plain text.
+- Narrowed `lookup_world_places` inputs to Atlas-owned `countySlug` and
+  `placeId`. Its MCP response now omits the raw query, provider mode,
+  coordinates, cache keys, TTLs, cache-hit state, timestamps, field-mask
+  diagnostics, and provider-readiness internals. The internal REST boundary
+  retains those diagnostics for operations and cache verification.
+- Hardened submission, MCP, production-release, entry-surface, tool-shape,
+  provider-normalization, and world-lookup verifiers around the new public
+  contract.
+
+Evidence:
+- `pnpm verify:submission`: green, seven tools, 20 Google places, public lookup
+  fields limited to `type`, `radiusMeters`, `resolvedLocation`, and `places`.
+- `pnpm verify:mcp`: green across the seven-tool Explore -> Ask -> Scout ->
+  Campaign loop.
+- `verify-world-lookup-boundary`: green; REST miss-then-hit proof retained,
+  MCP diagnostic projection removed, county readiness unchanged.
+- Local `/privacy`, `/terms`, and `/support`: HTTP 200; configured challenge
+  path: HTTP 200 with the exact plain-text token; unconfigured route: HTTP 404
+  with `Not Found` and no token leakage.
+- `verify-chatgpt-entry-surface`: passed with Atlas-owned lookup ids and the
+  24-hour retention disclosure.
+- `pnpm test:core`: 161/161. `pnpm typecheck`: green. `pnpm build:starter` and
+  preview HTTP verification: green. Tool-shape and provider-normalization
+  preflight: 0 blockers.
+- Official `scripts/certify.ps1 -NodeOnly`: exit 0 after 459.3 seconds.
+
+Still pending:
+- Deploy this committed contract, then verify public `/support`, updated legal
+  pages, minimized MCP metadata, and the unconfigured challenge-route 404.
+- Create the portal draft, set its issued challenge token in Railway, scan all
+  seven tools, and complete identity/permission/global-residency checks.
+- Run the exact five positive and three negative tests on ChatGPT web and
+  mobile. G8 remains open; local evidence does not substitute for real-host
+  acceptance.
+
 ## Entry 222
 
 Quest:

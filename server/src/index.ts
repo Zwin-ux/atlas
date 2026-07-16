@@ -887,7 +887,6 @@ const worldSourceNoteSchema = z.object({
   source: z.enum(["mock", "curated", "google", "census", "osm", "local-open-data"]),
   label: z.string(),
   attribution: z.string(),
-  ttlSeconds: z.number(),
 });
 
 const worldPlaceCategorySchema = z.enum([
@@ -908,16 +907,9 @@ const worldPlaceCategorySchema = z.enum([
 
 const worldPlaceLookupOutputSchema = {
   type: z.literal("worldPlaceLookup"),
-  query: z.string(),
   radiusMeters: z.number(),
-  mode: z.enum(["mock", "google"]),
   resolvedLocation: z.object({
-    id: z.string(),
     label: z.string(),
-    coordinates: z.object({
-      latitude: z.number(),
-      longitude: z.number(),
-    }),
     formattedAddress: z.string().optional(),
   }),
   places: z.array(
@@ -925,51 +917,10 @@ const worldPlaceLookupOutputSchema = {
       id: z.string(),
       label: z.string(),
       category: worldPlaceCategorySchema,
-      coordinates: z
-        .object({
-          latitude: z.number(),
-          longitude: z.number(),
-        })
-        .optional(),
       address: z.string().optional(),
       sourceNotes: z.array(worldSourceNoteSchema),
     }),
   ),
-  cache: z.object({
-    key: z.string(),
-    ttlSeconds: z.number(),
-    sourceNotes: z.array(worldSourceNoteSchema),
-  }),
-  providerReadiness: z.object({
-    status: z.literal("lookup_only"),
-    sources: z.array(z.enum(["mock", "curated", "google", "census", "osm", "local-open-data"])),
-    mode: z.enum(["mock", "google"]),
-    cache: z.object({
-      key: z.string(),
-      ttlSeconds: z.number(),
-    }),
-    normalizedCategoryStatus: z.enum(["bounded_atlas_categories", "contains_unknown_category"]),
-    normalizedCategoryConfidence: z.enum(["mock_verified", "provider_mapped"]),
-    coveragePromotion: z.literal(false),
-    sceneEligible: z.literal(false),
-    publicQuality: z.literal(false),
-    sceneGeometry: z.literal(false),
-    rawProviderPayloadExposed: z.literal(false),
-    structuredContentPolicy: z.literal("atlas_normalized_only"),
-    fieldMaskPolicy: z.object({
-      mode: z.literal("allowlist"),
-      wildcardAllowed: z.literal(false),
-      allowedFieldCount: z.number(),
-    }),
-    limitations: z.array(z.string()),
-  }),
-  runtime: z
-    .object({
-      cacheHit: z.boolean(),
-      cachedAt: z.string(),
-      expiresAt: z.string(),
-    })
-    .optional(),
 };
 
 const countyQuestionAnswerOutputSchema = {
@@ -2100,7 +2051,7 @@ function jsonResponse(res: ServerResponse, status: number, body: unknown): void 
 // behavior (verified by verify-submission.mjs / verify-provider-boundaries.mjs),
 // not boilerplate. Owner contact is overridable via ATLAS_CONTACT_EMAIL.
 const ATLAS_CONTACT_EMAIL = process.env.ATLAS_CONTACT_EMAIL ?? "mzwin3545@gmail.com";
-const LEGAL_LAST_UPDATED = "2026-07-05";
+const LEGAL_LAST_UPDATED = "2026-07-15";
 
 function legalPageShell(title: string, bodyHtml: string): string {
   return `<!doctype html>
@@ -2135,29 +2086,47 @@ function legalPageShell(title: string, bodyHtml: string): string {
 function privacyPageHtml(): string {
   return legalPageShell(
     "Privacy Policy",
-    `<p>Atlas is a ChatGPT app that renders a voxel county map and previews that
-      stay in this chat. It is built to store as little as possible about you.</p>
-    <h2>What Atlas does not collect</h2>
+    `<p>Atlas County Scout is a read-only ChatGPT app for exploring voxel county
+      maps, finding nearby places, and building local planning briefs.</p>
+    <h2>Data Atlas processes</h2>
     <ul>
-      <li>No accounts, no sign-in, no user profiles.</li>
-      <li>No persistent storage of your activity. Pins, notes, scout drops, and
-        campaign previews stay in this chat and are discarded when it ends.
-        Nothing is saved to a database.</li>
-      <li>No advertising identifiers, no cross-site tracking, no data sales.</li>
+      <li>The county, Atlas place id, business type, goal, and other tool inputs
+        needed to answer your request.</li>
+      <li>Map interactions such as pins and notes, which remain in the current
+        ChatGPT conversation and are not written to an Atlas account.</li>
+      <li>A nearby-place lookup and normalized results when you request live
+        place information.</li>
     </ul>
-    <h2>Location lookups</h2>
-    <p>When you ask Atlas to look up a place, the location text you provide may be
-      sent to Google Maps Platform to resolve it into map results. This is
-      read-only and used solely to answer that request; Atlas does not store the
-      query or the result after this chat. Google's handling of that request
-      is governed by Google's own privacy terms.</p>
-    <h2>Data shared with OpenAI / ChatGPT</h2>
-    <p>Atlas runs inside ChatGPT via the Apps SDK. Your interaction with the
-      ChatGPT surface is governed by OpenAI's privacy policy. Atlas itself
-      receives only the tool inputs needed to render the map and previews.</p>
+    <h2>How the data is used</h2>
+    <p>Atlas uses these inputs only to return the requested map, place summary,
+      Scout Drop, or manual campaign plan; keep the service reliable; and prevent
+      abuse. Atlas does not sell personal data, serve ads, build user profiles,
+      or use cross-site tracking.</p>
+    <h2>Recipients</h2>
+    <p>OpenAI processes the conversation and tool call as the ChatGPT host. When
+      you request nearby places, Atlas sends the Atlas-derived area label and
+      radius to Google Maps Platform. The production hosting provider processes
+      the network request needed to run the service. Atlas does not send these
+      requests to advertisers or data brokers.</p>
+    <h2>Retention</h2>
+    <ul>
+      <li>Atlas has no public user accounts and does not persist pins, notes,
+        Scout Drops, or campaign plans in an Atlas database.</li>
+      <li>Nearby-place lookups and normalized results may remain in an in-memory
+        provider cache for up to 24 hours, then expire. The cache is not tied to
+        an account and is cleared when the server process restarts.</li>
+      <li>Atlas does not copy conversation content into a separate analytics
+        store. ChatGPT and infrastructure-provider retention follow their own
+        published policies and service settings.</li>
+    </ul>
+    <h2>Your controls</h2>
+    <p>You can avoid the optional nearby-place lookup, stop using Atlas, and
+      manage or delete the ChatGPT conversation through ChatGPT controls. Because
+      Atlas has no public account database, there is no Atlas profile to delete.
+      Contact us with a privacy or access question.</p>
     <h2>Children</h2>
     <p>Atlas is not directed to children under 13.</p>
-    <h2>Contact</h2>
+    <h2 id="contact">Contact</h2>
     <p>Questions about this policy: <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>`,
   );
 }
@@ -2165,28 +2134,57 @@ function privacyPageHtml(): string {
 function termsPageHtml(): string {
   return legalPageShell(
     "Terms of Service",
-    `<p>By using Atlas you agree to these terms. Atlas is provided as-is, for
-      exploration and preview only.</p>
+    `<p>By using Atlas County Scout you agree to these terms.</p>
     <h2>What Atlas is</h2>
-    <p>A voxel map and business-scouting preview tool inside ChatGPT.
-      Scout Drop and campaign previews are illustrative planning aids — they are
-      not guarantees of results, and they do not post, message, advertise, or take
-      any action on your behalf.</p>
-    <h2>What Atlas is not (yet)</h2>
+    <p>Atlas is a read-only voxel county map and local planning tool inside
+      ChatGPT. Riverside/Eastvale is the interactive map. Other supported counties
+      may open as clearly labeled generated district studies rather than verified
+      local coverage.</p>
+    <h2>Planning boundaries</h2>
     <ul>
-      <li>It does not save data, run automations, or process payments.</li>
-      <li>Coverage is honest: only counties marked as full maps are interactive; preview-only
-        and unavailable counties are clearly labeled.</li>
+      <li>Scout Drops and manual campaign plans are planning aids, not guarantees
+        of business, legal, financial, or marketing results.</li>
+      <li>Atlas does not post, message, advertise, submit forms, create accounts,
+        process payments, or save public user work to an Atlas database.</li>
+      <li>Nearby-place results are lookup-only and may be cached for up to 24
+        hours; they do not prove map coverage or business opportunity.</li>
     </ul>
     <h2>Acceptable use</h2>
-    <p>Do not use Atlas to attempt to extract provider data, to misrepresent its
-      previews as commitments, or in violation of OpenAI's usage policies.</p>
+    <p>Do not use Atlas for spam, scraping, harassment, sensitive-trait targeting,
+      regulated outreach, provider-data extraction, or activity that violates
+      OpenAI's usage policies. Check applicable local rules before acting on a
+      plan.</p>
+    <h2>Ownership</h2>
+    <p>Atlas, its voxel map interface, and app content belong to the Atlas project
+      or its licensors. You remain responsible for the ideas and materials you
+      provide.</p>
     <h2>No warranty</h2>
     <p>Atlas is provided "as is" without warranties of any kind. To the maximum
       extent permitted by law, the operator is not liable for any damages arising
       from its use.</p>
-    <h2>Contact</h2>
+    <h2 id="contact">Contact</h2>
     <p><a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>`,
+  );
+}
+
+function supportPageHtml(): string {
+  return legalPageShell(
+    "Support",
+    `<p>For help with Atlas County Scout, email
+      <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>
+    <h2>What to include</h2>
+    <ul>
+      <li>The prompt or Atlas action that did not work.</li>
+      <li>Whether you were using ChatGPT on web or mobile.</li>
+      <li>A screenshot with private conversation details removed, if useful.</li>
+    </ul>
+    <p>Do not send passwords, API keys, payment details, government identifiers,
+      health information, or other sensitive personal data.</p>
+    <h2>Product boundaries</h2>
+    <p>Atlas does not provide public accounts, payments, automated outreach, or
+      saved campaigns. Nearby-place lookups are read-only and may use Google Maps
+      Platform.</p>
+    <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p>`,
   );
 }
 
@@ -2524,6 +2522,49 @@ function withLookupRuntime(
       cachedAt,
       expiresAt: new Date(expiresAtMs).toISOString(),
     },
+  };
+}
+
+function lookupQueryForAtlasContext(countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG, placeId?: string): string {
+  const coverage = countyCoverageForSlug(countySlug);
+  if (!coverage.countyLabel || !coverage.stateCode || coverage.coverageTier === "L0_UNSUPPORTED") {
+    throw new Error("Choose a county returned by Atlas before looking up nearby places.");
+  }
+
+  if (!placeId) {
+    return `${coverage.countyLabel}, ${coverage.stateCode}`;
+  }
+
+  const district = coverage.districts.find((candidate) => candidate.districtSlug === placeId);
+  const mapPlace =
+    countySlug === PLAYABLE_ENGINE_BETA_COUNTY_SLUG
+      ? compileCountyScene(countySlug, placeId).nodes.find((candidate) => candidate.id === placeId)
+      : undefined;
+  const placeLabel = district?.label ?? mapPlace?.label;
+  if (!placeLabel) {
+    throw new Error(`Choose an Atlas place id from ${coverage.countyLabel} before looking up nearby places.`);
+  }
+
+  return `${placeLabel}, ${coverage.stateCode}`;
+}
+
+function publicWorldPlaceLookup(response: WorldPlaceLookupResponse) {
+  return {
+    type: response.type,
+    radiusMeters: response.radiusMeters,
+    resolvedLocation: {
+      label: response.resolvedLocation.label,
+      ...(response.resolvedLocation.formattedAddress
+        ? { formattedAddress: response.resolvedLocation.formattedAddress }
+        : {}),
+    },
+    places: response.places.map((place) => ({
+      id: place.id,
+      label: place.label,
+      category: place.category,
+      ...(place.address ? { address: place.address } : {}),
+      sourceNotes: place.sourceNotes.map(({ source, label, attribution }) => ({ source, label, attribution })),
+    })),
   };
 }
 
@@ -2912,7 +2953,7 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Use select_county to open Riverside/Eastvale, the full Atlas map available today. Use render_voxel_county when the user asks to refresh or focus that map. Preview-only counties must not invent places or tools. Use ask_county_question for questions answered from built-in Riverside/Eastvale map data. Use lookup_world_places for lookup-only nearby places; lookup results are not saved and are not coverage proof. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for save limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution.",
+        "Use select_county to open Riverside/Eastvale, the full Atlas map available today. Use render_voxel_county when the user asks to refresh or focus that map. Preview-only counties must not invent places or tools. Use ask_county_question for questions answered from built-in Riverside/Eastvale map data. Use lookup_world_places for lookup-only nearby places around an Atlas county or place id; lookup results are not saved as user work, may use a provider cache for up to 24 hours, and are not coverage proof. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for save limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution.",
     },
   );
 
@@ -2941,11 +2982,12 @@ function createAtlasServer(): McpServer {
     server,
     "lookup_world_places",
     {
-      title: "Lookup world places",
+      title: "Find nearby places",
       description:
-        "Use this when the user asks to search for real nearby places or place categories around a location. This is lookup-only and may use Google Maps Platform when configured; it does not open, show, refresh, or unlock a county map. Results are read-only, not saved, and not coverage proof.",
+        "Use this when the user asks for real nearby places or place categories around an Atlas county or a place already returned by Atlas. Pass only Atlas-owned county and place ids, never an address, coordinates, or conversation text. This is lookup-only and may use Google Maps Platform; it does not open, show, refresh, or unlock a county map. Results are read-only, are not saved to an Atlas account or map, may be cached for up to 24 hours, and are not coverage proof.",
       inputSchema: {
-        query: z.string().min(1).describe("Location query, such as Eastvale, CA."),
+        countySlug: z.string().optional().describe("Atlas county id returned by Atlas. Defaults to riverside-ca."),
+        placeId: z.string().optional().describe("Optional Atlas place or district id from a prior Atlas result, such as eastvale."),
         radiusMeters: z
           .number()
           .int()
@@ -2965,16 +3007,18 @@ function createAtlasServer(): McpServer {
         "openai/toolInvocation/invoked": "Nearby places ready.",
       },
     },
-    async ({ query, radiusMeters }) => instrumentMcpTool("lookup_world_places", async () => {
+    async ({ countySlug, placeId, radiusMeters }) => instrumentMcpTool("lookup_world_places", async () => {
+      const query = lookupQueryForAtlasContext(countySlug, placeId);
       const lookup = await performWorldLookup(query, radiusMeters ?? 3500);
+      const publicLookup = publicWorldPlaceLookup(lookup);
       const categories = [...new Set(lookup.places.map((place) => place.category))].sort();
       const categoryText = categories.length > 0 ? categories.join(", ") : "none";
       return {
-        structuredContent: lookup,
+        structuredContent: publicLookup,
         content: [
           {
             type: "text" as const,
-            text: `Found ${lookup.places.length} lookup-only places around ${lookup.resolvedLocation.label}. Categories: ${categoryText}. Results are normalized into Atlas categories, not saved, and not coverage proof. This does not unlock a full county map.`,
+            text: `Found ${lookup.places.length} lookup-only places around ${lookup.resolvedLocation.label}. Categories: ${categoryText}. Results are normalized into Atlas categories, not saved to an Atlas account or map, and not coverage proof. Atlas may retain this lookup in a provider cache for up to 24 hours. This does not unlock a full county map.`,
           },
         ],
       };
@@ -3643,6 +3687,16 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/.well-known/openai-apps-challenge" && req.method === "GET") {
+    const challengeToken = process.env.ATLAS_OPENAI_APPS_CHALLENGE_TOKEN?.trim();
+    if (!challengeToken) {
+      textResponse(res, 404, "Not Found");
+      return;
+    }
+    textResponse(res, 200, challengeToken);
+    return;
+  }
+
   if (url.pathname === "/api/geo/status" && req.method === "GET") {
     jsonResponse(res, 200, geoStatusPayload());
     return;
@@ -3765,6 +3819,11 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/terms" && req.method === "GET") {
     htmlResponse(res, 200, termsPageHtml());
+    return;
+  }
+
+  if (url.pathname === "/support" && req.method === "GET") {
+    htmlResponse(res, 200, supportPageHtml());
     return;
   }
 
