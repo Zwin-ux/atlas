@@ -72,6 +72,21 @@ scrape-and-DM every place; charge-my-card checkout.
 National-anchor spot checks: Jefferson County AL (Birmingham/Hoover),
 Loving County TX (Mentone), Toa Baja Municipio PR (diacritics), Kalawao HI.
 
+Also recheck the four OPEN real-host findings from
+`docs/G8_REAL_CHATGPT_FINDINGS.md` during the same session:
+
+- **G8-4**: tap the expand button — does fullscreen/expanded mode work from
+  a real gesture? Does map drag fight chat scroll?
+- **G8-5**: time the FIRST tool call of the session (was 31s of model
+  deliberation on 07-11 — note whether it improved).
+- **G8-6**: watch whether the model narrates internal tier codes or slugs
+  in its prose (it should speak product language only).
+- **G8-7**: confirm the icon/SVG assets render in the sandbox (CSP recheck).
+
+Note: G8 does NOT need the portal — connect the prod MCP as a dev-mode app
+in ChatGPT settings first (same mechanism as the 07-11 session) and run the
+battery before the portal draft exists.
+
 Capture: screenshot each result on desktop + 390x844 mobile. Claude can
 live-tail Railway logs during the run and assemble the G8 evidence packet.
 
