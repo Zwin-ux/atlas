@@ -81,7 +81,7 @@ import {
 } from "./security.js";
 import { loadCountyTownAnchorIndex, townAnchorsForCounty } from "./countyTownAnchorIndex.js";
 import { createCountyGeoPackLoader, serveCountyGeoPack } from "./countyGeoPack.js";
-import { createFilesystemRoadChunkStore, serveRoadCatalog, serveRoadChunk, serveRoadManifest, type RoadBand } from "./roadChunkStore.js";
+import { createFilesystemRoadChunkStore, createRoadChunkRouteMetrics, serveRoadCatalog, serveRoadChunk, serveRoadManifest, type RoadBand } from "./roadChunkStore.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-0781v.html";
@@ -120,6 +120,9 @@ const loadCountyGeoPack = createCountyGeoPackLoader(GEO_PACKS_DIR);
 // bytes as /geo-pack, so it needs no auth.
 const ROAD_CHUNKS_DIR = resolve(ROOT_DIR, "data", "road-chunks");
 const roadChunkStore = createFilesystemRoadChunkStore(ROAD_CHUNKS_DIR);
+// Hit/miss/latency counters for the road routes, surfaced in the token-gated
+// ops-stats payload (counting logic is unit-tested in roadChunkStore).
+const roadChunkRouteMetrics = createRoadChunkRouteMetrics();
 const worldService = createNationalWorldService([riversideDemoVoxelScene]);
 const scenePacketRuntimeConfig = readScenePacketRuntimeConfig(process.env);
 if (scenePacketRuntimeConfig.production && scenePacketRuntimeConfig.blockers.length > 0) {
@@ -1918,6 +1921,8 @@ function mcpStatsPayload(): unknown {
         }),
       ),
     },
+    // Read-only road-chunk serving routes (0.78-R2): hit/miss/latency per route.
+    roadChunks: roadChunkRouteMetrics.snapshot(),
   };
 }
 
@@ -3868,7 +3873,9 @@ const httpServer = createServer(async (req, res) => {
   if (roadCatalogMatch && req.method === "GET") {
     if (!(await enforceRateLimit(req, res, "road_chunks", ROAD_CHUNKS_RATE_LIMIT))) return;
     const slug = roadCatalogMatch[1];
+    const startedAt = Date.now();
     const status = await serveRoadCatalog(res, roadChunkStore, slug);
+    roadChunkRouteMetrics.record("catalog", status, Date.now() - startedAt);
     if (status === 400) logBackendEvent("road_catalog_bad_slug", { requestId, slug: String(slug).slice(0, 64) });
     return;
   }
@@ -3878,7 +3885,9 @@ const httpServer = createServer(async (req, res) => {
   if (roadManifestMatch && req.method === "GET") {
     if (!(await enforceRateLimit(req, res, "road_chunks", ROAD_CHUNKS_RATE_LIMIT))) return;
     const [, slug, schemaFamily, schemaMajor, packHash] = roadManifestMatch;
+    const startedAt = Date.now();
     const status = await serveRoadManifest(res, roadChunkStore, slug, `${schemaFamily}/${schemaMajor}`, packHash, negotiatePreviewEncoding(req));
+    roadChunkRouteMetrics.record("manifest", status, Date.now() - startedAt);
     if (status === 400) logBackendEvent("road_manifest_bad_param", { requestId, slug: String(slug).slice(0, 64) });
     return;
   }
@@ -3888,7 +3897,9 @@ const httpServer = createServer(async (req, res) => {
   if (roadChunkMatch && req.method === "GET") {
     if (!(await enforceRateLimit(req, res, "road_chunks", ROAD_CHUNKS_RATE_LIMIT))) return;
     const [, slug, schemaFamily, schemaMajor, packHash, band, chunkId] = roadChunkMatch;
+    const startedAt = Date.now();
     const status = await serveRoadChunk(res, roadChunkStore, slug, `${schemaFamily}/${schemaMajor}`, packHash, band as RoadBand, chunkId, negotiatePreviewEncoding(req));
+    roadChunkRouteMetrics.record("chunk", status, Date.now() - startedAt);
     if (status === 400) logBackendEvent("road_chunk_bad_param", { requestId, slug: String(slug).slice(0, 64) });
     return;
   }

@@ -269,3 +269,82 @@ export async function serveRoadChunk(
   }
   return writeRoadBytes(res, result.value.bytes, result.value.encoding, IMMUTABLE_CACHE_CONTROL);
 }
+
+// ---------------------------------------------------------------------------
+// Observability (0.78-R2). Hit/miss/latency counters for the road routes, fed
+// into the token-gated ops-stats surface. The counting logic lives HERE (not in
+// index.ts) so it is unit-testable without importing the server entrypoint; it
+// mirrors the McpToolMetric latency shape (count / totalMs / maxMs).
+// ---------------------------------------------------------------------------
+
+export type RoadRouteOutcome = "hit" | "miss" | "retired" | "unavailable" | "bad-request";
+
+/** Pure: served HTTP status -> observability outcome. */
+export function classifyRoadRouteStatus(status: number): RoadRouteOutcome {
+  if (status === 200) return "hit";
+  if (status === 404) return "miss"; // absent pack / missing-expected chunk
+  if (status === 410) return "retired";
+  if (status === 503) return "unavailable";
+  return "bad-request"; // 400 guard (or any unexpected status)
+}
+
+export type RoadRouteLatency = { count: number; totalMs: number; maxMs: number };
+export type RoadRouteMetric = {
+  hits: number;
+  misses: number;
+  retired: number;
+  unavailable: number;
+  badRequests: number;
+  latency: RoadRouteLatency;
+};
+
+export type RoadChunkRouteMetrics = {
+  record(kind: RoadRouteKind, status: number, durationMs: number): void;
+  snapshot(): Record<RoadRouteKind, RoadRouteMetric>;
+};
+
+function emptyRoadRouteMetric(): RoadRouteMetric {
+  return { hits: 0, misses: 0, retired: 0, unavailable: 0, badRequests: 0, latency: { count: 0, totalMs: 0, maxMs: 0 } };
+}
+
+function cloneRoadRouteMetric(metric: RoadRouteMetric): RoadRouteMetric {
+  return {
+    hits: metric.hits,
+    misses: metric.misses,
+    retired: metric.retired,
+    unavailable: metric.unavailable,
+    badRequests: metric.badRequests,
+    latency: { ...metric.latency },
+  };
+}
+
+export function createRoadChunkRouteMetrics(): RoadChunkRouteMetrics {
+  const metrics: Record<RoadRouteKind, RoadRouteMetric> = {
+    catalog: emptyRoadRouteMetric(),
+    manifest: emptyRoadRouteMetric(),
+    chunk: emptyRoadRouteMetric(),
+  };
+  return {
+    record(kind, status, durationMs) {
+      const metric = metrics[kind];
+      switch (classifyRoadRouteStatus(status)) {
+        case "hit": metric.hits += 1; break;
+        case "miss": metric.misses += 1; break;
+        case "retired": metric.retired += 1; break;
+        case "unavailable": metric.unavailable += 1; break;
+        case "bad-request": metric.badRequests += 1; break;
+      }
+      const ms = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
+      metric.latency.count += 1;
+      metric.latency.totalMs += ms;
+      metric.latency.maxMs = Math.max(metric.latency.maxMs, ms);
+    },
+    snapshot() {
+      return {
+        catalog: cloneRoadRouteMetric(metrics.catalog),
+        manifest: cloneRoadRouteMetric(metrics.manifest),
+        chunk: cloneRoadRouteMetric(metrics.chunk),
+      };
+    },
+  };
+}

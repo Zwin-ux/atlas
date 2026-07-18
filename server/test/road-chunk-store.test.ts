@@ -6,7 +6,9 @@ import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  classifyRoadRouteStatus,
   createFilesystemRoadChunkStore,
+  createRoadChunkRouteMetrics,
   isValidChunkId,
   isValidPackHash,
   isValidRoadBand,
@@ -77,7 +79,8 @@ test("resolveCurrentEpoch returns the catalog pointer for a baked county", async
 });
 
 test("resolveCurrentEpoch reports `missing` (absent pack) for an unbaked county", async () => {
-  const result = await store.resolveCurrentEpoch("loving-tx");
+  // A valid slug with no bake dir (must NOT be any county the bake produces).
+  const result = await store.resolveCurrentEpoch("nonexistent-county-zz");
   assert.equal(result.ok, false);
   if (!result.ok) assert.equal(result.reason, "missing");
 });
@@ -187,7 +190,7 @@ test("serveRoadCatalog: 400 on a bad slug, 404 absent on an unbaked county", asy
   assert.equal(bodyJson(bad.captured).state, "bad-request");
 
   const absent = mockResponse();
-  assert.equal(await serveRoadCatalog(absent.res, store, "loving-tx"), 404);
+  assert.equal(await serveRoadCatalog(absent.res, store, "nonexistent-county-zz"), 404);
   assert.equal(bodyJson(absent.captured).state, "absent");
   assert.equal(absent.captured.headers["cache-control"], "no-cache");
 });
@@ -232,6 +235,48 @@ test("serve helpers reject a traversal slug with 400 before any read", async () 
   const { res, captured } = mockResponse();
   assert.equal(await serveRoadChunk(res, store, "../secret", SCHEMA_VERSION, PACK_HASH, "near", PRESENT_CHUNK, null), 400);
   assert.equal(captured.status, 400);
+});
+
+// ---------------------------------------------------------------------------
+// Observability counters (task E)
+// ---------------------------------------------------------------------------
+
+test("classifyRoadRouteStatus maps served status to an outcome", () => {
+  assert.equal(classifyRoadRouteStatus(200), "hit");
+  assert.equal(classifyRoadRouteStatus(404), "miss");
+  assert.equal(classifyRoadRouteStatus(410), "retired");
+  assert.equal(classifyRoadRouteStatus(503), "unavailable");
+  assert.equal(classifyRoadRouteStatus(400), "bad-request");
+});
+
+test("createRoadChunkRouteMetrics counts outcomes + latency per route; snapshot is a copy", () => {
+  const m = createRoadChunkRouteMetrics();
+  m.record("chunk", 200, 5);
+  m.record("chunk", 200, 15);
+  m.record("chunk", 404, 3);
+  m.record("catalog", 503, 20);
+  m.record("manifest", 410, 8);
+
+  const snap = m.snapshot();
+  assert.equal(snap.chunk.hits, 2);
+  assert.equal(snap.chunk.misses, 1);
+  assert.equal(snap.chunk.latency.count, 3);
+  assert.equal(snap.chunk.latency.totalMs, 23);
+  assert.equal(snap.chunk.latency.maxMs, 15);
+  assert.equal(snap.catalog.unavailable, 1);
+  assert.equal(snap.manifest.retired, 1);
+  assert.equal(snap.manifest.hits, 0);
+
+  // Negative/NaN durations are floored to 0, never corrupting the totals.
+  m.record("chunk", 400, -100);
+  assert.equal(m.snapshot().chunk.badRequests, 1);
+  assert.equal(m.snapshot().chunk.latency.totalMs, 23);
+
+  // Snapshot is a deep copy — mutating it must not leak back into the counters.
+  snap.chunk.hits = 999;
+  snap.chunk.latency.maxMs = 999;
+  assert.equal(m.snapshot().chunk.hits, 2);
+  assert.equal(m.snapshot().chunk.latency.maxMs, 15);
 });
 
 // ---------------------------------------------------------------------------
