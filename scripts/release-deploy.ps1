@@ -207,13 +207,17 @@ if ($env:ATLAS_DEPLOY_WORKER -eq "1") {
   Write-Host "  Worker:      skipped unless ATLAS_DEPLOY_WORKER=1" -ForegroundColor Yellow
 }
 
+# Build core BEFORE the worker tests: they import @atlas/core from dist, and
+# a fresh deploy worktree carries a stale (or missing) dist.
+Write-Host "`nCore build for preflight checks..." -ForegroundColor Cyan
+pnpm build:core
+if ($LASTEXITCODE -ne 0) { throw "Core build failed before the preflight checks." }
+
 Write-Host "`nWorker lifecycle and Redis handshake regression..." -ForegroundColor Cyan
 pnpm exec tsx --test server/test/scene-packet-worker-lifecycle.test.ts server/test/lazy-redis-connector.test.ts
 if ($LASTEXITCODE -ne 0) { throw "Worker lifecycle or Redis handshake regression failed." }
 
 Write-Host "`nNational Census town-anchor contract..." -ForegroundColor Cyan
-pnpm build:core
-if ($LASTEXITCODE -ne 0) { throw "Core build failed before the town-anchor contract check." }
 node scripts/verify-county-town-anchors.mjs --json-only
 if ($LASTEXITCODE -ne 0) { throw "National Census town-anchor contract failed." }
 
