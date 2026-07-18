@@ -375,6 +375,8 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "docs/0.78R_PRODUCT_METRICS.md",
   "server/src/countyGeoPack.ts",
   "server/test/geo-pack-route.test.ts",
+  "server/src/roadChunkStore.ts",
+  "server/test/road-chunk-store.test.ts",
   "scripts/build-county-road-chunks.mjs",
   "packages/core/test/city-world-scene-window-band.test.ts",
   "packages/core/src/voxel/cityWorldRenderCommands.ts",

@@ -81,6 +81,7 @@ import {
 } from "./security.js";
 import { loadCountyTownAnchorIndex, townAnchorsForCounty } from "./countyTownAnchorIndex.js";
 import { createCountyGeoPackLoader, serveCountyGeoPack } from "./countyGeoPack.js";
+import { createFilesystemRoadChunkStore, serveRoadCatalog, serveRoadChunk, serveRoadManifest, type RoadBand } from "./roadChunkStore.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-0781v.html";
@@ -111,6 +112,14 @@ const countyTownAnchorIndex = loadCountyTownAnchorIndex(
 // the read-only /geo-pack route reuses the exact same loading path (D2-0).
 const GEO_PACKS_DIR = resolve(ROOT_DIR, "data", "geo-packs");
 const loadCountyGeoPack = createCountyGeoPackLoader(GEO_PACKS_DIR);
+
+// Road-chunk serving (0.78-R2): catalog pointer + manifest + chunk routes over a
+// CDN-swappable store. Filesystem-backed today (Railway volume / repo fixture at
+// data/road-chunks). Additive + flag-dark — no client fetches it until the CSP
+// allowlist flip, and it serves the same class of public read-only geographic
+// bytes as /geo-pack, so it needs no auth.
+const ROAD_CHUNKS_DIR = resolve(ROOT_DIR, "data", "road-chunks");
+const roadChunkStore = createFilesystemRoadChunkStore(ROAD_CHUNKS_DIR);
 const worldService = createNationalWorldService([riversideDemoVoxelScene]);
 const scenePacketRuntimeConfig = readScenePacketRuntimeConfig(process.env);
 if (scenePacketRuntimeConfig.production && scenePacketRuntimeConfig.blockers.length > 0) {
@@ -192,6 +201,13 @@ const MCP_EXPENSIVE_TOOL_RATE_LIMIT = 120;
 // a scraper from enumerating counties and pulling the whole baked set (plan
 // decision #46). Generous enough for a widget fetching a handful of packs.
 const GEO_PACK_RATE_LIMIT = 120;
+// Own bucket for the read-only /road-catalog + /road-chunks routes. Static routes
+// bypass the MCP limiter, and a single NEAR pan legitimately fetches many chunks,
+// so this sits above the MCP-expensive bucket (120) while still bounding a
+// county×band×chunk enumeration scrape of the national bake (wire contract §3.5 /
+// plan decision #46). 240/min is calibration-pending against a measured
+// NEAR-pan burst on miami-dade-fl before it is frozen.
+const ROAD_CHUNKS_RATE_LIMIT = 240;
 const HOSTED_CLAWD_WRITE_PATHS = new Set([
   "/api/hosted-clawd/create-or-attach",
   "/api/hosted-clawd/promote-session",
@@ -3840,6 +3856,40 @@ const httpServer = createServer(async (req, res) => {
       // traversal probe, never a normal miss — loud-log it.
       logBackendEvent("geo_pack_route_bad_slug", { requestId, slug: String(slug).slice(0, 64) });
     }
+    return;
+  }
+
+  // Road-chunk serving (0.78-R2): the atomic catalog pointer + the immutable
+  // manifest and chunk resources the band controller drives. Slug-addressed to
+  // match the baked fixture and the /geo-pack sibling (contract addresses by
+  // geoid — deviation noted in roadChunkStore.ts). Own rate-limit bucket; the
+  // four distinguished states + 400 guards live in the store's serve helpers.
+  const roadCatalogMatch = url.pathname.match(/^\/road-catalog\/([^/]+)\/current$/);
+  if (roadCatalogMatch && req.method === "GET") {
+    if (!(await enforceRateLimit(req, res, "road_chunks", ROAD_CHUNKS_RATE_LIMIT))) return;
+    const slug = roadCatalogMatch[1];
+    const status = await serveRoadCatalog(res, roadChunkStore, slug);
+    if (status === 400) logBackendEvent("road_catalog_bad_slug", { requestId, slug: String(slug).slice(0, 64) });
+    return;
+  }
+
+  // /road-chunks/<slug>/<schemaFamily>/<schemaMajor>/<packHash>/manifest.json
+  const roadManifestMatch = url.pathname.match(/^\/road-chunks\/([^/]+)\/([a-z]+)\/(\d+)\/([^/]+)\/manifest\.json$/);
+  if (roadManifestMatch && req.method === "GET") {
+    if (!(await enforceRateLimit(req, res, "road_chunks", ROAD_CHUNKS_RATE_LIMIT))) return;
+    const [, slug, schemaFamily, schemaMajor, packHash] = roadManifestMatch;
+    const status = await serveRoadManifest(res, roadChunkStore, slug, `${schemaFamily}/${schemaMajor}`, packHash, negotiatePreviewEncoding(req));
+    if (status === 400) logBackendEvent("road_manifest_bad_param", { requestId, slug: String(slug).slice(0, 64) });
+    return;
+  }
+
+  // /road-chunks/<slug>/<schemaFamily>/<schemaMajor>/<packHash>/<band>/<chunkId>.json
+  const roadChunkMatch = url.pathname.match(/^\/road-chunks\/([^/]+)\/([a-z]+)\/(\d+)\/([^/]+)\/(lod0|mid|near)\/(c-?\d+_-?\d+(?:_[0-3]+)?)\.json$/);
+  if (roadChunkMatch && req.method === "GET") {
+    if (!(await enforceRateLimit(req, res, "road_chunks", ROAD_CHUNKS_RATE_LIMIT))) return;
+    const [, slug, schemaFamily, schemaMajor, packHash, band, chunkId] = roadChunkMatch;
+    const status = await serveRoadChunk(res, roadChunkStore, slug, `${schemaFamily}/${schemaMajor}`, packHash, band as RoadBand, chunkId, negotiatePreviewEncoding(req));
+    if (status === 400) logBackendEvent("road_chunk_bad_param", { requestId, slug: String(slug).slice(0, 64) });
     return;
   }
 
