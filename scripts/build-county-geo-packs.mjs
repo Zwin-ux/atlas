@@ -18,7 +18,7 @@
 //   Places:   TIGERweb/Places_CouSub/MapServer (incorporated places layer)
 //   Water:    TIGERweb/Hydro (area/linear water, filter by county envelope)
 //   Roads:    TIGERweb/Transportation (primary/secondary/local class filter)
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { US_COUNTY_INDEX } from "../packages/core/dist/index.js";
 
 const COUNTY_LAYER = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/11/query";
@@ -38,12 +38,57 @@ const CHALLENGE = [
 function parseArgs(argv) {
   const counties = [];
   let challenge = false;
+  let all = false;
+  let skipExisting = false;
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--county") counties.push(argv[++i]);
     else if (argv[i] === "--challenge") challenge = true;
+    else if (argv[i] === "--all") all = true;
+    else if (argv[i] === "--skip-existing") skipExisting = true;
     else throw new Error(`Unknown argument: ${argv[i]}`);
   }
-  return { counties: challenge ? CHALLENGE : counties };
+  const selected = all
+    ? US_COUNTY_INDEX.map((entry) => entry.countySlug)
+    : challenge
+      ? CHALLENGE
+      : counties;
+  return { counties: selected, skipExisting };
+}
+
+// A pack counts as already-baked only if it parses and carries the current
+// shape; anything else gets re-baked so a resumed national run self-heals.
+function hasValidPack(slug) {
+  const path = `${OUT_DIR}/${slug}.json`;
+  if (!existsSync(path)) return false;
+  try {
+    const pack = JSON.parse(readFileSync(path, "utf8"));
+    return (
+      pack?.packVersion === 2 &&
+      Array.isArray(pack?.lod0?.boundaryRings) &&
+      pack.lod0.boundaryRings.length > 0 &&
+      typeof pack?.areaLand === "number"
+    );
+  } catch {
+    return false;
+  }
+}
+
+// TIGERweb is a shared public service: bounded retry with backoff, then give
+// up on that request. Callers decide whether the county fails or degrades.
+async function fetchWithRetry(url, label) {
+  const delays = [0, 1_000, 4_000];
+  let lastError;
+  for (const delay of delays) {
+    if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      if (!response.ok) throw new Error(`${label} HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError ?? new Error(`${label} failed`);
 }
 
 function countyBySlug(slug) {
@@ -54,9 +99,7 @@ function countyBySlug(slug) {
 
 async function fetchBoundary(geoid) {
   const url = `${COUNTY_LAYER}?where=GEOID%3D%27${geoid}%27&outFields=GEOID,NAME,AREALAND,AREAWATER&returnGeometry=true&geometryPrecision=4&outSR=4326&f=geojson`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`TIGERweb ${response.status} for ${geoid}`);
-  const geo = await response.json();
+  const geo = await fetchWithRetry(url, `boundary ${geoid}`);
   const feature = geo.features?.[0];
   if (!feature?.geometry) throw new Error(`No boundary geometry for ${geoid}`);
   return feature;
@@ -113,7 +156,9 @@ function simplifyRingsToBudget(rings, budget, maxRings) {
     if (count > budget) lo = mid;
     else { best = simplified; hi = mid; }
   }
-  return best;
+  // A sliver ring can collapse below a closed triangle (first==last, so <4
+  // points is degenerate). Drop those — they carry no silhouette.
+  return best.filter((r) => r.length >= 4);
 }
 
 function simplifyToBudget(rings) {
@@ -185,9 +230,7 @@ async function fetchWater(bbox) {
   // Step 1 — attributes only (no geometry, cheap): rank every intersecting
   // water body by AREAWATER, keep the largest N. Skips the thousand canals.
   const attrUrl = `${WATER_LAYER}?where=1%3D1&geometry=${encodeURIComponent(env)}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OBJECTID,NAME,AREAWATER&returnGeometry=false&f=json`;
-  const attrRes = await fetch(attrUrl);
-  if (!attrRes.ok) throw new Error(`water attrs ${attrRes.status}`);
-  const attrs = (await attrRes.json()).features ?? [];
+  const attrs = (await fetchWithRetry(attrUrl, "water attrs")).features ?? [];
   if (attrs.length === 0) return { rings: [], names: [] };
   const ranked = attrs
     .map((f) => ({ id: f.attributes.OBJECTID, name: f.attributes.NAME || null, area: parseFloat(f.attributes.AREAWATER) || 0 }))
@@ -198,9 +241,7 @@ async function fetchWater(bbox) {
   // Step 2 — geometry for just those top bodies, clipped to the county bbox.
   const ids = ranked.map((r) => r.id).join(",");
   const geoUrl = `${WATER_LAYER}?where=OBJECTID%20IN%20(${ids})&returnGeometry=true&geometryPrecision=4&outSR=4326&f=geojson`;
-  const geoRes = await fetch(geoUrl);
-  if (!geoRes.ok) throw new Error(`water geom ${geoRes.status}`);
-  const feats = (await geoRes.json()).features ?? [];
+  const feats = (await fetchWithRetry(geoUrl, "water geom")).features ?? [];
   const rings = [];
   const names = new Set();
   for (const feat of feats) {
@@ -242,6 +283,10 @@ async function bakeCounty(slug) {
     countySlug: slug,
     name: feature.properties?.NAME ?? county.name,
     source: "US Census TIGERweb (public domain), geometryPrecision=4",
+    // Official TIGER land/water areas (m^2) — integrity gates compare the
+    // simplified ring area against these to catch corrupt geometry.
+    areaLand: parseFloat(feature.properties?.AREALAND) || 0,
+    areaWater: parseFloat(feature.properties?.AREAWATER) || 0,
     lod0: {
       boundaryRings: rings,
       vertexCount: rings.reduce((sum, r) => sum + r.length, 0),
@@ -263,21 +308,44 @@ async function bakeCounty(slug) {
   };
 }
 
-const { counties } = parseArgs(process.argv.slice(2));
+const { counties, skipExisting } = parseArgs(process.argv.slice(2));
 if (counties.length === 0) {
-  console.error("Pass --county <slug> (repeatable) or --challenge");
+  console.error("Pass --county <slug> (repeatable), --challenge, or --all [--skip-existing]");
   process.exit(1);
 }
+const FAILURES_PATH = `${OUT_DIR}/_failures.json`;
+mkdirSync(OUT_DIR, { recursive: true });
 const results = [];
+const failures = [];
+let skipped = 0;
+let processed = 0;
+const startedAt = Date.now();
 for (const slug of counties) {
+  processed += 1;
+  if (skipExisting && hasValidPack(slug)) {
+    skipped += 1;
+    continue;
+  }
   try {
     const r = await bakeCounty(slug);
     results.push(r);
-    console.log(`OK  ${r.slug} rings=${r.rings} vertices=${r.vertices} water=${r.waterRings}/${r.waterVertices}v bytes=${r.bytes}`);
+    if (counties.length <= 32) {
+      console.log(`OK  ${r.slug} rings=${r.rings} vertices=${r.vertices} water=${r.waterRings}/${r.waterVertices}v bytes=${r.bytes}`);
+    }
   } catch (error) {
+    failures.push({ slug, message: String(error?.message ?? error) });
     console.log(`ERR ${slug} ${error.message}`);
-    process.exitCode = 1;
+    writeFileSync(FAILURES_PATH, JSON.stringify(failures, null, 2));
+  }
+  if (processed % 50 === 0) {
+    const elapsedMin = ((Date.now() - startedAt) / 60_000).toFixed(1);
+    console.log(`... ${processed}/${counties.length} (baked ${results.length}, skipped ${skipped}, failed ${failures.length}) ${elapsedMin}min`);
   }
   await new Promise((resolve) => setTimeout(resolve, 350)); // be polite to TIGERweb
 }
-console.log(`baked ${results.length}/${counties.length} packs into ${OUT_DIR}/`);
+writeFileSync(FAILURES_PATH, JSON.stringify(failures, null, 2));
+console.log(`baked ${results.length}, skipped ${skipped}, failed ${failures.length} of ${counties.length} into ${OUT_DIR}/`);
+if (failures.length > 0) {
+  console.log(`failures recorded in ${FAILURES_PATH} — re-run with --all --skip-existing to retry them`);
+  process.exitCode = 1;
+}

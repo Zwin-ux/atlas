@@ -10005,3 +10005,35 @@ the release gate probed the trimmed stats endpoint without a token and
 correctly went red (proof the trim works). Record pass certified by
 `scripts/certify-release-range.mjs` (its first production use): drift,
 loop readiness, and the strict 81-path range guard all green.
+
+## Entry 105
+
+**0.78-D NATIONAL LOD0 GEOGRAPHY BAKE + BOARD CONTRAST - local green,
+2026-07-18, Fable.** Every supported county now has a real U.S. Census
+TIGERweb geography pack: **3,222/3,222 baked, zero failures, 112 minutes**,
+36.3MB total (histogram: 1,025 ≤8KB, 686 8-12KB, 1,511 12-16KB, none over
+the 24KB fail line; max 15.9KB petersburg-borough-ak). Bake script gained
+`--all`, `--skip-existing` resume, bounded retry with a failure manifest,
+and stores official TIGER `areaLand`/`areaWater` per pack. New
+release-gated `verify:county-geo-packs`: full-index coverage, shape and
+vertex budgets, size budget, boundary-area sanity vs the official areas
+(0 warnings across the index), water spot-asserts, and a sha256 manifest
+for future re-bake diffs. One bake defect found by the gate and fixed:
+a Pickens SC sliver ring collapsed below a closed triangle — degenerate
+rings are now dropped post-simplification.
+
+Census board visual ceiling closed, flag-dark: scenes may carry
+`boardBackdrop` (renderer honors it for the Pixi surround + rim; strict
+no-op for scenes that omit it) — the board now sits on a warm parchment
+table in light theme (dark keeps the approved host tone), so the silhouette
+separates from the formerly same-green void. Second find at national scale:
+water-dominant LEGAL polygons (San Francisco extends miles into the
+Pacific) rendered their land as a dot — `compileCountyGeoScene` now runs a
+land-normalized second pass when dry land spans under half the board,
+locked by a new regression test on the real SF pack (166 core tests).
+Eyes-on hard-case sample: San Francisco (city + Bay + Treasure Island),
+San Juan Municipio PR (Atlantic shore, "Caño Martín Peña"/"San Juan"
+anchors with correct diacritics), Door County WI (Green Bay peninsula
+against Lake Michigan, Sister Bay/Sturgeon Bay), Kalawao and Miami-Dade
+unchanged from their approved reads. Everything stays behind
+`?atlasGeoBoard=1`; default-on remains an owner gate.

@@ -24,7 +24,7 @@
     ],
     "featureAudit": {
       "cells": 12,
-      "pass": 138,
+      "pass": 151,
       "warn": 0,
       "fail": 0,
       "framingChecks": 12,
@@ -34,7 +34,7 @@
       "rebuildCeilingMs": 350
     },
     "baselineAudit": {
-      "pass": 162,
+      "pass": 183,
       "warn": 0,
       "fail": 0
     },

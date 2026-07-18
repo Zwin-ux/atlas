@@ -1,8 +1,8 @@
 # Atlas Emulator Audit Report
 
-Ran: 2026-07-14T02:29:27.630Z
+Ran: 2026-07-18T15:36:33.972Z
 Base: http://127.0.0.1:8787
-Result: OK (138 pass, 0 warn, 0 fail)
+Result: OK (151 pass, 0 warn, 0 fail)
 
 ## Findings
 
@@ -12,18 +12,18 @@ No fail or warn findings.
 
 | County | Board | Archetype | Viewport | Theme | Delivered | Graphics | Payload | Console |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| miami-dade-fl | census | metro_grid | desktop | light | pass: state=delivered; errors=0 | pass: graphics=39; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| miami-dade-fl | census | metro_grid | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=39; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| miami-dade-fl | census | metro_grid | mobile | light | pass: state=delivered; errors=0 | pass: graphics=40; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| miami-dade-fl | census | metro_grid | mobile | dark | pass: state=delivered; errors=0 | pass: graphics=40; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| loving-tx | census | desert_basin | desktop | light | pass: state=delivered; errors=0 | pass: graphics=33; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| loving-tx | census | desert_basin | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=33; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| loving-tx | census | desert_basin | mobile | light | pass: state=delivered; errors=0 | pass: graphics=33; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| loving-tx | census | desert_basin | mobile | dark | pass: state=delivered; errors=0 | pass: graphics=33; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| kalawao-hi | census | coastal_grid | desktop | light | pass: state=delivered; errors=0 | pass: graphics=38; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| kalawao-hi | census | coastal_grid | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=38; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| kalawao-hi | census | coastal_grid | mobile | light | pass: state=delivered; errors=0 | pass: graphics=37; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
-| kalawao-hi | census | coastal_grid | mobile | dark | pass: state=delivered; errors=0 | pass: graphics=37; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| miami-dade-fl | census | metro_grid | desktop | light | pass: state=delivered; errors=0 | pass: graphics=58; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| miami-dade-fl | census | metro_grid | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=58; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| miami-dade-fl | census | metro_grid | mobile | light | pass: state=delivered; errors=0 | pass: graphics=55; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| miami-dade-fl | census | metro_grid | mobile | dark | pass: state=delivered; errors=0 | pass: graphics=55; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| loving-tx | census | desert_basin | desktop | light | pass: state=delivered; errors=0 | pass: graphics=41; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| loving-tx | census | desert_basin | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=41; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| loving-tx | census | desert_basin | mobile | light | pass: state=delivered; errors=0 | pass: graphics=38; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| loving-tx | census | desert_basin | mobile | dark | pass: state=delivered; errors=0 | pass: graphics=38; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| kalawao-hi | census | coastal_grid | desktop | light | pass: state=delivered; errors=0 | pass: graphics=46; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| kalawao-hi | census | coastal_grid | desktop | dark | pass: state=delivered; errors=0 | pass: graphics=46; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| kalawao-hi | census | coastal_grid | mobile | light | pass: state=delivered; errors=0 | pass: graphics=42; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
+| kalawao-hi | census | coastal_grid | mobile | dark | pass: state=delivered; errors=0 | pass: graphics=42; ceiling=1600 | pass: max generatedDraftSceneChars=0; ceiling=900000 | pass: console error entries=0 |
 
 ## Screenshots
 

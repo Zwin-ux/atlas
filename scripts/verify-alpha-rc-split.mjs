@@ -442,12 +442,20 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "server/test/county-town-anchor-index.test.ts",
   "server/test/lazy-redis-connector.test.ts",
   "server/test/scene-packet-worker-lifecycle.test.ts",
+  // 0.78-D National LOD0 geography bake envelope
+  "scripts/build-county-geo-packs.mjs",
+  "scripts/verify-county-geo-packs.mjs",
+  "scripts/certify-release-range.mjs",
+  "packages/core/src/voxel/cityWorldTypes.ts",
+  "web/src/CityWorldRenderer.tsx",
 ]);
 
 const NATIONAL_GENERATION_CONTRACT_PREFIXES = [
   // Emulator audit report + screenshot evidence is canonical release proof
   // wherever the matrix runs (0.78-2A moved it to the audit root).
   "artifacts/emulator/audit/",
+  // 0.78-D: baked national county geography packs (LOD0 boundary + water).
+  "data/geo-packs/",
   "artifacts/national-generation/0.68h/",
   "artifacts/national-generation/0.69h/",
   "artifacts/national-generation/0.70h/",

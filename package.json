@@ -36,6 +36,7 @@
     "verify:deterministic-generated-districts": "node scripts/verify-deterministic-generated-district-specs.mjs",
     "verify:generated-draft-scene-packet": "node scripts/verify-generated-draft-scene-packet.mjs",
     "verify:county-town-anchors": "node scripts/verify-county-town-anchors.mjs",
+    "verify:county-geo-packs": "node scripts/verify-county-geo-packs.mjs",
     "verify:production-backend-spine": "node scripts/verify-production-backend-spine.mjs",
     "verify:national-generation-production": "node scripts/verify-national-generation-production-contract.mjs",
     "verify:national-shells": "node scripts/verify-national-shells.mjs",

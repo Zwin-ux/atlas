@@ -151,8 +151,20 @@ function isDarkTheme(): boolean {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 }
 
+// Scene-driven backdrop override (census county board): the active scene may
+// carry `boardBackdrop` so its silhouette separates from the off-board void.
+// Null for every scene that doesn't set it — the host-theme constants win.
+let activeBoardBackdrop: { light: string; dark: string } | null = null;
+
+function parseHexColor(hex: string | undefined): number | null {
+  if (!hex) return null;
+  const digits = /^#([0-9a-fA-F]{6})$/.exec(hex.trim())?.[1];
+  return digits ? Number.parseInt(digits, 16) : null;
+}
+
 function resolveBackgroundColor(): number {
-  return isDarkTheme() ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
+  const override = parseHexColor(isDarkTheme() ? activeBoardBackdrop?.dark : activeBoardBackdrop?.light);
+  return override ?? (isDarkTheme() ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT);
 }
 
 function isFullscreenDisplayMode(): boolean {
@@ -424,6 +436,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   const lastGestureWindowRefreshRef = useRef(0);
   const wheelZoomArmedRef = useRef(false);
   const themeCleanupRef = useRef<(() => void) | null>(null);
+  const backdropRepaintRef = useRef<(() => void) | null>(null);
   const selectPlaceRef = useRef(onSelectPlace);
   const activeWindowFrameRef = useRef<CityWorldViewportFrame | null>(null);
   const pendingWindowRefreshRef = useRef(false);
@@ -505,6 +518,10 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
 
   useEffect(() => {
     sceneRef.current = scene;
+    // Adopt (or clear) the scene's backdrop before the world rebuild reads
+    // the background, then repaint the surround if Pixi is already mounted.
+    activeBoardBackdrop = scene?.boardBackdrop ?? null;
+    backdropRepaintRef.current?.();
   }, [scene]);
 
   useEffect(() => {
@@ -601,10 +618,14 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
         paintBackdrop();
         invalidateRender();
       };
+      // Scene swaps repaint through the same path (a scene may carry its own
+      // boardBackdrop — the census county board does).
+      backdropRepaintRef.current = onThemeChange;
       window.addEventListener("openai:set_globals", onThemeChange, { passive: true });
       const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
       darkQuery?.addEventListener?.("change", onThemeChange);
       themeCleanupRef.current = () => {
+        backdropRepaintRef.current = null;
         window.removeEventListener("openai:set_globals", onThemeChange);
         darkQuery?.removeEventListener?.("change", onThemeChange);
       };

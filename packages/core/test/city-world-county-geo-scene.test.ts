@@ -161,4 +161,26 @@ describe("compileCountyGeoScene", () => {
       expect(mobile.center).toEqual(desktop.center);
     }
   });
+
+  it("re-frames water-dominant legal polygons on the land (San Francisco)", () => {
+    // SF's legal county boundary extends miles into the Pacific/Bay, so a
+    // single-pass board rendered the city as a dot lost in legal-boundary
+    // water. The land-normalized second pass must make dry land carry the
+    // board: the grass extent spans a healthy fraction of the terrain
+    // footprint and the lattice is fine enough to read as a real place.
+    const scene = compileCountyGeoScene(loadPack("san-francisco-ca"));
+    const counts = tileKindCounts(scene);
+    expect(counts.grass).toBeGreaterThan(120);
+    expect(counts.water).toBeGreaterThan(40);
+
+    const grassTiles = scene.terrainTiles.filter((tile) => tile.kind === "grass");
+    const span = (tiles: typeof grassTiles) => {
+      const xs = tiles.map((tile) => (tile.position.x - tile.position.y) * (CITY_WORLD_TILE_BASIS.tileWidth / 2));
+      const ys = tiles.map((tile) => (tile.position.x + tile.position.y) * (CITY_WORLD_TILE_BASIS.tileHeight / 2));
+      return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    };
+    const grassSpan = span(grassTiles);
+    const boardSpan = span(scene.terrainTiles);
+    expect(grassSpan / boardSpan).toBeGreaterThan(0.45);
+  });
 });

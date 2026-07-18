@@ -497,13 +497,16 @@ async function runStructuralChecks(client, cell, cellSpec) {
           detail: `missing data-qa-census-board=true; frameFlag=${state.frameFlag || "none"}; search=${state.locationSearch || "(empty)"}`,
         };
       }
-      if (state.trayVisible || state.stickerToolsVisible || state.placeNavigatorVisible) {
+      // 0.78-2A/0.78-D: every county board carries real Census town anchors,
+      // so the Places navigator is a REQUIRED control now. Pin/sticker/note
+      // affordances stay hidden until a place is actually selected.
+      if (state.trayVisible || state.stickerToolsVisible || !state.placeNavigatorVisible) {
         return {
           level: "fail",
           detail: `tray=${state.trayVisible}; stickerTools=${state.stickerToolsVisible}; placeNavigator=${state.placeNavigatorVisible}`,
         };
       }
-      return { level: "pass", detail: "unavailable place, pin, and note controls are hidden" };
+      return { level: "pass", detail: "town-anchor navigator present; pin and note controls hidden until selection" };
     });
     await addAsyncCheck(cell, "county_board_framing", async () => {
       const frame = await countyBoardFrameSnapshot(client);
@@ -659,6 +662,28 @@ async function runGeneratedPinNoteChecks(client, cell) {
       return { level: "pass", detail: `pin count ${before.pinCount} -> ${after.pinCount}; place=${after.placeLabel}` };
     }
     return { level: "fail", detail: `pin count ${before.pinCount} -> ${after.pinCount}; place=${after.placeLabel}` };
+  });
+
+  // Stacking-order regression net: the open place sheet must RECEIVE taps.
+  // The mobile Places toggle once painted over the sheet and intercepted the
+  // note input's left edge — found by eyes, now asserted per cell.
+  await addAsyncCheck(cell, "tray_tap_priority", async () => {
+    const state = await evaluate(client, `(() => {
+      const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
+      const input = doc?.querySelector("[data-qa='note-input']");
+      const tray = doc?.querySelector("[data-qa='selected-place-tray']");
+      if (!input || !tray) return { missing: true };
+      const r = input.getBoundingClientRect();
+      const hit = doc.elementFromPoint(r.left + 6, r.top + r.height / 2);
+      return {
+        missing: false,
+        hitsTray: Boolean(hit && (tray.contains(hit) || hit === input)),
+        hit: hit ? (hit.getAttribute("data-qa") || hit.tagName) : null,
+      };
+    })()`);
+    if (state.missing) return { level: "warn", detail: "note input or tray not present in this cell" };
+    if (state.hitsTray) return { level: "pass", detail: `note-input tap target resolves inside the tray (${state.hit})` };
+    return { level: "fail", detail: `element above the note input intercepts taps: ${state.hit}` };
   });
 
   await addAsyncCheck(cell, "generated_note_save", async () => {

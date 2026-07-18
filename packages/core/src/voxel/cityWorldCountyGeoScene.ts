@@ -219,91 +219,139 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
   const unitSpan = Math.max(maxX - minX, maxY - minY) || 1;
   const scale = targetSpanPx / unitSpan;
 
-  // Rescale the LOCAL rings to projected px (far islands dropped).
-  const screenRings = localUnitRings.map((ring) => ring.map((p) => ({ x: p.x * scale, y: p.y * scale })));
-  const mainRing = screenRings.reduce<ScreenPoint[]>((largest, ring) => (Math.abs(ringSignedArea(ring)) > Math.abs(ringSignedArea(largest)) ? ring : largest), screenRings[0] ?? []);
-  // Project the pack's water rings with the SAME transform (same lon0/lat0/
-  // scale) so bay/lake/river/ocean polygons register against the exact tile
-  // lattice as the land boundary. Water far from the anchored main landmass
-  // (island-chain counties) simply projects off-board and is never tested.
-  const waterScreenRings = (pack.lod0.waterRings ?? []).map((ring) =>
-    ring.map((v) => toScreen(v[0] ?? 0, v[1] ?? 0, lon0, lat0, scale)),
-  );
-  const hasWater = waterScreenRings.length > 0;
-
-  // Iterate the iso TILE lattice directly (one tile per cell — solid fill,
-  // no overlap, no aliasing) and keep the tiles whose projected center lands
-  // inside the county polygon. `samplePx` controls tile granularity: one iso
-  // cell is tileWidth px wide, so a stride of tileWidth ≈ 1 tile per cell.
+  // One board build at a given scale: rescale rings, walk the iso tile
+  // lattice, classify tiles. Extracted so water-dominant legal polygons (San
+  // Francisco extends miles into the Pacific; Nantucket's polygon is mostly
+  // sound) can run a SECOND pass normalized to the land extent — otherwise
+  // the actual land renders as a dot lost in legal-boundary water.
   const cell = Math.max(1, Math.round(samplePx / (CITY_WORLD_TILE_BASIS.tileWidth / 2))); // tile-units per step
-  const cornerTiles = [
-    unprojectCityWorldGroundPoint({ x: minX * scale, y: minY * scale }),
-    unprojectCityWorldGroundPoint({ x: maxX * scale, y: minY * scale }),
-    unprojectCityWorldGroundPoint({ x: minX * scale, y: maxY * scale }),
-    unprojectCityWorldGroundPoint({ x: maxX * scale, y: maxY * scale }),
-  ];
-  const loTileX = Math.floor(Math.min(...cornerTiles.map((t) => t.x)));
-  const hiTileX = Math.ceil(Math.max(...cornerTiles.map((t) => t.x)));
-  const loTileY = Math.floor(Math.min(...cornerTiles.map((t) => t.y)));
-  const hiTileY = Math.ceil(Math.max(...cornerTiles.map((t) => t.y)));
+  const buildBoard = (boardScale: number, latticeBoundsPx?: { minX: number; minY: number; maxX: number; maxY: number }) => {
+    const screenRings = localUnitRings.map((ring) => ring.map((p) => ({ x: p.x * boardScale, y: p.y * boardScale })));
+    // Project the pack's water rings with the SAME transform (same lon0/lat0/
+    // scale) so bay/lake/river/ocean polygons register against the exact tile
+    // lattice as the land boundary. Water far from the anchored main landmass
+    // (island-chain counties) simply projects off-board and is never tested.
+    const waterScreenRings = (pack.lod0.waterRings ?? []).map((ring) =>
+      ring.map((v) => toScreen(v[0] ?? 0, v[1] ?? 0, lon0, lat0, boardScale)),
+    );
+    const hasWater = waterScreenRings.length > 0;
 
-  // Sea margin: extend the lattice a few tiles past the land bbox so the ocean
-  // or bay that FRAMES a coastal county (water baked with a margin-expanded
-  // clip) renders as surrounding sea, not a bare green cutout. Inland counties
-  // have no water out here, so their board stays tight to the land.
-  const seaMargin = hasWater
-    ? Math.min(8, Math.max(3, Math.round((((hiTileX - loTileX) + (hiTileY - loTileY)) / 2) * 0.14)))
-    : 0;
-  const loTileXM = loTileX - seaMargin * cell;
-  const hiTileXM = hiTileX + seaMargin * cell;
-  const loTileYM = loTileY - seaMargin * cell;
-  const hiTileYM = hiTileY + seaMargin * cell;
+    // Iterate the iso TILE lattice directly (one tile per cell — solid fill,
+    // no overlap, no aliasing) and keep the tiles whose projected center lands
+    // inside the county polygon. `samplePx` controls tile granularity: one iso
+    // cell is tileWidth px wide, so a stride of tileWidth ≈ 1 tile per cell.
+    const boundsPx = latticeBoundsPx ?? {
+      minX: minX * boardScale,
+      minY: minY * boardScale,
+      maxX: maxX * boardScale,
+      maxY: maxY * boardScale,
+    };
+    const cornerTiles = [
+      unprojectCityWorldGroundPoint({ x: boundsPx.minX, y: boundsPx.minY }),
+      unprojectCityWorldGroundPoint({ x: boundsPx.maxX, y: boundsPx.minY }),
+      unprojectCityWorldGroundPoint({ x: boundsPx.minX, y: boundsPx.maxY }),
+      unprojectCityWorldGroundPoint({ x: boundsPx.maxX, y: boundsPx.maxY }),
+    ];
+    const loTileX = Math.floor(Math.min(...cornerTiles.map((t) => t.x)));
+    const hiTileX = Math.ceil(Math.max(...cornerTiles.map((t) => t.x)));
+    const loTileY = Math.floor(Math.min(...cornerTiles.map((t) => t.y)));
+    const hiTileY = Math.ceil(Math.max(...cornerTiles.map((t) => t.y)));
 
-  const terrainTiles: CityWorldTerrainTile[] = [];
-  let tileMinX = Infinity;
-  let tileMaxX = -Infinity;
-  let tileMinY = Infinity;
-  let tileMaxY = -Infinity;
-  let variant = 0;
-  let waterTileCount = 0;
-  for (let ty = loTileYM; ty <= hiTileYM; ty += cell) {
-    for (let tx = loTileXM; tx <= hiTileXM; tx += cell) {
-      // project tile center to screen and classify against the upright polygons
-      const sx = (tx - ty) * (CITY_WORLD_TILE_BASIS.tileWidth / 2);
-      const sy = (tx + ty) * (CITY_WORLD_TILE_BASIS.tileHeight / 2);
-      const inLand = pointInCounty({ x: sx, y: sy }, screenRings);
-      const inWater = hasWater && pointInWater({ x: sx, y: sy }, waterScreenRings);
-      let kind: CityWorldTerrainKind;
-      if (inLand) {
-        kind = inWater ? "water" : "grass"; // bay/lake/river inside the county
-      } else if (inWater) {
-        kind = "water"; // surrounding sea in the margin
-      } else {
-        continue; // outside both land and water — off-board void backdrop
+    // Sea margin: extend the lattice a few tiles past the land bbox so the ocean
+    // or bay that FRAMES a coastal county (water baked with a margin-expanded
+    // clip) renders as surrounding sea, not a bare green cutout. Inland counties
+    // have no water out here, so their board stays tight to the land.
+    const seaMargin = hasWater
+      ? Math.min(8, Math.max(3, Math.round((((hiTileX - loTileX) + (hiTileY - loTileY)) / 2) * 0.14)))
+      : 0;
+    const loTileXM = loTileX - seaMargin * cell;
+    const hiTileXM = hiTileX + seaMargin * cell;
+    const loTileYM = loTileY - seaMargin * cell;
+    const hiTileYM = hiTileY + seaMargin * cell;
+
+    const terrainTiles: CityWorldTerrainTile[] = [];
+    let tileMinX = Infinity;
+    let tileMaxX = -Infinity;
+    let tileMinY = Infinity;
+    let tileMaxY = -Infinity;
+    let variant = 0;
+    let waterTileCount = 0;
+    let grassCount = 0;
+    const grassPx = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    for (let ty = loTileYM; ty <= hiTileYM; ty += cell) {
+      for (let tx = loTileXM; tx <= hiTileXM; tx += cell) {
+        // project tile center to screen and classify against the upright polygons
+        const sx = (tx - ty) * (CITY_WORLD_TILE_BASIS.tileWidth / 2);
+        const sy = (tx + ty) * (CITY_WORLD_TILE_BASIS.tileHeight / 2);
+        const inLand = pointInCounty({ x: sx, y: sy }, screenRings);
+        const inWater = hasWater && pointInWater({ x: sx, y: sy }, waterScreenRings);
+        let kind: CityWorldTerrainKind;
+        if (inLand) {
+          kind = inWater ? "water" : "grass"; // bay/lake/river inside the county
+        } else if (inWater) {
+          kind = "water"; // surrounding sea in the margin
+        } else {
+          continue; // outside both land and water — off-board void backdrop
+        }
+        if (kind === "water") waterTileCount += 1;
+        if (kind === "grass") {
+          grassCount += 1;
+          // Upright-space bbox of dry land, used to detect water-dominant
+          // legal polygons and re-frame the board on the land itself.
+          grassPx.minX = Math.min(grassPx.minX, sx);
+          grassPx.maxX = Math.max(grassPx.maxX, sx);
+          grassPx.minY = Math.min(grassPx.minY, sy);
+          grassPx.maxY = Math.max(grassPx.maxY, sy);
+        }
+        terrainTiles.push({
+          id: `county-tile-${terrainTiles.length}`,
+          kind,
+          position: { x: tx, y: ty, z: 0 },
+          width: cell,
+          depth: cell,
+          variant: variant % 4,
+          ...(kind === "grass" ? { paletteKey: "terrain.region.county_map" } : {}),
+          // Land reads as a RAISED plateau (cliff faces + drop shadow) so the
+          // county silhouette separates from the same-green off-board void; water
+          // stays flat at sea level, so the land/water step forms a natural shore.
+          ...(kind === "grass"
+            ? { visualGrammar: { terrainElevation: "raised_parcel_shelf" as const, contactProfile: "soft_ground_shadow" as const } }
+            : {}),
+        });
+        variant += 1;
+        tileMinX = Math.min(tileMinX, tx);
+        tileMaxX = Math.max(tileMaxX, tx);
+        tileMinY = Math.min(tileMinY, ty);
+        tileMaxY = Math.max(tileMaxY, ty);
       }
-      if (kind === "water") waterTileCount += 1;
-      terrainTiles.push({
-        id: `county-tile-${terrainTiles.length}`,
-        kind,
-        position: { x: tx, y: ty, z: 0 },
-        width: cell,
-        depth: cell,
-        variant: variant % 4,
-        ...(kind === "grass" ? { paletteKey: "terrain.region.county_map" } : {}),
-        // Land reads as a RAISED plateau (cliff faces + drop shadow) so the
-        // county silhouette separates from the same-green off-board void; water
-        // stays flat at sea level, so the land/water step forms a natural shore.
-        ...(kind === "grass"
-          ? { visualGrammar: { terrainElevation: "raised_parcel_shelf" as const, contactProfile: "soft_ground_shadow" as const } }
-          : {}),
-      });
-      variant += 1;
-      tileMinX = Math.min(tileMinX, tx);
-      tileMaxX = Math.max(tileMaxX, tx);
-      tileMinY = Math.min(tileMinY, ty);
-      tileMaxY = Math.max(tileMaxY, ty);
     }
+    return { screenRings, terrainTiles, waterTileCount, grassCount, grassPx, tileMinX, tileMaxX, tileMinY, tileMaxY };
+  };
+
+  let boardScale = scale;
+  let board = buildBoard(boardScale);
+  // Land-normalized second pass: when the dry land occupies a small slice of
+  // the legal-boundary board (water-dominant polygons), rebuild the lattice
+  // around the land extent so the county's LAND fills the frame with a sea
+  // band around it. Deterministic — pure function of the pack.
+  const grassSpanPx = Math.max(board.grassPx.maxX - board.grassPx.minX, board.grassPx.maxY - board.grassPx.minY);
+  if (board.grassCount > 0 && Number.isFinite(grassSpanPx) && grassSpanPx > 0 && grassSpanPx < targetSpanPx * 0.5) {
+    const boost = Math.min(3.5, (targetSpanPx * 0.85) / grassSpanPx);
+    boardScale = scale * boost;
+    board = buildBoard(boardScale, {
+      minX: board.grassPx.minX * boost,
+      minY: board.grassPx.minY * boost,
+      maxX: board.grassPx.maxX * boost,
+      maxY: board.grassPx.maxY * boost,
+    });
   }
+  const screenRings = board.screenRings;
+  const terrainTiles = board.terrainTiles;
+  const waterTileCount = board.waterTileCount;
+  const tileMinX = board.tileMinX;
+  const tileMaxX = board.tileMaxX;
+  const tileMinY = board.tileMinY;
+  const tileMaxY = board.tileMaxY;
 
   // Camera fitting must use the actual projected terrain footprint. The old
   // tile-axis span heuristic cropped wide and tall counties on 390px screens.
@@ -371,7 +419,7 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
     displayName,
     lon0,
     lat0,
-    scale,
+    scale: boardScale,
     screenRings,
     terrainTiles,
   });
@@ -403,6 +451,11 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
       districtLabel: displayName,
       selectedPlaceId: places[0]?.id ?? "",
     },
+    // The census board's land plateau is mid-green; the default light host
+    // background is also green, so the silhouette used to melt into the
+    // void. A warm parchment table separates it in light theme; dark theme
+    // already reads (owner-approved cells) so it keeps the host tone.
+    boardBackdrop: { light: "#b3ac93", dark: "#22251f" },
   };
 }
 

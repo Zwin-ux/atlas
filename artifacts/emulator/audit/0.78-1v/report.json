@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "ranAt": "2026-07-14T02:29:27.630Z",
+  "ranAt": "2026-07-18T15:36:33.972Z",
   "base": "http://127.0.0.1:8787",
   "cells": [
     {
@@ -17,6 +17,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=1280; clientWidth=1280"
@@ -24,12 +29,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -39,17 +44,22 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=5.8ms; ceiling=350ms"
+          "detail": "rebuild=6.8ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=39; ceiling=1600"
+          "detail": "graphics=58; ceiling=1600"
+        },
+        {
+          "id": "sandbox_csp_data_split",
+          "level": "pass",
+          "detail": "fetch(data:) blocked by connect-src; Image(data:) loaded; connect-src 'self'"
         },
         {
           "id": "payload_report",
@@ -78,6 +88,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=1280; clientWidth=1280"
@@ -85,12 +100,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -100,17 +115,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=6.2ms; ceiling=350ms"
+          "detail": "rebuild=11.7ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=39; ceiling=1600"
+          "detail": "graphics=58; ceiling=1600"
         },
         {
           "id": "payload_report",
@@ -139,6 +154,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=390; clientWidth=390"
@@ -146,12 +166,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -161,17 +181,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=5.4ms; ceiling=350ms"
+          "detail": "rebuild=5.9ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=40; ceiling=1600"
+          "detail": "graphics=55; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -181,7 +201,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (181.93,518.05) -> (-78.11,371.78); rebuilds=5 @ 2.4/s, fired=4, deferred=16"
+          "detail": "world moved (181.93,518.05) -> (-58.4,382.86); rebuilds=5 @ 2.3/s, fired=4, deferred=13"
         },
         {
           "id": "touch_pinch",
@@ -215,6 +235,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=390; clientWidth=390"
@@ -222,12 +247,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Miami-Dade CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -237,17 +262,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=5.8ms; ceiling=350ms"
+          "detail": "rebuild=6.2ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=40; ceiling=1600"
+          "detail": "graphics=55; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -257,7 +282,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (181.93,518.05) -> (-77.31,372.22); rebuilds=5 @ 2.4/s, fired=4, deferred=16"
+          "detail": "world moved (181.93,518.05) -> (-58.37,382.88); rebuilds=5 @ 2.3/s, fired=4, deferred=14"
         },
         {
           "id": "touch_pinch",
@@ -291,6 +316,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=1280; clientWidth=1280"
@@ -298,12 +328,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Loving CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Loving CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -313,17 +343,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=2.6ms; ceiling=350ms"
+          "detail": "rebuild=3.4ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=33; ceiling=1600"
+          "detail": "graphics=41; ceiling=1600"
         },
         {
           "id": "payload_report",
@@ -352,6 +382,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=1280; clientWidth=1280"
@@ -359,12 +394,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Loving CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Loving CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -374,17 +409,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=2.5ms; ceiling=350ms"
+          "detail": "rebuild=3.5ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=33; ceiling=1600"
+          "detail": "graphics=41; ceiling=1600"
         },
         {
           "id": "payload_report",
@@ -413,6 +448,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=390; clientWidth=390"
@@ -420,12 +460,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Loving CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Loving CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -435,17 +475,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=2.8ms; ceiling=350ms"
+          "detail": "rebuild=3.1ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=33; ceiling=1600"
+          "detail": "graphics=38; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -455,7 +495,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (150.96,424.59) -> (-87.69,290.35); rebuilds=5 @ 2.3/s, fired=4, deferred=13"
+          "detail": "world moved (150.96,424.59) -> (-108.72,278.52); rebuilds=5 @ 2.4/s, fired=4, deferred=16"
         },
         {
           "id": "touch_pinch",
@@ -489,6 +529,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=390; clientWidth=390"
@@ -496,12 +541,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Loving CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Loving CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -511,17 +556,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=2.8ms; ceiling=350ms"
+          "detail": "rebuild=3.3ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=33; ceiling=1600"
+          "detail": "graphics=38; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -531,7 +576,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (150.96,424.59) -> (-86.3,291.13); rebuilds=5 @ 2.4/s, fired=4, deferred=14"
+          "detail": "world moved (150.96,424.59) -> (-88.73,289.77); rebuilds=5 @ 2.3/s, fired=4, deferred=14"
         },
         {
           "id": "touch_pinch",
@@ -565,6 +610,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=1280; clientWidth=1280"
@@ -572,12 +622,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Kalawao CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Kalawao CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -587,17 +637,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=4.5ms; ceiling=350ms"
+          "detail": "rebuild=4.9ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=38; ceiling=1600"
+          "detail": "graphics=46; ceiling=1600"
         },
         {
           "id": "payload_report",
@@ -626,6 +676,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=1280; clientWidth=1280"
@@ -633,12 +688,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Kalawao CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Kalawao CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -648,17 +703,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=4.1ms; ceiling=350ms"
+          "detail": "rebuild=4.5ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=38; ceiling=1600"
+          "detail": "graphics=46; ceiling=1600"
         },
         {
           "id": "payload_report",
@@ -687,6 +742,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=390; clientWidth=390"
@@ -694,12 +754,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Kalawao CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Kalawao CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -709,17 +769,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=3.6ms; ceiling=350ms"
+          "detail": "rebuild=6ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=37; ceiling=1600"
+          "detail": "graphics=42; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -729,7 +789,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (183.67,471.98) -> (-55.95,337.19); rebuilds=5 @ 2.4/s, fired=4, deferred=18"
+          "detail": "world moved (183.67,471.98) -> (-55.85,337.25); rebuilds=5 @ 2.3/s, fired=4, deferred=18"
         },
         {
           "id": "touch_pinch",
@@ -763,6 +823,11 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
           "detail": "scrollWidth=390; clientWidth=390"
@@ -770,12 +835,12 @@
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "U.S. CENSUS · Kalawao CountyReal boundary and water. Streets and places aren't mapped yet.Open Riverside"
+          "detail": "U.S. CENSUS · Kalawao CountyReal boundary, water, and town names. Streets and buildings aren't mapped yet.Open Riverside"
         },
         {
           "id": "county_board_controls",
           "level": "pass",
-          "detail": "unavailable place, pin, and note controls are hidden"
+          "detail": "town-anchor navigator present; pin and note controls hidden until selection"
         },
         {
           "id": "county_board_framing",
@@ -785,17 +850,17 @@
         {
           "id": "rebuild_ms_ceiling",
           "level": "pass",
-          "detail": "rebuild=3.7ms; ceiling=350ms"
+          "detail": "rebuild=7.1ms; ceiling=350ms"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1; expand button toggles display-mode inline->fullscreen->inline"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=37; ceiling=1600"
+          "detail": "graphics=42; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -805,7 +870,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (183.67,471.98) -> (-55.01,337.72); rebuilds=5 @ 2.3/s, fired=4, deferred=17"
+          "detail": "world moved (183.67,471.98) -> (-55.09,337.68); rebuilds=5 @ 2.3/s, fired=4, deferred=19"
         },
         {
           "id": "touch_pinch",
@@ -827,7 +892,7 @@
     }
   ],
   "summary": {
-    "pass": 138,
+    "pass": 151,
     "warn": 0,
     "fail": 0
   },

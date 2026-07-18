@@ -487,6 +487,13 @@ export type CityWorldScene = {
   actors: CityWorldActor[];
   ambient: CityWorldAmbient;
   hudDefaults: CityWorldHudDefaults;
+  /**
+   * Optional per-scene renderer backdrop (hex like "#8a9a63"). Scenes that
+   * need their silhouette to separate from the off-board void — the census
+   * county board — set both themes; every other scene omits it and the
+   * renderer keeps its host-theme background.
+   */
+  boardBackdrop?: { light: string; dark: string };
 };
 
 export type CityWorldSessionState = {
