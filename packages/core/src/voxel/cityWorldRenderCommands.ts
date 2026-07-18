@@ -2,6 +2,7 @@ import type {
   CityWorldActor,
   CityWorldBuilding,
   CityWorldCameraPreset,
+  CityWorldLodBand,
   CityWorldLot,
   CityWorldPin,
   CityWorldPlace,
@@ -47,6 +48,13 @@ export type CityWorldRenderCommand = {
   animated: boolean;
   spriteBacked: boolean;
   publicClutterRisk: boolean;
+  /**
+   * Zoom-band LOD tag (0.78-R / R4), propagated from the source item. Present
+   * only when the source carries one; absent means FAR (always rendered). The
+   * scene-window band filter reads this; nothing else in this pipeline branches
+   * on it, so untagged legacy scenes are byte-identical to before.
+   */
+  lodBand?: CityWorldLodBand;
 };
 
 export type CityWorldRenderLayerSummary = {
@@ -373,6 +381,11 @@ function renderCommand(
   budgetWeight: number,
   flags: Partial<Pick<CityWorldRenderCommand, "interactive" | "animated" | "spriteBacked" | "publicClutterRisk">> = {},
 ): CityWorldRenderCommand {
+  // Propagate the source's band tag when present. Only band-eligible source
+  // types (road/lot/building/prop) carry it; read structurally so the union of
+  // all source kinds stays valid. The key is included ONLY when defined, so an
+  // untagged command is the exact same object shape as before this feature.
+  const sourceLodBand = (source as { lodBand?: CityWorldLodBand }).lodBand;
   return {
     id: `${layerId}:${kind}:${source.id}`,
     layerId,
@@ -384,6 +397,7 @@ function renderCommand(
     animated: flags.animated ?? false,
     spriteBacked: flags.spriteBacked ?? Boolean("spriteKey" in source && source.spriteKey),
     publicClutterRisk: flags.publicClutterRisk ?? false,
+    ...(sourceLodBand !== undefined ? { lodBand: sourceLodBand } : {}),
   };
 }
 

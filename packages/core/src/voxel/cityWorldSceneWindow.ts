@@ -2,6 +2,8 @@ import type {
   CityWorldActor,
   CityWorldBuilding,
   CityWorldCameraPreset,
+  CityWorldChunkEpoch,
+  CityWorldLodBand,
   CityWorldLot,
   CityWorldPin,
   CityWorldPlace,
@@ -92,6 +94,17 @@ export type CityWorldSceneWindow = {
   frame: CityWorldViewportFrame;
   chunkSize: number;
   chunkIds: string[];
+  /**
+   * The band this window was filtered for (0.78-R). Present only when the caller
+   * supplied a `committedBand`; absent means no band filter was applied (legacy
+   * behavior — every command that touches the frame is visible).
+   */
+  committedBand?: CityWorldLodBand;
+  /**
+   * The pinned chunk manifest epoch (0.78-R2), passed through verbatim from the
+   * options so the renderer can reject stale commits. Present only when supplied.
+   */
+  chunkEpoch?: CityWorldChunkEpoch;
   visibleCommands: CityWorldRenderCommand[];
   layerCommandCounts: Record<CityWorldRenderLayerId, number>;
   metrics: {
@@ -141,6 +154,15 @@ export type CityWorldSceneWindowBudgetResult = {
 export type CityWorldSceneWindowOptions = CityWorldRenderCommandBufferOptions & {
   chunkSize?: number;
   viewportFrame?: CityWorldViewportFrame;
+  /**
+   * Committed zoom band (0.78-R) from the band controller. When set, only
+   * commands at or below this band render (a band shows its own layer plus
+   * everything beneath it; untagged commands are FAR and always render). When
+   * omitted, no band filter is applied — byte-identical to legacy behavior.
+   */
+  committedBand?: CityWorldLodBand;
+  /** Pinned chunk manifest epoch (0.78-R2), threaded to the result verbatim. */
+  chunkEpoch?: CityWorldChunkEpoch;
 };
 
 export const CITY_WORLD_SCENE_WINDOW_DEFAULT_CHUNK_SIZE = 8;
@@ -307,6 +329,7 @@ export function createCityWorldSceneWindowCompiler(
   windowFor: (
     cameraPresetOrId: CityWorldCameraPreset | CityWorldCameraPreset["id"],
     viewportFrame?: CityWorldViewportFrame,
+    bandOptions?: CityWorldSceneWindowBandOptions,
   ) => CityWorldSceneWindow;
   itemIndex: CityWorldSceneItemIndex;
 } {
@@ -315,16 +338,41 @@ export function createCityWorldSceneWindowCompiler(
   const itemIndex = buildCityWorldSceneItemIndex(scene);
   const chunkIndex = compileChunkIndexFromBuffer(scene, commandBuffer, itemIndex, chunkSize);
   const artifacts: SceneWindowArtifacts = { commandBuffer, itemIndex, chunkIndex, chunkSize };
+  // The command buffer + chunk index are band-INDEPENDENT (each command carries
+  // its own lodBand tag), so memoizing them is correct: the committed band is a
+  // per-call filter applied downstream in compileWindowFromArtifacts. Passing a
+  // different band on a later call re-runs the filter over the same artifacts —
+  // there is no window-result cache to go stale across bands.
   return {
-    windowFor: (cameraPresetOrId, viewportFrame) =>
+    windowFor: (cameraPresetOrId, viewportFrame, bandOptions) =>
       compileWindowFromArtifacts(
         scene,
         cameraPresetOrId,
-        viewportFrame ? { ...options, viewportFrame } : options,
+        mergeSceneWindowBandOptions(options, viewportFrame, bandOptions),
         artifacts,
       ),
     itemIndex,
   };
+}
+
+/** Per-call band inputs for a memoized compiler's `windowFor` (0.78-R). */
+export type CityWorldSceneWindowBandOptions = {
+  committedBand?: CityWorldLodBand;
+  chunkEpoch?: CityWorldChunkEpoch;
+};
+
+function mergeSceneWindowBandOptions(
+  base: CityWorldSceneWindowOptions,
+  viewportFrame: CityWorldViewportFrame | undefined,
+  bandOptions: CityWorldSceneWindowBandOptions | undefined,
+): CityWorldSceneWindowOptions {
+  // Per-call inputs override the compiler-level defaults; nothing is written as
+  // `undefined` (exactOptionalPropertyTypes) so an omitted band stays omitted.
+  const merged: CityWorldSceneWindowOptions = { ...base };
+  if (viewportFrame !== undefined) merged.viewportFrame = viewportFrame;
+  if (bandOptions?.committedBand !== undefined) merged.committedBand = bandOptions.committedBand;
+  if (bandOptions?.chunkEpoch !== undefined) merged.chunkEpoch = bandOptions.chunkEpoch;
+  return merged;
 }
 
 function compileWindowFromArtifacts(
@@ -342,7 +390,14 @@ function compileWindowFromArtifacts(
   }
 
   const frame = options.viewportFrame ?? cityWorldViewportFrameForCameraPreset(preset);
-  const visibleCommands = commandBuffer.commands.filter((command) => commandTouchesFrame(itemIndex, command, frame));
+  const committedBand = options.committedBand;
+  // Band filter (0.78-R): a command survives if it touches the frame AND its band
+  // is at or below the committed band. When committedBand is undefined the band
+  // predicate is a constant true, so the visible set is exactly the legacy
+  // frame-culled set — byte-identical to before this feature.
+  const visibleCommands = commandBuffer.commands.filter(
+    (command) => commandTouchesFrame(itemIndex, command, frame) && commandWithinBand(command, committedBand),
+  );
   const layerCommandCounts = emptyLayerCounts();
   let visibleBudgetWeight = 0;
   for (const command of visibleCommands) {
@@ -362,6 +417,8 @@ function compileWindowFromArtifacts(
     frame,
     chunkSize,
     chunkIds,
+    ...(committedBand !== undefined ? { committedBand } : {}),
+    ...(options.chunkEpoch !== undefined ? { chunkEpoch: options.chunkEpoch } : {}),
     visibleCommands,
     layerCommandCounts,
     metrics: {
@@ -557,6 +614,24 @@ function emptyLayerCounts(): Record<CityWorldRenderLayerId, number> {
     labels: 0,
     debug: 0,
   };
+}
+
+/**
+ * Band ordinal: far=0, mid=1, near=2. Untagged content (undefined) ranks as FAR,
+ * so it always survives the band filter — legacy scenes never disappear.
+ */
+export function cityWorldLodBandRank(band: CityWorldLodBand | undefined): number {
+  return band === "near" ? 2 : band === "mid" ? 1 : 0;
+}
+
+/**
+ * Does a command render at the committed band? A committed band shows its own
+ * layer plus everything below it, so a command survives when its band rank is at
+ * or below the committed rank. `committedBand === undefined` disables the filter.
+ */
+function commandWithinBand(command: CityWorldRenderCommand, committedBand: CityWorldLodBand | undefined): boolean {
+  if (committedBand === undefined) return true;
+  return cityWorldLodBandRank(command.lodBand) <= cityWorldLodBandRank(committedBand);
 }
 
 function framesTouch(first: CityWorldViewportFrame, second: CityWorldViewportFrame): boolean {

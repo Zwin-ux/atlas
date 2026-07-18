@@ -8,6 +8,25 @@ export type CityWorldPoint = {
 
 export type CityWorldDetailLevel = "low" | "medium" | "high";
 
+/**
+ * Zoom-band LOD tag (0.78-R / R4). A render command (via its source item) may be
+ * tagged with the band at which it first appears. Bands are additive and ordered
+ * `far < mid < near`: a committed band renders its own layer plus everything
+ * below it (the one-new-information-class-per-band rule from
+ * `.gstack/plan-zoom-band-lod.md`). Untagged content is treated as FAR, so legacy
+ * scenes (no tags) render in full at every band and never disappear. Optional and
+ * additive: absent everywhere until the L1a class-to-band compiler populates it.
+ */
+export type CityWorldLodBand = "far" | "mid" | "near";
+
+/**
+ * Pinned chunk manifest epoch (0.78-R2). Threaded through the scene-window result
+ * verbatim so the renderer can reject stale commits; the scene-window path itself
+ * applies no logic to it (pure pass-through). Structurally identical to the band
+ * controller's ManifestEpoch, so a pinned epoch is assignable without coupling.
+ */
+export type CityWorldChunkEpoch = { schemaVersion: string; packHash: string };
+
 export type CityWorldRoofShape = "gable" | "hip" | "flat" | "sawtooth" | "tower";
 
 export type CityWorldFacadeStyle =
@@ -343,6 +362,7 @@ export type CityWorldRoadSegment = {
   paletteKey?: string;
   detailLevel?: CityWorldDetailLevel;
   visualGrammar?: CityWorldVisualGrammar;
+  lodBand?: CityWorldLodBand;
 };
 
 export type CityWorldLotKind = "home" | "shop" | "park" | "gym" | "apartments" | "civic" | "waterfront";
@@ -359,6 +379,7 @@ export type CityWorldLot = {
   paletteKey?: string;
   detailLevel?: CityWorldDetailLevel;
   visualGrammar?: CityWorldVisualGrammar;
+  lodBand?: CityWorldLodBand;
 };
 
 export type CityWorldBuildingKind = "home" | "shop" | "gym" | "apartment" | "civic";
@@ -381,6 +402,7 @@ export type CityWorldBuilding = {
   detailLevel?: CityWorldDetailLevel;
   visualGrammar?: CityWorldVisualGrammar;
   objectKit?: CityWorldObjectKitMetadata;
+  lodBand?: CityWorldLodBand;
 };
 
 export type CityWorldPropKind =
@@ -406,6 +428,7 @@ export type CityWorldProp = {
   spriteKey?: string;
   paletteKey?: string;
   detailLevel?: CityWorldDetailLevel;
+  lodBand?: CityWorldLodBand;
 };
 
 export type CityWorldPlace = {
