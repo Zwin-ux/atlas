@@ -1,0 +1,69 @@
+# 0.75S Gameplay Inventory
+
+Source scope: `web/src/*` at branch `codex/integrate-hosted-clawd-fable-058e`.
+
+## Findings
+
+| Severity | Finding | Evidence |
+|---|---|---|
+| polish | No help or `?` button exists in the playable widget. Cold users get no in-widget explanation of map gestures, pins/notes, shell honesty, or Hosted Clawd boundaries beyond scattered surface copy. | No `help` / `?` control in `web/src`; primary chrome is map controls, county switcher, tray, preview, Hosted Clawd tray. |
+| polish | `Generate a district` can look dead outside ChatGPT because it only sends host/model messages until a `render_voxel_county` tool result arrives. No local pending state mounts after tap. | `web/src/App.tsx:456-466`; `sendUserMessage` swallows missing host bridge at `web/src/bridge.ts:175-187`. |
+| polish | Scout panel `Preview 7-day campaign` can look dead outside ChatGPT for the same reason: it only asks the host/model to run the next tool. | `web/src/App.tsx:644-652`; `web/src/PreviewPanel.tsx:282-290`; `web/src/bridge.ts:175-187`. |
+| polish | Coverage recovery `Open Riverside` has no local fallback. In local preview, tapping it produces no visible feedback because it only emits a host message. | `web/src/CountyCoverageView.tsx:35-37`, `web/src/CountyCoverageView.tsx:101-103`; `web/src/bridge.ts:175-187`. |
+| polish | Generated mode disables place selection through a no-op handler. That is honest, but there is no explanatory tap feedback if the user tries the map before noticing the banner. | `web/src/CityWorldView.tsx:153-155`; banner copy at `web/src/CityWorldView.tsx:158-166`. |
+
+## Inventory
+
+| Selector / QA | Source | Interaction | User feedback path | Latency class | Dead-end risk |
+|---|---:|---|---|---|---|
+| `[data-qa='alpha-city-world']` | `web/src/CityWorldView.tsx:134-145` | Main playable map surface; carries selected place, pin count, note count, session boundary, camera preset, generated state. | React root attributes update; Pixi renderer draws scene; selected tray mirrors state. | Initial scene rebuild, then overlay/transform for most interactions. | Low; always has selected-place tray unless preview/generated/save sheet hides it. |
+| Pixi canvas pointer tap on place | `web/src/CityWorldRenderer.tsx:643-647`, `web/src/App.tsx:515-529` | Selects the hit-tested place if the pointer did not move. | Selected tray label/description changes; focus overlay redraws; `updateModelContext` posts optional host context. | Sub-frame overlay redraw, no full scene rebuild. | Low for hit places; empty map taps have no visible feedback. |
+| Pixi canvas hover | `web/src/CityWorldRenderer.tsx:627-632`, `web/src/CityWorldRenderer.tsx:717-755` | Tracks hovered hit place while not dragging. | Hover focus overlay/label redraws; base scene is not rebuilt. | Sub-frame overlay redraw. | Low on desktop; no mobile hover equivalent. |
+| Pan drag | `web/src/CityWorldRenderer.tsx:601-642` | Drags camera x/y after pointer movement. | World transform updates through scheduled camera apply; no tray change. | Transform-only / sub-frame. | Low; no reset problem because center button exists. |
+| Wheel zoom | `web/src/CityWorldRenderer.tsx:597-600`, `web/src/CityWorldRenderer.tsx:757-770` | Zooms in/out around current camera. | World transform updates; may refresh scene window if material-detail threshold changes. | Transform-only, occasional rebuild near texture threshold. | Low. |
+| Pinch zoom | `web/src/CityWorldRenderer.tsx:610-624` | Two-pointer pinch changes zoom. | World transform updates; same threshold behavior as wheel. | Transform-only, occasional rebuild. | Low. |
+| `[data-qa='map-zoom-controls']` | `web/src/MapChrome.tsx:15-28` | Zoom/recenter cluster. | Calls imperative renderer handle. | Transform-only for zoom; center animates/applies camera. | Low. |
+| `[data-qa='zoom-in-button']` | `web/src/MapChrome.tsx:18-20`, `web/src/CityWorldRenderer.tsx:41-45` | Zooms in. | Camera zoom changes; canvas redraws. | Transform-only, occasional rebuild. | Low. |
+| `[data-qa='center-map-button']` | `web/src/MapChrome.tsx:21-23`, `web/src/CityWorldRenderer.tsx:41-45` | Recenters map. | Camera returns to scene preset framing. | Transform-only / camera apply. | Low. |
+| `[data-qa='zoom-out-button']` | `web/src/MapChrome.tsx:24-26`, `web/src/CityWorldRenderer.tsx:41-45` | Zooms out. | Camera zoom changes; canvas redraws. | Transform-only, occasional rebuild. | Low. |
+| `[data-qa='current-city-map']` | `web/src/CityWorldView.tsx:169-173` | Read-only current county/district label. | Shows county and district. | Static. | None. |
+| `[data-qa='county-switcher']` | `web/src/CountySwitcher.tsx:22-30` | County coverage nav container. | Expanded CSS class toggles from summary chip. | React-only. | Low. |
+| `[data-qa='county-switch-riverside-ca']` | `web/src/CountySwitcher.tsx:31-45`, `web/src/App.tsx:437-454` | Switches back to playable Riverside/Eastvale. | Playable `CityWorldView` remounts, selected place resets, optional model context update. | Scene rebuild / React surface switch. | Low. |
+| `[data-qa='county-switch-orange-ca']` | `web/src/CountySwitcher.tsx:31-45`, `web/src/App.tsx:381-388` | Switches to Orange County shell. | `CountyCoverageView` mounts with shell scene/tray. | Scene rebuild / React surface switch. | Low. |
+| `[data-qa='county-switch-made-up-ca']` | `web/src/CountySwitcher.tsx:31-45`, `web/src/App.tsx:381-388` | Switches to unsupported county state. | `CountyCoverageView` mounts with fallback map and unsupported tray. | React surface switch, no canvas. | Low; recovery is host-message only. |
+| `[data-qa='county-switcher-summary']` | `web/src/CountySwitcher.tsx:47-56` | Expands/collapses coverage chip/options state. | `aria-expanded` and `is-expanded` class change. | React-only. | Low. |
+| `[data-qa='generate-district-button']` | `web/src/App.tsx:456-493` | Requests generated draft for active shell county, default Orange. | Optional model context + `ui/message`; generated scene appears only after tool result injection/host callback. | Network/model/tool round trip. | Finding: no local pending feedback if host/model is absent or slow. |
+| `[data-qa='generated-boundary']` | `web/src/CityWorldView.tsx:158-163` | Read-only generated honesty banner. | Shows `GENERATED PREVIEW` and `Generated district. Not real coverage. Nothing is saved.` | Static after tool result. | Low; good honesty copy. |
+| `[data-qa='exit-generated']` | `web/src/CityWorldView.tsx:164-166`, `web/src/App.tsx:468-485` | Exits generated preview. | Returns to Riverside/Eastvale, resets selected place, updates optional model context. | Scene rebuild / React surface switch. | Low. |
+| `[data-qa='sticker-tools']` | `web/src/CityWorldView.tsx:180-208` | Sticker toolbar container. | `data-qa-sticker-mode` and active button class update. | React-only until pin drop. | Low. |
+| `[data-qa='sticker-mode-favorite']` / `home` / `shop` / `park` / `idea` / `question` | `web/src/CityWorldView.tsx:181-196`, `web/src/App.tsx:677` | Chooses the sticker kind. | Button `aria-pressed`, active styling, toolbar `data-qa-sticker-mode`. | React-only. | Low. |
+| `[data-qa='drop-sticker-button']` | `web/src/CityWorldView.tsx:197-207`, `web/src/CityWorldView.tsx:128-132`, `web/src/App.tsx:531-545` | Drops selected sticker/pin onto active place. | Pin count increments; selected-place pins row can appear; compiled scene includes new pin. | Scene rebuild because stickers enter `compileCityWorldScene`. | Low; disabled when no active place. |
+| `[data-qa='selected-place-tray']` | `web/src/CityWorldView.tsx:221-230` | Place tray surface. | Label, description, pulse, pin/note counts, session boundary, note input. | React-only plus overlay selection. | Low. |
+| `[data-qa='selected-place-label']` | `web/src/CityWorldView.tsx:231-239` | Read-only selected place label. | Text changes after place tap. | React-only / overlay redraw. | None. |
+| `[data-qa='pin-count']`, `[data-qa='note-count']`, `[data-qa='selected-place-pin-count']` | `web/src/CityWorldView.tsx:241-250` | Read-only collection counters. | Counts update after pin/note save. | React-only. | None. |
+| `[data-qa='session-only-boundary']` | `web/src/CityWorldView.tsx:252-254` | Read-only persistence warning. | Shows `Pins and notes stay in this chat.` | Static. | None. |
+| `[data-qa='hosted-clawd-open']` | `web/src/CityWorldView.tsx:255-259`, `web/src/App.tsx:562-570` | Opens Save with ChatGPT / Hosted Clawd sheet. | `HostedClawdTray` mounts; optional model context update. | React panel mount. | Low. |
+| `[data-qa='note-input']` | `web/src/CityWorldView.tsx:266-274`, `web/src/App.tsx:679` | Types a session note for the active place. | Input value updates; save button enables once non-empty. | React-only. | Low; disabled without active place. |
+| `[data-qa='save-note-button']` | `web/src/CityWorldView.tsx:275-277`, `web/src/CityWorldView.tsx:123-126`, `web/src/App.tsx:547-560` | Saves note into session widget state. | Note count increments; latest note appears; input clears; scene recompiles with note pin. | Scene rebuild. | Low; disabled for empty draft/no place. |
+| `[data-qa='latest-note']` | `web/src/CityWorldView.tsx:261-264` | Read-only latest note feedback. | Shows latest note body for active place. | React-only. | None. |
+| `[data-qa='selected-place-pins']` | `web/src/CityWorldView.tsx:279-285` | Read-only pin feedback for active place. | Shows last four pin glyphs. | React-only. | None. |
+| `[data-qa='preview-panel'][data-qa-preview-kind='scout']` | `web/src/PreviewPanel.tsx:31-43` | Scout report panel after `preview_scout_drop`. | Panel mounts over map with summary, offer, signals, route, risks, channels, next moves. | Tool-result injection / panel mount. | Low once tool result arrives. |
+| Scout/campaign collapsible section triggers | `web/src/PreviewPanel.tsx:232-241` | Expands/collapses route, plan, assets sections. | Radix collapsible content opens/closes. | React-only. | Low; no `data-qa` on triggers. |
+| `[data-qa='preview-advance']` in scout panel | `web/src/PreviewPanel.tsx:275-290`, `web/src/App.tsx:644-652` | `Preview 7-day campaign`. | Sends `ui/message` asking model to run campaign tool. | Network/model/tool round trip. | Finding: no local pending feedback outside host. |
+| `[data-qa='preview-panel'][data-qa-preview-kind='campaign']` | `web/src/PreviewPanel.tsx:116-128` | Campaign preview panel after `preview_campaign_engine`. | Panel mounts with offer, 7-day plan, assets, guardrails. | Tool-result injection / panel mount. | Low once tool result arrives. |
+| `[data-qa='preview-advance']` in campaign panel | `web/src/PreviewPanel.tsx:186-187`, `web/src/App.tsx:644-647` | `Save options`. | Opens Hosted Clawd sheet. | React panel mount. | Low. |
+| `[data-qa='preview-session-boundary']` | `web/src/PreviewPanel.tsx:275-280` | Read-only preview boundary. | Shows `Session preview. Nothing is saved, sent, or scheduled.` | Static. | None. |
+| `[data-qa='county-coverage-shell']` | `web/src/CountyCoverageView.tsx:39-50` | Coverage shell/unsupported surface. | React surface shows coverage tier, playable count, place count, boundary. | React surface switch; shell can include scene rebuild. | Low. |
+| `[data-qa='coverage-status-tray']` | `web/src/CountyCoverageView.tsx:67-79` | Read-only coverage status. | Shows coverage label and message. | Static after county switch/tool result. | None. |
+| `[data-qa='coverage-recovery-action']` | `web/src/CountyCoverageView.tsx:101-103`, `web/src/CountyCoverageView.tsx:35-37` | `Open Riverside` recovery from shell/unsupported. | Sends `ui/message` only. | Network/model/tool round trip. | Finding: local preview has no visible fallback. |
+| `[data-qa='hosted-clawd-tray']` | `web/src/HostedClawdTray.tsx:37-54` | Hosted Clawd save sheet surface. | Collapsed/expanded sheet, status, mode, paid-write data attributes. | React panel mount. | Low. |
+| Hosted Clawd peek button | `web/src/HostedClawdTray.tsx:55-67` | Expands/collapses save sheet body. | `data-qa-sheet-state`, dialog/region role, focus changes. | React-only. | Low. |
+| `[data-qa='hosted-clawd-primary-action']` | `web/src/HostedClawdTray.tsx:68-76`, `web/src/App.tsx:580-641` | Runs current Hosted Clawd primary action. In planned/waitlist state this is `join_waitlist`. | POST/GET to Hosted Clawd endpoint; `hosted-clawd-action-message` shows server message or fallback. | Network. | Low visible feedback if endpoint responds; catch fallback says saving is not live. |
+| Hosted Clawd close button | `web/src/HostedClawdTray.tsx:77-79`, `web/src/App.tsx:572-578` | Closes save sheet. | Tray unmounts, selected-place tray returns. | React-only. | Low. |
+| Hosted Clawd collapse button | `web/src/HostedClawdTray.tsx:89-100` | Collapses expanded save sheet. | Body unmounts; focus returns to peek button. | React-only. | Low. |
+| Hosted Clawd Escape key | `web/src/HostedClawdTray.tsx:26-35` | Escape collapses expanded sheet or closes collapsed sheet. | Sheet state changes or tray closes. | React-only. | Low. |
+| `[data-qa='hosted-clawd-save-strip']` and save slots | `web/src/HostedClawdTray.tsx:107-125` | Read-only save readiness strip. | Shows business/location/scout/campaign readiness. | Static/React-only. | None. |
+| `[data-qa='hosted-clawd-saved-shelf']` | `web/src/HostedClawdTray.tsx:127-152`, `web/src/HostedClawdTray.tsx:263-335` | Read-only saved-state shelf when server context has saved state. | Shows saved items or empty row. | Network result then React mount. | None. |
+| `[data-qa='hosted-clawd-action-message']` | `web/src/HostedClawdTray.tsx:172-181` | Read-only primary-action feedback. | `role=status` / `aria-live=polite` message appears. | Network result then React-only. | None. |
+| Help / `?` button | No source | Expected by packet, but absent. | None. | None. | Finding: missing. |
+
