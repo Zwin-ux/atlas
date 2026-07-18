@@ -84,10 +84,14 @@ const PLUGIN_SUBMISSION_RELEASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1"
 // prior plugin-submission head; head = the deployed release commit; the
 // implementation head is the town-anchor envelope commit.
 const TOWN_ANCHOR_RELEASE_BASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1";
-const TOWN_ANCHOR_RELEASE_HEAD_SHA = "89f72300e74f42a0b5b182bd3ce433d0e396940f";
+// Release candidate head: the certified envelope awaiting the next deploy
+// (0.78-2A + N3 copy + mobile place-sheet fix).
+const TOWN_ANCHOR_RELEASE_HEAD_SHA = "621a075246481ff0eb88aff05325d55979af5775";
+// Deployed head: what production actually runs until the next owner deploy.
+const TOWN_ANCHOR_DEPLOYED_SHA = "89f72300e74f42a0b5b182bd3ce433d0e396940f";
 const TOWN_ANCHOR_IMPLEMENTATION_SHA = "331c8cf5f5290e135271b1984334f2f9e03701c1";
 const TOWN_ANCHOR_RAILWAY_DEPLOYMENT = "0c0394f9-807e-42ef-a187-3dc99e8f6e07";
-const TOWN_ANCHOR_RELEASE_PATH_COUNT = 78;
+const TOWN_ANCHOR_RELEASE_PATH_COUNT = 80;
 const PLUGIN_SUBMISSION_RAILWAY_DEPLOYMENT = "b4683672-40fb-40c0-aa5e-1b78e3ac8d23";
 const EXPECTED_TOOLS = [
   "select_county",
@@ -1331,7 +1335,7 @@ function checkPluginSubmissionCurrentUpdate(update) {
   }
   if (
     update.deployment?.status !== "production_green" ||
-    update.deployment?.sha !== TOWN_ANCHOR_RELEASE_HEAD_SHA ||
+    update.deployment?.sha !== TOWN_ANCHOR_DEPLOYED_SHA ||
     update.deployment?.implementationSha !== TOWN_ANCHOR_IMPLEMENTATION_SHA ||
     update.deployment?.railwayDeploymentId !== TOWN_ANCHOR_RAILWAY_DEPLOYMENT ||
     update.deployment?.releaseGatesPassed !== 14 ||

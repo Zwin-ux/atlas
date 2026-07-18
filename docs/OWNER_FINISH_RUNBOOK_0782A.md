@@ -11,8 +11,12 @@ The hardened worker answers `/health` and `/ready` on `$PORT` itself, so the
 old healthcheck crash-loop cannot recur. Run:
 
 ```
-powershell -ExecutionPolicy Bypass -Command "Set-Location 'C:/Users/mzwin/Documents/atlas-deploy-worktree'; $env:ATLAS_DEPLOY_WORKER='1'; ./scripts/release-deploy.ps1 -ExpectedSha 89f72300e74f42a0b5b182bd3ce433d0e396940f -ExpectedUpdateId postalpha-0.78-1v-chatgpt-plugin-submission-rc"
+powershell -ExecutionPolicy Bypass -Command "Set-Location 'C:/Users/mzwin/Documents/atlas-deploy-worktree'; $env:ATLAS_DEPLOY_WORKER='1'; ./scripts/release-deploy.ps1 -ExpectedSha (git rev-parse HEAD) -ExpectedUpdateId postalpha-0.78-1v-chatgpt-plugin-submission-rc"
 ```
+
+The worktree is kept at the certified release head (the SHA is computed
+inline). This deploy also ships the N3-era docs and the mobile place-sheet
+tap fix alongside the worker.
 
 Expect: backend redeploy SUCCESS (same SHA), worker deploy SUCCESS, release
 gate 14/14, sanity 3/3. Then confirm worker readiness in Railway logs

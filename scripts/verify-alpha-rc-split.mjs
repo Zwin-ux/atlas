@@ -426,6 +426,7 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "artifacts/ops/production-railway-stack.json",
   // 0.78-2A National Town Anchors envelope
   "artifacts/council/CODEX_RESULT_0782A.md",
+  "docs/OWNER_FINISH_RUNBOOK_0782A.md",
   "artifacts/emulator/perf-report.json",
   "artifacts/visual-score/REPORT.md",
   "artifacts/visual-score/report.json",
