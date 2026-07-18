@@ -10,12 +10,14 @@ Local canonical candidate:
 `C:/Users/mzwin/Documents/Atlas` on `codex/integrate-hosted-clawd-fable-058e`.
 
 Deploy status:
-Production is green at exact SHA `70167356abfe746d0b2257b4211bc9c8d2ff1de3`
-via Railway deployment `232c69ee-63de-47d0-bb7c-257d9ca0c422`. The release
-gate passed 14/14 and the public sanity sweep passed 3/3. The worker stayed
-skipped behind its healthcheck safety guard. Real-ChatGPT G8 is still pending.
+Production is green at exact SHA `89f72300e74f42a0b5b182bd3ce433d0e396940f`
+(0.78-2A National Town Anchors) via Railway deployment
+`0c0394f9-807e-42ef-a187-3dc99e8f6e07` on 2026-07-17. The release gate
+passed 14/14 and the public sanity sweep passed 3/3. The worker stayed
+skipped behind its healthcheck safety guard. Real-ChatGPT G8 and the portal
+domain token are still pending.
 
-Local candidate status (not deployed):
+Deployed candidate (was local-only until 2026-07-17):
 `postalpha-0.78-2-real-town-anchors` covers all 3,222 supported counties with
 13,797 real 2024 Census place anchors. Generated previews show and answer from
 those names while explicitly treating streets/buildings as generated. The

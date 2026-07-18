@@ -10,7 +10,7 @@
   "decision": "PLUGIN_SUBMISSION_PACKET_CERTIFIED_DEPLOY_PENDING",
   "releaseCandidate": {
     "baseSha": "6320e577c648d367ffb46fe97c65d4bf84843fa1",
-    "headSha": "331c8cf5f5290e135271b1984334f2f9e03701c1",
+    "headSha": "89f72300e74f42a0b5b182bd3ce433d0e396940f",
     "pathCount": 78,
     "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html"
   },
@@ -116,10 +116,10 @@
   ],
   "deployment": {
     "status": "production_green",
-    "completedAt": "2026-07-15T18:49:58-07:00",
-    "sha": "6320e577c648d367ffb46fe97c65d4bf84843fa1",
-    "implementationSha": "8bf5a4e139393d7ff208b058e32c6122dd70bb83",
-    "railwayDeploymentId": "b4683672-40fb-40c0-aa5e-1b78e3ac8d23",
+    "completedAt": "2026-07-17T20:26:00-07:00",
+    "sha": "89f72300e74f42a0b5b182bd3ce433d0e396940f",
+    "implementationSha": "331c8cf5f5290e135271b1984334f2f9e03701c1",
+    "railwayDeploymentId": "0c0394f9-807e-42ef-a187-3dc99e8f6e07",
     "service": "atlas-backend",
     "publicBaseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
     "releaseGatesPassed": 14,

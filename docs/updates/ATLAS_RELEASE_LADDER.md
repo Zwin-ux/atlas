@@ -15,9 +15,10 @@ Engineering promise: 3,222/3,222 counties retain at least one real anchor,
 all generated specs stay under the 10,000-character wire ceiling, town answers
 carry a Census source class, and Redis worker failure recovery is release-gated.
 
-Status: local candidate, not deployed. Human deployment, worker Railway
-healthcheck, real-ChatGPT G8, portal domain verification, identity/permission
-checks, and submission remain open.
+Status: PRODUCTION GREEN 2026-07-17. Deployed SHA `89f7230`
+(Railway `0c0394f9-807e-42ef-a187-3dc99e8f6e07`); release gate 14/14,
+public sanity 3/3. Worker Railway healthcheck, real-ChatGPT G8, portal
+domain verification, identity/permission checks, and submission remain open.
 
 ### Post-Alpha 0.78-1V - Census County Board Product + Certification Gate
 

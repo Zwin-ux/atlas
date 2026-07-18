@@ -9901,3 +9901,26 @@ drift verifier gained matching `TOWN_ANCHOR_RELEASE_*` constants while the
 the post-deploy record pass. Release deploy revalidates
 `6320e57..<deploy HEAD>` against the 78-path pin with the strict split guard
 at deploy time.
+
+## Entry 099
+
+**0.78-2A PRODUCTION RELEASE - green, 2026-07-17, owner-executed.** Atlas
+County Scout now serves real Census town anchors for all 3,222 supported
+counties from production. Deployed SHA `89f7230` (envelope `331c8cf` +
+certify `58c27d0` + preflight-order fix), Railway deployment
+`0c0394f9-807e-42ef-a187-3dc99e8f6e07`, service `atlas-backend`. Preflight:
+core build, worker lifecycle + Redis `maxclients` handshake regressions 3/3,
+national anchor contract 19/19 checks (max spec 8,616/10,000 chars,
+`toa-baja-municipio-pr` worst; Homestead anchor + Census source class + 
+generated-layout boundary all proven). Release gate 14/14 (exact seven-tool
+set, generated draft spec 6,553 chars on the wire, upgrade options closed,
+stats counted all seven tools). Public sanity 3/3. Worker lane skipped by
+safety guard (Railway healthcheck override still pending).
+
+One deploy-lane defect found and fixed during release: the worker preflight
+tests import `@atlas/core` from `dist`, but ran BEFORE `pnpm build:core` —
+green on a warm checkout, red on a fresh worktree. Core now builds first
+(`89f7230`).
+
+Remaining human gates: portal domain token + verification, real-ChatGPT G8
+web/mobile battery, publisher checks, submission.
