@@ -80,6 +80,7 @@ import {
   validateOriginHeader,
 } from "./security.js";
 import { loadCountyTownAnchorIndex, townAnchorsForCounty } from "./countyTownAnchorIndex.js";
+import { createCountyGeoPackLoader, serveCountyGeoPack } from "./countyGeoPack.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-0781v.html";
@@ -106,27 +107,10 @@ const countyTownAnchorIndex = loadCountyTownAnchorIndex(
 // Real-geography county boards: TIGER geo packs (boundary + water) baked to
 // data/geo-packs. Loaded on demand and cached (negatives too — most counties
 // aren't baked yet, so a miss returns null and the widget keeps the preview).
+// The slug guard + negative-cache live in the shared countyGeoPack helper so
+// the read-only /geo-pack route reuses the exact same loading path (D2-0).
 const GEO_PACKS_DIR = resolve(ROOT_DIR, "data", "geo-packs");
-const countyGeoPackCache = new Map<string, unknown | null>();
-function loadCountyGeoPack(slug: string | undefined): unknown | null {
-  if (!slug || !/^[a-z0-9-]+$/.test(slug)) return null; // guard path traversal
-  const cached = countyGeoPackCache.get(slug);
-  if (cached !== undefined) return cached;
-  let pack: unknown | null = null;
-  try {
-    const packPath = resolve(GEO_PACKS_DIR, `${slug}.json`);
-    if (existsSync(packPath)) {
-      const parsed = JSON.parse(readFileSync(packPath, "utf8")) as { lod0?: { boundaryRings?: unknown } };
-      if (parsed?.lod0 && Array.isArray(parsed.lod0.boundaryRings) && parsed.lod0.boundaryRings.length > 0) {
-        pack = parsed;
-      }
-    }
-  } catch {
-    pack = null;
-  }
-  countyGeoPackCache.set(slug, pack);
-  return pack;
-}
+const loadCountyGeoPack = createCountyGeoPackLoader(GEO_PACKS_DIR);
 const worldService = createNationalWorldService([riversideDemoVoxelScene]);
 const scenePacketRuntimeConfig = readScenePacketRuntimeConfig(process.env);
 if (scenePacketRuntimeConfig.production && scenePacketRuntimeConfig.blockers.length > 0) {
@@ -203,6 +187,11 @@ const WORLD_LOOKUP_RATE_LIMIT = 30;
 const HOSTED_CLAWD_WRITE_RATE_LIMIT = 20;
 const GENERATED_DRAFT_RATE_LIMIT = 20;
 const MCP_EXPENSIVE_TOOL_RATE_LIMIT = 120;
+// Own bucket for the read-only /geo-pack route. This is a direct static route
+// that bypasses the MCP tool-call limiter, so it needs its own throttle to keep
+// a scraper from enumerating counties and pulling the whole baked set (plan
+// decision #46). Generous enough for a widget fetching a handful of packs.
+const GEO_PACK_RATE_LIMIT = 120;
 const HOSTED_CLAWD_WRITE_PATHS = new Set([
   "/api/hosted-clawd/create-or-attach",
   "/api/hosted-clawd/promote-session",
@@ -3833,6 +3822,24 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && handleWorldRoute(url, res)) {
+    return;
+  }
+
+  // Read-only geo-pack route (D2-0): serves the same baked pack that
+  // select_county attaches inline via _meta.countyGeoPack, but as a real
+  // fetchable resource so packs travel off the widget wire format. Public,
+  // no auth (same class of read-only geographic data as the packs themselves);
+  // slug reuses the shared guard and gets its own rate-limit bucket.
+  const geoPackMatch = url.pathname.match(/^\/geo-pack\/([^/]+)$/);
+  if (geoPackMatch && req.method === "GET") {
+    if (!(await enforceRateLimit(req, res, "geo_pack", GEO_PACK_RATE_LIMIT))) return;
+    const slug = geoPackMatch[1];
+    const status = serveCountyGeoPack(res, slug, loadCountyGeoPack);
+    if (status === 400) {
+      // A slug reaching this route that fails the guard is a client bug or a
+      // traversal probe, never a normal miss — loud-log it.
+      logBackendEvent("geo_pack_route_bad_slug", { requestId, slug: String(slug).slice(0, 64) });
+    }
     return;
   }
 
