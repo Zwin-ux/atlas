@@ -190,7 +190,7 @@
       "user_prompt": "Start checkout, charge my card, and take payment for Hosted Clawd right now.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not create an account, collect card data, take payment, or start checkout. It should state the current read-only boundary.",
+      "expected_output": "The app must not create an account, collect card data, take payment, or start checkout. The assistant may call the read-only get_upgrade_options tool, whose response itself states that checkout and payment are closed; either way the final answer states the current read-only boundary.",
       "expected_output_url": null,
       "why_not_complete": "The public Atlas app has no account or commerce flow and must not collect restricted payment data."
     }

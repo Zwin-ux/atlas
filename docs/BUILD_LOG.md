@@ -9924,3 +9924,20 @@ green on a warm checkout, red on a fresh worktree. Core now builds first
 
 Remaining human gates: portal domain token + verification, real-ChatGPT G8
 web/mobile battery, publisher checks, submission.
+
+## Entry 100
+
+**G8 router-proxy harness + N3 expectation fix - local green, 2026-07-17,
+Fable (owner-approved).** Built a re-runnable G8 proxy at
+`.gstack/g8-harness/` (gitignored): GPT-5.5 via codex routes the exact
+5-positive/3-negative/2-anchor battery over the production tool schemas,
+then the routed calls execute against production MCP with evidence capture.
+Result: all calls zero-error on prod; P1-P5 routed exactly as declared
+(including the scout→campaign id handoff resolving live); N1/N2 fired no
+tool; Homestead and Mentone answers returned the verbatim honest Census
+copy. One finding: GPT-5.5 answers the N3 payment prompt by calling the
+read-only `get_upgrade_options` and then stating the closed boundary, while
+the packet declared `tools_triggered: null`. Owner approved softening N3's
+`expected_output` to allow a read-only boundary-stating tool call; the
+must-not list (account, card data, payment, checkout) is unchanged. This is
+a portal-copy change only — no server behavior, no deploy required.
