@@ -24,10 +24,13 @@ import { US_COUNTY_INDEX } from "../packages/core/dist/index.js";
 const COUNTY_LAYER = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/11/query";
 const WATER_LAYER = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Hydro/MapServer/1/query"; // Areal Hydrography
 const OUT_DIR = "data/geo-packs";
-const VERTEX_BUDGET = 480; // per county, post-simplification (LOD0 silhouette)
-const WATER_FEATURE_CAP = 18; // rank the county's water bodies by area, keep the biggest N
-const WATER_VERTEX_BUDGET = 280; // total water vertices in LOD0 (bay/ocean/big lakes, not every canal)
-const WATER_MAX_RINGS = 12; // distinct water polygons kept after simplification
+// 0.78-D2 density budgets: 3x the seed values so the finer board lattice has
+// real geometry to trace. Pack sizes roughly double (~30KB max) — still cheap
+// on the wire and in git.
+const VERTEX_BUDGET = 1440; // per county, post-simplification (LOD0 silhouette)
+const WATER_FEATURE_CAP = 28; // rank the county's water bodies by area, keep the biggest N
+const WATER_VERTEX_BUDGET = 840; // total water vertices in LOD0 (bay/ocean/big lakes, not every canal)
+const WATER_MAX_RINGS = 18; // distinct water polygons kept after simplification
 const CHALLENGE = [
   "riverside-ca", "miami-dade-fl", "mobile-al", "loving-tx", "kalawao-hi",
   "summit-co", "cook-il", "sedgwick-ks", "honolulu-hi", "king-wa",
@@ -162,7 +165,7 @@ function simplifyRingsToBudget(rings, budget, maxRings) {
 }
 
 function simplifyToBudget(rings) {
-  return simplifyRingsToBudget(rings, VERTEX_BUDGET, 6);
+  return simplifyRingsToBudget(rings, VERTEX_BUDGET, 10);
 }
 
 function bboxOfRings(rings) {

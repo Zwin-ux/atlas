@@ -12,12 +12,15 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { US_COUNTY_INDEX } from "../packages/core/dist/index.js";
 
 const PACK_DIR = "data/geo-packs";
-const SIZE_WARN_BYTES = 12_288; // WIRE doc target: LOD0 < 12KB
-const SIZE_FAIL_BYTES = 24_576;
-const VERTEX_BUDGET = 480;
-const WATER_VERTEX_BUDGET = 280;
-const WATER_MAX_RINGS = 12;
-const LAND_MAX_RINGS = 6;
+// 0.78-D2 density budgets (3x the seed values; supersedes the WIRE <12KB
+// seed target — the density decision trades pack bytes for silhouette
+// fidelity while staying trivially cheap on the wire).
+const SIZE_WARN_BYTES = 28_672;
+const SIZE_FAIL_BYTES = 57_344;
+const VERTEX_BUDGET = 1440;
+const WATER_VERTEX_BUDGET = 840;
+const WATER_MAX_RINGS = 18;
+const LAND_MAX_RINGS = 10;
 // Simplification keeps only the largest rings and rounds vertices, so the
 // polygon area drifts from the official figure. This is an order-of-magnitude
 // corruption guard, not a survey check.

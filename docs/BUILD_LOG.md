@@ -10037,3 +10037,49 @@ anchors with correct diacritics), Door County WI (Green Bay peninsula
 against Lake Michigan, Sister Bay/Sturgeon Bay), Kalawao and Miami-Dade
 unchanged from their approved reads. Everything stays behind
 `?atlasGeoBoard=1`; default-on remains an owner gate.
+
+## Entry 106
+
+**0.78-D2 density groundwork - local green, 2026-07-18, Fable.** Owner
+judged the LOD0 boards radically under scale (correct: ~480 vertices and a
+~23-tile-wide lattice per county). Density experiments at 2.2x and 1.57x
+the projected span produced real coastline fidelity (Biscayne keys read as
+islands at 1,233-2,459 tiles, rebuilds still trivially inside ceilings) but
+the DEFAULT frame regressed: tiles read fine-grained instead of chunky and
+the lower fitted zoom fell below the anchor-label gate. Verdict: density's
+payoff belongs to zoom-in and the LOD1 real-roads era, not the default
+view. Banked without regressing the approved look: pack vertex budgets
+tripled (land 1440/10 rings, water 840/18 — richer source geometry at any
+span; verifier budgets in lockstep, size lines 28KB warn / 56KB fail),
+camera zoom floors unlocked (desktop 0.28, mobile 0.24) so users can pull
+back, `options.targetSpanPx` documented as the LOD1-era density lever, and
+the default span restored to the owner-approved 560. National re-bake at
+the rich budgets running detached; the uniform pack refresh lands as its
+own envelope. Also this entry: a session-hygiene lesson — hours of
+leaked orphan tsx servers and harness Chromium starved the box to 1GB free
+RAM and made 5-second builds hang for minutes; the cleanup recipe is kill
+orphan `tsx server/src/index.ts` processes, `browse stop`, and prefer
+detached `Start-Process` servers over harness background tasks that leak
+children when killed. 166/166 core tests green at the restored default.
+
+## Entry 106
+
+**DEVPOST BUILD WEEK SUBMISSION PACKET - prepared, 2026-07-18, Codex.**
+Replaced the weak working title and generic pitch with the repo-backed
+`Atlas County Scout` positioning. Added a complete Devpost copy packet,
+Work & Productivity track choice, project story, built-with list, judge test
+instructions, exact private-repo handoff, GPT-5.6/Codex collaboration answer,
+Build Week before/after boundary, and a timed 2:40 demo script. Added the
+required README disclosure for an existing project meaningfully extended
+during the submission period. Captured a product-native 1200x800 (3:2)
+thumbnail at `artifacts/devpost/atlas-devpost-thumbnail-1200x800.png`.
+
+Evidence: 23 commits after the July 13 submission boundary; main GPT-5.6
+Codex session `019f687a-82d3-7df0-ac27-5b7ca38b099c`; key national-anchor
+commit `331c8cf`; plugin-contract commit `8bf5a4e`; production release
+`b4eea1c`; national geography commit `b724a54`. No runtime, tool, deployment,
+feature flag, persistence, billing, or public geography gate changed.
+
+Still human/external: public YouTube video, private-repo sharing to both
+judging addresses, Devpost field entry, real ChatGPT web/mobile acceptance,
+and final submission.

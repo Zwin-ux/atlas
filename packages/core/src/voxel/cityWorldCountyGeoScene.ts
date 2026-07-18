@@ -51,6 +51,14 @@ export type CompileCountyGeoSceneOptions = {
   townAnchors?: CountyTownAnchor[];
 };
 
+// The default span stays at the owner-approved presentation (560): density
+// experiments at 880/1232 (0.78-D2) bought real coastline fidelity but made
+// tiles read fine-grained and dropped the default frame below the label
+// zoom-gate — the wrong trade at the DEFAULT view. The density levers stay
+// available: packs now carry 3x vertex budgets (rich source geometry for any
+// span), zoom floors are unlocked below, and `options.targetSpanPx` lets the
+// LOD1 era raise density when real roads/places give the fine tiles meaning.
+// Measured headroom for that era: 40/1600 Graphics, 6.2ms/350ms rebuilds.
 const DEFAULT_TARGET_SPAN_PX = 560;
 const DEFAULT_SAMPLE_PX = CITY_WORLD_TILE_BASIS.tileWidth / 2; // one land tile per iso cell
 const DESKTOP_BOARD_TARGET_WIDTH_PX = 1120;
@@ -384,16 +392,18 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
   // as a dot lost in green). Clamped so a big county still fits.
   const projectedWidth = Math.max(1, projectedBounds.maxX - projectedBounds.minX);
   const projectedHeight = Math.max(1, projectedBounds.maxY - projectedBounds.minY);
+  // Zoom floors dropped with the denser lattice (bigger projected span at
+  // the same on-screen size needs smaller zooms to fit the frame).
   const desktopZoom = round3(
-    Math.min(1.5, Math.max(0.4, Math.min(DESKTOP_BOARD_TARGET_WIDTH_PX / projectedWidth, DESKTOP_BOARD_TARGET_HEIGHT_PX / projectedHeight))),
+    Math.min(1.5, Math.max(0.28, Math.min(DESKTOP_BOARD_TARGET_WIDTH_PX / projectedWidth, DESKTOP_BOARD_TARGET_HEIGHT_PX / projectedHeight))),
   );
   const mobileZoom = round3(
-    Math.min(1.3, Math.max(0.35, Math.min(MOBILE_BOARD_TARGET_WIDTH_PX / projectedWidth, MOBILE_BOARD_TARGET_HEIGHT_PX / projectedHeight))),
+    Math.min(1.3, Math.max(0.24, Math.min(MOBILE_BOARD_TARGET_WIDTH_PX / projectedWidth, MOBILE_BOARD_TARGET_HEIGHT_PX / projectedHeight))),
   );
 
   const cameraPresets: CityWorldCameraPreset[] = [
-    { id: "desktop", center, zoom: desktopZoom, minZoom: 0.4, maxZoom: 2.2 },
-    { id: "mobile", center, zoom: mobileZoom, minZoom: 0.35, maxZoom: 2.2 },
+    { id: "desktop", center, zoom: desktopZoom, minZoom: 0.28, maxZoom: 2.2 },
+    { id: "mobile", center, zoom: mobileZoom, minZoom: 0.24, maxZoom: 2.2 },
   ];
 
   const bounds: CityWorldBounds = {
