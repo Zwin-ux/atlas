@@ -80,8 +80,12 @@ const CENSUS_BOARD_APPROVAL_EVIDENCE = "artifacts/council/OWNER_APPROVAL_0781V_2
 const PLUGIN_SUBMISSION_SELECTED_AXIS = "chatgpt_plugin_submission_readiness";
 const PLUGIN_SUBMISSION_IMPLEMENTATION_SHA = "8bf5a4e139393d7ff208b058e32c6122dd70bb83";
 const PLUGIN_SUBMISSION_RELEASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1";
+// 0.78-2A National Town Anchors release candidate (certified, deploy pending):
+// base = the deployed plugin-submission head, head = the town-anchor envelope.
+const TOWN_ANCHOR_RELEASE_BASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1";
+const TOWN_ANCHOR_RELEASE_HEAD_SHA = "331c8cf5f5290e135271b1984334f2f9e03701c1";
+const TOWN_ANCHOR_RELEASE_PATH_COUNT = 78;
 const PLUGIN_SUBMISSION_RAILWAY_DEPLOYMENT = "b4683672-40fb-40c0-aa5e-1b78e3ac8d23";
-const PLUGIN_SUBMISSION_PATH_COUNT = 58;
 const EXPECTED_TOOLS = [
   "select_county",
   "ask_county_question",
@@ -1250,12 +1254,12 @@ function checkPluginSubmissionCurrentUpdate(update) {
 
   const release = update.releaseCandidate;
   if (
-    release?.baseSha !== "0e94a6ce9d4ed362c03d2286696919b9cd6836bf" ||
-    release?.headSha !== PLUGIN_SUBMISSION_RELEASE_SHA ||
-    release?.pathCount !== PLUGIN_SUBMISSION_PATH_COUNT ||
+    release?.baseSha !== TOWN_ANCHOR_RELEASE_BASE_SHA ||
+    release?.headSha !== TOWN_ANCHOR_RELEASE_HEAD_SHA ||
+    release?.pathCount !== TOWN_ANCHOR_RELEASE_PATH_COUNT ||
     release?.widgetResourceUri !== "ui://widget/atlas-city-world-0781v.html"
   ) {
-    blockers.push("Plugin submission must record the reviewed base, deployed release SHA, 58-path envelope, and versioned widget resource URI.");
+    blockers.push("Plugin submission must record the 0.78-2A town-anchor release base/head, 78-path envelope, and versioned widget resource URI.");
   }
 
   const plugin = update.metricResult?.pluginSubmission;

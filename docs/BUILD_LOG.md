@@ -9887,3 +9887,17 @@ Envelope discipline: staged explicitly (never `-A`); sibling 0.75R files
 envelope (anchor code/data/tests/scripts, this packet's proof artifacts, and
 the audit-root evidence prefix) — additive per-packet maintenance, not a
 loosening; the staged strict run must report 0 blockers / 0 unknowns.
+
+## Entry 098
+
+**0.78-2A release-range certification - local green, 2026-07-17, Fable.**
+Advanced the release governance contract for the town-anchor envelope, using
+the same certify/record pattern as 0.78-1V: `artifacts/current-update.json`
+`releaseCandidate` now records base `6320e57` (the deployed plugin-submission
+head; prod truth per its `deployment` block, which is unchanged), head
+`331c8cf` (the town-anchor envelope), and the measured 78-path range. The
+drift verifier gained matching `TOWN_ANCHOR_RELEASE_*` constants while the
+`deployment.sha` check stays pinned to the actually-deployed `6320e57` until
+the post-deploy record pass. Release deploy revalidates
+`6320e57..<deploy HEAD>` against the 78-path pin with the strict split guard
+at deploy time.

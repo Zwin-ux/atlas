@@ -9,9 +9,9 @@
   "recommendedNextQuest": "0.78-2 Real Town Anchors after real-host G8",
   "decision": "PLUGIN_SUBMISSION_PACKET_CERTIFIED_DEPLOY_PENDING",
   "releaseCandidate": {
-    "baseSha": "0e94a6ce9d4ed362c03d2286696919b9cd6836bf",
-    "headSha": "6320e577c648d367ffb46fe97c65d4bf84843fa1",
-    "pathCount": 58,
+    "baseSha": "6320e577c648d367ffb46fe97c65d4bf84843fa1",
+    "headSha": "331c8cf5f5290e135271b1984334f2f9e03701c1",
+    "pathCount": 78,
     "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html"
   },
   "metricResult": {
