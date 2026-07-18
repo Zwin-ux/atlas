@@ -362,6 +362,19 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "docs/legal/PRIVACY.md",
   "docs/legal/SUPPORT.md",
   "docs/legal/TERMS.md",
+  // 0.78-R: zoom-band LOD groundwork (program of record: Linear
+  // "Atlas - Real Geography at Scale"; roadchunk codec + band controller
+  // tests, D2-0 shared geo-pack helper + route test).
+  "packages/core/test/road-chunk-codec.test.ts",
+  "packages/core/test/city-world-band-controller.test.ts",
+  "packages/core/src/voxel/roadChunkCodec.ts",
+  "packages/core/src/voxel/cityWorldBandController.ts",
+  "docs/0.78R_WIRE_CONTRACT.md",
+  "docs/0.78R_ROAD_ART_CONTRACT.md",
+  "docs/0.78R_MOBILE_UX_A11Y.md",
+  "docs/0.78R_PRODUCT_METRICS.md",
+  "server/src/countyGeoPack.ts",
+  "server/test/geo-pack-route.test.ts",
   "docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md",
   "docs/SCENE_PACKET_SERVICE_BOUNDARY_0.71H.md",
   "docs/TOOL_CONTRACTS.md",
