@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+﻿import { existsSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import process from "node:process";
 
@@ -126,14 +126,14 @@ try {
   let splitGuardOutput;
   if (currentUpdate.id === expectedCurrentUpdateId || currentUpdate.status === "production_green_real_host_g8_pending") {
     if (!baseSha || !headSha) throw new Error("Release verification requires currentUpdate.releaseCandidate baseSha and headSha.");
-    splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..${headSha}`], { encoding: "utf8" });
+    splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..${headSha}`], { encoding: "utf8", maxBuffer: 128 * 1024 * 1024 });
     splitGuard = JSON.parse(splitGuardOutput);
   } else {
-    splitGuardOutput = execFileSync("node", baseArgs, { encoding: "utf8" });
+    splitGuardOutput = execFileSync("node", baseArgs, { encoding: "utf8", maxBuffer: 128 * 1024 * 1024 });
     splitGuard = JSON.parse(splitGuardOutput);
     if (splitGuard.fileCount === 0) {
       if (!baseSha) throw new Error("Clean release verification requires currentUpdate.releaseCandidate.baseSha.");
-      splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..HEAD`], { encoding: "utf8" });
+      splitGuardOutput = execFileSync("node", [...baseArgs, "--git-range", `${baseSha}..HEAD`], { encoding: "utf8", maxBuffer: 128 * 1024 * 1024 });
       splitGuard = JSON.parse(splitGuardOutput);
     }
   }

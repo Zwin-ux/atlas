@@ -19,7 +19,7 @@ const UPDATE_PATH = "artifacts/current-update.json";
 const DRIFT_PATH = "scripts/verify-atlas-source-of-truth-drift.mjs";
 
 function git(args) {
-  return execFileSync("git", args, { encoding: "utf8" }).trim();
+  return execFileSync("git", args, { encoding: "utf8", maxBuffer: 128 * 1024 * 1024 }).trim();
 }
 
 const argv = process.argv.slice(2);
@@ -65,7 +65,11 @@ const gates = [
 let failed = false;
 for (const [name, args] of gates) {
   try {
-    execFileSync("node", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("node", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 128 * 1024 * 1024,
+    });
     console.log(`PASS ${name}`);
   } catch (error) {
     failed = true;

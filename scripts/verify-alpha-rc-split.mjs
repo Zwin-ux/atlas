@@ -1344,5 +1344,8 @@ function runGit(args) {
     cwd: process.cwd(),
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    // Data-heavy ranges (national geo packs, per-county road chunks) push
+    // name-only diffs past the 1MB execFileSync default.
+    maxBuffer: 128 * 1024 * 1024,
   });
 }
