@@ -1,0 +1,1 @@
+{"basisId":"atlas-county-equirect-v1","schemaVersion":"roadchunk/1","geoid":"04001","packHash":"sha256-2615bc7f7b870a98e08ed650c733d5e60e94e04f0edf5bdcec174ec846b7ca7f","chunkId":"c-5_71","band":"near","cellRect":[-102400,1454080,-81920,1474560],"features":[{"featureId":"eb4ef9bbb5bd1956","roadClass":"S1400","start":[-99755,1458150],"delta":[5289,1002]}]}
