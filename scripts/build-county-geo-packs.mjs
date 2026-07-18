@@ -9,6 +9,7 @@
 //
 //   node scripts/build-county-geo-packs.mjs --county miami-dade-fl ...
 //   node scripts/build-county-geo-packs.mjs --challenge   (16-county set)
+//   node scripts/build-county-geo-packs.mjs --adversarial6 (6-county gate set)
 //
 // Validated endpoint (2026-07-12):
 //   County polygons: TIGERweb/State_County/MapServer/11/query
@@ -37,15 +38,24 @@ const CHALLENGE = [
   "maricopa-az", "teton-wy", "orleans-parish-la", "suffolk-ma",
   "aleutians-east-borough-ak", "apache-az",
 ];
+// Adversarial 6-county gate: dense metro / sparse rural / huge western /
+// water-heavy / suburban grid / northeastern dense — program of record
+// .gstack/plan-zoom-band-lod.md.
+const ADVERSARIAL6 = [
+  "miami-dade-fl", "loving-tx", "apache-az", "orleans-parish-la",
+  "sedgwick-ks", "suffolk-ma",
+];
 
 function parseArgs(argv) {
   const counties = [];
   let challenge = false;
+  let adversarial6 = false;
   let all = false;
   let skipExisting = false;
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--county") counties.push(argv[++i]);
     else if (argv[i] === "--challenge") challenge = true;
+    else if (argv[i] === "--adversarial6") adversarial6 = true;
     else if (argv[i] === "--all") all = true;
     else if (argv[i] === "--skip-existing") skipExisting = true;
     else throw new Error(`Unknown argument: ${argv[i]}`);
@@ -54,7 +64,9 @@ function parseArgs(argv) {
     ? US_COUNTY_INDEX.map((entry) => entry.countySlug)
     : challenge
       ? CHALLENGE
-      : counties;
+      : adversarial6
+        ? ADVERSARIAL6
+        : counties;
   return { counties: selected, skipExisting };
 }
 
@@ -313,7 +325,7 @@ async function bakeCounty(slug) {
 
 const { counties, skipExisting } = parseArgs(process.argv.slice(2));
 if (counties.length === 0) {
-  console.error("Pass --county <slug> (repeatable), --challenge, or --all [--skip-existing]");
+  console.error("Pass --county <slug> (repeatable), --challenge, --adversarial6, or --all [--skip-existing]");
   process.exit(1);
 }
 const FAILURES_PATH = `${OUT_DIR}/_failures.json`;
