@@ -175,8 +175,12 @@ if (process.argv.includes("--self-test")) {
   process.exit(0);
 }
 
+const opsToken = process.env.ATLAS_OPS_TOKEN?.trim();
+
 async function getJson(path) {
-  const response = await fetch(`${baseUrl}${path}`);
+  // Ops endpoints require the operator token in production when configured.
+  const headers = opsToken && path.startsWith("/api/ops/") ? { "x-atlas-ops-token": opsToken } : undefined;
+  const response = await fetch(`${baseUrl}${path}`, headers ? { headers } : undefined);
   return { status: response.status, body: response.status === 404 ? null : await response.json().catch(() => null) };
 }
 

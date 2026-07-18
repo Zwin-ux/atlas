@@ -15,8 +15,18 @@ powershell -ExecutionPolicy Bypass -Command "Set-Location 'C:/Users/mzwin/Docume
 ```
 
 The worktree is kept at the certified release head (the SHA is computed
-inline). This deploy also ships the N3-era docs and the mobile place-sheet
-tap fix alongside the worker.
+inline). This deploy also ships the mobile place-sheet tap fix and the
+public ops-surface trim alongside the worker.
+
+Before running it, set the ops token (new, required for the release gate's
+stats check against the trimmed prod):
+
+```
+railway variables --set ATLAS_OPS_TOKEN=<generate a long random string> --service atlas-backend --skip-deploys
+$env:ATLAS_OPS_TOKEN='<same string>'   # in the shell that runs release-deploy
+```
+
+Rollback, if a deploy ever goes wrong: `git -C C:/Users/mzwin/Documents/atlas-deploy-worktree checkout --detach <last-good-sha>` then re-run the deploy command (Railway redeploys that SHA).
 
 Expect: backend redeploy SUCCESS (same SHA), worker deploy SUCCESS, release
 gate 14/14, sanity 3/3. Then confirm worker readiness in Railway logs

@@ -28,7 +28,14 @@ test("maxclients handshake errors reject cleanly and a later attempt uses a fres
     assert.notEqual(error.name, "TypeError");
     return true;
   });
-  assert.ok(Date.now() - firstStartedAt < 3_000, "first failure should be bounded");
+  // Guards against an UNBOUNDED hang (the original regression: connect()
+  // never settling). Boundedness is proven by the ATTEMPT count — the
+  // reconnect strategy caps at 3 connections — because wall clock is
+  // machine-dependent (cold module import + Windows socket teardown have
+  // measured 2s-17s for the same bounded cycle). The generous time ceiling
+  // only exists so a genuine hang still fails instead of blocking forever.
+  assert.ok(connections >= 1 && connections <= 3, `first failure should be bounded to the retry cap (saw ${connections} connections)`);
+  assert.ok(Date.now() - firstStartedAt < 60_000, "first failure must not hang");
   const firstConnectionCount = connections;
 
   await assert.rejects(connector.client(), (error: unknown) => {

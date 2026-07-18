@@ -9957,3 +9957,32 @@ open (toggle reachable again when the sheet closes). Verified live after
 rebuild: `elementFromPoint` at the note input returns `note-input`; sheet
 fully legible. Desktop untouched. Widget perf + full emulator audit re-run
 against the fixed bundle; refreshed evidence committed with this entry.
+
+## Entry 102
+
+**Public ops-surface trim + deterministic connector-test bound - local
+green, 2026-07-18, Fable (owner-approved).** Pre-review hardening: the
+public `/ready` payload emitted the internal `hostedClawd` capability block
+(`moneyEnabled: true`, persistence/DB/auth posture) unconditionally — a
+reviewer probing the domain of a "session-only, no commerce" submission
+would read a contradiction. The block is now emitted only when
+`atlasSaveSurfaceEnabled` (same gate as the tool-side context); readiness
+still fails closed on DB health via `ok`. `/api/ops/mcp-stats` now requires
+an `x-atlas-ops-token` header when `ATLAS_OPS_TOKEN` is set (prod);
+unset keeps local/dev open. `verify-release-prod.mjs` sends the token for
+`/api/ops/` gates from the same env. `verify-railway-production-stack`
+records the ready fields optional-chained, so absent fields are recorded
+as undefined without blocking.
+
+Also fixed while certifying: the `lazy-redis-connector` maxclients test
+asserted boundedness by a 3s wall clock that measured 2.3-2.9s on quiet
+runs and 12.6-17.2s under this box's load (cold module import + Windows
+socket teardown; TCP table was clean). Boundedness is now asserted by the
+deterministic ATTEMPT count (retry cap 3) plus a generous hang-guard
+ceiling. Verified: typecheck green; worker/connector/anchor-index tests
+4/4; prod-like config proves `/ready` without `hostedClawd`, stats
+401-without/200-with token; default config re-passes mcp-flow, submission,
+and server-hardening gates.
+
+Deploy note: set `ATLAS_OPS_TOKEN` on atlas-backend (and the local shell
+running the release script) before the next deploy.

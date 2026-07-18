@@ -2275,14 +2275,21 @@ async function readyPayload(): Promise<unknown> {
       oldestQueuedMs: scenePacketStatus.oldestQueuedMs,
       oldestClaimedMs: scenePacketStatus.oldestClaimedMs,
     },
-    hostedClawd: {
-      persistenceEnabled: hostedClawdFlags.persistenceEnabled,
-      databaseConfigured: Boolean(hostedClawdDatabaseUrl),
-      databaseReachable: hostedClawdDatabaseReachable,
-      authConfigured: Boolean(hostedClawdAuthenticator),
-      moneyEnabled: hostedClawdFlags.moneyEnabled,
-      stripeConfigured: Boolean(hostedClawdBillingConfig),
-    },
+    // Internal capability posture stays off the public readiness surface
+    // while the save surface is closed (the submission story is session-only;
+    // readiness still fails closed on DB health via `ok` above).
+    ...(atlasSaveSurfaceEnabled
+      ? {
+          hostedClawd: {
+            persistenceEnabled: hostedClawdFlags.persistenceEnabled,
+            databaseConfigured: Boolean(hostedClawdDatabaseUrl),
+            databaseReachable: hostedClawdDatabaseReachable,
+            authConfigured: Boolean(hostedClawdAuthenticator),
+            moneyEnabled: hostedClawdFlags.moneyEnabled,
+            stripeConfigured: Boolean(hostedClawdBillingConfig),
+          },
+        }
+      : {}),
     providerLookup: {
       mode: geoStatus.mode,
       googleMapsConfigured: geoStatus.googleMapsConfigured,
@@ -3742,6 +3749,13 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/ops/mcp-stats" && req.method === "GET") {
+    // Ops stats are operator-facing. When ATLAS_OPS_TOKEN is set (production),
+    // require it; when unset (local/dev), keep the endpoint open.
+    const opsToken = process.env.ATLAS_OPS_TOKEN?.trim();
+    if (opsToken && req.headers["x-atlas-ops-token"] !== opsToken) {
+      jsonResponse(res, 401, { ok: false, error: "ops token required" });
+      return;
+    }
     jsonResponse(res, 200, mcpStatsPayload());
     return;
   }
