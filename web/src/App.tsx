@@ -532,11 +532,14 @@ function isGeneratedParametricSpecValue(value: unknown): boolean {
 }
 
 function isDeterministicGeneratedDistrictSpec(value: unknown): value is DeterministicGeneratedDistrictSpec {
+  const hasTownAnchors = isRecord(value) && Array.isArray(value.townAnchors) && value.townAnchors.length > 0 && value.townAnchors.every(isTownAnchorValue);
   return Boolean(
     isRecord(value) &&
       value.type === "deterministicGeneratedDistrictSpec" &&
       value.update === DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID &&
-      value.sourceBasis === "census_identity_only" &&
+      (value.sourceBasis === "census_identity_only" || value.sourceBasis === "census_identity_and_town_anchors") &&
+      (value.sourceBasis !== "census_identity_and_town_anchors" ||
+        (value.townAnchorUpdate === "postalpha-0.78-2-real-town-anchors" && hasTownAnchors)) &&
       value.providerGeometry === false &&
       value.publicPlayable === false &&
       value.promotionBlocked === true &&
@@ -550,6 +553,19 @@ function isDeterministicGeneratedDistrictSpec(value: unknown): value is Determin
       typeof value.archetype === "string" &&
       generatedDraftArchetypes.has(value.archetype) &&
       isGeneratedParametricSpecValue(value.spec),
+  );
+}
+
+function isTownAnchorValue(value: unknown): boolean {
+  return Boolean(
+    isRecord(value) &&
+      hasString(value, "censusPlaceGeoid") &&
+      hasString(value, "label") &&
+      (value.kind === "incorporated_place" || value.kind === "census_designated_place" || value.kind === "county_subdivision") &&
+      hasNumber(value, "latitude") &&
+      hasNumber(value, "longitude") &&
+      (value.population2024 === undefined || typeof value.population2024 === "number") &&
+      (value.landAreaSquareMeters === undefined || typeof value.landAreaSquareMeters === "number"),
   );
 }
 
@@ -631,11 +647,11 @@ export function App() {
   const compiledCountyGeoScene = useMemo(() => {
     if (!rawCountyGeoPack) return null;
     try {
-      return compileCountyGeoScene(rawCountyGeoPack);
+      return compileCountyGeoScene(rawCountyGeoPack, { townAnchors: rawGeneratedDraftSpec?.townAnchors ?? [] });
     } catch {
       return null;
     }
-  }, [rawCountyGeoPack]);
+  }, [rawCountyGeoPack, rawGeneratedDraftSpec?.townAnchors]);
   // Respect the same dismissal channel as the generated draft, so the board's
   // "Full map" button (which dismisses this scene id and returns to Riverside)
   // actually leaves the board instead of it re-mounting from _meta.
@@ -776,7 +792,7 @@ export function App() {
       `Atlas requested a generated district preview for ${draftCountySlug}. It must stay in this chat and remain non-playable, provider-free, and not real local coverage.`,
     );
     void sendUserMessage(
-      `Open an Atlas generated district preview for ${draftCountySlug}. Keep it preview only: not real coverage, not playable, and not saved.`,
+      `Open an Atlas generated district preview for ${draftCountySlug} with includeGeneratedDraft true. Show the real Census town names, but keep streets and buildings clearly generated, preview only, not playable, and not saved.`,
     );
   };
 

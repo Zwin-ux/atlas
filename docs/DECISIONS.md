@@ -1,5 +1,25 @@
 # Decisions
 
+## Decision 107: Submit the focused session-only County Scout
+
+The first submission target is Atlas County Scout, not every planned Atlas
+system. It keeps the seven-tool MCP surface, Riverside/Eastvale as the curated
+full map, and session-only Scout/campaign previews. Auth, saved-account work,
+billing, and Hosted Clawd are deferred.
+
+Every one of the 3,222 supported counties must still expose real U.S. Census
+town anchors. Those names may be placed on deterministic preview layouts, but
+streets, buildings, businesses, and local coverage must remain explicitly
+generated or unverified. Exact county geometry is used only where a certified
+pack exists.
+
+Decision id:
+`SUBMIT_FOCUSED_SESSION_ONLY_COUNTY_SCOUT_WITH_NATIONAL_TOWN_ANCHORS`.
+
+Human gates remain: clean deployment, Railway worker healthcheck, real-ChatGPT
+G8 on web/mobile, portal domain token, publisher identity/permissions, tool/CSP
+scan, and the submission action itself.
+
 ## Decision 106: Explore is the face; Clawd is the transformation
 
 Atlas opens as a tactile living atlas, not a business workflow or dashboard.

@@ -64,8 +64,9 @@ for (const token of [
 
 for (const token of [
   "switch to a US county",
-  "browse-only shells for indexed US counties",
-  "other indexed US slugs return honest coverage shells",
+  "other supported counties open as generated county studies with real U.S. Census town anchors",
+  "generated studies with real Census town anchors",
+  "COUNTY_TOWN_ANCHOR_UPDATE_ID",
 ]) {
   requireToken(serverSource, token, "server tool copy");
 }

@@ -204,8 +204,18 @@ Write-Host "  Railway:     project=$expectedProject environment=$expectedEnviron
 if ($env:ATLAS_DEPLOY_WORKER -eq "1") {
   Write-Host "  Worker:      enabled by ATLAS_DEPLOY_WORKER=1 serviceId=$($workerInstances[0].serviceId)" -ForegroundColor Yellow
 } else {
-  Write-Host "  Worker:      skipped by safety guard" -ForegroundColor Yellow
+  Write-Host "  Worker:      skipped unless ATLAS_DEPLOY_WORKER=1" -ForegroundColor Yellow
 }
+
+Write-Host "`nWorker lifecycle and Redis handshake regression..." -ForegroundColor Cyan
+pnpm exec tsx --test server/test/scene-packet-worker-lifecycle.test.ts server/test/lazy-redis-connector.test.ts
+if ($LASTEXITCODE -ne 0) { throw "Worker lifecycle or Redis handshake regression failed." }
+
+Write-Host "`nNational Census town-anchor contract..." -ForegroundColor Cyan
+pnpm build:core
+if ($LASTEXITCODE -ne 0) { throw "Core build failed before the town-anchor contract check." }
+node scripts/verify-county-town-anchors.mjs --json-only
+if ($LASTEXITCODE -ne 0) { throw "National Census town-anchor contract failed." }
 
 if ($PreflightOnly) {
   Write-Host "`nPREFLIGHT ONLY: no Railway deployment command was run." -ForegroundColor Green
@@ -217,11 +227,13 @@ railway up --service $backendService --environment $expectedEnvironment --detach
 if ($LASTEXITCODE -ne 0) { throw "Railway rejected the $backendService deployment request." }
 if (-not (Wait-Deployment $backendService)) { exit 1 }
 
-Write-Host "`n[2/4] Worker deploy SKIPPED - its inherited HTTP healthcheck crash-loops every deploy and the restart storm exhausts Redis connections (took down two release nights). Re-enable by removing this guard AFTER clearing the worker's Healthcheck Path in the Railway dashboard." -ForegroundColor Yellow
+Write-Host "`n[2/4] Worker deployment lane..." -ForegroundColor Cyan
 if ($env:ATLAS_DEPLOY_WORKER -eq "1") {
   railway up --service $workerService --environment $expectedEnvironment --detach
   if ($LASTEXITCODE -ne 0) { throw "Railway rejected the $workerService deployment request." }
   if (-not (Wait-Deployment $workerService)) { exit 1 }
+} else {
+  Write-Host "Worker deploy skipped. Set ATLAS_DEPLOY_WORKER=1 only for a certified worker-lifecycle release." -ForegroundColor Yellow
 }
 
 Write-Host "`n[3/4] Release gate (cold-start retries built in)..." -ForegroundColor Cyan

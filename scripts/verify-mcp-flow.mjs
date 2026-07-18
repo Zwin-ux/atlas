@@ -45,7 +45,7 @@ function assertNoInternalLanguage(text, label) {
 }
 
 function assertNoGeneratedPlaceJargon(text, label) {
-  assert(!/\b(alpha|tier|spec|generated|draft|archetype)\b/i.test(text), `${label} leaked generated-place jargon.`);
+  assert(!/\b(alpha|tier|spec|draft|archetype)\b/i.test(text), `${label} leaked generated-place jargon.`);
 }
 
 function assertLookupBoundaryText(text, label) {
@@ -133,12 +133,16 @@ try {
   assert(shellCounty.playableDistrictCount === 0, "Shell counties must not claim playable districts.");
   assert(/preview only/i.test(shellCountyText), "Preview county text must say preview only.");
   assert(/Riverside\/Eastvale is fully explorable today/i.test(shellCountyText), "Preview county text must point to the full map.");
-  assert(/does not add local places/i.test(shellCountyText), "Preview county text must block fake local places.");
+  assert(/does not add verified streets, buildings, businesses/i.test(shellCountyText), "Preview county text must block fake local coverage.");
+  assert(/Real Census town names are attached/i.test(shellCountyText), "Preview county text must disclose real Census town anchors.");
   assert(/saved work, XP, evidence, outreach, or automation/i.test(shellCountyText), "Preview county text must block saved/progression/outreach/automation claims.");
   assertNoForbiddenProductClaims(shellCountyText, "select_county shell county");
   assertNoInternalLanguage(shellCountyText, "select_county shell county");
   assert(!shellCountyResult._meta?.scene, "Shell county selection must not return a fake scene.");
   assert(!("coverageShellScene" in (shellCountyResult._meta ?? {})), "Shell county selection must not ship _meta.coverageShellScene.");
+  assert(shellCountyResult._meta?.generatedDraftSpec?.sourceBasis === "census_identity_and_town_anchors", "Shell county must carry the Census town-anchor spec by default.");
+  assert(shellCountyResult._meta?.generatedDraftSpec?.townAnchors?.some((anchor) => anchor.label === "Anaheim"), "Orange County preview must include a real Anaheim anchor.");
+  assert(shellCountyResult._meta?.generatedDraftPacket?.packet?.containsScene === true, "Shell county generated packet must contain the widget-only preview scene.");
   assert(typeof shellCounty.stateCode === "string" && shellCounty.stateCode.length === 2, "Shell county summary must include stateCode for widget-side shell compile.");
   const shellCountyPacket = assertScenePacketMeta(shellCountyResult, "shell_only", "select_county shell county");
   assert(shellCountyPacket.packet?.containsScene === false, "Shell county scenePacket must not contain scene payload.");
@@ -185,6 +189,12 @@ try {
       question: "Where is the civic square?",
       expectedLabel: "Civic square",
     },
+    {
+      countySlug: "miami-dade-fl",
+      question: "Where is Homestead?",
+      expectedLabel: "Homestead",
+      censusTown: true,
+    },
   ];
   const generatedQuestionSummaries = [];
   for (const sample of generatedPlaceQuestions) {
@@ -210,7 +220,13 @@ try {
       `${label} camera intent must focus a place or landmark.`,
     );
     assert(/Preview map answer/i.test(generatedQuestionText), `${label} text must identify preview map answer.`);
-    assert(/Tap it on the map/i.test(generatedQuestionText), `${label} text must tell the user to use the map.`);
+    if (sample.censusTown) {
+      assert(/real U\.S\. Census place name/i.test(generatedQuestionText), `${label} must identify the real Census place name.`);
+      assert(/generated, not verified local geography/i.test(generatedQuestionText), `${label} must preserve the generated-layout boundary.`);
+      assert(generatedQuestion.sourceNotes?.[0]?.sourceType === "us_census_tigerweb", `${label} must expose the Census source class.`);
+    } else {
+      assert(/Tap it on the map/i.test(generatedQuestionText), `${label} text must tell the user to use the map.`);
+    }
     assert(!generatedQuestionResult._meta?.scene, `${label} must not return a fake playable VoxelScene.`);
     assert(generatedQuestionResult._meta?.generatedDraftSpec, `${label} should carry the widget spec for the active preview scene.`);
     assert(generatedQuestionResult._meta?.generatedDraftPacket, `${label} should carry generated draft packet metadata.`);
@@ -239,12 +255,12 @@ try {
   assert(unsupportedCountyQuestion.type === "countyQuestionAnswer", "Unsupported county question returned wrong type.");
   assert(unsupportedCountyQuestion.supported === false, "Unsupported county/business question should be refused.");
   assert(/Preview boundary/i.test(unsupportedCountyQuestionText), "Unsupported generated county answer must identify the preview boundary.");
-  assert(/will not make local facts or business claims/i.test(unsupportedCountyQuestionText), "Unsupported generated county answer must refuse local/business claims.");
+  assert(/will not (?:invent streets, businesses, addresses, or local claims|make local facts or business claims)/i.test(unsupportedCountyQuestionText), "Unsupported generated county answer must refuse local/business claims.");
   assertNoForbiddenProductClaims(unsupportedCountyQuestionText, "ask_county_question unsupported");
   assertNoInternalLanguage(unsupportedCountyQuestionText, "ask_county_question unsupported");
   assertNoGeneratedPlaceJargon(unsupportedCountyQuestionText, "ask_county_question unsupported");
   assert(
-    /drawn place labels|business claims|unsupported/i.test(unsupportedCountyQuestion.answer),
+    /displayed Census place names|drawn place labels|business claims|unsupported/i.test(unsupportedCountyQuestion.answer),
     "Unsupported generated county/business answer should narrow scope clearly.",
   );
 
@@ -274,12 +290,13 @@ try {
   assert(shellRender.type === "countyCoverageSummary", "Shell county render must return coverage summary.");
   assert(shellRender.coverageTier === "L1_COUNTY_SHELL", "Shell county render should identify L1 coverage.");
   assert(/preview only/i.test(shellRenderText), "Preview render text must identify preview-only state.");
-  assert(/after the full map is built/i.test(shellRenderText), "Preview render text must require the full map.");
-  assert(/Open Riverside\/Eastvale/i.test(shellRenderText), "Shell render text must give the recovery path.");
+  assert(/Real Census town names are attached/i.test(shellRenderText), "Preview render text must disclose real Census town anchors.");
+  assert(/Open Riverside\/Eastvale for the fully explorable map/i.test(shellRenderText), "Shell render text must give the full-map path.");
   assertNoForbiddenProductClaims(shellRenderText, "render_voxel_county shell county");
   assertNoInternalLanguage(shellRenderText, "render_voxel_county shell county");
   assert(!shellRenderResult._meta?.scene, "Shell county render must not return a fake scene.");
   assert(!("coverageShellScene" in (shellRenderResult._meta ?? {})), "Shell county render must not ship _meta.coverageShellScene.");
+  assert(shellRenderResult._meta?.generatedDraftSpec?.sourceBasis === "census_identity_and_town_anchors", "Shell render must carry the Census town-anchor spec by default.");
   assert(typeof shellRender.stateCode === "string" && shellRender.stateCode.length === 2, "Shell render summary must include stateCode for widget-side shell compile.");
   const shellRenderPacket = assertScenePacketMeta(shellRenderResult, "shell_only", "render_voxel_county shell county");
   assert(shellRenderPacket.packet?.containsScene === false, "Shell county render scenePacket must not contain scene payload.");

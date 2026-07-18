@@ -424,10 +424,29 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "web/src/emulator/main.ts",
   "web/src/emulator/mockHost.ts",
   "artifacts/ops/production-railway-stack.json",
+  // 0.78-2A National Town Anchors envelope
+  "artifacts/council/CODEX_RESULT_0782A.md",
+  "artifacts/emulator/perf-report.json",
+  "artifacts/visual-score/REPORT.md",
+  "artifacts/visual-score/report.json",
+  "data/census/gaz2024.zip",
+  "data/census/us-county-town-anchors.json",
+  "docs/0.78_REAL_GEOGRAPHY.md",
+  "docs/NORTH_STARS.md",
+  "packages/core/src/world/countyTownAnchors.ts",
+  "packages/core/test/county-town-anchors.test.ts",
+  "scripts/build-county-town-anchors.mjs",
+  "scripts/verify-county-town-anchors.mjs",
+  "server/src/countyTownAnchorIndex.ts",
+  "server/test/county-town-anchor-index.test.ts",
+  "server/test/lazy-redis-connector.test.ts",
+  "server/test/scene-packet-worker-lifecycle.test.ts",
 ]);
 
 const NATIONAL_GENERATION_CONTRACT_PREFIXES = [
-  "artifacts/emulator/audit/0.78-1v/",
+  // Emulator audit report + screenshot evidence is canonical release proof
+  // wherever the matrix runs (0.78-2A moved it to the audit root).
+  "artifacts/emulator/audit/",
   "artifacts/national-generation/0.68h/",
   "artifacts/national-generation/0.69h/",
   "artifacts/national-generation/0.70h/",

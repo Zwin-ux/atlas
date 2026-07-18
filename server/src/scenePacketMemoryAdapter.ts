@@ -1024,7 +1024,9 @@ function redisDurableCacheKeyForJob(job: { id: string; enqueuedAtMs: number }): 
 
 export type LazyRedisClient = {
   isOpen?: boolean;
+  isReady?: boolean;
   connect(): Promise<unknown>;
+  destroy?(): void;
   ping(): Promise<string>;
   get(key: string): Promise<string | null>;
   set(key: string, value: string, options?: Record<string, unknown>): Promise<string | null>;
@@ -1052,13 +1054,19 @@ export function createLazyRedisConnector(url: string): LazyRedisConnector {
       const redis = await import("redis");
       const created = redis.createClient({
         url,
+        // RESP3 in node-redis 6.1 masks pre-handshake Redis errors (including
+        // maxclients) with an internal commands-queue TypeError. RESP2 keeps
+        // the real server error attached to connect(), where this connector
+        // can fail closed and retry with a fresh client.
+        RESP: 2,
         socket: {
           // No connectTimeout: node-redis v6 implements it with an abort
           // timer that THROWS UNCAUGHT when a slow (cold-container) connect
           // exceeds it — killed the second production deploy. Bounded
           // retries below still make connect() reject promptly on an
           // unreachable Redis (fail-open depends on that).
-          reconnectStrategy: (retries: number) => (retries >= 2 ? new Error("redis unreachable after 3 attempts") : Math.min(200 * (retries + 1), 600)),
+          reconnectStrategy: (retries: number, cause: Error) =>
+            retries >= 2 ? cause : Math.min(200 * (retries + 1), 600),
         },
       });
       // node-redis turns any socket/protocol error into a process-killing
@@ -1071,13 +1079,24 @@ export function createLazyRedisConnector(url: string): LazyRedisConnector {
       });
       client = created as unknown as LazyRedisClient;
     }
+    if (client.isOpen && client.isReady === false) {
+      throw new Error("Redis client is reconnecting and not ready for commands.");
+    }
     if (!client.isOpen) {
       // Reset on failure so a later call can retry a fresh connect instead
       // of awaiting a permanently rejected cached promise.
-      connectPromise ??= client.connect().then(
+      const connectingClient = client;
+      connectPromise ??= connectingClient.connect().then(
         () => undefined,
         (error) => {
           connectPromise = undefined;
+          if (client === connectingClient) client = undefined;
+          try {
+            connectingClient.destroy?.();
+          } catch {
+            // The socket may already be closed. The important invariant is
+            // that a failed client is never reused by a later readiness hit.
+          }
           throw error;
         },
       );

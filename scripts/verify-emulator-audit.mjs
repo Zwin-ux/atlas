@@ -468,8 +468,8 @@ async function runStructuralChecks(client, cell, cellSpec) {
         if (
           text.includes(expectedCounty) &&
           /u\.s\. census/i.test(text) &&
-          /real boundary and water/i.test(text) &&
-          /streets and places aren't mapped yet/i.test(text) &&
+          /real boundary, water, and town names/i.test(text) &&
+          /streets and buildings aren't mapped yet/i.test(text) &&
           /open riverside/i.test(text)
         ) {
           return { level: "pass", detail: compactText(text) };
@@ -478,7 +478,10 @@ async function runStructuralChecks(client, cell, cellSpec) {
       }
       if (!banner.generatedPresent) return { level: "fail", detail: "missing [data-qa='generated-boundary']" };
       const text = banner.generatedText ?? "";
-      if (/generated/i.test(text) && /not real coverage/i.test(text) && /stays in this chat/i.test(text)) {
+      // 0.78-2A: every supported county carries Census town anchors, so the
+      // generated banner must be the anchor form. A fallback to the legacy
+      // "not real coverage" copy means anchors were lost — that is a failure.
+      if (/real census town names/i.test(text) && /streets and buildings are generated/i.test(text)) {
         return { level: "pass", detail: compactText(text) };
       }
       return { level: "fail", detail: `unexpected copy: ${compactText(text)}` };
@@ -731,21 +734,25 @@ async function runTouchTargetChecks(client, cell) {
 
 async function runCtaRoundtripCheck(client, cell) {
   await addAsyncCheck(cell, "cta_roundtrip", async () => {
+    // 0.78-2A: selecting an uncovered county delivers a generated district
+    // with Census town anchors by default instead of the coverage shell, so
+    // the host tool delivery is already proven by the "delivered" check. The
+    // CTA contract here is the exit path: "Exit preview" must return the
+    // widget to the curated Riverside full map without a dead end.
     await evaluate(client, `(() => {
       const frame = document.querySelector("[data-qa='emulator-frame']");
       const doc = frame?.contentWindow?.document;
-      const button = doc?.querySelector("[data-qa='coverage-recovery-action']");
-      if (!button) throw new Error("missing [data-qa='coverage-recovery-action']");
+      const button = doc?.querySelector("[data-qa='exit-generated']");
+      if (!button) throw new Error("missing [data-qa='exit-generated']");
       button.click();
       return true;
     })()`);
     await waitFor(
       client,
       `(() => {
-        const h = window.__ATLAS_EMULATOR__;
         const doc = document.querySelector("[data-qa='emulator-frame']")?.contentWindow?.document;
         const label = doc?.querySelector("[data-qa='current-city-map']")?.textContent ?? "";
-        return h?.deliveries?.length >= 2 && /riverside/i.test(label);
+        return /riverside/i.test(label);
       })()`,
       20_000,
     );
@@ -757,7 +764,7 @@ async function runCtaRoundtripCheck(client, cell) {
         label: doc?.querySelector("[data-qa='current-city-map']")?.textContent?.replace(/\\s+/g, " ").trim() ?? "",
       };
     })()`);
-    return { level: "pass", detail: `deliveries=${state.deliveries}; current-city-map=${state.label}` };
+    return { level: "pass", detail: `deliveries=${state.deliveries}; exit-to=${state.label}` };
   });
 }
 

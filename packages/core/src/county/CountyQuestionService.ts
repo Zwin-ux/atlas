@@ -281,17 +281,20 @@ function generatedScenePlaceAnswer(input: GeneratedScenePlaceAnswerInput): Count
   }
 
   const placeKind = generatedPlaceKindLabel(target.place.kind);
+  const isCensusTownAnchor = isCensusTownPlace(target.place);
   return {
     type: "countyQuestionAnswer",
     countySlug: input.countySlug,
     question: input.question,
     supported: true,
     topic: "generated_place",
-    answer: `In this preview, ${target.place.label} is a ${placeKind} place. Tap it on the map.`,
+    answer: isCensusTownAnchor
+      ? `${target.place.label} is a real U.S. Census place name on this county preview. Atlas can focus it on the map; the surrounding streets and buildings are generated, not verified local geography.`
+      : `In this preview, ${target.place.label} is a ${placeKind} place. Tap it on the map.`,
     facts: [
       {
-        label: "Map label",
-        value: target.place.label,
+        label: isCensusTownAnchor ? "Census town anchor" : "Map label",
+        value: isCensusTownAnchor ? `${target.place.label}; official Census place center.` : target.place.label,
         sourceNodeIds: [target.place.nodeId],
       },
       {
@@ -300,8 +303,8 @@ function generatedScenePlaceAnswer(input: GeneratedScenePlaceAnswerInput): Count
         sourceNodeIds: [target.place.nodeId],
       },
     ],
-    sourceNotes: generatedSceneSourceNotes(input.countyLabel),
-    limitations: generatedSceneLimitations(),
+    sourceNotes: generatedSceneSourceNotes(input.countyLabel, isCensusTownAnchor),
+    limitations: generatedSceneLimitations(isCensusTownAnchor),
     suggestedNextTool: "select_county",
     targetNodeId: target.place.nodeId,
     targetPlaceId: target.place.id,
@@ -311,19 +314,24 @@ function generatedScenePlaceAnswer(input: GeneratedScenePlaceAnswerInput): Count
 }
 
 function unsupportedGeneratedSceneAnswer(input: GeneratedScenePlaceAnswerInput): CountyQuestionAnswer {
+  const hasCensusTownAnchors = input.scene.places.some(isCensusTownPlace);
   return unsupportedAnswer({
     countySlug: input.countySlug,
     question: input.question || "(empty question)",
     answer:
-      "Atlas cannot answer that from this preview. It only has drawn place labels and place types here, so it will not make local facts or business claims.",
+      hasCensusTownAnchors
+        ? "Atlas cannot answer that from this preview. It knows the displayed Census place names, but it will not invent streets, businesses, addresses, or local claims around them."
+        : "Atlas cannot answer that from this preview. It only has drawn place labels and place types here, so it will not make local facts or business claims.",
     facts: [
       {
         label: "Preview boundary",
-        value: "Ask where a visible map place is, such as a market, homes, civic place, park, riverfront, or tower.",
+        value: hasCensusTownAnchors
+          ? "Ask Atlas to locate one of the real town names shown on the county preview."
+          : "Ask where a visible map place is, such as a market, homes, civic place, park, riverfront, or tower.",
       },
     ],
-    sourceNotes: generatedSceneSourceNotes(input.countyLabel),
-    limitations: generatedSceneLimitations(),
+    sourceNotes: generatedSceneSourceNotes(input.countyLabel, hasCensusTownAnchors),
+    limitations: generatedSceneLimitations(hasCensusTownAnchors),
     suggestedNextTool: "select_county",
   });
 }
@@ -379,21 +387,31 @@ function generatedPlaceKindLabel(kind: VoxelPlaceKind): string {
   }
 }
 
-function generatedSceneSourceNotes(countyLabel: string | undefined): CountySource[] {
+function generatedSceneSourceNotes(countyLabel: string | undefined, hasCensusTownAnchors = false): CountySource[] {
   return [
     {
-      name: countyLabel ? `${countyLabel} preview map labels` : "Atlas preview map labels",
-      sourceType: "preview_map",
-      confidenceScore: 0.7,
+      name: hasCensusTownAnchors
+        ? `${countyLabel ?? "Atlas county"} U.S. Census town anchors`
+        : countyLabel
+          ? `${countyLabel} preview map labels`
+          : "Atlas preview map labels",
+      sourceType: hasCensusTownAnchors ? "us_census_tigerweb" : "preview_map",
+      confidenceScore: hasCensusTownAnchors ? 0.95 : 0.7,
     },
   ];
 }
 
-function generatedSceneLimitations(): string[] {
+function generatedSceneLimitations(hasCensusTownAnchors = false): string[] {
   return [
-    "Answers use only place labels and place types drawn in this preview.",
+    hasCensusTownAnchors
+      ? "Town names and centers come from U.S. Census data; their preview placement is approximate and the surrounding layout is generated."
+      : "Answers use only place labels and place types drawn in this preview.",
     "No local facts, business claims, addresses, hours, prices, listings, saved state, XP, evidence, outreach, or automation.",
   ];
+}
+
+function isCensusTownPlace(place: CityWorldPlace): boolean {
+  return place.id.startsWith("town-anchor-") && place.nodeId.startsWith("census-place-");
 }
 
 function isGeneratedPreviewBusinessClaimQuestion(question: string): boolean {

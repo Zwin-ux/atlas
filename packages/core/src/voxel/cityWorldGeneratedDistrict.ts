@@ -1,4 +1,5 @@
 import type { CityWorldCoverage } from "./cityWorldTypes.js";
+import { COUNTY_TOWN_ANCHOR_UPDATE_ID, type CountyTownAnchor } from "../world/countyTownAnchors.js";
 import { generateParametricCityWorldScene, type CityWorldParametricSpec } from "./cityWorldParametricGenerator.js";
 import {
   generatedHeightGrid,
@@ -33,6 +34,7 @@ export function createDeterministicGeneratedDistrictSpec(
   const districtLabel = input.districtLabel ?? `${input.county.name} Generated District`;
   const seed = deterministicGeneratedDistrictSeedForCounty(input);
   const parameters = resolveCountyParameters(input.county, seed);
+  const townAnchors = normalizeTownAnchors(input.townAnchors);
   const archetype = parameters.archetype;
   const spec: CityWorldParametricSpec = {
     id: `generated-${districtSlug}`,
@@ -49,18 +51,24 @@ export function createDeterministicGeneratedDistrictSpec(
     roadSeeds: generatedRoadSeeds(parameters, seed),
     regionalPalette: parameters.palette,
     countyParameters: parameters,
+    ...(townAnchors.length > 0 ? { townAnchors } : {}),
     seed,
   };
 
   return {
     type: "deterministicGeneratedDistrictSpec",
     update: DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
-    sourceBasis: "census_identity_only",
+    sourceBasis: townAnchors.length > 0 ? "census_identity_and_town_anchors" : "census_identity_only",
+    ...(townAnchors.length > 0
+      ? { townAnchorUpdate: COUNTY_TOWN_ANCHOR_UPDATE_ID, townAnchors }
+      : {}),
     providerGeometry: false,
     publicPlayable: false,
     promotionBlocked: true,
     promotionBlockers: [
-      "provider-normalized local anchors are not approved",
+      ...(townAnchors.length > 0
+        ? ["Census town anchors do not prove street, business, or building coverage"]
+        : ["real local anchors are not attached"]),
       "desktop and 390x844 public-quality screenshots are not accepted",
       "owner acceptance is not recorded",
     ],
@@ -84,7 +92,10 @@ export function createDeterministicGeneratedDistrictScene(
     countySlug: generated.countySlug,
     coverageTier: "L1_COUNTY_SHELL",
     coverageLabel: "Generated draft",
-    coverageMessage: "Provider-free generated district draft. Not public playable coverage.",
+    coverageMessage:
+      generated.townAnchors && generated.townAnchors.length > 0
+        ? "Real Census town names on a generated preview layout. Not public playable coverage."
+        : "Provider-free generated district draft. Not public playable coverage.",
     playable: false,
   };
 
@@ -98,6 +109,25 @@ export function createDeterministicGeneratedDistrictScene(
       },
     },
   };
+}
+
+function normalizeTownAnchors(anchors: CountyTownAnchor[] | undefined): CountyTownAnchor[] {
+  if (!anchors) return [];
+  const seen = new Set<string>();
+  return anchors
+    .filter(
+      (anchor) =>
+        Boolean(anchor.censusPlaceGeoid && anchor.label.trim()) &&
+        Number.isFinite(anchor.latitude) &&
+        Number.isFinite(anchor.longitude),
+    )
+    .filter((anchor) => {
+      if (seen.has(anchor.censusPlaceGeoid)) return false;
+      seen.add(anchor.censusPlaceGeoid);
+      return true;
+    })
+    .slice(0, 6)
+    .map((anchor) => ({ ...anchor, label: anchor.label.trim() }));
 }
 
 function isDeterministicGeneratedDistrictSpec(

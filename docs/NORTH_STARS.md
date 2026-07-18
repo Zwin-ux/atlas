@@ -78,10 +78,12 @@ The evaluation function for every packet, in order:
 5. **Evidence hierarchy for ratings:** real ChatGPT > emulator > node gates >
    estimates. Never rate on estimates (the W4.1 Graphics 1621/1600 lesson).
 
-**Standing priority order (2026-07-11):** G8 real-host findings → directory
-bar art (W4.4 organic layouts, prairie/relief polish) → W3.3 compare intent →
-W6.1/6.2 renderer perf (ONLY if real-host shows jank) → landing page deploy.
-Directory submission itself stays HELD for the user's USA-region crop call.
+**Standing priority order (2026-07-15):** finish the focused Atlas County
+Scout release candidate → G8 real-host findings → portal/domain verification
+and submission → directory-bar art and broader engine work. The earlier
+USA-region crop hold is resolved: submission scope is US-only and all 3,222
+supported counties must carry real Census town anchors, while generated streets
+and buildings remain explicitly labeled as generated.
 
 ---
 

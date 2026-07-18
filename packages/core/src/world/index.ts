@@ -21,6 +21,17 @@ export {
 } from "./usCountyFacts.js";
 export type { UsCountyFactRow } from "./usCountyFacts.js";
 export {
+  COUNTY_TOWN_ANCHOR_UPDATE_ID,
+  CountyTownAnchorIndexValidationError,
+  parseCountyTownAnchorIndex,
+} from "./countyTownAnchors.js";
+export type {
+  CountyTownAnchor,
+  CountyTownAnchorCounty,
+  CountyTownAnchorIndex,
+  CountyTownAnchorKind,
+} from "./countyTownAnchors.js";
+export {
   CALIFORNIA_DISTRICT_CANDIDATE_PACK,
   FIRST_CALIFORNIA_SECOND_DISTRICT_CANDIDATE,
 } from "./californiaDistrictCandidatePack.js";

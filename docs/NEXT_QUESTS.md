@@ -10,6 +10,15 @@ permanent gates, stop and report the conflict.
 
 ## Current 0.78-1V Census county board gate (2026-07-15)
 
+Local continuation (not deployed):
+`0.78-2A National Town Anchors` now covers every supported county with real
+Census names and keeps the generated-layout boundary explicit. The remaining
+quest is no longer town-anchor implementation; it is the clean release envelope
+and human submission path: commit/deploy, worker Railway healthcheck, G8
+web/mobile, portal domain token, tool scan, publisher checks, and submission.
+Auth, account saves, billing, national exact roads/boundaries, county-seat
+styling, and town drill-down remain later.
+
 Current packet:
 `0.78-1V Census County Board Product + Certification Gate` is production-green
 and owner-approved. Exact SHA `70167356abfe746d0b2257b4211bc9c8d2ff1de3`
@@ -41,8 +50,9 @@ Current gates:
 - PASSED: production deploy from certified SHA `7016735`.
 - PENDING: post-deploy G8 proof in real ChatGPT.
 
-Next READY packet after real-host G8:
-`0.78-2 Real Town Anchors`.
+Historical next packet after the 0.78-1V deploy was
+`0.78-2 Real Town Anchors`; its focused national-anchor slice is now locally
+complete. The current READY work is the human-gated submission finish line.
 
 Parallel queue:
 - QUEUED: `0.80-2` graphics work in its existing fenced packet.

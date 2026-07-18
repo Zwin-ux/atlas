@@ -6,6 +6,19 @@ proof packet.
 
 ## Current Update
 
+### Local candidate - Post-Alpha 0.78-2A National Town Anchors
+
+Player-facing promise: every supported county opens with real U.S. Census town
+names, while generated streets and buildings are labeled as generated.
+
+Engineering promise: 3,222/3,222 counties retain at least one real anchor,
+all generated specs stay under the 10,000-character wire ceiling, town answers
+carry a Census source class, and Redis worker failure recovery is release-gated.
+
+Status: local candidate, not deployed. Human deployment, worker Railway
+healthcheck, real-ChatGPT G8, portal domain verification, identity/permission
+checks, and submission remain open.
+
 ### Post-Alpha 0.78-1V - Census County Board Product + Certification Gate
 
 Player-facing promise: Atlas can show a county's real U.S. Census boundary and
@@ -59,12 +72,10 @@ Anaheim/Ontario stay hidden.
 
 ### Post-Alpha 0.78-2 - Real Town Anchors
 
-Next named quest: `0.78-2 Real Town Anchors`, only after the remaining
-real-host G8 gate.
-
-Wire named town anchors to the certified board without turning provider lookup
-into geometry or claiming nationwide playable coverage. Do not begin this
-slice while any 0.78-1V owner gate is pending.
+The focused `0.78-2A` national-anchor slice is locally complete. The broader
+0.78-2B county-seat styling and exact-board rollout remain later work. Neither
+provider lookup nor generated layout is promoted to verified geometry or
+nationwide playable coverage.
 
 ### Post-Alpha 0.72H - Fable Generated Draft Visual Quality Gate
 

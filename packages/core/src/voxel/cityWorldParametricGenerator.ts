@@ -32,6 +32,7 @@ import {
 import { resolveRegionalBuildingPalette, regionalTerrainPaletteKey, type RegionalPalette } from "./cityWorldRegionalPalettes.js";
 import type { CountyGenerationParameters, CountyWaterFactBand, NameSignal, UrbanizationTier } from "./cityWorldCountyParameters.js";
 import type { GeneratedDistrictArchetype } from "./cityWorldGeneratedDistrictTypes.js";
+import type { CountyTownAnchor } from "../world/countyTownAnchors.js";
 
 /**
  * Parametric scene-generator seam.
@@ -114,6 +115,8 @@ export type CityWorldParametricSpec = {
    * re-deriving identity from a flat archetype bucket.
    */
   countyParameters?: CountyGenerationParameters;
+  /** Real Census place names and centers layered onto an honest generated county preview. */
+  townAnchors?: CountyTownAnchor[];
   /** Optional deterministic seed for parcel jitter. Defaults to 1. */
   seed?: number;
 };
@@ -391,6 +394,9 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
     appendZoneProps(zone);
   }
 
+  const generatedTownPlaces = createGeneratedTownPlaces(spec, bounds, elevationModel, districtDisplayLabel);
+  places.push(...generatedTownPlaces);
+
   const signatureLandmark = createGeneratedLandmark(spec, elevationModel, roadSegments);
   if (signatureLandmark) {
     lots.push(signatureLandmark.lot);
@@ -436,7 +442,11 @@ export function generateParametricCityWorldScene(spec: CityWorldParametricSpec):
       // 0.57E parity — default the selection to the landmark (like curated
       // Eastvale Core), not the first residential zone: selecting a
       // many-building home_area place rings every house on first paint.
-      selectedPlaceId: signatureLandmark?.place.id ?? (places.find((place) => place.kind === "landmark") ?? places[0])?.id ?? "",
+      selectedPlaceId:
+        generatedTownPlaces[0]?.id ??
+        signatureLandmark?.place.id ??
+        (places.find((place) => place.kind === "landmark") ?? places[0])?.id ??
+        "",
     },
   };
 
@@ -466,6 +476,74 @@ function parcelClearsRoads(parcel: ParcelLayout, roads: CityWorldRoadSegment[]):
   }
   return true;
 }
+
+function createGeneratedTownPlaces(
+  spec: CityWorldParametricSpec,
+  bounds: CityWorldBounds,
+  elevationModel: ParametricElevationModel,
+  districtId: string,
+): CityWorldPlace[] {
+  const anchors = spec.townAnchors ?? [];
+  if (anchors.length === 0) return [];
+
+  const longitudeValues = anchors.map((anchor) => anchor.longitude);
+  const latitudeValues = anchors.map((anchor) => anchor.latitude);
+  const minLongitude = Math.min(...longitudeValues);
+  const maxLongitude = Math.max(...longitudeValues);
+  const minLatitude = Math.min(...latitudeValues);
+  const maxLatitude = Math.max(...latitudeValues);
+  const longitudeSpan = Math.max(0.000001, maxLongitude - minLongitude);
+  const latitudeSpan = Math.max(0.000001, maxLatitude - minLatitude);
+  const usableWidth = Math.max(1, bounds.maxX - bounds.minX - 8);
+  const usableHeight = Math.max(1, bounds.maxY - bounds.minY - 8);
+  const candidateZones = spec.zones.filter((zone) => Boolean(ZONE_TO_LOT[zone.kind]));
+  const usedZones = new Set<string>();
+
+  return anchors.map((anchor, index) => {
+    const fallbackSlot = GENERATED_TOWN_FALLBACK_SLOTS[index % GENERATED_TOWN_FALLBACK_SLOTS.length]!;
+    const normalizedX = anchors.length === 1 ? fallbackSlot.x : (anchor.longitude - minLongitude) / longitudeSpan;
+    const normalizedY = anchors.length === 1 ? fallbackSlot.y : 1 - (anchor.latitude - minLatitude) / latitudeSpan;
+    const target = {
+      x: bounds.minX + 4 + normalizedX * usableWidth,
+      y: bounds.minY + 4 + normalizedY * usableHeight,
+    };
+    const zone = candidateZones
+      .filter((candidate) => !usedZones.has(candidate.id))
+      .map((candidate) => ({ candidate, center: zoneCenter(candidate) }))
+      .sort(
+        (first, second) =>
+          Math.hypot(first.center.x - target.x, first.center.y - target.y) -
+            Math.hypot(second.center.x - target.x, second.center.y - target.y) ||
+          first.candidate.id.localeCompare(second.candidate.id),
+      )[0];
+    if (zone) usedZones.add(zone.candidate.id);
+    const x = zone?.center.x ?? target.x;
+    const y = zone?.center.y ?? target.y;
+
+    return {
+      id: `town-anchor-${anchor.censusPlaceGeoid}`,
+      label: anchor.label,
+      kind: "landmark",
+      districtId,
+      nodeId: `census-place-${anchor.censusPlaceGeoid}`,
+      anchor: { x, y, z: elevationModel.tileZ(Math.round(x), Math.round(y)) },
+      hitRadius: 2.8,
+      description:
+        "Real U.S. Census place name and center. Its position on this generated study is approximate; streets and buildings are not verified local geography.",
+      activity: 0,
+      labelPriority: 20 - index,
+    };
+  });
+}
+
+const GENERATED_TOWN_FALLBACK_SLOTS = [
+  { x: 0.5, y: 0.5 },
+  { x: 0.28, y: 0.28 },
+  { x: 0.72, y: 0.28 },
+  { x: 0.28, y: 0.72 },
+  { x: 0.72, y: 0.72 },
+  { x: 0.5, y: 0.2 },
+] as const;
 
 type ParcelLayout = {
   index: number;

@@ -8,8 +8,8 @@
     "eagerJsBytes": 210928,
     "cssBytes": 83546,
     "chunkCount": 25,
-    "deferredJsBytes": 735594,
-    "totalJsBytes": 946522,
+    "deferredJsBytes": 735609,
+    "totalJsBytes": 946537,
     "previewHtmlBytes": 214,
     "previewUsesExternalAssets": true,
     "sourceContracts": "retained graph + bottom sheet + split payload"
@@ -25,9 +25,9 @@
       },
       "ok": true,
       "pan": {
-        "frameCount": 75,
-        "p50FrameMs": 16.7,
-        "p95FrameMs": 33.4,
+        "frameCount": 99,
+        "p50FrameMs": 33.4,
+        "p95FrameMs": 50,
         "rebuildBefore": 1,
         "rebuildAfter": 1,
         "rebuildDelta": 0
@@ -77,9 +77,9 @@
       },
       "ok": true,
       "pan": {
-        "frameCount": 73,
+        "frameCount": 96,
         "p50FrameMs": 16.7,
-        "p95FrameMs": 16.7,
+        "p95FrameMs": 33.4,
         "rebuildBefore": 1,
         "rebuildAfter": 1,
         "rebuildDelta": 0

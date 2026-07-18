@@ -1,3 +1,4 @@
+import type { CountyTownAnchor } from "../world/countyTownAnchors.js";
 import type { NationalCountyIndexEntry } from "../world/types.js";
 import type { CityWorldParametricResult, CityWorldParametricSpec } from "./cityWorldParametricGenerator.js";
 
@@ -16,12 +17,15 @@ export type DeterministicGeneratedDistrictInput = {
   districtSlug?: string;
   districtLabel?: string;
   seedSalt?: string;
+  townAnchors?: CountyTownAnchor[];
 };
 
 export type DeterministicGeneratedDistrictSpec = {
   type: "deterministicGeneratedDistrictSpec";
   update: typeof DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID;
-  sourceBasis: "census_identity_only";
+  sourceBasis: "census_identity_only" | "census_identity_and_town_anchors";
+  townAnchorUpdate?: string;
+  townAnchors?: CountyTownAnchor[];
   providerGeometry: false;
   publicPlayable: false;
   promotionBlocked: true;

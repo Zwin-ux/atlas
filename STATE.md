@@ -1,6 +1,6 @@
 # Atlas Loop State
 
-Last run: 2026-07-15 - 0.78-1V production release + question-routing repair
+Last run: 2026-07-15 - 0.78-2A national town-anchor submission candidate
 Loop level: L2 assisted
 Kill switch: active only if `loop-constraints.md` says `pause: true`
 
@@ -14,6 +14,24 @@ Production is green at exact SHA `70167356abfe746d0b2257b4211bc9c8d2ff1de3`
 via Railway deployment `232c69ee-63de-47d0-bb7c-257d9ca0c422`. The release
 gate passed 14/14 and the public sanity sweep passed 3/3. The worker stayed
 skipped behind its healthcheck safety guard. Real-ChatGPT G8 is still pending.
+
+Local candidate status (not deployed):
+`postalpha-0.78-2-real-town-anchors` covers all 3,222 supported counties with
+13,797 real 2024 Census place anchors. Generated previews show and answer from
+those names while explicitly treating streets/buildings as generated. The
+focused `0.78-2 Real Town Anchors` submission slice is locally complete; the
+broader county-seat and town-drill-down program remains later. The
+worker code now survives Redis `maxclients` handshakes and transient polling
+failures behind a bounded readiness surface. Core/server contract tests and
+the offline national verifier are green. Auth, account saves, billing, the
+portal/domain token, production deployment, and real-ChatGPT G8 remain outside
+this local candidate or require a human gate.
+
+Reviewer certification (2026-07-17, Fable, BUILD_LOG Entry 097): the full
+ladder re-ran green first-hand; the 07-15 emulator audit was found to have
+certified a stale cached bundle, so audit + perf evidence were regenerated on
+the fresh build and the audit's banner/CTA contracts were reconciled to the
+anchor-era product (anchor banner now REQUIRED on generated cells).
 
 Merge status (0.75R, 2026-07-06):
 `fable/0.58e-prop-cleanup` (0.57E parity + 0.72H-b/0.73F engine clarity +
@@ -46,9 +64,11 @@ remain unchanged. This is not a national bake, default-on promotion, public
 playable-county claim, or provider geometry path.
 
 Next quest:
-Record real-host G8 against the deployed `7016735` build. After that gate, the
-next code slice is `0.78-2 Real Town Anchors`.
-`0.80-2` remains parallel queued graphics work.
+Finish the full local verification ladder for the 0.78-2A candidate, isolate
+and commit its release envelope, then use the human deploy/portal path. After
+deployment, run G8 web/mobile, publish the portal-issued domain token, scan the
+seven tools, and submit Atlas County Scout. `0.78-3` town drill-down and
+`0.80-2` graphics remain later product work.
 
 Release governance:
 The source-of-truth and loop-readiness verifiers now validate this 0.78-1V

@@ -1,5 +1,39 @@
 # Build Log
 
+## Entry 226
+
+Quest:
+Finish the focused Atlas County Scout submission candidate with real national
+town anchors and certified Redis worker recovery.
+
+What changed:
+- Added a deterministic Census 2024 town-anchor index covering 3,222/3,222
+  supported counties with 13,797 real incorporated-place, CDP, or named
+  county-subdivision anchors.
+- Wired anchors into generated county previews, exact county boards, map focus,
+  county questions, server/worker scene generation, cache update identity, and
+  the public submission copy.
+- Made preview-county tools include the anchor-bearing generated spec by
+  default while preserving non-playable and generated-layout boundaries.
+- Finished Redis worker lifecycle hardening and made both worker regression and
+  national-anchor verification release-preflight gates.
+- Reconciled the roadmap, state, next quests, decisions, release ladder, and
+  submission checklist to the focused session-only product scope.
+
+Evidence:
+- Full typecheck and build green; core 165/165 tests green.
+- National verifier green at 3,222/3,222 counties and 13,797 anchors; maximum
+  generated spec 8,616/10,000 characters.
+- Redis/town-index worker tests 4/4 green; server hardening and backend-spine
+  verifiers green.
+- Local MCP flow and submission package green, including a real
+  Miami-Dade/Homestead focus answer and Census source class.
+- Result packet: `artifacts/council/CODEX_RESULT_0782A.md`.
+
+Boundary:
+Local candidate only. No deployment, portal token, identity verification,
+real-ChatGPT G8, submission click, auth, persistence, or billing was claimed.
+
 ## Entry 225
 
 Quest:
@@ -9808,3 +9842,48 @@ provider geometry, deploy, public promotion, or 0.78-2 town work was opened.
 The submission verifier now accepts the existing honest generated-preview
 refusal alongside the older Riverside/supported-lane refusal forms; it still
 requires `supported: false` and a concrete scope boundary.
+
+## Entry 097
+
+**0.78-2A reviewer certification + evidence regeneration - local green,
+2026-07-17, Fable.** Independent re-run of the Codex 0.78-2A candidate before
+envelope isolation. Ladder green first-hand: `build:core`, full typecheck,
+`test:core` 165/165, `verify:county-town-anchors` (3,222/3,222 counties,
+13,797 anchors, max generated spec 8,616/10,000 chars), `pnpm build`,
+`verify:widget:perf` (graphics 839, rebuild 15.3ms, 0 failures), `verify:mcp`
+including the Miami-Dade "Where is Homestead?" Census answer, and the six
+node gates (national shells, backend spine, draft scene packet, deterministic
+districts, bundle budget, submission).
+
+Reviewer findings, both fixed in `scripts/verify-emulator-audit.mjs`:
+
+1. The 2026-07-15 emulator audit had certified a STALE CACHED BUNDLE — its
+   evidence PNGs show the pre-anchor banner because the audit server inlines
+   the web bundle at startup. Re-running against the fresh build exposed that
+   the audit's `honesty_banner` contract still expected the legacy copy. The
+   contract now requires the anchor form ("Real Census town names. Streets
+   and buildings are generated.") on generated cells — so losing anchors
+   becomes a hard audit failure — and the census-board form ("Real boundary,
+   water, and town names.") on geo cells.
+2. `cta_roundtrip` expected the coverage shell's `coverage-recovery-action`,
+   but 0.78-2A intentionally delivers a generated district with real town
+   names by default for uncovered counties. The check now proves the exit
+   path instead: `exit-generated` must return the widget to the curated
+   Riverside full map (verified live: local dismissal, no dead end).
+
+Live-browser proof on the fresh bundle: Jefferson County delivers six
+`town-anchor-*` places with Birmingham and Hoover labeled on the map under
+the honest banner. Visual-score sweep re-emission improved with anchors:
+843 counties at 100 (was 728), minimum 84.36 (was 83.36), median 98.6 across
+all 3,222. Emulator audit + emulator perf were re-run on a quiet box against
+the fresh bundle; results recorded in `artifacts/emulator/`.
+
+Envelope discipline: staged explicitly (never `-A`); sibling 0.75R files
+(`docs/0.75R_HANDOFF.md`, `docs/design/clay-board/`), `artifacts/showcase/`,
+`artifacts/0.75s-ship-passes/`, and the paused automation's
+`docs/codex/packet-0.76-4-terrain.md` stay out of the packet. The
+`national-generation-contract` strict allowlist in
+`scripts/verify-alpha-rc-split.mjs` was extended with exactly the 0.78-2A
+envelope (anchor code/data/tests/scripts, this packet's proof artifacts, and
+the audit-root evidence prefix) — additive per-packet maintenance, not a
+loosening; the staged strict run must report 0 blockers / 0 unknowns.

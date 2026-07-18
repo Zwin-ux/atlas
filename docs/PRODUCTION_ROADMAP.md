@@ -4,18 +4,23 @@ Status: ACTIVE master queue as of 2026-07-15. Supersedes COUNCIL_VERDICT.md
 (closed) as the work thread. Any driver (Fable, Opus, Codex) boots here
 after `docs/NORTH_STARS.md` (NS-0 + Spend rules govern every packet).
 
-## Owner decisions (updated 2026-07-13, binding)
+## Owner decisions (updated 2026-07-15, binding)
 
-1. **Interactive everywhere**: generated counties must be fully interactive
-   at launch — tap places, pin, note in ANY county, honestly labeled preview.
-2. **Submission trigger**: full G8 real-ChatGPT battery green + owner
-   screenshot approval. Nothing else blocks or substitutes.
-3. **Explore is the free front door; persistence remains later**: notes, pins,
-   and stickers stay session-only. Hosted Clawd and billing remain closed
-   until authenticated ownership, durability, and real-host proof exist.
-4. **Codex-driver human gates**: visual/band changes and production deploys
+1. **Submit Atlas County Scout, not the whole Atlas vision**: the review
+   candidate is the focused ChatGPT county-scout product and its seven-tool
+   read-only loop.
+2. **Real town anchors everywhere**: all 3,222 supported counties must expose
+   at least one real U.S. Census place anchor. Generated streets and buildings
+   stay plainly labeled as generated.
+3. **Session-only submission**: no auth, saved-account work, or billing in this
+   submission. Hosted Clawd remains closed.
+4. **Human gates remain human**: the portal/domain-token flow, real-ChatGPT G8,
+   owner screenshots, submission click, and production deploy are not replaced
+   by local automation.
+5. **Codex-driver human gates**: visual/band changes and production deploys
    need human eyes. Everything else self-certifies through the gate ladder.
-5. Current build is the approved **pre-alpha**.
+6. Current deployed build is the approved **pre-alpha**; the national-anchor
+   submission candidate is local until a clean release is committed/deployed.
 
 ## Packet law (mandatory for every packet)
 
@@ -48,8 +53,13 @@ after `docs/NORTH_STARS.md` (NS-0 + Spend rules govern every packet).
       plus gesture-driven displayMode globals. Full audit: 182 pass / 0 warn /
       0 fail across 19 cells. Perf: 14 cells, max 829 Graphics and 30.5ms
       rebuild, 0 warnings/failures. Real-host confirmation remains P0.2.
-- [ ] P0.4 Worker service: clear Healthcheck Path in Railway dashboard
-      (HUMAN), redeploy worker at HEAD, remove release-script guard.
+- [x] P0.4a Worker code hardening: lazy Redis reconnects after `maxclients`,
+      one adapter is reused across polls, transient poll failures recover, and
+      worker readiness has a bounded health surface. Local regression tests
+      and server build are green.
+- [ ] P0.4b Worker production enablement: clear Healthcheck Path in Railway
+      dashboard (HUMAN), deploy with `ATLAS_DEPLOY_WORKER=1`, and verify the
+      live worker health/readiness surface before removing the guard.
 
 ## P1 — Interactive Everywhere (core program; NS-1/NS-5/NS-6)
 
@@ -95,9 +105,14 @@ desktop/mobile and light/dark with 138/138 checks green, including full county
 terrain/water framing in all 12 first frames, max Graphics 40/1600, and max
 rebuild 6.2ms/350ms. The flag remains dark. Owner screenshot review passed on
 2026-07-13. Exact SHA `7016735` is deployed with 14/14 release gates and 3/3
-public sanity checks green. Real-host G8 proof remains pending. After that
-gate, `0.78-2 Real Town Anchors` is next. The national 3,222-pack
-bake, roads, town detail, and default-on promotion are not complete.
+public sanity checks green. Real-host G8 proof remains pending. A local
+`0.78-2A` candidate now covers all 3,222 supported counties with 13,797 real
+2024 Census place anchors, locates them through `ask_county_question`, renders
+them on generated previews, and attaches them to the 16 exact county boards.
+Its offline contract and worker regression gates are green. This does not
+claim a national boundary/road bake, county-seat styling, town drill-down,
+default-on exact county boards, deployment, or G8 completion; those are longer
+0.78 program items, not blockers for the focused session-only submission.
 
 ## P2 — Persistence for launch (NS-7)
 
@@ -126,17 +141,22 @@ owner gate, claim/ack worker). Launch = real users can save.
 - [ ] P3.4 Live-tail protocol: `railway logs` poll monitor during every
       G8 session (recipe in codex adapter).
 
-## P4 — Submission (NS-7; trigger = owner decision #2)
+## P4 — Submission (NS-7; scope = owner decisions #1-4)
 
+- [x] P4.0 Local product contract: all 3,222 county entries have real Census
+      town anchors; generated-layout boundaries are explicit; Redis worker
+      failure recovery is release-gated; auth/save/billing remain closed.
 - [ ] P4.1 Rotating challenge sweep as a standing gate: 16 random counties
       weekly through the emulator audit (slugs: parishes/boroughs quirks
       documented in 0.77 doc).
 - [ ] P4.2 Art tail: prairie row contrast, signage 32px read, coastal
       first-frame composition polish. Crop test per change. HUMAN: visuals.
-- [ ] P4.3 Landing page hosted (static host decision: HUMAN) + deep-link
-      slot filled when listed.
-- [ ] P4.4 Submission dry-run: verify-submission vs prod, manifest, icon,
-      privacy/terms live-check, G6 legal re-confirm. Then submit. HUMAN.
+- [ ] P4.3 Confirm the existing hosted `/preview`, support, privacy, and terms
+      against the committed candidate; no separate generic marketing homepage
+      is required for this focused submission.
+- [ ] P4.4 HUMAN/PORTAL: deploy the clean candidate, run G8 on web/mobile,
+      obtain and publish the domain token, scan tools/CSP, verify publisher
+      identity and permissions, then submit.
 
 ## P5 — Post-submission ops
 

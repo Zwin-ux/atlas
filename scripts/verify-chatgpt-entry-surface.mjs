@@ -205,11 +205,13 @@ try {
   checkPublicText("select_county shell", selectShellText, [
     [/preview only/i, "preview counties are preview only"],
     [/Riverside\/Eastvale is fully explorable today/i, "Riverside/Eastvale is fully explorable today"],
-    [/does not add local places/i, "Atlas does not add places"],
+    [/does not add verified streets, buildings, businesses/i, "Atlas does not add fake local coverage"],
+    [/Real Census town names are attached/i, "real Census town anchors are attached"],
     [/saved work, XP, evidence, outreach, or automation/i, "no saved work, XP, evidence, outreach, or automation"],
   ]);
   assert(selectShell.coverageTier === "L1_COUNTY_SHELL", "select_county shell must return L1 shell coverage.");
   assert(selectShell.playableDistrictCount === 0, "select_county shell must not claim playable districts.");
+  assert(selectShellResult._meta?.generatedDraftSpec?.sourceBasis === "census_identity_and_town_anchors", "select_county shell must carry Census town anchors by default.");
   proof.scenarios.push(
     createScenario(
       "shell-browse-orange",
@@ -221,7 +223,8 @@ try {
       [
         [/preview only/i, "preview counties are preview only"],
         [/Riverside\/Eastvale is fully explorable today/i, "Riverside/Eastvale is fully explorable today"],
-        [/does not add local places/i, "Atlas does not add places"],
+        [/does not add verified streets, buildings, businesses/i, "Atlas does not add fake local coverage"],
+        [/Real Census town names are attached/i, "real Census town anchors are attached"],
         [/saved work, XP, evidence, outreach, or automation/i, "no saved work, XP, evidence, outreach, or automation"],
       ],
     ),
@@ -259,10 +262,11 @@ try {
   const renderShell = structuredContent(renderShellResult, "render_voxel_county shell");
   checkPublicText("render_voxel_county shell", renderShellText, [
     [/preview only/i, "preview render is preview only"],
-    [/after the full map is built/i, "full map must be built first"],
-    [/Open Riverside\/Eastvale/i, "Riverside/Eastvale recovery path"],
+    [/Real Census town names are attached/i, "real Census town anchors are attached"],
+    [/Open Riverside\/Eastvale for the fully explorable map/i, "Riverside/Eastvale full-map path"],
   ]);
   assert(renderShell.coverageTier === "L1_COUNTY_SHELL", "render_voxel_county shell must return L1 shell coverage.");
+  assert(renderShellResult._meta?.generatedDraftSpec?.sourceBasis === "census_identity_and_town_anchors", "render_voxel_county shell must carry Census town anchors by default.");
   proof.scenarios.push(
     createScenario(
       "negative-anaheim-not-playable",
@@ -273,8 +277,8 @@ try {
       renderShell,
       [
         [/preview only/i, "Anaheim's county preview is preview only"],
-        [/after the full map is built/i, "full map must be built first"],
-        [/Open Riverside\/Eastvale/i, "Riverside/Eastvale recovery path"],
+        [/Real Census town names are attached/i, "real Census town anchors are attached"],
+        [/Open Riverside\/Eastvale for the fully explorable map/i, "Riverside/Eastvale full-map path"],
       ],
     ),
   );
@@ -354,7 +358,7 @@ try {
   checkPublicText("select_county unsupported", unsupportedText, [
     [/cannot preview this county yet|preview only/i, "unknown counties do not become full maps"],
     [/Riverside\/Eastvale is fully explorable today|Open Riverside\/Eastvale/i, "Riverside/Eastvale recovery"],
-    [/does not add local places|does not use Riverside data as a stand-in/i, "Atlas does not invent places"],
+    [/does not add verified streets, buildings, businesses|does not use Riverside data as a stand-in/i, "Atlas does not invent local coverage"],
     [/saved work, XP, evidence, outreach, or automation|saves, XP, evidence, or automation/i, "no saved work, XP, evidence, or automation"],
   ]);
   assert(unsupported.coverageTier === "L0_UNSUPPORTED", "Unsupported county must return L0 coverage.");
@@ -370,7 +374,7 @@ try {
       [
         [/cannot preview this county yet|preview only/i, "unknown counties do not become full maps"],
         [/Riverside\/Eastvale is fully explorable today|Open Riverside\/Eastvale/i, "Riverside/Eastvale recovery"],
-        [/does not add local places|does not use Riverside data as a stand-in/i, "Atlas does not invent places"],
+        [/does not add verified streets, buildings, businesses|does not use Riverside data as a stand-in/i, "Atlas does not invent local coverage"],
         [/saved work, XP, evidence, outreach, or automation|saves, XP, evidence, or automation/i, "no saved work, XP, evidence, or automation"],
       ],
     ),

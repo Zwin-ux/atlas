@@ -4,7 +4,7 @@
   "app_info": {
     "display_name": "Atlas County Scout",
     "subtitle": "Explore voxel county maps",
-    "description": "Atlas County Scout turns a ChatGPT conversation into an explorable voxel map and a focused local-planning workspace. Riverside/Eastvale is the interactive map: open the county, focus places, ask questions grounded in built-in map data, find normalized nearby places, build a Scout Drop, and turn it into a manual 7-day plan. Other supported US counties open as clearly labeled generated district studies, not verified local coverage. Atlas is intentionally read-only. It does not create accounts, save public user work, post, message, buy ads, submit forms, or process payments. Nearby-place lookups may use Google Maps Platform and a provider cache for up to 24 hours; returned results are normalized and are never treated as map geometry or coverage proof.",
+    "description": "Atlas County Scout turns a ChatGPT conversation into an explorable voxel map and a focused local-planning workspace. Riverside/Eastvale is the interactive map: open the county, focus places, ask questions grounded in built-in map data, find normalized nearby places, build a Scout Drop, and turn it into a manual 7-day plan. Every supported U.S. county opens with real U.S. Census town names; outside the curated Riverside map, streets and buildings are clearly labeled as generated rather than verified local coverage. Atlas is intentionally read-only. It does not create accounts, save public user work, post, message, buy ads, submit forms, or process payments. Nearby-place lookups may use Google Maps Platform and a provider cache for up to 24 hours; returned results are normalized and are never treated as map geometry or coverage proof.",
     "category": "BUSINESS",
     "icon": "assets/brand/atlas-icon-512.png",
     "website_url": "https://atlas-backend-production-e6fc.up.railway.app/preview",
@@ -22,11 +22,11 @@
     },
     "starter_prompts": [
       "Open Riverside County and focus the Eastvale map.",
-      "Which Eastvale map signals support a mobile detailing offer?",
+      "Open Miami-Dade County and show me Homestead.",
       "Find nearby service businesses around Eastvale.",
       "Drop Clawd in Eastvale and build a manual 7-day plan."
     ],
-    "release_notes": "Initial public submission of Atlas County Scout: an interactive Riverside/Eastvale voxel map, closed-world county questions, Atlas-scoped nearby-place lookup, Scout Drops, manual 7-day plans, and clearly labeled generated district studies.",
+    "release_notes": "Initial public submission of Atlas County Scout: an interactive Riverside/Eastvale voxel map, real U.S. Census town anchors across all 3,222 supported counties, closed-world county questions, Atlas-scoped nearby-place lookup, Scout Drops, manual 7-day plans, and clearly labeled generated street and building layouts outside Riverside.",
     "domain_verification": {
       "challenge_path": "/.well-known/openai-apps-challenge",
       "status": "ROUTE_READY_PORTAL_TOKEN_REQUIRED",
@@ -41,7 +41,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Loads the built-in Riverside/Eastvale map data or known county preview status and returns widget metadata without saving or changing state.",
+        "read_only_justification": "Loads the built-in Riverside/Eastvale map or a supported county preview with U.S. Census town anchors and returns widget metadata without saving or changing state.",
         "open_world_justification": "Does not call live providers, publish content, message users, or modify third-party systems.",
         "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
       }
@@ -53,8 +53,8 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Answers from built-in Riverside/Eastvale map data without saving or changing state.",
-        "open_world_justification": "Does not call live providers or retrieve open-world data; unsupported counties and business claims are narrowed or refused.",
+        "read_only_justification": "Answers from built-in Riverside/Eastvale map data or displayed U.S. Census town anchors without saving or changing state.",
+        "open_world_justification": "Does not call live providers; unsupported local, street, building, and business claims are narrowed or refused.",
         "destructive_justification": "Does not delete, overwrite, publish, message, charge, or perform irreversible actions."
       }
     },
@@ -65,7 +65,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Computes and returns a Riverside voxel scene summary or known county preview status without creating or updating server state.",
+        "read_only_justification": "Computes and returns a Riverside voxel scene summary or a supported county preview with U.S. Census town anchors without creating or updating server state.",
         "open_world_justification": "Does not write to public internet state or any third-party system.",
         "destructive_justification": "Does not delete, overwrite, revoke access, send messages, or perform irreversible actions."
       }
@@ -148,13 +148,13 @@
       "fixture_data": "No login. Uses countySlug riverside-ca, placeId eastvale, and the configured production Google Maps adapter."
     },
     {
-      "description": "Ask a closed-world county question.",
-      "user_prompt": "Why is Eastvale the first map area and which signals support mobile detailing?",
+      "description": "Locate a real Census town on a county preview.",
+      "user_prompt": "Where is Homestead on the Miami-Dade County Atlas preview?",
       "file_attachment_urls": null,
       "tools_triggered": "ask_county_question",
-      "expected_output": "Answers from built-in Riverside/Eastvale data with source notes and limits, including Eastvale, residential demand, route access, QR flyer opportunity, and no live-market claim.",
+      "expected_output": "Locates Homestead as a real U.S. Census place anchor, returns a map focus target and Census source note, and states that surrounding streets and buildings are generated rather than verified local geography.",
       "expected_output_url": null,
-      "fixture_data": "No login. Uses Atlas built-in Riverside/Eastvale source notes and the mobile detailing score lane."
+      "fixture_data": "No login. Uses the committed 2024 U.S. Census town-anchor index for Miami-Dade County and does not call a live place provider."
     },
     {
       "description": "Build an Eastvale Scout Drop and manual plan.",

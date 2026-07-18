@@ -14,6 +14,7 @@
 // the ocean/sea in a margin band just outside it) renders as water tiles;
 // everything else outside stays void (backdrop).
 import { CITY_WORLD_TILE_BASIS, unprojectCityWorldGroundPoint } from "./cityWorldBasis.js";
+import type { CountyTownAnchor } from "../world/countyTownAnchors.js";
 import type {
   CityWorldAmbient,
   CityWorldBounds,
@@ -46,6 +47,8 @@ export type CompileCountyGeoSceneOptions = {
   targetSpanPx?: number;
   /** Land-tile sampling stride in projected px (smaller = denser silhouette). */
   samplePx?: number;
+  /** Real Census place centers to render as tappable county-board anchors. */
+  townAnchors?: CountyTownAnchor[];
 };
 
 const DEFAULT_TARGET_SPAN_PX = 560;
@@ -363,6 +366,15 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
 
   const displayName = pack.name.replace(/\s+(County|Parish|Borough|Municipio|Census Area|City and Borough)$/i, "");
   const sceneId = `county-geo-${pack.countySlug}`;
+  const places = compileCountyTownPlaces({
+    anchors: options.townAnchors ?? [],
+    displayName,
+    lon0,
+    lat0,
+    scale,
+    screenRings,
+    terrainTiles,
+  });
 
   return {
     type: "cityWorldScene",
@@ -382,14 +394,54 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
     lots: [],
     buildings: [],
     props: [],
-    places: [],
+    places,
     pins: [],
     actors: [],
     ambient,
     hudDefaults: {
       locationLabel: pack.name,
       districtLabel: displayName,
-      selectedPlaceId: "",
+      selectedPlaceId: places[0]?.id ?? "",
     },
   };
+}
+
+function compileCountyTownPlaces(input: {
+  anchors: CountyTownAnchor[];
+  displayName: string;
+  lon0: number;
+  lat0: number;
+  scale: number;
+  screenRings: ScreenPoint[][];
+  terrainTiles: CityWorldTerrainTile[];
+}): CityWorldScene["places"] {
+  const landTiles = input.terrainTiles.filter((tile) => tile.kind === "grass");
+  return input.anchors
+    .map((anchor, index) => {
+      const screen = toScreen(anchor.longitude, anchor.latitude, input.lon0, input.lat0, input.scale);
+      if (!pointInCounty(screen, input.screenRings)) return null;
+      const ground = unprojectCityWorldGroundPoint(screen);
+      const nearestLand = landTiles.reduce<CityWorldTerrainTile | undefined>((nearest, tile) => {
+        if (!nearest) return tile;
+        const nearestDistance = Math.hypot(nearest.position.x - ground.x, nearest.position.y - ground.y);
+        const tileDistance = Math.hypot(tile.position.x - ground.x, tile.position.y - ground.y);
+        return tileDistance < nearestDistance ? tile : nearest;
+      }, undefined);
+      if (!nearestLand) return null;
+
+      return {
+        id: `town-anchor-${anchor.censusPlaceGeoid}`,
+        label: anchor.label,
+        kind: "landmark" as const,
+        districtId: input.displayName,
+        nodeId: `census-place-${anchor.censusPlaceGeoid}`,
+        anchor: { ...nearestLand.position },
+        hitRadius: 3,
+        description:
+          "Real U.S. Census place name and center on the county board. Streets and buildings are not mapped in this view.",
+        activity: 0,
+        labelPriority: 20 - index,
+      };
+    })
+    .filter((place): place is NonNullable<typeof place> => Boolean(place));
 }

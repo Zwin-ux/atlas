@@ -42,6 +42,8 @@ for (const token of [
   "SET NX EX",
   "readScenePacketRuntimeConfig",
   "generationStatus: \"queued\"",
+  "RESP: 2",
+  "connectingClient.destroy?.()",
 ]) {
   requireToken(adapterSource, token, "scene packet Redis spine adapter");
 }
@@ -52,6 +54,10 @@ for (const token of [
   "createDeterministicGeneratedDistrictScene",
   "completeGeneratedDraftJob",
   "failGeneratedDraftJob",
+  "const workerAdapter = createScenePacketMemoryAdapter",
+  "runScenePacketWorkerLoop(workerAdapter",
+  "path === \"/ready\"",
+  "process.exit(1)",
 ]) {
   requireToken(workerSource, token, "scene packet worker entrypoint");
 }
@@ -66,6 +72,8 @@ for (const token of [
   "stripe_webhook_decision",
   "hosted_clawd_write_result",
   "cache: await scenePacketMemory.status()",
+  "ready_probe_failed",
+  "reason: \"dependency_probe_failed\"",
 ]) {
   requireToken(serverSource, token, "server production hardening");
 }

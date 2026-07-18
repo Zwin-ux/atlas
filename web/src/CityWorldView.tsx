@@ -381,7 +381,7 @@ export function CityWorldView({
         <div className="city-world-generated-boundary" data-qa="census-boundary">
           <div>
             <span>U.S. CENSUS · {cityScene.region.county}</span>
-            <strong>Real boundary and water. Streets and places aren't mapped yet.</strong>
+            <strong>Real boundary, water, and town names. Streets and buildings aren't mapped yet.</strong>
           </div>
           <button type="button" data-qa="exit-census-board" onClick={onExitGeneratedPreview}>
             Open Riverside
@@ -391,7 +391,11 @@ export function CityWorldView({
         <div className="city-world-generated-boundary" data-qa="generated-boundary">
           <div>
             <span>PREVIEW ONLY</span>
-            <strong>Generated district. Not real coverage. Preview stays in this chat.</strong>
+            <strong>
+              {cityScene.places.some((place) => place.id.startsWith("town-anchor-"))
+                ? "Real Census town names. Streets and buildings are generated."
+                : "Generated district. Not real coverage. Preview stays in this chat."}
+            </strong>
           </div>
           <button type="button" data-qa="exit-generated" onClick={onExitGeneratedPreview}>
             Exit preview

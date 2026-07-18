@@ -57,7 +57,10 @@ for (const token of [
   requireToken(serverSource, token, "server MCP generated draft delivery");
 }
 
-if (/generatedDraftScene\s*:/.test(serverSource)) {
+// The question tool may compile a scene internally to resolve a real town
+// anchor. The wire rule is narrower: a raw scene must never be a direct field
+// of a public `_meta` object.
+if (/_meta\s*:\s*\{[^}]*\bgeneratedDraftScene\s*[:,]/.test(serverSource)) {
   blockers.push("Server must not attach _meta.generatedDraftScene in the 0.76-T wire contract.");
 }
 

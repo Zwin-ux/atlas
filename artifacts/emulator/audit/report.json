@@ -1,12 +1,13 @@
 {
   "ok": true,
-  "ranAt": "2026-07-11T11:32:40.499Z",
+  "ranAt": "2026-07-18T03:06:50.668Z",
   "base": "http://127.0.0.1:8787",
   "cells": [
     {
-      "county": "autauga-al",
+      "county": "jefferson-al",
       "archetype": "metro_grid",
       "draft": true,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "light",
       "checks": [
@@ -16,29 +17,39 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=849; ceiling=1600"
+          "detail": "graphics=796; ceiling=1600"
+        },
+        {
+          "id": "sandbox_csp_data_split",
+          "level": "pass",
+          "detail": "fetch(data:) blocked by connect-src; Image(data:) loaded; connect-src 'self'"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=837184; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -46,12 +57,13 @@
           "detail": "console error entries=0"
         }
       ],
-      "screenshot": "artifacts/emulator/audit/autauga-al-desktop-light.png"
+      "screenshot": "artifacts/emulator/audit/jefferson-al-desktop-light.png"
     },
     {
-      "county": "autauga-al",
+      "county": "jefferson-al",
       "archetype": "metro_grid",
       "draft": true,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "dark",
       "checks": [
@@ -61,29 +73,34 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=849; ceiling=1600"
+          "detail": "graphics=796; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=837184; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -91,12 +108,13 @@
           "detail": "console error entries=0"
         }
       ],
-      "screenshot": "artifacts/emulator/audit/autauga-al-desktop-dark.png"
+      "screenshot": "artifacts/emulator/audit/jefferson-al-desktop-dark.png"
     },
     {
-      "county": "autauga-al",
+      "county": "jefferson-al",
       "archetype": "metro_grid",
       "draft": true,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "light",
       "checks": [
@@ -106,24 +124,29 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=847; ceiling=1600"
+          "detail": "graphics=788; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -131,19 +154,39 @@
           "detail": "all visible [data-qa] buttons are at least 40x40 CSS px"
         },
         {
+          "id": "touch_tap_select",
+          "level": "pass",
+          "detail": "selected label changed: Birmingham -> Hoover"
+        },
+        {
+          "id": "generated_pin_drop",
+          "level": "pass",
+          "detail": "pin count 0 -> 1; place=Hoover"
+        },
+        {
+          "id": "generated_note_save",
+          "level": "pass",
+          "detail": "note count 0 -> 1; latest=Generated audit note 1784343855015"
+        },
+        {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (467.28,64.48) -> (307.28,-25.52); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (370.56,20.96) -> (210.56,-69.04); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",
           "level": "pass",
-          "detail": "world scale 0.92 -> 1.5"
+          "detail": "world scale 0.84 -> 1.5"
+        },
+        {
+          "id": "generated_state_isolation",
+          "level": "pass",
+          "detail": "Riverside back at baseline pin=1; note=0; resume=1 pin / 1 note in this chat"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=837184; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -151,12 +194,13 @@
           "detail": "console error entries=0"
         }
       ],
-      "screenshot": "artifacts/emulator/audit/autauga-al-mobile-light.png"
+      "screenshot": "artifacts/emulator/audit/jefferson-al-mobile-light.png"
     },
     {
-      "county": "autauga-al",
+      "county": "jefferson-al",
       "archetype": "metro_grid",
       "draft": true,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "dark",
       "checks": [
@@ -166,24 +210,29 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=847; ceiling=1600"
+          "detail": "graphics=788; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -193,17 +242,17 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (467.28,64.48) -> (307.28,-25.52); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (370.56,20.96) -> (210.56,-69.04); rebuilds=3 @ 1.3/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
           "level": "pass",
-          "detail": "world scale 0.92 -> 1.5"
+          "detail": "world scale 0.84 -> 1.5"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=837184; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -211,12 +260,13 @@
           "detail": "console error entries=0"
         }
       ],
-      "screenshot": "artifacts/emulator/audit/autauga-al-mobile-dark.png"
+      "screenshot": "artifacts/emulator/audit/jefferson-al-mobile-dark.png"
     },
     {
       "county": "aleutians-east-borough-ak",
       "archetype": "coastal_grid",
       "draft": true,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "light",
       "checks": [
@@ -226,29 +276,34 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=593; ceiling=1600"
+          "detail": "graphics=314; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=841567; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -262,6 +317,7 @@
       "county": "aleutians-east-borough-ak",
       "archetype": "coastal_grid",
       "draft": true,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "light",
       "checks": [
@@ -271,24 +327,29 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=1013; ceiling=1600"
+          "detail": "graphics=327; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -298,7 +359,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (396.44,53.44) -> (236.44,-36.56); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (83.68,-197.68) -> (-168.57,-339.57); rebuilds=5 @ 2.2/s, fired=4, deferred=4"
         },
         {
           "id": "touch_pinch",
@@ -308,7 +369,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=841567; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -322,6 +383,7 @@
       "county": "apache-az",
       "archetype": "desert_basin",
       "draft": true,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "light",
       "checks": [
@@ -331,29 +393,34 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=732; ceiling=1600"
+          "detail": "graphics=111; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=858551; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -367,6 +434,7 @@
       "county": "apache-az",
       "archetype": "desert_basin",
       "draft": true,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "light",
       "checks": [
@@ -376,24 +444,29 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=921; ceiling=1600"
+          "detail": "graphics=143; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -403,17 +476,17 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (244.64,163.84) -> (84.64,73.84); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (366.03,181.38) -> (206.03,91.38); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",
           "level": "pass",
-          "detail": "world scale 0.92 -> 1.5"
+          "detail": "world scale 0.84 -> 1.5"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=858551; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -427,6 +500,7 @@
       "county": "adams-co",
       "archetype": "mountain_valley",
       "draft": true,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "light",
       "checks": [
@@ -436,29 +510,34 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=387; ceiling=1600"
+          "detail": "graphics=609; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=872229; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -472,6 +551,7 @@
       "county": "adams-co",
       "archetype": "mountain_valley",
       "draft": true,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "light",
       "checks": [
@@ -481,24 +561,29 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=505; ceiling=1600"
+          "detail": "graphics=309; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -508,7 +593,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (259.82,-59.72) -> (99.82,-149.72); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (139.64,264.84) -> (-20.36,174.84); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
         },
         {
           "id": "touch_pinch",
@@ -518,7 +603,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=872229; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -529,9 +614,10 @@
       "screenshot": "artifacts/emulator/audit/adams-co-mobile-light.png"
     },
     {
-      "county": "adair-ia",
+      "county": "autauga-al",
       "archetype": "prairie_town",
       "draft": true,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "light",
       "checks": [
@@ -541,29 +627,34 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=595; ceiling=1600"
+          "detail": "graphics=749; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=807768; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -571,12 +662,13 @@
           "detail": "console error entries=0"
         }
       ],
-      "screenshot": "artifacts/emulator/audit/adair-ia-desktop-light.png"
+      "screenshot": "artifacts/emulator/audit/autauga-al-desktop-light.png"
     },
     {
-      "county": "adair-ia",
+      "county": "autauga-al",
       "archetype": "prairie_town",
       "draft": true,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "light",
       "checks": [
@@ -586,24 +678,29 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=594; ceiling=1600"
+          "detail": "graphics=378; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -613,17 +710,17 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (558.36,86.56) -> (398.36,-3.44); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (-1.46,0.44) -> (-161.46,-89.56); rebuilds=4 @ 1.7/s, fired=3, deferred=3"
         },
         {
           "id": "touch_pinch",
           "level": "pass",
-          "detail": "world scale 0.92 -> 1.5"
+          "detail": "world scale 0.76 -> 1.37"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=807768; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -631,12 +728,13 @@
           "detail": "console error entries=0"
         }
       ],
-      "screenshot": "artifacts/emulator/audit/adair-ia-mobile-light.png"
+      "screenshot": "artifacts/emulator/audit/autauga-al-mobile-light.png"
     },
     {
       "county": "butler-al",
       "archetype": "river_town",
       "draft": true,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "light",
       "checks": [
@@ -646,29 +744,34 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=660; ceiling=1600"
+          "detail": "graphics=272; ceiling=1600"
         },
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=874594; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -682,6 +785,7 @@
       "county": "butler-al",
       "archetype": "river_town",
       "draft": true,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "light",
       "checks": [
@@ -691,24 +795,29 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "honesty_banner",
           "level": "pass",
-          "detail": "GENERATED PREVIEWGenerated district. Not real coverage. Nothing is saved.Exit preview"
+          "detail": "PREVIEW ONLYReal Census town names. Streets and buildings are generated.Exit preview"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=694; ceiling=1600"
+          "detail": "graphics=454; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -718,7 +827,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (441.98,-54.2) -> (281.98,-144.2); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (311.38,14.84) -> (151.38,-75.16); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -728,7 +837,7 @@
         {
           "id": "payload_report",
           "level": "pass",
-          "detail": "max generatedDraftSceneChars=874594; ceiling=900000"
+          "detail": "max generatedDraftSceneChars=0; ceiling=900000"
         },
         {
           "id": "console_errors",
@@ -742,6 +851,7 @@
       "county": "riverside-ca",
       "archetype": "curated",
       "draft": false,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "light",
       "checks": [
@@ -751,19 +861,24 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=780; ceiling=1600"
+          "detail": "graphics=826; ceiling=1600"
         },
         {
           "id": "payload_report",
@@ -782,6 +897,7 @@
       "county": "riverside-ca",
       "archetype": "curated",
       "draft": false,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "dark",
       "checks": [
@@ -791,19 +907,24 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=780; ceiling=1600"
+          "detail": "graphics=826; ceiling=1600"
         },
         {
           "id": "payload_report",
@@ -822,6 +943,7 @@
       "county": "riverside-ca",
       "archetype": "curated",
       "draft": false,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "light",
       "checks": [
@@ -831,19 +953,24 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=774; ceiling=1600"
+          "detail": "graphics=826; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -853,17 +980,17 @@
         {
           "id": "touch_tap_select",
           "level": "pass",
-          "detail": "selected label changed: Eastvale -> Corona"
+          "detail": "selected label changed: Eastvale -> Residential Cluster"
         },
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
+          "detail": "world moved (195,-62.56) -> (35,-152.56); rebuilds=0 @ 0.0/s, fired=0, deferred=0"
         },
         {
           "id": "touch_pinch",
           "level": "pass",
-          "detail": "world scale 0.92 -> 1.55"
+          "detail": "world scale 1.62 -> 1.95"
         },
         {
           "id": "payload_report",
@@ -882,6 +1009,7 @@
       "county": "riverside-ca",
       "archetype": "curated",
       "draft": false,
+      "geoBoard": false,
       "viewport": "mobile",
       "theme": "dark",
       "checks": [
@@ -891,19 +1019,24 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=550; clientWidth=550"
+          "detail": "scrollWidth=390; clientWidth=390"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=774; ceiling=1600"
+          "detail": "graphics=826; ceiling=1600"
         },
         {
           "id": "touch_targets_44",
@@ -913,17 +1046,17 @@
         {
           "id": "touch_tap_select",
           "level": "pass",
-          "detail": "selected label changed: Eastvale -> Corona"
+          "detail": "selected label changed: Eastvale -> Residential Cluster"
         },
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (115.1,74.42) -> (-44.9,-15.58); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (195,-62.56) -> (35,-152.56); rebuilds=0 @ 0.0/s, fired=0, deferred=0"
         },
         {
           "id": "touch_pinch",
           "level": "pass",
-          "detail": "world scale 0.92 -> 1.55"
+          "detail": "world scale 1.62 -> 1.95"
         },
         {
           "id": "payload_report",
@@ -942,6 +1075,7 @@
       "county": "orange-ca",
       "archetype": "shell",
       "draft": false,
+      "geoBoard": false,
       "viewport": "desktop",
       "theme": "light",
       "checks": [
@@ -951,24 +1085,29 @@
           "detail": "state=delivered; errors=0"
         },
         {
+          "id": "cross_origin_widget_assets",
+          "level": "pass",
+          "detail": "host=http://127.0.0.1:8787; assets=http://localhost:8787; component script+style + 21 lazy chunks cross-origin"
+        },
+        {
           "id": "no_horizontal_overflow",
           "level": "pass",
-          "detail": "scrollWidth=1440; clientWidth=1440"
+          "detail": "scrollWidth=1280; clientWidth=1280"
         },
         {
           "id": "canvas_single",
           "level": "pass",
-          "detail": "canvas count=1"
+          "detail": "canvas count=1; non-gesture returns undefined; user gesture + openai global toggle inline->fullscreen->inline"
         },
         {
           "id": "graphics_ceiling",
           "level": "pass",
-          "detail": "graphics=33; ceiling=1600"
+          "detail": "graphics=853; ceiling=1600"
         },
         {
           "id": "cta_roundtrip",
           "level": "pass",
-          "detail": "deliveries=2; current-city-map=Riverside CountyEastvale"
+          "detail": "deliveries=1; exit-to=Riverside CountyEastvale"
         },
         {
           "id": "payload_report",
@@ -985,7 +1124,7 @@
     }
   ],
   "summary": {
-    "pass": 158,
+    "pass": 182,
     "warn": 0,
     "fail": 0
   },

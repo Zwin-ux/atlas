@@ -1,10 +1,12 @@
 {
   "ok": true,
-  "update": "postalpha-0.71h-scene-packet-service-boundary",
+  "update": "postalpha-0.76t-ship-params-not-scenes",
   "artifactPath": "artifacts/national-generation/0.71h/generated-draft-scene-packet.json",
   "checkedFiles": [
     "packages/core/src/world/scenePacketCache.ts",
     "packages/core/test/scene-packet-cache.test.ts",
+    "packages/core/src/voxel/cityWorldGeneratedDistrict.ts",
+    "packages/core/test/city-world-generated-district.test.ts",
     "server/src/scenePacketMemoryAdapter.ts",
     "server/src/index.ts",
     "web/src/App.tsx",
@@ -78,6 +80,60 @@
       }
     },
     "sceneBuilds": 1,
+    "generatedDraftSpecCharCeiling": 10000,
+    "specPayloads": [
+      {
+        "archetype": "metro_grid",
+        "countySlug": "jefferson-al",
+        "specChars": 6205,
+        "wireMetaChars": 7177,
+        "compileMs": 122.302,
+        "sceneId": "generated-jefferson-al-generated-district"
+      },
+      {
+        "archetype": "coastal_grid",
+        "countySlug": "aleutians-east-borough-ak",
+        "specChars": 5737,
+        "wireMetaChars": 6748,
+        "compileMs": 37.788,
+        "sceneId": "generated-aleutians-east-borough-ak-generated-district"
+      },
+      {
+        "archetype": "desert_basin",
+        "countySlug": "apache-az",
+        "specChars": 5541,
+        "wireMetaChars": 6504,
+        "compileMs": 50.727,
+        "sceneId": "generated-apache-az-generated-district"
+      },
+      {
+        "archetype": "mountain_valley",
+        "countySlug": "adams-co",
+        "specChars": 6302,
+        "wireMetaChars": 7262,
+        "compileMs": 140.763,
+        "sceneId": "generated-adams-co-generated-district"
+      },
+      {
+        "archetype": "prairie_town",
+        "countySlug": "autauga-al",
+        "specChars": 5976,
+        "wireMetaChars": 6942,
+        "compileMs": 93.226,
+        "sceneId": "generated-autauga-al-generated-district"
+      },
+      {
+        "archetype": "river_town",
+        "countySlug": "butler-al",
+        "specChars": 5855,
+        "wireMetaChars": 6818,
+        "compileMs": 73.396,
+        "sceneId": "generated-butler-al-generated-district"
+      }
+    ],
+    "maxGeneratedDraftSpecChars": 6302,
+    "maxGeneratedDraftWireMetaChars": 7262,
+    "representativeCompileMs": 73.396,
     "status": {
       "update": "postalpha-0.72b-redis-scene-packet-cache-job-spine",
       "cacheBackend": "memory",
@@ -87,7 +143,9 @@
       "missCount": 2,
       "hitRate": 0.3333,
       "queueDepth": 0,
+      "claimedCount": 0,
       "oldestQueuedMs": null,
+      "oldestClaimedMs": null,
       "lockTtlSeconds": 30,
       "redisConfigured": false,
       "redisReachable": null,

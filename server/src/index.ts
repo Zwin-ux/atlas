@@ -26,6 +26,7 @@ import {
   createDeterministicGeneratedDistrictScene,
   createDeterministicGeneratedDistrictSpec,
   createNationalWorldService,
+  COUNTY_TOWN_ANCHOR_UPDATE_ID,
   DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
   type CountyQuestionAnswer,
   type UsCountyWorldResponse,
@@ -78,6 +79,7 @@ import {
   validateHostHeader,
   validateOriginHeader,
 } from "./security.js";
+import { loadCountyTownAnchorIndex, townAnchorsForCounty } from "./countyTownAnchorIndex.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-0781v.html";
@@ -97,6 +99,9 @@ const MCP_PATH = process.env.MCP_PATH ?? "/mcp";
 const serverSecurityConfig = readServerSecurityConfig(process.env);
 const countyPackService = new CountyPackService(resolve(ROOT_DIR, "data", "county_packs"));
 const countyQuestionService = new CountyQuestionService(countyPackService);
+const countyTownAnchorIndex = loadCountyTownAnchorIndex(
+  resolve(ROOT_DIR, "data", "census", "us-county-town-anchors.json"),
+);
 
 // Real-geography county boards: TIGER geo packs (boundary + water) baked to
 // data/geo-packs. Loaded on demand and cached (negatives too — most counties
@@ -1373,9 +1378,13 @@ async function getOrCreateGeneratedDraftScenePacket(
     countySlug: countyResponse.county.countySlug,
     ...(countyResponse.county.centroid ? { centroid: countyResponse.county.centroid } : {}),
   };
-  const generated = createDeterministicGeneratedDistrictSpec({ county });
+  const townAnchors = townAnchorsForCounty(countyTownAnchorIndex, county.countySlug);
+  const generated = createDeterministicGeneratedDistrictSpec({ county, townAnchors });
+  const engineUpdateId = townAnchors.length > 0
+    ? COUNTY_TOWN_ANCHOR_UPDATE_ID
+    : DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID;
   const job: ScenePacketGeneratedDraftJob = {
-    id: `${coverage.countySlug}:${generated.districtSlug}:generated-initial-window:${DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID}`,
+    id: `${coverage.countySlug}:${generated.districtSlug}:generated-initial-window:${engineUpdateId}`,
     kind: "generated_draft_scene",
     enqueuedAtMs: Date.now(),
     stateCode: county.stateCode,
@@ -1387,7 +1396,7 @@ async function getOrCreateGeneratedDraftScenePacket(
     cameraPresetId: "generated-draft",
     windowHash: "generated-initial-window",
     sceneSchemaVersion: "city-world-v1",
-    engineUpdateId: DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
+    engineUpdateId,
     sourceNotes: coverage.sourceNotes.map(toWorldSourceNote),
   };
   const packet = await scenePacketMemory.getOrCreateGeneratedDraftScenePacket({
@@ -1397,9 +1406,9 @@ async function getOrCreateGeneratedDraftScenePacket(
     cameraPresetId: "generated-draft",
     windowHash: "generated-initial-window",
     sceneSchemaVersion: "city-world-v1",
-    engineUpdateId: DETERMINISTIC_GENERATED_DISTRICT_UPDATE_ID,
+    engineUpdateId,
     sourceNotes: coverage.sourceNotes.map(toWorldSourceNote),
-    createScene: () => createDeterministicGeneratedDistrictScene({ county }).result.scene,
+    createScene: () => createDeterministicGeneratedDistrictScene({ county, townAnchors }).result.scene,
     sceneIdForPayload: (scene) => scene.id,
     job,
   });
@@ -2953,7 +2962,7 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Use select_county to open Riverside/Eastvale, the full Atlas map available today. Use render_voxel_county when the user asks to refresh or focus that map. Preview-only counties must not invent places or tools. Use ask_county_question for questions answered from built-in Riverside/Eastvale map data. Use lookup_world_places for lookup-only nearby places around an Atlas county or place id; lookup results are not saved as user work, may use a provider cache for up to 24 hours, and are not coverage proof. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for save limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution.",
+        "Use select_county to open Riverside/Eastvale, the full Atlas map available today. Use render_voxel_county when the user asks to refresh or focus that map. Other supported counties expose real U.S. Census town names on clearly generated preview layouts; never imply their streets, buildings, businesses, or coverage are verified. Use ask_county_question for built-in Riverside/Eastvale questions or to locate a displayed Census town anchor. Use lookup_world_places for lookup-only nearby places around an Atlas county or place id; lookup results are not saved as user work, may use a provider cache for up to 24 hours, and are not coverage proof. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for save limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution.",
     },
   );
 
@@ -2972,7 +2981,7 @@ function createAtlasServer(): McpServer {
               resourceDomains: widgetResourceDomains(),
             },
           },
-          "openai/widgetDescription": "Shows the Atlas Riverside voxel city map with places, stickers, notes, and planning previews that stay in this chat.",
+          "openai/widgetDescription": "Shows the Atlas County Scout map: the Riverside/Eastvale full map plus generated U.S. county studies with real Census town names. Work stays in this chat.",
         },
       },
     ],
@@ -3031,13 +3040,13 @@ function createAtlasServer(): McpServer {
     {
       title: "Select county",
       description:
-        "Use this when the user asks to show, open, load, view, map, or switch to a US county in Atlas, including bare requests like \"show me Riverside County.\" This is the entry point for county maps: safe, read-only, and normally instant for open/show requests. Riverside opens the full Eastvale voxel map; other known counties show honest preview-only status. For refreshing or focusing an already-open map, use render_voxel_county.",
+        "Use this when the user asks to show, open, load, view, map, or switch to a US county in Atlas, including bare requests like \"show me Riverside County.\" This is the entry point for county maps: safe, read-only, and normally instant for open/show requests. Riverside opens the full Eastvale voxel map; other supported counties open as generated county studies with real U.S. Census town anchors. For refreshing or focusing an already-open map, use render_voxel_county.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County id. Riverside opens the full map; other known US counties show preview-only outlines."),
+        countySlug: z.string().optional().describe("County id. Riverside opens the full map; other supported US counties show generated studies with real Census town anchors."),
         includeGeneratedDraft: z
           .boolean()
           .optional()
-          .describe("When true for a preview-only county, include a generated district for the widget. It is not real coverage and stays in this chat."),
+          .describe("Include real Census town names on a generated layout. Defaults to true for preview-only counties; streets and buildings are not verified coverage."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -3058,10 +3067,10 @@ function createAtlasServer(): McpServer {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const scenePacket = await scenePacketStatusForCoverage(coverage);
         const countyGeoPack = loadCountyGeoPack(coverage.countySlug);
-        const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
+        const generatedDraft = includeGeneratedDraft !== false ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
           ? generatedDraft.generatedDraftSpec
-            ? " Generated district. Not real coverage. Preview stays in this chat."
+            ? " Real Census town names are attached; streets and buildings are generated, not verified local coverage."
             : " The generated district is preparing. Keep browsing the county preview."
           : "";
         return {
@@ -3079,7 +3088,7 @@ function createAtlasServer(): McpServer {
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas right now. Riverside/Eastvale is fully explorable today. Atlas does not add local places, saved work, XP, evidence, outreach, or automation here.${generatedDraftCopy}`,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas right now. Riverside/Eastvale is fully explorable today. Atlas does not add verified streets, buildings, businesses, saved work, XP, evidence, outreach, or automation here.${generatedDraftCopy}`,
             },
           ],
         };
@@ -3111,10 +3120,10 @@ function createAtlasServer(): McpServer {
     {
       title: "Ask county question",
       description:
-        "Use this when the user asks a factual Riverside/Eastvale county, map, or local-business question, or asks where a drawn place is in a preview county map. It answers from built-in map data and preview place labels only; it does not search live nearby places. Closed-world and read-only; unsupported questions are refused rather than guessed.",
+        "Use this when the user asks a factual Riverside/Eastvale county, map, or local-business question, or asks where a displayed Census town is in another supported county. It answers from built-in map data and real Census town anchors plus honest preview labels; it does not search live nearby places. Closed-world and read-only; unsupported questions are refused rather than guessed.",
       inputSchema: {
         question: z.string().min(1).describe("County or map question to answer from built-in Atlas data."),
-        countySlug: z.string().optional().describe("County id. Riverside has the full map; preview counties can answer drawn-place questions only."),
+        countySlug: z.string().optional().describe("County id. Riverside has the full map; preview counties can locate displayed Census town anchors and drawn places only."),
         businessType: z
           .string()
           .optional()
@@ -3212,12 +3221,12 @@ function createAtlasServer(): McpServer {
       description:
         "Use this when the user asks to refresh, re-render, refocus, or move the Atlas county map that is already open. It updates the widget scene or coverage state for the current county; it is not the entry point for bare \"show me X county\" requests. To show, open, map, or switch counties, use select_county.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County id. Riverside opens the full map; other known US counties show preview-only outlines."),
+        countySlug: z.string().optional().describe("County id. Riverside opens the full map; other supported US counties show generated studies with real Census town anchors."),
         selectedNodeId: z.string().optional().describe("Atlas node id to focus, such as eastvale."),
         includeGeneratedDraft: z
           .boolean()
           .optional()
-          .describe("When true for a preview-only county, include a generated district for the widget. It is not real coverage and stays in this chat."),
+          .describe("Include real Census town names on a generated layout. Defaults to true for preview-only counties; streets and buildings are not verified coverage."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -3238,10 +3247,10 @@ function createAtlasServer(): McpServer {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
         const scenePacket = await scenePacketStatusForCoverage(coverage);
         const countyGeoPack = loadCountyGeoPack(coverage.countySlug);
-        const generatedDraft = includeGeneratedDraft ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
+        const generatedDraft = includeGeneratedDraft !== false ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
         const generatedDraftCopy = generatedDraft
           ? generatedDraft.generatedDraftSpec
-            ? " Generated district. Not real coverage. Preview stays in this chat."
+            ? " Real Census town names are attached; streets and buildings are generated, not verified local coverage."
             : " The generated district is preparing. Keep browsing the county preview."
           : "";
         return {
@@ -3259,7 +3268,7 @@ function createAtlasServer(): McpServer {
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas right now. Atlas draws a full local world after the full map is built. Open Riverside/Eastvale for the full map.${generatedDraftCopy}`,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas right now. Open Riverside/Eastvale for the fully explorable map.${generatedDraftCopy}`,
             },
           ],
         };
@@ -3642,9 +3651,20 @@ const httpServer = createServer(async (req, res) => {
       jsonResponse(res, 200, { ok: true, version: SERVER_VERSION });
       return;
     }
-    const payload = await readyPayload();
-    const status = typeof payload === "object" && payload !== null && "ok" in payload && payload.ok === true ? 200 : 503;
-    jsonResponse(res, status, payload);
+    try {
+      const payload = await readyPayload();
+      const status = typeof payload === "object" && payload !== null && "ok" in payload && payload.ok === true ? 200 : 503;
+      jsonResponse(res, status, payload);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logBackendEvent("ready_probe_failed", { requestId, message: message.slice(0, 160) });
+      jsonResponse(res, 503, {
+        ok: false,
+        version: SERVER_VERSION,
+        serverUp: true,
+        reason: "dependency_probe_failed",
+      });
+    }
     return;
   }
 
