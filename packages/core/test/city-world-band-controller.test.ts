@@ -120,6 +120,40 @@ describe("deriveBandDensity — zoom x viewport x county scale", () => {
   });
 });
 
+describe("R1 pipeline — derived density drives a committed band transition", () => {
+  it("zooms a small county from FAR to NEAR through the full derive->gesture->settle->commit path", () => {
+    let state = createBandControllerState();
+    state = reduceBandController(state, { type: "pin-epoch", epoch: EPOCH_A });
+    expect(state.committedBand).toBe("far");
+
+    // A decisive zoom-in on a reference-scale county: derived density lands in NEAR.
+    const density = deriveBandDensity({ zoom: 1.6, viewportSpanPx: BAND_DENSITY_REFERENCE_VIEWPORT_PX, countyScale: 1 });
+    expect(selectBand(density)).toBe("near");
+
+    state = wheelSettle(state, density, 0);
+    expect(state.pendingIntent?.targetBand).toBe("near");
+    state = reduceBandController(state, { type: "commit", intentId: state.pendingIntent!.id, epoch: EPOCH_A, time: 400 });
+    expect(state.committedBand).toBe("near");
+  });
+
+  it("holds a huge western county at MID at the same zoom a small county reaches NEAR", () => {
+    // Identical zoom + viewport, but a 2x larger county -> lower density -> MID not NEAR.
+    // small: 1.6 / 1 = 1.6 (NEAR); huge: 1.6 / 2 = 0.8 (MID).
+    const zoom = 1.6;
+    const smallDensity = deriveBandDensity({ zoom, viewportSpanPx: BAND_DENSITY_REFERENCE_VIEWPORT_PX, countyScale: 1 });
+    const hugeDensity = deriveBandDensity({ zoom, viewportSpanPx: BAND_DENSITY_REFERENCE_VIEWPORT_PX, countyScale: 2 });
+    expect(selectBand(smallDensity)).toBe("near");
+    expect(selectBand(hugeDensity)).toBe("mid");
+
+    let state = createBandControllerState();
+    state = reduceBandController(state, { type: "pin-epoch", epoch: EPOCH_A });
+    state = wheelSettle(state, hugeDensity, 0);
+    expect(state.pendingIntent?.targetBand).toBe("mid");
+    state = reduceBandController(state, { type: "commit", intentId: state.pendingIntent!.id, epoch: EPOCH_A, time: 400 });
+    expect(state.committedBand).toBe("mid");
+  });
+});
+
 describe("band controller — gesture settle & transitions", () => {
   it("defers a mid-gesture band crossing: desired moves, committed does not, nothing is requested until settle", () => {
     let state = createBandControllerState();
@@ -266,7 +300,7 @@ describe("band controller — latest-wins & stale completions", () => {
     expect(state.pendingIntent).toBeNull();
   });
 
-  it("converges a deferred mid-gesture crossing after the in-flight commit lands", () => {
+  it("supersedes to the latest crossed band when a new gesture settles mid-transition", () => {
     let state = createBandControllerState();
     state = reduceBandController(state, { type: "pin-epoch", epoch: EPOCH_A });
     // Settle to MID -> intent #1.
