@@ -67,7 +67,73 @@ export const BAND_MID_NEAR_DENSITY = 1.4;
 export const BAND_HYSTERESIS_MARGIN = 0.08;
 
 /**
- * Pure band selection.
+ * Integer band codes. Carmack rule: the frame-rate hot path (a band decision per
+ * wheel delta / per pointer move) works in ints — no string compares, no branch
+ * table on labels, no allocation. `FAR < MID < NEAR`, so a code doubles as its
+ * detail ordinal (monotone with density).
+ */
+export const BAND_CODE_FAR = 0;
+export const BAND_CODE_MID = 1;
+export const BAND_CODE_NEAR = 2;
+
+const BAND_BY_CODE: readonly ZoomBand[] = ["far", "mid", "near"];
+
+export function bandFromCode(code: number): ZoomBand {
+  return BAND_BY_CODE[code] ?? "far";
+}
+
+export function bandToCode(band: ZoomBand): number {
+  return band === "near" ? BAND_CODE_NEAR : band === "mid" ? BAND_CODE_MID : BAND_CODE_FAR;
+}
+
+// Precomputed hysteresis edges — baked once at module load, never recomputed in
+// the loop (the reference inlined these four subtractions on every call). The
+// sticky window for a band is [lowEdge, highEdge).
+const BAND_UP_FAR_MID = BAND_FAR_MID_DENSITY + BAND_HYSTERESIS_MARGIN; // rise FAR->MID
+const BAND_DOWN_FAR_MID = BAND_FAR_MID_DENSITY - BAND_HYSTERESIS_MARGIN; // fall MID->FAR
+const BAND_UP_MID_NEAR = BAND_MID_NEAR_DENSITY + BAND_HYSTERESIS_MARGIN; // rise MID->NEAR
+const BAND_DOWN_MID_NEAR = BAND_MID_NEAR_DENSITY - BAND_HYSTERESIS_MARGIN; // fall NEAR->MID
+
+/**
+ * Branch-lean, allocation-free band selection in integer space — the hot path.
+ *
+ * The band is the classic "sum of comparisons": count how many of two edges the
+ * density clears (`0 -> FAR`, `1 -> MID`, `2 -> NEAR`). Which two edges is chosen
+ * by the current band, and that is the entire hysteresis — FAR probes the two UP
+ * edges, NEAR the two DOWN edges, MID the DOWN_FAR_MID / UP_MID_NEAR pair — so a
+ * band only rises past `threshold + margin` and only falls below
+ * `threshold - margin`. Multi-band jumps (FAR->NEAR, NEAR->FAR) fall straight out
+ * of the count. Pass `currentCode < 0` (default) for the bare classification at
+ * the raw calibration points. Proven byte-identical to the reference `selectBand`
+ * semantics by the equivalence fuzz.
+ */
+export function selectBandCode(density: number, currentCode = -1): number {
+  let eLow: number;
+  let eHigh: number;
+  switch (currentCode) {
+    case BAND_CODE_FAR:
+      eLow = BAND_UP_FAR_MID;
+      eHigh = BAND_UP_MID_NEAR;
+      break;
+    case BAND_CODE_MID:
+      eLow = BAND_DOWN_FAR_MID;
+      eHigh = BAND_UP_MID_NEAR;
+      break;
+    case BAND_CODE_NEAR:
+      eLow = BAND_DOWN_FAR_MID;
+      eHigh = BAND_DOWN_MID_NEAR;
+      break;
+    default:
+      eLow = BAND_FAR_MID_DENSITY;
+      eHigh = BAND_MID_NEAR_DENSITY;
+      break;
+  }
+  return (density >= eLow ? 1 : 0) + (density >= eHigh ? 1 : 0);
+}
+
+/**
+ * Pure band selection (ergonomic string-band wrapper over the integer hot path,
+ * `selectBandCode` — single source of truth, so the two cannot diverge).
  *
  * Without `currentBand` it is a bare classification at the calibration points
  * (used for the initial band). With `currentBand` it applies hysteresis
@@ -80,31 +146,7 @@ export const BAND_HYSTERESIS_MARGIN = 0.08;
  * both calibration points in one step resolves in a single call.
  */
 export function selectBand(density: number, currentBand?: ZoomBand): ZoomBand {
-  if (currentBand === undefined) {
-    if (density >= BAND_MID_NEAR_DENSITY) return "near";
-    if (density >= BAND_FAR_MID_DENSITY) return "mid";
-    return "far";
-  }
-
-  const upFarMid = BAND_FAR_MID_DENSITY + BAND_HYSTERESIS_MARGIN; // rise FAR->MID
-  const downFarMid = BAND_FAR_MID_DENSITY - BAND_HYSTERESIS_MARGIN; // fall MID->FAR
-  const upMidNear = BAND_MID_NEAR_DENSITY + BAND_HYSTERESIS_MARGIN; // rise MID->NEAR
-  const downMidNear = BAND_MID_NEAR_DENSITY - BAND_HYSTERESIS_MARGIN; // fall NEAR->MID
-
-  switch (currentBand) {
-    case "far":
-      if (density >= upMidNear) return "near";
-      if (density >= upFarMid) return "mid";
-      return "far";
-    case "mid":
-      if (density >= upMidNear) return "near";
-      if (density < downFarMid) return "far";
-      return "mid";
-    case "near":
-      if (density < downFarMid) return "far";
-      if (density < downMidNear) return "mid";
-      return "near";
-  }
+  return bandFromCode(selectBandCode(density, currentBand === undefined ? -1 : bandToCode(currentBand)));
 }
 
 // ---------------------------------------------------------------------------
@@ -157,13 +199,28 @@ export type BandDensityInputs = {
  * values so a degenerate zero/negative never yields NaN/Infinity (the band
  * would silently break); this is a safety net, not a normal operating point.
  */
+/**
+ * Allocation-free primitive-argument density derivation — the hot path the render
+ * loop calls each frame without building an inputs object (no per-frame garbage).
+ * Identical float math and clamping to `deriveBandDensity`, and the same
+ * left-to-right operation order, so results are bit-identical (proven by fuzz).
+ */
+export function deriveBandDensityArgs(
+  zoom: number,
+  viewportSpanPx: number,
+  countyScale: number,
+  deviceScale = 1,
+): number {
+  const z = Number.isFinite(zoom) ? Math.max(0, zoom) : 0;
+  const v = Math.max(MIN_VIEWPORT_SPAN_PX, viewportSpanPx);
+  const c = Math.max(MIN_COUNTY_SCALE, countyScale);
+  const d = Math.max(MIN_DEVICE_SCALE, deviceScale);
+  const viewportFactor = v / BAND_DENSITY_REFERENCE_VIEWPORT_PX;
+  return (z * viewportFactor * d) / c;
+}
+
 export function deriveBandDensity(inputs: BandDensityInputs): number {
-  const zoom = Number.isFinite(inputs.zoom) ? Math.max(0, inputs.zoom) : 0;
-  const viewportSpanPx = Math.max(MIN_VIEWPORT_SPAN_PX, inputs.viewportSpanPx);
-  const countyScale = Math.max(MIN_COUNTY_SCALE, inputs.countyScale);
-  const deviceScale = Math.max(MIN_DEVICE_SCALE, inputs.deviceScale ?? 1);
-  const viewportFactor = viewportSpanPx / BAND_DENSITY_REFERENCE_VIEWPORT_PX;
-  return (zoom * viewportFactor * deviceScale) / countyScale;
+  return deriveBandDensityArgs(inputs.zoom, inputs.viewportSpanPx, inputs.countyScale, inputs.deviceScale ?? 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -453,95 +510,138 @@ function applySettle(state: BandControllerState, cause: BandSettleCause, time: n
 // 6. Reducer
 // ---------------------------------------------------------------------------
 
-export function reduceBandController(state: BandControllerState, event: BandControllerEvent): BandControllerState {
-  // Terminal after unmount: inert. (pin/commit/etc. all ignored.)
-  if (state.unmounted) return state;
-
-  const next = cloneState(state);
-
+/**
+ * The transition logic, applied IN PLACE to `state`. Single source of truth for
+ * both the pure reducer (which clones first) and the in-place fast path (which
+ * does not). Every helper it calls (`applySettle`, `reconcileIntent`) already
+ * mutates in place, so this stays a straight-line mutation with no allocation
+ * beyond the small records the semantics genuinely create (a new intent, a
+ * degrade/backoff record) — and those only on the rare discrete events, never on
+ * the frame-frequent `gesture-activity`.
+ */
+function applyBandEvent(state: BandControllerState, event: BandControllerEvent): void {
   switch (event.type) {
     case "gesture-activity": {
-      next.density = event.density;
-      next.desiredBand = selectBand(event.density, next.committedBand);
-      next.gesture = { phase: "active", source: event.source, lastActivityTime: event.time };
+      state.density = event.density;
+      state.desiredBand = selectBand(event.density, state.committedBand);
+      // Reuse the gesture record when the gesture is already active on the same
+      // source (the steady-state wheel/pinch stream) so repeated deltas allocate
+      // nothing; otherwise start a fresh active record. Value-identical either way.
+      if (state.gesture.phase === "active" && state.gesture.source === event.source) {
+        state.gesture.lastActivityTime = event.time;
+      } else {
+        state.gesture = { phase: "active", source: event.source, lastActivityTime: event.time };
+      }
       // Mid-gesture crossing DEFERS: desiredBand moved, but no request/supersede.
-      return next;
+      return;
     }
 
     case "tick": {
       if (
-        next.gesture.phase === "active" &&
-        next.gesture.source === "wheel" &&
-        event.time - next.gesture.lastActivityTime >= WHEEL_IDLE_SETTLE_MS
+        state.gesture.phase === "active" &&
+        state.gesture.source === "wheel" &&
+        event.time - state.gesture.lastActivityTime >= WHEEL_IDLE_SETTLE_MS
       ) {
-        applySettle(next, "wheel-idle", event.time);
+        applySettle(state, "wheel-idle", event.time);
       }
-      return next;
+      return;
     }
 
     case "settle": {
-      applySettle(next, event.cause, event.time);
-      return next;
+      applySettle(state, event.cause, event.time);
+      return;
     }
 
     case "pin-epoch": {
       // Pin once per session (R2 §2.3). Ignore re-pins of the same/other epoch
       // while a pin stands; a retire-epoch is the only way to change it.
-      if (next.pinnedEpoch === null) {
-        next.pinnedEpoch = cloneEpoch(event.epoch);
+      if (state.pinnedEpoch === null) {
+        state.pinnedEpoch = cloneEpoch(event.epoch);
       }
-      return next;
+      return;
     }
 
     case "retire-epoch": {
       // 410 retired: drop pin + backoff; any in-flight intent is now stale.
-      next.pinnedEpoch = null;
-      next.backoff = null;
-      next.pendingIntent = null;
-      return next;
+      state.pinnedEpoch = null;
+      state.backoff = null;
+      state.pendingIntent = null;
+      return;
     }
 
     case "commit": {
       // Latest-wins: ignore a completion for a superseded/cancelled intent.
-      if (!next.pendingIntent || event.intentId !== next.pendingIntent.id) return next;
+      if (!state.pendingIntent || event.intentId !== state.pendingIntent.id) return;
       // Epoch pinning: ignore a completion from the wrong epoch.
-      if (!epochEquals(event.epoch, next.pinnedEpoch)) return next;
+      if (!epochEquals(event.epoch, state.pinnedEpoch)) return;
 
       // Single transactional commit (decision #58).
-      next.committedBand = next.pendingIntent.targetBand;
-      next.pendingIntent = null;
-      next.backoff = null; // success clears the per-epoch failure latch
-      if (next.degrade.active) {
-        next.degrade = { active: false, reason: null, since: event.time };
+      state.committedBand = state.pendingIntent.targetBand;
+      state.pendingIntent = null;
+      state.backoff = null; // success clears the per-epoch failure latch
+      if (state.degrade.active) {
+        state.degrade = { active: false, reason: null, since: event.time };
       }
       // Converge residual/deferred desire (e.g. a mid-gesture crossing that was
       // deferred while this intent was in flight), but only if already settled —
       // if a new gesture is active, keep deferring.
-      if (next.gesture.phase === "settled") {
-        reconcileIntent(next, event.time);
+      if (state.gesture.phase === "settled") {
+        reconcileIntent(state, event.time);
       }
-      return next;
+      return;
     }
 
     case "commit-failed": {
-      if (!next.pendingIntent || event.intentId !== next.pendingIntent.id) return next;
-      if (!epochEquals(event.epoch, next.pinnedEpoch)) return next;
+      if (!state.pendingIntent || event.intentId !== state.pendingIntent.id) return;
+      if (!epochEquals(event.epoch, state.pinnedEpoch)) return;
 
       // The failed intent is done; do NOT immediately re-request (backoff latch).
-      next.pendingIntent = null;
+      state.pendingIntent = null;
       // Enter degrade — visible, deterministic, never silent.
-      next.degrade = { active: true, reason: event.reason, since: event.time };
+      state.degrade = { active: true, reason: event.reason, since: event.time };
       // Arm/advance per-epoch backoff keyed by the pinned packHash.
-      const packHash = next.pinnedEpoch ? next.pinnedEpoch.packHash : event.epoch.packHash;
-      const failureCount = (next.backoff && next.backoff.epochKey === packHash ? next.backoff.failureCount : 0) + 1;
-      next.backoff = {
+      const packHash = state.pinnedEpoch ? state.pinnedEpoch.packHash : event.epoch.packHash;
+      const failureCount = (state.backoff && state.backoff.epochKey === packHash ? state.backoff.failureCount : 0) + 1;
+      state.backoff = {
         epochKey: packHash,
         failureCount,
         nextEligibleTime: event.time + bandBackoffDelayMs(failureCount),
       };
-      return next;
+      return;
     }
   }
+}
+
+/**
+ * Pure reducer — returns a NEW state, never mutates its input (the immutable
+ * reference path: undo, tracing, snapshots). Clones the whole state up front,
+ * then applies the transition to the clone.
+ */
+export function reduceBandController(state: BandControllerState, event: BandControllerEvent): BandControllerState {
+  // Terminal after unmount: inert. (pin/commit/etc. all ignored.)
+  if (state.unmounted) return state;
+  const next = cloneState(state);
+  applyBandEvent(next, event);
+  return next;
+}
+
+/**
+ * In-place fast path — mutates and returns the SAME state object. Skips the
+ * per-event `cloneState` (the dominant per-event allocation: a state record plus
+ * copies of gesture/epoch/intent/backoff/degrade), so a render loop that owns its
+ * state can step it with essentially zero GC pressure. Identical transition
+ * semantics to `reduceBandController` — it runs the exact same `applyBandEvent`,
+ * proven equivalent across randomized sequences by the equivalence fuzz.
+ *
+ * Because it mutates, any previously-captured reference to `state` also changes —
+ * do not share the object across a boundary that assumes immutability, and do not
+ * keep a `state` reference expecting it to be a prior snapshot. Use
+ * `reduceBandController` where you need immutable snapshots.
+ */
+export function stepBandControllerMut(state: BandControllerState, event: BandControllerEvent): BandControllerState {
+  if (state.unmounted) return state;
+  applyBandEvent(state, event);
+  return state;
 }
 
 // ---------------------------------------------------------------------------
