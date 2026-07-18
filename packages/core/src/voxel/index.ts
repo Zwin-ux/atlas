@@ -6,6 +6,7 @@ export * from "./cityWorldDerivedTerrainMap.js";
 export * from "./cityWorldObjectKit.js";
 export * from "./cityWorldRenderCommands.js";
 export * from "./cityWorldSceneWindow.js";
+export * from "./cityWorldBandController.js";
 export * from "./cityWorldDiagnostics.js";
 export * from "./cityWorldPaletteRegistry.js";
 export * from "./cityWorldAtlas.js";
@@ -81,5 +82,6 @@ export type {
 } from "./cityWorldGeneratedDistrict.js";
 export { compileVoxelSceneFromCountyPack } from "./VoxelSceneCompiler.js";
 export type { CompileVoxelSceneOptions } from "./VoxelSceneCompiler.js";
+export * from "./roadChunkCodec.js";
 export * from "./mapSession.js";
 export { riversideDemoVoxelScene } from "./riversideDemoScene.js";

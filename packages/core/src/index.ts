@@ -390,6 +390,38 @@ export {
   validateCityWorldAtlasManifest,
   validateCityWorldSceneAtlasKeys,
 } from "./voxel/cityWorldAtlas.js";
+export {
+  BAND_FAR_MID_DENSITY,
+  BAND_MID_NEAR_DENSITY,
+  BAND_HYSTERESIS_MARGIN,
+  BAND_DENSITY_REFERENCE_VIEWPORT_PX,
+  WHEEL_IDLE_SETTLE_MS,
+  BAND_BACKOFF_BASE_MS,
+  BAND_BACKOFF_MAX_MS,
+  bandBackoffDelayMs,
+  selectBand,
+  deriveBandDensity,
+  createBandControllerState,
+  reduceBandController,
+  runBandController,
+} from "./voxel/cityWorldBandController.js";
+export type {
+  ZoomBand,
+  ManifestEpoch,
+  BandGestureSource,
+  BandSettleCause,
+  BandExplicitSettleCause,
+  BandDegradeReason,
+  BandGestureState,
+  BandTransitionIntent,
+  BandBackoffState,
+  BandDegradeState,
+  BandControllerState,
+  BandControllerEvent,
+  BandDensityInputs,
+  CreateBandControllerOptions,
+  BandControllerRun,
+} from "./voxel/cityWorldBandController.js";
 
 export type AtlasPhase = "skeleton" | "county-pack" | "renderer" | "scout-drop" | "campaign" | "mcp-tools";
 
