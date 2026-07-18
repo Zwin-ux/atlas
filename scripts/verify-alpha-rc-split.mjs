@@ -377,6 +377,7 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "server/test/geo-pack-route.test.ts",
   "scripts/build-county-road-chunks.mjs",
   "packages/core/test/city-world-scene-window-band.test.ts",
+  "packages/core/src/voxel/cityWorldRenderCommands.ts",
   "docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md",
   "docs/SCENE_PACKET_SERVICE_BOUNDARY_0.71H.md",
   "docs/TOOL_CONTRACTS.md",
