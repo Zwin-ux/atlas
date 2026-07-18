@@ -9941,3 +9941,19 @@ the packet declared `tools_triggered: null`. Owner approved softening N3's
 `expected_output` to allow a read-only boundary-stating tool call; the
 must-not list (account, card data, payment, checkout) is unchanged. This is
 a portal-copy change only — no server behavior, no deploy required.
+
+## Entry 101
+
+**Mobile place-sheet tap interception fix - local green, 2026-07-18,
+Fable.** Post-release mobile eyes-on (390x844, deployed bundle) found the
+bottom-left Places toggle (mobile `z-index: 4`) painting OVER the open
+selected-place sheet (base `z-index: 3`) and intercepting taps on the note
+input's left edge — measured live: `elementFromPoint` on the note input
+returned the toggle. Present since the W5 mobile disclosure; the emulator
+audit's mobile cells check 44px targets but not stacking overlap. Fix: the
+mobile media query now raises `.city-world-tray` to `z-index: 4`; the sheet
+is later in the DOM, so it paints above the toggle and receives taps while
+open (toggle reachable again when the sheet closes). Verified live after
+rebuild: `elementFromPoint` at the note input returns `note-input`; sheet
+fully legible. Desktop untouched. Widget perf + full emulator audit re-run
+against the fixed bundle; refreshed evidence committed with this entry.

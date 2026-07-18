@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "ranAt": "2026-07-18T03:06:50.668Z",
+  "ranAt": "2026-07-18T12:17:09.354Z",
   "base": "http://127.0.0.1:8787",
   "cells": [
     {
@@ -166,12 +166,12 @@
         {
           "id": "generated_note_save",
           "level": "pass",
-          "detail": "note count 0 -> 1; latest=Generated audit note 1784343855015"
+          "detail": "note count 0 -> 1; latest=Generated audit note 1784376814137"
         },
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (370.56,20.96) -> (210.56,-69.04); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (370.56,20.96) -> (210.56,-69.04); rebuilds=3 @ 1.0/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -242,7 +242,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (370.56,20.96) -> (210.56,-69.04); rebuilds=3 @ 1.3/s, fired=3, deferred=0"
+          "detail": "world moved (370.56,20.96) -> (210.56,-69.04); rebuilds=3 @ 1.1/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -359,7 +359,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (83.68,-197.68) -> (-168.57,-339.57); rebuilds=5 @ 2.2/s, fired=4, deferred=4"
+          "detail": "world moved (83.68,-197.68) -> (-76.32,-287.68); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -476,7 +476,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (366.03,181.38) -> (206.03,91.38); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (366.03,181.38) -> (206.03,91.38); rebuilds=3 @ 1.1/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -593,7 +593,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (139.64,264.84) -> (-20.36,174.84); rebuilds=3 @ 1.3/s, fired=2, deferred=1"
+          "detail": "world moved (139.64,264.84) -> (-20.36,174.84); rebuilds=3 @ 1.2/s, fired=3, deferred=0"
         },
         {
           "id": "touch_pinch",
@@ -710,7 +710,7 @@
         {
           "id": "touch_pan",
           "level": "pass",
-          "detail": "world moved (-1.46,0.44) -> (-161.46,-89.56); rebuilds=4 @ 1.7/s, fired=3, deferred=3"
+          "detail": "world moved (-1.46,0.44) -> (-161.46,-89.56); rebuilds=4 @ 1.5/s, fired=3, deferred=2"
         },
         {
           "id": "touch_pinch",

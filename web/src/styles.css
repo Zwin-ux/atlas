@@ -1709,6 +1709,13 @@ button {
     justify-self: start;
   }
 
+  /* The open place sheet must beat the bottom-left Places toggle: same
+     z-index but later in the DOM, so the sheet paints above it and the
+     note input receives taps instead of the toggle underneath. */
+  .city-world-tray {
+    z-index: 4;
+  }
+
   .city-world-place-navigator-list {
     top: auto;
     left: 0;
