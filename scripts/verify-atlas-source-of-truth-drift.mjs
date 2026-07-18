@@ -86,11 +86,11 @@ const PLUGIN_SUBMISSION_RELEASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1"
 const TOWN_ANCHOR_RELEASE_BASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1";
 // Release candidate head: the certified envelope awaiting the next deploy
 // (0.78-2A + N3 copy + mobile place-sheet fix).
-const TOWN_ANCHOR_RELEASE_HEAD_SHA = "0e49e9ae86caaf9a052be41296dfcd7357e54395";
+const TOWN_ANCHOR_RELEASE_HEAD_SHA = "b4eea1caef009a4886abbb659d74ada27d256315";
 // Deployed head: what production actually runs until the next owner deploy.
-const TOWN_ANCHOR_DEPLOYED_SHA = "89f72300e74f42a0b5b182bd3ce433d0e396940f";
+const TOWN_ANCHOR_DEPLOYED_SHA = "b4eea1caef009a4886abbb659d74ada27d256315";
 const TOWN_ANCHOR_IMPLEMENTATION_SHA = "331c8cf5f5290e135271b1984334f2f9e03701c1";
-const TOWN_ANCHOR_RAILWAY_DEPLOYMENT = "0c0394f9-807e-42ef-a187-3dc99e8f6e07";
+const TOWN_ANCHOR_RAILWAY_DEPLOYMENT = "2c7bb3a4-d5b2-4869-8bf1-6e1763a395f5";
 const TOWN_ANCHOR_RELEASE_PATH_COUNT = 81;
 const PLUGIN_SUBMISSION_RAILWAY_DEPLOYMENT = "b4683672-40fb-40c0-aa5e-1b78e3ac8d23";
 const EXPECTED_TOOLS = [
@@ -1340,9 +1340,9 @@ function checkPluginSubmissionCurrentUpdate(update) {
     update.deployment?.railwayDeploymentId !== TOWN_ANCHOR_RAILWAY_DEPLOYMENT ||
     update.deployment?.releaseGatesPassed !== 14 ||
     update.deployment?.publicSanityChecksPassed !== 3 ||
-    update.deployment?.workerDeployed !== false
+    update.deployment?.workerDeployed !== true
   ) {
-    blockers.push("Plugin submission must record the exact green Railway release, implementation SHA, 14/14 release gates, 3/3 public sanity checks, and worker safety skip.");
+    blockers.push("Plugin submission must record the exact green Railway release, implementation SHA, 14/14 release gates, 3/3 public sanity checks, and the deployed worker.");
   }
 }
 

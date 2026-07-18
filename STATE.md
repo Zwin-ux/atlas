@@ -10,11 +10,12 @@ Local canonical candidate:
 `C:/Users/mzwin/Documents/Atlas` on `codex/integrate-hosted-clawd-fable-058e`.
 
 Deploy status:
-Production is green at exact SHA `89f72300e74f42a0b5b182bd3ce433d0e396940f`
-(0.78-2A National Town Anchors) via Railway deployment
-`0c0394f9-807e-42ef-a187-3dc99e8f6e07` on 2026-07-17. The release gate
-passed 14/14 and the public sanity sweep passed 3/3. The worker stayed
-skipped behind its healthcheck safety guard. Real-ChatGPT G8 and the portal
+Production is green at exact SHA `b4eea1caef009a4886abbb659d74ada27d256315`
+via Railway deployment `2c7bb3a4-d5b2-4869-8bf1-6e1763a395f5` on 2026-07-18,
+WITH the scene-packet worker deployed for the first time
+(`9d2d5d2a-2805-4b23-9c6c-d4357efbb4d6`) — the hardened worker answers its
+own healthcheck. Release gate 14/14 (token-authed ops stats), public sanity
+3/3, `/ready` capability posture trimmed. Real-ChatGPT G8 and the portal
 domain token are still pending.
 
 Deployed candidate (was local-only until 2026-07-17):

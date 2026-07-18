@@ -33,7 +33,7 @@ Legend: ✅ verified or implemented · 🚢 implemented but not deployed · 🧪
 | Identity | Verified individual or business identity must match the listing, website, support, privacy, and terms. | ⬜ | Complete verification in the publishing organization. |
 | Portal permission | Submitter needs **Apps Management: Write**; owners already have app-management permissions. | ⬜ | Confirm the role before opening the draft. |
 | Data residency | Projects with EU data residency currently cannot submit MCP-backed plugins. | ⬜ | Use a global-data-residency project. |
-| Worker resilience | Local tests prove Redis `maxclients` retry, singleton adapter reuse, transient poll recovery, and worker readiness behavior. The worker now answers `/health` and `/ready` on `$PORT` itself, so the inherited Railway healthcheck can pass. | 🚢/⬜ | Owner re-runs the release script with `ATLAS_DEPLOY_WORKER=1`, then verify live worker health/readiness. |
+| Worker resilience | Redis `maxclients` retry, singleton adapter reuse, transient poll recovery, and worker readiness proven locally; worker DEPLOYED to production 2026-07-18 (`9d2d5d2a`) answering its own healthcheck. | ✅ | Watch worker health during the review window (canary covers /ready). |
 | Real-host quality | Local emulator fidelity, desktop/mobile map behavior, performance, and MCP gates are green. Real ChatGPT G8 is not complete for the national-anchor candidate. | 🧪 | Finish the visible ChatGPT web + mobile run; do not claim host approval from emulator evidence. |
 
 ## Portal Packet

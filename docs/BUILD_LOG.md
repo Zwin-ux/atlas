@@ -9986,3 +9986,22 @@ and server-hardening gates.
 
 Deploy note: set `ATLAS_OPS_TOKEN` on atlas-backend (and the local shell
 running the release script) before the next deploy.
+
+## Entry 104
+
+**FULL-STACK PRODUCTION RELEASE - green, 2026-07-18, owner-executed.**
+Deployed SHA `b4eea1c` (town anchors + N3 copy + mobile place-sheet fix +
+ops-surface trim + runbook): backend Railway deployment
+`2c7bb3a4-d5b2-4869-8bf1-6e1763a395f5` and — for the first time in project
+history — the **scene-packet worker deployed successfully**
+(`9d2d5d2a-2805-4b23-9c6c-d4357efbb4d6`): the hardened worker answers
+`/health` and `/ready` on `$PORT` itself, ending the healthcheck crash-loop
+that took down two earlier release nights. Release gate 14/14 with the
+token-authed stats checks; public sanity 3/3. Live verification: `/ready`
+no longer exposes the hostedClawd capability block, `/api/ops/mcp-stats`
+401s without `x-atlas-ops-token` and 200s with it. One earlier attempt
+failed exactly as designed: bash swallowed unescaped `$env:` prefixes, so
+the release gate probed the trimmed stats endpoint without a token and
+correctly went red (proof the trim works). Record pass certified by
+`scripts/certify-release-range.mjs` (its first production use): drift,
+loop readiness, and the strict 81-path range guard all green.
