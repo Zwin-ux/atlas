@@ -10083,3 +10083,28 @@ feature flag, persistence, billing, or public geography gate changed.
 Still human/external: public YouTube video, private-repo sharing to both
 judging addresses, Devpost field entry, real ChatGPT web/mobile acceptance,
 and final submission.
+
+## Entry 107
+- Date: 2026-07-18
+- Packet: 0.78-R groundwork + national rich-pack certification
+- What shipped (range 6320e57..824fcf8, certified 02285c9, 3,336 paths):
+  - /autoplan full pipeline (CEO/Design/Eng, 6 outside voices, 69 findings
+    triaged, 64-decision audit trail) ratified the zoom-band LOD program;
+    owner gates: product gates on P2, D3 national bake moved behind the
+    adversarial 6-county evidence gate (Sequencing v3, mirrored in Linear).
+  - Contracts: docs/0.78R_WIRE_CONTRACT.md (frozen spatial basis
+    atlas-county-equirect-v1, chunk addressing, zig-zag pinned normative),
+    0.78R_ROAD_ART_CONTRACT.md, 0.78R_MOBILE_UX_A11Y.md,
+    0.78R_PRODUCT_METRICS.md.
+  - Code: D2-0 shared geo-pack helper + GET /geo-pack/<slug> route with
+    geo_pack rate bucket (44/44 server tests); roadchunk/1 codec with typed
+    error taxonomy (23 tests, decisions D1-D11); zoom-band controller state
+    machine (27 tests: hysteresis, settle-gated intents, epoch pinning,
+    backoff, non-silent degrade); --adversarial6 bake selector.
+  - Data: national rich-budget re-bake 3,222/3,222, 0 failures, 139min;
+    verify:county-geo-packs green (76MB, zero packs >24KB).
+- Gates: core 216/216, server 44/44, typecheck clean, drift/loop-readiness/
+  range-guard PASS; split-guard allowlist extended with the 0.78-R packet.
+- Known-unproven: R3 off-stage transition (unproven-until-traced), perf
+  ceilings for road density (T1 matrix is the proof), CSP connectDomains
+  change (owner review-safety call, defaults post-submission).
