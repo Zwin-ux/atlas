@@ -375,6 +375,8 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "docs/0.78R_PRODUCT_METRICS.md",
   "server/src/countyGeoPack.ts",
   "server/test/geo-pack-route.test.ts",
+  "scripts/build-county-road-chunks.mjs",
+  "packages/core/test/city-world-scene-window-band.test.ts",
   "docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md",
   "docs/SCENE_PACKET_SERVICE_BOUNDARY_0.71H.md",
   "docs/TOOL_CONTRACTS.md",
@@ -469,6 +471,8 @@ const NATIONAL_GENERATION_CONTRACT_PREFIXES = [
   "artifacts/emulator/audit/",
   // 0.78-D: baked national county geography packs (LOD0 boundary + water).
   "data/geo-packs/",
+  // 0.78-R: baked road-chunk packs (roadchunk/1, per-county, chunk-addressed).
+  "data/road-chunks/",
   "artifacts/national-generation/0.68h/",
   "artifacts/national-generation/0.69h/",
   "artifacts/national-generation/0.70h/",
