@@ -385,6 +385,9 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   // 2026-07-18 after deliberate review; no runtime changes).
   "docs/DEVPOST_BUILD_WEEK_SUBMISSION.md",
   "docs/0.75R_HANDOFF.md",
+  "artifacts/council/CODEX_FULL_PRODUCT_RECON_2026-07-13.md",
+  "artifacts/council/CODEX_RESULT_078R.md",
+  "README.md",
   "docs/codex/packet-0.76-4-terrain.md",
   "scripts/capture-ship-pass-evidence.mjs",
   "docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md",
@@ -485,6 +488,10 @@ const NATIONAL_GENERATION_CONTRACT_PREFIXES = [
   "data/road-chunks/",
   // 0.75R stage-2 claymation reference board images.
   "docs/design/clay-board/",
+  // 0.75S showcase captures (Discord set) + ship-pass evidence + Devpost.
+  "artifacts/showcase/",
+  "artifacts/0.75s-ship-passes/",
+  "artifacts/devpost/",
   "artifacts/national-generation/0.68h/",
   "artifacts/national-generation/0.69h/",
   "artifacts/national-generation/0.70h/",
