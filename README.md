@@ -120,6 +120,37 @@ Riverside/Eastvale playable slice:
 
 The Railway backend is live at `https://atlas-backend-production-e6fc.up.railway.app` with Google geo configured server-side.
 
+## OpenAI Build Week extension
+
+Atlas existed before the OpenAI Build Week submission period. The hackathon
+entry is the meaningful extension built from July 13 through July 18, 2026,
+not the earlier prototype.
+
+Work added during the submission period includes:
+
+- real 2024 U.S. Census town anchors for all 3,222 supported counties, with
+  13,797 named places and explicit generated-layout limits outside Riverside;
+- a hardened seven-tool MCP submission contract, minimized provider results,
+  public support/legal routes, and an exact positive/negative reviewer battery;
+- stronger ChatGPT emulator fidelity, desktop/mobile visual audits, and a
+  mobile place-sheet interaction fix;
+- Redis scene-packet worker recovery, health/readiness behavior, release
+  rollback gates, and the first successful production worker deployment; and
+- a release-gated national Census geography bake for all supported counties,
+  kept behind the `atlasGeoBoard` feature flag.
+
+The main Codex build thread used GPT-5.6 and has session ID
+`019f687a-82d3-7df0-ac27-5b7ca38b099c`. Codex helped audit the existing
+product, build and verify the national anchor pipeline, harden worker failure
+paths, tighten the MCP contract, run the release and browser proof ladders,
+and isolate the submission envelope. The human product decisions stayed
+explicit: keep Atlas map-first, submit the focused session-only County Scout,
+label generated geography honestly, and leave persistence, payments, and
+automated outreach out of the public entry.
+
+The full Devpost copy, demo script, test prompts, and judging handoff are in
+[`docs/DEVPOST_BUILD_WEEK_SUBMISSION.md`](docs/DEVPOST_BUILD_WEEK_SUBMISSION.md).
+
 ## State Model
 
 - Server or backend owns business data.

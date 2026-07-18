@@ -10,6 +10,21 @@ permanent gates, stop and report the conflict.
 
 ## Current 0.78-1V Census county board gate (2026-07-15)
 
+Devpost Build Week finish packet (2026-07-18):
+
+- Exact project copy, Build Week eligibility boundary, Codex/GPT-5.6 evidence,
+  judge instructions, and a 2:40 demo script now live in
+  `docs/DEVPOST_BUILD_WEEK_SUBMISSION.md`.
+- The 3:2 project thumbnail is
+  `artifacts/devpost/atlas-devpost-thumbnail-1200x800.png`.
+- The main Build Week Codex thread is
+  `019f687a-82d3-7df0-ac27-5b7ca38b099c`.
+- Remaining Devpost work is human/external: record and upload the public
+  YouTube demo, share the private repo with both judging addresses, paste the
+  draft fields, run real ChatGPT web/mobile acceptance, and submit.
+- This packet changes no runtime, tool, geography, persistence, payment, or
+  public-promotion gate.
+
 Local continuation (not deployed):
 `0.78-2A National Town Anchors` now covers every supported county with real
 Census names and keeps the generated-layout boundary explicit. The remaining
