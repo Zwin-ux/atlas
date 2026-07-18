@@ -10108,3 +10108,20 @@ and final submission.
 - Known-unproven: R3 off-stage transition (unproven-until-traced), perf
   ceilings for road density (T1 matrix is the proof), CSP connectDomains
   change (owner review-safety call, defaults post-submission).
+
+## Entry 108
+- Date: 2026-07-18
+- Packet: /ship residue triage + serving layer + adversarial-6 completion
+- What shipped since Entry 107: road-chunk serving layer (RoadChunkStore +
+  /road-catalog + /road-chunks, four distinguished states, road_chunks rate
+  bucket, ops-stats observability; server 61/61); Miami-Dade road encoder +
+  all six adversarial county bakes (zero ceiling violations anywhere; 48.2MB
+  fixture); windowFor committed-band plumbing; branchless band-controller hot
+  path (equivalence-fuzz-proven; core 234/234); certify tooling hardened for
+  data-heavy ranges (execFileSync maxBuffer at three call sites); residue
+  packets committed after deliberate review (Devpost Build Week packet,
+  0.75R stage-1 record + clay refs, 0.75S ship-pass evidence + showcase,
+  fresh 0.78-1v audit re-run ok:true).
+- Forward plan: .gstack/plan-078R-execution.md (repo-local) — Lane A renderer
+  adapter is the next session's browser-loop work; national bake HELD behind
+  the 6-county identity + product gates.
