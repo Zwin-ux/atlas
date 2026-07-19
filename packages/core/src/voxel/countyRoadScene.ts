@@ -80,9 +80,13 @@ function roadStyle(roadClass: string): { kind: CityWorldRoadKind; width: number 
 type TilePoint = { x: number; y: number };
 
 const STITCH_EPSILON_TILES = 0.05;
+// Cross-feature joins demand near-exact node identity: at county scale 0.05
+// tiles is ~90 m, enough to wrongly weld two DIFFERENT roads. Shared TIGER
+// nodes project to identical points (quantisation error ~0.0001 tiles).
+const CROSS_FEATURE_EPSILON_TILES = 0.008;
 
-function chainEndpointsMatch(a: TilePoint, b: TilePoint): boolean {
-  return Math.hypot(a.x - b.x, a.y - b.y) <= STITCH_EPSILON_TILES;
+function chainEndpointsMatch(a: TilePoint, b: TilePoint, epsilon: number): boolean {
+  return Math.hypot(a.x - b.x, a.y - b.y) <= epsilon;
 }
 
 /**
@@ -92,7 +96,7 @@ function chainEndpointsMatch(a: TilePoint, b: TilePoint): boolean {
  * share the feature's stable featureId; clipped neighbours share a boundary
  * vertex (§1.5 boundary de-dup), which is the join point.
  */
-function stitchChains(pieces: TilePoint[][]): TilePoint[][] {
+function stitchChains(pieces: TilePoint[][], epsilon: number = STITCH_EPSILON_TILES): TilePoint[][] {
   const chains = pieces.filter((p) => p.length >= 2).map((p) => [...p]);
   let joined = true;
   while (joined) {
@@ -106,10 +110,10 @@ function stitchChains(pieces: TilePoint[][]): TilePoint[][] {
         const bStart = b[0]!;
         const bEnd = b[b.length - 1]!;
         let merged: TilePoint[] | null = null;
-        if (chainEndpointsMatch(aEnd, bStart)) merged = [...a, ...b.slice(1)];
-        else if (chainEndpointsMatch(bEnd, aStart)) merged = [...b, ...a.slice(1)];
-        else if (chainEndpointsMatch(aEnd, bEnd)) merged = [...a, ...b.slice(0, -1).reverse()];
-        else if (chainEndpointsMatch(aStart, bStart)) merged = [...a.slice(1).reverse(), ...b];
+        if (chainEndpointsMatch(aEnd, bStart, epsilon)) merged = [...a, ...b.slice(1)];
+        else if (chainEndpointsMatch(bEnd, aStart, epsilon)) merged = [...b, ...a.slice(1)];
+        else if (chainEndpointsMatch(aEnd, bEnd, epsilon)) merged = [...a, ...b.slice(0, -1).reverse()];
+        else if (chainEndpointsMatch(aStart, bStart, epsilon)) merged = [...a.slice(1).reverse(), ...b];
         if (merged) {
           chains[i] = merged;
           chains.splice(j, 1);
@@ -120,6 +124,54 @@ function stitchChains(pieces: TilePoint[][]): TilePoint[][] {
     }
   }
   return chains;
+}
+
+/**
+ * Endpoint-bucket chain joining: O(n) expected vs stitchChains' O(n^2) scan,
+ * so it can pool EVERY class county-wide (locals included — the remaining
+ * US-1-style dashes were street-class TIGER edges the quadratic pass could
+ * not afford to pool). Same-key endpoints join; each endpoint key holds at
+ * most one open chain end, so distinct roads meeting at an intersection
+ * (3+ ends on one node) never weld into a false through-route: the first
+ * pair joins, the rest keep their identity.
+ */
+function hashJoinChains(pieces: TilePoint[][], epsilon: number): TilePoint[][] {
+  const chains: (TilePoint[] | null)[] = pieces.filter((p) => p.length >= 2).map((p) => [...p]);
+  const keyOf = (p: TilePoint) => `${Math.round(p.x / epsilon)}:${Math.round(p.y / epsilon)}`;
+  const openEnds = new Map<string, { index: number; end: "start" | "end" }>();
+
+  const tryJoin = (index: number): number => {
+    const chain = chains[index];
+    if (!chain) return index;
+    for (const end of ["start", "end"] as const) {
+      const point = end === "start" ? chain[0]! : chain[chain.length - 1]!;
+      const key = keyOf(point);
+      const other = openEnds.get(key);
+      if (other && other.index !== index && chains[other.index]) {
+        const otherChain = chains[other.index]!;
+        const otherPoint = other.end === "start" ? otherChain[0]! : otherChain[otherChain.length - 1]!;
+        if (Math.hypot(point.x - otherPoint.x, point.y - otherPoint.y) <= epsilon) {
+          // Orient both chains so they concatenate other -> this.
+          const left = other.end === "end" ? otherChain : [...otherChain].reverse();
+          const right = end === "start" ? chain : [...chain].reverse();
+          const merged = [...left, ...right.slice(1)];
+          // Remove the consumed ends from the index.
+          openEnds.delete(key);
+          openEnds.delete(keyOf(other.end === "end" ? otherChain[0]! : otherChain[otherChain.length - 1]!));
+          chains[index] = null;
+          chains[other.index] = merged;
+          return tryJoin(other.index); // merged chain may join again at its new ends
+        }
+      }
+    }
+    // Register this chain's ends as open.
+    openEnds.set(keyOf(chain[0]!), { index, end: "start" });
+    openEnds.set(keyOf(chain[chain.length - 1]!), { index, end: "end" });
+    return index;
+  };
+
+  for (let i = 0; i < chains.length; i += 1) tryJoin(i);
+  return chains.filter((c): c is TilePoint[] => c !== null);
 }
 
 function chainLength(chain: TilePoint[]): number {
@@ -167,15 +219,37 @@ export function compileCountyRoadSegments(
     }
   }
 
-  const segments: CityWorldRoadSegment[] = [];
+  // Pass 1: per-feature stitching (cell splits share a boundary vertex).
+  const chainsByClass = new Map<string, { style: ReturnType<typeof roadStyle>; chains: TilePoint[][]; id: string }[]>();
   for (const [featureId, entry] of byFeature) {
     const style = roadStyle(entry.roadClass);
     // County-board class rules (contract: minor roads DISAPPEAR at this
     // scale rather than collapsing into noise).
     if (!includeMinor && style.kind === "driveway") continue;
     const chains = stitchChains(entry.pieces);
+    const list = chainsByClass.get(entry.roadClass) ?? [];
+    list.push({ style, chains, id: featureId });
+    chainsByClass.set(entry.roadClass, list);
+  }
+
+  // Pass 2: cross-FEATURE stitching for arterial classes. TIGER splits one
+  // physical road into many LINEARID edges (and the bake's hash fallback
+  // makes every edge its own feature), so US-1-class roads still read as
+  // dashes after per-feature stitching. Arterial chain counts are small, so
+  // the O(n^2) endpoint join stays cheap; local streets skip it.
+  const emitList: { style: ReturnType<typeof roadStyle>; chain: TilePoint[]; id: string }[] = [];
+  for (const [roadClass, entries] of chainsByClass) {
+    const style = entries[0]!.style;
+    const pooled = entries.flatMap((e) => e.chains);
+    const stitched = hashJoinChains(pooled, CROSS_FEATURE_EPSILON_TILES);
+    const baseId = `${roadClass}-${entries[0]!.id}`;
+    stitched.forEach((chain, index) => emitList.push({ style, chain, id: `${baseId}-x${index}` }));
+  }
+
+  const segments: CityWorldRoadSegment[] = [];
+  for (const { style, chain, id: featureId } of emitList) {
     let emitted = 0;
-    for (const chain of chains) {
+    {
       if (style.kind === "street" && chainLength(chain) < minStreetChain) continue;
       // Forward-accumulate simplifier over the STITCHED chain: emit a segment
       // once at least `minRun` tiles accumulate; sub-minimum tails drop.

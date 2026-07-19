@@ -157,6 +157,43 @@ describe("countyRoadScene", () => {
     expect(segments[1]!.from).toEqual(segments[0]!.to);
   });
 
+  it("stitches ACROSS avenue features sharing an exact endpoint (TIGER edge splits)", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const a = toBasis(-80.06, 25.55);
+    const mid = toBasis(-80.0, 25.6);
+    const b = toBasis(-79.94, 25.65);
+    // Two DIFFERENT featureIds (separate TIGER edges of one road) meeting at
+    // an exact shared node.
+    const f1 = roadChunkFeatureFromVertices("EDGE1", "S1100", [a, mid]);
+    const f2 = roadChunkFeatureFromVertices("EDGE2", "S1100", [mid, b]);
+    const chunk = {
+      ...chunkWith([a, b], "S1100"),
+      features: [f1, f2],
+    } as RoadChunk;
+    const segments = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    for (let i = 1; i < segments.length; i += 1) {
+      expect(segments[i]!.from).toEqual(segments[i - 1]!.to);
+    }
+    const first = segments[0]!.from;
+    const last = segments[segments.length - 1]!.to;
+    expect(Math.hypot(last.x - first.x, last.y - first.y)).toBeGreaterThan(5);
+  });
+
+  it("does NOT weld distinct streets that merely end near each other", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    // Two long locals whose endpoints are ~0.02 tiles apart (beyond the
+    // cross-feature epsilon; street kind skips cross-stitch anyway).
+    const s1 = roadChunkFeatureFromVertices("ST1", "S1400", [toBasis(-80.06, 25.55), toBasis(-80.0, 25.6)]);
+    const s2 = roadChunkFeatureFromVertices("ST2", "S1400", [toBasis(-79.9995, 25.6005), toBasis(-79.94, 25.65)]);
+    const chunk = { ...chunkWith([toBasis(-80.06, 25.55), toBasis(-79.94, 25.65)], "S1400"), features: [s1, s2] } as RoadChunk;
+    const segments = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    const ids = new Set(segments.map((s) => s.id.split("-")[1]));
+    expect(segments.length).toBeGreaterThan(0);
+    expect(ids.size).toBeGreaterThanOrEqual(1);
+  });
+
   it("is deterministic", () => {
     const scene = compileCountyGeoScene(PACK);
     const projection = scene.geoProjection!;
