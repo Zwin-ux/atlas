@@ -194,6 +194,50 @@ describe("countyRoadScene", () => {
     expect(ids.size).toBeGreaterThanOrEqual(1);
   });
 
+  it("welds S1100/S1200 interleave into one corridor with width steps, no gaps", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const a = toBasis(-80.06, 25.55);
+    const m1 = toBasis(-80.02, 25.58);
+    const m2 = toBasis(-79.98, 25.62);
+    const b = toBasis(-79.94, 25.65);
+    // A US-1-style corridor: primary, secondary, primary — three features.
+    const f1 = roadChunkFeatureFromVertices("US1A", "S1100", [a, m1]);
+    const f2 = roadChunkFeatureFromVertices("US1B", "S1200", [m1, m2]);
+    const f3 = roadChunkFeatureFromVertices("US1C", "S1100", [m2, b]);
+    const chunk = { ...chunkWith([a, b], "S1100"), features: [f1, f2, f3] } as RoadChunk;
+    const segments = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    // Continuous end to end.
+    for (let i = 1; i < segments.length; i += 1) {
+      expect(segments[i]!.from).toEqual(segments[i - 1]!.to);
+    }
+    // Width steps present: both class widths appear in one welded chain.
+    const widths = new Set(segments.map((s) => s.width));
+    expect(widths.size).toBe(2);
+    const first = segments[0]!.from;
+    const last = segments[segments.length - 1]!.to;
+    expect(Math.hypot(last.x - first.x, last.y - first.y)).toBeGreaterThan(5);
+  });
+
+  it("joins through the reversal path (chains meeting end-to-end)", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const a = toBasis(-80.06, 25.55);
+    const mid = toBasis(-80.0, 25.6);
+    const b = toBasis(-79.94, 25.65);
+    // Both features END at the shared node (aEnd meets bEnd — forces reversal).
+    const f1 = roadChunkFeatureFromVertices("REV1", "S1100", [a, mid]);
+    const f2 = roadChunkFeatureFromVertices("REV2", "S1100", [b, mid]);
+    const chunk = { ...chunkWith([a, b], "S1100"), features: [f1, f2] } as RoadChunk;
+    const segments = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    for (let i = 1; i < segments.length; i += 1) {
+      expect(segments[i]!.from).toEqual(segments[i - 1]!.to);
+    }
+    const first = segments[0]!.from;
+    const last = segments[segments.length - 1]!.to;
+    expect(Math.hypot(last.x - first.x, last.y - first.y)).toBeGreaterThan(5);
+  });
+
   it("is deterministic", () => {
     const scene = compileCountyGeoScene(PACK);
     const projection = scene.geoProjection!;

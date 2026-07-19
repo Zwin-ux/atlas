@@ -126,52 +126,66 @@ function stitchChains(pieces: TilePoint[][], epsilon: number = STITCH_EPSILON_TI
   return chains;
 }
 
+/** A stitched run of vertices carrying its class style (S2 provenance). */
+type StyledPiece = { points: TilePoint[]; style: { kind: CityWorldRoadKind; width: number } };
+
+function firstPoint(list: StyledPiece[]): TilePoint {
+  return list[0]!.points[0]!;
+}
+
+function lastPoint(list: StyledPiece[]): TilePoint {
+  const piece = list[list.length - 1]!;
+  return piece.points[piece.points.length - 1]!;
+}
+
+/** Reverse a piece LIST: order of pieces AND each piece's points. */
+function reverseStyled(list: StyledPiece[]): StyledPiece[] {
+  return [...list].reverse().map((piece) => ({ points: [...piece.points].reverse(), style: piece.style }));
+}
+
 /**
- * Endpoint-bucket chain joining: O(n) expected vs stitchChains' O(n^2) scan,
- * so it can pool EVERY class county-wide (locals included — the remaining
- * US-1-style dashes were street-class TIGER edges the quadratic pass could
- * not afford to pool). Same-key endpoints join; each endpoint key holds at
- * most one open chain end, so distinct roads meeting at an intersection
- * (3+ ends on one node) never weld into a false through-route: the first
- * pair joins, the rest keep their identity.
+ * Endpoint-bucket joining over styled piece LISTS: O(n) expected, so it can
+ * pool every class county-wide. Same-key endpoints join; each endpoint key
+ * holds at most one open chain end, so distinct roads meeting at an
+ * intersection (3+ ends on one node) never weld into a false through-route —
+ * the first pair joins, the rest keep their identity. Class provenance
+ * survives the merge as per-piece styles (corridor width steps, not gaps).
  */
-function hashJoinChains(pieces: TilePoint[][], epsilon: number): TilePoint[][] {
-  const chains: (TilePoint[] | null)[] = pieces.filter((p) => p.length >= 2).map((p) => [...p]);
+function hashJoinStyledChains(pieces: StyledPiece[][], epsilon: number): StyledPiece[][] {
+  const chains: (StyledPiece[] | null)[] = pieces.filter((list) => list.length > 0 && list[0]!.points.length >= 2);
   const keyOf = (p: TilePoint) => `${Math.round(p.x / epsilon)}:${Math.round(p.y / epsilon)}`;
   const openEnds = new Map<string, { index: number; end: "start" | "end" }>();
 
-  const tryJoin = (index: number): number => {
+  const tryJoin = (index: number): void => {
     const chain = chains[index];
-    if (!chain) return index;
+    if (!chain) return;
     for (const end of ["start", "end"] as const) {
-      const point = end === "start" ? chain[0]! : chain[chain.length - 1]!;
+      const point = end === "start" ? firstPoint(chain) : lastPoint(chain);
       const key = keyOf(point);
       const other = openEnds.get(key);
       if (other && other.index !== index && chains[other.index]) {
         const otherChain = chains[other.index]!;
-        const otherPoint = other.end === "start" ? otherChain[0]! : otherChain[otherChain.length - 1]!;
+        const otherPoint = other.end === "start" ? firstPoint(otherChain) : lastPoint(otherChain);
         if (Math.hypot(point.x - otherPoint.x, point.y - otherPoint.y) <= epsilon) {
-          // Orient both chains so they concatenate other -> this.
-          const left = other.end === "end" ? otherChain : [...otherChain].reverse();
-          const right = end === "start" ? chain : [...chain].reverse();
-          const merged = [...left, ...right.slice(1)];
-          // Remove the consumed ends from the index.
+          // Orient both so they concatenate other -> this.
+          const left = other.end === "end" ? otherChain : reverseStyled(otherChain);
+          const right = end === "start" ? chain : reverseStyled(chain);
+          const merged = [...left, ...right];
           openEnds.delete(key);
-          openEnds.delete(keyOf(other.end === "end" ? otherChain[0]! : otherChain[otherChain.length - 1]!));
+          openEnds.delete(keyOf(other.end === "end" ? firstPoint(otherChain) : lastPoint(otherChain)));
           chains[index] = null;
           chains[other.index] = merged;
-          return tryJoin(other.index); // merged chain may join again at its new ends
+          tryJoin(other.index); // merged chain may join again at its new ends
+          return;
         }
       }
     }
-    // Register this chain's ends as open.
-    openEnds.set(keyOf(chain[0]!), { index, end: "start" });
-    openEnds.set(keyOf(chain[chain.length - 1]!), { index, end: "end" });
-    return index;
+    openEnds.set(keyOf(firstPoint(chain)), { index, end: "start" });
+    openEnds.set(keyOf(lastPoint(chain)), { index, end: "end" });
   };
 
   for (let i = 0; i < chains.length; i += 1) tryJoin(i);
-  return chains.filter((c): c is TilePoint[] => c !== null);
+  return chains.filter((c): c is StyledPiece[] => c !== null);
 }
 
 function chainLength(chain: TilePoint[]): number {
@@ -220,61 +234,65 @@ export function compileCountyRoadSegments(
   }
 
   // Pass 1: per-feature stitching (cell splits share a boundary vertex).
-  const chainsByClass = new Map<string, { style: ReturnType<typeof roadStyle>; chains: TilePoint[][]; id: string }[]>();
+  // Each stitched chain becomes a single styled PIECE — pass 2 joins piece
+  // LISTS so class provenance survives the merge (S2: corridor continuity).
+  const poolMap = new Map<string, { pieces: StyledPiece[][]; allStreet: boolean }>();
   for (const [featureId, entry] of byFeature) {
+    void featureId;
     const style = roadStyle(entry.roadClass);
     // County-board class rules (contract: minor roads DISAPPEAR at this
     // scale rather than collapsing into noise).
     if (!includeMinor && style.kind === "driveway") continue;
-    const chains = stitchChains(entry.pieces);
-    const list = chainsByClass.get(entry.roadClass) ?? [];
-    list.push({ style, chains, id: featureId });
-    chainsByClass.set(entry.roadClass, list);
-  }
-
-  // Pass 2: cross-FEATURE stitching for arterial classes. TIGER splits one
-  // physical road into many LINEARID edges (and the bake's hash fallback
-  // makes every edge its own feature), so US-1-class roads still read as
-  // dashes after per-feature stitching. Arterial chain counts are small, so
-  // the O(n^2) endpoint join stays cheap; local streets skip it.
-  const emitList: { style: ReturnType<typeof roadStyle>; chain: TilePoint[]; id: string }[] = [];
-  for (const [roadClass, entries] of chainsByClass) {
-    const style = entries[0]!.style;
-    const pooled = entries.flatMap((e) => e.chains);
-    const stitched = hashJoinChains(pooled, CROSS_FEATURE_EPSILON_TILES);
-    const baseId = `${roadClass}-${entries[0]!.id}`;
-    stitched.forEach((chain, index) => emitList.push({ style, chain, id: `${baseId}-x${index}` }));
+    // US-1-style corridors alternate S1100/S1200 — and their overpass/ramp
+    // sections are classed S1630 — mid-road. Pool all three TOGETHER so the
+    // interleave welds; per-piece styles make class changes render as width
+    // steps, never gaps. Other street classes stay per-class pooled.
+    const poolKey = style.kind === "avenue" || entry.roadClass === "S1630" ? "avenue-corridor" : entry.roadClass;
+    const pool = poolMap.get(poolKey) ?? { pieces: [], allStreet: style.kind === "street" };
+    for (const chain of stitchChains(entry.pieces)) {
+      pool.pieces.push([{ points: chain, style }]);
+    }
+    pool.allStreet = pool.allStreet && style.kind === "street";
+    poolMap.set(poolKey, pool);
   }
 
   const segments: CityWorldRoadSegment[] = [];
-  for (const { style, chain, id: featureId } of emitList) {
-    let emitted = 0;
-    {
-      if (style.kind === "street" && chainLength(chain) < minStreetChain) continue;
-      // Forward-accumulate simplifier over the STITCHED chain: emit a segment
-      // once at least `minRun` tiles accumulate; sub-minimum tails drop.
-      let anchor = chain[0];
-      for (let i = 1; i < chain.length; i += 1) {
-        const point = chain[i];
-        if (!anchor || !point) continue;
-        const isLast = i === chain.length - 1;
-        const length = Math.hypot(point.x - anchor.x, point.y - anchor.y);
-        // The final leg keeps continuity if it is at least half a run long —
-        // dropping every tail re-opens micro-gaps at cell boundaries.
-        if (length < minRun && !(isLast && length >= minRun / 2)) continue;
-        segments.push({
-          id: `road-${featureId}-${emitted}`,
-          kind: style.kind,
-          from: { x: anchor.x, y: anchor.y, z: 0 },
-          to: { x: point.x, y: point.y, z: 0 },
-          width: style.width,
-          paletteKey: "road.asphalt",
-          lodBand,
-        });
-        emitted += 1;
-        anchor = point;
+  for (const [poolKey, pool] of poolMap) {
+    const joined = hashJoinStyledChains(pool.pieces, CROSS_FEATURE_EPSILON_TILES);
+    joined.forEach((pieceList, chainIndex) => {
+      const total = pieceList.reduce((sum, piece) => sum + chainLength(piece.points), 0);
+      // Drop rules (contract: disappear, never collapse into noise):
+      // ALL-street chains below the street minimum vanish; and EVERY pool
+      // drops isolated sub-tile fragments (standalone ramp stubs at
+      // interchanges that welded to nothing).
+      if (pool.allStreet && total < minStreetChain) return;
+      if (total < 0.8) return;
+      let emitted = 0;
+      // Forward-accumulate per same-style RUN: the anchor resets at style
+      // boundaries so class changes emit as width steps; the half-run tail
+      // rule applies per run (else short interleave pieces reopen gaps).
+      for (const piece of pieceList) {
+        let anchor = piece.points[0];
+        for (let i = 1; i < piece.points.length; i += 1) {
+          const point = piece.points[i];
+          if (!anchor || !point) continue;
+          const isLast = i === piece.points.length - 1;
+          const length = Math.hypot(point.x - anchor.x, point.y - anchor.y);
+          if (length < minRun && !(isLast && length >= minRun / 2)) continue;
+          segments.push({
+            id: `road-${poolKey}-x${chainIndex}-${emitted}`,
+            kind: piece.style.kind,
+            from: { x: anchor.x, y: anchor.y, z: 0 },
+            to: { x: point.x, y: point.y, z: 0 },
+            width: piece.style.width,
+            paletteKey: "road.asphalt",
+            lodBand,
+          });
+          emitted += 1;
+          anchor = point;
+        }
       }
-    }
+    });
   }
   return segments;
 }
