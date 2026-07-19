@@ -466,6 +466,7 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
     // void. A warm parchment table separates it in light theme; dark theme
     // already reads (owner-approved cells) so it keeps the host tone.
     boardBackdrop: { light: "#b3ac93", dark: "#22251f" },
+    geoProjection: { lon0, lat0, boardScale },
   };
 }
 

@@ -7,6 +7,8 @@ export * from "./cityWorldObjectKit.js";
 export * from "./cityWorldRenderCommands.js";
 export * from "./cityWorldSceneWindow.js";
 export * from "./cityWorldBandController.js";
+export * from "./cityWorldBandTransitionTrace.js";
+export * from "./countyRoadScene.js";
 export * from "./cityWorldDiagnostics.js";
 export * from "./cityWorldPaletteRegistry.js";
 export * from "./cityWorldAtlas.js";

@@ -517,6 +517,12 @@ export type CityWorldScene = {
    * renderer keeps its host-theme background.
    */
   boardBackdrop?: { light: string; dark: string };
+  /**
+   * Optional geo projection descriptor set by compileCountyGeoScene so band
+   * overlays (baked road chunks) can project into the exact same tile
+   * lattice: lon/lat origin (vertex-mean, degrees) + final board scale.
+   */
+  geoProjection?: { lon0: number; lat0: number; boardScale: number };
 };
 
 export type CityWorldSessionState = {

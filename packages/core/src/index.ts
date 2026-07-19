@@ -417,6 +417,18 @@ export {
   stepBandControllerMut,
   runBandController,
 } from "./voxel/cityWorldBandController.js";
+export {
+  compileCountyRoadSegments,
+  type CountyGeoProjection,
+  type CompileCountyRoadSegmentsOptions,
+} from "./voxel/countyRoadScene.js";
+export {
+  decodeRoadChunk,
+  roadChunkFeatureToVertices,
+  type RoadChunk,
+  type RoadChunkFeature,
+  type RoadChunkBand,
+} from "./voxel/roadChunkCodec.js";
 export type {
   ZoomBand,
   ManifestEpoch,
@@ -434,6 +446,56 @@ export type {
   CreateBandControllerOptions,
   BandControllerRun,
 } from "./voxel/cityWorldBandController.js";
+export {
+  TRANSITION_TOTAL_LATENCY_CEILING_MS,
+  TRANSITION_GRAPHICS_CEILING,
+  TRANSITION_POST_SWAP_STALL_BUDGET_MS,
+  DEFAULT_TRANSITION_CEILINGS,
+  beginTransitionTrace,
+  recordTransitionEvent,
+  recordTransitionPhase,
+  abortTransitionTrace,
+  supersedeTransitionTrace,
+  runTransitionTrace,
+  createTransitionTraceSession,
+  beginTransitionInSession,
+  recordTransitionPhaseInSession,
+  abortTransitionInSession,
+  sessionTransitionTraces,
+  computeTransitionMetrics,
+  analyzeTransitionTrace,
+  serializeTransitionTrace,
+  serializeTransitionTraceString,
+  serializeTransitionEvidence,
+  serializeTransitionEvidenceString,
+} from "./voxel/cityWorldBandTransitionTrace.js";
+export type {
+  TransitionMetricsInput,
+  TransitionMetricsSnapshot,
+  TransitionPhaseKind,
+  TransitionSamplePhase,
+  TransitionAbortReason,
+  TransitionTraceStatus,
+  TransitionPhaseEvent,
+  TransitionAbortEvent,
+  TransitionTraceEvent,
+  TransitionPhaseSample,
+  TransitionTraceMeta,
+  TransitionTrace,
+  TransitionCeilings,
+  TransitionTraceSession,
+  TransitionPhaseTimings,
+  TransitionDurations,
+  TransitionResidency,
+  TransitionTraceMetrics,
+  TransitionViolationCode,
+  TransitionViolation,
+  TransitionTraceVerdict,
+  SerializedTransitionSample,
+  SerializedTransitionTrace,
+  SerializedTransitionCeilings,
+  SerializedTransitionEvidence,
+} from "./voxel/cityWorldBandTransitionTrace.js";
 
 export type AtlasPhase = "skeleton" | "county-pack" | "renderer" | "scout-drop" | "campaign" | "mcp-tools";
 

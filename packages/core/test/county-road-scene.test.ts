@@ -1,0 +1,168 @@
+import { describe, expect, it } from "vitest";
+import {
+  compileCountyGeoScene,
+  compileCountyRoadSegments,
+  unprojectCityWorldGroundPoint,
+  type CountyGeoPack,
+} from "../src/index.js";
+import {
+  roadChunkFeatureFromVertices,
+  ROADCHUNK_QUANT_STEP_M,
+  ROADCHUNK_WGS84_RADIUS_M,
+  type RoadChunk,
+} from "../src/voxel/roadChunkCodec.js";
+
+// Square test county ~0.2 deg on a side centered at (-80, 25.6).
+const PACK: CountyGeoPack = {
+  packVersion: 2,
+  countySlug: "test-square-fl",
+  geoid: "99999",
+  name: "Test Square",
+  lod0: {
+    boundaryRings: [
+      [
+        [-80.1, 25.5],
+        [-79.9, 25.5],
+        [-79.9, 25.7],
+        [-80.1, 25.7],
+        [-80.1, 25.5],
+      ],
+    ],
+    vertexCount: 5,
+  },
+} as unknown as CountyGeoPack;
+
+const ORIGIN: readonly [number, number] = [-80.0, 25.6];
+
+/** Forward-project lon/lat into the bake basis (quantised metres). */
+function toBasis(lon: number, lat: number): [number, number] {
+  const latCos = Math.cos((ORIGIN[1] * Math.PI) / 180);
+  const degToRad = Math.PI / 180;
+  const eM = (lon - ORIGIN[0]) * degToRad * ROADCHUNK_WGS84_RADIUS_M * latCos;
+  const nM = (lat - ORIGIN[1]) * degToRad * ROADCHUNK_WGS84_RADIUS_M;
+  return [Math.round(eM / ROADCHUNK_QUANT_STEP_M), Math.round(nM / ROADCHUNK_QUANT_STEP_M)];
+}
+
+function chunkWith(vertices: Array<[number, number]>, roadClass = "S1400"): RoadChunk {
+  const feature = roadChunkFeatureFromVertices("F0001", roadClass, vertices);
+  const es = vertices.map((v) => v[0]);
+  const ns = vertices.map((v) => v[1]);
+  return {
+    basisId: "atlas-county-equirect-v1",
+    schemaVersion: "roadchunk/1",
+    geoid: "99999",
+    packHash: "sha256-test",
+    chunkId: "c0_0",
+    band: "near",
+    cellRect: [Math.min(...es) - 10, Math.min(...ns) - 10, Math.max(...es) + 10, Math.max(...ns) + 10],
+    features: [feature],
+  } as RoadChunk;
+}
+
+describe("countyRoadScene", () => {
+  it("registers a road against the scene's own projection of the same lon/lat", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection;
+    expect(projection).toBeDefined();
+    if (!projection) return;
+
+    const a: [number, number] = [-80.05, 25.55];
+    const b: [number, number] = [-79.95, 25.65];
+    const chunk = chunkWith([toBasis(a[0], a[1]), toBasis(b[0], b[1])]);
+    const segments = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    expect(segments.length).toBe(1);
+
+    const sceneLatCos = Math.cos((projection.lat0 * Math.PI) / 180);
+    const reference = (lon: number, lat: number) =>
+      unprojectCityWorldGroundPoint({
+        x: (lon - projection.lon0) * sceneLatCos * projection.boardScale,
+        y: -(lat - projection.lat0) * projection.boardScale,
+      });
+    const refA = reference(a[0], a[1]);
+    const refB = reference(b[0], b[1]);
+    const seg = segments[0]!;
+    expect(Math.hypot(seg.from.x - refA.x, seg.from.y - refA.y)).toBeLessThan(0.01);
+    expect(Math.hypot(seg.to.x - refB.x, seg.to.y - refB.y)).toBeLessThan(0.01);
+    expect(seg.lodBand).toBe("near");
+    expect(seg.paletteKey).toBe("road.asphalt");
+  });
+
+  it("maps MTFCC classes to kind/width hierarchy (never color alone)", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const across: Array<[number, number]> = [toBasis(-80.05, 25.55), toBasis(-79.95, 25.65)];
+    const opts = { includeMinor: true };
+    const primary = compileCountyRoadSegments([chunkWith(across, "S1100")], ORIGIN, projection, opts)[0]!;
+    const local = compileCountyRoadSegments([chunkWith(across, "S1400")], ORIGIN, projection, opts)[0]!;
+    const service = compileCountyRoadSegments([chunkWith(across, "S1740")], ORIGIN, projection, opts)[0]!;
+    expect(primary.kind).toBe("avenue");
+    expect(local.kind).toBe("street");
+    expect(service.kind).toBe("driveway");
+    expect(primary.width).toBeGreaterThan(local.width);
+    expect(local.width).toBeGreaterThan(service.width);
+  });
+
+  it("drops service classes at county scale unless includeMinor", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const across: Array<[number, number]> = [toBasis(-80.05, 25.55), toBasis(-79.95, 25.65)];
+    expect(compileCountyRoadSegments([chunkWith(across, "S1740")], ORIGIN, projection).length).toBe(0);
+  });
+
+  it("stitches cell-clipped pieces of one feature back into a continuous run", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const a = toBasis(-80.06, 25.55);
+    const boundary = toBasis(-80.0, 25.6);
+    const b = toBasis(-79.94, 25.65);
+    // Two chunks carry the same featureId, split at a shared boundary vertex.
+    const piece1 = chunkWith([a, boundary], "S1100");
+    const piece2 = { ...chunkWith([boundary, b], "S1100"), chunkId: "c1_0" } as RoadChunk;
+    const segments = compileCountyRoadSegments([piece1, piece2], ORIGIN, projection);
+    expect(segments.length).toBeGreaterThan(0);
+    // Continuity: walking the segments end-to-end leaves no gap at the
+    // boundary — every segment's from equals the previous segment's to.
+    for (let i = 1; i < segments.length; i += 1) {
+      expect(segments[i]!.from).toEqual(segments[i - 1]!.to);
+    }
+    // And the stitched run spans a to b (within quantisation).
+    const first = segments[0]!.from;
+    const last = segments[segments.length - 1]!.to;
+    const span = Math.hypot(last.x - first.x, last.y - first.y);
+    expect(span).toBeGreaterThan(5);
+  });
+
+  it("drops sub-minimum runs instead of emitting noise", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const base = toBasis(-80.0, 25.6);
+    // Second vertex 2 m east — far below the minimum visible run.
+    const chunk = chunkWith([base, [base[0] + 20, base[1]]]);
+    const segments = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    expect(segments.length).toBe(0);
+  });
+
+  it("emits multi-segment polylines with per-segment unique ids", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const chunk = chunkWith([
+      toBasis(-80.05, 25.55),
+      toBasis(-80.0, 25.6),
+      toBasis(-79.95, 25.65),
+    ]);
+    const segments = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    expect(segments.length).toBe(2);
+    expect(new Set(segments.map((s) => s.id)).size).toBe(2);
+    // Continuity: second segment starts where the first ended.
+    expect(segments[1]!.from).toEqual(segments[0]!.to);
+  });
+
+  it("is deterministic", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const chunk = chunkWith([toBasis(-80.05, 25.55), toBasis(-79.95, 25.65)]);
+    const a = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    const b = compileCountyRoadSegments([chunk], ORIGIN, projection);
+    expect(a).toEqual(b);
+  });
+});
