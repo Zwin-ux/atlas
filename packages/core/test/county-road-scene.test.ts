@@ -132,6 +132,32 @@ describe("countyRoadScene", () => {
     expect(span).toBeGreaterThan(5);
   });
 
+  it("deduplicates exact clipped feature copies before stitching across cells", () => {
+    const scene = compileCountyGeoScene(PACK);
+    const projection = scene.geoProjection!;
+    const a = toBasis(-80.06, 25.55);
+    const boundary = toBasis(-80.0, 25.6);
+    const b = toBasis(-79.94, 25.65);
+    const firstPiece = roadChunkFeatureFromVertices("DUPLICATE1", "S1200", [a, boundary]);
+    const secondPiece = roadChunkFeatureFromVertices("DUPLICATE1", "S1200", [boundary, b]);
+    const firstChunk = {
+      ...chunkWith([a, boundary], "S1200"),
+      chunkId: "c0_0",
+      features: [firstPiece, firstPiece],
+    } as RoadChunk;
+    const secondChunk = {
+      ...chunkWith([boundary, b], "S1200"),
+      chunkId: "c1_0",
+      features: [secondPiece, secondPiece],
+    } as RoadChunk;
+
+    const segments = compileCountyRoadSegments([firstChunk, secondChunk], ORIGIN, projection);
+
+    expect(segments).toHaveLength(2);
+    expect(segments[1]!.from).toEqual(segments[0]!.to);
+    expect(Math.hypot(segments[1]!.to.x - segments[0]!.from.x, segments[1]!.to.y - segments[0]!.from.y)).toBeGreaterThan(5);
+  });
+
   it("drops sub-minimum runs instead of emitting noise", () => {
     const scene = compileCountyGeoScene(PACK);
     const projection = scene.geoProjection!;

@@ -224,11 +224,20 @@ export function compileCountyRoadSegments(
   };
 
   // Group cell-clipped pieces by stable featureId (sorted for determinism).
-  const byFeature = new Map<string, { roadClass: string; pieces: TilePoint[][] }>();
+  const byFeature = new Map<string, { roadClass: string; pieces: TilePoint[][]; pieceKeys: Set<string> }>();
   for (const chunk of [...chunks].sort((a, b) => a.chunkId.localeCompare(b.chunkId))) {
     for (const feature of chunk.features) {
-      const entry = byFeature.get(feature.featureId) ?? { roadClass: feature.roadClass, pieces: [] };
-      entry.pieces.push(roadChunkFeatureToVertices(feature).map(project));
+      const entry = byFeature.get(feature.featureId) ?? { roadClass: feature.roadClass, pieces: [], pieceKeys: new Set<string>() };
+      // Some TIGER extracts repeat the same LINEARID geometry byte-for-byte in
+      // one clipped cell. Passing both copies to stitchChains folds the line
+      // into an out-and-back loop, closing the boundary endpoint that should
+      // join the next cell and producing cell-sized dashes. Exact encoded-piece
+      // de-dup keeps genuinely distinct or parallel geometry intact.
+      const pieceKey = `${feature.roadClass}:${feature.start[0]},${feature.start[1]}:${feature.delta.join(",")}`;
+      if (!entry.pieceKeys.has(pieceKey)) {
+        entry.pieceKeys.add(pieceKey);
+        entry.pieces.push(roadChunkFeatureToVertices(feature).map(project));
+      }
       byFeature.set(feature.featureId, entry);
     }
   }
