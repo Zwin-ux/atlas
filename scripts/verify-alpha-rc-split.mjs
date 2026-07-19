@@ -381,6 +381,15 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "packages/core/test/city-world-scene-window-band.test.ts",
   "packages/core/src/voxel/cityWorldRenderCommands.ts",
   "packages/core/test/city-world-band-controller-fast.test.ts",
+  // 0.78-R Lane A1 + Lane D packet (browser-loop session 2026-07-18).
+  "packages/core/src/voxel/countyRoadScene.ts",
+  "packages/core/src/voxel/cityWorldBandTransitionTrace.ts",
+  "packages/core/test/county-road-scene.test.ts",
+  "packages/core/test/city-world-band-transition-trace.test.ts",
+  "web/src/countyRoadBand.ts",
+  "web/src/CityWorldRenderer.tsx",
+  "web/src/CityWorldView.tsx",
+  "web/src/App.tsx",
   // 0.75S/0.75R/Devpost residue packets (docs + evidence, committed at /ship
   // 2026-07-18 after deliberate review; no runtime changes).
   "docs/DEVPOST_BUILD_WEEK_SUBMISSION.md",
