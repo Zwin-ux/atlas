@@ -86,7 +86,7 @@ const PLUGIN_SUBMISSION_RELEASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1"
 const TOWN_ANCHOR_RELEASE_BASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1";
 // Release candidate head: the certified envelope awaiting the next deploy
 // (0.78-2A + N3 copy + mobile place-sheet fix).
-const TOWN_ANCHOR_RELEASE_HEAD_SHA = "30bf465ee318c38653eb542674783ced0911693f";
+const TOWN_ANCHOR_RELEASE_HEAD_SHA = "dcd170eba962f1ada2e620aca7c964f331920398";
 // Deployed head: what production actually runs until the next owner deploy.
 const TOWN_ANCHOR_DEPLOYED_SHA = "b4eea1caef009a4886abbb659d74ada27d256315";
 const TOWN_ANCHOR_IMPLEMENTATION_SHA = "331c8cf5f5290e135271b1984334f2f9e03701c1";
