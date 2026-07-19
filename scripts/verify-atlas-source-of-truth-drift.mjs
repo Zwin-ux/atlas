@@ -85,8 +85,8 @@ const PLUGIN_SUBMISSION_RELEASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1"
 // implementation head is the town-anchor envelope commit.
 const TOWN_ANCHOR_RELEASE_BASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1";
 // Release candidate head: the certified envelope awaiting the next deploy
-// (0.78-2A + N3 copy + mobile place-sheet fix).
-const TOWN_ANCHOR_RELEASE_HEAD_SHA = "0fa8732fbcc1f0982f40732ec970ffaf5eff8645";
+// (full flag-dark release range, including the active 0.78-R continuation).
+const TOWN_ANCHOR_RELEASE_HEAD_SHA = "0101861c36dc275615a7da521e9efb6b4132d24d";
 // Deployed head: what production actually runs until the next owner deploy.
 const TOWN_ANCHOR_DEPLOYED_SHA = "b4eea1caef009a4886abbb659d74ada27d256315";
 const TOWN_ANCHOR_IMPLEMENTATION_SHA = "331c8cf5f5290e135271b1984334f2f9e03701c1";
