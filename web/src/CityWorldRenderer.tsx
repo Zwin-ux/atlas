@@ -1304,7 +1304,7 @@ function drawScene(
   const actors = orderedSceneItems(renderCommands, "actor", itemIndex.actors);
   for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas, focalCalm(actor.position, focalAnchor));
   const visiblePlaces = orderedSceneItems(renderCommands, "place_marker", itemIndex.places);
-  for (const place of visiblePlaces) drawPlaceMarker(layers, place, onSelectPlace, onHoverPlace);
+  for (const place of visiblePlaces) drawPlaceMarker(layers, place, onSelectPlace, onHoverPlace, cameraZoom);
   for (const pin of orderedSceneItems(renderCommands, "pin", itemIndex.pins)) drawPin(layers.markerLayer, pin, atlas);
   // 0.56E — labels clear the architecture: each place's label lifts above
   // the tallest structure anchored to it (plus crown allowance), instead of
@@ -7125,6 +7125,7 @@ function drawPlaceMarker(
   place: CityWorldPlace,
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
+  cameraZoom: number,
 ) {
   // Neutral, static marker only: emphasis rings + their pulse animation live
   // in the focus overlay, so hover/selection never rebuilds the base scene
@@ -7140,7 +7141,11 @@ function drawPlaceMarker(
   // can never draw across a wall when the anchor sits inside a structure.
   layers.padLayer.addChild(ring);
 
-  const hit = new Graphics().circle(point.x, point.y - 12, place.hitRadius * 13).fill({ color: 0xffffff, alpha: 0.001 });
+  // S4e (decision #26): the hit disc lives in WORLD space, so its on-screen
+  // size shrinks with zoom — floor it at a 44px target (22px radius) in
+  // SCREEN pixels regardless of visual marker size.
+  const hitRadius = Math.max(place.hitRadius * 13, 22 / Math.max(cameraZoom, 0.01));
+  const hit = new Graphics().circle(point.x, point.y - 12, hitRadius).fill({ color: 0xffffff, alpha: 0.001 });
   hit.eventMode = "static";
   hit.cursor = "pointer";
   hit.on("pointertap", () => onSelectPlace(place.id));
