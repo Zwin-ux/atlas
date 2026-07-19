@@ -18,6 +18,7 @@ import type {
   CityWorldBounds,
   CityWorldBuilding,
   CityWorldGroundTone,
+  CityWorldLodBand,
   CityWorldLot,
   CityWorldLotContactGrammar,
   CityWorldPin,
@@ -52,6 +53,10 @@ type CityWorldRendererProps = {
   debugMode?: CityWorldDebugMode | undefined;
   suppressPlaceLabels?: boolean;
   onSelectPlace: (placeId: string) => void;
+  /** 0.78-R: zoom-change notifications for the band controller (geo board). */
+  onCameraZoom?: ((zoom: number) => void) | undefined;
+  /** 0.78-R: committed band + pinned epoch threaded into windowFor. */
+  bandOptions?: { committedBand?: CityWorldLodBand; chunkEpoch?: { schemaVersion: string; packHash: string } } | undefined;
 };
 
 type ProjectedPoint = {
@@ -408,10 +413,13 @@ function createAtlasGradeFilter(): Filter {
 }
 
 export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRendererProps>(function CityWorldRenderer(
-  { scene, selectedPlaceId, cameraPresetId, debugMode, suppressPlaceLabels = false, onSelectPlace },
+  { scene, selectedPlaceId, cameraPresetId, debugMode, suppressPlaceLabels = false, onSelectPlace, onCameraZoom, bandOptions },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const onCameraZoomRef = useRef(onCameraZoom);
+  onCameraZoomRef.current = onCameraZoom;
+  const lastZoomNotifiedRef = useRef<number | null>(null);
   const appRef = useRef<Application | null>(null);
   const worldRef = useRef<Container | null>(null);
   const sceneRef = useRef(scene);
@@ -925,9 +933,17 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     const activeCameraPresetId = resolveCameraPresetId(scene, cameraPresetId, mount.clientWidth);
     const viewportFrame = rendererViewportFrame(mount, cameraRef.current, activeCameraPresetId, STREAMING_WINDOW_MARGIN_TILES);
     const rebuildStart = performance.now();
+    // Band controller notification: every zoom path (wheel, pinch, buttons)
+    // funnels through this rebuild effect, so a value-compare here is the
+    // single notify point. Only on CHANGE — repeat notifies would hold the
+    // controller's gesture open and starve the wheel-idle settle.
+    if (onCameraZoomRef.current && cameraRef.current.zoom !== lastZoomNotifiedRef.current) {
+      lastZoomNotifiedRef.current = cameraRef.current.zoom;
+      onCameraZoomRef.current(cameraRef.current.zoom);
+    }
     const drawn = drawScene(world, scene, activeCameraPresetId, viewportFrame, cameraRef.current.zoom, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
       if (!movedRef.current) selectPlaceRef.current(placeId);
-    }, setHoverPlaceId, animatedRef.current);
+    }, setHoverPlaceId, animatedRef.current, bandOptions);
     if (reducedMotionRef.current) settleAnimatedTargets(animatedRef.current);
     perfRef.current.sceneRebuilds += 1;
     perfRef.current.lastRebuildMs = Math.round((performance.now() - rebuildStart) * 10) / 10;
@@ -946,7 +962,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     invalidateRender();
     // Hover/selection deliberately absent: focus changes redraw ONLY the
     // focus overlay effect below, never this full scene rebuild.
-  }, [atlasTextures, cameraPresetId, debugMode, ready, scene, suppressPlaceLabels, windowRefreshKey]);
+  }, [atlasTextures, bandOptions, cameraPresetId, debugMode, ready, scene, suppressPlaceLabels, windowRefreshKey]);
 
   useEffect(() => {
     if (!ready) return;
@@ -1248,6 +1264,7 @@ function drawScene(
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
   animated: AnimatedTarget[],
+  bandOptions?: { committedBand?: CityWorldLodBand; chunkEpoch?: { schemaVersion: string; packHash: string } },
 ): { frame: CityWorldViewportFrame; focus: FocusIndex } {
   const previousChildren = world.removeChildren();
   for (const child of previousChildren) {
@@ -1260,7 +1277,7 @@ function drawScene(
   const atlas = createCityWorldAtlasResolver(scene, atlasTextures);
   const includeLabels = !suppressPlaceLabels && !shouldHideCityWorldLabels();
   const compiler = sceneWindowCompilerFor(scene, includeLabels, debugMode === "engine");
-  const sceneWindow = compiler.windowFor(cameraPresetId, viewportFrame);
+  const sceneWindow = compiler.windowFor(cameraPresetId, viewportFrame, bandOptions);
   const itemIndex = compiler.itemIndex;
   const renderCommands = sceneWindow.visibleCommands;
 
@@ -2356,7 +2373,17 @@ function drawRoadNetwork(layer: Container, roads: CityWorldRoadSegment[]) {
     joints: new Graphics(),
     crosswalks: new Graphics(),
   };
-  const physicalRoads = roads.filter((road) => resolveRoadContact(road).profile !== "painted");
+  // 0.78-R county-board roads (lodBand-tagged) get their own flat ribbon
+  // pass: no curbs, no joint modules, no end caps, no casings — the
+  // neighborhood road art reads as road soup at county lattice scale.
+  // Hierarchy carries through width + value (a11y: never color alone).
+  const bandRoads = roads.filter((road) => road.lodBand !== undefined);
+  const overlayRibbons = new Graphics();
+  for (const road of bandRoads) drawCountyRoadRibbon(overlayRibbons, road);
+  layer.addChild(overlayRibbons);
+
+  const streetRoads = roads.filter((road) => road.lodBand === undefined);
+  const physicalRoads = streetRoads.filter((road) => resolveRoadContact(road).profile !== "painted");
   for (const road of physicalRoads) drawRoadSegmentModule(passes, road);
 
   const joints = collectRoadJoints(physicalRoads);
@@ -2368,7 +2395,7 @@ function drawRoadNetwork(layer: Container, roads: CityWorldRoadSegment[]) {
     }
   }
 
-  for (const road of roads.filter((road) => resolveRoadContact(road).profile === "painted")) drawCrosswalkRoad(passes.crosswalks, road);
+  for (const road of streetRoads.filter((road) => resolveRoadContact(road).profile === "painted")) drawCrosswalkRoad(passes.crosswalks, road);
 
   layer.addChild(
     passes.shadow,
@@ -2383,6 +2410,24 @@ function drawRoadNetwork(layer: Container, roads: CityWorldRoadSegment[]) {
     passes.joints,
     passes.crosswalks,
   );
+}
+
+// County-board road ribbon: one grounding underlay + one class-toned surface
+// stroke, butt caps, round joins. Primary avenues run darker and wider than
+// locals; service roads thinner and lighter still (value + width hierarchy).
+function drawCountyRoadRibbon(g: Graphics, road: CityWorldRoadSegment) {
+  const start = project(road.from);
+  const end = project(road.to);
+  const width = Math.max(1.4, road.width * 15.2);
+  const primary = road.kind === "avenue";
+  const surface = primary ? 0x474f52 : road.kind === "driveway" ? 0x6a716c : 0x5a625f;
+  const alpha = primary ? 0.94 : road.kind === "driveway" ? 0.55 : 0.78;
+  g.moveTo(start.x, start.y + 1)
+    .lineTo(end.x, end.y + 1)
+    .stroke({ color: 0x1f2724, alpha: 0.16, width: width + 2, cap: "butt", join: "round" });
+  g.moveTo(start.x, start.y)
+    .lineTo(end.x, end.y)
+    .stroke({ color: surface, alpha, width, cap: "butt", join: "round" });
 }
 
 // Dead-end streets stop looking sheared: a rounded curb stub + surface disk

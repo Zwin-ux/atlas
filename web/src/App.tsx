@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCountyRoadBand } from "./countyRoadBand";
 import type { CampaignPreviewState, ScoutPreviewState } from "@atlas/core/scout";
 import {
   compileCountyGeoScene,
@@ -652,10 +653,16 @@ export function App() {
       return null;
     }
   }, [rawCountyGeoPack, rawGeneratedDraftSpec?.townAnchors]);
+  // 0.78-R zoom-band overlay: drives the core band controller from renderer
+  // zoom, fetches baked road chunks from the live routes on the first NEAR
+  // intent, and returns the base scene carrying lodBand-tagged road segments
+  // after the single transactional commit. Flag-dark with the board itself.
+  const roadBand = useCountyRoadBand(rawCountyGeoPack?.countySlug ?? null, compiledCountyGeoScene, geoBoardEnabled);
+  const geoSceneWithRoads = roadBand.scene ?? compiledCountyGeoScene;
   // Respect the same dismissal channel as the generated draft, so the board's
   // "Full map" button (which dismisses this scene id and returns to Riverside)
   // actually leaves the board instead of it re-mounting from _meta.
-  const countyGeoScene = compiledCountyGeoScene?.id === dismissedGeneratedDraftSceneId ? null : compiledCountyGeoScene;
+  const countyGeoScene = geoSceneWithRoads?.id === dismissedGeneratedDraftSceneId ? null : geoSceneWithRoads;
   // The real board is the PRIMARY county view when present (it renders through
   // the same CityWorldRenderer channel as the generated draft, so it also
   // bypasses the flat coverage outline). The generated district stays as the
@@ -1017,6 +1024,8 @@ export function App() {
       countySwitcher={countySwitcher}
       generatedScene={activeGeneratedScene}
       realCountyBoard={isRealCountyBoard}
+      onCameraZoom={isRealCountyBoard ? roadBand.onCameraZoom : undefined}
+      bandOptions={isRealCountyBoard ? roadBand.bandOptions : undefined}
       {...(hostedClawdContext
         ? {
             onOpenHostedClawd: openHostedClawd,

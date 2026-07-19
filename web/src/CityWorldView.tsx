@@ -33,6 +33,9 @@ export type CityWorldViewProps = {
    *  not a synthetic generated district — flips the boundary chrome from the
    *  "generated, not real coverage" banner to honest census-shape copy. */
   realCountyBoard?: boolean;
+  /** 0.78-R zoom-band overlay: zoom notifications + committed band/epoch. */
+  onCameraZoom?: ((zoom: number) => void) | undefined;
+  bandOptions?: { committedBand?: "far" | "mid" | "near"; chunkEpoch?: { schemaVersion: string; packHash: string } } | undefined;
   selectedDistrictId?: string | undefined;
   selectedPlaceId?: string | undefined;
   stickers?: VoxelSticker[];
@@ -118,6 +121,8 @@ export function CityWorldView({
   onPlaceSticker,
   onNoteDraftChange,
   onSaveNote,
+  onCameraZoom,
+  bandOptions,
 }: CityWorldViewProps) {
   const isGeneratedMode = Boolean(generatedScene);
   const isCountyBoardMode = isGeneratedMode && realCountyBoard;
@@ -373,6 +378,8 @@ export function CityWorldView({
             cameraPresetId={cameraPresetId}
             debugMode={debugMode}
             onSelectPlace={onSelectPlace}
+            onCameraZoom={onCameraZoom}
+            bandOptions={bandOptions}
           />
         </Suspense>
       </section>
