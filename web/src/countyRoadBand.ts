@@ -13,10 +13,14 @@
 // committed band.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  analyzeTransitionTrace,
+  beginTransitionTrace,
   compileCountyRoadSegments,
   createBandControllerState,
   decodeRoadChunk,
+  recordTransitionPhase,
   reduceBandController,
+  serializeTransitionTraceString,
   type BandControllerEvent,
   type BandControllerState,
   type CityWorldLodBand,
@@ -24,6 +28,7 @@ import {
   type CityWorldScene,
   type ManifestEpoch,
   type RoadChunk,
+  type TransitionMetricsInput,
 } from "@atlas/core/voxel";
 
 type RoadCatalog = {
@@ -75,7 +80,20 @@ export function useCountyRoadBand(
     const intent = stateRef.current.pendingIntent;
     if (!slug || !scene || !projection || !intent) return;
     setRoadStatus("loading");
+    // A2 trace seed: phase TIMINGS are recorded truthfully for the R3
+    // oracle; graphics/residency sampling stays zero until the renderer
+    // feeds real counts (A2-full). Published on globalThis for evidence
+    // capture and the Lane C matrix.
+    const zeroMetrics: TransitionMetricsInput = { graphicsCount: 0 };
+    let trace = beginTransitionTrace({
+      intentId: intent.id,
+      fromBand: stateRef.current.committedBand,
+      targetBand: "near",
+      epoch: epochRef.current,
+    });
+    trace = recordTransitionPhase(trace, "intent-start", performance.now(), zeroMetrics);
     try {
+      trace = recordTransitionPhase(trace, "fetch-start", performance.now(), zeroMetrics);
       const catalogRes = await fetch(`/road-catalog/${slug}/current`);
       if (!catalogRes.ok) throw new Error(`catalog ${catalogRes.status}`);
       const catalog = (await catalogRes.json()) as RoadCatalog;
@@ -111,10 +129,14 @@ export function useCountyRoadBand(
         chunks.push(...decoded);
       }
       if (chunks.length !== chunkIds.length) throw new Error("incomplete window");
+      trace = recordTransitionPhase(trace, "fetch-end", performance.now(), zeroMetrics);
+      trace = recordTransitionPhase(trace, "decode-end", performance.now(), zeroMetrics);
 
+      trace = recordTransitionPhase(trace, "build-start", performance.now(), zeroMetrics);
       const segments = compileCountyRoadSegments(chunks, manifest.spatialBasis.originLonLat, projection, {
         lodBand: "near",
       });
+      trace = recordTransitionPhase(trace, "build-end", performance.now(), zeroMetrics);
       // The whole required window validated -> single transactional commit.
       roadsRef.current = segments;
       const pending = stateRef.current.pendingIntent;
@@ -124,6 +146,16 @@ export function useCountyRoadBand(
       setRoads(segments);
       setRoadStatus("ready");
       setCommittedBand(stateRef.current.committedBand as CityWorldLodBand);
+      trace = recordTransitionPhase(trace, "swap", performance.now(), zeroMetrics);
+      requestAnimationFrame(() => {
+        trace = recordTransitionPhase(trace, "next-frame", performance.now(), zeroMetrics);
+        trace = recordTransitionPhase(trace, "release-end", performance.now(), zeroMetrics);
+        const verdict = analyzeTransitionTrace(trace);
+        (globalThis as unknown as Record<string, unknown>).__ATLAS_BAND_TRACE__ = {
+          verdict,
+          trace: serializeTransitionTraceString(trace),
+        };
+      });
     } catch {
       const pending = stateRef.current.pendingIntent;
       const epoch = epochRef.current;
