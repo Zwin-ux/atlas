@@ -36,6 +36,8 @@ export type CityWorldViewProps = {
   /** 0.78-R zoom-band overlay: zoom notifications + committed band/epoch. */
   onCameraZoom?: ((zoom: number) => void) | undefined;
   bandOptions?: { committedBand?: "far" | "mid" | "near"; chunkEpoch?: { schemaVersion: string; packHash: string } } | undefined;
+  /** S4a: road overlay status ("idle"|"loading"|"ready"|"sparse"|"unavailable"). */
+  roadStatus?: string | undefined;
   selectedDistrictId?: string | undefined;
   selectedPlaceId?: string | undefined;
   stickers?: VoxelSticker[];
@@ -123,6 +125,7 @@ export function CityWorldView({
   onSaveNote,
   onCameraZoom,
   bandOptions,
+  roadStatus,
 }: CityWorldViewProps) {
   const isGeneratedMode = Boolean(generatedScene);
   const isCountyBoardMode = isGeneratedMode && realCountyBoard;
@@ -388,7 +391,20 @@ export function CityWorldView({
         <div className="city-world-generated-boundary" data-qa="census-boundary">
           <div>
             <span>U.S. CENSUS · {cityScene.region.county}</span>
-            <strong>Real boundary, water, and town names. Streets and buildings aren't mapped yet.</strong>
+            {/* S4a (F-007): the honesty line is BAND-AWARE — once real streets
+                commit at NEAR, saying they aren't mapped would be false. */}
+            <strong>
+              {bandOptions?.committedBand === "near" && (roadStatus === "ready" || roadStatus === "sparse")
+                ? "Real boundary, water, town names, and streets from Census TIGER. Buildings aren't mapped yet."
+                : "Real boundary, water, and town names. Streets and buildings aren't mapped yet."}
+            </strong>
+            {/* S4a status: quiet line, only when a NEAR request is waiting on a
+                cold cache or has failed — sparse and ready render nothing. */}
+            {roadStatus === "loading" || roadStatus === "unavailable" ? (
+              <em aria-live="polite" data-qa="road-status">
+                {roadStatus === "loading" ? "Street detail loading…" : "Street detail unavailable"}
+              </em>
+            ) : null}
           </div>
           <button type="button" data-qa="exit-census-board" onClick={onExitGeneratedPreview}>
             Open Riverside
@@ -418,7 +434,10 @@ export function CityWorldView({
         </div>
       )}
 
-      <MapChrome rendererRef={rendererRef} />
+      <MapChrome
+        rendererRef={rendererRef}
+        centerLabel={isCountyBoardMode && bandOptions?.committedBand === "near" ? "County view" : undefined}
+      />
 
       {canNavigatePlaces ? (
         <div className={placeNavigatorExpanded ? "city-world-place-navigator is-expanded" : "city-world-place-navigator"}>

@@ -1026,6 +1026,7 @@ export function App() {
       realCountyBoard={isRealCountyBoard}
       onCameraZoom={isRealCountyBoard ? roadBand.onCameraZoom : undefined}
       bandOptions={isRealCountyBoard ? roadBand.bandOptions : undefined}
+      roadStatus={isRealCountyBoard ? roadBand.roadStatus : undefined}
       {...(hostedClawdContext
         ? {
             onOpenHostedClawd: openHostedClawd,

@@ -11,6 +11,9 @@ import type { CityWorldRendererHandle } from "./CityWorldRenderer";
 
 export type MapChromeProps = {
   rendererRef: RefObject<CityWorldRendererHandle>;
+  /** S4b: the county board relabels center as the NEAR-band exit ("County
+   *  view") — same button, same behavior (preset re-fit), honest label. */
+  centerLabel?: string | undefined;
 };
 
 function requestHostDisplayMode(mode: OpenAiDisplayMode): void {
@@ -22,7 +25,7 @@ function requestHostDisplayMode(mode: OpenAiDisplayMode): void {
   }
 }
 
-export function MapChrome({ rendererRef }: MapChromeProps) {
+export function MapChrome({ rendererRef, centerLabel }: MapChromeProps) {
   const displayMode = useOpenAiDisplayMode();
   const fullscreen = displayMode === "fullscreen";
   const handleDisplayModeToggle = () => requestHostDisplayMode(fullscreen ? "inline" : "fullscreen");
@@ -41,7 +44,13 @@ export function MapChrome({ rendererRef }: MapChromeProps) {
       <button type="button" aria-label="Zoom in" data-qa="zoom-in-button" onClick={() => rendererRef.current?.zoomIn()}>
         <ZoomInIcon />
       </button>
-      <button type="button" aria-label="Center map" data-qa="center-map-button" onClick={() => rendererRef.current?.center()}>
+      <button
+        type="button"
+        aria-label={centerLabel ?? "Center map"}
+        title={centerLabel ?? "Center map"}
+        data-qa="center-map-button"
+        onClick={() => rendererRef.current?.center()}
+      >
         <CenterIcon />
       </button>
       <button type="button" aria-label="Zoom out" data-qa="zoom-out-button" onClick={() => rendererRef.current?.zoomOut()}>
