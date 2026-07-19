@@ -10,8 +10,8 @@
   "decision": "PLUGIN_SUBMISSION_PACKET_CERTIFIED_DEPLOY_PENDING",
   "releaseCandidate": {
     "baseSha": "6320e577c648d367ffb46fe97c65d4bf84843fa1",
-    "headSha": "6b5c13dcaa0bb3b069c733abd39fa575dd1dd8b6",
-    "pathCount": 28548,
+    "headSha": "0fa8732fbcc1f0982f40732ec970ffaf5eff8645",
+    "pathCount": 28549,
     "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html"
   },
   "metricResult": {
