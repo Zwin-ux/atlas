@@ -86,12 +86,12 @@ const PLUGIN_SUBMISSION_RELEASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1"
 const TOWN_ANCHOR_RELEASE_BASE_SHA = "6320e577c648d367ffb46fe97c65d4bf84843fa1";
 // Release candidate head: the certified envelope awaiting the next deploy
 // (0.78-2A + N3 copy + mobile place-sheet fix).
-const TOWN_ANCHOR_RELEASE_HEAD_SHA = "4d9fa8b5c9f5b98514c01ff5458a5f94394f41e4";
+const TOWN_ANCHOR_RELEASE_HEAD_SHA = "6b5c13dcaa0bb3b069c733abd39fa575dd1dd8b6";
 // Deployed head: what production actually runs until the next owner deploy.
 const TOWN_ANCHOR_DEPLOYED_SHA = "b4eea1caef009a4886abbb659d74ada27d256315";
 const TOWN_ANCHOR_IMPLEMENTATION_SHA = "331c8cf5f5290e135271b1984334f2f9e03701c1";
 const TOWN_ANCHOR_RAILWAY_DEPLOYMENT = "2c7bb3a4-d5b2-4869-8bf1-6e1763a395f5";
-const TOWN_ANCHOR_RELEASE_PATH_COUNT = 28547;
+const TOWN_ANCHOR_RELEASE_PATH_COUNT = 28548;
 const PLUGIN_SUBMISSION_RAILWAY_DEPLOYMENT = "b4683672-40fb-40c0-aa5e-1b78e3ac8d23";
 const EXPECTED_TOOLS = [
   "select_county",
