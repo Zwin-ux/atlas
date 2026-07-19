@@ -398,6 +398,7 @@ const NATIONAL_GENERATION_CONTRACT_FILES = new Set([
   "artifacts/council/CODEX_RESULT_078R.md",
   "README.md",
   "docs/codex/packet-0.76-4-terrain.md",
+  "docs/codex/packet-0.78R-lane-a-continuation.md",
   "scripts/capture-ship-pass-evidence.mjs",
   "docs/REDIS_SCENE_PACKET_BACKEND_0.72B.md",
   "docs/SCENE_PACKET_SERVICE_BOUNDARY_0.71H.md",
