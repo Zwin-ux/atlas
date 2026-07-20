@@ -697,6 +697,29 @@ button {
   stroke-width: 2;
 }
 
+.city-world-note-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 7.5rem;
+  overflow: auto;
+}
+
+.city-world-note-empty {
+  opacity: 0.72;
+  font-size: 12px;
+}
+
+.city-world-note button {
+  min-width: 5.5rem;
+  padding: 0 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .city-world-zoom button:hover,
 .city-world-stickers button:hover,
 .city-world-note button:hover {

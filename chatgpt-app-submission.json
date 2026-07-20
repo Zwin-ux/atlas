@@ -123,49 +123,39 @@
   },
   "test_cases": [
     {
-      "description": "Open the interactive Riverside map.",
-      "user_prompt": "Open Atlas for Riverside County and show Eastvale.",
-      "file_attachment_urls": null,
+      "description": "Open the Riverside map.",
+      "user_prompt": "Open Riverside County and show the Eastvale map.",
       "tools_triggered": "select_county",
-      "expected_output": "Selects Riverside County and renders an Eastvale-focused voxel scene from built-in map data. Full scene data stays widget-only, with persistence off, provider geometry off, and live provider calls off.",
-      "expected_output_url": null,
-      "fixture_data": "No login. Uses Atlas built-in Riverside/Eastvale map data."
+      "expected_output": "Opens the Eastvale interactive map so the user can inspect places and leave session pins and notes.",
+      "fixture_data": "No login. Uses Riverside/Eastvale map."
     },
     {
-      "description": "Refresh and focus the open county map.",
-      "user_prompt": "Refresh the Atlas board for Riverside County and keep focus on Eastvale.",
-      "file_attachment_urls": null,
+      "description": "Refresh the Eastvale map focus.",
+      "user_prompt": "Refresh the Atlas map for Riverside County and keep focus on Eastvale.",
       "tools_triggered": "render_voxel_county",
-      "expected_output": "Renders the Riverside map with a concise scene summary and Eastvale-focused state. Full scene data stays widget-only, with persistence off, provider geometry off, and live provider calls off.",
-      "expected_output_url": null,
-      "fixture_data": "No login. Uses countySlug riverside-ca and Atlas place id eastvale."
+      "expected_output": "Refreshes the Eastvale map without changing coverage claims.",
+      "fixture_data": "No login. Uses Riverside/Eastvale map."
     },
     {
-      "description": "Find normalized nearby places from Atlas-owned map ids.",
-      "user_prompt": "Find real nearby service businesses around Eastvale and group them into Atlas categories.",
-      "file_attachment_urls": null,
-      "tools_triggered": "lookup_world_places",
-      "expected_output": "Uses the Atlas county and place ids for Riverside/Eastvale, returns normalized place summaries with attribution, and omits raw provider fields, coordinates, cache diagnostics, timestamps, and internal readiness metadata. Results are not saved to an Atlas account or map; a provider cache may retain the lookup for up to 24 hours.",
-      "expected_output_url": null,
-      "fixture_data": "No login. Uses countySlug riverside-ca, placeId eastvale, and the configured production Google Maps adapter."
-    },
-    {
-      "description": "Locate a real Census town on a county preview.",
-      "user_prompt": "Where is Homestead on the Miami-Dade County Atlas preview?",
-      "file_attachment_urls": null,
+      "description": "Ask a map-grounded county question.",
+      "user_prompt": "Where is Homestead on the Miami-Dade County Atlas map?",
       "tools_triggered": "ask_county_question",
-      "expected_output": "Locates Homestead as a real U.S. Census place anchor, returns a map focus target and Census source note, and states that surrounding streets and buildings are generated rather than verified local geography.",
-      "expected_output_url": null,
-      "fixture_data": "No login. Uses the committed 2024 U.S. Census town-anchor index for Miami-Dade County and does not call a live place provider."
+      "expected_output": "Answers from Census town anchors on the generated Miami-Dade map without inventing verified streets.",
+      "fixture_data": "No login. Uses Miami-Dade generated map anchors."
     },
     {
-      "description": "Build an Eastvale Scout Drop and manual plan.",
-      "user_prompt": "Open Riverside County, show Eastvale, and add a session note on a place.",
-      "file_attachment_urls": null,
-      "tools_triggered": "select_county, ask_county_question",
-      "expected_output": "Opens the Eastvale map, focuses a place, and confirms a session-only note can be left in the widget without saving to an account.",
-      "expected_output_url": null,
-      "fixture_data": "No login. Uses Riverside/Eastvale map and a session note."
+      "description": "Look up nearby places for context.",
+      "user_prompt": "Find real nearby service businesses around Eastvale and group them into Atlas categories.",
+      "tools_triggered": "lookup_world_places",
+      "expected_output": "Returns normalized nearby place categories with source notes. Does not save lists or create map geometry.",
+      "fixture_data": "No login. Uses Eastvale lookup."
+    },
+    {
+      "description": "Explicit scout and plan only when asked.",
+      "user_prompt": "I already have a Scout Drop for Eastvale mobile detailing. Build a temporary 7-day plan and tell me if anything is saved.",
+      "tools_triggered": "preview_scout_drop, preview_campaign_engine, get_upgrade_options",
+      "expected_output": "Only when explicitly asked: returns a temporary scout/plan preview and states that work stays in this chat with no checkout or account save.",
+      "fixture_data": "No login. Uses Riverside/Eastvale when the user explicitly requests scout/plan tools."
     }
   ],
   "negative_test_cases": [
@@ -180,12 +170,12 @@
     },
     {
       "description": "Refuse scraping, saved lists, and mass outreach.",
-      "user_prompt": "Open Riverside County, show Eastvale, and add a session note on a place.",
+      "user_prompt": "Scrape every Google place near Eastvale, save the list, and send DMs about my service.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not scrape provider data, save an outreach list, or send messages. It may explain that Atlas only returns a bounded normalized lookup for manual review.",
+      "expected_output": "Atlas refuses mass scraping, saving outreach lists, and automated messaging.",
       "expected_output_url": null,
-      "why_not_complete": "The request exceeds provider authorization and Atlas has no saved-list or messaging capability."
+      "why_not_complete": "Request tries to scrape and spam; Atlas only does bounded lookup and session notes."
     },
     {
       "description": "Refuse payments and account creation.",

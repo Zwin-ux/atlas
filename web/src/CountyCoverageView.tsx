@@ -15,19 +15,19 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
   const rendererRef = useRef<CityWorldRendererHandle | null>(null);
   const isShell = coverage.coverageTier === "L1_COUNTY_SHELL";
   const countyLabel = coverage.countyLabel ?? coverage.countySlug;
-  const statusLabel = isShell ? "Preview available" : coverage.coverageLabel;
-  const stateLabel = isShell ? "Map preview" : "Unavailable";
+  const statusLabel = isShell ? "Generated map" : coverage.coverageLabel;
+  const stateLabel = isShell ? "Generated map" : "Unavailable";
   const sourceLabel = coverage.sourceNotes[0]?.label ?? "Atlas county list";
   const cameraPresetId = shellScene ? readRequestedCameraPreset(shellScene) : undefined;
   const debugMode = readRequestedDebugMode();
   const displayMode = useOpenAiDisplayMode();
   const boundaryCopy = isShell
-    ? "Session-only free map planner. Stays in this chat."
-    : "Unavailable in this free map planner. Stays in this chat.";
-  const recoveryText = "Open Riverside/Eastvale";
+    ? "Pins and notes stay in this chat only."
+    : "This county is not available. Pins and notes stay in this chat only.";
+  const recoveryText = "Open Riverside map";
 
   const openPlayableSlice = () => {
-    void sendUserMessage("Open Riverside/Eastvale in Atlas.");
+    void sendUserMessage("Open Riverside County and show the Eastvale map.");
   };
 
   return (
@@ -76,7 +76,7 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
             <strong data-qa="coverage-status-label">{coverage.coverageLabel}</strong>
             <p>{coverage.message}</p>
           </div>
-          <span className="city-world-place-pulse">{coverage.supported ? "Preview" : "Unavailable"}</span>
+          <span className="city-world-place-pulse">{coverage.supported ? "Generated" : "Unavailable"}</span>
         </div>
 
         <div className="city-world-tray-meta" aria-label="Map facts">

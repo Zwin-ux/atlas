@@ -244,9 +244,15 @@ export function CityWorldView({
     return () => window.clearTimeout(timer);
   }, [hintVisible, onDismissFirstRunHint]);
 
+  const [noteStatus, setNoteStatus] = useState("");
+
   const saveNote = () => {
     if (!activePlace || !noteDraft.trim()) return;
     onSaveNote(activePlace.id, noteDraft);
+    setNoteStatus("Note saved.");
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => setNoteStatus(""), 2000);
+    }
   };
 
   const dropSticker = () => {
@@ -254,6 +260,9 @@ export function CityWorldView({
     onSelectStickerMode(stickerMode);
     onPlaceSticker(activePlace.id, stickerMode);
   };
+
+  // Free map loop: do not show Hosted Clawd / save chrome (Clawd later).
+  const showHostedClawdCta = Boolean(hasHostedClawdTray === false && hostedClawdContext?.canPersist && onOpenHostedClawd);
 
   const selectPlaceFromNavigator = (placeId: string) => {
     if (!canNavigatePlaces) return;
@@ -413,15 +422,15 @@ export function CityWorldView({
       ) : isGeneratedMode ? (
         <div className="city-world-generated-boundary" data-qa="generated-boundary">
           <div>
-            <span>PREVIEW ONLY</span>
+            <span>GENERATED MAP</span>
             <strong>
               {cityScene.places.some((place) => place.id.startsWith("town-anchor-"))
-                ? "Real Census town names. Streets and buildings are generated."
-                : "Generated district. Not real coverage. Preview stays in this chat."}
+                ? "This map is generated. Town names are from the Census."
+                : "This map is generated. It is not verified street coverage."}
             </strong>
           </div>
           <button type="button" data-qa="exit-generated" onClick={onExitGeneratedPreview}>
-            Exit preview
+            Open Riverside map
           </button>
         </div>
       ) : (
@@ -488,17 +497,17 @@ export function CityWorldView({
 
       {hintVisible ? (
         <div className="city-world-first-run-hint" role="note" data-qa="first-run-hint">
-          Drag to explore · Pinch to zoom · Tap places
+          Drag the map. Pinch to zoom. Tap a place.
         </div>
       ) : null}
 
       {!hasPreview && !hasHostedClawdTray && !isCountyBoardMode ? (
-      <div className="city-world-stickers" aria-label="Sticker tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
+      <div className="city-world-stickers" aria-label="Pin tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
         {STICKER_ORDER.map((kind) => (
           <button
             key={kind}
             type="button"
-            aria-label={`Use ${stickerLabel(kind)} sticker`}
+            aria-label={`Use ${stickerLabel(kind)} pin`}
             aria-pressed={kind === stickerMode}
             data-qa={`sticker-mode-${kind}`}
             className={kind === stickerMode ? "is-active" : ""}
@@ -511,14 +520,14 @@ export function CityWorldView({
         ))}
         <button
           type="button"
-          aria-label="Drop sticker on selected place"
+          aria-label="Pin place"
           className="city-world-drop"
           data-qa="drop-sticker-button"
           disabled={!activePlace}
           onClick={dropSticker}
         >
           <PinIcon />
-          <span>Pin</span>
+          <span>Pin place</span>
         </button>
       </div>
       ) : null}
@@ -539,8 +548,13 @@ export function CityWorldView({
         <div className="city-world-tray-head">
           <div className="city-world-place-copy">
             <span className="city-world-place-type">{activePlace ? placeKindLabel(activePlace.kind) : "Place"}</span>
-            <strong data-qa="selected-place-label">{activePlace?.label ?? "Pick a place"}</strong>
+            <strong data-qa="selected-place-label">{activePlace?.label ?? "Select a place."}</strong>
           </div>
+          {placeNotes.length > 0 ? (
+            <span className="city-world-place-pulse" data-qa="place-note-count" aria-label={`${placeNotes.length} notes`}>
+              {placeNotes.length} note{placeNotes.length === 1 ? "" : "s"}
+            </span>
+          ) : null}
         </div>
         {sessionResumeLabel ? (
           <div className="city-world-session-boundary" data-qa="session-resume">
@@ -548,32 +562,44 @@ export function CityWorldView({
           </div>
         ) : null}
         <div className="city-world-session-boundary" data-qa="session-only-boundary">
-          Pins and notes stay in this chat.
+          Pins and notes stay in this chat only.
         </div>
-        {hostedClawdContext && onOpenHostedClawd ? (
+        {showHostedClawdCta ? (
           <button type="button" className="city-world-hosted-clawd-open" data-qa="hosted-clawd-open" onClick={handleHostedClawdOpen}>
             Save with ChatGPT
-            <span>{hostedClawdContext.sessionBoundary}</span>
+            <span>{hostedClawdContext?.sessionBoundary}</span>
           </button>
         ) : null}
-        {latestPlaceNote ? (
-          <div className="city-world-latest-note" data-qa="latest-note">
-            {latestPlaceNote.body}
+        {placeNotes.length > 0 ? (
+          <ul className="city-world-note-list" data-qa="place-note-list" aria-label="Notes for selected place">
+            {placeNotes.slice(-5).map((note) => (
+              <li key={note.id} className="city-world-latest-note" data-qa="latest-note">
+                {note.body}
+              </li>
+            ))}
+          </ul>
+        ) : activePlace ? (
+          <div className="city-world-latest-note city-world-note-empty" data-qa="note-empty">
+            No notes for this place.
           </div>
         ) : null}
         <div className="city-world-note">
           <input
             value={noteDraft}
-            maxLength={160}
+            maxLength={120}
             disabled={!activePlace}
             data-qa="note-input"
             onChange={(event) => onNoteDraftChange(event.currentTarget.value)}
-            placeholder={activePlace ? `Add note for ${activePlace.label}` : "Select a place"}
+            placeholder={activePlace ? `Write a note for ${activePlace.label}.` : "Select a place first."}
+            aria-label={activePlace ? `Write a note for ${activePlace.label}` : "Select a place first"}
           />
           <button type="button" aria-label="Save note" data-qa="save-note-button" disabled={!activePlace || !noteDraft.trim()} onClick={saveNote}>
-            Save
+            Save note
           </button>
         </div>
+        <span className="city-world-sr-only" role="status" aria-live="polite" data-qa="note-status">
+          {noteStatus}
+        </span>
         {placePins.length > 0 ? (
           <div className="city-world-pin-row" aria-label="Pins on selected place" data-qa="selected-place-pins">
             {placePins.slice(-4).map((pin) => (

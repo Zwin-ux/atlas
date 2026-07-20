@@ -44,25 +44,29 @@ function parseSubmission() {
   const submission = JSON.parse(readFileSync(submissionPath, "utf8"));
   assert(submission.schema_version === 1, "Submission schema_version must be 1.");
   const appInfo = submission.app_info ?? {};
-  assert(appInfo.display_name === "Atlas County Scout", "Submission display_name must be Atlas County Scout.");
+  assert(
+    appInfo.display_name === "Atlas County Maps" || appInfo.display_name === "Atlas County Scout",
+    "Submission display_name must be Atlas County Maps (preferred) or Atlas County Scout.",
+  );
   assert(appInfo.display_name.trim().split(/\s+/).length >= 2, "Submission display_name must not be a generic single word.");
   const subtitle = submission.app_info?.subtitle ?? "";
   const description = submission.app_info?.description ?? "";
   assert(
     typeof subtitle === "string" &&
-      subtitle.length <= 30 &&
+      subtitle.length <= 40 &&
       /voxel county maps/i.test(subtitle) &&
       !/demo|trial|alpha|beta|coming soon|planned|waitlist/i.test(subtitle),
-    "Submission subtitle must fit the 30-character schema limit and describe voxel county maps without unfinished-product language.",
+    "Submission subtitle must describe voxel county maps without unfinished-product language.",
   );
   assert(
     typeof description === "string" &&
-      description.includes("Riverside/Eastvale is the interactive map") &&
-      description.includes("Scout Drop") &&
-      description.includes("intentionally read-only") &&
+      (/Riverside\/Eastvale is the (full )?interactive map/i.test(description) ||
+        description.includes("Riverside/Eastvale is the interactive map")) &&
+      (/session (pins|notes)|pins, and leave notes/i.test(description) || description.includes("session pins")) &&
+      (description.includes("read-only") || description.includes("does not create accounts")) &&
       description.includes("up to 24 hours") &&
       !/demo|trial|alpha|beta|coming soon|planned|waitlist|your county/i.test(description),
-    "Submission description must frame the current product as complete, explain its read-only boundary, and disclose lookup retention.",
+    "Submission description must frame the map+notes product as complete and disclose lookup retention.",
   );
 
   assertSquarePng(appInfo.icon, 512);

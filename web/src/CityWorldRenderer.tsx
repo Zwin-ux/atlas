@@ -1698,8 +1698,9 @@ function drawTerrainTile(g: Graphics, tile: CityWorldTerrainTile, atlas: CityWor
     : tile.kind === "water"
       ? mixColor(scaleColor(shadeColor(baseColor, variation), 0.96), 0x082f57, 0.18)
       : mixColor(scaleColor(shadeColor(baseColor, variation), 0.98), SUN_WARM_TINT, 0.07);
-  const alpha = shellTile ? (tile.kind === "grass" ? 0.86 : 0.9) : draftTile ? (tile.kind === "grass" ? 0.84 : 0.92) : tile.kind === "water" ? 0.97 : tile.kind === "grass" ? 0.92 : 0.94;
-  const strokeAlpha = shellTile ? (tile.kind === "grass" ? 0.1 : 0.14) : draftTile ? (tile.kind === "grass" ? 0.018 : 0.1) : tile.kind === "grass" ? 0.026 : tile.kind === "water" ? 0.28 : 0.12;
+  // Clay table ground: slightly higher matte alpha, softer seams.
+  const alpha = shellTile ? (tile.kind === "grass" ? 0.9 : 0.92) : draftTile ? (tile.kind === "grass" ? 0.88 : 0.94) : tile.kind === "water" ? 0.97 : tile.kind === "grass" ? 0.95 : 0.96;
+  const strokeAlpha = shellTile ? (tile.kind === "grass" ? 0.08 : 0.11) : draftTile ? (tile.kind === "grass" ? 0.03 : 0.08) : tile.kind === "grass" ? 0.04 : tile.kind === "water" ? 0.22 : 0.09;
   const strokeColor = tile.kind === "water" ? 0x0b4f79 : shellTile ? 0x747965 : draftTile ? 0x7a8a58 : regionalTerrain ? colorToNumber(regionalTerrain.shade) : 0x6d824f;
   // Massing/elevation extrusions first, then the tile face: within a shared
   // Graphics, path order is z order (old per-object add order preserved).
@@ -4633,8 +4634,10 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   // Unified sun: lower-left wall faces the sun, lower-right wall falls into
   // cool shade. Same factors for every building in the scene.
   // 0.68H — walls use the building-face curve so the lit wall stays pigmented.
-  const sideLeft = buildingFaceColor(bodyColor, "sun");
-  const sideRight = buildingFaceColor(bodyColor, "shade");
+  // Claymation pass: matte clay bodies — soft face fill, round outline, no
+  // hard plastic edges. Keep sun/shade so massing still reads.
+  const sideLeft = mixColor(buildingFaceColor(bodyColor, "sun"), 0xf0e2c8, 0.08);
+  const sideRight = mixColor(buildingFaceColor(bodyColor, "shade"), 0xc4b49a, 0.1);
   const topLeft = { x: top.x - footprintWidth / 2, y: top.y };
   const topRight = { x: top.x + footprintWidth / 2, y: top.y };
   const topFront = { x: top.x, y: top.y + footprintDepth / 2 };
@@ -4643,9 +4646,11 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const bottomFront = { x: bottom.x, y: bottom.y + footprintDepth / 2 };
   const leftSide = [topLeft.x, topLeft.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomLeft.x, bottomLeft.y];
   const rightSide = [topRight.x, topRight.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomRight.x, bottomRight.y];
+  const clayOutline = mixColor(outline, 0xd8c7a8, 0.35);
+  const clayStrokeAlpha = Math.min(0.42, activeStrokeAlpha * 0.72 + 0.12);
 
-  const left = polygon(leftSide, sideLeft, 1, outline, activeStrokeAlpha);
-  const right = polygon(rightSide, sideRight, 1, outline, activeStrokeAlpha);
+  const left = polygon(leftSide, sideLeft, 1, clayOutline, clayStrokeAlpha);
+  const right = polygon(rightSide, sideRight, 1, clayOutline, clayStrokeAlpha);
   layer.addChild(left, right);
   drawBuildingShellLighting(layer, geometry);
   if (materialTextureEnabled) drawWallMaterialTexture(layer, geometry, building);
@@ -4672,7 +4677,8 @@ function drawWallBlockCourses(layer: Container, geometry: BuildingGeometry, buil
       courses.moveTo(from.x, from.y).lineTo(to.x, to.y);
     }
   }
-  courses.stroke({ color: shadeColor(geometry.bodyColor, -26), alpha: 0.15, width: 1, cap: "butt" });
+  // Soft clay course lines (matte, low contrast — not hard brick).
+  courses.stroke({ color: shadeColor(geometry.bodyColor, -18), alpha: 0.1, width: 1.15, cap: "round" });
   layer.addChild(courses);
 }
 
