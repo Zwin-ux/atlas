@@ -15,14 +15,14 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
   const rendererRef = useRef<CityWorldRendererHandle | null>(null);
   const isShell = coverage.coverageTier === "L1_COUNTY_SHELL";
   const countyLabel = coverage.countyLabel ?? coverage.countySlug;
-  const statusLabel = isShell ? "Generated map" : coverage.coverageLabel;
-  const stateLabel = isShell ? "Generated map" : "Unavailable";
+  const statusLabel = isShell ? "Census board" : coverage.coverageLabel;
+  const stateLabel = isShell ? "Census geography" : "Unavailable";
   const sourceLabel = coverage.sourceNotes[0]?.label ?? "Atlas county list";
   const cameraPresetId = shellScene ? readRequestedCameraPreset(shellScene) : undefined;
   const debugMode = readRequestedDebugMode();
   const displayMode = useOpenAiDisplayMode();
   const boundaryCopy = isShell
-    ? "Pins and notes stay in this chat only."
+    ? "Real boundary and towns when the map loads. Pins and notes stay in this chat only."
     : "This county is not available. Pins and notes stay in this chat only.";
   const recoveryText = "Open Riverside map";
 

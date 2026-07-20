@@ -511,7 +511,8 @@ export function CityWorldView({
         </div>
       ) : null}
 
-      {!hasPreview && !hasHostedClawdTray && !isCountyBoardMode ? (
+      {/* National Census board + Riverside: notes/pins are the product loop. */}
+      {!hasPreview && !hasHostedClawdTray ? (
       <div className="city-world-stickers" aria-label="Pin tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
         {STICKER_ORDER.map((kind) => (
           <button
@@ -542,9 +543,9 @@ export function CityWorldView({
       </div>
       ) : null}
 
-      {hasHostedClawdTray || isCountyBoardMode ? null : hasPreview ? (
+      {hasHostedClawdTray ? null : hasPreview && !isCountyBoardMode ? (
         <PreviewPanel scoutPreview={scoutPreview} campaignPreview={campaignPreview} {...(onAdvancePreview ? { onAdvance: onAdvancePreview } : {})} />
-      ) : (
+      ) : hasPreview && isCountyBoardMode ? null : (
       <section
         className="city-world-tray"
         aria-label="Selected place"

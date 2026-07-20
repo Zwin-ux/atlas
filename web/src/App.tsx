@@ -117,7 +117,7 @@ const orangeCoverageSummary: CountyCoverageStructuredContent = {
   coverageTier: "L1_COUNTY_SHELL",
   coverageLabel: "Preview available",
   message:
-    "Orange County opens as a generated map study with real Census town names. Streets and buildings are generated, not a verified full local map.",
+    "Orange County opens as a Census geography board with real boundary, water, and town names. Streets and buildings are not mapped yet.",
   stateCode: "CA",
   geoid: "06059",
   playableDistrictCount: 0,
@@ -125,8 +125,8 @@ const orangeCoverageSummary: CountyCoverageStructuredContent = {
   districts: [],
   sourceNotes: [coverageSourceNote],
   limitations: [
-    "Interactive full map is Riverside/Eastvale; other counties are generated studies.",
-    "Atlas does not add local places, saved work, XP, evidence, outreach, or automation here.",
+    "Interactive full clay map is Riverside/Eastvale; other counties open as Census geography boards.",
+    "Atlas does not add verified streets, buildings, saved work, XP, evidence, outreach, or automation here.",
   ],
   suggestedNextCountySlug: "riverside-ca",
 };
@@ -651,8 +651,10 @@ export function App() {
   const roadBand = useCountyRoadBand(rawCountyGeoPack?.countySlug ?? null, compiledCountyGeoScene, geoBoardEnabled);
   const geoSceneWithRoads = roadBand.scene ?? compiledCountyGeoScene;
   const countyGeoScene = geoSceneWithRoads?.id === dismissedGeneratedDraftSceneId ? null : geoSceneWithRoads;
-  // Generated clay: only when geo board unavailable or study mode is on.
-  const allowGeneratedStudy = generatedStudyEnabled || !countyGeoScene;
+  // Generated clay study: compile when no geo board, URL study flag, or tool
+  // attached a draft (includeGeneratedDraft=true → _meta.generatedDraftSpec).
+  const hasToolGeneratedStudy = Boolean(rawGeneratedDraftSpec || isCityWorldScene(meta?.generatedDraftScene));
+  const allowGeneratedStudy = generatedStudyEnabled || !countyGeoScene || hasToolGeneratedStudy;
   const generatedDraftSpecScene = useMemo(() => {
     if (!allowGeneratedStudy || !rawGeneratedDraftSpec) return null;
     try {
@@ -665,9 +667,13 @@ export function App() {
     generatedDraftSpecScene ??
     (allowGeneratedStudy && isCityWorldScene(meta?.generatedDraftScene) ? meta.generatedDraftScene : null);
   const generatedDraftScene = rawGeneratedDraftScene?.id === dismissedGeneratedDraftSceneId ? null : rawGeneratedDraftScene;
-  // Geo board primary; generated clay only as fallback/study. Census boards
-  // must never be labeled "generated".
-  const activeGeneratedScene = generatedScene ?? countyGeoScene ?? generatedDraftScene;
+  // Default national: geo board. Explicit tool study draft wins over geo.
+  // Census boards must never be labeled "generated".
+  const activeGeneratedScene =
+    generatedScene ??
+    (hasToolGeneratedStudy && generatedDraftScene ? generatedDraftScene : null) ??
+    countyGeoScene ??
+    generatedDraftScene;
   const isRealCountyBoard = Boolean(activeGeneratedScene && activeGeneratedScene === countyGeoScene);
   const forcedPlayableCounty = localCountySlug === "riverside-ca";
   const localCoverageState = localCountySlug === "orange-ca"

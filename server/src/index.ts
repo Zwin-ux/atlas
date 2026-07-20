@@ -38,7 +38,7 @@ import {
   type WorldSourceKind,
   type WorldSourceNote,
 } from "@atlas/core";
-import { riversideDemoVoxelScene } from "@atlas/core/voxel";
+import { compileCountyGeoScene, riversideDemoVoxelScene, type CountyGeoPack } from "@atlas/core/voxel";
 import { createGeoDataAdapter, isGoogleMapsConfigured, readGeoAdapterConfig } from "@atlas/geo";
 import { z } from "zod";
 import {
@@ -3043,7 +3043,7 @@ function createAtlasServer(): McpServer {
               resourceDomains: widgetResourceDomains(),
             },
           },
-          "openai/widgetDescription": "Shows Atlas county maps: Riverside/Eastvale full interactive map plus generated U.S. county maps with real Census town names. Pins and notes stay in this chat.",
+          "openai/widgetDescription": "Shows Atlas county maps: Riverside/Eastvale full clay map, plus U.S. Census geography boards (real outline, water, town names). Pins and notes stay in this chat.",
         },
       },
     ],
@@ -3204,27 +3204,37 @@ function createAtlasServer(): McpServer {
       const requestedCountySlug = countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG;
       if (!isPlayableEngineBetaCounty(requestedCountySlug)) {
         const coverage = countyCoverageForSlug(requestedCountySlug);
-        const generatedDraft = await getOrCreateGeneratedDraftScenePacket(coverage, { includeScenePayload: true });
+        // Keep geo board as widget surface — do not replace with generated clay study.
+        const national = await nationalCountyMapMeta(coverage, { includeGeneratedDraft: false });
+        let boardScene: CityWorldScene | undefined;
+        if (national.countyGeoPack) {
+          try {
+            boardScene = compileCountyGeoScene(national.countyGeoPack as CountyGeoPack, {
+              townAnchors: national.townAnchors,
+            });
+          } catch {
+            boardScene = undefined;
+          }
+        }
         const answer = publicCountyQuestionAnswer(
           countyQuestionService.answer({
             question,
             countySlug: coverage.countySlug,
             businessType,
-            generatedScene: generatedDraft?.generatedDraftScene,
+            ...(boardScene ? { generatedScene: boardScene } : {}),
             generatedCountyLabel: coverage.countyLabel,
           }),
         );
-        const cameraIntent = cameraIntentForGeneratedCountyAnswer(generatedDraft?.generatedDraftScene, answer);
-        const scenePacket = generatedDraft?.generatedDraftPacket ?? (await scenePacketStatusForCoverage(coverage));
+        const cameraIntent = boardScene ? cameraIntentForGeneratedCountyAnswer(boardScene, answer) : undefined;
         const structuredContent = {
           ...answer,
           ...(cameraIntent ? { cameraIntent } : {}),
         };
-        const answerPrefix = answer.supported ? "Preview map answer." : "Preview boundary.";
+        const answerPrefix = answer.supported ? "Census board answer." : "Census board boundary.";
         return {
           structuredContent,
           _meta: {
-            scenePacket,
+            scenePacket: national.scenePacket,
             ...(atlasSaveSurfaceEnabled
               ? hostedClawdMeta(hostedClawdService.getContext({
                   trigger: "map_tray",
@@ -3232,8 +3242,8 @@ function createAtlasServer(): McpServer {
                   countyLabel: coverage.countyLabel,
                 }))
               : {}),
-            ...(generatedDraft?.generatedDraftSpec ? { generatedDraftSpec: generatedDraft.generatedDraftSpec } : {}),
-            ...(generatedDraft?.generatedDraftPacket ? { generatedDraftPacket: generatedDraft.generatedDraftPacket } : {}),
+            ...(national.countyGeoPack ? { countyGeoPack: national.countyGeoPack } : {}),
+            ...(national.townAnchors.length > 0 ? { townAnchors: national.townAnchors } : {}),
           },
           content: [
             {
