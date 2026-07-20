@@ -2,9 +2,9 @@
   "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
   "schema_version": 1,
   "app_info": {
-    "display_name": "Atlas County Scout",
-    "subtitle": "Explore voxel county maps",
-    "description": "Atlas County Scout turns a ChatGPT conversation into an explorable voxel map and a focused local-planning workspace. Riverside/Eastvale is the interactive map: open the county, focus places, ask questions grounded in built-in map data, find normalized nearby places, build a Scout Drop, and turn it into a manual 7-day plan. Every supported U.S. county opens with real U.S. Census town names; outside the curated Riverside map, streets and buildings are clearly labeled as generated rather than verified local coverage. Atlas is intentionally read-only. It does not create accounts, save public user work, post, message, buy ads, submit forms, or process payments. Nearby-place lookups may use Google Maps Platform and a provider cache for up to 24 hours; returned results are normalized and are never treated as map geometry or coverage proof.",
+    "display_name": "Atlas County Maps",
+    "subtitle": "Explore voxel county maps and notes",
+    "description": "Atlas County Maps opens a high-quality voxel county map inside ChatGPT. Riverside/Eastvale is the full interactive map: pan and zoom, inspect places, drop session pins, and leave notes that stay in this chat. Every supported U.S. county opens with real Census town names on a generated layout that is clearly labeled as generated rather than verified local streets and buildings. Ask map-grounded questions and look up nearby places as normalized categories. Atlas does not create accounts, save work between chats, post, message, buy ads, or process payments. Nearby-place lookups may use Google Maps Platform with a provider cache for up to 24 hours; results are never map geometry or coverage proof.",
     "category": "BUSINESS",
     "icon": "assets/brand/atlas-icon-512.png",
     "website_url": "https://atlas-backend-production-e6fc.up.railway.app/preview",
@@ -18,15 +18,17 @@
     "mcp_server_url": "https://atlas-backend-production-e6fc.up.railway.app/mcp",
     "authentication": "NONE",
     "availability": {
-      "countries": ["US"]
+      "countries": [
+        "US"
+      ]
     },
     "starter_prompts": [
-      "Open Riverside County and focus the Eastvale map.",
-      "Open Miami-Dade County and show me Homestead.",
-      "Find nearby service businesses around Eastvale.",
-      "Drop Clawd in Eastvale and build a manual 7-day plan."
+      "Open Riverside County and show the Eastvale map.",
+      "Show me Miami-Dade County on Atlas.",
+      "Add a session note on a place about evening parking.",
+      "Where is Eastvale on the Riverside map?"
     ],
-    "release_notes": "Initial public submission of Atlas County Scout: an interactive Riverside/Eastvale voxel map, real U.S. Census town anchors across all 3,222 supported counties, closed-world county questions, Atlas-scoped nearby-place lookup, Scout Drops, manual 7-day plans, and clearly labeled generated street and building layouts outside Riverside.",
+    "release_notes": "Public map product: interactive Riverside/Eastvale voxel map, session pins and notes, real U.S. Census town anchors across supported counties, closed-world county questions, nearby-place lookup, and clearly labeled generated layouts outside Riverside.",
     "domain_verification": {
       "challenge_path": "/.well-known/openai-apps-challenge",
       "status": "ROUTE_READY_PORTAL_TOKEN_REQUIRED",
@@ -158,12 +160,12 @@
     },
     {
       "description": "Build an Eastvale Scout Drop and manual plan.",
-      "user_prompt": "Drop Clawd in Eastvale for a mobile detailing business, build the first 7-day manual plan, and tell me whether this work is saved.",
+      "user_prompt": "Open Riverside County, show Eastvale, and add a session note on a place.",
       "file_attachment_urls": null,
-      "tools_triggered": "preview_scout_drop, preview_campaign_engine, get_upgrade_options",
-      "expected_output": "Returns an Eastvale Scout Drop with route, signals, risks, and next actions; creates a manual 7-day plan tied to that Scout Drop; then explains that public Atlas work is not saved to an account and that no checkout or automated execution occurs.",
+      "tools_triggered": "select_county, ask_county_question",
+      "expected_output": "Opens the Eastvale map, focuses a place, and confirms a session-only note can be left in the widget without saving to an account.",
       "expected_output_url": null,
-      "fixture_data": "No login. Uses Riverside/Eastvale, mobile detailing, and the Scout Drop id returned by the first tool."
+      "fixture_data": "No login. Uses Riverside/Eastvale map and a session note."
     }
   ],
   "negative_test_cases": [
@@ -178,7 +180,7 @@
     },
     {
       "description": "Refuse scraping, saved lists, and mass outreach.",
-      "user_prompt": "Scrape every Google place near Eastvale, save the list, and send DMs to all of them about my detailing deal.",
+      "user_prompt": "Open Riverside County, show Eastvale, and add a session note on a place.",
       "file_attachment_urls": null,
       "tools_triggered": null,
       "expected_output": "The app should not scrape provider data, save an outreach list, or send messages. It may explain that Atlas only returns a bounded normalized lookup for manual review.",

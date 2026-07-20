@@ -1,10 +1,10 @@
 # Atlas North Face
 
 **Authority:** This file is the product law for ship work. If `NEXT_QUESTS.md`,
-slice ladders, or Hosted Clawd notes conflict, **this wins** until a human
-rewrites it.
+slice ladders, or Hosted Clawd / Scout notes conflict, **this wins** until a
+human rewrites it.
 
-**Directory name (preferred):** Atlas County Scout  
+**Directory name (preferred):** Atlas County Maps  
 **MCP URL (prod):** `https://atlas-backend-production-e6fc.up.railway.app/mcp`  
 **Branch:** `codex/integrate-hosted-clawd-fable-058e`
 
@@ -16,46 +16,61 @@ widget, [UX principles](https://developers.openai.com/apps-sdk/concepts/ux-princ
 
 ## One sentence
 
-Atlas County Scout is a ChatGPT plugin that opens a **map-first voxel county
-world**, lets users **inspect places**, **scout a local business**, and
-**preview a 7-day plan** — with **one fully playable proof city
-(Riverside/Eastvale)** and **honest generated previews for every US county**.
+Atlas is a ChatGPT plugin that opens a **high-quality voxel county map**, lets
+users **pan/zoom, inspect places, and leave session notes**, with **Riverside/
+Eastvale as the full interactive proof** and **honest generated maps for every
+US county**.
 
-## The only loop that matters
+## The only loop that matters (NOW)
 
 ```text
 chat intent
-  → select_county          (map mounts)
-  → ask / lookup / pin / note (session only)
-  → preview_scout_drop
-  → preview_campaign_engine
-  → get_upgrade_options    (informational; no checkout claim)
+  → select_county / render_voxel_county   (map mounts)
+  → pan / zoom / select place
+  → pin + note (session only, in the widget)
+  → ask_county_question / lookup_world_places (optional, read-only)
 ```
 
-If work does not make this loop faster, clearer, prettier, or more trustworthy,
-it is **not North Face**.
+If work does not improve **map quality**, **generation quality**, or **notes/
+place inspection**, it is **not North Face**.
+
+## Parked until later (do not drive prompts, demos, or ship copy)
+
+- Clawd / Scout Drop / campaign engine product story  
+- Hosted Clawd, Stripe, saves, XP, evidence, automation  
+- “Drop Clawd in Eastvale for mobile detailing” as the hero demo  
+
+Those tools may remain on the MCP surface for now, but they are **not** the
+product pitch, not the QA focus, and not the ChatGPT connect script.
 
 ## Three honest modes
 
 | Mode | What | Bar |
 |------|------|-----|
-| **A Signature** | Riverside/Eastvale playable | Beautiful map, mobile 390×844, scout/campaign in-widget |
-| **B National preview** | Other US counties | Real Census town names + generated layout; never claim verified streets |
-| **C Lookup & plan** | Nearby places + scout/plan | Google lookup normalized; session-only |
+| **A Signature** | Riverside/Eastvale playable | Beautiful voxel map, places, pins, notes, mobile 390×844 |
+| **B National map** | Other US counties | High-quality generated layout + real Census town names; never claim verified streets |
+| **C Lookup** | Nearby places (optional) | Google lookup normalized; not geometry; not saved lists |
 
-Never blur B into A. Never claim all-US public-quality playable coverage.
+Never blur B into A. Never claim all-US public-quality verified streets.
 
-## Public MCP tools (stable — do not casually add)
+## Public MCP tools
 
-1. `select_county`
-2. `ask_county_question`
-3. `render_voxel_county`
-4. `lookup_world_places` (`openWorldHint: true`)
-5. `preview_scout_drop`
-6. `preview_campaign_engine`
-7. `get_upgrade_options` (read-only; no account, no checkout)
+**Primary (ship focus):**
 
-## Architecture (mass USA)
+1. `select_county` — open the map  
+2. `render_voxel_county` — refresh / refocus the map  
+3. `ask_county_question` — closed-world map Q&A  
+4. `lookup_world_places` — nearby place lookup only  
+
+**Parked product surface (keep stable, do not expand or market):**
+
+5. `preview_scout_drop`  
+6. `preview_campaign_engine`  
+7. `get_upgrade_options`  
+
+Do not add new tools casually.
+
+## Architecture (mass USA generation)
 
 ```text
 US_COUNTY_INDEX + town anchors
@@ -63,76 +78,90 @@ US_COUNTY_INDEX + town anchors
   → deterministic generated district SPEC
   → generateParametricCityWorldScene
   → widget compile/render (prefer SPEC on the wire)
+  → session pins / notes in the widget only
 ```
 
 Riverside is the curated exception: county pack → voxel → city world.
 
+**Quality bar (generation)**
+
+- Deterministic, beautiful first viewport  
+- Clone pressure / roof safety / palette distinctness floors green  
+- Honest labels: generated ≠ verified streets  
+- Notes and pins stay in-chat (session-only)
+
 **Rules**
 
-- Provider lookup never becomes scene geometry.
-- Generated districts are non-playable until explicit promotion.
-- Ship **parameters/specs**, not giant scenes, in tool results when possible.
-- Hosted Clawd / Stripe / saves stay **fenced** off the free public loop
-  (`ATLAS_SAVE_SURFACE=off`, no public paid claims).
+- Provider lookup never becomes scene geometry.  
+- Generated districts are non-playable until explicit promotion.  
+- Ship **parameters/specs**, not giant scenes, when possible.  
+- Clawd / Hosted Clawd / Stripe stay **later** and fenced.
 
 ## Anti-scope (until human reopens)
 
-- New MCP tools
-- Public Anaheim/Ontario
-- Digital checkout / live Hosted Clawd claims in ChatGPT
-- Provider→geometry
-- National road-chunk bake as a ship blocker
-- Owner-gate ceremony as active track
-- Dashboard / SaaS homepage UI
+- Clawd / scout / campaign as the hero loop  
+- New MCP tools  
+- Public Anaheim/Ontario  
+- Digital checkout / live Hosted Clawd claims  
+- Provider→geometry  
+- National road-chunk bake as a ship blocker  
+- Owner-gate ceremony as active track  
+- Dashboard / SaaS homepage UI  
 
 ## OpenAI plugin checklist (minimum)
 
-- Complete free product (session-only is a design, not a demo)
-- Multi-word directory name (avoid bare “Atlas”)
-- Privacy + terms URLs (`/privacy`, `/terms` on Railway)
-- Support contact
-- Accurate tool annotations + justifications
-- No digital-goods monetization in-app
+- Complete free product: **explore maps + notes** (session-only is intentional)  
+- Multi-word directory name (avoid bare “Atlas”)  
+- Privacy + terms URLs (`/privacy`, `/terms` on Railway)  
+- Support contact  
+- Accurate tool annotations  
+- No digital-goods monetization in-app  
 - Real ChatGPT developer-mode proof (web + mobile)
 
 ## Ship verification
 
 ```bash
 pnpm ship:check          # includes live Railway /ready + submission against prod MCP
-pnpm ship:check:local    # skip live /ready only; submission still uses prod MCP by default
+pnpm ship:check:local    # skip live /ready only
 ```
 
 ## Railway env for plugin domain verify
 
 ```bash
-# Paste the token from OpenAI plugin portal when domain verification is requested:
 railway variable set ATLAS_OPENAI_APPS_CHALLENGE_TOKEN=<portal-token> -s atlas-backend
 ```
 
-Then `GET /.well-known/openai-apps-challenge` returns the token body (200).
+## Hero prompts (NOW — map first)
 
-## Killer demo
+> Open Riverside County on Atlas and show me Eastvale.  
 
-> Drop Clawd in Eastvale for a mobile detailing business.
+> Show me Miami-Dade as a map.  
 
-## Production-complete free loop checklist
+> Put a note on this place that parking is tight after 5pm.  
 
-- [x] 7 MCP tools live on Railway
-- [x] Riverside playable + national generatedDraftSpec
-- [x] Client compiles generatedDraftSpec in widget (`web/src/App.tsx`)
-- [x] Privacy / terms / support routes
-- [x] Hosted Clawd fenced while `ATLAS_SAVE_SURFACE=off`
-- [x] `pnpm ship:check` suite (local + live-ready green)
-- [x] Deployed to Railway (`20521779` North Face slice; deploy id `dda256f3`)
-- [ ] Set `ATLAS_OPENAI_APPS_CHALLENGE_TOKEN` when OpenAI domain verify is requested
-- [ ] Real ChatGPT Developer Mode web + mobile acceptance (human)
-- [ ] Plugin portal submit
+**Not the hero (later):** Drop Clawd / scout detailing / 7-day campaign.
+
+## Production checklist
+
+- [x] Map tools live on Railway  
+- [x] Riverside playable + national generatedDraftSpec  
+- [x] Client compiles generatedDraftSpec  
+- [x] Session pins/notes in widget  
+- [x] Privacy / terms / support  
+- [x] Clawd/saves fenced from free product story  
+- [x] `pnpm ship:check` green  
+- [x] Deployed North Face to Railway  
+- [ ] Generation quality polish (ongoing ship focus)  
+- [ ] Set challenge token when OpenAI asks  
+- [ ] Real ChatGPT map+notes acceptance (human)  
+- [ ] Plugin portal submit  
 
 ### Connect in ChatGPT (human)
 
-1. ChatGPT → Settings → Security → **Developer mode** on  
-2. Settings → **Plugins** → create developer app  
-3. MCP URL: `https://atlas-backend-production-e6fc.up.railway.app/mcp`  
-4. Name: **Atlas County Scout**  
-5. Prompt: `Drop Clawd in Eastvale for a mobile detailing business.`  
-6. Also try: `Show me Miami-Dade County on Atlas.`
+1. Developer mode on  
+2. Plugins → add app  
+3. MCP: `https://atlas-backend-production-e6fc.up.railway.app/mcp`  
+4. Name: **Atlas County Maps**  
+5. Prompt: `Open Riverside County and show the Eastvale map.`  
+6. Prompt: `Show me Miami-Dade County.`  
+7. On the map: select a place, add a pin and a short note.

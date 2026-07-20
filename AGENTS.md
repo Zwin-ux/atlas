@@ -9,25 +9,26 @@ Do not generate a generic SaaS homepage. Do not use the common AI fallback of a 
 **Read `docs/NORTH_FACE.md` first.** It is the ship authority. Conflicting
 slice history below is background only.
 
-Atlas County Scout is a ChatGPT **plugin** (Apps SDK / MCP + widget). North Face
-loop: open map → inspect places → scout → 7-day plan. Session-only free tier is
-a complete product, not a demo.
+Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget). North Face NOW:
+
+- **High-quality map generation** (Riverside playable + national generated maps)
+- **Session pins and notes** on the map
+- Optional place questions / nearby lookup
+
+**Park Clawd / Scout Drop / campaign / Hosted Clawd until later.** Do not use
+“Drop Clawd…” as the hero demo. Do not expand scout/campaign product work.
 
 - Riverside/Eastvale = only public **playable** district.
-- Other US counties = honest **generated previews** with real Census town names;
+- Other US counties = honest **generated maps** with real Census town names;
   streets/buildings are not verified coverage.
-- Public tools stay at 7. Do not add tools casually.
+- Primary tools: `select_county`, `render_voxel_county`, `ask_county_question`,
+  `lookup_world_places`. Scout/campaign/upgrade tools stay stable but unmarketed.
 - Hosted Clawd / Stripe / saves / XP / evidence / automation / reports / exports
-  are **fenced** off the free public loop unless a human reopens them.
-  `ATLAS_SAVE_SURFACE` defaults off; no public paid or checkout claims in ChatGPT
-  (OpenAI apps may not sell digital goods/subscriptions in-app).
+  stay fenced (`ATLAS_SAVE_SURFACE` off; no paid claims).
 - Anaheim/Ontario remain hidden/non-public.
 - Provider lookup never becomes scene geometry or readiness.
-- Census geo board (`?atlasGeoBoard=1`) and national road bakes are not ship
-  blockers; do not expand them as the active track.
 
-Parked history (do not re-activate without human ask): owner-gate 0.45E ladder,
-full Hosted Clawd paid surface, Plaza Row commerce, national road-chunk program.
+Parked: Clawd product story, owner-gate 0.45E, national road bake as ship focus.
 
 ## Named-Slice Rule
 

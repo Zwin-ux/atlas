@@ -2995,7 +2995,7 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Atlas County Scout is a complete free map planner inside ChatGPT. Use select_county to open Riverside/Eastvale (the full playable map) or any other supported US county as an honest generated preview with real Census town names. Never claim non-Riverside streets, buildings, or businesses are verified local coverage. Use render_voxel_county only to refresh/focus an already-open map. Use ask_county_question for Riverside/Eastvale facts or displayed Census town anchors. Use lookup_world_places for nearby place lookup only (not coverage, not geometry, not saved lists). Use preview_scout_drop to scout a local service business. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options only when the user asks about saving later — it is informational; there is no in-chat checkout, account, or live Hosted Clawd save in this free loop. Keep structuredContent concise; large scenes stay in _meta. Do not claim XP, evidence, posting, DMs, ads, automation, or paid digital subscriptions.",
+        "Atlas is a map app inside ChatGPT. Primary job: open high-quality voxel county maps and let the user explore places with session pins/notes in the widget. Use select_county to open Riverside/Eastvale (full interactive map) or any other supported US county as an honest generated map with real Census town names. Never claim non-Riverside streets, buildings, or businesses are verified local coverage. Use render_voxel_county only to refresh/focus an already-open map. Use ask_county_question for Riverside/Eastvale facts or displayed Census town anchors. Use lookup_world_places for nearby place lookup only (not coverage, not geometry, not saved lists). Prefer map + notes answers over scouting or campaigns. Do not push Clawd, Scout Drops, or 7-day plans unless the user explicitly asks. preview_scout_drop, preview_campaign_engine, and get_upgrade_options exist but are secondary and must not drive the default flow. Nothing is saved between chats; no checkout, XP, posting, DMs, ads, or automation. Keep structuredContent concise; large scenes stay in _meta.",
     },
   );
 
@@ -3014,7 +3014,7 @@ function createAtlasServer(): McpServer {
               resourceDomains: widgetResourceDomains(),
             },
           },
-          "openai/widgetDescription": "Shows the Atlas County Scout map: the Riverside/Eastvale full map plus generated U.S. county studies with real Census town names. Work stays in this chat.",
+          "openai/widgetDescription": "Shows Atlas county maps: Riverside/Eastvale full interactive map plus generated U.S. county maps with real Census town names. Pins and notes stay in this chat.",
         },
       },
     ],
@@ -3343,7 +3343,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Scout Drop",
       description:
-        "Use this when the user asks to drop Clawd, scout a chosen location, or find where to launch a local offer. It creates a Scout Drop preview that stays in this chat, with route, signals, risks, channels, and next actions; it does not open or refresh county maps. Uses built-in scene data where available and planning signals elsewhere; nothing is saved, posted, or executed.",
+        "Secondary tool — only if the user explicitly asks to scout a business or drop Clawd. Do not suggest this as the default Atlas flow; prefer opening the map and session notes first. Creates a temporary Scout Drop preview in this chat only; does not open maps. Nothing is saved, posted, or executed.",
       inputSchema: {
         countySlug: z.string().optional().describe("County id for the Scout context."),
         nodeId: z.string().optional().describe("Atlas node id when known."),
@@ -3401,7 +3401,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Preview Campaign Engine",
       description:
-        "Use this when the user wants a 7-day manual campaign plan after an Atlas Scout Drop exists. Pass the scoutPreviewId returned by preview_scout_drop when available; if the id is stale, Atlas rebuilds the Scout preview from the supplied args and continues. The plan stays in this chat: Atlas does not post, DM, buy ads, save work, or perform live campaign execution.",
+        "Secondary tool — only if the user already has a Scout Drop and explicitly asks for a 7-day plan. Do not open with this tool. Prefer map exploration and notes first. Pass scoutPreviewId when available. Plan stays in this chat only; no posting, DMs, ads, saves, or live execution.",
       inputSchema: {
         scoutPreviewId: z.string().describe("Scout Drop id returned by preview_scout_drop."),
         countySlug: z.string().optional().describe("County id from the Scout Drop."),
