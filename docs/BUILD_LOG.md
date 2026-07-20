@@ -19,10 +19,18 @@ Evidence (baseline before origin wire):
 - Prod road catalogs 200 for miami-dade-fl / cook-il (FS-backed).
 - ship:check:local green on scale foundation commit `129d8b13`.
 
-Next:
-- Phase 1–2: AWS sync to bucket, public-read, set ATLAS_ROAD_CHUNKS_* , redeploy.
-- Phase 3: windowed NEAR fetch.
-- Phase 4: wave-1 metros to origin only.
+Results (same session):
+- Synced all 10 dogfood packs to Railway bucket `atlas-road-chunks-ol0rl4v`.
+- Bucket is private (public GET 403) — wired **S3 signed store** instead of public HTTP.
+- Railway env: `ATLAS_ROAD_CHUNKS_S3_*` set; prod `/ready` shows `s3BucketConfigured: true`,
+  `originConfigured: true`.
+- Windowed NEAR: max **48** chunks per commit (`selectNearChunkWindow`).
+- Commit `8680ded1`; deploy SUCCESS path with S3 config live.
+- AGENTS.md / NEXT_QUESTS / PRODUCT_LANE quest-locked.
+
+Still open:
+- Public CDN (`ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN`) when bucket can go public-read.
+- Wave-1 metro bakes to origin only; maricopa bake fix; town-focused window (not only median).
 
 ## Entry 226
 
