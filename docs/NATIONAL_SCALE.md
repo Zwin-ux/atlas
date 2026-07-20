@@ -55,10 +55,13 @@ ChatGPT widget / browser
 | Env | Meaning |
 |-----|---------|
 | *(unset)* | Filesystem only — `data/road-chunks` (local + dogfood deploys) |
-| `ATLAS_ROAD_CHUNKS_ORIGIN` | HTTP origin root with **filesystem layout** (`/<slug>/catalog.json`, …). Backend store falls back: **FS first, then origin**. |
-| `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` | Same layout, **advertised to the client** so browsers fetch immutable bytes **directly** (skips Node egress). |
+| `ATLAS_ROAD_CHUNKS_S3_BUCKET` + keys | **Preferred.** Private Railway/S3 bucket via signed GetObject. FS first, then S3. |
+| `ATLAS_ROAD_CHUNKS_S3_ENDPOINT` | e.g. `https://t3.storageapi.dev` |
+| `ATLAS_ROAD_CHUNKS_S3_ACCESS_KEY_ID` / `…_SECRET_ACCESS_KEY` | Bucket credentials (or `AWS_*`) |
+| `ATLAS_ROAD_CHUNKS_ORIGIN` | Public HTTP origin (if bucket/CDN is world-readable). FS first, then HTTP. |
+| `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` | Browser-direct immutable bytes (CORS open). Leave unset when bucket is private. |
 
-Both origins use the on-disk layout under `data/road-chunks/<slug>/` — no rewrite of routes.
+Key layout matches `data/road-chunks/<slug>/` (no rewrite).
 
 ### Progressive bake (product order)
 

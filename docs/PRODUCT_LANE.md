@@ -53,10 +53,13 @@ See session plan / dogfood: Riverside clay; national board; honesty; notes on to
 
 Honesty: band-aware banner + `roadStatus` (ready / sparse / loading / unavailable). No fake buildings.
 
-## Next
+## Next (quest: `national-roads-origin-live`)
 
-1. Human ChatGPT dogfood: Miami + Cook — tap town → streets appear; honesty correct  
-2. **Infra:** create road-chunks bucket, sync, set `ATLAS_ROAD_CHUNKS_*` on Railway  
-3. Wave-1 priority metros bake → origin only (not git)  
-4. Windowed NEAR fetch (stop full-county prefetch)  
-5. Fix maricopa bake; never restart national clay massing
+Full plan: session plan + `docs/NATIONAL_SCALE.md`. Agent law: `AGENTS.md` § National scale.
+
+1. **Phase 0** — AGENTS / BUILD_LOG / NEXT_QUESTS lock ✅ in progress  
+2. **Phase 1–2** — Sync dogfood packs to `atlas-road-chunks` bucket; public GET; set `ATLAS_ROAD_CHUNKS_ORIGIN` + `PUBLIC_ORIGIN`; prove `/map-config`  
+3. **Phase 3** — Windowed NEAR fetch (stop full-county prefetch)  
+4. **Phase 4** — Wave-1 metros → origin only (not multi-GB git)  
+5. **Phase 5** — Fix maricopa bake stack overflow  
+6. Human ChatGPT dogfood R1–R8; never restart national clay massing

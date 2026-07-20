@@ -8,7 +8,35 @@ verifier/selector result created during the current slice. If the human says
 "continue," continue only the named next quest. If that quest conflicts with
 permanent gates, stop and report the conflict.
 
-## Current 0.78-1V Census county board gate (2026-07-15)
+## CURRENT QUEST (2026-07-20): `national-roads-origin-live`
+
+**Authority:** `AGENTS.md` § National scale · `docs/NATIONAL_SCALE.md` · `docs/PRODUCT_LANE.md`
+
+**Player promise:** Any US county opens as a real Census board. Zoom to a town
+and see real TIGER streets where published — never fake buildings. Works for
+millions without a multi-GB app image.
+
+**Engineering promise:** Object-store origin for road packs; client hits public
+origin for immutable bytes; windowed NEAR fetch; progressive metro bake.
+
+**Do now (in order):**
+
+1. Sync dogfood `data/road-chunks/*` → Railway bucket `atlas-road-chunks`
+2. Public HTTP GET proof; set `ATLAS_ROAD_CHUNKS_ORIGIN` + `PUBLIC_ORIGIN`
+3. Redeploy; `/map-config` shows non-null publicOrigin
+4. Windowed NEAR fetch in `web/src/countyRoadBand.ts`
+5. Wave-1 metros bake → origin only (not git bloat)
+6. Maricopa bake fix (stack overflow)
+7. ChatGPT dogfood Miami + Cook + one wave-1 metro
+
+**Stop:** national clay, Mapbox default, multi-GB roads in git, Clawd hero.
+
+**Baseline:** Mode B national live; 10 FS dogfood road packs; scale foundation
+commit `129d8b13`; bucket created empty of public proof.
+
+---
+
+## Prior: 0.78-1V Census county board gate (2026-07-15)
 
 Devpost Build Week finish packet (2026-07-18):
 

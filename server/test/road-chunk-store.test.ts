@@ -434,6 +434,7 @@ test("createRoadChunkStoreFromEnv wires origin and publicOrigin", () => {
   const empty = createRoadChunkStoreFromEnv({}, { filesystemRoot: tmpRoot });
   assert.equal(empty.origin, null);
   assert.equal(empty.publicOrigin, null);
+  assert.equal(empty.s3Bucket, null);
 
   const withOrigin = createRoadChunkStoreFromEnv(
     {
@@ -447,4 +448,17 @@ test("createRoadChunkStoreFromEnv wires origin and publicOrigin", () => {
   );
   assert.equal(withOrigin.origin, "https://cdn.example/roads");
   assert.equal(withOrigin.publicOrigin, "https://public.cdn.example/roads");
+  assert.equal(withOrigin.s3Bucket, null);
+
+  const withS3 = createRoadChunkStoreFromEnv(
+    {
+      ATLAS_ROAD_CHUNKS_S3_BUCKET: "atlas-road-chunks-ol0rl4v",
+      ATLAS_ROAD_CHUNKS_S3_ACCESS_KEY_ID: "AKIA_TEST",
+      ATLAS_ROAD_CHUNKS_S3_SECRET_ACCESS_KEY: "secret",
+      ATLAS_ROAD_CHUNKS_S3_ENDPOINT: "https://t3.storageapi.dev",
+    },
+    { filesystemRoot: tmpRoot },
+  );
+  assert.equal(withS3.s3Bucket, "atlas-road-chunks-ol0rl4v");
+  assert.equal(withS3.origin, "s3://atlas-road-chunks-ol0rl4v");
 });

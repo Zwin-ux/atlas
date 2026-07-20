@@ -1,5 +1,29 @@
 # Build Log
 
+## Entry 227
+
+Quest: `national-roads-origin-live`
+
+What changed:
+- Product + infra law for millions of Americans: Mode B boards national; roads
+  progressive on object storage (not app image). See `docs/NATIONAL_SCALE.md`.
+- Foundation already on branch: HTTP+FS road store, `/map-config`,
+  `/road-coverage`, `_coverage.json`, `_priority-metros.json`, Railway bucket
+  `atlas-road-chunks` (iad), dogfood NEAR packs (10 counties), honesty UX.
+- AGENTS.md now locks national-scale quest, env vars, gates A–D, stop signs.
+- Implementation plan phases: origin sync + public GET → Railway env →
+  windowed NEAR fetch → wave-1 metros → maricopa bake fix.
+
+Evidence (baseline before origin wire):
+- Prod `/map-config` coverageCount 10; publicOrigin null until env set.
+- Prod road catalogs 200 for miami-dade-fl / cook-il (FS-backed).
+- ship:check:local green on scale foundation commit `129d8b13`.
+
+Next:
+- Phase 1–2: AWS sync to bucket, public-read, set ATLAS_ROAD_CHUNKS_* , redeploy.
+- Phase 3: windowed NEAR fetch.
+- Phase 4: wave-1 metros to origin only.
+
 ## Entry 226
 
 Quest:

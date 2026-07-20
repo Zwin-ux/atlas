@@ -123,6 +123,41 @@ function roadAssetUrls(
   };
 }
 
+/**
+ * National scale: never pull every present NEAR chunk for a metro (Cook ~668,
+ * Apache ~6.5k). Keep the densest ring around the cell-grid median so town zoom
+ * still shows streets without melting the client or Node bit-pipe.
+ * @see docs/NATIONAL_SCALE.md
+ */
+export const MAX_NEAR_CHUNKS_PER_COMMIT = 48;
+
+const CHUNK_CELL_RE = /^c(-?\d+)_(-?\d+)/;
+
+export function selectNearChunkWindow(
+  chunkIds: string[],
+  maxChunks: number = MAX_NEAR_CHUNKS_PER_COMMIT,
+): string[] {
+  if (chunkIds.length <= maxChunks) return chunkIds.slice();
+  const parsed: Array<{ id: string; x: number; y: number }> = [];
+  for (const id of chunkIds) {
+    const m = CHUNK_CELL_RE.exec(id);
+    if (!m) continue;
+    parsed.push({ id, x: Number(m[1]), y: Number(m[2]) });
+  }
+  if (parsed.length === 0) return chunkIds.slice(0, maxChunks);
+  const xs = parsed.map((p) => p.x).sort((a, b) => a - b);
+  const ys = parsed.map((p) => p.y).sort((a, b) => a - b);
+  const mid = Math.floor(parsed.length / 2);
+  const fx = xs[mid]!;
+  const fy = ys[mid]!;
+  parsed.sort((a, b) => {
+    const da = Math.abs(a.x - fx) + Math.abs(a.y - fy);
+    const db = Math.abs(b.x - fx) + Math.abs(b.y - fy);
+    return da - db || a.id.localeCompare(b.id);
+  });
+  return parsed.slice(0, maxChunks).map((p) => p.id);
+}
+
 type QaPerfProbe = { perf?: { graphicsCount?: () => number; sceneRebuilds?: number } };
 
 function qaProbe(): QaPerfProbe | undefined {
@@ -219,16 +254,16 @@ export function useCountyRoadBand(
       const manifest = (await manifestRes.json()) as RoadManifest;
       const near = manifest.bands["near"];
       if (!near) throw new Error("no near band in manifest");
-      const chunkIds: string[] = [];
+      const allChunkIds: string[] = [];
       for (const cell of Object.values(near.cells)) {
         if (cell.state !== "present") continue;
         for (const chunk of cell.chunks ?? []) {
-          if (chunk.state === "present") chunkIds.push(chunk.chunkId);
+          if (chunk.state === "present") allChunkIds.push(chunk.chunkId);
         }
       }
+      // Windowed NEAR: fetch a dense ring, not the entire metro (scale gate C2).
+      const chunkIds = selectNearChunkWindow(allChunkIds, MAX_NEAR_CHUNKS_PER_COMMIT);
 
-      // National note: full-county prefetch is OK for dogfood; windowed fetch is
-      // the next scale step (docs/NATIONAL_SCALE.md). Origin/CDN still required.
       const base = urls.chunkBase;
       const chunks: RoadChunk[] = [];
       const batch = 12;

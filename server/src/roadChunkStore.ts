@@ -78,6 +78,120 @@ export interface RoadChunkStore {
   ): Promise<StoreResult<EncodedBytes>>;
 }
 
+/** S3-compatible origin (Railway bucket / R2 / S3) — signed GetObject, private OK. */
+export type S3RoadChunkStoreConfig = {
+  bucket: string;
+  endpoint?: string;
+  region?: string;
+  credentials: { accessKeyId: string; secretAccessKey: string };
+  /** Optional key prefix (no leading/trailing slash). */
+  prefix?: string;
+};
+
+/**
+ * Private object-store backing. Same key layout as data/road-chunks.
+ * Use when the bucket is not public-read (Railway default).
+ */
+export function createS3RoadChunkStore(config: S3RoadChunkStoreConfig): RoadChunkStore {
+  const bucket = config.bucket.trim();
+  const prefix = (config.prefix ?? "").replace(/^\/+|\/+$/g, "");
+  const keyFor = (path: string) => (prefix ? `${prefix}/${path}` : path);
+
+  // Lazy client so FS-only deploys never construct AWS SDK unless needed.
+  let clientPromise: Promise<import("@aws-sdk/client-s3").S3Client> | null = null;
+  async function client() {
+    if (!clientPromise) {
+      clientPromise = (async () => {
+        const { S3Client } = await import("@aws-sdk/client-s3");
+        return new S3Client({
+          region: config.region || "auto",
+          endpoint: config.endpoint || undefined,
+          forcePathStyle: false,
+          credentials: config.credentials,
+        });
+      })();
+    }
+    return clientPromise;
+  }
+
+  async function getObject(key: string): Promise<StoreResult<Buffer>> {
+    try {
+      const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+      const res = await (await client()).send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      const body = res.Body;
+      if (!body) return { ok: false, reason: "unavailable" };
+      const bytes = Buffer.from(await body.transformToByteArray());
+      return { ok: true, value: bytes };
+    } catch (err: unknown) {
+      const name = err && typeof err === "object" && "name" in err ? String((err as { name: string }).name) : "";
+      const status =
+        err && typeof err === "object" && "$metadata" in err
+          ? (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
+          : undefined;
+      if (name === "NoSuchKey" || name === "NotFound" || status === 404) return { ok: false, reason: "missing" };
+      return { ok: false, reason: "unavailable" };
+    }
+  }
+
+  async function readEncodedS3(baseKey: string, accept: AcceptEncoding): Promise<StoreResult<EncodedBytes>> {
+    const candidates: Array<{ suffix: string; encoding: ResolvedEncoding }> = [];
+    if (accept === "br") candidates.push({ suffix: ".br", encoding: "br" });
+    if (accept === "gzip" || accept === "br") candidates.push({ suffix: ".gz", encoding: "gzip" });
+    candidates.push({ suffix: "", encoding: "identity" });
+    let sawUnavailable = false;
+    for (const candidate of candidates) {
+      const result = await getObject(`${baseKey}${candidate.suffix}`);
+      if (result.ok) return { ok: true, value: { bytes: result.value, encoding: candidate.encoding } };
+      if (result.reason === "unavailable") sawUnavailable = true;
+    }
+    return { ok: false, reason: sawUnavailable ? "unavailable" : "missing" };
+  }
+
+  return {
+    async resolveCurrentEpoch(slug: string): Promise<StoreResult<CatalogPointer>> {
+      if (!isValidCountySlug(slug)) return { ok: false, reason: "missing" };
+      const result = await getObject(keyFor(`${slug}/catalog.json`));
+      if (!result.ok) return result;
+      try {
+        const parsed = JSON.parse(result.value.toString("utf8")) as Partial<CatalogPointer>;
+        if (!parsed || typeof parsed.packHash !== "string" || typeof parsed.schemaVersion !== "string") {
+          return { ok: false, reason: "unavailable" };
+        }
+        return {
+          ok: true,
+          value: {
+            basisId: typeof parsed.basisId === "string" ? parsed.basisId : "",
+            schemaVersion: parsed.schemaVersion,
+            packHash: parsed.packHash,
+            manifestUri: typeof parsed.manifestUri === "string" ? parsed.manifestUri : "",
+          },
+        };
+      } catch {
+        return { ok: false, reason: "unavailable" };
+      }
+    },
+
+    async getManifest(slug, schemaVersion, packHash, accept): Promise<StoreResult<EncodedBytes>> {
+      if (!isValidCountySlug(slug) || !isValidPackHash(packHash)) return { ok: false, reason: "missing" };
+      const result = await readEncodedS3(keyFor(`${slug}/${schemaVersion}/${packHash}/manifest.json`), accept);
+      if (!result.ok && result.reason === "missing") return { ok: false, reason: "retired" };
+      return result;
+    },
+
+    async getChunk(slug, schemaVersion, packHash, band, chunkId, accept): Promise<StoreResult<EncodedBytes>> {
+      if (
+        !isValidCountySlug(slug) ||
+        !isValidPackHash(packHash) ||
+        !isValidRoadBand(band) ||
+        !isValidChunkId(chunkId)
+      ) {
+        return { ok: false, reason: "missing" };
+      }
+      return readEncodedS3(keyFor(`${slug}/${schemaVersion}/${packHash}/${band}/${chunkId}.json`), accept);
+    },
+  };
+}
+
 /**
  * HTTP origin store — same path layout as the filesystem tree under
  * data/road-chunks (see docs/NATIONAL_SCALE.md). Used as national fallback so
@@ -209,7 +323,12 @@ export function createFallbackRoadChunkStore(primary: RoadChunkStore, secondary:
 export function createRoadChunkStoreFromEnv(
   env: NodeJS.ProcessEnv,
   options: { filesystemRoot: string; fetchImpl?: typeof fetch } = { filesystemRoot: "" },
-): { store: RoadChunkStore; origin: string | null; publicOrigin: string | null } {
+): {
+  store: RoadChunkStore;
+  origin: string | null;
+  publicOrigin: string | null;
+  s3Bucket: string | null;
+} {
   const filesystemRoot = options.filesystemRoot;
   const fetchImpl = options.fetchImpl ?? fetch;
   const origin = (env.ATLAS_ROAD_CHUNKS_ORIGIN ?? "").trim().replace(/\/+$/, "") || null;
@@ -217,14 +336,37 @@ export function createRoadChunkStoreFromEnv(
   // Server-side ORIGIN can be private; do not leak it as publicOrigin by default.
   const publicOrigin = (env.ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN ?? "").trim().replace(/\/+$/, "") || null;
   const fsStore = createFilesystemRoadChunkStore(filesystemRoot);
-  if (!origin) {
-    return { store: fsStore, origin: null, publicOrigin };
+
+  const s3Bucket = (env.ATLAS_ROAD_CHUNKS_S3_BUCKET ?? "").trim() || null;
+  const s3AccessKey =
+    (env.ATLAS_ROAD_CHUNKS_S3_ACCESS_KEY_ID ?? env.AWS_ACCESS_KEY_ID ?? "").trim() || null;
+  const s3Secret =
+    (env.ATLAS_ROAD_CHUNKS_S3_SECRET_ACCESS_KEY ?? env.AWS_SECRET_ACCESS_KEY ?? "").trim() || null;
+  const s3Endpoint = (env.ATLAS_ROAD_CHUNKS_S3_ENDPOINT ?? env.AWS_ENDPOINT_URL ?? "").trim() || undefined;
+  const s3Region = (env.ATLAS_ROAD_CHUNKS_S3_REGION ?? env.AWS_DEFAULT_REGION ?? "auto").trim() || "auto";
+  const s3Prefix = (env.ATLAS_ROAD_CHUNKS_S3_PREFIX ?? "").trim() || undefined;
+
+  let secondary: RoadChunkStore | null = null;
+  if (s3Bucket && s3AccessKey && s3Secret) {
+    secondary = createS3RoadChunkStore({
+      bucket: s3Bucket,
+      endpoint: s3Endpoint,
+      region: s3Region,
+      credentials: { accessKeyId: s3AccessKey, secretAccessKey: s3Secret },
+      prefix: s3Prefix,
+    });
+  } else if (origin) {
+    secondary = createHttpRoadChunkStore(origin, fetchImpl);
   }
-  const httpStore = createHttpRoadChunkStore(origin, fetchImpl);
+
+  if (!secondary) {
+    return { store: fsStore, origin: null, publicOrigin, s3Bucket: null };
+  }
   return {
-    store: createFallbackRoadChunkStore(fsStore, httpStore),
-    origin,
+    store: createFallbackRoadChunkStore(fsStore, secondary),
+    origin: origin || (s3Bucket ? `s3://${s3Bucket}` : null),
     publicOrigin,
+    s3Bucket,
   };
 }
 

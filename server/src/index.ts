@@ -156,6 +156,7 @@ const roadChunkStoreBundle = createRoadChunkStoreFromEnv(process.env, { filesyst
 const roadChunkStore = roadChunkStoreBundle.store;
 const roadChunksOrigin = roadChunkStoreBundle.origin;
 const roadChunksPublicOrigin = roadChunkStoreBundle.publicOrigin;
+const roadChunksS3Bucket = roadChunkStoreBundle.s3Bucket;
 // Hit/miss/latency counters for the road routes, surfaced in the token-gated
 // ops-stats payload (counting logic is unit-tested in roadChunkStore).
 const roadChunkRouteMetrics = createRoadChunkRouteMetrics();
@@ -2370,6 +2371,7 @@ async function readyPayload(): Promise<unknown> {
       localCoverageCount: loadRoadCoverageSummary().count,
       originConfigured: Boolean(roadChunksOrigin),
       publicOriginConfigured: Boolean(roadChunksPublicOrigin),
+      s3BucketConfigured: Boolean(roadChunksS3Bucket),
     },
     configBlockerCount: scenePacketRuntimeConfig.blockers.length,
     configBlockers: scenePacketRuntimeConfig.blockers,
@@ -2426,6 +2428,7 @@ function mapConfigPayload(): Record<string, unknown> {
     roadChunks: {
       publicOrigin: roadChunksPublicOrigin,
       originConfigured: Boolean(roadChunksOrigin),
+      s3BucketConfigured: Boolean(roadChunksS3Bucket),
       coverageCount: coverage.count,
       coverageGeneratedAt: coverage.generatedAt,
       // Slug set only — clients skip NEAR thrash when county is absent.

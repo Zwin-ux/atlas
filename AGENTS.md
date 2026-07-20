@@ -33,6 +33,56 @@ Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget). Product lane NOW:
 
 Parked: Clawd product story, owner-gate 0.45E, national clay-for-all, Mapbox.
 
+## National scale (current quest)
+
+**Also read `docs/NATIONAL_SCALE.md`.** Same rank as product lane for infrastructure.
+
+**Quest:** `national-roads-origin-live` — make progressive TIGER roads work for
+millions of Americans without stuffing the nation into the Railway image.
+
+### User truth
+
+- Every supported county opens as a **Mode B Census board** (outline, water,
+  towns, notes) — already national (3,222 geo packs).
+- Streets are **progressive enhancement** at NEAR zoom only. Never block board
+  open on road bake. Never claim buildings.
+- Full national road trees ≈ **25–50 GB** — live on object storage / CDN, not
+  git and not the app image.
+
+### Infra law
+
+| Env | Role |
+|-----|------|
+| `ATLAS_ROAD_CHUNKS_ORIGIN` | Server fallback HTTP origin (FS first, then origin) |
+| `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` | Browser-direct immutable chunks (skip Node egress) |
+
+- Layout: `/<slug>/catalog.json`, `/<slug>/roadchunk/1/<packHash>/…`
+- Bucket (prod): Railway `atlas-road-chunks` (iad)
+- Coverage: `data/road-chunks/_coverage.json` → `/map-config`, `/road-coverage`
+- Bake order: `data/road-chunks/_priority-metros.json`
+- Sync: `scripts/sync-road-chunks-to-origin.mjs` / `scripts/build-road-coverage.mjs`
+
+### Result gates (do not claim done without proof)
+
+- **A** Origin: public GET catalog/chunk 200; env set; `/map-config` shows publicOrigin
+- **B** Dogfood: Miami + Cook streets + honesty; unbaked county graceful
+- **C** Scale: windowed NEAR fetch (not full-county); chunks hit public origin
+- **D** Agents: this section + BUILD_LOG / NEXT_QUESTS current
+
+### Stop signs (scale)
+
+- National clay massing as main work
+- Mapbox / new engines as default
+- Multi-GB road packs committed to git as the long-term path
+- Fake buildings when streets appear
+- New MCP tools for roads without product need
+
+### Continue rule
+
+If the human says "continue" / "go for it" / "get results" on Atlas maps, work
+**this quest** (origin live → windowed fetch → wave-1 metros), not Hosted Clawd
+and not national clay.
+
 ## Named-Slice Rule
 
 Work must happen as named, gated slices. Every slice needs:
