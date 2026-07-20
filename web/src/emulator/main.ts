@@ -1,11 +1,12 @@
 // /emulator — the production-fidelity host page.
 //
-// Humans browse it (http://127.0.0.1:8787/emulator?county=cook-il&draft=1&
+// Humans browse it (http://127.0.0.1:8787/emulator?county=cook-il&
 // viewport=mobile&theme=dark); the CDP harnesses navigate the identical URL
 // headless and read window.__ATLAS_EMULATOR__ + .qa() from this parent
 // context. Query params:
-//   county=<slug>      seed county (default orange-ca)
-//   draft=1|0          includeGeneratedDraft on the seed turn (default 1)
+//   county=<slug>      seed county (default miami-dade-fl — national board path)
+//   draft=1|0          includeGeneratedDraft study (default 0 — Census board)
+//   atlasGeoBoard=1|0  geo board kill-switch (default on; 0 disables)
 //   viewport=desktop|mobile
 //   theme=light|dark
 //   truncate=<chars>   host payload policy: strip generatedDraftScene above N serialized chars
@@ -24,12 +25,14 @@ const params = new URLSearchParams(window.location.search);
 // The county slug is the only user-controlled string interpolated into
 // markup — constrain it to slug characters (council security finding:
 // reflected XSS via ?county= into innerHTML).
-const county = (params.get("county") ?? "orange-ca").replace(/[^a-z0-9-]/gi, "").slice(0, 64) || "orange-ca";
-const includeGeneratedDraft = params.get("draft") !== "0";
+const county = (params.get("county") ?? "miami-dade-fl").replace(/[^a-z0-9-]/gi, "").slice(0, 64) || "miami-dade-fl";
+// Product lane: national default is Census board (draft off). Study opt-in only.
+const includeGeneratedDraft = params.get("draft") === "1";
 const viewportKey: EmulatorViewportKey = params.get("viewport") === "mobile" ? "mobile" : "desktop";
 const theme: EmulatorTheme = params.get("theme") === "dark" ? "dark" : "light";
 const truncateChars = Number(params.get("truncate") ?? "0") || 0;
-const geoBoardEnabled = params.get("atlasGeoBoard") === "1";
+// Geo board is product default; only explicit 0 disables (matches MapChrome).
+const geoBoardEnabled = params.get("atlasGeoBoard") !== "0";
 const preferInjected = params.get("src") === "injected";
 const viewport = EMULATOR_VIEWPORTS[viewportKey];
 const assetOrigin = resolveEmulatorAssetOrigin(window.location.origin);
@@ -65,12 +68,15 @@ root.innerHTML = `
     <b>Atlas production emulator</b>
     <span>county=<b>${county}</b></span>
     <span>draft=${includeGeneratedDraft ? "1" : "0"}</span>
+    <span>geo=${geoBoardEnabled ? "1" : "0"}</span>
     <span>${viewport.label}</span>
     <span>${theme}</span>
     <span>assets=<b>${assetOrigin}</b></span>
     ${link("desktop", { viewport: "desktop" })} ${link("mobile", { viewport: "mobile" })}
     ${link("light", { theme: "light" })} ${link("dark", { theme: "dark" })}
     ${link(includeGeneratedDraft ? "draft off" : "draft on", { draft: includeGeneratedDraft ? "0" : "1" })}
+    ${link(geoBoardEnabled ? "geo off" : "geo on", { atlasGeoBoard: geoBoardEnabled ? "0" : "1" })}
+    ${link("miami", { county: "miami-dade-fl", draft: "0", atlasGeoBoard: "1" })}
     ${link("riverside", { county: "riverside-ca", draft: "0" })}
   </header>
   <div id="stage"><div id="frame-box"></div></div>
@@ -100,7 +106,9 @@ async function boot(): Promise<void> {
   iframe.style.width = `${viewport.width}px`;
   iframe.style.height = `${viewport.height}px`;
   iframe.dataset.displayMode = "inline";
-  if (geoBoardEnabled) iframe.dataset.atlasGeoBoard = "1";
+  // Widget defaults geo ON; only pass kill-switch when emulator disables it.
+  if (!geoBoardEnabled) iframe.dataset.atlasGeoBoard = "0";
+  else iframe.dataset.atlasGeoBoard = "1";
   frameBox.appendChild(iframe);
 
   setStatus("connecting tool source…");

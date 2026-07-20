@@ -6,21 +6,24 @@ Do not generate a generic SaaS homepage. Do not use the common AI fallback of a 
 
 ## Current Product Law
 
-**Read `docs/NORTH_FACE.md` first.** It is the ship authority. Conflicting
-slice history below is background only.
+**Read `docs/NORTH_FACE.md` and `docs/PRODUCT_LANE.md` first.** They are ship
+authority. Conflicting slice history below is background only.
 
-Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget). North Face NOW:
+**North star:** *Riverside is the clay jewel. Every other county is a real Census
+board with notes. Everything else is parked.*
 
-- **High-quality map generation** (Riverside playable + national generated maps)
-- **Session pins and notes** on the map
-- Optional place questions / nearby lookup
+Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget). Product lane NOW:
+
+- **Mode A — Clay:** Riverside/Eastvale only (playable craft proof)
+- **Mode B — Census board:** national default (outline + water + towns + notes)
+- **Mode B′ — Study:** generated clay only if explicitly requested (never default)
+- **Session pins and notes** on places/towns
+- Optional place questions / nearby lookup (keep board meta; do not force clay)
 
 **Park Clawd / Scout Drop / campaign / Hosted Clawd until later.** Do not use
 “Drop Clawd…” as the hero demo. Do not expand scout/campaign product work.
+**Do not** run national clay massing as the main project while Mode B is default.
 
-- Riverside/Eastvale = only public **playable** district.
-- Other US counties = honest **generated maps** with real Census town names;
-  streets/buildings are not verified coverage.
 - Primary tools: `select_county`, `render_voxel_county`, `ask_county_question`,
   `lookup_world_places`. Scout/campaign/upgrade tools stay stable but unmarketed.
 - Hosted Clawd / Stripe / saves / XP / evidence / automation / reports / exports
@@ -28,7 +31,7 @@ Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget). North Face NOW:
 - Anaheim/Ontario remain hidden/non-public.
 - Provider lookup never becomes scene geometry or readiness.
 
-Parked: Clawd product story, owner-gate 0.45E, national road bake as ship focus.
+Parked: Clawd product story, owner-gate 0.45E, national clay-for-all, Mapbox.
 
 ## Named-Slice Rule
 

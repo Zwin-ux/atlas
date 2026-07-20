@@ -16,23 +16,39 @@ widget, [UX principles](https://developers.openai.com/apps-sdk/concepts/ux-princ
 
 ## One sentence
 
-Atlas is a ChatGPT plugin that opens a **high-quality voxel county map**, lets
-users **pan/zoom, inspect places, and leave session notes**, with **Riverside/
-Eastvale as the full interactive proof** and **honest generated maps for every
-US county**.
+Atlas is a ChatGPT plugin that opens a **county map**, lets users **pan/zoom,
+inspect places, and leave session notes**, with **Riverside/Eastvale as the
+clay craft proof** and a **Census geography board (outline, water, towns) for
+every other US county**.
+
+## Product lane (do not go crazy)
+
+**North star:** *Riverside is the clay jewel. Every other county is a real Census
+board with notes. Everything else is parked.*
+
+| Mode | When | What |
+|------|------|------|
+| **A Clay** | Riverside only | Playable Eastvale voxel city |
+| **B Census board** | **National default** | Real TIGER boundary + water + town anchors + notes |
+| **B′ Study** | Explicit only | Illustrative clay layout — never default |
+| **C Lookup** | Tool only | Nearby places list — not map geometry |
+
+**In lane:** board honesty, notes on towns, quiet chrome, Riverside clay polish.  
+**Out of lane:** national clay massing as main work, Clawd/scout hero, Mapbox,
+new MCP tools, persist notes, claiming verified streets/buildings nationwide.
+
+If work does not improve **Mode A craft**, **Mode B consistency/honesty**, or
+**notes on places**, it is **not North Face**.
 
 ## The only loop that matters (NOW)
 
 ```text
 chat intent
-  → select_county / render_voxel_county   (map mounts)
-  → pan / zoom / select place
+  → select_county / render_voxel_county   (map mounts: A or B)
+  → pan / zoom / select place or town
   → pin + note (session only, in the widget)
-  → ask_county_question / lookup_world_places (optional, read-only)
+  → ask_county_question / lookup_world_places (optional, read-only; keep board meta)
 ```
-
-If work does not improve **map quality**, **generation quality**, or **notes/
-place inspection**, it is **not North Face**.
 
 ## Parked until later (do not drive prompts, demos, or ship copy)
 
