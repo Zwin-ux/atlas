@@ -1007,30 +1007,72 @@ function buildingForZone(
   countyParameters?: CountyGenerationParameters,
 ): CityWorldBuilding | null {
   const rawSpec = parcel.spec ?? buildingSpecForZone(zone.kind, rng, regionalPalette, countyParameters);
-  const spec = rawSpec ? mountainCottageVariant(coastalCottageVariant(rawSpec, parcel, countyParameters), parcel, countyParameters) : null;
+  const varied = rawSpec
+    ? mountainCottageVariant(coastalCottageVariant(rawSpec, parcel, countyParameters), parcel, countyParameters)
+    : null;
+  const spec = varied ? enforceHomeRoofSafety(varied) : null;
   if (!spec) return null;
+  // Parcel clamp can shrink ranch swaps under the roof-safety floor. Prefer
+  // keeping the authored ranch width (up to the template) over pad shrink so
+  // coastal/mountain conversions do not collapse back into clone cottages.
+  let width = Math.min(parcel.width * 0.95, spec.width);
+  let depth = Math.min(parcel.depth * 0.95, spec.depth);
+  if (spec.facadeStyle === "ranch") {
+    width = Math.max(width, Math.min(spec.width, 1.95));
+    depth = Math.max(depth, Math.min(spec.depth, 1.12));
+  }
+  // Desert variety: sparse basins only place a few homes — rotate silhouette
+  // classes so clone pressure cannot hit 0.4 with only 4–5 buildings.
+  let styled = { ...spec, width, depth, height: spec.height };
+  if (countyParameters?.archetypeProfile.archetype === "desert_basin" && styled.kind === "home") {
+    const cycle = parcel.index % 3;
+    if (cycle === 0) {
+      styled = {
+        ...styled,
+        facadeStyle: "cottage",
+        roofShape: "gable",
+        width: Math.min(styled.width, 1.7),
+        height: Math.min(styled.height, 1.1),
+      };
+    } else if (cycle === 1) {
+      styled = {
+        ...styled,
+        facadeStyle: "ranch",
+        roofShape: parcel.index % 2 === 0 ? "hip" : "gable",
+        width: Math.max(styled.width, 1.95),
+        height: Math.min(styled.height, 1.1),
+      };
+    } else {
+      styled = {
+        ...styled,
+        facadeStyle: "rowhome",
+        roofShape: "flat",
+        width: Math.max(styled.width, 1.8),
+        height: Math.min(Math.max(styled.height, 1.2), 1.45),
+      };
+    }
+  }
+  const footprint = enforceHomeRoofSafety(styled);
   return {
     id: `gen-building-${zone.id}-${parcel.index}`,
-    kind: spec.kind,
-    label: spec.labelOverride ?? zone.label ?? zoneLabel(zone.kind),
+    kind: footprint.kind,
+    label: footprint.labelOverride ?? zone.label ?? zoneLabel(zone.kind),
     // Pin generated buildings to a manifest-allowed primitive key so
     // withBuildingMetadata cannot route them to the texture-backed sprite art:
     // authored sprites assume curated Eastvale footprints and collapse into
     // misregistered wrecks on jittered parametric widths.
-    spriteKey: `building.${spec.kind}.generated.v1`,
+    spriteKey: `building.${footprint.kind}.generated.v1`,
     position: { x: parcel.x, y: parcel.y, z: 0 },
-    // The parcel was sized around this spec, so the template's silhouette
-    // survives; the gentle clamp only guards grid-pitch overflow.
-    width: Math.min(parcel.width * 0.95, spec.width),
-    depth: Math.min(parcel.depth * 0.95, spec.depth),
-    height: spec.height + parcel.elevationBoost,
-    bodyColor: spec.bodyColor,
-    roofColor: spec.roofColor,
-    ...(spec.paletteKey ? { paletteKey: spec.paletteKey } : {}),
+    width: footprint.width,
+    depth: footprint.depth,
+    height: footprint.height + parcel.elevationBoost,
+    bodyColor: footprint.bodyColor,
+    roofColor: footprint.roofColor,
+    ...(footprint.paletteKey ? { paletteKey: footprint.paletteKey } : {}),
     placeId,
-    roofShape: spec.roofShape,
-    facadeStyle: spec.facadeStyle,
-    detailLevel: spec.kind === "home" ? "medium" : "high",
+    roofShape: footprint.roofShape,
+    facadeStyle: footprint.facadeStyle,
+    detailLevel: footprint.kind === "home" ? "medium" : "high",
   };
 }
 
@@ -1050,15 +1092,18 @@ function coastalCottageVariant(
   const palette = countyParameters.palette;
   const paletteIndex = Math.floor(parcel.index / 2);
   const { paletteKey: _paletteKey, ...baseSpec } = spec;
-  return {
+  // Convert cottage -> shore ranch with ranch-safe massing. Width must clear
+  // 1.8 even after parcel clamp in buildingForZone.
+  return enforceHomeRoofSafety({
     ...baseSpec,
     facadeStyle: "ranch",
     roofShape: "hip",
-    width: roundDimension(spec.width * 1.12),
-    height: roundDimension(spec.height + 0.18),
+    width: roundDimension(Math.max(spec.width * 1.45, 1.95)),
+    depth: roundDimension(Math.max(spec.depth * 1.08, 1.14)),
+    height: roundDimension(Math.min(spec.height + 0.08, 1.12)),
     bodyColor: palette.body[paletteIndex % palette.body.length] ?? spec.bodyColor,
     roofColor: palette.roof[(paletteIndex + 1) % palette.roof.length] ?? spec.roofColor,
-  };
+  });
 }
 
 function mountainCottageVariant(
@@ -1075,13 +1120,74 @@ function mountainCottageVariant(
   ) {
     return spec;
   }
-  return {
+  // Same contract as coastal: cottage->ranch must clear roof-safety floors
+  // after parcel clamp.
+  return enforceHomeRoofSafety({
     ...spec,
     facadeStyle: "ranch",
     roofShape: "hip",
-    width: roundDimension(spec.width * 1.04),
-    height: roundDimension(Math.min(spec.height + 0.08, 1.22)),
-  };
+    width: roundDimension(Math.max(spec.width * 1.4, 1.95)),
+    depth: roundDimension(Math.max(spec.depth * 1.06, 1.14)),
+    height: roundDimension(Math.min(spec.height + 0.06, 1.12)),
+  });
+}
+
+/**
+ * Clamp home massing to the numeric roof-safety contract used by
+ * `analyzeGeneratedDistrictParity` / generated-district parity verifier.
+ * Applied after archetype variant conversion and again after parcel shrink so
+ * coastal/mountain ranch swaps cannot reintroduce unsafe silhouettes.
+ */
+function enforceHomeRoofSafety(spec: ZoneBuildingSpec): ZoneBuildingSpec {
+  if (spec.kind !== "home") return spec;
+
+  if (spec.facadeStyle === "rowhome") {
+    return {
+      ...spec,
+      roofShape: "flat",
+      height: roundDimension(Math.min(spec.height, 1.48)),
+    };
+  }
+
+  if (spec.facadeStyle === "cottage") {
+    const width = roundDimension(Math.max(spec.width, 1.2));
+    const depth = roundDimension(Math.max(spec.depth, 1.0));
+    const footprintMin = Math.min(width, depth);
+    return {
+      ...spec,
+      roofShape: "gable",
+      width,
+      depth,
+      height: roundDimension(Math.min(spec.height, 1.26, footprintMin * 1.12)),
+    };
+  }
+
+  if (spec.facadeStyle === "ranch") {
+    // Too-narrow ranches (common after parcel clamp) should fall back to
+    // cottage rather than inflate width — widening every ranch blows the
+    // generated-draft mobile window budget.
+    if (spec.width < 1.8) {
+      return enforceHomeRoofSafety({
+        ...spec,
+        facadeStyle: "cottage",
+        roofShape: "gable",
+        height: Math.min(spec.height, 1.2),
+      });
+    }
+    const width = roundDimension(spec.width);
+    const depth = roundDimension(Math.max(spec.depth, 1.05));
+    const footprintMin = Math.min(width, depth);
+    const roofShape = spec.roofShape === "gable" || spec.roofShape === "hip" ? spec.roofShape : "hip";
+    return {
+      ...spec,
+      roofShape,
+      width,
+      depth,
+      height: roundDimension(Math.min(spec.height, 1.18, footprintMin * 0.94)),
+    };
+  }
+
+  return spec;
 }
 
 type ZoneBuildingSpec = {
@@ -1977,21 +2083,23 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
   }
   if (archetype === "desert_basin") {
     return tierProfile({
-      residentialDensityFloor: 0.62,
+      // Sparse desert multiplies density by ~0.42. Target ≥4 homes on sparse
+      // fixtures (clone floor) without blowing maricopa mobile window weight.
+      residentialDensityFloor: 0.84,
       apartmentDensityFloor: 0.48,
       commercialDensityFloor: 0.5,
-      residentialCell: 2.32,
+      residentialCell: 1.88,
       apartmentCell: 3.55,
       commercialCellWidth: 7.2,
       commercialRowDepth: 4.2,
       commercialStripFill: 0.8,
       commercialMaxWidth: 6.8,
-      footprintScale: 1.14,
+      footprintScale: 1.12,
       heightScale: 0.88,
       heightBiasMultiplier: 2.2,
-      cottageWeight: 0.74,
-      ranchWeight: 2.18,
-      rowhomeWeight: 0.28,
+      cottageWeight: 1.05,
+      ranchWeight: 1.65,
+      rowhomeWeight: 0.48,
       cornerStoreMinParcels: 9,
     });
   }
@@ -2122,6 +2230,9 @@ function applyUrbanizationTierMassingProfile(
       cornerStoreMinParcels: Math.max(profile.cornerStoreMinParcels, 12),
     };
   }
+  // Sparse / frontier: keep open-land massing (camera/relief tests depend on it).
+  // Desert clone pressure is handled by desert_basin base density floors above,
+  // not by global sparse densification that shifts mountain opening frames.
   return {
     ...profile,
     residentialDensityFloor: Math.max(0.22, profile.residentialDensityFloor * 0.42),

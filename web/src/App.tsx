@@ -116,7 +116,8 @@ const orangeCoverageSummary: CountyCoverageStructuredContent = {
   supported: true,
   coverageTier: "L1_COUNTY_SHELL",
   coverageLabel: "Preview available",
-  message: "Orange County can be previewed, but its full local map is not built yet.",
+  message:
+    "Orange County opens as a session-only free map planner study with real Census town names. Streets and buildings are generated, not a verified full local map.",
   stateCode: "CA",
   geoid: "06059",
   playableDistrictCount: 0,
@@ -124,7 +125,7 @@ const orangeCoverageSummary: CountyCoverageStructuredContent = {
   districts: [],
   sourceNotes: [coverageSourceNote],
   limitations: [
-    "Full map not built yet for this county.",
+    "Interactive full map is Riverside/Eastvale; other counties are generated studies.",
     "Atlas does not add local places, saved work, XP, evidence, outreach, or automation here.",
   ],
   suggestedNextCountySlug: "riverside-ca",
@@ -145,7 +146,7 @@ const unsupportedCoverageSummary: CountyCoverageStructuredContent = {
     {
       source: "curated",
       label: "Atlas Riverside/Eastvale map data",
-      attribution: "Atlas built-in demo data",
+      attribution: "Atlas built-in map data",
       ttlSeconds: 60 * 60 * 24,
     },
   ],
@@ -629,6 +630,10 @@ export function App() {
   const legacyCoverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
   const compiledCoverageShellScene = useMemo(() => compileCoverageShellSceneFromSummary(coverageSummary), [coverageSummary]);
   const coverageShellScene = compiledCoverageShellScene ?? legacyCoverageShellScene;
+  // North Face L1 path (0.76-T): prefer compact _meta.generatedDraftSpec and
+  // compile client-side so ChatGPT never needs a full ~780KB scene on the wire.
+  // Legacy generatedDraftScene remains a read fallback only. Malformed specs
+  // degrade to the coverage shell — never crash, never claim playable coverage.
   const rawGeneratedDraftSpec = isDeterministicGeneratedDistrictSpec(meta?.generatedDraftSpec) ? meta.generatedDraftSpec : null;
   const generatedDraftSpecScene = useMemo(() => {
     if (!rawGeneratedDraftSpec) return null;
@@ -829,7 +834,7 @@ export function App() {
       {readRequestedCountySwitcherVisible() ? <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} /> : null}
       <button type="button" className="city-world-generate-district" data-qa="generate-district-button" onClick={openGeneratedPreview}>
         <strong>Generate a district</strong>
-        <span>Preview only - stays in this chat</span>
+        <span>Session-only free map planner - stays in this chat</span>
       </button>
     </>
   );
@@ -1191,7 +1196,7 @@ function publicHostedClawdContext(context: HostedClawdContext): HostedClawdConte
 
 function publicHostedClawdCopy(value: string): string {
   return value
-    .replace(/\bAlpha Free\b/g, "Preview")
+    .replace(/\bAlpha Free\b/g, "Session-only free map planner")
     .replace(/\bBeta Invite\b/g, "Save invite")
     .replace(/\bBeta paid\b/gi, "Paid saves")
     .replace(/\bBilling is off in Alpha\./g, "Billing is not live.")
@@ -1201,7 +1206,10 @@ function publicHostedClawdCopy(value: string): string {
     .replace(/\btest Checkout\b/g, "checkout setup")
     .replace(/\bStripe Checkout\b/g, "Checkout")
     .replace(/\bStripe test Checkout\b/g, "checkout setup")
-    .replace(/\bexternal Beta promotion\b/g, "public save promotion");
+    .replace(/\bexternal Beta promotion\b/g, "public save promotion")
+    .replace(/\bdemo\b/gi, "map")
+    .replace(/\bcoming soon\b/gi, "not included in this free map planner")
+    .replace(/\btrial\b/gi, "session");
 }
 
 function defaultHostedClawdContext({

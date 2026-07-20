@@ -46,6 +46,7 @@ export type DeliveryRecord = {
   resultChars: number;
   metaChars: number;
   generatedDraftSceneChars: number;
+  generatedDraftSpecChars: number;
   metaKeys: string[];
   truncated: boolean;
 };
@@ -118,10 +119,10 @@ function textOfMessage(params: unknown): string {
 }
 
 /**
- * _meta payload policy, mirroring the host's transport budget: when the
+ * _meta payload policy, mirroring the host's transport budget: when a legacy
  * serialized generatedDraftScene exceeds the ceiling, the scene is dropped
- * (the small generatedDraftPacket summary stays) — the widget must degrade
- * honestly to the coverage summary, never crash.
+ * (generatedDraftSpec / generatedDraftPacket stay) — the widget compiles from
+ * the compact spec or degrades honestly to the coverage shell, never crashes.
  */
 function applyHostPayloadPolicy(result: CallToolResult, truncateChars: number): { result: CallToolResult; truncated: boolean } {
   const meta = result._meta as Record<string, unknown> | undefined;
@@ -270,6 +271,7 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
       resultChars: serializedChars(raw),
       metaChars: serializedChars(raw._meta),
       generatedDraftSceneChars: serializedChars((raw._meta as Record<string, unknown> | undefined)?.generatedDraftScene),
+      generatedDraftSpecChars: serializedChars((raw._meta as Record<string, unknown> | undefined)?.generatedDraftSpec),
       metaKeys: meta ? Object.keys(meta) : [],
       truncated,
     });

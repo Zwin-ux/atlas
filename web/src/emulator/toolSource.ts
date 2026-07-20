@@ -26,7 +26,9 @@ export type ToolSource = {
    * select_county / render_voxel_county with includeGeneratedDraft can return
    * only the queued generatedDraftPacket on a cold packet cache. Mirror the
    * production model's behavior (and verify-generated-district-widget.mjs):
-   * retry until _meta.generatedDraftScene lands or attempts run out.
+   * retry until draft meta is ready for the widget (0.76-T prefers the compact
+   * `_meta.generatedDraftSpec`; legacy hosts may still ship generatedDraftScene)
+   * or attempts run out.
    */
   callUntilDraftScene(spec: ToolCallSpec): Promise<CallToolResult>;
   close(): Promise<void>;
@@ -40,9 +42,15 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-function hasDraftScene(result: CallToolResult): boolean {
+/** True when the tool result carries enough draft meta for the widget to render. */
+function hasDraftReady(result: CallToolResult): boolean {
   const meta = result._meta as Record<string, unknown> | undefined;
-  return Boolean(meta && typeof meta === "object" && meta.generatedDraftScene);
+  if (!meta || typeof meta !== "object") return false;
+  // North Face production wire (0.76-T): ship params, compile client-side.
+  if (meta.generatedDraftSpec) return true;
+  // Legacy read path: full scene payload on the wire.
+  if (meta.generatedDraftScene) return true;
+  return false;
 }
 
 function wantsDraftScene(spec: ToolCallSpec): boolean {
@@ -67,7 +75,7 @@ export async function createLiveMcpToolSource(mcpUrl: string): Promise<ToolSourc
     async callUntilDraftScene(spec) {
       let last = await call(spec);
       if (!wantsDraftScene(spec)) return last;
-      for (let attempt = 1; attempt < DRAFT_RETRY_ATTEMPTS && !hasDraftScene(last); attempt += 1) {
+      for (let attempt = 1; attempt < DRAFT_RETRY_ATTEMPTS && !hasDraftReady(last); attempt += 1) {
         await delay(DRAFT_RETRY_DELAY_MS);
         last = await call(spec);
       }

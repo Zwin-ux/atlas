@@ -74,7 +74,7 @@ export function compileVoxelSceneFromCountyPack(
       type: "scout_report",
       title: `${selectedNode.name} County Brief`,
       focusNodeId: selectedNodeId,
-      summary: `${pack.county} is loaded from the curated Alpha pack. ${selectedNode.name} is highlighted as the first playable slice.`,
+      summary: `${pack.county} is loaded from built-in map data. ${selectedNode.name} is highlighted as the first playable slice.`,
       stats: [
         { label: "Curated nodes", value: String(pack.mapNodes.length), tone: "neutral" },
         { label: "Primary score", value: String(scoreFor(selectedNode)), tone: "good" },
@@ -176,7 +176,7 @@ function createWorld(pack: CountyPack, selectedNodeId: string): VoxelWorld {
         label: "Eastvale City Slice",
         countySlug: pack.slug,
         worldNodeId: "eastvale-district",
-        summary: "The playable Alpha district compiled from the Riverside curated pack.",
+        summary: "The playable Eastvale district compiled from built-in Riverside map data.",
         playable: true,
         focusNodeIds: eastvaleFocusNodes,
         position: positionFor(pack, "eastvale"),

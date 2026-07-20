@@ -73,8 +73,8 @@ export class CountyQuestionService {
       return unsupportedAnswer({
         countySlug,
         question,
-        answer: `Atlas Alpha can answer county questions only for Riverside County right now. It cannot make claims about ${countySlug} from this curated pack.`,
-        facts: [{ label: "Supported Alpha county", value: "Riverside County, CA", sourceNodeIds: ["eastvale"] }],
+        answer: `Atlas can answer county questions from built-in Riverside/Eastvale map data right now. It cannot make claims about ${countySlug} from that map data.`,
+        facts: [{ label: "Supported full-map county", value: "Riverside County, CA", sourceNodeIds: ["eastvale"] }],
       });
     }
 
@@ -140,11 +140,11 @@ function eastvaleFirstSliceAnswer(pack: CountyPack, question: string): CountyQue
     question,
     topic: "eastvale_first_slice",
     answer:
-      "Eastvale is the first playable Atlas slice because the curated pack gives it a compact county loop: residential demand, short route access, QR flyer surfaces, a gym/plaza partner target, and an apartment/property-manager outreach pocket. That is enough to test Explore -> Ask -> Drop Clawd -> Scout -> Campaign without pretending Atlas has live market coverage.",
+      "Eastvale is the first playable Atlas slice because built-in map data gives it a compact county loop: residential demand, short route access, QR flyer surfaces, a gym/plaza partner target, and an apartment/property-manager outreach pocket. That is enough for Explore -> Ask -> Drop Clawd -> Scout -> Campaign without claiming live market coverage.",
     facts: [
       factForNode(eastvale, "Selected start"),
       ...connected.slice(0, 3).map((node) => factForNode(node, "Connected signal")),
-      { label: "Alpha boundary", value: pack.summary, sourceNodeIds: ["eastvale"] },
+      { label: "Product boundary", value: pack.summary, sourceNodeIds: ["eastvale"] },
     ],
     suggestedNextTool: "select_county",
   });
@@ -162,10 +162,10 @@ function businessSignalsAnswer(pack: CountyPack, question: string, businessKey: 
   return supportedAnswer(pack, {
     question,
     topic: "business_signals",
-    answer: `For ${businessLabel}, the curated Riverside pack supports Eastvale because the strongest nodes cluster around homes, errands, and short routes. Top signals are ${signalList.join(", ")}. Treat these as Alpha planning signals, not live demand or ROI proof.`,
+    answer: `For ${businessLabel}, built-in Riverside map data supports Eastvale because the strongest nodes cluster around homes, errands, and short routes. Top signals are ${signalList.join(", ")}. Treat these as planning signals, not live demand or ROI proof.`,
     facts: top.map((node) => ({
       label: node.name,
-      value: `${node.scores[businessKey]} curated ${businessLabel} score; ${node.signals.join(", ")}. ${node.campaignSuggestion}`,
+      value: `${node.scores[businessKey]} ${businessLabel} score; ${node.signals.join(", ")}. ${node.campaignSuggestion}`,
       sourceNodeIds: [node.id],
     })),
     suggestedNextTool: businessKey === "mobile_detailing" ? "preview_scout_drop" : "select_county",
@@ -177,11 +177,11 @@ function countySummaryAnswer(pack: CountyPack, question: string): CountyQuestion
     question,
     topic: "county_summary",
     answer:
-      "The Riverside Alpha pack is a small curated county model for the Eastvale demo. It can answer basic questions about supported nodes, routes, signals, and the first business-planning lanes, but it does not claim full county coverage.",
+      "The Riverside/Eastvale map is a focused built-in county model for local planning. It can answer basic questions about supported nodes, routes, signals, and the first business-planning lanes, but it does not claim live market coverage across every street.",
     facts: [
       { label: "County", value: `${pack.county}, ${pack.state}` },
-      { label: "Curated nodes", value: String(pack.mapNodes.length), sourceNodeIds: pack.mapNodes.map((node) => node.id) },
-      { label: "Curated edges", value: String(pack.mapEdges.length) },
+      { label: "Map nodes", value: String(pack.mapNodes.length), sourceNodeIds: pack.mapNodes.map((node) => node.id) },
+      { label: "Map routes", value: String(pack.mapEdges.length) },
       { label: "Supported business lanes", value: Object.values(SUPPORTED_BUSINESS_LABELS).join(", ") },
     ],
     suggestedNextTool: "select_county",
@@ -208,15 +208,15 @@ function placeLocationAnswer(pack: CountyPack, question: string, target: Curated
   return supportedAnswer(pack, {
     question,
     topic: "county_summary",
-    answer: `${target.label} is in the curated Eastvale playable scene near ${nearbyCopy}. Atlas can focus the map there, but this is closed-world demo data, not a live place listing.`,
+    answer: `${target.label} is in the Eastvale playable scene near ${nearbyCopy}. Atlas can focus the map there, but this is built-in map data, not a live place listing.`,
     facts: [
       {
-        label: "Curated map place",
-        value: target.placeId ? `${target.label}; scene place ${target.placeId}.` : `${target.label}; curated map zone.`,
+        label: "Map place",
+        value: target.placeId ? `${target.label}; scene place ${target.placeId}.` : `${target.label}; map zone.`,
         sourceNodeIds: sourceNodes.map((node) => node.id),
       },
       {
-        label: "Nearby curated anchors",
+        label: "Nearby map anchors",
         value: nearbyCopy,
         sourceNodeIds: nearby.map((item) => item.id),
       },
@@ -235,13 +235,13 @@ function unsupportedPlaceAnswer(pack: CountyPack, question: string): CountyQuest
     countySlug: pack.slug,
     question,
     answer:
-      "Atlas Alpha can only locate places that exist in the curated Riverside/Eastvale scene. That place is not in the current pack, so Atlas will not invent a map target for it.",
+      "Atlas can only locate places that exist in the built-in Riverside/Eastvale scene. That place is not in the current map data, so Atlas will not invent a map target for it.",
     facts: [
       {
-        label: "Curated place boundary",
+        label: "Map place boundary",
         value: "Known targets include Eastvale, Neighborhood Blocks, Gym / Plaza, Apartments, Community park, Water edge, Norco, Corona, and Riverside.",
       },
-      { label: "Alpha boundary", value: pack.summary },
+      { label: "Product boundary", value: pack.summary },
     ],
     sourceNotes: pack.sources,
     limitations: alphaLimitations(pack),
@@ -423,7 +423,7 @@ function sourceLimitsAnswer(pack: CountyPack, question: string): CountyQuestionA
     question,
     topic: "source_limits",
     answer:
-      "This answer is closed-world. It uses the Atlas curated Riverside Alpha pack and source notes only. It does not call Google, ingest live county data, save provider results, or claim current market truth.",
+      "This answer is closed-world. It uses built-in Riverside/Eastvale map data and source notes only. It does not call Google, ingest live county data, save provider results, or claim current market truth.",
     facts: [
       { label: "Pack version", value: pack.version },
       { label: "Last updated", value: pack.lastUpdated },
@@ -438,14 +438,14 @@ function outOfWorldAnswer(pack: CountyPack, question: string): CountyQuestionAns
     countySlug: pack.slug,
     question: question || "(empty question)",
     answer:
-      "Atlas Alpha answers only from the curated Riverside/Eastvale pack. It has no live or real-world data, so it cannot give business hours, phone numbers, addresses, prices, demographics, weather, crime figures, or exhaustive business listings. Ask instead about the curated nodes, routes, business signal lanes, why Eastvale is the first slice, or the pack's sources and limits.",
+      "Atlas answers only from built-in Riverside/Eastvale map data. It has no live or real-world data feed for this path, so it cannot give business hours, phone numbers, addresses, prices, demographics, weather, crime figures, or exhaustive business listings. Ask instead about map nodes, routes, business signal lanes, why Eastvale is the first slice, or source and confidence limits.",
     facts: [
       {
         label: "What Atlas can answer",
         value:
-          "Curated map nodes and routes, mobile detailing / cleaning / local event signal lanes, why Eastvale is first, and source/confidence limits.",
+          "Map nodes and routes, mobile detailing / cleaning / local event signal lanes, why Eastvale is first, and source/confidence limits.",
       },
-      { label: "Alpha boundary", value: pack.summary },
+      { label: "Product boundary", value: pack.summary },
     ],
     sourceNotes: pack.sources,
     limitations: alphaLimitations(pack),
@@ -457,10 +457,10 @@ function unsupportedBusinessAnswer(pack: CountyPack, question: string, requested
   return unsupportedAnswer({
     countySlug: pack.slug,
     question,
-    answer: `Atlas Alpha cannot support that business claim from the curated Riverside pack. Requested scope: ${requested}. Supported score lanes are ${Object.values(SUPPORTED_BUSINESS_LABELS).join(", ")}. Narrow this to one of those lanes before using it for a Scout Drop.`,
+    answer: `Atlas cannot support that business claim from built-in Riverside map data. Requested scope: ${requested}. Supported score lanes are ${Object.values(SUPPORTED_BUSINESS_LABELS).join(", ")}. Narrow this to one of those lanes before using it for a Scout Drop.`,
     facts: [
       { label: "Supported business lanes", value: Object.values(SUPPORTED_BUSINESS_LABELS).join(", ") },
-      { label: "Alpha boundary", value: pack.summary },
+      { label: "Product boundary", value: pack.summary },
     ],
     sourceNotes: pack.sources,
     limitations: alphaLimitations(pack),
@@ -501,7 +501,7 @@ function unsupportedAnswer(input: {
     facts: input.facts,
     sourceNotes: input.sourceNotes ?? [],
     limitations: input.limitations ?? [
-      "Atlas Alpha only answers from curated supported county packs.",
+      "Atlas only answers from built-in supported county map data.",
       "Unsupported counties and unsupported business claims are narrowed or refused.",
     ],
     suggestedNextTool: input.suggestedNextTool ?? "select_county",
@@ -525,7 +525,7 @@ function requireNode(pack: CountyPack, nodeId: string): CountyMapNode {
 function alphaLimitations(pack: CountyPack): string[] {
   return [
     ...pack.confidenceNotes,
-    "Closed-world answer from curated Atlas Alpha data only.",
+    "Closed-world answer from built-in Atlas map data only.",
     "No saved state, XP, evidence, outreach, or live market guarantee.",
   ];
 }

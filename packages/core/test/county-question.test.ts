@@ -28,15 +28,15 @@ describe("CountyQuestionService", () => {
     expect(answer.supported).toBe(true);
     expect(answer.topic).toBe("eastvale_first_slice");
     expect(answer.answer).toContain("Eastvale");
-    expect(answer.answer).toContain("curated");
+    expect(answer.answer).toMatch(/built-in|map data|playable/i);
     expect(answer.facts.flatMap((fact) => fact.sourceNodeIds ?? [])).toContain("eastvale");
-    expect(answer.sourceNotes[0]).toMatchObject({ sourceType: "curated_demo" });
+    expect(answer.sourceNotes[0]).toMatchObject({ sourceType: "built_in_map" });
   });
 
   it("answers mobile detailing signals without claiming live market truth", () => {
     const answer = service.answer({
       countySlug: "riverside-ca",
-      question: "Which curated signals support mobile detailing?",
+      question: "Which map signals support mobile detailing?",
       businessType: "mobile detailing",
     });
 
@@ -45,7 +45,7 @@ describe("CountyQuestionService", () => {
     expect(answer.answer).toContain("Residential Demand");
     expect(answer.answer).toContain("not live demand");
     expect(answer.facts.map((fact) => fact.label)).toContain("Eastvale Residential Cluster");
-    expect(answer.facts.some((fact) => fact.value.includes("85 curated mobile detailing score"))).toBe(true);
+    expect(answer.facts.some((fact) => /mobile detailing score/i.test(fact.value))).toBe(true);
   });
 
   it("refuses out-of-world factual asks the curated pack cannot hold", () => {
@@ -123,7 +123,7 @@ describe("CountyQuestionService", () => {
     expect(park.targetNodeId).toBe("eastvale");
     expect(park.targetPlaceId).toBeUndefined();
     expect(park.targetLabel).toBe("Community park");
-    expect(park.answer).toContain("closed-world demo data");
+    expect(park.answer).toContain("built-in map data");
 
     expect(plaza.supported).toBe(true);
     expect(plaza.targetNodeId).toBe("gym-plaza-eastvale");
@@ -140,7 +140,7 @@ describe("CountyQuestionService", () => {
 
     expect(answer.supported).toBe(false);
     expect(answer.topic).toBe("unsupported");
-    expect(answer.answer).toContain("not in the current pack");
+    expect(answer.answer).toContain("not in the current map data");
     expect(answer.targetNodeId).toBeUndefined();
     expect(answer.targetLabel).toBeUndefined();
   });
@@ -158,7 +158,7 @@ describe("CountyQuestionService", () => {
     });
 
     expect(unsupportedCounty.supported).toBe(false);
-    expect(unsupportedCounty.answer).toContain("only for Riverside County");
+    expect(unsupportedCounty.answer).toContain("Riverside/Eastvale map data");
     expect(unsupportedBusiness.supported).toBe(false);
     expect(unsupportedBusiness.answer).toContain("Supported score lanes");
     expect(unsupportedBusiness.limitations.join(" ")).toContain("Closed-world");

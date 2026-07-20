@@ -86,14 +86,17 @@ export const REGIONAL_PALETTES: Record<GeneratedDistrictArchetype, RegionalPalet
   },
   river_town: {
     archetype: "river_town",
-    body: ["#8b9275", "#c99a55", "#a8563d"],
-    roof: ["#2f5d8a", "#577747", "#9a927d"],
+    // Cool river-slate body + deep navy roofs + cyan bank terrain. Must stay
+    // distinct from metro cool concrete, prairie warm brick, and mountain olive
+    // (ship + unit palette-distinctness floors).
+    body: ["#6d8f9a", "#5f8490", "#8aa6a0"],
+    roof: ["#1a3a5c", "#16324f", "#244d34"],
     terrainTone: {
       paletteKey: "terrain.region.river_town",
-      base: "#4d8f83",
-      shade: "#37675e",
-      highlight: "#98beb7",
-      accent: "#866f4f",
+      base: "#1f8a96",
+      shade: "#165f68",
+      highlight: "#6fc4cc",
+      accent: "#6b7d52",
     },
   },
 };

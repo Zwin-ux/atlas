@@ -16,14 +16,14 @@ export function CountyCoverageView({ coverage, shellScene, countySwitcher }: Cou
   const isShell = coverage.coverageTier === "L1_COUNTY_SHELL";
   const countyLabel = coverage.countyLabel ?? coverage.countySlug;
   const statusLabel = isShell ? "Preview available" : coverage.coverageLabel;
-  const stateLabel = isShell ? "Map preview" : "Not available yet";
+  const stateLabel = isShell ? "Map preview" : "Unavailable";
   const sourceLabel = coverage.sourceNotes[0]?.label ?? "Atlas county list";
   const cameraPresetId = shellScene ? readRequestedCameraPreset(shellScene) : undefined;
   const debugMode = readRequestedDebugMode();
   const displayMode = useOpenAiDisplayMode();
   const boundaryCopy = isShell
-    ? "Preview only. Stays in this chat."
-    : "Not available yet. Stays in this chat.";
+    ? "Session-only free map planner. Stays in this chat."
+    : "Unavailable in this free map planner. Stays in this chat.";
   const recoveryText = "Open Riverside/Eastvale";
 
   const openPlayableSlice = () => {

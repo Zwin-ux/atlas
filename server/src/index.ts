@@ -1066,7 +1066,7 @@ function countyCoverageStructuredContent(
     coverageTier: response.county.coverageTier,
     coverageLabel: isPreviewOnlyCounty ? "Preview available" : "Full map available",
     message: isPreviewOnlyCounty
-      ? `${response.county.label} can be previewed, but its full local map is not built yet.`
+      ? `${response.county.label} opens as a session-only free map planner study with real Census town names. Streets and buildings are generated, not a verified full local map.`
       : response.county.coverageMessage,
     stateCode: response.county.stateCode,
     ...(response.county.geoid ? { geoid: response.county.geoid } : {}),
@@ -1081,7 +1081,7 @@ function countyCoverageStructuredContent(
     })),
     sourceNotes: response.cache.sourceNotes.map(publicSourceNote),
     limitations: [
-      "Full map not built yet for this county.",
+      "Interactive full map is Riverside/Eastvale; other counties are generated studies.",
       "Atlas does not add local places, saved work, XP, evidence, outreach, or automation here.",
     ],
     suggestedNextCountySlug: PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
@@ -1089,11 +1089,11 @@ function countyCoverageStructuredContent(
 }
 
 function publicSourceNote(note: CountyCoverageStructuredContent["sourceNotes"][number]): CountyCoverageStructuredContent["sourceNotes"][number] {
-  if (note.source !== "curated" || !/alpha|curated/i.test(note.label)) return note;
+  if (note.source !== "curated" || !/alpha|curated|demo/i.test(`${note.label} ${note.attribution}`)) return note;
   return {
     ...note,
     label: "Atlas Riverside/Eastvale map data",
-    attribution: "Atlas built-in demo data",
+    attribution: "Atlas built-in map data",
   };
 }
 
@@ -1339,11 +1339,22 @@ function publicAtlasCopy(value: string): string {
     .replace(/\bAtlas curated Riverside preview data\b/gi, "Atlas Riverside/Eastvale map data")
     .replace(/\bcurated Riverside\/Eastvale pack\b/gi, "built-in Riverside/Eastvale data")
     .replace(/\bcurated Alpha data\b/gi, "built-in map data")
+    .replace(/\bAtlas Alpha curated demo pack\b/gi, "Atlas Riverside/Eastvale map data")
     .replace(/\bAtlas Alpha\b/g, "Atlas")
-    .replace(/\bAlpha\b/g, "preview")
-    .replace(/\bEngine Beta\b/g, "preview")
-    .replace(/\bsession-only\b/gi, "in-chat")
+    .replace(/\bAlpha boundary\b/gi, "Product boundary")
+    .replace(/\bAlpha planning signals\b/gi, "planning signals")
+    .replace(/\bSupported Alpha county\b/gi, "Supported full-map county")
+    .replace(/\bAlpha Free\b/g, "Session-only free map planner")
+    .replace(/\bAlpha\b/g, "session")
+    .replace(/\bEngine Beta\b/g, "map")
     .replace(/\bclosed-world demo data\b/gi, "built-in map data")
+    .replace(/\bcurated demo pack\b/gi, "built-in map data")
+    .replace(/\bdemo pack\b/gi, "map data")
+    .replace(/\bdemo data\b/gi, "map data")
+    .replace(/\bEastvale demo\b/gi, "Eastvale full map")
+    .replace(/\bPrototype data only\.[^.]*\./gi, "Built-in map data for planning only.")
+    .replace(/\bcoming soon\b/gi, "not included in this free map planner")
+    .replace(/\btrial\b/gi, "session")
     .replace(/\bcurated map zone\b/gi, "map zone")
     .replace(/\bcurated map place\b/gi, "map place")
     .replace(/\bcurated nodes\b/gi, "map nodes")
@@ -1490,8 +1501,8 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
       ];
   const nextStep = ownerGatedTest
-    ? "Use Hosted Clawd as a closed test surface only; public paid access stays closed."
-    : "Use the preview now; Hosted Clawd adds saving after the next approval gate.";
+    ? "Use Hosted Clawd as a closed test surface only; public paid access stays closed and checkout is not started here."
+    : "Use the session-only free map planner now; Hosted Clawd saving is not live and does not start checkout.";
 
   if (!atlasSaveSurfaceEnabled) {
     return {
@@ -1501,8 +1512,8 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         label: "Atlas V1",
         included: [
           "Explore the Riverside/Eastvale playable map.",
-          "Preview generated districts for US counties when requested.",
-          "Keep pins, notes, Scout Drops, and campaign previews in this chat.",
+          "Open generated county studies for US counties when requested.",
+          "Keep pins, notes, Scout Drops, and campaign plans in this chat.",
         ],
         limits: [
           "No account or cross-chat memory.",
@@ -1514,8 +1525,8 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         label: "Hosted Clawd",
         status: ownerGatedTest ? ("owner_gated_test" as const) : ("planned_beta" as const),
         included: [
-          "Future saved business memory and campaign history stay behind a later gate.",
-          "The V1 app keeps work in this chat.",
+          "Saved business memory and campaign history are not live in this free loop.",
+          "The free map planner keeps work in this chat only.",
         ],
       },
       unavailableActions: [
@@ -1523,7 +1534,7 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         "Atlas does not start checkout, charge money, grant XP, collect evidence, post, message, buy ads, or run automated outreach.",
         "Lookup results are for manual review; they are not saved state, scene geometry, or coverage proof.",
       ],
-      nextStep: "Use Atlas as a map and planning preview; pins, notes, Scout Drops, and campaign previews stay in this chat.",
+      nextStep: "Use Atlas as a complete session-only free map planner; pins, notes, Scout Drops, and campaign plans stay in this chat.",
     };
   }
 
@@ -1593,8 +1604,11 @@ function publicHostedClawdContext(context: HostedClawdContext): HostedClawdConte
 
 function publicHostedClawdCopy(value: string): string {
   return publicAtlasCopy(value)
-    .replace(/\bpreview Free\b/g, "Preview")
+    .replace(/\bsession Free\b/g, "Session-only free map planner")
+    .replace(/\bpreview Free\b/g, "Session-only free map planner")
+    .replace(/\bsession Invite\b/g, "Save invite")
     .replace(/\bpreview Invite\b/g, "Save invite")
+    .replace(/\bsession paid\b/gi, "Paid saves")
     .replace(/\bpreview paid\b/gi, "Paid saves")
     .replace(/\bTest billing\b/g, "Billing setup")
     .replace(/\bTest-mode Checkout\b/g, "Checkout setup")
@@ -1603,7 +1617,9 @@ function publicHostedClawdCopy(value: string): string {
     .replace(/\bStripe Checkout\b/g, "Checkout")
     .replace(/\bStripe test Checkout\b/g, "checkout setup")
     .replace(/\bBilling is off in preview\./g, "Billing is not live.")
-    .replace(/\bexternal preview promotion\b/g, "public save promotion");
+    .replace(/billing is off in session\./gi, "Billing is not live.")
+    .replace(/\bexternal session promotion\b/gi, "public save promotion")
+    .replace(/\bexternal preview promotion\b/gi, "public save promotion");
 }
 
 function hostedClawdContextForScene(scene: ScoutPreviewState["scene"], trigger: HostedClawdContextInput["trigger"]): HostedClawdContext {
@@ -2979,7 +2995,7 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Use select_county to open Riverside/Eastvale, the full Atlas map available today. Use render_voxel_county when the user asks to refresh or focus that map. Other supported counties expose real U.S. Census town names on clearly generated preview layouts; never imply their streets, buildings, businesses, or coverage are verified. Use ask_county_question for built-in Riverside/Eastvale questions or to locate a displayed Census town anchor. Use lookup_world_places for lookup-only nearby places around an Atlas county or place id; lookup results are not saved as user work, may use a provider cache for up to 24 hours, and are not coverage proof. Use preview_scout_drop when the user asks to drop Clawd or scout. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options for save limits. Keep structuredContent concise. Do not claim persistence, XP grants, posting, DMs, paid ads, automation, or live campaign execution.",
+        "Atlas County Scout is a complete free map planner inside ChatGPT. Use select_county to open Riverside/Eastvale (the full playable map) or any other supported US county as an honest generated preview with real Census town names. Never claim non-Riverside streets, buildings, or businesses are verified local coverage. Use render_voxel_county only to refresh/focus an already-open map. Use ask_county_question for Riverside/Eastvale facts or displayed Census town anchors. Use lookup_world_places for nearby place lookup only (not coverage, not geometry, not saved lists). Use preview_scout_drop to scout a local service business. Use preview_campaign_engine only after a Scout Drop exists. Use get_upgrade_options only when the user asks about saving later — it is informational; there is no in-chat checkout, account, or live Hosted Clawd save in this free loop. Keep structuredContent concise; large scenes stay in _meta. Do not claim XP, evidence, posting, DMs, ads, automation, or paid digital subscriptions.",
     },
   );
 
@@ -3094,18 +3110,21 @@ function createAtlasServer(): McpServer {
           structuredContent: coverage,
           _meta: {
             scenePacket,
-            ...hostedClawdMeta(hostedClawdService.getContext({
-              trigger: "map_tray",
-              countySlug: coverage.countySlug,
-              countyLabel: coverage.countyLabel,
-            })),
+            // North Face: free loop never attaches Hosted Clawd tray meta while saves are off.
+            ...(atlasSaveSurfaceEnabled
+              ? hostedClawdMeta(hostedClawdService.getContext({
+                  trigger: "map_tray",
+                  countySlug: coverage.countySlug,
+                  countyLabel: coverage.countyLabel,
+                }))
+              : {}),
             ...(generatedDraft ?? {}),
             ...(countyGeoPack ? { countyGeoPack } : {}),
           },
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas right now. Riverside/Eastvale is fully explorable today. Atlas does not add verified streets, buildings, businesses, saved work, XP, evidence, outreach, or automation here.${generatedDraftCopy}`,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas. Riverside/Eastvale is fully explorable today. Atlas does not add verified streets, buildings, businesses, saved work, XP, evidence, outreach, or automation here.${generatedDraftCopy}`,
             },
           ],
         };
@@ -3124,7 +3143,7 @@ function createAtlasServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `Selected ${scene.county.name}. Eastvale is the full map in this county. Use the map for places, pins, and notes that stay in this chat.`,
+            text: `Selected ${scene.county.name}. Eastvale is the full interactive map. Use the map for places, pins, and notes that stay in this chat.`,
           },
         ],
       };
@@ -3184,11 +3203,13 @@ function createAtlasServer(): McpServer {
           structuredContent,
           _meta: {
             scenePacket,
-            ...hostedClawdMeta(hostedClawdService.getContext({
-              trigger: "map_tray",
-              countySlug: coverage.countySlug,
-              countyLabel: coverage.countyLabel,
-            })),
+            ...(atlasSaveSurfaceEnabled
+              ? hostedClawdMeta(hostedClawdService.getContext({
+                  trigger: "map_tray",
+                  countySlug: coverage.countySlug,
+                  countyLabel: coverage.countyLabel,
+                }))
+              : {}),
             ...(generatedDraft?.generatedDraftSpec ? { generatedDraftSpec: generatedDraft.generatedDraftSpec } : {}),
             ...(generatedDraft?.generatedDraftPacket ? { generatedDraftPacket: generatedDraft.generatedDraftPacket } : {}),
           },
@@ -3274,18 +3295,20 @@ function createAtlasServer(): McpServer {
           structuredContent: coverage,
           _meta: {
             scenePacket,
-            ...hostedClawdMeta(hostedClawdService.getContext({
-              trigger: "map_tray",
-              countySlug: coverage.countySlug,
-              countyLabel: coverage.countyLabel,
-            })),
+            ...(atlasSaveSurfaceEnabled
+              ? hostedClawdMeta(hostedClawdService.getContext({
+                  trigger: "map_tray",
+                  countySlug: coverage.countySlug,
+                  countyLabel: coverage.countyLabel,
+                }))
+              : {}),
             ...(generatedDraft ?? {}),
             ...(countyGeoPack ? { countyGeoPack } : {}),
           },
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas right now. Open Riverside/Eastvale for the fully explorable map.${generatedDraftCopy}`,
+              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas. Open Riverside/Eastvale for the fully explorable map.${generatedDraftCopy}`,
             },
           ],
         };
@@ -3435,14 +3458,14 @@ function createAtlasServer(): McpServer {
     server,
     "get_upgrade_options",
     {
-      title: "Get Hosted Clawd options",
+      title: "Explain save limits",
       description:
-        "Use this when the user asks to save or persist their work, track evidence, or asks about pricing or Hosted Clawd. Explains current save limits and planned Hosted Clawd options. Informational only - it does not start checkout, create an account, post, message, buy ads, or save campaign state.",
+        "Use this when the user asks whether Atlas saves work, tracks evidence, or has a paid save plan. Explains that Atlas is a complete session-only free map planner and that Hosted Clawd save options are not live and do not start checkout. Informational only — does not start checkout, create an account, post, message, buy ads, or save campaign state.",
       inputSchema: {
         trigger: z
           .enum(["save_scout_drop", "save_campaign", "track_evidence", "pricing", "general"])
           .optional()
-          .describe("Why the user is asking about Hosted Clawd."),
+          .describe("Why the user is asking about save limits or future Hosted Clawd."),
       },
       outputSchema: upgradeOptionsOutputSchema,
       annotations: {
@@ -3451,17 +3474,22 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
-        "openai/toolInvocation/invoking": "Checking Hosted Clawd options...",
-        "openai/toolInvocation/invoked": "Hosted Clawd options ready.",
+        "openai/toolInvocation/invoking": "Checking save limits...",
+        "openai/toolInvocation/invoked": "Save limits ready.",
       },
     },
     async ({ trigger }) => instrumentMcpTool("get_upgrade_options", async () => {
       const options = upgradeOptionsStructuredContent(trigger);
+      // North Face fence: free public loop never attaches live Hosted Clawd
+      // checkout/meta while save surface is off (plugin review: no digital
+      // commerce claim).
       const optionSummaryLabel = atlasSaveSurfaceEnabled ? options.hosted.label : options.free.label;
       return {
         structuredContent: options,
         _meta: {
-          ...("hostedClawd" in options && options.hostedClawd ? hostedClawdMeta(options.hostedClawd) : {}),
+          ...(atlasSaveSurfaceEnabled && "hostedClawd" in options && options.hostedClawd
+            ? hostedClawdMeta(options.hostedClawd)
+            : {}),
         },
         content: [
           {
@@ -3725,6 +3753,8 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (url.pathname === "/.well-known/openai-apps-challenge" && req.method === "GET") {
+    // OpenAI plugin domain verification: set ATLAS_OPENAI_APPS_CHALLENGE_TOKEN
+    // on Railway to the portal-provided token. Response body is the token alone.
     const challengeToken = process.env.ATLAS_OPENAI_APPS_CHALLENGE_TOKEN?.trim();
     if (!challengeToken) {
       textResponse(res, 404, "Not Found");

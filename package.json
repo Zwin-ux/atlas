@@ -50,6 +50,8 @@
     "verify:widget:perf": "node scripts/verify-widget-performance.mjs",
     "verify:emulator:perf": "node scripts/verify-emulator-perf.mjs",
     "verify:emulator:audit": "node scripts/verify-emulator-audit.mjs",
+    "ship:check": "node scripts/ship-check.mjs",
+    "ship:check:local": "node scripts/ship-check.mjs --skip-live",
     "check": "pnpm env:check && pnpm typecheck && pnpm build",
     "dev:widget": "pnpm --dir apps/widget dev",
     "dev": "pnpm build:web && pnpm build:geo && tsx server/src/index.ts",

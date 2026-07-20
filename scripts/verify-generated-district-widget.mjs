@@ -7,17 +7,17 @@ import process from "node:process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
-// Public "Generated District Preview" gate (0.48P, contract updated 0.75R):
+// Public "Generated District Preview" gate (0.48P, contract updated 0.76-T):
 // generation is host-driven now — the widget's generate-district control sends
 // a user message asking the model to call render_voxel_county with
-// includeGeneratedDraft, and the draft scene arrives as a tool result
-// (_meta.generatedDraftScene). This verifier replicates that round-trip: it
-// calls the real MCP tool, injects the actual response through the bridge test
-// hook (like verify-shell-county-widget.mjs), then asserts the widget's
-// synthetic/session-only honesty banner renders, place labels are suppressed,
-// the map still draws, and there's no overflow / console error. Honest by
-// construction: this feature must never claim a generated scene is a real
-// place — the banner copy is asserted here.
+// includeGeneratedDraft, and the draft arrives as a tool result
+// (_meta.generatedDraftSpec; widget compiles client-side). This verifier
+// replicates that round-trip: it calls the real MCP tool, injects the actual
+// response through the bridge test hook (like verify-shell-county-widget.mjs),
+// then asserts the widget's synthetic/session-only honesty banner renders,
+// place labels are suppressed, the map still draws, and there's no overflow /
+// console error. Honest by construction: this feature must never claim a
+// generated scene is a real place — the banner copy is asserted here.
 
 class CdpClient {
   constructor(url) { this.url = url; this.id = 0; this.pending = new Map(); this.events = []; this.socket = null; }
@@ -61,7 +61,8 @@ console.log(JSON.stringify({ ok, previewUrl: DEFAULT_PREVIEW_URL, mcpUrl: args.m
 if (!ok) process.exitCode = 1;
 
 // The widget asks the model for the draft via render_voxel_county; the packet
-// cache may still be warming on the first call, so retry until the scene lands.
+// cache may still be warming on the first call, so retry until draft meta
+// lands (prefer compact generatedDraftSpec; accept legacy generatedDraftScene).
 async function getGeneratedDraftToolResult(mcpUrl, countySlug) {
   const client = new Client({ name: "atlas-generated-district-widget-verifier", version: "0.1.0" });
   const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
@@ -75,11 +76,21 @@ async function getGeneratedDraftToolResult(mcpUrl, countySlug) {
       if (result?.structuredContent?.type !== "countyCoverageSummary") {
         throw new Error(`Expected countyCoverageSummary for ${countySlug}; got ${result?.structuredContent?.type}.`);
       }
-      const scene = result._meta?.generatedDraftScene;
+      const meta = result._meta ?? {};
+      const spec = meta.generatedDraftSpec;
+      if (spec) {
+        if (spec.type !== "deterministicGeneratedDistrictSpec") {
+          throw new Error(`generatedDraftSpec has wrong type: ${spec.type}`);
+        }
+        if (spec.publicPlayable !== false) throw new Error("generatedDraftSpec must be non-playable.");
+        if (spec.providerGeometry !== false) throw new Error("generatedDraftSpec must not claim provider geometry.");
+        return { structuredContent: result.structuredContent, content: result.content ?? [], _meta: meta };
+      }
+      const scene = meta.generatedDraftScene;
       if (scene) {
         if (scene.type !== "cityWorldScene") throw new Error(`generatedDraftScene has wrong type: ${scene.type}`);
         if (scene.coverage?.playable !== false) throw new Error("generatedDraftScene must be non-playable.");
-        return { structuredContent: result.structuredContent, content: result.content ?? [], _meta: result._meta ?? {} };
+        return { structuredContent: result.structuredContent, content: result.content ?? [], _meta: meta };
       }
       await delay(500);
     }

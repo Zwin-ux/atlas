@@ -2,9 +2,9 @@
   "county": "Riverside County",
   "state": "CA",
   "slug": "riverside-ca",
-  "version": "0.2-alpha-demo",
+  "version": "0.2-riverside-eastvale",
   "lastUpdated": "2026-06-29",
-  "summary": "Curated Alpha demo pack for Atlas. Not live market data.",
+  "summary": "Built-in Riverside/Eastvale map data for Atlas. Planning signals only; not live market data.",
   "mapNodes": [
     {
       "id": "eastvale",
@@ -180,12 +180,12 @@
   ],
   "sources": [
     {
-      "name": "Atlas Alpha curated demo pack",
-      "sourceType": "curated_demo",
+      "name": "Atlas Riverside/Eastvale map data",
+      "sourceType": "built_in_map",
       "confidenceScore": 0.55
     }
   ],
   "confidenceNotes": [
-    "Prototype data only. Replace/augment with sourced data before public claims."
+    "Built-in map data for planning only. Not live demand, ROI, or market proof."
   ]
 }

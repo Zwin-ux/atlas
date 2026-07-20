@@ -360,8 +360,8 @@ function curatedCache(key: string): WorldCachePolicy {
     sourceNotes: [
       {
         source: "curated",
-        label: "Atlas curated Alpha world data",
-        attribution: "Atlas curated demo data",
+        label: "Atlas built-in map data",
+        attribution: "Atlas built-in map data",
         ttlSeconds: CURATED_TTL_SECONDS,
       },
     ],
@@ -443,7 +443,7 @@ function collectSourceNotes(places: WorldLookupPlaceInput[]) {
     notesByKey.set(`${note.source}:${note.attribution}:${note.ttlSeconds}`, note);
   }
   if (notesByKey.size === 0) {
-    const note = sourceNote("curated", "Atlas curated demo data", CURATED_TTL_SECONDS);
+    const note = sourceNote("curated", "Atlas built-in map data", CURATED_TTL_SECONDS);
     notesByKey.set(`${note.source}:${note.attribution}:${note.ttlSeconds}`, note);
   }
   return [...notesByKey.values()];

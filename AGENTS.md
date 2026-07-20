@@ -6,39 +6,28 @@ Do not generate a generic SaaS homepage. Do not use the common AI fallback of a 
 
 ## Current Product Law
 
-Atlas is a ChatGPT App and voxel county-to-scene engine. Users open Atlas inside ChatGPT, explore a county-scale voxel world, ask location questions, drop Clawd, preview Scout/Campaign flows, and keep session-only notes.
+**Read `docs/NORTH_FACE.md` first.** It is the ship authority. Conflicting
+slice history below is background only.
 
-Current phase is Engine Beta, not Paid Beta.
+Atlas County Scout is a ChatGPT **plugin** (Apps SDK / MCP + widget). North Face
+loop: open map → inspect places → scout → 7-day plan. Session-only free tier is
+a complete product, not a demo.
 
-Alpha Path B is accepted. Riverside/Eastvale is the only public playable district. Anaheim/Ontario remain hidden and non-public until owner-gate approval explicitly allows controlled public promotion.
+- Riverside/Eastvale = only public **playable** district.
+- Other US counties = honest **generated previews** with real Census town names;
+  streets/buildings are not verified coverage.
+- Public tools stay at 7. Do not add tools casually.
+- Hosted Clawd / Stripe / saves / XP / evidence / automation / reports / exports
+  are **fenced** off the free public loop unless a human reopens them.
+  `ATLAS_SAVE_SURFACE` defaults off; no public paid or checkout claims in ChatGPT
+  (OpenAI apps may not sell digital goods/subscriptions in-app).
+- Anaheim/Ontario remain hidden/non-public.
+- Provider lookup never becomes scene geometry or readiness.
+- Census geo board (`?atlasGeoBoard=1`) and national road bakes are not ship
+  blockers; do not expand them as the active track.
 
-Hosted Clawd DB/Auth persistence is now local-green only for owner-protected rows. Atlas remains the map/chat app and voxel world engine; Hosted Clawd / Clawdbot is the paid neighborhood operator layered on top of owned Atlas state. Stripe/money is open only for test-mode billing behind webhook-confirmed state. Public paid claims, live billing, XP, evidence, automation, reports, and exports remain parked.
-The human explicitly reopened DB/Auth preparation on 2026-07-05.
-The human explicitly reopened test-mode Stripe billing on 2026-07-05.
-
-Current human-directed production-green slice is `0.78-1V Census County Board Product + Certification Gate` on branch `codex/integrate-hosted-clawd-fable-058e`.
-
-0.78-1V decision is `CENSUS_BOARD_CERTIFIED_FLAG_DARK_UNTIL_OWNER_GATE` with selected axis `real_geography_promotion_readiness`. The widget may compile a baked U.S. Census boundary-and-water pack client-side, but only when `?atlasGeoBoard=1` is explicitly requested. The default flag-off experience is unchanged. Census boards identify the county, state that streets and places are not mapped, and hide place, pin, note, and save controls until real anchors exist. The current evidence covers 16 challenge packs, not a national 3,222-county bake or a public-playable claim.
-
-The owner approved the 12 desktop/mobile light/dark screenshots and authorized
-release preparation on 2026-07-13. Exact SHA `7016735` deployed green to the
-Railway backend on 2026-07-15 with 14/14 release gates and 3/3 public sanity
-checks. The next code slice is `0.78-2 Real Town Anchors` only after real-host
-G8 is recorded. `0.80-2` remains parallel queued graphics work; it does not
-expand the 0.78-1V packet.
-
-Live Stripe billing, new public MCP tools, public paid claims, pricing pages, evidence, XP, reports, exports, automation, and public Anaheim/Ontario remain blocked unless a later named gate explicitly opens that scope.
-
-Use `national-generation-contract` for strict split checks on the current real-geography branch.
-
-The owner-gate ladder is parked at `0.45E Owner Gate Cutline / Next Axis Selection`. It reads the 0.44E hidden Anaheim proof packet, product proof, readiness aggregate, and owner cutline, then selects the next axis without exposing Anaheim/Ontario publicly. Default owner-gate slice after 0.45E remains `0.46E Owner Gate Review Packet`. Do not start a public Anaheim spike unless the cutline changes to `APPROVE_CONTROLLED_PUBLIC_SPIKE`. 0.45E selected owner-gate review because hidden visual/product proof passed as evidence, but promotion readiness and owner acceptance are still blocked.
-
-Do not default-enable Census boards, start the national pack bake, add roads,
-begin town detail, or claim playable real-county coverage inside 0.78-1V. The
-only remaining 0.78-1V gate is real-host G8, followed by `0.78-2 Real Town
-Anchors` if that gate passes. Do not continue commerce unless a human names one exact Plaza
-Row blocker. Do not turn provider lookup into geometry, readiness, persisted
-provider data, or playable county claims.
+Parked history (do not re-activate without human ask): owner-gate 0.45E ladder,
+full Hosted Clawd paid surface, Plaza Row commerce, national road-chunk program.
 
 ## Named-Slice Rule
 

@@ -1,6 +1,12 @@
-# Atlas ChatGPT App Workspace
+# Atlas County Scout (ChatGPT App)
 
-Atlas is a ChatGPT app that turns counties into playable voxel worlds. The Alpha map opens as a geo-grounded Riverside County city map: users pick a district, inspect known places, drop stickers, and keep session-only notes. Scout Drops and campaign previews still exist as backend tools, but the primary UI is the map.
+**Product law:** [`docs/NORTH_FACE.md`](docs/NORTH_FACE.md).
+
+Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget) that turns counties into
+voxel worlds. The playable map is geo-grounded Riverside County / Eastvale:
+users inspect places, drop session stickers/notes, run Scout Drops, and preview
+7-day campaigns. Other US counties open as honest generated previews with real
+Census town names. Primary UI is map-first, not a dashboard.
 
 The first Alpha demo is:
 
