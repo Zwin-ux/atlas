@@ -29,9 +29,9 @@ export type RegionalPalette = {
 export const REGIONAL_PALETTES: Record<GeneratedDistrictArchetype, RegionalPalette> = {
   metro_grid: {
     archetype: "metro_grid",
-    // Soft concrete clay + cool steel roofs (not plastic grey).
-    body: ["#c4bfb4", "#b8c0c4", "#9eb8c0"],
-    roof: ["#6a7174", "#3a4550", "#b87a52"],
+    // Warm-grey concrete + charcoal roofs (split from cool river slate).
+    body: ["#c0b8b0", "#b0a8a0", "#a09890"],
+    roof: ["#3a3838", "#1c1c1e", "#5a4a42"],
     terrainTone: {
       paletteKey: "terrain.region.metro_grid",
       base: "#8a928e",
@@ -42,9 +42,9 @@ export const REGIONAL_PALETTES: Record<GeneratedDistrictArchetype, RegionalPalet
   },
   coastal_grid: {
     archetype: "coastal_grid",
-    // Sand-cream stucco clay + blue slate roofs (suburban-clay ref family).
-    body: ["#f6edd8", "#e2d0a8", "#eef4ea"],
-    roof: ["#3a5f7a", "#4a8a8c", "#6e7a82"],
+    // Sand-cream stucco clay + ocean slate roofs (cool roofs vs prairie barn-red).
+    body: ["#f8f0dc", "#e8d8b0", "#e8f2ec"],
+    roof: ["#2a5a78", "#3a8890", "#5a6e7a"],
     terrainTone: {
       paletteKey: "terrain.region.coastal_grid",
       base: "#dccfa4",
@@ -81,9 +81,10 @@ export const REGIONAL_PALETTES: Record<GeneratedDistrictArchetype, RegionalPalet
   },
   prairie_town: {
     archetype: "prairie_town",
-    // Wheat barn clay + barn-red / tin roofs.
-    body: ["#e0c46a", "#b85a48", "#f0e2c0"],
-    roof: ["#b0483a", "#9a9e96", "#6a8a54"],
+    // Saturated wheat + brick clay — far from coastal cream and metro slate
+    // (palette distinctness floor ≥ 0.16).
+    body: ["#f0c830", "#d04028", "#f8d878"],
+    roof: ["#d02818", "#5a6058", "#3a7830"],
     terrainTone: {
       paletteKey: "terrain.region.prairie_town",
       base: "#a8b258",
@@ -94,11 +95,10 @@ export const REGIONAL_PALETTES: Record<GeneratedDistrictArchetype, RegionalPalet
   },
   river_town: {
     archetype: "river_town",
-    // Cool river-slate clay body + deep navy roofs + cyan bank terrain.
-    // Must stay distinct from metro cool concrete, prairie warm brick, and
-    // mountain olive (ship + unit palette-distinctness floors).
-    body: ["#7898a2", "#6a8e9a", "#94aea8"],
-    roof: ["#1e4264", "#1a3a58", "#2a5640"],
+    // Cyan-slate clay body + deep navy roofs + cyan bank terrain.
+    // Must stay distinct from metro warm-grey, prairie wheat, mountain olive.
+    body: ["#4a8a9a", "#3a7a8a", "#5a9aaa"],
+    roof: ["#0e2a4a", "#0a2238", "#1a4a60"],
     terrainTone: {
       paletteKey: "terrain.region.river_town",
       base: "#24949e",

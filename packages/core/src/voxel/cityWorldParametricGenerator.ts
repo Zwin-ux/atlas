@@ -1021,34 +1021,47 @@ function buildingForZone(
     width = Math.max(width, Math.min(spec.width, 1.95));
     depth = Math.max(depth, Math.min(spec.depth, 1.12));
   }
-  // Desert variety: sparse basins only place a few homes — rotate silhouette
-  // classes so clone pressure cannot hit 0.4 with only 4–5 buildings.
+  // Regional home variety: rotate silhouette classes so clone pressure stays
+  // under parity floors when density climbs (desert/coastal especially).
   let styled = { ...spec, width, depth, height: spec.height };
-  if (countyParameters?.archetypeProfile.archetype === "desert_basin" && styled.kind === "home") {
-    const cycle = parcel.index % 3;
+  const archetype = countyParameters?.archetypeProfile.archetype;
+  if ((archetype === "desert_basin" || archetype === "coastal_grid") && styled.kind === "home") {
+    const cycle = parcel.index % 4;
     if (cycle === 0) {
       styled = {
         ...styled,
         facadeStyle: "cottage",
         roofShape: "gable",
-        width: Math.min(styled.width, 1.7),
-        height: Math.min(styled.height, 1.1),
+        width: Math.min(styled.width, 1.65),
+        depth: Math.min(styled.depth, 1.35),
+        height: Math.min(styled.height, 1.12),
       };
     } else if (cycle === 1) {
       styled = {
         ...styled,
         facadeStyle: "ranch",
-        roofShape: parcel.index % 2 === 0 ? "hip" : "gable",
-        width: Math.max(styled.width, 1.95),
-        height: Math.min(styled.height, 1.1),
+        roofShape: "hip",
+        width: Math.max(styled.width, 2.05),
+        depth: Math.min(Math.max(styled.depth, 1.15), 1.4),
+        height: Math.min(styled.height, 1.08),
+      };
+    } else if (cycle === 2) {
+      styled = {
+        ...styled,
+        facadeStyle: "ranch",
+        roofShape: "gable",
+        width: Math.max(styled.width * 0.92, 1.85),
+        depth: Math.max(styled.depth, 1.2),
+        height: Math.min(styled.height, 1.15),
       };
     } else {
       styled = {
         ...styled,
         facadeStyle: "rowhome",
         roofShape: "flat",
-        width: Math.max(styled.width, 1.8),
-        height: Math.min(Math.max(styled.height, 1.2), 1.45),
+        width: Math.max(styled.width, 1.75),
+        depth: Math.min(styled.depth, 1.25),
+        height: Math.min(Math.max(styled.height, 1.22), 1.48),
       };
     }
   }
@@ -2063,7 +2076,7 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
 
   const archetype = countyParameters.archetypeProfile.archetype;
   const tierProfile = (profile: GeneratedDistrictMassingProfile): GeneratedDistrictMassingProfile =>
-    applyUrbanizationTierMassingProfile(profile, countyParameters.urbanizationTier);
+    applyUrbanizationTierMassingProfile(profile, countyParameters.urbanizationTier, countyParameters.archetypeProfile.archetype);
   if (archetype === "metro_grid") {
     return tierProfile({
       residentialDensityFloor: 0.91,
@@ -2088,11 +2101,11 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
     return tierProfile({
       // Sparse desert multiplies density by ~0.42. Target ≥4 homes on sparse
       // fixtures (clone floor) without blowing maricopa mobile window weight.
-      // Chunky adobe footprints, keep height low for basin silhouette.
-      residentialDensityFloor: 0.84,
+      // Chunky adobe footprints; keep home variety (clone pressure ≤ 0.30).
+      residentialDensityFloor: 0.8,
       apartmentDensityFloor: 0.48,
       commercialDensityFloor: 0.5,
-      residentialCell: 1.88,
+      residentialCell: 1.95,
       apartmentCell: 3.55,
       commercialCellWidth: 7.2,
       commercialRowDepth: 4.2,
@@ -2101,14 +2114,15 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       footprintScale: 1.16,
       heightScale: 0.9,
       heightBiasMultiplier: 2.2,
-      cottageWeight: 1.05,
-      ranchWeight: 1.65,
-      rowhomeWeight: 0.48,
+      cottageWeight: 1.35,
+      ranchWeight: 1.45,
+      rowhomeWeight: 0.38,
       cornerStoreMinParcels: 9,
     });
   }
   if (archetype === "coastal_grid") {
     return tierProfile({
+      // National pass: shore fabric with ranch/cottage variety floor.
       residentialDensityFloor: 0.7,
       apartmentDensityFloor: 0.66,
       commercialDensityFloor: 0.74,
@@ -2118,17 +2132,19 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       commercialRowDepth: 3.45,
       commercialStripFill: 0.92,
       commercialMaxWidth: 6.2,
-      footprintScale: 1.08,
+      footprintScale: 1.1,
       heightScale: 1.06,
       heightBiasMultiplier: 3.1,
-      cottageWeight: 0.86,
-      ranchWeight: 1.18,
-      rowhomeWeight: 0.92,
+      cottageWeight: 1.05,
+      ranchWeight: 1.3,
+      rowhomeWeight: 0.8,
       cornerStoreMinParcels: 8,
     });
   }
   if (archetype === "mountain_valley") {
     return tierProfile({
+      // Keep layout geometry stable for frontier cliff framing (0.79T).
+      // Chunky silhouette only via footprint/height — not denser cells.
       residentialDensityFloor: 0.64,
       apartmentDensityFloor: 0.52,
       commercialDensityFloor: 0.6,
@@ -2138,8 +2154,8 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
       commercialRowDepth: 3.9,
       commercialStripFill: 0.86,
       commercialMaxWidth: 6.4,
-      footprintScale: 1.12,
-      heightScale: 1.08,
+      footprintScale: 1.18,
+      heightScale: 1.12,
       heightBiasMultiplier: 3.6,
       cottageWeight: 1.5,
       ranchWeight: 1.08,
@@ -2149,17 +2165,18 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
   }
   if (archetype === "prairie_town") {
     return tierProfile({
-      residentialDensityFloor: 0.6,
-      apartmentDensityFloor: 0.45,
-      commercialDensityFloor: 0.56,
-      residentialCell: 2.45,
-      apartmentCell: 3.45,
-      commercialCellWidth: 6.4,
-      commercialRowDepth: 4,
-      commercialStripFill: 0.86,
+      // National pass: denser ranch rows + chunky footprints for first paint.
+      residentialDensityFloor: 0.74,
+      apartmentDensityFloor: 0.52,
+      commercialDensityFloor: 0.64,
+      residentialCell: 2.15,
+      apartmentCell: 3.25,
+      commercialCellWidth: 6.2,
+      commercialRowDepth: 3.9,
+      commercialStripFill: 0.88,
       commercialMaxWidth: 6.6,
-      footprintScale: 1.2,
-      heightScale: 0.94,
+      footprintScale: 1.24,
+      heightScale: 0.96,
       heightBiasMultiplier: 2.4,
       cottageWeight: 0.5,
       ranchWeight: 2.1,
@@ -2169,17 +2186,18 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
   }
 
   return tierProfile({
-    residentialDensityFloor: 0.66,
-    apartmentDensityFloor: 0.6,
-    commercialDensityFloor: 0.68,
-    residentialCell: 2.3,
-    apartmentCell: 2.95,
-    commercialCellWidth: 5.7,
-    commercialRowDepth: 3.55,
-    commercialStripFill: 0.88,
+    // river_town default branch
+    residentialDensityFloor: 0.74,
+    apartmentDensityFloor: 0.64,
+    commercialDensityFloor: 0.72,
+    residentialCell: 2.15,
+    apartmentCell: 2.85,
+    commercialCellWidth: 5.55,
+    commercialRowDepth: 3.5,
+    commercialStripFill: 0.9,
     commercialMaxWidth: 6.2,
-    footprintScale: 1.1,
-    heightScale: 1.03,
+    footprintScale: 1.14,
+    heightScale: 1.06,
     heightBiasMultiplier: 3,
     cottageWeight: 1.24,
     ranchWeight: 1.02,
@@ -2191,6 +2209,7 @@ function generatedMassingProfileFor(countyParameters?: CountyGenerationParameter
 function applyUrbanizationTierMassingProfile(
   profile: GeneratedDistrictMassingProfile,
   urbanizationTier: CountyGenerationParameters["urbanizationTier"],
+  archetype?: GeneratedDistrictArchetype,
 ): GeneratedDistrictMassingProfile {
   if (urbanizationTier === "urban_core") {
     return {
@@ -2234,15 +2253,17 @@ function applyUrbanizationTierMassingProfile(
       cornerStoreMinParcels: Math.max(profile.cornerStoreMinParcels, 12),
     };
   }
-  // Sparse / frontier: keep open-land massing (camera/relief tests depend on it).
-  // Desert clone pressure is handled by desert_basin base density floors above,
-  // not by global sparse densification that shifts mountain opening frames.
+  // Sparse / frontier: keep open-land massing (mountain cliff framing depends
+  // on it). Desert/coastal need a higher density floor so home count stays ≥4
+  // (clone pressure 1/n cannot clear 0.30 with only 3 homes).
+  const sparseHomeFloor = archetype === "desert_basin" || archetype === "coastal_grid" ? 0.52 : 0.22;
+  const sparseCellMul = archetype === "desert_basin" || archetype === "coastal_grid" ? 1.22 : 1.48;
   return {
     ...profile,
-    residentialDensityFloor: Math.max(0.22, profile.residentialDensityFloor * 0.42),
+    residentialDensityFloor: Math.max(sparseHomeFloor, profile.residentialDensityFloor * 0.42),
     apartmentDensityFloor: Math.max(0.18, profile.apartmentDensityFloor * 0.3),
     commercialDensityFloor: Math.max(0.22, profile.commercialDensityFloor * 0.45),
-    residentialCell: profile.residentialCell * 1.48,
+    residentialCell: profile.residentialCell * sparseCellMul,
     apartmentCell: profile.apartmentCell * 1.35,
     commercialCellWidth: profile.commercialCellWidth * 1.32,
     commercialRowDepth: profile.commercialRowDepth * 1.1,
@@ -3113,6 +3134,9 @@ type BestGeneratedFocusResult = {
   landmarkMargin: number | undefined;
 };
 
+// Opening zoom floors: mountain cliffs + water-aware occupancy tests depend
+// on pullback to minZoom; denser national fabric comes from massing profiles,
+// not a tighter default frame.
 const DESKTOP_GENERATED_FOCUS_FRAME: GeneratedFocusFrameProfile = { presetId: "desktop", zoom: 1.32, minZoom: 0.75 };
 const MOBILE_GENERATED_FOCUS_FRAME: GeneratedFocusFrameProfile = { presetId: "mobile", zoom: 0.92, minZoom: 0.75 };
 
