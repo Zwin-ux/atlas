@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "purpose": "Progressive NEAR-road bake order for national coverage. Mode B boards work without these.",
+  "band": "near",
+  "waves": [
+    {
+      "id": "wave-0-dogfood",
+      "note": "Already baked in-repo for product dogfood",
+      "slugs": [
+        "miami-dade-fl",
+        "cook-il",
+        "suffolk-ma",
+        "orleans-parish-la",
+        "sedgwick-ks",
+        "apache-az",
+        "loving-tx",
+        "adams-co",
+        "benton-ar",
+        "linn-ia"
+      ]
+    },
+    {
+      "id": "wave-1-top-metros",
+      "note": "Largest metros by population / ChatGPT demand — bake next, upload to origin (not git)",
+      "slugs": [
+        "los-angeles-ca",
+        "harris-tx",
+        "maricopa-az",
+        "san-diego-ca",
+        "orange-ca",
+        "miami-dade-fl",
+        "dallas-tx",
+        "kings-ny",
+        "queens-ny",
+        "riverside-ca",
+        "clark-nv",
+        "tarrant-tx",
+        "bexar-tx",
+        "broward-fl",
+        "santa-clara-ca",
+        "wayne-mi",
+        "alameda-ca",
+        "new-york-ny",
+        "philadelphia-pa",
+        "king-wa",
+        "middlesex-ma",
+        "suffolk-ny",
+        "sacramento-ca",
+        "bronx-ny",
+        "palm-beach-fl",
+        "cuyahoga-oh",
+        "allegheny-pa",
+        "oakland-mi",
+        "franklin-oh",
+        "travis-tx",
+        "hillsborough-fl",
+        "hennepin-mn",
+        "fairfax-va",
+        "wake-nc",
+        "mecklenburg-nc",
+        "fulton-ga",
+        "gwinnett-ga",
+        "duval-fl",
+        "pinellas-fl",
+        "milwaukee-wi",
+        "salt-lake-ut",
+        "denver-co",
+        "multnomah-or",
+        "honolulu-hi",
+        "district-of-columbia-dc"
+      ]
+    },
+    {
+      "id": "wave-2-state-seats-and-regional",
+      "note": "State capitals + mid-size metros — after wave-1 origin pipeline is green",
+      "slugs": []
+    },
+    {
+      "id": "wave-3-national-remainder",
+      "note": "All remaining counties from geo-pack index — offline farm",
+      "slugs": []
+    }
+  ],
+  "blocked": [
+    {
+      "slug": "maricopa-az",
+      "reason": "build-county-road-chunks.mjs stack overflow on bake — fix before wave-1 complete"
+    }
+  ]
+}

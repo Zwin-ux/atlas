@@ -81,7 +81,14 @@ import {
 } from "./security.js";
 import { loadCountyTownAnchorIndex, townAnchorsForCounty } from "./countyTownAnchorIndex.js";
 import { createCountyGeoPackLoader, serveCountyGeoPack } from "./countyGeoPack.js";
-import { createFilesystemRoadChunkStore, createRoadChunkRouteMetrics, serveRoadCatalog, serveRoadChunk, serveRoadManifest, type RoadBand } from "./roadChunkStore.js";
+import {
+  createRoadChunkRouteMetrics,
+  createRoadChunkStoreFromEnv,
+  serveRoadCatalog,
+  serveRoadChunk,
+  serveRoadManifest,
+  type RoadBand,
+} from "./roadChunkStore.js";
 
 const SERVER_VERSION = "0.1.0";
 const WIDGET_URI = "ui://widget/atlas-city-world-0781v.html";
@@ -140,13 +147,15 @@ async function nationalCountyMapMeta(
   return { scenePacket, countyGeoPack, townAnchors, ...(generatedDraft ? { generatedDraft } : {}), userFacingCopy };
 }
 
-// Road-chunk serving (0.78-R2): catalog pointer + manifest + chunk routes over a
-// CDN-swappable store. Filesystem-backed today (Railway volume / repo fixture at
-// data/road-chunks). Additive + flag-dark — no client fetches it until the CSP
-// allowlist flip, and it serves the same class of public read-only geographic
-// bytes as /geo-pack, so it needs no auth.
+// Road-chunk serving (0.78-R2): catalog + manifest + chunk over a CDN-swappable
+// store. Filesystem dogfood packs stay under data/road-chunks; national packs
+// live on ATLAS_ROAD_CHUNKS_ORIGIN (bucket). Client may fetch immutable bytes
+// from ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN (docs/NATIONAL_SCALE.md).
 const ROAD_CHUNKS_DIR = resolve(ROOT_DIR, "data", "road-chunks");
-const roadChunkStore = createFilesystemRoadChunkStore(ROAD_CHUNKS_DIR);
+const roadChunkStoreBundle = createRoadChunkStoreFromEnv(process.env, { filesystemRoot: ROAD_CHUNKS_DIR });
+const roadChunkStore = roadChunkStoreBundle.store;
+const roadChunksOrigin = roadChunkStoreBundle.origin;
+const roadChunksPublicOrigin = roadChunkStoreBundle.publicOrigin;
 // Hit/miss/latency counters for the road routes, surfaced in the token-gated
 // ops-stats payload (counting logic is unit-tested in roadChunkStore).
 const roadChunkRouteMetrics = createRoadChunkRouteMetrics();
@@ -1967,7 +1976,12 @@ function mcpStatsPayload(): unknown {
       ),
     },
     // Read-only road-chunk serving routes (0.78-R2): hit/miss/latency per route.
-    roadChunks: roadChunkRouteMetrics.snapshot(),
+    roadChunks: {
+      ...roadChunkRouteMetrics.snapshot(),
+      originConfigured: Boolean(roadChunksOrigin),
+      publicOriginConfigured: Boolean(roadChunksPublicOrigin),
+      localCoverageCount: loadRoadCoverageSummary().count,
+    },
   };
 }
 
@@ -2350,8 +2364,75 @@ async function readyPayload(): Promise<unknown> {
       googleMapsConfigured: geoStatus.googleMapsConfigured,
       liveApiCallsEnabled: geoStatus.liveApiCallsEnabled,
     },
+    // National scale posture (docs/NATIONAL_SCALE.md) — boards are national;
+    // roads are progressive + origin-backed when configured.
+    roadChunks: {
+      localCoverageCount: loadRoadCoverageSummary().count,
+      originConfigured: Boolean(roadChunksOrigin),
+      publicOriginConfigured: Boolean(roadChunksPublicOrigin),
+    },
     configBlockerCount: scenePacketRuntimeConfig.blockers.length,
     configBlockers: scenePacketRuntimeConfig.blockers,
+  };
+}
+
+type RoadCoverageSummary = {
+  version: number;
+  generatedAt: string | null;
+  count: number;
+  counties: Array<{ slug: string; chunkCount?: number | null; band?: string | null }>;
+};
+
+function loadRoadCoverageSummary(): RoadCoverageSummary {
+  const empty: RoadCoverageSummary = { version: 1, generatedAt: null, count: 0, counties: [] };
+  try {
+    const raw = readFileSync(resolve(ROAD_CHUNKS_DIR, "_coverage.json"), "utf8");
+    const parsed = JSON.parse(raw) as Partial<RoadCoverageSummary>;
+    const counties = Array.isArray(parsed.counties)
+      ? parsed.counties.flatMap((raw) => {
+          if (!raw || typeof raw !== "object") return [];
+          const row = raw as { slug?: unknown; chunkCount?: unknown; band?: unknown };
+          if (typeof row.slug !== "string") return [];
+          return [
+            {
+              slug: row.slug,
+              chunkCount: typeof row.chunkCount === "number" ? row.chunkCount : null,
+              band: typeof row.band === "string" ? row.band : null,
+            },
+          ];
+        })
+      : [];
+    return {
+      version: typeof parsed.version === "number" ? parsed.version : 1,
+      generatedAt: typeof parsed.generatedAt === "string" ? parsed.generatedAt : null,
+      count: typeof parsed.count === "number" ? parsed.count : counties.length,
+      counties,
+    };
+  } catch {
+    return empty;
+  }
+}
+
+/** Public map bootstrap — client uses publicOrigin for immutable road bytes. */
+function mapConfigPayload(): Record<string, unknown> {
+  const coverage = loadRoadCoverageSummary();
+  return {
+    ok: true,
+    version: SERVER_VERSION,
+    modeB: {
+      nationalGeoPacks: true,
+      note: "Every supported county opens as a Census board (outline, water, towns, notes).",
+    },
+    roadChunks: {
+      publicOrigin: roadChunksPublicOrigin,
+      originConfigured: Boolean(roadChunksOrigin),
+      coverageCount: coverage.count,
+      coverageGeneratedAt: coverage.generatedAt,
+      // Slug set only — clients skip NEAR thrash when county is absent.
+      bakedSlugs: coverage.counties.map((c) => c.slug),
+      progressive: true,
+      honesty: "Streets are Census TIGER when baked; buildings are never claimed.",
+    },
   };
 }
 
@@ -3899,6 +3980,33 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && handleWorldRoute(url, res)) {
+    return;
+  }
+
+  // National map bootstrap (docs/NATIONAL_SCALE.md): publicOrigin + baked slug set.
+  if (url.pathname === "/map-config" && req.method === "GET") {
+    if (!(await enforceRateLimit(req, res, "road_chunks", ROAD_CHUNKS_RATE_LIMIT))) return;
+    res.writeHead(200, {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "public, max-age=60",
+      "access-control-allow-origin": "*",
+      "cross-origin-resource-policy": "cross-origin",
+    });
+    res.end(JSON.stringify(mapConfigPayload()));
+    return;
+  }
+
+  // Lightweight coverage index (which counties have NEAR roads published).
+  if (url.pathname === "/road-coverage" && req.method === "GET") {
+    if (!(await enforceRateLimit(req, res, "road_chunks", ROAD_CHUNKS_RATE_LIMIT))) return;
+    const coverage = loadRoadCoverageSummary();
+    res.writeHead(200, {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "public, max-age=60",
+      "access-control-allow-origin": "*",
+      "cross-origin-resource-policy": "cross-origin",
+    });
+    res.end(JSON.stringify({ ok: true, ...coverage, publicOrigin: roadChunksPublicOrigin }));
     return;
   }
 

@@ -31,23 +31,32 @@ See session plan / dogfood: Riverside clay; national board; honesty; notes on to
 3. **More towns** — up to **12** Census places/county (18,447 national) ✅  
 4. **Zoom-aware labels** — more names when zoomed in ✅  
 5. **Roads at near zoom** — TIGER road-chunks for dogfood set ✅  
+6. **National scale path** — boards nationwide; roads progressive + origin/CDN ✅ law  
 
-### Road packs (NEAR band, opt-in by county)
+### Road packs (NEAR band, progressive)
 
-Baked under `data/road-chunks/<slug>/` and served at `/road-catalog` + `/road-chunks/…`:
+**Millions-scale law:** `docs/NATIONAL_SCALE.md`. Mode B works for all 3,222 counties without roads. Streets are progressive enhancement (~25–50 GB national — **not** in the app image).
+
+| Layer | Where |
+|-------|--------|
+| Dogfood packs | `data/road-chunks/<slug>/` in deploy (small set) |
+| National packs | Object store / CDN via `ATLAS_ROAD_CHUNKS_ORIGIN` + optional `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` |
+| Coverage index | `data/road-chunks/_coverage.json` → `GET /road-coverage`, `GET /map-config` |
+| Bake order | `data/road-chunks/_priority-metros.json` |
 
 | County | Notes |
 |--------|--------|
-| miami-dade-fl | Dogfood metro |
-| cook-il | Dogfood metro |
+| miami-dade-fl, cook-il | Dogfood metros |
 | apache-az, loving-tx, orleans-parish-la, sedgwick-ks, suffolk-ma | Earlier bakes |
 | adams-co, benton-ar, linn-ia | Mid-size dogfood |
-| maricopa-az | **Not baked** — bake stack overflow; honesty shows unavailable |
+| maricopa-az | **Blocked** — bake stack overflow |
 
 Honesty: band-aware banner + `roadStatus` (ready / sparse / loading / unavailable). No fake buildings.
 
 ## Next
 
-1. Human ChatGPT dogfood: Miami + Cook — tap town → streets appear; honesty line correct  
-2. Optional: fix maricopa bake (stack overflow in `build-county-road-chunks.mjs`)  
-3. National road expand is later — do not restart national clay massing
+1. Human ChatGPT dogfood: Miami + Cook — tap town → streets appear; honesty correct  
+2. **Infra:** create road-chunks bucket, sync, set `ATLAS_ROAD_CHUNKS_*` on Railway  
+3. Wave-1 priority metros bake → origin only (not git)  
+4. Windowed NEAR fetch (stop full-county prefetch)  
+5. Fix maricopa bake; never restart national clay massing

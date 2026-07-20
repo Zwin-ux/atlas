@@ -78,6 +78,156 @@ export interface RoadChunkStore {
   ): Promise<StoreResult<EncodedBytes>>;
 }
 
+/**
+ * HTTP origin store — same path layout as the filesystem tree under
+ * data/road-chunks (see docs/NATIONAL_SCALE.md). Used as national fallback so
+ * multi-GB packs live on a bucket/CDN, not in the Railway image.
+ */
+export function createHttpRoadChunkStore(
+  baseUrl: string,
+  fetchImpl: typeof fetch = fetch,
+): RoadChunkStore {
+  const root = String(baseUrl ?? "").trim().replace(/\/+$/, "");
+  if (!root) {
+    throw new Error("createHttpRoadChunkStore requires a non-empty baseUrl");
+  }
+
+  async function readEncodedHttp(path: string, accept: AcceptEncoding): Promise<StoreResult<EncodedBytes>> {
+    try {
+      const headers: Record<string, string> = {
+        accept: "application/json, */*",
+      };
+      // Prefer precompressed siblings when the origin serves them as separate keys
+      // (our bake writes .json.br / .json.gz). Fall back to identity .json.
+      const candidates: Array<{ suffix: string; encoding: ResolvedEncoding }> = [];
+      if (accept === "br") candidates.push({ suffix: ".br", encoding: "br" });
+      if (accept === "gzip" || accept === "br") candidates.push({ suffix: ".gz", encoding: "gzip" });
+      candidates.push({ suffix: "", encoding: "identity" });
+
+      for (const candidate of candidates) {
+        const url = `${root}/${path}${candidate.suffix}`;
+        const res = await fetchImpl(url, { headers, redirect: "follow" });
+        if (res.status === 404) continue;
+        if (res.status === 410) return { ok: false, reason: "retired" };
+        if (!res.ok) return { ok: false, reason: "unavailable" };
+        const bytes = Buffer.from(await res.arrayBuffer());
+        return { ok: true, value: { bytes, encoding: candidate.encoding } };
+      }
+      return { ok: false, reason: "missing" };
+    } catch {
+      return { ok: false, reason: "unavailable" };
+    }
+  }
+
+  return {
+    async resolveCurrentEpoch(slug: string): Promise<StoreResult<CatalogPointer>> {
+      if (!isValidCountySlug(slug)) return { ok: false, reason: "missing" };
+      try {
+        const res = await fetchImpl(`${root}/${slug}/catalog.json`, {
+          headers: { accept: "application/json", "accept-encoding": "identity" },
+          redirect: "follow",
+        });
+        if (res.status === 404) return { ok: false, reason: "missing" };
+        if (!res.ok) return { ok: false, reason: "unavailable" };
+        const parsed = (await res.json()) as Partial<CatalogPointer>;
+        if (!parsed || typeof parsed.packHash !== "string" || typeof parsed.schemaVersion !== "string") {
+          return { ok: false, reason: "unavailable" };
+        }
+        return {
+          ok: true,
+          value: {
+            basisId: typeof parsed.basisId === "string" ? parsed.basisId : "",
+            schemaVersion: parsed.schemaVersion,
+            packHash: parsed.packHash,
+            manifestUri: typeof parsed.manifestUri === "string" ? parsed.manifestUri : "",
+          },
+        };
+      } catch {
+        return { ok: false, reason: "unavailable" };
+      }
+    },
+
+    async getManifest(slug, schemaVersion, packHash, accept): Promise<StoreResult<EncodedBytes>> {
+      if (!isValidCountySlug(slug) || !isValidPackHash(packHash)) return { ok: false, reason: "missing" };
+      const result = await readEncodedHttp(`${slug}/${schemaVersion}/${packHash}/manifest.json`, accept);
+      if (!result.ok && result.reason === "missing") return { ok: false, reason: "retired" };
+      return result;
+    },
+
+    async getChunk(slug, schemaVersion, packHash, band, chunkId, accept): Promise<StoreResult<EncodedBytes>> {
+      if (
+        !isValidCountySlug(slug) ||
+        !isValidPackHash(packHash) ||
+        !isValidRoadBand(band) ||
+        !isValidChunkId(chunkId)
+      ) {
+        return { ok: false, reason: "missing" };
+      }
+      // Missing under a published epoch → missing-expected (caller maps 404).
+      // Entire epoch gone on origin → try path; 404 on identity → missing.
+      return readEncodedHttp(`${slug}/${schemaVersion}/${packHash}/${band}/${chunkId}.json`, accept);
+    },
+  };
+}
+
+/**
+ * FS (or local) first, then remote origin. Lets dogfood stay in the image while
+ * national packs live only on the bucket.
+ */
+export function createFallbackRoadChunkStore(primary: RoadChunkStore, secondary: RoadChunkStore): RoadChunkStore {
+  async function prefer(
+    first: Promise<StoreResult<CatalogPointer | EncodedBytes>>,
+    second: () => Promise<StoreResult<CatalogPointer | EncodedBytes>>,
+  ): Promise<StoreResult<CatalogPointer | EncodedBytes>> {
+    const a = await first;
+    if (a.ok) return a;
+    // Real storage faults on primary should surface; don't mask with secondary.
+    if (a.reason === "unavailable") return a;
+    return second();
+  }
+
+  return {
+    resolveCurrentEpoch(slug) {
+      return prefer(primary.resolveCurrentEpoch(slug), () => secondary.resolveCurrentEpoch(slug)) as Promise<
+        StoreResult<CatalogPointer>
+      >;
+    },
+    getManifest(slug, schemaVersion, packHash, accept) {
+      return prefer(primary.getManifest(slug, schemaVersion, packHash, accept), () =>
+        secondary.getManifest(slug, schemaVersion, packHash, accept),
+      ) as Promise<StoreResult<EncodedBytes>>;
+    },
+    getChunk(slug, schemaVersion, packHash, band, chunkId, accept) {
+      return prefer(primary.getChunk(slug, schemaVersion, packHash, band, chunkId, accept), () =>
+        secondary.getChunk(slug, schemaVersion, packHash, band, chunkId, accept),
+      ) as Promise<StoreResult<EncodedBytes>>;
+    },
+  };
+}
+
+/** Build the process-wide road store from env (testable pure helper). */
+export function createRoadChunkStoreFromEnv(
+  env: NodeJS.ProcessEnv,
+  options: { filesystemRoot: string; fetchImpl?: typeof fetch } = { filesystemRoot: "" },
+): { store: RoadChunkStore; origin: string | null; publicOrigin: string | null } {
+  const filesystemRoot = options.filesystemRoot;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const origin = (env.ATLAS_ROAD_CHUNKS_ORIGIN ?? "").trim().replace(/\/+$/, "") || null;
+  // Client-direct CDN URL only when explicitly advertised (must allow CORS *).
+  // Server-side ORIGIN can be private; do not leak it as publicOrigin by default.
+  const publicOrigin = (env.ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN ?? "").trim().replace(/\/+$/, "") || null;
+  const fsStore = createFilesystemRoadChunkStore(filesystemRoot);
+  if (!origin) {
+    return { store: fsStore, origin: null, publicOrigin };
+  }
+  const httpStore = createHttpRoadChunkStore(origin, fetchImpl);
+  return {
+    store: createFallbackRoadChunkStore(fsStore, httpStore),
+    origin,
+    publicOrigin,
+  };
+}
+
 export function createFilesystemRoadChunkStore(rootDir: string): RoadChunkStore {
   const root = resolve(rootDir);
 

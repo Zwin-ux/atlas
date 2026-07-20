@@ -7,8 +7,11 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   classifyRoadRouteStatus,
+  createFallbackRoadChunkStore,
   createFilesystemRoadChunkStore,
+  createHttpRoadChunkStore,
   createRoadChunkRouteMetrics,
+  createRoadChunkStoreFromEnv,
   isValidChunkId,
   isValidPackHash,
   isValidRoadBand,
@@ -344,4 +347,104 @@ test("synthetic: storage-unavailable on corrupt catalog and manifestless epoch",
     await serveRoadManifest(man.res, synthStore, "noman-fl", "roadchunk/1", "sha256-noman", null as AcceptEncoding),
     503,
   );
+});
+
+// ---------------------------------------------------------------------------
+// National scale: HTTP origin + FS fallback (docs/NATIONAL_SCALE.md)
+// ---------------------------------------------------------------------------
+
+test("http store resolves catalog from origin layout", async () => {
+  const responses = new Map<string, { status: number; body: string }>([
+    [
+      "https://cdn.example/roads/remote-co/catalog.json",
+      {
+        status: 200,
+        body: JSON.stringify({
+          basisId: "atlas-county-equirect-v1",
+          schemaVersion: "roadchunk/1",
+          packHash: "sha256-remote",
+          manifestUri: "roadchunk/1/sha256-remote/manifest.json",
+        }),
+      },
+    ],
+    [
+      "https://cdn.example/roads/remote-co/roadchunk/1/sha256-remote/manifest.json",
+      { status: 200, body: JSON.stringify({ ok: true, bands: {} }) },
+    ],
+    [
+      "https://cdn.example/roads/remote-co/roadchunk/1/sha256-remote/near/c0_0.json",
+      { status: 200, body: JSON.stringify({ chunkId: "c0_0", features: [] }) },
+    ],
+  ]);
+  const fetchImpl = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    const hit = responses.get(url);
+    if (!hit) return new Response("missing", { status: 404 });
+    return new Response(hit.body, { status: hit.status, headers: { "content-type": "application/json" } });
+  }) as typeof fetch;
+
+  const store = createHttpRoadChunkStore("https://cdn.example/roads", fetchImpl);
+  const epoch = await store.resolveCurrentEpoch("remote-co");
+  assert.ok(epoch.ok);
+  if (epoch.ok) assert.equal(epoch.value.packHash, "sha256-remote");
+
+  const man = await store.getManifest("remote-co", "roadchunk/1", "sha256-remote", null);
+  assert.ok(man.ok);
+
+  const chunk = await store.getChunk("remote-co", "roadchunk/1", "sha256-remote", "near", "c0_0", null);
+  assert.ok(chunk.ok);
+
+  const absent = await store.resolveCurrentEpoch("nowhere-zz");
+  assert.equal(absent.ok, false);
+  if (!absent.ok) assert.equal(absent.reason, "missing");
+});
+
+test("fallback store prefers FS then origin", async () => {
+  const fetchImpl = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/origin-only-xx/catalog.json")) {
+      return new Response(
+        JSON.stringify({
+          basisId: "atlas-county-equirect-v1",
+          schemaVersion: "roadchunk/1",
+          packHash: "sha256-origin",
+          manifestUri: "roadchunk/1/sha256-origin/manifest.json",
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response("no", { status: 404 });
+  }) as typeof fetch;
+
+  const remote = createHttpRoadChunkStore("https://cdn.example/roads", fetchImpl);
+  const combined = createFallbackRoadChunkStore(synthStore, remote);
+
+  // Local synth-fl wins on FS.
+  const local = await combined.resolveCurrentEpoch("synth-fl");
+  assert.ok(local.ok);
+  if (local.ok) assert.equal(local.value.packHash, SYNTH_HASH);
+
+  // Absent on FS, present on origin.
+  const originOnly = await combined.resolveCurrentEpoch("origin-only-xx");
+  assert.ok(originOnly.ok);
+  if (originOnly.ok) assert.equal(originOnly.value.packHash, "sha256-origin");
+});
+
+test("createRoadChunkStoreFromEnv wires origin and publicOrigin", () => {
+  const empty = createRoadChunkStoreFromEnv({}, { filesystemRoot: tmpRoot });
+  assert.equal(empty.origin, null);
+  assert.equal(empty.publicOrigin, null);
+
+  const withOrigin = createRoadChunkStoreFromEnv(
+    {
+      ATLAS_ROAD_CHUNKS_ORIGIN: "https://cdn.example/roads/",
+      ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN: "https://public.cdn.example/roads/",
+    },
+    {
+      filesystemRoot: tmpRoot,
+      fetchImpl: (async () => new Response("{}", { status: 404 })) as typeof fetch,
+    },
+  );
+  assert.equal(withOrigin.origin, "https://cdn.example/roads");
+  assert.equal(withOrigin.publicOrigin, "https://public.cdn.example/roads");
 });

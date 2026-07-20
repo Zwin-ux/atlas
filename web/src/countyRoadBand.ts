@@ -69,6 +69,60 @@ export type CountyRoadBandResult = {
 
 const TICK_MS = 80; // < WHEEL_IDLE_SETTLE_MS so wheel-idle settles promptly
 
+/** National scale: optional public origin for immutable road bytes (CDN/bucket). */
+type MapRoadConfig = {
+  publicOrigin: string | null;
+  bakedSlugSet: Set<string> | null;
+};
+
+let mapRoadConfigPromise: Promise<MapRoadConfig> | null = null;
+
+async function loadMapRoadConfig(): Promise<MapRoadConfig> {
+  if (!mapRoadConfigPromise) {
+    mapRoadConfigPromise = (async () => {
+      try {
+        const res = await fetch("/map-config", { credentials: "omit" });
+        if (!res.ok) return { publicOrigin: null, bakedSlugSet: null };
+        const body = (await res.json()) as {
+          roadChunks?: { publicOrigin?: string | null; bakedSlugs?: string[] };
+        };
+        const origin =
+          typeof body.roadChunks?.publicOrigin === "string" && body.roadChunks.publicOrigin.trim()
+            ? body.roadChunks.publicOrigin.trim().replace(/\/+$/, "")
+            : null;
+        const slugs = Array.isArray(body.roadChunks?.bakedSlugs)
+          ? new Set(body.roadChunks!.bakedSlugs!.filter((s): s is string => typeof s === "string"))
+          : null;
+        return { publicOrigin: origin, bakedSlugSet: slugs };
+      } catch {
+        return { publicOrigin: null, bakedSlugSet: null };
+      }
+    })();
+  }
+  return mapRoadConfigPromise;
+}
+
+/** Catalog stays on the API (mutable pointer). Manifest/chunks may hit public origin. */
+function roadAssetUrls(
+  slug: string,
+  catalog: RoadCatalog,
+  publicOrigin: string | null,
+): { catalogUrl: string; manifestUrl: string; chunkBase: string } {
+  const catalogUrl = `/road-catalog/${slug}/current`;
+  if (publicOrigin) {
+    return {
+      catalogUrl,
+      manifestUrl: `${publicOrigin}/${slug}/${catalog.manifestUri}`,
+      chunkBase: `${publicOrigin}/${slug}/${catalog.schemaVersion}/${catalog.packHash}/near/`,
+    };
+  }
+  return {
+    catalogUrl,
+    manifestUrl: `/road-chunks/${slug}/${catalog.manifestUri}`,
+    chunkBase: `/road-chunks/${slug}/${catalog.schemaVersion}/${catalog.packHash}/near/`,
+  };
+}
+
 type QaPerfProbe = { perf?: { graphicsCount?: () => number; sceneRebuilds?: number } };
 
 function qaProbe(): QaPerfProbe | undefined {
@@ -143,6 +197,14 @@ export function useCountyRoadBand(
       const fresh = () => prefetchRef.current.generation === generation && !signal.aborted;
 
       onPhase?.("fetch-start");
+      const mapCfg = await loadMapRoadConfig();
+      if (!fresh()) return null;
+      // Skip network thrash when coverage index says this county has no roads yet
+      // (national progressive bake — most of 3,222 counties start absent).
+      if (mapCfg.bakedSlugSet && !mapCfg.bakedSlugSet.has(slug)) {
+        throw new Error("catalog absent (coverage)");
+      }
+
       const catalogRes = await fetch(`/road-catalog/${slug}/current`, { signal });
       if (!catalogRes.ok) throw new Error(`catalog ${catalogRes.status}`);
       const catalog = (await catalogRes.json()) as RoadCatalog;
@@ -151,7 +213,8 @@ export function useCountyRoadBand(
       epochRef.current = epoch;
       dispatch({ type: "pin-epoch", epoch });
 
-      const manifestRes = await fetch(`/road-chunks/${slug}/${catalog.manifestUri}`, { signal });
+      const urls = roadAssetUrls(slug, catalog, mapCfg.publicOrigin);
+      const manifestRes = await fetch(urls.manifestUrl, { signal });
       if (!manifestRes.ok) throw new Error(`manifest ${manifestRes.status}`);
       const manifest = (await manifestRes.json()) as RoadManifest;
       const near = manifest.bands["near"];
@@ -164,7 +227,9 @@ export function useCountyRoadBand(
         }
       }
 
-      const base = `/road-chunks/${slug}/${catalog.schemaVersion}/${catalog.packHash}/near/`;
+      // National note: full-county prefetch is OK for dogfood; windowed fetch is
+      // the next scale step (docs/NATIONAL_SCALE.md). Origin/CDN still required.
+      const base = urls.chunkBase;
       const chunks: RoadChunk[] = [];
       const batch = 12;
       for (let i = 0; i < chunkIds.length; i += batch) {

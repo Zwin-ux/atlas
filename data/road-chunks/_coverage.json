@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "generatedAt": "2026-07-20T23:29:14.155Z",
+  "count": 10,
+  "counties": [
+    {
+      "slug": "adams-co",
+      "packHash": "sha256-e29be9e90d7b8b54bb275574f9209fe4ae7c9beea9d18bbd483342f079ba4302",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 820,
+      "band": "near",
+      "bakedAt": "2026-07-20T23:14:32.778Z"
+    },
+    {
+      "slug": "apache-az",
+      "packHash": "sha256-2615bc7f7b870a98e08ed650c733d5e60e94e04f0edf5bdcec174ec846b7ca7f",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 6535,
+      "band": "near",
+      "bakedAt": "2026-07-18T19:59:39.133Z"
+    },
+    {
+      "slug": "benton-ar",
+      "packHash": "sha256-e15d4c7c1a21518bf6169804df834820f658a8458fd09eb576a6c260b689e6d3",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 587,
+      "band": "near",
+      "bakedAt": "2026-07-20T23:15:09.391Z"
+    },
+    {
+      "slug": "cook-il",
+      "packHash": "sha256-8eaca48186c28704b2a2bcd8f6f86e72981ca9666f975d6e4cf2c960557f49ec",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 668,
+      "band": "near",
+      "bakedAt": "2026-07-20T23:11:53.162Z"
+    },
+    {
+      "slug": "linn-ia",
+      "packHash": "sha256-ce403314b904aedae33d93192367a5562d492c9044fb92d313cb14e6a71e3f69",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 480,
+      "band": "near",
+      "bakedAt": "2026-07-20T23:14:42.119Z"
+    },
+    {
+      "slug": "loving-tx",
+      "packHash": "sha256-a5e1d0f839748cce9c48907b660848988cf6fd70ff9608d67f967ce7e7d619c6",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 299,
+      "band": "near",
+      "bakedAt": "2026-07-18T19:57:26.400Z"
+    },
+    {
+      "slug": "miami-dade-fl",
+      "packHash": "sha256-f13c422b08e794fc9280348f7246a93afba2179a6804f4a22db07486b337aa91",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 649,
+      "band": "near",
+      "bakedAt": "2026-07-18T19:10:37.617Z"
+    },
+    {
+      "slug": "orleans-parish-la",
+      "packHash": "sha256-e886db25ad522df19c91766bdc1e9cadead8b8a1736d72762f37438c273f7961",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 140,
+      "band": "near",
+      "bakedAt": "2026-07-18T20:01:28.566Z"
+    },
+    {
+      "slug": "sedgwick-ks",
+      "packHash": "sha256-16d45cf9a6d04dffe82eaa140ac4752cc9ac720effa8082ef1f41a5ceba1ba51",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 673,
+      "band": "near",
+      "bakedAt": "2026-07-18T20:02:04.252Z"
+    },
+    {
+      "slug": "suffolk-ma",
+      "packHash": "sha256-8faa0e99969a2548d4b5ebe4ff938d10568a496581656a6a0f2e66aa9478a5f1",
+      "schemaVersion": "roadchunk/1",
+      "chunkCount": 81,
+      "band": "near",
+      "bakedAt": "2026-07-18T20:02:40.085Z"
+    }
+  ],
+  "note": "NEAR-band TIGER packs present under data/road-chunks. Absent slug → catalog 404 / honesty unavailable."
+}
