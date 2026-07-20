@@ -122,7 +122,17 @@ Then `GET /.well-known/openai-apps-challenge` returns the token body (200).
 - [x] Client compiles generatedDraftSpec in widget (`web/src/App.tsx`)
 - [x] Privacy / terms / support routes
 - [x] Hosted Clawd fenced while `ATLAS_SAVE_SURFACE=off`
-- [x] `pnpm ship:check` suite
-- [ ] Set `ATLAS_OPENAI_APPS_CHALLENGE_TOKEN` when submitting plugin
+- [x] `pnpm ship:check` suite (local + live-ready green)
+- [x] Deployed to Railway (`20521779` North Face slice; deploy id `dda256f3`)
+- [ ] Set `ATLAS_OPENAI_APPS_CHALLENGE_TOKEN` when OpenAI domain verify is requested
 - [ ] Real ChatGPT Developer Mode web + mobile acceptance (human)
-- [ ] Deploy this North Face commit to Railway
+- [ ] Plugin portal submit
+
+### Connect in ChatGPT (human)
+
+1. ChatGPT → Settings → Security → **Developer mode** on  
+2. Settings → **Plugins** → create developer app  
+3. MCP URL: `https://atlas-backend-production-e6fc.up.railway.app/mcp`  
+4. Name: **Atlas County Scout**  
+5. Prompt: `Drop Clawd in Eastvale for a mobile detailing business.`  
+6. Also try: `Show me Miami-Dade County on Atlas.`
