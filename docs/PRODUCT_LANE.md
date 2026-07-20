@@ -24,8 +24,15 @@ See session plan / dogfood: Riverside clay; national board; honesty; notes on to
 - New MCP tools without product need  
 - “Make every county Eastvale”  
 
+## Scale ladder (Mode B)
+
+1. **Fit county** — full outline (center control)  
+2. **Tap town** — camera focuses real Census place  
+3. **More towns** — raise anchor cap (later)  
+4. **Roads at near zoom** — TIGER packs (later)  
+
 ## Next
 
-1. Human ChatGPT dogfood R1–R6  
+1. Human ChatGPT dogfood R1–R6 + scale: tap town / fit county  
 2. Fix only failed R-row  
-3. P1/P2 board polish only if dogfood passes  
+3. Raise town anchor cap / roads only after scale UX dogfood passes  

@@ -265,10 +265,25 @@ export function CityWorldView({
   // Free map loop: do not show Hosted Clawd / save chrome (Clawd later).
   const showHostedClawdCta = Boolean(hasHostedClawdTray === false && hostedClawdContext?.canPersist && onOpenHostedClawd);
 
+  const focusPlaceOnBoard = (placeId: string) => {
+    if (!isCountyBoardMode) return;
+    const place = cityScene.places.find((item) => item.id === placeId);
+    if (!place) return;
+    // Census towns + any board place: pan/zoom so the location is framed.
+    rendererRef.current?.focusPoint(place.anchor, 1.55);
+  };
+
   const selectPlaceFromNavigator = (placeId: string) => {
     if (!canNavigatePlaces) return;
     setNavigatorActivePlaceId(placeId);
     onSelectPlace(placeId);
+    focusPlaceOnBoard(placeId);
+  };
+
+  const handleSelectPlace = (placeId: string) => {
+    setNavigatorActivePlaceId(placeId);
+    onSelectPlace(placeId);
+    focusPlaceOnBoard(placeId);
   };
 
   const handlePlaceNavigatorToggle = () => {
@@ -390,7 +405,7 @@ export function CityWorldView({
             selectedPlaceId={activePlace?.id}
             cameraPresetId={cameraPresetId}
             debugMode={debugMode}
-            onSelectPlace={onSelectPlace}
+            onSelectPlace={handleSelectPlace}
             onCameraZoom={onCameraZoom}
             bandOptions={bandOptions}
           />
@@ -405,8 +420,8 @@ export function CityWorldView({
                 commit at NEAR, saying they aren't mapped would be false. */}
             <strong>
               {bandOptions?.committedBand === "near" && (roadStatus === "ready" || roadStatus === "sparse")
-                ? "Real boundary, water, town names, and streets from Census TIGER. Buildings aren't mapped yet."
-                : "Real boundary, water, and town names. Streets and buildings aren't mapped yet."}
+                ? "Real boundary, water, town names, and streets from Census TIGER. Buildings aren't mapped yet. Tap a town to zoom in. Fit county to zoom out."
+                : "Real boundary, water, and town names. Streets and buildings aren't mapped yet. Tap a town to zoom in. Fit county to zoom out."}
             </strong>
             {/* S4a status: quiet line, only when a NEAR request is waiting on a
                 cold cache or has failed — sparse and ready render nothing. */}
@@ -446,7 +461,7 @@ export function CityWorldView({
 
       <MapChrome
         rendererRef={rendererRef}
-        centerLabel={isCountyBoardMode && bandOptions?.committedBand === "near" ? "County view" : undefined}
+        centerLabel={isCountyBoardMode ? "Fit county" : undefined}
       />
 
       {canNavigatePlaces ? (

@@ -46,8 +46,8 @@ export function MapChrome({ rendererRef, centerLabel }: MapChromeProps) {
       </button>
       <button
         type="button"
-        aria-label={centerLabel ?? "Center map"}
-        title={centerLabel ?? "Center map"}
+        aria-label={centerLabel ?? "Fit county"}
+        title={centerLabel ?? "Fit county"}
         data-qa="center-map-button"
         onClick={() => rendererRef.current?.center()}
       >

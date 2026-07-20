@@ -43,7 +43,10 @@ type CityWorldDebugMode = "engine";
 export type CityWorldRendererHandle = {
   zoomIn: () => void;
   zoomOut: () => void;
+  /** Re-fit opening camera preset (full county / default view). */
   center: () => void;
+  /** Pan/zoom so a world point (e.g. Census town) is framed — geo board scale UX. */
+  focusPoint: (point: CityWorldPoint, zoom?: number) => void;
 };
 
 type CityWorldRendererProps = {
@@ -517,7 +520,8 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
   useImperativeHandle(ref, () => ({
     zoomIn: () => zoomBy(1.12),
     zoomOut: () => zoomBy(0.88),
-    center: () => resetCamera(scene),
+    center: () => resetCamera(sceneRef.current),
+    focusPoint: (point, zoom) => focusWorldPoint(point, zoom),
   }));
 
   useEffect(() => {
@@ -1047,6 +1051,31 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     camera.zoom = clamp(nextZoom, camera.minZoom, camera.maxZoom);
     scheduleCameraApply();
     handleMaterialTextureCrossing(previousZoom);
+  }
+
+  /** Frame a world-space point (Census town anchor) for board scale UX. */
+  function focusWorldPoint(point: CityWorldPoint, preferredZoom?: number) {
+    const mount = mountRef.current;
+    if (!mount) return;
+    if (inertiaFrameRef.current !== null) {
+      window.cancelAnimationFrame(inertiaFrameRef.current);
+      inertiaFrameRef.current = null;
+    }
+    const camera = cameraRef.current;
+    const previousZoom = camera.zoom;
+    // Town detail: pull in from county fit, but never past maxZoom.
+    const townZoom = preferredZoom ?? Math.min(camera.maxZoom, Math.max(1.45, camera.zoom * 1.35, 1.45));
+    const nextZoom = clamp(townZoom, camera.minZoom, camera.maxZoom);
+    const focus = project(point);
+    camera.zoom = nextZoom;
+    camera.x = mount.clientWidth / 2 - focus.x * nextZoom;
+    camera.y = mount.clientHeight / 2 - focus.y * nextZoom - 18;
+    scheduleCameraApply();
+    handleMaterialTextureCrossing(previousZoom);
+    if (onCameraZoomRef.current && nextZoom !== lastZoomNotifiedRef.current) {
+      lastZoomNotifiedRef.current = nextZoom;
+      onCameraZoomRef.current(nextZoom);
+    }
   }
 
   // Zoom keeping the world point under the given client position fixed —

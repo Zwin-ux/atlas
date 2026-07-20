@@ -401,9 +401,10 @@ export function compileCountyGeoScene(pack: CountyGeoPack, options: CompileCount
     Math.min(1.3, Math.max(0.24, Math.min(MOBILE_BOARD_TARGET_WIDTH_PX / projectedWidth, MOBILE_BOARD_TARGET_HEIGHT_PX / projectedHeight))),
   );
 
+  // Wider maxZoom so "select town" can pull into detail; minZoom keeps full-county fit.
   const cameraPresets: CityWorldCameraPreset[] = [
-    { id: "desktop", center, zoom: desktopZoom, minZoom: 0.28, maxZoom: 2.2 },
-    { id: "mobile", center, zoom: mobileZoom, minZoom: 0.24, maxZoom: 2.2 },
+    { id: "desktop", center, zoom: desktopZoom, minZoom: 0.26, maxZoom: 2.6 },
+    { id: "mobile", center, zoom: mobileZoom, minZoom: 0.22, maxZoom: 2.4 },
   ];
 
   const bounds: CityWorldBounds = {
