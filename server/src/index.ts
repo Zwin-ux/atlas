@@ -1066,7 +1066,7 @@ function countyCoverageStructuredContent(
     coverageTier: response.county.coverageTier,
     coverageLabel: isPreviewOnlyCounty ? "Preview available" : "Full map available",
     message: isPreviewOnlyCounty
-      ? `${response.county.label} opens as a session-only free map planner study with real Census town names. Streets and buildings are generated, not a verified full local map.`
+      ? `${response.county.label} opens as a generated map study with real Census town names. Streets and buildings are generated, not a verified full local map.`
       : response.county.coverageMessage,
     stateCode: response.county.stateCode,
     ...(response.county.geoid ? { geoid: response.county.geoid } : {}),
@@ -1344,7 +1344,9 @@ function publicAtlasCopy(value: string): string {
     .replace(/\bAlpha boundary\b/gi, "Product boundary")
     .replace(/\bAlpha planning signals\b/gi, "planning signals")
     .replace(/\bSupported Alpha county\b/gi, "Supported full-map county")
-    .replace(/\bAlpha Free\b/g, "Session-only free map planner")
+    .replace(/\bAlpha Free\b/g, "Session-only map")
+    .replace(/\bSession-only free map planner\b/g, "Session-only map")
+    .replace(/\bfree map planner\b/gi, "session-only map")
     .replace(/\bAlpha\b/g, "session")
     .replace(/\bEngine Beta\b/g, "map")
     .replace(/\bclosed-world demo data\b/gi, "built-in map data")
@@ -1353,7 +1355,7 @@ function publicAtlasCopy(value: string): string {
     .replace(/\bdemo data\b/gi, "map data")
     .replace(/\bEastvale demo\b/gi, "Eastvale full map")
     .replace(/\bPrototype data only\.[^.]*\./gi, "Built-in map data for planning only.")
-    .replace(/\bcoming soon\b/gi, "not included in this free map planner")
+    .replace(/\bcoming soon\b/gi, "not included in this session-only map")
     .replace(/\btrial\b/gi, "session")
     .replace(/\bcurated map zone\b/gi, "map zone")
     .replace(/\bcurated map place\b/gi, "map place")
@@ -1502,7 +1504,7 @@ function upgradeOptionsStructuredContent(trigger?: string) {
       ];
   const nextStep = ownerGatedTest
     ? "Use Hosted Clawd as a closed test surface only; public paid access stays closed and checkout is not started here."
-    : "Use the session-only free map planner now; Hosted Clawd saving is not live and does not start checkout.";
+    : "Use the session-only map now; Hosted Clawd saving is not live and does not start checkout.";
 
   if (!atlasSaveSurfaceEnabled) {
     return {
@@ -1512,8 +1514,8 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         label: "Atlas V1",
         included: [
           "Explore the Riverside/Eastvale playable map.",
-          "Open generated county studies for US counties when requested.",
-          "Keep pins, notes, Scout Drops, and campaign plans in this chat.",
+          "Open generated county maps for US counties when requested.",
+          "Keep pins and notes in this chat.",
         ],
         limits: [
           "No account or cross-chat memory.",
@@ -1526,7 +1528,7 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         status: ownerGatedTest ? ("owner_gated_test" as const) : ("planned_beta" as const),
         included: [
           "Saved business memory and campaign history are not live in this free loop.",
-          "The free map planner keeps work in this chat only.",
+          "Pins and notes stay in this chat only.",
         ],
       },
       unavailableActions: [
@@ -1534,7 +1536,7 @@ function upgradeOptionsStructuredContent(trigger?: string) {
         "Atlas does not start checkout, charge money, grant XP, collect evidence, post, message, buy ads, or run automated outreach.",
         "Lookup results are for manual review; they are not saved state, scene geometry, or coverage proof.",
       ],
-      nextStep: "Use Atlas as a complete session-only free map planner; pins, notes, Scout Drops, and campaign plans stay in this chat.",
+      nextStep: "Use Atlas as a complete session-only map; pins and notes stay in this chat.",
     };
   }
 
@@ -1604,8 +1606,8 @@ function publicHostedClawdContext(context: HostedClawdContext): HostedClawdConte
 
 function publicHostedClawdCopy(value: string): string {
   return publicAtlasCopy(value)
-    .replace(/\bsession Free\b/g, "Session-only free map planner")
-    .replace(/\bpreview Free\b/g, "Session-only free map planner")
+    .replace(/\bsession Free\b/g, "Session-only map")
+    .replace(/\bpreview Free\b/g, "Session-only map")
     .replace(/\bsession Invite\b/g, "Save invite")
     .replace(/\bpreview Invite\b/g, "Save invite")
     .replace(/\bsession paid\b/gi, "Paid saves")
@@ -3460,7 +3462,7 @@ function createAtlasServer(): McpServer {
     {
       title: "Explain save limits",
       description:
-        "Use this when the user asks whether Atlas saves work, tracks evidence, or has a paid save plan. Explains that Atlas is a complete session-only free map planner and that Hosted Clawd save options are not live and do not start checkout. Informational only — does not start checkout, create an account, post, message, buy ads, or save campaign state.",
+        "Use this when the user asks whether Atlas saves work, tracks evidence, or has a paid save plan. Explains that Atlas is a complete session-only map and that Hosted Clawd save options are not live and do not start checkout. Informational only — does not start checkout, create an account, post, message, buy ads, or save campaign state.",
       inputSchema: {
         trigger: z
           .enum(["save_scout_drop", "save_campaign", "track_evidence", "pricing", "general"])

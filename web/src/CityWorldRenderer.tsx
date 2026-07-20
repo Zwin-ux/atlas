@@ -4644,9 +4644,9 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   // cool shade. Same factors for every building in the scene.
   // 0.68H — walls use the building-face curve so the lit wall stays pigmented.
   // Claymation pass: matte clay bodies — soft face fill, round outline, no
-  // hard plastic edges. Keep sun/shade so massing still reads.
-  const sideLeft = mixColor(buildingFaceColor(bodyColor, "sun"), 0xf0e2c8, 0.08);
-  const sideRight = mixColor(buildingFaceColor(bodyColor, "shade"), 0xc4b49a, 0.1);
+  // hard plastic edges. Slightly warmer chalk blend for diorama read.
+  const sideLeft = mixColor(buildingFaceColor(bodyColor, "sun"), 0xf2e4c4, 0.12);
+  const sideRight = mixColor(buildingFaceColor(bodyColor, "shade"), 0xc8b49a, 0.14);
   const topLeft = { x: top.x - footprintWidth / 2, y: top.y };
   const topRight = { x: top.x + footprintWidth / 2, y: top.y };
   const topFront = { x: top.x, y: top.y + footprintDepth / 2 };
@@ -4655,8 +4655,8 @@ function drawBuildingShell(layer: Container, geometry: BuildingGeometry, buildin
   const bottomFront = { x: bottom.x, y: bottom.y + footprintDepth / 2 };
   const leftSide = [topLeft.x, topLeft.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomLeft.x, bottomLeft.y];
   const rightSide = [topRight.x, topRight.y, topFront.x, topFront.y, bottomFront.x, bottomFront.y, bottomRight.x, bottomRight.y];
-  const clayOutline = mixColor(outline, 0xd8c7a8, 0.35);
-  const clayStrokeAlpha = Math.min(0.42, activeStrokeAlpha * 0.72 + 0.12);
+  const clayOutline = mixColor(outline, 0xdcc9a4, 0.42);
+  const clayStrokeAlpha = Math.min(0.38, activeStrokeAlpha * 0.68 + 0.1);
 
   const left = polygon(leftSide, sideLeft, 1, clayOutline, clayStrokeAlpha);
   const right = polygon(rightSide, sideRight, 1, clayOutline, clayStrokeAlpha);

@@ -68,13 +68,16 @@ export function compileCityWorldScene(scene: VoxelScene, session: CityWorldSessi
     bounds: CITY_BOUNDS,
     cameraPresets: [
       {
+        // Tighter opening so Eastvale blocks fill the ChatGPT first paint
+        // (screenshot showed too much empty lawn at 1.46).
         id: "desktop",
-        center: { x: 22.6, y: 13.3, z: 0 },
-        zoom: 1.46,
+        center: { x: 21.8, y: 12.6, z: 0 },
+        zoom: 1.58,
         minZoom: 0.72,
-        maxZoom: 1.8,
+        maxZoom: 1.85,
       },
       {
+        // Keep mobile zoom < 1 for composition diagnostics + phone fit.
         id: "mobile",
         center: { x: 22.5, y: 14.6, z: 0 },
         zoom: 0.92,
@@ -84,14 +87,14 @@ export function compileCityWorldScene(scene: VoxelScene, session: CityWorldSessi
       {
         id: "residential_detail",
         center: { x: 13.7, y: 9.3, z: 0 },
-        zoom: 1.74,
+        zoom: 1.82,
         minZoom: 0.72,
-        maxZoom: 1.92,
+        maxZoom: 1.95,
       },
       {
         id: "commerce_detail",
         center: { x: 29.2, y: 12.1, z: 0 },
-        zoom: 1.62,
+        zoom: 1.68,
         minZoom: 0.72,
         maxZoom: 1.95,
       },

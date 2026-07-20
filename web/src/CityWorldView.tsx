@@ -65,7 +65,8 @@ export type CityWorldViewProps = {
   onSaveNote: (placeId: string, body: string) => void;
 };
 
-const STICKER_ORDER: VoxelStickerKind[] = ["favorite", "home", "shop", "park", "idea", "question"];
+// Quiet chrome: one pin mode by default (favorite). Debug/extra modes stay in type system.
+const STICKER_ORDER: VoxelStickerKind[] = ["favorite"];
 const MODAL_FOCUSABLE_SELECTOR = [
   "a[href]",
   "button:not([disabled])",
@@ -599,7 +600,7 @@ export function CityWorldView({
             disabled={!activePlace}
             data-qa="note-input"
             onChange={(event) => onNoteDraftChange(event.currentTarget.value)}
-            placeholder={activePlace ? `Write a note for ${activePlace.label}.` : "Select a place first."}
+            placeholder={activePlace ? `Write a note for ${activePlace.label}. e.g. Parking is tight after 5.` : "Select a place first."}
             aria-label={activePlace ? `Write a note for ${activePlace.label}` : "Select a place first"}
           />
           <button type="button" aria-label="Save note" data-qa="save-note-button" disabled={!activePlace || !noteDraft.trim()} onClick={saveNote}>

@@ -152,8 +152,10 @@ railway variable set ATLAS_OPENAI_APPS_CHALLENGE_TOKEN=<portal-token> -s atlas-b
 - [x] `pnpm ship:check` green  
 - [x] Deployed North Face to Railway  
 - [ ] Generation quality polish (ongoing ship focus)  
+- [x] Quiet chrome (no Generate-district hero; pin shelf collapsed; planner copy killed)  
+- [x] Real ChatGPT connect proof (human — widget mounts)  
+- [ ] Real ChatGPT map+notes acceptance (human notes + multi-county)  
 - [ ] Set challenge token when OpenAI asks  
-- [ ] Real ChatGPT map+notes acceptance (human)  
 - [ ] Plugin portal submit  
 
 ### Connect in ChatGPT (human)

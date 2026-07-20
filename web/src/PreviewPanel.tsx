@@ -276,7 +276,7 @@ function SessionFooter({ note, advanceLabel, onAdvance }: { note?: string; advan
   return (
     <footer className="city-world-preview-foot">
       <div className="city-world-preview-boundary" data-qa="preview-session-boundary">
-        Session-only free map planner. Nothing is saved, sent, or scheduled.
+        Session-only map tools. Nothing is saved, sent, or scheduled.
       </div>
       {note ? <p className="city-world-preview-upgrade">{note}</p> : null}
       {onAdvance && advanceLabel ? (

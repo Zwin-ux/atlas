@@ -117,7 +117,7 @@ const orangeCoverageSummary: CountyCoverageStructuredContent = {
   coverageTier: "L1_COUNTY_SHELL",
   coverageLabel: "Preview available",
   message:
-    "Orange County opens as a session-only free map planner study with real Census town names. Streets and buildings are generated, not a verified full local map.",
+    "Orange County opens as a generated map study with real Census town names. Streets and buildings are generated, not a verified full local map.",
   stateCode: "CA",
   geoid: "06059",
   playableDistrictCount: 0,
@@ -829,13 +829,20 @@ export function App() {
     );
   };
 
+  // North Face: no "Generate a district" hero on the signature map. Other
+  // counties open via chat select_county. Debug flag restores the old CTA.
+  const showGenerateDistrictCta =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("debugGenerate") === "1";
   const countySwitcher = (
     <>
       {readRequestedCountySwitcherVisible() ? <CountySwitcher activeCountySlug={activeCountySlug} onSelectCounty={selectCountyFromSwitcher} /> : null}
-      <button type="button" className="city-world-generate-district" data-qa="generate-district-button" onClick={openGeneratedPreview}>
-        <strong>Generate a district</strong>
-        <span>Session-only free map planner - stays in this chat</span>
-      </button>
+      {showGenerateDistrictCta ? (
+        <button type="button" className="city-world-generate-district" data-qa="generate-district-button" onClick={openGeneratedPreview}>
+          <strong>Open generated study</strong>
+          <span>Stays in this chat only</span>
+        </button>
+      ) : null}
     </>
   );
 
@@ -1196,7 +1203,9 @@ function publicHostedClawdContext(context: HostedClawdContext): HostedClawdConte
 
 function publicHostedClawdCopy(value: string): string {
   return value
-    .replace(/\bAlpha Free\b/g, "Session-only free map planner")
+    .replace(/\bAlpha Free\b/g, "Session-only map")
+    .replace(/\bSession-only free map planner\b/g, "Session-only map")
+    .replace(/\bfree map planner\b/gi, "session-only map")
     .replace(/\bBeta Invite\b/g, "Save invite")
     .replace(/\bBeta paid\b/gi, "Paid saves")
     .replace(/\bBilling is off in Alpha\./g, "Billing is not live.")
@@ -1208,7 +1217,7 @@ function publicHostedClawdCopy(value: string): string {
     .replace(/\bStripe test Checkout\b/g, "checkout setup")
     .replace(/\bexternal Beta promotion\b/g, "public save promotion")
     .replace(/\bdemo\b/gi, "map")
-    .replace(/\bcoming soon\b/gi, "not included in this free map planner")
+    .replace(/\bcoming soon\b/gi, "not included in this session-only map")
     .replace(/\btrial\b/gi, "session");
 }
 
