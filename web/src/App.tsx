@@ -21,7 +21,7 @@ import { sendUserMessage, updateModelContext, useToolResult, useWidgetState } fr
 import { CountyCoverageView } from "./CountyCoverageView";
 import { CountySwitcher, type CountySwitchSlug } from "./CountySwitcher";
 import { CityWorldView } from "./CityWorldView";
-import { readRequestedCountySwitcherVisible, readRequestedGeoBoardEnabled } from "./MapChrome";
+import { readRequestedCountySwitcherVisible, readRequestedGeneratedStudyEnabled, readRequestedGeoBoardEnabled } from "./MapChrome";
 import type { HostedClawdActionKind, HostedClawdContext, HostedClawdScreenState, WidgetSceneSession, WidgetState } from "./types";
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
@@ -268,6 +268,8 @@ const generatedDraftArchetypes = new Set([
   "prairie_town",
   "river_town",
 ]);
+
+const EMPTY_TOWN_ANCHORS: NonNullable<DeterministicGeneratedDistrictSpec["townAnchors"]> = [];
 
 function isRecord(value: unknown): value is UnknownRecord {
   return Boolean(value && typeof value === "object");
@@ -630,49 +632,41 @@ export function App() {
   const legacyCoverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
   const compiledCoverageShellScene = useMemo(() => compileCoverageShellSceneFromSummary(coverageSummary), [coverageSummary]);
   const coverageShellScene = compiledCoverageShellScene ?? legacyCoverageShellScene;
-  // North Face L1 path (0.76-T): prefer compact _meta.generatedDraftSpec and
-  // compile client-side so ChatGPT never needs a full ~780KB scene on the wire.
-  // Legacy generatedDraftScene remains a read fallback only. Malformed specs
-  // degrade to the coverage shell — never crash, never claim playable coverage.
+  // National default: Census geo board (boundary + water + towns). Generated
+  // clay study only when pack missing, or explicit study mode / tool opt-in.
+  const geoBoardEnabled = readRequestedGeoBoardEnabled();
+  const generatedStudyEnabled = readRequestedGeneratedStudyEnabled();
   const rawGeneratedDraftSpec = isDeterministicGeneratedDistrictSpec(meta?.generatedDraftSpec) ? meta.generatedDraftSpec : null;
+  const metaTownAnchors = Array.isArray(meta?.townAnchors) && meta.townAnchors.every(isTownAnchorValue) ? meta.townAnchors : null;
+  const boardTownAnchors = metaTownAnchors ?? rawGeneratedDraftSpec?.townAnchors ?? EMPTY_TOWN_ANCHORS;
+  const rawCountyGeoPack = geoBoardEnabled && isCountyGeoPack(meta?.countyGeoPack) ? meta.countyGeoPack : null;
+  const compiledCountyGeoScene = useMemo(() => {
+    if (!rawCountyGeoPack) return null;
+    try {
+      return compileCountyGeoScene(rawCountyGeoPack, { townAnchors: boardTownAnchors });
+    } catch {
+      return null;
+    }
+  }, [rawCountyGeoPack, boardTownAnchors]);
+  const roadBand = useCountyRoadBand(rawCountyGeoPack?.countySlug ?? null, compiledCountyGeoScene, geoBoardEnabled);
+  const geoSceneWithRoads = roadBand.scene ?? compiledCountyGeoScene;
+  const countyGeoScene = geoSceneWithRoads?.id === dismissedGeneratedDraftSceneId ? null : geoSceneWithRoads;
+  // Generated clay: only when geo board unavailable or study mode is on.
+  const allowGeneratedStudy = generatedStudyEnabled || !countyGeoScene;
   const generatedDraftSpecScene = useMemo(() => {
-    if (!rawGeneratedDraftSpec) return null;
+    if (!allowGeneratedStudy || !rawGeneratedDraftSpec) return null;
     try {
       return createDeterministicGeneratedDistrictScene(rawGeneratedDraftSpec).result.scene;
     } catch {
       return null;
     }
-  }, [rawGeneratedDraftSpec]);
-  const rawGeneratedDraftScene = generatedDraftSpecScene ?? (isCityWorldScene(meta?.generatedDraftScene) ? meta.generatedDraftScene : null);
+  }, [allowGeneratedStudy, rawGeneratedDraftSpec]);
+  const rawGeneratedDraftScene =
+    generatedDraftSpecScene ??
+    (allowGeneratedStudy && isCityWorldScene(meta?.generatedDraftScene) ? meta.generatedDraftScene : null);
   const generatedDraftScene = rawGeneratedDraftScene?.id === dismissedGeneratedDraftSceneId ? null : rawGeneratedDraftScene;
-  // Real-geography county board: compile the TIGER pack (boundary + water)
-  // client-side, same spec-not-scene pattern as the generated draft. Ships
-  // dark behind ?atlasGeoBoard=1 until the copy audit + screenshots pass.
-  const geoBoardEnabled = readRequestedGeoBoardEnabled();
-  const rawCountyGeoPack = geoBoardEnabled && isCountyGeoPack(meta?.countyGeoPack) ? meta.countyGeoPack : null;
-  const compiledCountyGeoScene = useMemo(() => {
-    if (!rawCountyGeoPack) return null;
-    try {
-      return compileCountyGeoScene(rawCountyGeoPack, { townAnchors: rawGeneratedDraftSpec?.townAnchors ?? [] });
-    } catch {
-      return null;
-    }
-  }, [rawCountyGeoPack, rawGeneratedDraftSpec?.townAnchors]);
-  // 0.78-R zoom-band overlay: drives the core band controller from renderer
-  // zoom, fetches baked road chunks from the live routes on the first NEAR
-  // intent, and returns the base scene carrying lodBand-tagged road segments
-  // after the single transactional commit. Flag-dark with the board itself.
-  const roadBand = useCountyRoadBand(rawCountyGeoPack?.countySlug ?? null, compiledCountyGeoScene, geoBoardEnabled);
-  const geoSceneWithRoads = roadBand.scene ?? compiledCountyGeoScene;
-  // Respect the same dismissal channel as the generated draft, so the board's
-  // "Full map" button (which dismisses this scene id and returns to Riverside)
-  // actually leaves the board instead of it re-mounting from _meta.
-  const countyGeoScene = geoSceneWithRoads?.id === dismissedGeneratedDraftSceneId ? null : geoSceneWithRoads;
-  // The real board is the PRIMARY county view when present (it renders through
-  // the same CityWorldRenderer channel as the generated draft, so it also
-  // bypasses the flat coverage outline). The generated district stays as the
-  // drill-down fallback. isRealCountyBoard keeps honesty copy correct — real
-  // Census geography must never be labeled "generated".
+  // Geo board primary; generated clay only as fallback/study. Census boards
+  // must never be labeled "generated".
   const activeGeneratedScene = generatedScene ?? countyGeoScene ?? generatedDraftScene;
   const isRealCountyBoard = Boolean(activeGeneratedScene && activeGeneratedScene === countyGeoScene);
   const forcedPlayableCounty = localCountySlug === "riverside-ca";

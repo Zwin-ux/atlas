@@ -82,18 +82,28 @@ export function readRequestedCountySwitcherVisible(): boolean {
   return new URLSearchParams(window.location.search).get("atlasCountySwitcher") === "1";
 }
 
-// Real-geography county boards (TIGER boundary + water) as the primary preview
-// view, replacing the flat coverage outline. Ships dark behind this flag until
-// the honesty-copy audit and county-scale screenshots pass; flip to default-on
-// only when the real board is the certified experience. Same opt-in pattern as
-// atlasCountySwitcher.
+// Real-geography county boards (TIGER boundary + water) — national default.
+// Kill-switch: ?atlasGeoBoard=0 or data-atlas-geo-board="0" (emulator/debug).
+// Explicit =1 still forces on (redundant with default).
 export function readRequestedGeoBoardEnabled(): boolean {
-  if (typeof window === "undefined") return false;
-  if (new URLSearchParams(window.location.search).get("atlasGeoBoard") === "1") return true;
-  // The production-fidelity emulator hosts the widget in srcdoc, so it passes
-  // opt-in flags on the same-origin frame element instead of a child URL.
+  if (typeof window === "undefined") return true;
+  const params = new URLSearchParams(window.location.search);
+  const query = params.get("atlasGeoBoard");
+  if (query === "0") return false;
+  if (query === "1") return true;
   const frame = window.frameElement;
-  return frame?.getAttribute("data-atlas-geo-board") === "1";
+  const frameAttr = frame?.getAttribute("data-atlas-geo-board");
+  if (frameAttr === "0") return false;
+  if (frameAttr === "1") return true;
+  return true;
+}
+
+/** Opt-in generated clay study when geo board is primary (debug / study mode). */
+export function readRequestedGeneratedStudyEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  if (new URLSearchParams(window.location.search).get("atlasGeneratedStudy") === "1") return true;
+  const frame = window.frameElement;
+  return frame?.getAttribute("data-atlas-generated-study") === "1";
 }
 
 function ZoomInIcon() {

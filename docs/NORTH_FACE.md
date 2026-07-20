@@ -47,11 +47,22 @@ product pitch, not the QA focus, and not the ChatGPT connect script.
 
 | Mode | What | Bar |
 |------|------|-----|
-| **A Signature** | Riverside/Eastvale playable | Beautiful voxel map, places, pins, notes, mobile 390×844 |
-| **B National map** | Other US counties | High-quality generated layout + real Census town names; never claim verified streets |
+| **A Signature clay** | Riverside/Eastvale playable | Beautiful voxel map, places, pins, notes, mobile 390×844 |
+| **B National Census board** | Other US counties (default) | Real TIGER/Census outline + water + town anchors + notes; streets/buildings not mapped |
 | **C Lookup** | Nearby places (optional) | Google lookup normalized; not geometry; not saved lists |
 
+**Optional:** illustrative generated clay study (`includeGeneratedDraft=true`) — never default, never claim verified streets.
+
 Never blur B into A. Never claim all-US public-quality verified streets.
+
+### National default path
+
+```text
+select_county(non-Riverside)
+  → _meta.countyGeoPack + townAnchors
+  → widget compileCountyGeoScene (geo board ON by default)
+  → Census honesty banner + session notes on town anchors
+```
 
 ## Public MCP tools
 
@@ -139,6 +150,8 @@ railway variable set ATLAS_OPENAI_APPS_CHALLENGE_TOKEN=<portal-token> -s atlas-b
 
 > Put a note on this place that parking is tight after 5pm.  
 
+**Expect:** Riverside = clay Eastvale. Miami-Dade (and other US counties) = real county outline + towns, not a generated clay town.
+
 **Not the hero (later):** Drop Clawd / scout detailing / 7-day campaign.
 
 ## Production checklist
@@ -146,6 +159,7 @@ railway variable set ATLAS_OPENAI_APPS_CHALLENGE_TOKEN=<portal-token> -s atlas-b
 - [x] Map tools live on Railway  
 - [x] Riverside playable + national generatedDraftSpec  
 - [x] Client compiles generatedDraftSpec  
+- [x] National default = Census geo board (3,222 packs); generated clay secondary  
 - [x] Session pins/notes in widget  
 - [x] Privacy / terms / support  
 - [x] Clawd/saves fenced from free product story  

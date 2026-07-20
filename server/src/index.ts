@@ -106,12 +106,39 @@ const countyTownAnchorIndex = loadCountyTownAnchorIndex(
 );
 
 // Real-geography county boards: TIGER geo packs (boundary + water) baked to
-// data/geo-packs. Loaded on demand and cached (negatives too — most counties
-// aren't baked yet, so a miss returns null and the widget keeps the preview).
+// data/geo-packs (full national index). Primary national map surface.
 // The slug guard + negative-cache live in the shared countyGeoPack helper so
 // the read-only /geo-pack route reuses the exact same loading path (D2-0).
 const GEO_PACKS_DIR = resolve(ROOT_DIR, "data", "geo-packs");
 const loadCountyGeoPack = createCountyGeoPackLoader(GEO_PACKS_DIR);
+
+/** National open: geo board + town anchors; generated clay only when explicitly requested. */
+async function nationalCountyMapMeta(
+  coverage: CountyCoverageStructuredContent,
+  options: { includeGeneratedDraft?: boolean } = {},
+): Promise<{
+  scenePacket: Awaited<ReturnType<typeof scenePacketStatusForCoverage>>;
+  countyGeoPack: unknown | null;
+  townAnchors: ReturnType<typeof townAnchorsForCounty>;
+  generatedDraft?: Awaited<ReturnType<typeof getOrCreateGeneratedDraftScenePacket>>;
+  userFacingCopy: string;
+}> {
+  const scenePacket = await scenePacketStatusForCoverage(coverage);
+  const countyGeoPack = loadCountyGeoPack(coverage.countySlug);
+  const townAnchors = townAnchorsForCounty(countyTownAnchorIndex, coverage.countySlug);
+  const wantStudy = options.includeGeneratedDraft === true;
+  const generatedDraft = wantStudy ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
+  const geoLine = countyGeoPack
+    ? " Atlas shows the real Census county outline, water, and town names. Streets and buildings are not mapped yet."
+    : " Atlas could not load the county outline pack for this open; try again or open Riverside/Eastvale.";
+  const studyLine = generatedDraft?.generatedDraftSpec
+    ? " An illustrative layout study is also attached; it is not verified street coverage."
+    : wantStudy
+      ? " The layout study is preparing."
+      : "";
+  const userFacingCopy = `${coverage.message} ${coverage.countyLabel ?? "This county"} is a national Census board in Atlas.${geoLine}${studyLine} Riverside/Eastvale is the full clay interactive map. Pins and notes stay in this chat.`;
+  return { scenePacket, countyGeoPack, townAnchors, ...(generatedDraft ? { generatedDraft } : {}), userFacingCopy };
+}
 
 // Road-chunk serving (0.78-R2): catalog pointer + manifest + chunk routes over a
 // CDN-swappable store. Filesystem-backed today (Railway volume / repo fixture at
@@ -1066,7 +1093,7 @@ function countyCoverageStructuredContent(
     coverageTier: response.county.coverageTier,
     coverageLabel: isPreviewOnlyCounty ? "Preview available" : "Full map available",
     message: isPreviewOnlyCounty
-      ? `${response.county.label} opens as a generated map study with real Census town names. Streets and buildings are generated, not a verified full local map.`
+      ? `${response.county.label} opens as a Census geography board with real boundary, water, and town names. Streets and buildings are not mapped yet.`
       : response.county.coverageMessage,
     stateCode: response.county.stateCode,
     ...(response.county.geoid ? { geoid: response.county.geoid } : {}),
@@ -1081,7 +1108,7 @@ function countyCoverageStructuredContent(
     })),
     sourceNotes: response.cache.sourceNotes.map(publicSourceNote),
     limitations: [
-      "Interactive full map is Riverside/Eastvale; other counties are generated studies.",
+      "Interactive full clay map is Riverside/Eastvale; other counties open as Census geography boards.",
       "Atlas does not add local places, saved work, XP, evidence, outreach, or automation here.",
     ],
     suggestedNextCountySlug: PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
@@ -2997,7 +3024,7 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Atlas is a map app inside ChatGPT. Primary job: open high-quality voxel county maps and let the user explore places with session pins/notes in the widget. Use select_county to open Riverside/Eastvale (full interactive map) or any other supported US county as an honest generated map with real Census town names. Never claim non-Riverside streets, buildings, or businesses are verified local coverage. Use render_voxel_county only to refresh/focus an already-open map. Use ask_county_question for Riverside/Eastvale facts or displayed Census town anchors. Use lookup_world_places for nearby place lookup only (not coverage, not geometry, not saved lists). Prefer map + notes answers over scouting or campaigns. Do not push Clawd, Scout Drops, or 7-day plans unless the user explicitly asks. preview_scout_drop, preview_campaign_engine, and get_upgrade_options exist but are secondary and must not drive the default flow. Nothing is saved between chats; no checkout, XP, posting, DMs, ads, or automation. Keep structuredContent concise; large scenes stay in _meta.",
+        "Atlas is a map app inside ChatGPT. Primary job: open maps and let the user explore places with session pins/notes in the widget. Use select_county to open Riverside/Eastvale (full clay interactive map) or any other supported US county as a Census geography board (real county outline, water, and town names — not verified streets or buildings). Never claim non-Riverside streets, buildings, or businesses are verified local coverage. Only pass includeGeneratedDraft=true when the user explicitly wants an illustrative generated layout study. Use render_voxel_county only to refresh/focus an already-open map. Use ask_county_question for map facts or displayed Census town anchors. Use lookup_world_places for nearby place lookup only (not coverage, not geometry, not saved lists). Prefer map + notes answers over scouting or campaigns. Do not push Clawd, Scout Drops, or 7-day plans unless the user explicitly asks. preview_scout_drop, preview_campaign_engine, and get_upgrade_options exist but are secondary and must not drive the default flow. Nothing is saved between chats; no checkout, XP, posting, DMs, ads, or automation. Keep structuredContent concise; large scenes and geo packs stay in _meta.",
     },
   );
 
@@ -3075,13 +3102,13 @@ function createAtlasServer(): McpServer {
     {
       title: "Select county",
       description:
-        "Use this when the user asks to show, open, load, view, map, or switch to a US county in Atlas, including bare requests like \"show me Riverside County.\" This is the entry point for county maps: safe, read-only, and normally instant for open/show requests. Riverside opens the full Eastvale voxel map; other supported counties open as generated county studies with real U.S. Census town anchors. For refreshing or focusing an already-open map, use render_voxel_county.",
+        "Use this when the user asks to show, open, load, view, map, or switch to a US county in Atlas, including bare requests like \"show me Riverside County.\" This is the entry point for county maps: safe, read-only, and normally instant. Riverside opens the full Eastvale clay map; other supported counties open as a Census geography board (real outline, water, town names). Streets and buildings are not mapped outside Riverside. For refreshing an already-open map, use render_voxel_county.",
       inputSchema: {
-        countySlug: z.string().optional().describe("County id. Riverside opens the full map; other supported US counties show generated studies with real Census town anchors."),
+        countySlug: z.string().optional().describe("County id. Riverside opens the full clay map; other US counties open the Census geography board."),
         includeGeneratedDraft: z
           .boolean()
           .optional()
-          .describe("Include real Census town names on a generated layout. Defaults to true for preview-only counties; streets and buildings are not verified coverage."),
+          .describe("Only set true when the user explicitly wants an illustrative generated layout study. Defaults to false. National default is the Census geo board."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -3100,19 +3127,11 @@ function createAtlasServer(): McpServer {
       await enforceMcpExpensiveToolRateLimit("select_county");
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
-        const scenePacket = await scenePacketStatusForCoverage(coverage);
-        const countyGeoPack = loadCountyGeoPack(coverage.countySlug);
-        const generatedDraft = includeGeneratedDraft !== false ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
-        const generatedDraftCopy = generatedDraft
-          ? generatedDraft.generatedDraftSpec
-            ? " Real Census town names are attached; streets and buildings are generated, not verified local coverage."
-            : " The generated district is preparing. Keep browsing the county preview."
-          : "";
+        const national = await nationalCountyMapMeta(coverage, { includeGeneratedDraft });
         return {
           structuredContent: coverage,
           _meta: {
-            scenePacket,
-            // North Face: free loop never attaches Hosted Clawd tray meta while saves are off.
+            scenePacket: national.scenePacket,
             ...(atlasSaveSurfaceEnabled
               ? hostedClawdMeta(hostedClawdService.getContext({
                   trigger: "map_tray",
@@ -3120,13 +3139,14 @@ function createAtlasServer(): McpServer {
                   countyLabel: coverage.countyLabel,
                 }))
               : {}),
-            ...(generatedDraft ?? {}),
-            ...(countyGeoPack ? { countyGeoPack } : {}),
+            ...(national.generatedDraft ?? {}),
+            ...(national.countyGeoPack ? { countyGeoPack: national.countyGeoPack } : {}),
+            ...(national.townAnchors.length > 0 ? { townAnchors: national.townAnchors } : {}),
           },
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas. Riverside/Eastvale is fully explorable today. Atlas does not add verified streets, buildings, businesses, saved work, XP, evidence, outreach, or automation here.${generatedDraftCopy}`,
+              text: national.userFacingCopy,
             },
           ],
         };
@@ -3266,7 +3286,7 @@ function createAtlasServer(): McpServer {
         includeGeneratedDraft: z
           .boolean()
           .optional()
-          .describe("Include real Census town names on a generated layout. Defaults to true for preview-only counties; streets and buildings are not verified coverage."),
+          .describe("Only set true for an illustrative generated layout study. Defaults to false; national refresh keeps the Census geo board."),
       },
       outputSchema: countySelectionOutputSchema,
       annotations: {
@@ -3285,18 +3305,11 @@ function createAtlasServer(): McpServer {
       await enforceMcpExpensiveToolRateLimit("render_voxel_county");
       if (!isPlayableEngineBetaCounty(countySlug)) {
         const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
-        const scenePacket = await scenePacketStatusForCoverage(coverage);
-        const countyGeoPack = loadCountyGeoPack(coverage.countySlug);
-        const generatedDraft = includeGeneratedDraft !== false ? await getOrCreateGeneratedDraftScenePacket(coverage) : undefined;
-        const generatedDraftCopy = generatedDraft
-          ? generatedDraft.generatedDraftSpec
-            ? " Real Census town names are attached; streets and buildings are generated, not verified local coverage."
-            : " The generated district is preparing. Keep browsing the county preview."
-          : "";
+        const national = await nationalCountyMapMeta(coverage, { includeGeneratedDraft });
         return {
           structuredContent: coverage,
           _meta: {
-            scenePacket,
+            scenePacket: national.scenePacket,
             ...(atlasSaveSurfaceEnabled
               ? hostedClawdMeta(hostedClawdService.getContext({
                   trigger: "map_tray",
@@ -3304,13 +3317,14 @@ function createAtlasServer(): McpServer {
                   countyLabel: coverage.countyLabel,
                 }))
               : {}),
-            ...(generatedDraft ?? {}),
-            ...(countyGeoPack ? { countyGeoPack } : {}),
+            ...(national.generatedDraft ?? {}),
+            ...(national.countyGeoPack ? { countyGeoPack: national.countyGeoPack } : {}),
+            ...(national.townAnchors.length > 0 ? { townAnchors: national.townAnchors } : {}),
           },
           content: [
             {
               type: "text" as const,
-              text: `${coverage.message} ${coverage.countyLabel ?? "This county"} is preview only in Atlas. Open Riverside/Eastvale for the fully explorable map.${generatedDraftCopy}`,
+              text: national.userFacingCopy,
             },
           ],
         };
