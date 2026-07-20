@@ -621,6 +621,25 @@ button {
   color: var(--on-ink);
 }
 
+.city-world-place-note-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.35rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: #f0e2a8;
+  color: #5a4820;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+  border: 1px solid rgba(180, 150, 70, 0.45);
+}
+
 .city-world-place-navigator-option span,
 .city-world-place-navigator-option b {
   min-width: 0;

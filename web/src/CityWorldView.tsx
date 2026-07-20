@@ -475,6 +475,7 @@ export function CityWorldView({
             {cityScene.places.map((place, index) => {
               const selected = place.id === activePlace?.id;
               const active = place.id === navigatorActivePlaceId;
+              const placeNoteCount = [...worldNotes, ...notes].filter((note) => note.placeId === place.id).length;
               return (
                 <div
                   key={place.id}
@@ -484,9 +485,17 @@ export function CityWorldView({
                   aria-selected={selected}
                   data-active={active ? "true" : undefined}
                   data-kind={place.kind}
+                  data-has-notes={placeNoteCount > 0 ? "true" : undefined}
                   onClick={() => selectPlaceFromNavigator(place.id)}
                 >
-                  <span>{place.label}</span>
+                  <span>
+                    {place.label}
+                    {placeNoteCount > 0 ? (
+                      <em className="city-world-place-note-badge" data-qa="navigator-note-badge" aria-label={`${placeNoteCount} notes`}>
+                        {placeNoteCount}
+                      </em>
+                    ) : null}
+                  </span>
                   <b>{placeKindLabel(place.kind)}</b>
                 </div>
               );
@@ -666,16 +675,25 @@ function createSessionPins(places: CityWorldPlace[], stickers: VoxelSticker[], n
     });
   }
 
+  // Aggregate notes into one map badge per place so the map stays readable.
+  const notesByPlace = new Map<string, VoxelNote[]>();
   for (const note of notes) {
-    const place = placeById.get(note.placeId);
+    const list = notesByPlace.get(note.placeId) ?? [];
+    list.push(note);
+    notesByPlace.set(note.placeId, list);
+  }
+  for (const [placeId, placeNotes] of notesByPlace) {
+    const place = placeById.get(placeId);
     if (!place) continue;
+    const count = placeNotes.length;
+    const latest = placeNotes[placeNotes.length - 1]!;
     pins.push({
-      id: `pin-${note.id}`,
-      placeId: note.placeId,
+      id: `pin-notes-${placeId}`,
+      placeId,
       kind: "note",
-      label: note.body,
+      label: count > 1 ? `${count} notes` : latest.body,
       anchor: { x: place.anchor.x - 0.75, y: place.anchor.y - 0.5, z: 1.6 },
-      noteId: note.id,
+      noteId: latest.id,
       spriteKey: "pin.note.default",
       paletteKey: "pin.note",
       detailLevel: "high",

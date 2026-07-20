@@ -23,80 +23,88 @@ export type RegionalPalette = {
   };
 };
 
+// Claymation regional palettes — matte plasticine bodies/roofs toward
+// artifacts/claymation-refs (soft chalk walls, chunky roof pigment). Still
+// must keep archetype distinctness for palette parity floors.
 export const REGIONAL_PALETTES: Record<GeneratedDistrictArchetype, RegionalPalette> = {
   metro_grid: {
     archetype: "metro_grid",
-    body: ["#a9aca6", "#aeb8bd", "#8fb7c2"],
-    roof: ["#666d70", "#26313a", "#b77a4f"],
+    // Soft concrete clay + cool steel roofs (not plastic grey).
+    body: ["#c4bfb4", "#b8c0c4", "#9eb8c0"],
+    roof: ["#6a7174", "#3a4550", "#b87a52"],
     terrainTone: {
       paletteKey: "terrain.region.metro_grid",
-      base: "#7f8987",
-      shade: "#626b69",
-      highlight: "#c5cbc6",
-      accent: "#6e7470",
+      base: "#8a928e",
+      shade: "#6a726e",
+      highlight: "#d0d4cc",
+      accent: "#7a807c",
     },
   },
   coastal_grid: {
     archetype: "coastal_grid",
-    body: ["#f4ead6", "#d9c69f", "#e8f0e8"],
-    roof: ["#2f526d", "#3f7f82", "#66727a"],
+    // Sand-cream stucco clay + blue slate roofs (suburban-clay ref family).
+    body: ["#f6edd8", "#e2d0a8", "#eef4ea"],
+    roof: ["#3a5f7a", "#4a8a8c", "#6e7a82"],
     terrainTone: {
       paletteKey: "terrain.region.coastal_grid",
-      base: "#d8cfa7",
-      shade: "#b8ac81",
-      highlight: "#f2e7c3",
-      accent: "#7fa58e",
+      base: "#dccfa4",
+      shade: "#b8ac7c",
+      highlight: "#f4e8c4",
+      accent: "#86aa94",
     },
   },
   desert_basin: {
     archetype: "desert_basin",
-    body: ["#d9b27c", "#c98f62", "#ead09a"],
-    roof: ["#b65f38", "#8f4b32", "#c77a45"],
+    // Warm adobe clay + terracotta roofs (desert-basin-clay ref).
+    body: ["#e0bc8a", "#d49a6c", "#f0d8a4"],
+    roof: ["#c06840", "#9a5238", "#d08050"],
     terrainTone: {
       paletteKey: "terrain.region.desert_basin",
-      base: "#cdbb82",
-      shade: "#a78f5e",
-      highlight: "#eadcae",
-      accent: "#8fa16f",
+      base: "#d4c088",
+      shade: "#b09462",
+      highlight: "#f0e2b4",
+      accent: "#96a874",
     },
   },
   mountain_valley: {
     archetype: "mountain_valley",
-    body: ["#8a6a4a", "#6f5b42", "#6f7650"],
-    roof: ["#56616a", "#244d34", "#4e514f"],
+    // Timber-clay brown + forest moss roofs.
+    body: ["#9a7a58", "#7e6a50", "#7e865c"],
+    roof: ["#5e6a72", "#2e5840", "#5a5e5c"],
     terrainTone: {
       paletteKey: "terrain.region.mountain_valley",
-      base: "#4f6f3f",
-      shade: "#334e31",
-      highlight: "#a8b990",
-      accent: "#7d8174",
+      base: "#567848",
+      shade: "#3a5438",
+      highlight: "#b0c098",
+      accent: "#868a7e",
     },
   },
   prairie_town: {
     archetype: "prairie_town",
-    body: ["#d6b65e", "#a94f3e", "#ead9b5"],
-    roof: ["#a43f32", "#8e938b", "#5f7c48"],
+    // Wheat barn clay + barn-red / tin roofs.
+    body: ["#e0c46a", "#b85a48", "#f0e2c0"],
+    roof: ["#b0483a", "#9a9e96", "#6a8a54"],
     terrainTone: {
       paletteKey: "terrain.region.prairie_town",
-      base: "#9fa94d",
-      shade: "#747d39",
-      highlight: "#d8df88",
-      accent: "#8c6f4c",
+      base: "#a8b258",
+      shade: "#7e883e",
+      highlight: "#e0e690",
+      accent: "#947656",
     },
   },
   river_town: {
     archetype: "river_town",
-    // Cool river-slate body + deep navy roofs + cyan bank terrain. Must stay
-    // distinct from metro cool concrete, prairie warm brick, and mountain olive
-    // (ship + unit palette-distinctness floors).
-    body: ["#6d8f9a", "#5f8490", "#8aa6a0"],
-    roof: ["#1a3a5c", "#16324f", "#244d34"],
+    // Cool river-slate clay body + deep navy roofs + cyan bank terrain.
+    // Must stay distinct from metro cool concrete, prairie warm brick, and
+    // mountain olive (ship + unit palette-distinctness floors).
+    body: ["#7898a2", "#6a8e9a", "#94aea8"],
+    roof: ["#1e4264", "#1a3a58", "#2a5640"],
     terrainTone: {
       paletteKey: "terrain.region.river_town",
-      base: "#1f8a96",
-      shade: "#165f68",
-      highlight: "#6fc4cc",
-      accent: "#6b7d52",
+      base: "#24949e",
+      shade: "#1a6870",
+      highlight: "#78ccd4",
+      accent: "#748a5c",
     },
   },
 };

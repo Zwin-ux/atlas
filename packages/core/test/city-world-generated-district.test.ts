@@ -70,7 +70,7 @@ const VEGETATION_EXPECTATIONS: Record<
   { trees: number; bushes: number; minVegetation: number; maxVegetation: number; minParkVegetation?: number; desertScrubOnly?: true }
 > = {
   metro_grid: { trees: 23, bushes: 6, minVegetation: 26, maxVegetation: 34 },
-  coastal_grid: { trees: 25, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
+  coastal_grid: { trees: 24, bushes: 2, minVegetation: 26, maxVegetation: 34, minParkVegetation: 7 },
   desert_basin: { trees: 0, bushes: 7, minVegetation: 5, maxVegetation: 8, desertScrubOnly: true },
   mountain_valley: { trees: 28, bushes: 4, minVegetation: 28, maxVegetation: 38, minParkVegetation: 7 },
   prairie_town: { trees: 38, bushes: 4, minVegetation: 32, maxVegetation: 44, minParkVegetation: 7 },

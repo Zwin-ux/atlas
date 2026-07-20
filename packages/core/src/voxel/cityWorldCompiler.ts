@@ -1104,18 +1104,27 @@ function createPins(places: CityWorldPlace[], stickers: NonNullable<CityWorldSes
     });
   }
 
+  // One map badge per place that has notes (count lives in label prefix).
+  const notesByPlace = new Map<string, NonNullable<CityWorldSessionState["notes"]>>();
   for (const note of notes) {
-    const place = placeById.get(note.placeId);
+    const list = notesByPlace.get(note.placeId) ?? [];
+    list.push(note);
+    notesByPlace.set(note.placeId, list);
+  }
+  for (const [placeId, placeNotes] of notesByPlace) {
+    const place = placeById.get(placeId);
     if (!place) {
-      throw new Error(`CityWorld note ${note.id} references missing place ${note.placeId}.`);
+      throw new Error(`CityWorld note ${placeNotes[0]?.id ?? "unknown"} references missing place ${placeId}.`);
     }
+    const count = placeNotes.length;
+    const latest = placeNotes[placeNotes.length - 1]!;
     pins.push({
-      id: `pin-${note.id}`,
-      placeId: note.placeId,
+      id: `pin-notes-${placeId}`,
+      placeId,
       kind: "note",
-      label: note.body,
+      label: count > 1 ? `${count} notes` : latest.body,
       anchor: { x: place.anchor.x - 0.75, y: place.anchor.y - 0.5, z: 1.6 },
-      noteId: note.id,
+      noteId: latest.id,
       spriteKey: "pin.note.default",
       paletteKey: "pin.note",
       detailLevel: "high",

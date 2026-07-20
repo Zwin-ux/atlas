@@ -1303,8 +1303,17 @@ function drawScene(
   );
   const actors = orderedSceneItems(renderCommands, "actor", itemIndex.actors);
   for (const actor of actors) drawActor(layers.actorLayer, actor, animated, atlas, focalCalm(actor.position, focalAnchor));
+  // Note badge counts: one aggregated note pin per place (compiler/session).
+  const noteCountByPlaceId = new Map<string, number>();
+  for (const pin of scene.pins) {
+    if (pin.kind !== "note") continue;
+    const match = /^(\d+)\s+notes?$/i.exec(pin.label.trim());
+    noteCountByPlaceId.set(pin.placeId, match ? Number(match[1]) : 1);
+  }
   const visiblePlaces = orderedSceneItems(renderCommands, "place_marker", itemIndex.places);
-  for (const place of visiblePlaces) drawPlaceMarker(layers, place, onSelectPlace, onHoverPlace, cameraZoom);
+  for (const place of visiblePlaces) {
+    drawPlaceMarker(layers, place, onSelectPlace, onHoverPlace, cameraZoom, noteCountByPlaceId.get(place.id) ?? 0);
+  }
   for (const pin of orderedSceneItems(renderCommands, "pin", itemIndex.pins)) drawPin(layers.markerLayer, pin, atlas);
   // 0.56E — labels clear the architecture: each place's label lifts above
   // the tallest structure anchored to it (plus crown allowance), instead of
@@ -5366,30 +5375,55 @@ function drawAuthoredRoofProfile(layer: Container, geometry: BuildingGeometry, b
   const { top, footprintWidth, footprintDepth, roofColor } = geometry;
 
   if (profile === "terracotta_barrel_tile" || profile === "cool_clay_tile" || profile === "sage_tile") {
-    // 0.53E item B — clay reads warm and COURSED: a stronger tile tint plus
-    // eave-parallel course lines so tile separates from metal (smooth/cool)
-    // and membrane (flat/dark) at a glance.
+    // Clay depth pass: warmer tile pigment + soft eave-parallel courses +
+    // thicker ridge barrel caps so roofs read as plasticine tile, not paint.
     const tileTint = profile === "terracotta_barrel_tile" ? 0xc4764e : profile === "cool_clay_tile" ? 0x7f9aa8 : 0x8ba372;
-    // Tile identity = tint + ridge barrel caps. The old chevron course strokes
-    // stacked with the gable ridge/eave linework into roof scribble.
-    const tint = polygon(diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86), tileTint, profile === "sage_tile" ? 0.2 : 0.18, tileTint, 0);
+    const tint = polygon(
+      diamondPoints(top, footprintWidth * 0.94, footprintDepth * 0.86),
+      mixColor(tileTint, roofColor, 0.28),
+      profile === "sage_tile" ? 0.26 : 0.24,
+      mixColor(tileTint, 0xd8c7a8, 0.2),
+      0.12,
+    );
+    // Soft courses parallel to the ridge (matte clay ridges, not hard lines).
+    const courses = new Graphics();
+    const courseCount = profile === "terracotta_barrel_tile" ? 4 : 3;
+    for (let course = 1; course <= courseCount; course += 1) {
+      const t = course / (courseCount + 1);
+      const offset = (t - 0.5) * footprintDepth * 0.42;
+      courses
+        .moveTo(top.x - footprintWidth * 0.32, top.y + offset - footprintDepth * 0.08)
+        .lineTo(top.x + footprintWidth * 0.32, top.y + offset + footprintDepth * 0.08);
+    }
+    courses.stroke({
+      color: shadeColor(tileTint, profile === "cool_clay_tile" ? -10 : -16),
+      alpha: 0.22,
+      width: 1.35,
+      cap: "round",
+    });
     const ridgeStart = { x: top.x - footprintWidth * 0.24, y: top.y - footprintDepth * 0.13 };
     const ridgeEnd = { x: top.x + footprintWidth * 0.24, y: top.y + footprintDepth * 0.13 };
     const barrelCaps = new Graphics();
-    const capCount = profile === "terracotta_barrel_tile" ? 5 : 4;
+    const capCount = profile === "terracotta_barrel_tile" ? 6 : 5;
     for (let cap = 0; cap < capCount; cap += 1) {
       const t = capCount > 1 ? cap / (capCount - 1) : 0.5;
       const x = ridgeStart.x + (ridgeEnd.x - ridgeStart.x) * t;
       const y = ridgeStart.y + (ridgeEnd.y - ridgeStart.y) * t;
-      barrelCaps.moveTo(x, y - 1.8).lineTo(x, y + 1.8);
+      barrelCaps.moveTo(x, y - 2.2).lineTo(x, y + 2.2);
     }
     barrelCaps.stroke({
       color: shadeColor(roofColor, profile === "cool_clay_tile" ? 34 : 28),
-      alpha: profile === "terracotta_barrel_tile" ? 0.5 : 0.4,
-      width: profile === "terracotta_barrel_tile" ? 1.7 : 1.3,
+      alpha: profile === "terracotta_barrel_tile" ? 0.56 : 0.46,
+      width: profile === "terracotta_barrel_tile" ? 2.1 : 1.65,
       cap: "round",
     });
-    layer.addChild(tint, barrelCaps);
+    // Soft eave lip — ground contact of the clay roof mass.
+    const eave = new Graphics()
+      .moveTo(top.x - footprintWidth * 0.42, top.y + footprintDepth * 0.02)
+      .lineTo(top.x, top.y + footprintDepth * 0.38)
+      .lineTo(top.x + footprintWidth * 0.42, top.y + footprintDepth * 0.02);
+    eave.stroke({ color: shadeColor(tileTint, -28), alpha: 0.28, width: 1.6, cap: "round", join: "round" });
+    layer.addChild(tint, courses, barrelCaps, eave);
     return;
   }
 
@@ -6860,7 +6894,8 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
       voxelBox(tree, { x: point.x, y: point.y - 1 }, 13, 8, 6, shadeColor(foliage, -6));
       voxelBox(tree, { x: point.x, y: point.y - 6.5 }, 8, 5, 4, shadeColor(foliage, 10));
     }
-    tree.stroke({ color: 0x26332c, alpha: 0.2, width: 1 });
+    // Clay prop outline — soft warm edge, matches building clay stroke.
+    tree.stroke({ color: mixColor(0x26332c, 0xd8c7a8, 0.35), alpha: 0.18, width: 1.15 });
     // Trees stay planted in the focal ring but yield opacity so they never
     // obscure the hero building's face separation.
     tree.alpha = Math.max(calm, 0.7);
@@ -6878,7 +6913,7 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
     voxelBox(dock, { x: point.x + 14, y: point.y + 9 }, 15, 9, 2.5, shadeColor(baseColor, -8));
     voxelBox(dock, { x: point.x + 20, y: point.y + 14 }, 3, 2.5, 5, shadeColor(shade, -14));
     voxelBox(dock, { x: point.x + 9, y: point.y + 12 }, 3, 2.5, 5, shadeColor(shade, -14));
-    dock.stroke({ color: 0x26332c, alpha: 0.22, width: 1 });
+    dock.stroke({ color: mixColor(0x26332c, 0xd8c7a8, 0.3), alpha: 0.2, width: 1.1 });
     dock.alpha = calm;
     layer.addChild(dock);
     return;
@@ -6895,7 +6930,7 @@ function drawProp(layer: Container, prop: CityWorldProp, animated: AnimatedTarge
       .moveTo(point.x + 6, point.y - 4)
       .lineTo(point.x + 6, point.y - 16)
       .stroke({ color: shade, alpha: 0.8, width: 1.4, cap: "round" });
-    boat.stroke({ color: 0x26332c, alpha: 0.24, width: 1 });
+    boat.stroke({ color: mixColor(0x26332c, 0xd8c7a8, 0.3), alpha: 0.2, width: 1.1 });
     boat.alpha = calm;
     layer.addChild(boat);
     return;
@@ -7132,6 +7167,7 @@ function drawPlaceMarker(
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
   cameraZoom: number,
+  noteCount = 0,
 ) {
   // Neutral, static marker only: emphasis rings + their pulse animation live
   // in the focus overlay, so hover/selection never rebuilds the base scene
@@ -7147,6 +7183,11 @@ function drawPlaceMarker(
   // can never draw across a wall when the anchor sits inside a structure.
   layers.padLayer.addChild(ring);
 
+  // Map note badge: sticky clay tab on places that have session notes.
+  if (noteCount > 0) {
+    drawPlaceNoteBadge(layers.markerLayer, point, noteCount);
+  }
+
   // S4e (decision #26): the hit disc lives in WORLD space, so its on-screen
   // size shrinks with zoom — floor it at a 44px target (22px radius) in
   // SCREEN pixels regardless of visual marker size.
@@ -7158,6 +7199,26 @@ function drawPlaceMarker(
   hit.on("pointerover", () => onHoverPlace(place.id));
   hit.on("pointerout", () => onHoverPlace(undefined));
   layers.markerLayer.addChild(hit);
+}
+
+/** Compact clay sticky-note badge above a place anchor (count of session notes). */
+function drawPlaceNoteBadge(layer: Container, point: ProjectedPoint, noteCount: number) {
+  const bx = point.x + 14;
+  const by = point.y - 28;
+  const badge = new Graphics()
+    .roundRect(bx - 8, by - 9, 16, 14, 3)
+    .fill({ color: 0xf4e4a8, alpha: 0.96 })
+    .stroke({ color: 0xc4a85a, alpha: 0.72, width: 1.2 })
+    .poly([bx + 3, by - 9, bx + 8, by - 9, bx + 8, by - 4], true)
+    .fill({ color: 0xe8d48a, alpha: 0.9 });
+  badge.label = `place-note-badge`;
+  const label = new Text({
+    text: noteCount > 9 ? "9+" : String(noteCount),
+    style: { fill: 0x5a4820, fontFamily: "Arial", fontSize: 9, fontWeight: "800" },
+  });
+  label.anchor.set(0.5);
+  label.position.set(bx, by - 1);
+  layer.addChild(badge, label);
 }
 
 type FocusMode = "selected" | "hovered";
@@ -7268,6 +7329,25 @@ function drawPin(layer: Container, pin: CityWorldPin, atlas: CityWorldAtlasResol
   const color = colorToNumber(asset.palette.colors.base);
   const shade = colorToNumber(asset.palette.colors.shade);
   const highlight = colorToNumber(asset.palette.colors.highlight);
+  // Clay sticky badge for notes; compact circle for sticker kinds.
+  if (pin.kind === "note") {
+    const countMatch = /^(\d+)\s+notes?$/i.exec(pin.label.trim());
+    const glyph = countMatch ? (Number(countMatch[1]) > 9 ? "9+" : countMatch[1]!) : "N";
+    const noteBadge = new Graphics()
+      .roundRect(pinPoint.x - 9, pinPoint.y - 24, 18, 16, 3.5)
+      .fill({ color: mixColor(color, 0xf4e4a8, 0.55), alpha: 0.97 })
+      .stroke({ color: mixColor(shade, 0xc4a85a, 0.4), alpha: 0.75, width: 1.3 })
+      .poly([pinPoint.x - 2, pinPoint.y - 8, pinPoint.x + 2, pinPoint.y - 8, pinPoint.x, pinPoint.y - 3], true)
+      .fill({ color: mixColor(color, 0xf4e4a8, 0.55), alpha: 0.97 });
+    const label = new Text({
+      text: glyph,
+      style: { fill: 0x5a4820, fontFamily: "Arial", fontSize: 9, fontWeight: "800" },
+    });
+    label.anchor.set(0.5);
+    label.position.set(pinPoint.x, pinPoint.y - 15);
+    layer.addChild(noteBadge, label);
+    return;
+  }
   const badge = new Graphics()
     .poly([pinPoint.x, pinPoint.y - 2, pinPoint.x - 5, pinPoint.y - 8, pinPoint.x + 5, pinPoint.y - 8], true)
     .fill({ color: shade, alpha: 0.86 })
@@ -7277,7 +7357,7 @@ function drawPin(layer: Container, pin: CityWorldPin, atlas: CityWorldAtlasResol
     .fill({ color: highlight, alpha: 0.34 })
     .stroke({ color: shade, alpha: 0.7, width: 1.5 });
   const label = new Text({
-    text: pin.kind === "note" ? "N" : stickerGlyph(pin.kind),
+    text: stickerGlyph(pin.kind),
     style: { fill: shade, fontFamily: "Arial", fontSize: 9, fontWeight: "900" },
   });
   label.anchor.set(0.5);
