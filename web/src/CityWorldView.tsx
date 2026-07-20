@@ -269,8 +269,8 @@ export function CityWorldView({
     if (!isCountyBoardMode) return;
     const place = cityScene.places.find((item) => item.id === placeId);
     if (!place) return;
-    // Census towns + any board place: pan/zoom so the location is framed.
-    rendererRef.current?.focusPoint(place.anchor, 1.55);
+    // Census towns: pull past NEAR band threshold (~1.48) so road overlay can commit.
+    rendererRef.current?.focusPoint(place.anchor, 1.62);
   };
 
   const selectPlaceFromNavigator = (placeId: string) => {
@@ -423,11 +423,18 @@ export function CityWorldView({
                 ? "Real boundary, water, town names, and streets from Census TIGER. Buildings aren't mapped yet. Tap a town to zoom in. Fit county to zoom out."
                 : "Real boundary, water, and town names. Streets and buildings aren't mapped yet. Tap a town to zoom in. Fit county to zoom out."}
             </strong>
-            {/* S4a status: quiet line, only when a NEAR request is waiting on a
-                cold cache or has failed — sparse and ready render nothing. */}
-            {roadStatus === "loading" || roadStatus === "unavailable" ? (
+            {/* S4a status: NEAR-band honesty — loading / ready / sparse / unavailable.
+                Ready+sparse also flip the strong line above so we never claim streets
+                are unmapped once TIGER is on screen. */}
+            {roadStatus === "loading" || roadStatus === "unavailable" || roadStatus === "ready" || roadStatus === "sparse" ? (
               <em aria-live="polite" data-qa="road-status">
-                {roadStatus === "loading" ? "Street detail loading…" : "Street detail unavailable"}
+                {roadStatus === "loading"
+                  ? "Street detail loading…"
+                  : roadStatus === "ready"
+                    ? "Street detail on — from Census TIGER. Buildings are not mapped."
+                    : roadStatus === "sparse"
+                      ? "Limited street detail from Census TIGER. Buildings are not mapped."
+                      : "Street detail unavailable for this county yet. Zoom out with Fit county."}
               </em>
             ) : null}
           </div>

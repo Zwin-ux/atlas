@@ -1,0 +1,8 @@
+[
+  {
+    "county": "maricopa-az",
+    "band": "near",
+    "message": "RangeError: Maximum call stack size exceeded\n    at bakeCounty (file:///Users/entreprenurecosystem/atlas-alpha-engine-beta-checkpoint/scripts/build-county-road-chunks.mjs:568:14)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async main (file:///Users/entreprenurecosystem/atlas-alpha-engine-beta-checkpoint/scripts/build-county-road-chunks.mjs:829:15)\n    at async file:///Users/entreprenurecosystem/atlas-alpha-engine-beta-checkpoint/scripts/build-county-road-chunks.mjs:876:1",
+    "at": "2026-07-20T23:14:11.878Z"
+  }
+]
