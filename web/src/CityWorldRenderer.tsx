@@ -1349,9 +1349,9 @@ function drawScene(
   // sitting at a fixed ground offset that erased landmark crowns.
   const crownLift = placeCrownLiftMap(scene.buildings);
   if (includeLabels) {
-    // 0.67H label demotion — ambient labels are a hard cap (none on mobile,
-    // two on desktop); selected/hover labels render from the focus overlay.
-    const ambientLabelIds = ambientLabelAllowance(scene, cameraPresetId);
+    // 0.67H label demotion — ambient labels are a hard cap; selected/hover
+    // labels render from the focus overlay. Census boards scale budget by zoom.
+    const ambientLabelIds = ambientLabelAllowance(scene, cameraPresetId, cameraZoom);
     for (const place of orderedSceneItems(renderCommands, "place_label", itemIndex.places)) drawPlaceLabel(layers.labelLayer, place, ambientLabelIds, crownLift.get(place.id));
   }
   if (debugMode === "engine") drawEngineDebugOverlay(layers.hudBridgeLayer, scene);
@@ -1399,17 +1399,47 @@ function shouldHideCityWorldLabels(): boolean {
   return new URLSearchParams(window.location.search).get("atlasNoLabels") === "1";
 }
 
-// 0.67H label demotion — the ambient (non-focused) label budget is a hard
-// cap, not a priority threshold: mobile gets none, desktop gets the two
-// highest-priority anchors. Focus-overlay labels render on top of this
-// allowance, so a desktop frame tops out at three label cards.
-function ambientLabelAllowance(scene: CityWorldScene, cameraPresetId: CityWorldCameraPresetId): Set<string> {
-  if (cameraPresetId === "mobile") return new Set();
+// Ambient place labels: hard budget. Clay cities stay quiet (0 mobile / 2 desktop).
+// Census boards show more names as the user zooms in (far = top towns only).
+function ambientLabelAllowance(
+  scene: CityWorldScene,
+  cameraPresetId: CityWorldCameraPresetId,
+  cameraZoom = 1,
+): Set<string> {
+  const isGeoBoard = scene.id.startsWith("county-geo-");
+  if (!isGeoBoard) {
+    if (cameraPresetId === "mobile") return new Set();
+    return new Set(
+      scene.places
+        .filter((place) => place.labelPriority >= 9)
+        .sort((a, b) => b.labelPriority - a.labelPriority)
+        .slice(0, 2)
+        .map((place) => place.id),
+    );
+  }
+
+  const openingZoom = scene.cameraPresets.find((preset) => preset.id === cameraPresetId)?.zoom ?? 1;
+  const near = cameraZoom >= openingZoom * 1.4;
+  const mid = cameraZoom >= openingZoom * 1.12;
+  // Far: few labels; near: up to a dozen real Census towns when anchors expand.
+  const budget =
+    cameraPresetId === "mobile"
+      ? near
+        ? 5
+        : mid
+          ? 3
+          : 1
+      : near
+        ? 10
+        : mid
+          ? 6
+          : 3;
+
   return new Set(
     scene.places
-      .filter((place) => place.labelPriority >= 9)
+      .filter((place) => place.labelPriority >= 1)
       .sort((a, b) => b.labelPriority - a.labelPriority)
-      .slice(0, 2)
+      .slice(0, budget)
       .map((place) => place.id),
   );
 }

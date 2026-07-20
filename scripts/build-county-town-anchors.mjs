@@ -23,7 +23,7 @@ const TIGER_SERVICE =
 const COUNTY_LAYER =
   "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/11/query";
 const DEFAULT_OUTPUT = "data/census/us-county-town-anchors.json";
-const DEFAULT_MAX_ANCHORS = 6;
+const DEFAULT_MAX_ANCHORS = 12;
 const BOUNDARY_CONCURRENCY = 6;
 
 function parseArgs(argv) {

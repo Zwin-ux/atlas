@@ -26,13 +26,14 @@ See session plan / dogfood: Riverside clay; national board; honesty; notes on to
 
 ## Scale ladder (Mode B)
 
-1. **Fit county** — full outline (center control)  
-2. **Tap town** — camera focuses real Census place  
-3. **More towns** — raise anchor cap (later)  
-4. **Roads at near zoom** — TIGER packs (later)  
+1. **Fit county** — full outline (center control) ✅  
+2. **Tap town** — camera focuses real Census place ✅  
+3. **More towns** — up to **12** Census places/county (18,447 national) ✅  
+4. **Zoom-aware labels** — more names when zoomed in ✅  
+5. **Roads at near zoom** — TIGER packs (next)  
 
 ## Next
 
-1. Human ChatGPT dogfood R1–R6 + scale: tap town / fit county  
-2. Fix only failed R-row  
-3. Raise town anchor cap / roads only after scale UX dogfood passes  
+1. Human ChatGPT dogfood: Miami towns (12), fit county, zoom-to-town, notes  
+2. Roads near-band expansion only after that dogfood  
+3. Do not restart national clay massing

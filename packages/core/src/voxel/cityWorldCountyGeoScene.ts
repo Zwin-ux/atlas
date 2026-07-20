@@ -505,7 +505,8 @@ function compileCountyTownPlaces(input: {
         description:
           "Real U.S. Census place name and center on the county board. Streets and buildings are not mapped in this view.",
         activity: 0,
-        labelPriority: 20 - index,
+        // Higher priority for larger towns (index 0 first); keeps zoom-label budgets useful past 6 anchors.
+        labelPriority: Math.max(1, 24 - index),
       };
     })
     .filter((place): place is NonNullable<typeof place> => Boolean(place));

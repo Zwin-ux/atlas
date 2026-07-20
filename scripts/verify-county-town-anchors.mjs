@@ -21,7 +21,8 @@ try {
 
   check(index.totals.supportedCountyCount === core.US_COUNTY_INDEX.length, "anchor county count matches Atlas county index");
   check(index.totals.coveredCountyCount === 3_222, "all 3,222 supported counties have anchors");
-  check(index.totals.anchorCount === 13_797, "the certified index contains 13,797 anchors");
+  check(index.method.maximumAnchorsPerCounty === 12, "anchor budget is 12 towns per county");
+  check(index.totals.anchorCount === 18_447, "the certified index contains 18,447 anchors");
   check(Object.values(index.counties).every((county) => county.anchors.length > 0), "no supported county has an empty anchor set");
   check(
     Object.values(index.counties).every((county) => county.anchors.every((anchor) => !/balance of/i.test(anchor.label))),
