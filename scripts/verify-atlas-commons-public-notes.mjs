@@ -4,7 +4,8 @@ import { createServer } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
-const UPDATE_ID = "postalpha-0.81c-atlas-all-public-notes-foundation";
+const UPDATE_ID = "postalpha-0.81d-atlas-commons-map-radar";
+const WIDGET_URI = "ui://widget/atlas-city-world-081d.html";
 const blockers = [];
 
 const requiredFiles = [
@@ -25,9 +26,12 @@ for (const path of requiredFiles) {
 
 const serverIndex = read("server/src/index.ts");
 const service = read("server/src/atlasCommons/service.ts");
+const repository = read("server/src/atlasCommons/repository.ts");
+const postgres = read("server/src/atlasCommons/postgres.ts");
 const migration = read("migrations/hosted-clawd/003_atlas_commons_public_notes.sql");
 const app = read("web/src/App.tsx");
 const view = read("web/src/CityWorldView.tsx");
+const renderer = read("web/src/CityWorldRenderer.tsx");
 const styles = read("web/src/styles.css");
 const envExample = read(".env.example");
 
@@ -40,15 +44,29 @@ for (const token of [
   '"mcp/www_authenticate"',
   "/api/atlas-commons/moderation",
 ]) assertIncludes(serverIndex, token, `Server integration missing ${token}.`);
+assertIncludes(serverIndex, WIDGET_URI, `Server widget URI must be versioned for ${UPDATE_ID}.`);
 
 for (const token of [
   "validateBody",
   "resolveAnchor",
   "requireScope",
   "createHmac",
-  "countRecentActions",
+  "findNoteByRequest",
+  "listModerationQueue",
+  "timingSafeEqual",
+  "cursorScope",
+  "writeQuota",
+  "rateLimitError",
+  "operatorNote(",
   "publicNote(",
 ]) assertIncludes(service, token, `Commons service boundary missing ${token}.`);
+
+for (const token of ["findNoteByRequest", "listModerationQueue", "INVALID_TRANSITION"]) {
+  assertIncludes(repository, token, `Commons repository contract missing ${token}.`);
+}
+for (const token of ["BEGIN", "FOR UPDATE", "pg_advisory_xact_lock", "assertWriteQuotaAvailable", "system:report-threshold", "moderation_status = $5", "ROLLBACK"]) {
+  assertIncludes(postgres, token, `Commons Postgres safety contract missing ${token}.`);
+}
 
 for (const token of [
   "atlas_public_notes",
@@ -59,13 +77,17 @@ for (const token of [
   "UNIQUE (owner_user_id, client_request_id)",
 ]) assertIncludes(migration, token, `Commons migration missing ${token}.`);
 
-for (const token of ["callAtlasTool", "postPublicNote", "reactToPublicNote", "reportPublicNote", "commonsMode"]) {
+for (const token of ["callAtlasTool", "postPublicNote", "reactToPublicNote", "reportPublicNote", "commonsMode", "commonsSort"]) {
   assertIncludes(app, token, `Widget controller missing ${token}.`);
 }
-for (const token of ['["all", "nearby", "mine"]', "mode.toUpperCase()", "Review public post", "Post publicly", "Private notes stay in this chat"]) {
+for (const token of ['["all", "nearby", "mine"]', '["hot", "new"]', "public-note-selected", "open-public-note-composer", "Review public post", "Post publicly", "Private notes stay in this chat"]) {
   assertIncludes(view, token, `Map-native Commons UI missing ${token}.`);
 }
-for (const token of [".city-world-commons-mode", ".city-world-public-note-list", "min-height: 44px"]) {
+if (view.includes('data-qa="public-note-list"')) blockers.push("Public Commons mode must render one selected note, not a feed list.");
+for (const token of ["drawPublicNoteBeacon", "publicNoteCountByPlaceId", "selectedPublicNotePreview"]) {
+  assertIncludes(renderer, token, `Map-native Commons renderer missing ${token}.`);
+}
+for (const token of [".city-world-commons-controls", ".city-world-commons-sort", ".city-world-tray.is-commons-strip", ".city-world-public-note-selected", "min-height: 44px"]) {
   assertIncludes(styles, token, `Commons styling/mobile contract missing ${token}.`);
 }
 for (const token of ["ATLAS_COMMONS_ENABLED=false", "ATLAS_COMMONS_PSEUDONYM_SECRET=", "ATLAS_COMMONS_OPS_TOKEN="]) {
@@ -92,17 +114,33 @@ if (blockers.length === 0) {
     if (JSON.stringify(disabled.tools) !== JSON.stringify(expectedFrozen)) {
       blockers.push(`Default-off runtime must expose seven tools; got ${disabled.tools.join(", ")}.`);
     }
+    if (disabled.widgetTemplate !== WIDGET_URI) {
+      blockers.push(`Default-off select_county widget URI expected ${WIDGET_URI}; got ${String(disabled.widgetTemplate)}.`);
+    }
 
     const enabled = await probeRuntime(true);
     const expectedEnabled = [...expectedFrozen, "list_atlas_notes", "write_atlas_note"].sort();
     if (JSON.stringify(enabled.tools) !== JSON.stringify(expectedEnabled)) {
       blockers.push(`Enabled runtime tool surface mismatch; got ${enabled.tools.join(", ")}.`);
     }
+    if (enabled.widgetTemplate !== WIDGET_URI) {
+      blockers.push(`Enabled select_county widget URI expected ${WIDGET_URI}; got ${String(enabled.widgetTemplate)}.`);
+    }
     if (enabled.commonsError !== "COMMONS_UNAVAILABLE") {
       blockers.push(`Enabled-without-DB read must fail narrowly with COMMONS_UNAVAILABLE; got ${enabled.commonsError ?? "none"}.`);
     }
     if (enabled.mapMeta?.enabled !== true || enabled.mapMeta?.available !== false) {
       blockers.push("Enabled-without-DB map metadata must say enabled=true and available=false.");
+    }
+    if (enabled.ready?.ok !== true || enabled.ready?.atlasCommons?.ready !== false || enabled.ready?.atlasCommons?.databaseReady !== false) {
+      blockers.push("Commons unavailability must stay isolated from healthy map readiness while reporting Commons ready=false.");
+    }
+    const scopes = enabled.metadata?.scopes_supported;
+    if (JSON.stringify(scopes) !== JSON.stringify(["atlas:commons.read", "atlas:commons.write"])) {
+      blockers.push(`Commons-only OAuth metadata advertised unexpected scopes: ${JSON.stringify(scopes)}.`);
+    }
+    if (enabled.metadata?.resource !== `${baseResource(enabled.baseUrl)}/mcp`) {
+      blockers.push(`OAuth resource metadata must identify the MCP endpoint; got ${String(enabled.metadata?.resource)}.`);
     }
   } catch (error) {
     blockers.push(`Runtime probe failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -130,13 +168,13 @@ async function probeRuntime(enabled) {
       DATABASE_URL: "",
       ATLAS_COMMONS_ENABLED: enabled ? "true" : "false",
       ATLAS_COMMONS_PSEUDONYM_SECRET: enabled ? "runtime-probe-only-secret" : "",
-      ATLAS_COMMONS_OPS_TOKEN: "",
+      ATLAS_COMMONS_OPS_TOKEN: enabled ? "runtime-probe-only-operator" : "",
       ATLAS_HOSTED_CLAWD_PERSISTENCE_ENABLED: "false",
       ATLAS_HOSTED_CLAWD_MONEY_ENABLED: "false",
       ATLAS_HOSTED_CLAWD_PUBLIC_CLAIM_ENABLED: "false",
-      ATLAS_OIDC_ISSUER: "",
-      ATLAS_OIDC_AUDIENCE: "",
-      ATLAS_OIDC_JWKS_URL: "",
+      ATLAS_OIDC_ISSUER: enabled ? "https://identity.example.test/" : "",
+      ATLAS_OIDC_AUDIENCE: enabled ? `${baseUrl}/mcp` : "",
+      ATLAS_OIDC_JWKS_URL: enabled ? "https://identity.example.test/.well-known/jwks.json" : "",
     },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
@@ -147,16 +185,24 @@ async function probeRuntime(enabled) {
 
   try {
     await waitForHealth(`${baseUrl}/health`, child, () => output);
+    const ready = await (await fetch(`${baseUrl}/ready`)).json();
+    const metadata = enabled ? await (await fetch(`${baseUrl}/.well-known/oauth-protected-resource`)).json() : undefined;
     const client = new Client({ name: "atlas-commons-verifier", version: "0.1.0" });
     const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`));
     await client.connect(transport);
     try {
-      const tools = (await client.listTools()).tools.map((tool) => tool.name).sort();
-      if (!enabled) return { tools };
+      const toolDefinitions = (await client.listTools()).tools;
+      const tools = toolDefinitions.map((tool) => tool.name).sort();
+      const widgetTemplate = toolDefinitions.find((tool) => tool.name === "select_county")?._meta?.["openai/outputTemplate"];
+      if (!enabled) return { tools, ready, baseUrl, widgetTemplate };
       const list = await client.callTool({ name: "list_atlas_notes", arguments: { countySlug: "riverside-ca" } });
       const selected = await client.callTool({ name: "select_county", arguments: { countySlug: "riverside-ca" } });
       return {
         tools,
+        widgetTemplate,
+        ready,
+        metadata,
+        baseUrl,
         commonsError: list?._meta?.atlasCommonsError?.code,
         mapMeta: selected?._meta?.atlasCommons,
       };
@@ -170,6 +216,10 @@ async function probeRuntime(enabled) {
       new Promise((resolve) => setTimeout(resolve, 2000)),
     ]);
   }
+}
+
+function baseResource(baseUrl) {
+  return baseUrl.replace(/\/$/, "");
 }
 
 async function waitForHealth(url, child, output) {

@@ -21,6 +21,7 @@ const SCENE_PACKET_UPDATE = "postalpha-0.71h-scene-packet-service-boundary";
 const BACKEND_SPINE_UPDATE = "postalpha-0.72b-redis-scene-packet-cache-job-spine";
 const CENSUS_BOARD_UPDATE = "postalpha-0.78-1v-census-county-board-certification";
 const PLUGIN_SUBMISSION_UPDATE = "postalpha-0.78-1v-chatgpt-plugin-submission-rc";
+const ATLAS_COMMONS_UPDATE = "postalpha-0.81d-atlas-commons-map-radar";
 const OWNER_GATE_INPUT_UPDATE = "postalpha-0.44e-hidden-second-district-visual-product-proof-packet";
 const HOSTED_CLAWD_INPUT_UPDATE = "human-reopened-hosted-clawd-2026-07-05";
 const INTEGRATION_INPUT_UPDATE = "postalpha-0.58h-hosted-clawd-scaffold+postalpha-0.58e-fable-prop-cleanup";
@@ -137,33 +138,42 @@ const decisions = readText("docs/DECISIONS.md", "decisions");
 const productSpec = readText("docs/PRODUCT_SPEC_AND_GATES.md", "product spec and gates");
 const releaseLadder = readText("docs/updates/ATLAS_RELEASE_LADDER.md", "release ladder");
 const toolContracts = readText("docs/TOOL_CONTRACTS.md", "tool contracts");
+const northFace = readText("docs/NORTH_FACE.md", "North Face ship authority");
+const commonsSpec = readText("docs/ATLAS_ALL_PUBLIC_NOTES_SPEC.md", "Atlas Commons spec");
+const commonsRunbook = readText("docs/ATLAS_ALL_PUBLIC_NOTES_RUNBOOK.md", "Atlas Commons runbook");
 const serverIndex = readText("server/src/index.ts", "server entrypoint");
 const packageJson = readJson("package.json", "package manifest");
 const envExample = existsSync(resolve(".env.example")) ? readText(".env.example", "env example") : "";
 
 checkCurrentUpdate(currentUpdate);
-checkPriorSelectorArtifact(selector);
-checkHiddenProofArtifacts(readinessAggregate, ownerCutline, visualReview);
-checkOwnerGateSelector(ownerGateSelector);
-checkNextQuestAlignment(currentUpdate, nextQuests, releaseLadder);
-checkIntegrationReleaseDocs(currentUpdate, { state, nextQuests, buildLog, decisions, productSpec });
-checkAgentsDoctrine(agents);
-checkReadmeDrift(readme);
-checkToolSurface(toolContracts, serverIndex);
-checkPublicCandidateClaims({
-  "artifacts/current-update.json": JSON.stringify(currentUpdate ?? {}, null, 2),
-  "docs/NEXT_QUESTS.md": nextQuests,
-  "AGENTS.md": agents,
-  "README.md": readme,
-  "server/src/index.ts": serverIndex,
-});
-checkDbDrift(packageJson, serverIndex, envExample);
+if (currentUpdate?.id === ATLAS_COMMONS_UPDATE) {
+  checkAtlasCommonsAuthority({ currentUpdate, northFace, nextQuests, buildLog, decisions, commonsSpec, commonsRunbook, serverIndex, packageJson, envExample });
+} else {
+  checkPriorSelectorArtifact(selector);
+  checkHiddenProofArtifacts(readinessAggregate, ownerCutline, visualReview);
+  checkOwnerGateSelector(ownerGateSelector);
+  checkNextQuestAlignment(currentUpdate, nextQuests, releaseLadder);
+  checkIntegrationReleaseDocs(currentUpdate, { state, nextQuests, buildLog, decisions, productSpec });
+  checkAgentsDoctrine(agents);
+  checkReadmeDrift(readme);
+  checkToolSurface(toolContracts, serverIndex);
+  checkPublicCandidateClaims({
+    "artifacts/current-update.json": JSON.stringify(currentUpdate ?? {}, null, 2),
+    "docs/NEXT_QUESTS.md": nextQuests,
+    "AGENTS.md": agents,
+    "README.md": readme,
+    "server/src/index.ts": serverIndex,
+  });
+  checkDbDrift(packageJson, serverIndex, envExample);
+}
 checkRepairScope();
 
 const result = {
   ok: blockers.length === 0,
   update:
-    currentUpdate?.id === PLUGIN_SUBMISSION_UPDATE
+    currentUpdate?.id === ATLAS_COMMONS_UPDATE
+      ? "postalpha-0.81d-atlas-commons-source-of-truth-drift-check"
+      : currentUpdate?.id === PLUGIN_SUBMISSION_UPDATE
       ? "postalpha-0.78-1v-chatgpt-plugin-submission-source-of-truth-drift-check"
       : currentUpdate?.id === CENSUS_BOARD_UPDATE
       ? "postalpha-0.78-1v-census-county-board-source-of-truth-drift-check"
@@ -234,6 +244,10 @@ function readJson(path, label) {
 
 function checkCurrentUpdate(update) {
   if (!update) return;
+  if (update.id === ATLAS_COMMONS_UPDATE) {
+    checkAtlasCommonsCurrentUpdate(update);
+    return;
+  }
   if (update.id === OWNER_GATE_UPDATE) {
     checkOwnerGateCurrentUpdate(update);
     return;
@@ -307,6 +321,52 @@ function checkCurrentUpdate(update) {
     return;
   }
   blockers.push(`artifacts/current-update.json id is not a recognized gated update; got ${update.id ?? "missing"}.`);
+}
+
+function checkAtlasCommonsCurrentUpdate(update) {
+  if (update.status !== "implementation_green_staging_disabled_deploy_pending") {
+    blockers.push(`Atlas Commons current-update status is unexpected: ${update.status ?? "missing"}.`);
+  }
+  if (update.selectedAxis !== "map_native_public_notes") {
+    blockers.push(`Atlas Commons selectedAxis must be map_native_public_notes; got ${update.selectedAxis ?? "missing"}.`);
+  }
+  if (update.recommendedNextQuest !== "E11 Atlas Commons staging acceptance") {
+    blockers.push(`Atlas Commons next quest must be E11 Atlas Commons staging acceptance; got ${update.recommendedNextQuest ?? "missing"}.`);
+  }
+  if (update.decision !== "OWNER_AUTHORIZED_STAGING_ONLY_PRODUCTION_LOCKED_OFF") {
+    blockers.push(`Atlas Commons decision must preserve the staging-only owner cutline; got ${update.decision ?? "missing"}.`);
+  }
+  if (update.widgetResourceUri !== "ui://widget/atlas-city-world-081d.html") {
+    blockers.push(`Atlas Commons widget URI must be 081d; got ${update.widgetResourceUri ?? "missing"}.`);
+  }
+  if (update.releaseState?.productionCommonsEnabled !== false || update.releaseState?.productionToolCount !== 7 || update.releaseState?.productionMutationAuthorized !== false) {
+    blockers.push("Atlas Commons current update must keep production off, seven-tool, and mutation-unauthorized.");
+  }
+}
+
+function checkAtlasCommonsAuthority({ currentUpdate: update, northFace: face, nextQuests: quests, buildLog: log, decisions: decisionLog, commonsSpec: spec, commonsRunbook: runbook, serverIndex: server, packageJson: manifest, envExample: env }) {
+  const requiredAuthority = [
+    [face, "Owner-reopened staging exception", "NORTH_FACE staging exception"],
+    [face, "original seven tools", "NORTH_FACE production lock"],
+    [quests, "Quest E11: Atlas Commons staging acceptance", "E11 next quest"],
+    [log, "0.81D ATLAS COMMONS MAP RADAR", "0.81D build log"],
+    [decisionLog, "Decision 071: The owner reopens Commons in staging only", "staging-only decision"],
+    [spec, ATLAS_COMMONS_UPDATE, "Commons spec slice id"],
+    [runbook, "production locked off", "Commons runbook production boundary"],
+    [server, "ui://widget/atlas-city-world-081d.html", "versioned Commons widget URI"],
+    [server, '"list_atlas_notes"', "Commons read tool"],
+    [server, '"write_atlas_note"', "Commons write tool"],
+    [env, "ATLAS_COMMONS_ENABLED=false", "default-off Commons env"],
+  ];
+  for (const [source, token, label] of requiredAuthority) {
+    if (!source.includes(token)) blockers.push(`Missing ${label}: ${token}.`);
+  }
+  if (manifest?.scripts?.["verify:atlas-commons:staging"] !== "node scripts/verify-atlas-commons-staging.mjs") {
+    blockers.push("package.json must expose the Atlas Commons staging verifier.");
+  }
+  if (update?.releaseState?.stagingCommonsEnabled !== false || update?.releaseState?.stagingOidcConfigured !== false) {
+    blockers.push("Current Atlas Commons record must not claim staging enablement or OIDC before those gates run.");
+  }
 }
 
 function checkOwnerGateCurrentUpdate(update) {

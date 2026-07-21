@@ -102,7 +102,7 @@ import {
 } from "./roadChunkStore.js";
 
 const SERVER_VERSION = "0.1.0";
-const WIDGET_URI = "ui://widget/atlas-city-world-081c.html";
+const WIDGET_URI = "ui://widget/atlas-city-world-081d.html";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = resolve(__dirname, "../..");
 const MAX_WORLD_LOOKUP_CACHE_ENTRIES = 100;
@@ -240,6 +240,7 @@ const atlasCommonsService = new AtlasCommonsService({
   config: atlasCommonsConfig,
   repository: atlasCommonsRepository,
   resolveAnchor: resolveAtlasCommonsAnchor,
+  authConfigured: Boolean(hostedClawdAuthenticator),
 });
 
 type WorldLookupCacheEntry = {
@@ -2465,11 +2466,11 @@ async function readyPayload(): Promise<unknown> {
   const hostedClawdDatabaseReady =
     !hostedClawdFlags.persistenceEnabled || hostedClawdDatabaseReachable === true;
   const atlasCommonsReady = await atlasCommonsReadyPayload();
+  const atlasCommonsDatabaseReady = await atlasCommonsDatabaseReadyPayload();
   const ok =
     webDistPresent &&
     redisReady &&
     hostedClawdDatabaseReady &&
-    (!atlasCommonsConfig.enabled || atlasCommonsReady === true) &&
     scenePacketRuntimeConfig.blockers.length === 0;
 
   return {
@@ -2508,7 +2509,8 @@ async function readyPayload(): Promise<unknown> {
           atlasCommons: {
             ...atlasCommonsService.publicMeta(),
             databaseConfigured: Boolean(hostedClawdDatabaseUrl),
-            databaseReady: atlasCommonsReady,
+            databaseReady: atlasCommonsDatabaseReady,
+            ready: atlasCommonsReady,
             authConfigured: Boolean(hostedClawdAuthenticator),
             operatorConfigured: Boolean(atlasCommonsConfig.operatorToken),
           },
@@ -3799,7 +3801,7 @@ function createAtlasServer(): McpServer {
         outputSchema: atlasPublicNoteListOutputSchema,
         annotations: {
           readOnlyHint: true,
-          openWorldHint: true,
+          openWorldHint: false,
           destructiveHint: false,
         },
         _meta: {
@@ -3851,8 +3853,8 @@ function createAtlasServer(): McpServer {
         outputSchema: atlasPublicNoteWriteOutputSchema,
         annotations: {
           readOnlyHint: false,
-          openWorldHint: true,
-          destructiveHint: false,
+          openWorldHint: false,
+          destructiveHint: true,
           idempotentHint: true,
         },
         _meta: {
@@ -3908,17 +3910,7 @@ function secureBearerMatches(header: string | undefined, expected: string): bool
 }
 
 async function handleAtlasCommonsModeration(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (!atlasCommonsConfig.enabled || !atlasCommonsConfig.operatorToken || !atlasCommonsRepository) {
-    textResponse(res, 404, "Not Found");
-    return;
-  }
-  if (!secureBearerMatches(req.headers.authorization, atlasCommonsConfig.operatorToken)) {
-    logBackendEvent("atlas_commons_moderation_denied", {
-      requestId: String(res.getHeader("x-request-id") ?? ""),
-    });
-    jsonResponse(res, 401, { ok: false, error: { code: "AUTH_REQUIRED", message: "Operator credential required." } });
-    return;
-  }
+  if (!authorizeAtlasCommonsOperator(req, res)) return;
 
   try {
     const body = await readJsonObjectBody(req);
@@ -3938,13 +3930,58 @@ async function handleAtlasCommonsModeration(req: IncomingMessage, res: ServerRes
     jsonResponse(res, 200, { ok: true, result });
   } catch (error) {
     const known = error instanceof AtlasCommonsError ? error : undefined;
-    jsonResponse(res, known?.code === "NOTE_NOT_FOUND" ? 404 : 500, {
+    jsonResponse(res, known?.code === "NOTE_NOT_FOUND" ? 404 : known?.code === "INVALID_TRANSITION" ? 409 : 500, {
       ok: false,
       error: {
         code: known?.code ?? "COMMONS_UNAVAILABLE",
         message: known?.message ?? "Public-note moderation is temporarily unavailable.",
       },
     });
+  }
+}
+
+async function handleAtlasCommonsModerationQueue(req: IncomingMessage, url: URL, res: ServerResponse): Promise<void> {
+  if (!authorizeAtlasCommonsOperator(req, res)) return;
+  const status = url.searchParams.get("status") === "removed" ? "removed" : "pending";
+  const requestedLimit = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Number.isFinite(requestedLimit) ? requestedLimit : 50;
+  try {
+    const result = await atlasCommonsService.listModerationQueue(status, limit);
+    jsonResponse(res, 200, { ok: true, result });
+  } catch (error) {
+    const known = error instanceof AtlasCommonsError ? error : undefined;
+    jsonResponse(res, 500, {
+      ok: false,
+      error: {
+        code: known?.code ?? "COMMONS_UNAVAILABLE",
+        message: known?.message ?? "Public-note moderation is temporarily unavailable.",
+      },
+    });
+  }
+}
+
+function authorizeAtlasCommonsOperator(req: IncomingMessage, res: ServerResponse): boolean {
+  if (!atlasCommonsConfig.enabled || !atlasCommonsConfig.operatorToken || !atlasCommonsRepository || !hostedClawdAuthenticator) {
+    textResponse(res, 404, "Not Found");
+    return false;
+  }
+  if (!secureBearerMatches(req.headers.authorization, atlasCommonsConfig.operatorToken)) {
+    logBackendEvent("atlas_commons_moderation_denied", {
+      requestId: String(res.getHeader("x-request-id") ?? ""),
+    });
+    jsonResponse(res, 401, { ok: false, error: { code: "AUTH_REQUIRED", message: "Operator credential required." } });
+    return false;
+  }
+  return true;
+}
+
+async function atlasCommonsDatabaseReadyPayload(): Promise<boolean | null> {
+  if (!atlasCommonsConfig.enabled) return null;
+  if (!atlasCommonsRepository) return false;
+  try {
+    return await atlasCommonsRepository.health();
+  } catch {
+    return false;
   }
 }
 
@@ -4303,8 +4340,13 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  // OAuth protected-resource metadata (RFC 9728) for Hosted Clawd account
-  // linking. Only meaningful when the OIDC issuer/audience are configured.
+  if (url.pathname === "/api/atlas-commons/moderation" && req.method === "GET") {
+    await handleAtlasCommonsModerationQueue(req, url, res);
+    return;
+  }
+
+  // OAuth protected-resource metadata (RFC 9728) for enabled protected Atlas
+  // capabilities. Commons-only staging must not request Hosted Clawd scopes.
   if (url.pathname === "/.well-known/oauth-protected-resource" && req.method === "GET") {
     setCors(req, res);
     if (!hostedClawdAuthConfig) {
@@ -4321,6 +4363,7 @@ const httpServer = createServer(async (req, res) => {
         hostedClawdAuthConfig,
         hostedClawdProtectedResourceUrl(req),
         atlasCommonsConfig.enabled ? [ATLAS_COMMONS_READ_SCOPE, ATLAS_COMMONS_WRITE_SCOPE] : [],
+        atlasSaveSurfaceEnabled || hostedClawdFlags.persistenceEnabled,
       ),
     );
     return;

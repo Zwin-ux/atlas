@@ -37,6 +37,17 @@ board with notes. Everything else is parked.*
 **Out of lane:** national clay massing as main work, Clawd/scout hero, Mapbox,
 new MCP tools, persist notes, claiming verified streets/buildings nationwide.
 
+### Owner-reopened staging exception (2026-07-21)
+
+The owner explicitly reopened one narrow exception: Atlas Commons may add
+`list_atlas_notes` and `write_atlas_note` plus moderated public-note
+persistence in the isolated **staging** environment. It must remain
+feature-flagged, use Commons-only OAuth scopes, pre-moderate new posts, preserve
+private/session notes, and keep the map as the primary surface. Production
+remains on the original seven tools with `ATLAS_COMMONS_ENABLED=false` until a
+separate owner cutline. This exception does not reopen Hosted Clawd, money,
+automation, private-note import, a feed/dashboard, or public launch.
+
 If work does not improve **Mode A craft**, **Mode B consistency/honesty**, or
 **notes on places**, it is **not North Face**.
 
@@ -97,6 +108,10 @@ select_county(non-Riverside)
 
 Do not add new tools casually.
 
+Staging-only Commons exception: when `ATLAS_COMMONS_ENABLED=true`, the two
+owner-approved Commons tools may extend this list to nine. Production stays at
+seven until its own explicit launch decision.
+
 ## Architecture (mass USA generation)
 
 ```text
@@ -134,6 +149,7 @@ Riverside is the curated exception: county pack → voxel → city world.
 - National road-chunk bake as a ship blocker  
 - Owner-gate ceremony as active track  
 - Dashboard / SaaS homepage UI  
+- Production Commons migration, enablement, or connector changes
 
 ## OpenAI plugin checklist (minimum)
 

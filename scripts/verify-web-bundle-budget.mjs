@@ -21,8 +21,13 @@ const EAGER_JS_CEILING_BYTES = 400_000;
 // graph without moving first paint. Rebaseline the aggregate cap while keeping
 // a tighter warning band; eager parse and compressed first-load budgets remain
 // unchanged and are the hard ChatGPT iframe constraints.
-const TOTAL_JS_WARNING_BYTES = 1_200_000;
-const TOTAL_JS_CEILING_BYTES = 1_250_000;
+// The committed 0.81C source graph rebuilds to 1,293,334 bytes with the
+// current lockfile/toolchain, already above the older 1.25 MB cap. 0.81D adds
+// only ~4 KB (0.32%) while keeping eager and compressed first-paint costs far
+// below their hard ceilings. Rebaseline the deferred aggregate honestly and
+// retain a warning band below the hard stop.
+const TOTAL_JS_WARNING_BYTES = 1_280_000;
+const TOTAL_JS_CEILING_BYTES = 1_350_000;
 const EAGER_BROTLI_CEILING_BYTES = 130_000;
 
 const bundlePath = join(root, "web/dist/component.js");

@@ -52,6 +52,13 @@ export type CityWorldRendererHandle = {
 type CityWorldRendererProps = {
   scene: CityWorldScene;
   selectedPlaceId?: string | undefined;
+  publicNoteCountByPlaceId?: Readonly<Record<string, number>> | undefined;
+  publicNoteLayerActive?: boolean | undefined;
+  selectedPublicNotePreview?: {
+    placeId: string;
+    body: string;
+    byline: string;
+  } | null | undefined;
   cameraPresetId?: CityWorldCameraPresetId | undefined;
   debugMode?: CityWorldDebugMode | undefined;
   suppressPlaceLabels?: boolean;
@@ -416,7 +423,19 @@ function createAtlasGradeFilter(): Filter {
 }
 
 export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRendererProps>(function CityWorldRenderer(
-  { scene, selectedPlaceId, cameraPresetId, debugMode, suppressPlaceLabels = false, onSelectPlace, onCameraZoom, bandOptions },
+  {
+    scene,
+    selectedPlaceId,
+    publicNoteCountByPlaceId = {},
+    publicNoteLayerActive = false,
+    selectedPublicNotePreview = null,
+    cameraPresetId,
+    debugMode,
+    suppressPlaceLabels = false,
+    onSelectPlace,
+    onCameraZoom,
+    bandOptions,
+  },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -945,7 +964,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       lastZoomNotifiedRef.current = cameraRef.current.zoom;
       onCameraZoomRef.current(cameraRef.current.zoom);
     }
-    const drawn = drawScene(world, scene, activeCameraPresetId, viewportFrame, cameraRef.current.zoom, atlasTextures, debugMode, suppressPlaceLabels, (placeId) => {
+    const drawn = drawScene(world, scene, activeCameraPresetId, viewportFrame, cameraRef.current.zoom, atlasTextures, debugMode, suppressPlaceLabels, publicNoteCountByPlaceId, publicNoteLayerActive, (placeId) => {
       if (!movedRef.current) selectPlaceRef.current(placeId);
     }, setHoverPlaceId, animatedRef.current, bandOptions);
     if (reducedMotionRef.current) settleAnimatedTargets(animatedRef.current);
@@ -966,7 +985,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
     invalidateRender();
     // Hover/selection deliberately absent: focus changes redraw ONLY the
     // focus overlay effect below, never this full scene rebuild.
-  }, [atlasTextures, bandOptions, cameraPresetId, debugMode, ready, scene, suppressPlaceLabels, windowRefreshKey]);
+  }, [atlasTextures, bandOptions, cameraPresetId, debugMode, publicNoteCountByPlaceId, publicNoteLayerActive, ready, scene, suppressPlaceLabels, windowRefreshKey]);
 
   useEffect(() => {
     if (!ready) return;
@@ -993,6 +1012,14 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
         if (baseLabel) baseLabel.visible = false;
       }
       drawFocusOverlay(layer, place, focus, mode, focusAnimatedRef.current);
+      if (
+        mode === "selected" &&
+        selectedPublicNotePreview?.placeId === place.id &&
+        mountRef.current &&
+        mountRef.current.clientWidth >= 720
+      ) {
+        drawPublicNoteCaption(layer, place, selectedPublicNotePreview, cameraRef.current.zoom);
+      }
     }
     perfRef.current.overlayRedraws += 1;
     // The focus pulse runs briefly, then freezes so the render loop can park:
@@ -1013,7 +1040,7 @@ export const CityWorldRenderer = forwardRef<CityWorldRendererHandle, CityWorldRe
       }, 4000);
     }
     invalidateRender();
-  }, [hoverPlaceId, selectedPlaceId, ready, focusEpoch]);
+  }, [hoverPlaceId, selectedPlaceId, selectedPublicNotePreview, ready, focusEpoch]);
 
   function zoomBy(multiplier: number) {
     const camera = cameraRef.current;
@@ -1290,6 +1317,8 @@ function drawScene(
   atlasTextures: CityWorldTextureMap,
   debugMode: CityWorldDebugMode | undefined,
   suppressPlaceLabels: boolean,
+  publicNoteCountByPlaceId: Readonly<Record<string, number>>,
+  publicNoteLayerActive: boolean,
   onSelectPlace: (placeId: string) => void,
   onHoverPlace: (placeId: string | undefined) => void,
   animated: AnimatedTarget[],
@@ -1341,9 +1370,19 @@ function drawScene(
   }
   const visiblePlaces = orderedSceneItems(renderCommands, "place_marker", itemIndex.places);
   for (const place of visiblePlaces) {
-    drawPlaceMarker(layers, place, onSelectPlace, onHoverPlace, cameraZoom, noteCountByPlaceId.get(place.id) ?? 0);
+    drawPlaceMarker(
+      layers,
+      place,
+      onSelectPlace,
+      onHoverPlace,
+      cameraZoom,
+      publicNoteLayerActive ? 0 : noteCountByPlaceId.get(place.id) ?? 0,
+      publicNoteLayerActive ? publicNoteCountByPlaceId[place.id] ?? 0 : 0,
+    );
   }
-  for (const pin of orderedSceneItems(renderCommands, "pin", itemIndex.pins)) drawPin(layers.markerLayer, pin, atlas);
+  for (const pin of orderedSceneItems(renderCommands, "pin", itemIndex.pins)) {
+    if (pin.kind !== "note") drawPin(layers.markerLayer, pin, atlas);
+  }
   // 0.56E — labels clear the architecture: each place's label lifts above
   // the tallest structure anchored to it (plus crown allowance), instead of
   // sitting at a fixed ground offset that erased landmark crowns.
@@ -7227,6 +7266,7 @@ function drawPlaceMarker(
   onHoverPlace: (placeId: string | undefined) => void,
   cameraZoom: number,
   noteCount = 0,
+  publicNoteCount = 0,
 ) {
   // Neutral, static marker only: emphasis rings + their pulse animation live
   // in the focus overlay, so hover/selection never rebuilds the base scene
@@ -7245,6 +7285,9 @@ function drawPlaceMarker(
   // Map note badge: sticky clay tab on places that have session notes.
   if (noteCount > 0) {
     drawPlaceNoteBadge(layers.markerLayer, point, noteCount);
+  }
+  if (publicNoteCount > 0) {
+    drawPublicNoteBeacon(layers.markerLayer, point, publicNoteCount, cameraZoom);
   }
 
   // S4e (decision #26): the hit disc lives in WORLD space, so its on-screen
@@ -7278,6 +7321,81 @@ function drawPlaceNoteBadge(layer: Container, point: ProjectedPoint, noteCount: 
   label.anchor.set(0.5);
   label.position.set(bx, by - 1);
   layer.addChild(badge, label);
+}
+
+/** Public Commons marker: county-scale activity rings resolve to one compact place beacon. */
+function drawPublicNoteBeacon(layer: Container, point: ProjectedPoint, noteCount: number, cameraZoom: number) {
+  const bx = point.x + 14;
+  const by = point.y - 28;
+  const countyScale = cameraZoom < 1.2;
+  const marker = new Graphics();
+  if (countyScale) {
+    marker
+      .ellipse(bx, by, 25, 13)
+      .stroke({ color: 0xffffff, alpha: 0.58, width: 1.2 })
+      .ellipse(bx, by, 18, 9)
+      .stroke({ color: 0xffffff, alpha: 0.72, width: 1.2 });
+  }
+  marker
+    .circle(bx, by, countyScale ? 8.5 : 9)
+    .fill({ color: 0x171918, alpha: 0.96 })
+    .stroke({ color: 0xffffff, alpha: 0.82, width: 1.2 });
+  if (!countyScale) {
+    marker
+      .poly([bx - 3, by + 7, bx + 3, by + 7, bx, by + 13], true)
+      .fill({ color: 0x171918, alpha: 0.96 });
+  }
+  marker.label = countyScale ? "public-note-radar" : "public-note-beacon";
+  const label = new Text({
+    text: noteCount > 99 ? "99+" : String(noteCount),
+    style: { fill: 0xffffff, fontFamily: "Arial", fontSize: noteCount > 9 ? 7.5 : 9, fontWeight: "800" },
+  });
+  label.anchor.set(0.5);
+  label.position.set(bx, by);
+  layer.addChild(marker, label);
+}
+
+function drawPublicNoteCaption(
+  layer: Container,
+  place: CityWorldPlace,
+  preview: { body: string; byline: string },
+  cameraZoom: number,
+) {
+  const point = project(place.anchor);
+  const width = 236;
+  const body = new Text({
+    text: preview.body,
+    style: {
+      fill: 0xffffff,
+      fontFamily: "Arial",
+      fontSize: 13,
+      fontWeight: "500",
+      lineHeight: 18,
+      wordWrap: true,
+      wordWrapWidth: width - 24,
+    },
+  });
+  body.position.set(12, 11);
+  const byline = new Text({
+    text: preview.byline,
+    style: { fill: 0xb8beb9, fontFamily: "Arial", fontSize: 10.5, fontWeight: "500" },
+  });
+  byline.position.set(12, body.y + body.height + 8);
+  const height = byline.y + byline.height + 11;
+  const panel = new Graphics()
+    .roundRect(0, 0, width, height, 8)
+    .fill({ color: 0x141615, alpha: 0.95 })
+    .stroke({ color: 0xffffff, alpha: 0.18, width: 1 })
+    .poly([18, height, 28, height, 22, height + 9], true)
+    .fill({ color: 0x141615, alpha: 0.95 });
+  const container = new Container();
+  container.label = "selected-public-note-caption";
+  // Clear the selected-place sticker and the aggregate beacon. The caption is
+  // an anchored annotation, not another marker competing for the same pixels.
+  container.position.set(point.x + 52 / cameraZoom, point.y - (height + 48) / cameraZoom);
+  container.scale.set(1 / Math.max(cameraZoom, 0.01));
+  container.addChild(panel, body, byline);
+  layer.addChild(container);
 }
 
 type FocusMode = "selected" | "hovered";

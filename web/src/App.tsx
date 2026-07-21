@@ -25,6 +25,7 @@ import { readRequestedCountySwitcherVisible, readRequestedGeneratedStudyEnabled,
 import type {
   AtlasCommonsMode,
   AtlasCommonsPublicMeta,
+  AtlasCommonsSort,
   AtlasPublicNote,
   AtlasPublicNoteList,
   AtlasPublicNoteWrite,
@@ -831,9 +832,11 @@ export function App() {
   const stickerMode = activeSceneSession.stickerMode ?? "favorite";
   const noteDraft = activeSceneSession.noteDraft ?? "";
   const commonsMode: AtlasCommonsMode = widgetState.commonsMode ?? "all";
+  const commonsSort: AtlasCommonsSort = widgetState.commonsSort ?? "hot";
   const [publicNotes, setPublicNotes] = useState<AtlasPublicNote[]>([]);
   const [publicNotesLoading, setPublicNotesLoading] = useState(false);
   const [publicNotesMessage, setPublicNotesMessage] = useState("");
+  const publicPostRequestRef = useRef<{ signature: string; requestId: string } | null>(null);
   const activeCommonsCountySlug = activeCoverageSummary?.countySlug ?? rawCountyGeoPack?.countySlug ?? scene.county.slug;
 
   useEffect(() => {
@@ -857,7 +860,7 @@ export function App() {
     const args: Record<string, unknown> = {
       mode,
       countySlug: activeCommonsCountySlug,
-      sort: commonsMode === "mine" ? "new" : "hot",
+      sort: commonsMode === "mine" ? "new" : commonsSort,
       limit: 100,
       ...(commonsMode === "nearby" && selectedPlaceId ? { placeId: selectedPlaceId } : {}),
     };
@@ -883,7 +886,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [activeCommonsCountySlug, commonsMode, metaAtlasCommons, selectedPlaceId]);
+  }, [activeCommonsCountySlug, commonsMode, commonsSort, metaAtlasCommons, selectedPlaceId]);
   const storedHostedClawdContext = activeSceneMatches && !activeGeneratedScene && isHostedClawdContext(widgetState.hostedClawdContext)
     ? publicHostedClawdContext(widgetState.hostedClawdContext)
     : null;
@@ -1044,6 +1047,11 @@ export function App() {
     setWidgetState((current) => ({ ...current, commonsMode: mode }));
   };
 
+  const selectCommonsSort = (sort: AtlasCommonsSort) => {
+    setPublicNotesMessage("");
+    setWidgetState((current) => ({ ...current, commonsSort: sort }));
+  };
+
   const postPublicNote = async (placeId: string, body: string): Promise<boolean> => {
     const place = activeInteractionPlaces.find((item) => item.id === placeId);
     const trimmed = body.trim();
@@ -1058,6 +1066,13 @@ export function App() {
 
     setPublicNotesLoading(true);
     setPublicNotesMessage("");
+    const requestSignature = `${activeCommonsCountySlug}\n${placeId}\n${trimmed}`;
+    const requestId = publicPostRequestRef.current?.signature === requestSignature
+      ? publicPostRequestRef.current.requestId
+      : typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `public-note-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    publicPostRequestRef.current = { signature: requestSignature, requestId };
     try {
       const toolResult = await callAtlasTool<AtlasPublicNoteWrite>("write_atlas_note", {
         operation: "post",
@@ -1065,15 +1080,14 @@ export function App() {
         placeId,
         placeLabel: place.label,
         body: trimmed,
-        clientRequestId: typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `public-note-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        clientRequestId: requestId,
       });
       if (toolResult?.isError || !isAtlasPublicNoteWrite(toolResult?.structuredContent)) {
         setPublicNotesMessage(atlasToolErrorMessage(toolResult, "Connect your Atlas identity to post publicly."));
         return false;
       }
       const write = toolResult.structuredContent;
+      publicPostRequestRef.current = null;
       setPublicNotes([write.note]);
       setPublicNotesMessage(write.message);
       setWidgetState((current) => ({ ...current, commonsMode: "mine" }));
@@ -1234,6 +1248,7 @@ export function App() {
       notes={notes}
       atlasCommons={metaAtlasCommons}
       commonsMode={commonsMode}
+      commonsSort={commonsSort}
       publicNotes={publicNotes}
       publicNotesLoading={publicNotesLoading}
       publicNotesMessage={publicNotesMessage}
@@ -1266,6 +1281,7 @@ export function App() {
       onNoteDraftChange={(value) => setWidgetState((current) => withSceneSession(current, activeInteractionSceneId, { noteDraft: value }))}
       onSaveNote={saveNote}
       onSelectCommonsMode={selectCommonsMode}
+      onSelectCommonsSort={selectCommonsSort}
       onPostPublicNote={postPublicNote}
       onReactPublicNote={reactToPublicNote}
       onReportPublicNote={reportPublicNote}

@@ -34,6 +34,21 @@ export type ToolSource = {
   close(): Promise<void>;
 };
 
+type CommonsDemoNote = {
+  id: string;
+  countySlug: string;
+  placeId: string;
+  placeLabel: string;
+  body: string;
+  authorHandle: string;
+  status: "pending" | "visible" | "removed";
+  reactionCount: number;
+  createdAt: string;
+  publishedAt?: string;
+  viewerHasReacted: boolean;
+  viewerCanReport: boolean;
+};
+
 type InjectedResultWindow = Window & {
   __ATLAS_EMULATOR_TOOLRESULT__?: CallToolResult;
 };
@@ -85,6 +100,126 @@ export async function createLiveMcpToolSource(mcpUrl: string): Promise<ToolSourc
       await client.close();
     },
   };
+}
+
+/**
+ * Deterministic Commons state for visual/interaction QA. It still delegates the
+ * seed map to the real local MCP server; only the two gated Commons tools are
+ * simulated. This mode is reachable solely through the emulator query string.
+ */
+export function createAtlasCommonsDemoToolSource(base: ToolSource): ToolSource {
+  const notes: CommonsDemoNote[] = [
+    demoNote("demo-core-1", "place-eastvale", "Eastvale", "Atlas-7C2A19F0D48E3B61", "The plaza is calm before school pickup; the shaded benches fill first.", 8, "2026-07-21T17:40:00.000Z"),
+    demoNote("demo-core-2", "place-eastvale", "Eastvale", "Atlas-2D10A1BE3A86C471", "Farmers market setup starts on the west side Saturday morning.", 5, "2026-07-21T15:10:00.000Z"),
+    demoNote("demo-plaza-1", "place-gym-plaza-eastvale", "Gym / Plaza", "Atlas-B42390CC0F2B71A4", "Lunch lines move fastest near the smaller storefronts after one.", 12, "2026-07-21T18:05:00.000Z"),
+    demoNote("demo-plaza-2", "place-gym-plaza-eastvale", "Gym / Plaza", "Atlas-4E112C8DD09F7A20", "Parking turns over quickly between the morning classes.", 6, "2026-07-21T16:30:00.000Z"),
+    demoNote("demo-homes-1", "place-residential-eastvale", "Residential Cluster", "Atlas-9DF8130A7C224B5E", "The corner route is busiest right after the elementary-school bell.", 4, "2026-07-21T13:15:00.000Z"),
+    demoNote("demo-apartments-1", "place-apartment-cluster", "Apartment Cluster", "Atlas-6A918BFE0C210D43", "The north entrance stays quieter during the evening commute.", 3, "2026-07-21T14:20:00.000Z"),
+    demoNote("demo-norco-1", "place-norco", "Norco", "Atlas-0C8132AFB9E5D742", "The route edge is clearest just after the morning traffic drops.", 2, "2026-07-21T12:45:00.000Z"),
+  ];
+  const mine: CommonsDemoNote[] = [];
+
+  const call = async (spec: ToolCallSpec): Promise<CallToolResult> => {
+    if (spec.name === "list_atlas_notes") {
+      const mode = spec.arguments.mode === "mine" ? "mine" : "all";
+      const placeId = typeof spec.arguments.placeId === "string" ? spec.arguments.placeId : undefined;
+      const sort = spec.arguments.sort === "new" ? "new" : "hot";
+      const source = mode === "mine" ? mine : notes;
+      const selected = source
+        .filter((note) => !placeId || note.placeId === placeId)
+        .filter((note) => mode === "mine" || note.status === "visible")
+        .sort((a, b) => sort === "hot" ? b.reactionCount - a.reactionCount : b.createdAt.localeCompare(a.createdAt));
+      return commonsResult({
+        type: "atlasPublicNoteList",
+        notes: selected,
+        scope: { mode, sort, countySlug: "riverside-ca", ...(placeId ? { placeId } : {}) },
+      });
+    }
+
+    if (spec.name === "write_atlas_note") {
+      const operation = spec.arguments.operation;
+      if (operation === "post") {
+        const pending = {
+          ...demoNote(
+            `demo-mine-${mine.length + 1}`,
+            String(spec.arguments.placeId ?? "place-eastvale"),
+            String(spec.arguments.placeLabel ?? "Eastvale"),
+            "Atlas-0A71D490FCE238B5",
+            String(spec.arguments.body ?? ""),
+            0,
+            new Date().toISOString(),
+          ),
+          status: "pending" as const,
+          viewerCanReport: false,
+        };
+        mine.unshift(pending);
+        return commonsWrite("post", pending, "Posted for review. It is visible only to you until approved.");
+      }
+      const noteId = String(spec.arguments.noteId ?? "");
+      const note = notes.find((candidate) => candidate.id === noteId);
+      if (!note) return { isError: true, content: [{ type: "text", text: "That public note is not available." }] };
+      if (operation === "react") {
+        const active = spec.arguments.active === true;
+        const hadReacted = note.viewerHasReacted === true;
+        note.viewerHasReacted = active;
+        if (hadReacted !== active) note.reactionCount += active ? 1 : -1;
+        return commonsWrite("react", note, active ? "Marked useful." : "Useful mark removed.");
+      }
+      if (operation === "report") {
+        note.status = "removed";
+        return commonsWrite("report", note, "Reported. This note is hidden while it is reviewed.");
+      }
+    }
+
+    const result = await base.call(spec);
+    return {
+      ...result,
+      _meta: {
+        ...(result._meta as Record<string, unknown> | undefined),
+        atlasCommons: {
+          enabled: true,
+          available: true,
+          requiresIdentityForPosting: true,
+          publicPostingIsExplicit: true,
+          privateNotesStayPrivate: true,
+          moderation: "pre_publication",
+          modes: ["all", "nearby", "mine"],
+          statusLabel: "Public notes are ready. New posts wait for review.",
+        },
+      },
+    };
+  };
+
+  return {
+    call,
+    callUntilDraftScene: call,
+    close: () => base.close(),
+  };
+}
+
+function demoNote(id: string, placeId: string, placeLabel: string, authorHandle: string, body: string, reactionCount: number, createdAt: string): CommonsDemoNote {
+  return {
+    id,
+    countySlug: "riverside-ca",
+    placeId,
+    placeLabel,
+    body,
+    authorHandle,
+    status: "visible",
+    reactionCount,
+    createdAt,
+    publishedAt: createdAt,
+    viewerHasReacted: false,
+    viewerCanReport: true,
+  };
+}
+
+function commonsResult(structuredContent: Record<string, unknown>): CallToolResult {
+  return { content: [{ type: "text", text: "Atlas public notes ready." }], structuredContent };
+}
+
+function commonsWrite(operation: "post" | "react" | "report", note: CommonsDemoNote, message: string): CallToolResult {
+  return commonsResult({ type: "atlasPublicNoteWrite", operation, status: "accepted", note, message });
 }
 
 /** CI strategy: the driver parked one pre-fetched result on the window. */

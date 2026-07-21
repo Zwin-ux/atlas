@@ -1,8 +1,10 @@
 # Atlas ALL Public Notes Foundation
 
-Status: Approved product direction; implementation slice open
+Status: Foundation shipped to staging; map-radar completion slice open
 
-Slice ID: `postalpha-0.81c-atlas-all-public-notes-foundation`
+Slice ID: `postalpha-0.81d-atlas-commons-map-radar`
+
+Active completion slice: `postalpha-0.81d-atlas-commons-map-radar`
 
 ## Player promise
 
@@ -80,13 +82,20 @@ This foundation includes:
 - When an authorized operator approves a pending note, the system shall set it to `visible` and record its publication time.
 - When an authorized operator removes a pending or visible note, the system shall set it to `removed` without deleting its audit record.
 - Operator moderation shall use a server-side operator credential and shall not be exposed as a ChatGPT/MCP player tool.
+- When an authorized operator requests the moderation queue, the system shall return a bounded oldest-first list of `pending` or `removed` notes using an operator-safe allowlist that excludes owner ID, OAuth subject, email, and client request ID. Removed entries include both operator removals and report-threshold auto-hides.
+- When an operator requests an invalid moderation transition, the system shall reject it without changing the note or writing a misleading audit event.
 - When a visible note reaches the configured report threshold, the system shall hide it from public reads pending operator review while preserving it for audit.
+- When concurrent unique reports cross the configured threshold, the system shall serialize the per-note decision so at least the threshold-crossing request hides the note.
 
 ### Map-native interface
 
 - When the commons is available, the county map shall show one compact `ALL / NEARBY / MINE` control without reducing the map from the primary full-screen surface.
 - When `ALL` or `NEARBY` is selected, approved public notes with anchors in the active scene shall appear as restrained map markers.
-- When a public-note marker is selected, the interface shall show the note, pseudonym, relative time, reaction count, and report action in the existing contextual surface.
+- While public notes are visible, the map shall aggregate notes per canonical place and render one count beacon per place instead of overlapping one marker per note.
+- While the camera is at county scale, public-note beacons shall use restrained concentric activity rings; while the camera is at place scale, the same beacons shall resolve to compact count markers.
+- When a public-note place is selected, the interface shall show one selected note with pseudonym, relative time, reaction count, and report action; additional notes at that place shall remain reachable through previous/next controls rather than a scrolling feed.
+- When `ALL` or `NEARBY` is selected, the interface shall expose `HOT / NEW` as a secondary sort control and shall request the matching deterministic server order.
+- While the selected public note is visible, the existing contextual surface shall become a slim bottom action strip and shall not render a stacked note list or right-side feed rail.
 - When `MINE` is selected, the interface shall preserve the current private/session-note flow and may show the player's pending public submissions with an explicit `Pending review` label.
 - On narrow screens, every mode and action target shall be at least 44 CSS pixels and shall remain reachable without horizontal scrolling.
 - The interface shall not add a permanent feed rail, result-list takeover, generic card grid, or separate social dashboard.
@@ -95,6 +104,8 @@ This foundation includes:
 
 - When `ATLAS_COMMONS_ENABLED` is absent or false, the server shall not register the two commons MCP tools and shall preserve the current public tool surface.
 - When the commons flag is enabled but Postgres is unavailable, the server shall report the commons as unavailable and shall fail commons calls without affecting county search, selection, or rendering.
+- When the commons flag is enabled but OIDC verification or the operator credential is missing, the Commons readiness field shall be false and the widget shall not advertise Commons as available; overall map readiness shall remain healthy when the map dependencies are healthy.
+- When Hosted Clawd is disabled and Commons is enabled, protected-resource metadata shall advertise only the Commons read/write scopes.
 - Existing Atlas county, national-generation, and session-note contracts shall remain backward compatible.
 - Existing private/session note data shall remain client-local unless a separate approved slice changes that contract.
 
@@ -216,6 +227,22 @@ Given `ATLAS_COMMONS_ENABLED` is false, when the server starts, then the commons
 
 Given a 390-pixel-wide viewport, when a player switches among `ALL`, `NEARBY`, and `MINE`, then the control remains operable, the map stays the dominant surface, and no horizontal overflow or permanent feed rail appears.
 
+### Spatial activity hierarchy
+
+Given approved public notes are attached to more than one place in the active county, when the map opens at county scale, then each active place shows one restrained count beacon with activity rings and overlapping per-note markers do not appear.
+
+### Selected-note focus
+
+Given more than one approved public note is attached to the selected place, when the player uses the previous or next control, then exactly one note is shown in the contextual strip and the map remains directly interactive outside that strip.
+
+### Public sort control
+
+Given the player is in `ALL` or `NEARBY`, when they switch between `HOT` and `NEW`, then Atlas requests the corresponding deterministic server order, preserves the active place when possible, and communicates the selected sort with `aria-pressed`.
+
+### Bottom-strip restraint
+
+Given a 1200-by-760 desktop viewport or a 390-by-844 mobile viewport, when a public note is selected, then the action surface spans the bottom edge without horizontal overflow, exposes 44-pixel action targets on mobile, and leaves at least 78 percent of the viewport available to the map before the player expands the composer.
+
 ## Error contract
 
 - `COMMONS_DISABLED`: feature is not enabled on this server.
@@ -229,6 +256,9 @@ Given a 390-pixel-wide viewport, when a player switches among `ALL`, `NEARBY`, a
 - `ALREADY_REPORTED`: duplicate report; safe no-op may return the existing result.
 - `RATE_LIMITED`: identity exceeded the configured write rate.
 
+Quota enforcement is serialized per verified identity in the Postgres transaction. Idempotent post, reaction, and report retries return the existing result before consuming or rechecking quota, while concurrent new actions cannot both cross the configured ceiling.
+- `INVALID_TRANSITION`: the requested moderation state change is not allowed.
+
 Errors shown to players use concise recovery copy and do not expose database, token, or moderation internals.
 
 ## Verification gates
@@ -238,6 +268,7 @@ Errors shown to players use concise recovery copy and do not expose database, to
 - MCP tool registration and OAuth challenge coverage with the feature both disabled and enabled;
 - tool-result shape and public-field allowlist verification;
 - map UI tests for all three modes, pending copy, explicit public confirmation, empty/unavailable states, and mobile interaction targets;
+- map UI tests for place aggregation, county-scale radar treatment, selected-note cycling, `HOT / NEW`, one-note-only rendering, slim bottom-strip layout, and no horizontal overflow;
 - current Atlas typecheck, build, core tests, national-generation verifier, selected-RC split guard, emulator audit, and local ship check;
 - no production deploy or live mutation.
 

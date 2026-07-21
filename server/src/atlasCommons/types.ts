@@ -4,6 +4,7 @@ export const ATLAS_COMMONS_WRITE_SCOPE = "atlas:commons.write" as const;
 export type AtlasCommonsMode = "all" | "mine";
 export type AtlasCommonsSort = "hot" | "new";
 export type AtlasCommonsNoteStatus = "pending" | "visible" | "removed";
+export type AtlasCommonsModerationQueueStatus = Extract<AtlasCommonsNoteStatus, "pending" | "removed">;
 
 export type AtlasCommonsAuthContext = {
   subject: string;
@@ -85,6 +86,24 @@ export type AtlasCommonsModerationResult = {
   status: AtlasCommonsNoteStatus;
 };
 
+export type AtlasCommonsModerationQueueItem = AtlasCommonsAnchor & {
+  id: string;
+  body: string;
+  authorHandle: string;
+  status: AtlasCommonsModerationQueueStatus;
+  reactionCount: number;
+  reportCount: number;
+  createdAt: string;
+  publishedAt?: string;
+  removedAt?: string;
+};
+
+export type AtlasCommonsModerationQueueResult = {
+  type: "atlasPublicNoteModerationQueue";
+  status: AtlasCommonsModerationQueueStatus;
+  notes: AtlasCommonsModerationQueueItem[];
+};
+
 export type AtlasCommonsPublicMeta = {
   enabled: boolean;
   available: boolean;
@@ -113,6 +132,7 @@ export type AtlasCommonsErrorCode =
   | "LINKS_NOT_ALLOWED"
   | "UNKNOWN_ANCHOR"
   | "NOTE_NOT_FOUND"
+  | "INVALID_TRANSITION"
   | "RATE_LIMITED";
 
 export class AtlasCommonsError extends Error {
@@ -124,4 +144,3 @@ export class AtlasCommonsError extends Error {
     this.code = code;
   }
 }
-

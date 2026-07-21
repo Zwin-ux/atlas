@@ -83,11 +83,13 @@ export function buildOAuthProtectedResourceMetadata(
   config: HostedClawdAuthConfig,
   resourceUrl: string,
   additionalScopes: string[] = [],
+  includeHostedClawdScopes = true,
 ): Record<string, unknown> {
+  const hostedClawdScopes = includeHostedClawdScopes ? [HOSTED_CLAWD_READ_SCOPE, HOSTED_CLAWD_WRITE_SCOPE] : [];
   return {
     resource: resourceUrl,
     authorization_servers: [config.issuer],
-    scopes_supported: [...new Set([HOSTED_CLAWD_READ_SCOPE, HOSTED_CLAWD_WRITE_SCOPE, ...additionalScopes])],
+    scopes_supported: [...new Set([...hostedClawdScopes, ...additionalScopes])],
     bearer_methods_supported: ["header"],
   };
 }

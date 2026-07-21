@@ -29,6 +29,8 @@
     "verify:hosted-clawd-saved-read-surface": "node scripts/verify-hosted-clawd-saved-read-surface.mjs",
     "verify:hosted-clawd-saved-read-surface:browser": "node scripts/verify-hosted-clawd-saved-read-browser.mjs",
     "verify:atlas-commons": "node scripts/verify-atlas-commons-public-notes.mjs",
+    "verify:atlas-commons:browser": "node scripts/verify-atlas-commons-browser.mjs",
+    "verify:atlas-commons:staging": "node scripts/verify-atlas-commons-staging.mjs",
     "verify:hosted-clawd-browser-proof": "node scripts/verify-hosted-clawd-browser-proof.mjs",
     "verify:hosted-clawd-save-ux": "node scripts/verify-hosted-clawd-save-ux.mjs",
     "verify:hosted-clawd-save-ux:browser": "node scripts/verify-hosted-clawd-save-ux-browser.mjs",

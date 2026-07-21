@@ -1,124 +1,118 @@
-# Atlas ALL Public Notes Runbook
+# Atlas Commons Staging Runbook
 
-Status: local-ready, no deploy authorized
+Status: staging authorized; production locked off
 
-Slice: `postalpha-0.81c-atlas-all-public-notes-foundation`
+Slice: `postalpha-0.81d-atlas-commons-map-radar`
 
-## Operating boundary
+## Release boundary
 
-The commons is additive and default-off. The fastest rollback is always
-`ATLAS_COMMONS_ENABLED=false`. Disabling the flag removes the two commons MCP
-tools and the map control while preserving existing notes for later review. It
-does not change the seven-tool Atlas surface, private/session notes, billing,
-or the full-screen map.
+The owner authorized the isolated staging sequence: deploy with Commons off,
+verify migration and OAuth, refresh the staging connector, enable staging,
+prove moderation, prove flag rollback, then leave staging enabled. Production
+must remain unchanged with the original seven tools and
+`ATLAS_COMMONS_ENABLED=false`.
 
-No production migration, environment change, connector change, or deployment
-is authorized by this runbook.
+The fastest rollback is the flag. Turning it off removes the two Commons tools
+and UI metadata without deleting notes or changing private/session notes.
 
-## Environment matrix
+## Known environments
 
-| Setting | Local development | Staging candidate | Production |
-| --- | --- | --- | --- |
-| `ATLAS_COMMONS_ENABLED` | `false` by default; `true` only for an isolated QA run | Start `false`; enable only after migration and smoke gates | Keep `false` until an explicit launch decision |
-| `DATABASE_URL` | Isolated local Postgres | Staging Postgres secret | Production Postgres secret |
-| `ATLAS_COMMONS_PSEUDONYM_SECRET` | Disposable local value | Secret-manager value, different from production | Secret-manager value; stable and access-restricted |
-| `ATLAS_COMMONS_OPS_TOKEN` | Disposable local value | Secret-manager value | Secret-manager value; rotate independently |
-| OIDC issuer/audience/JWKS | Optional for anonymous read QA | Required before authenticated write QA | Required before any enablement |
-| Report threshold | Default `3` or test override | Explicit staging value | Explicit launch-policy value |
-| Write limit | Default `30` actions/hour | Explicit staging value | Explicit launch-policy value |
+| Environment | Base URL | Required final state |
+| --- | --- | --- |
+| Staging | `https://atlas-backend-staging-9d6c.up.railway.app` | Commons enabled only after all gates |
+| Production | `https://atlas-backend-production-e6fc.up.railway.app` | Commons off; exactly seven tools |
 
-Secrets belong in the Railway/environment secret manager. Do not commit them,
-paste them into CI YAML, or store them in `.env` files checked into Git.
+Read-only baseline captured July 21, 2026:
 
-## Pre-enable gates
+- staging deployment `69bae4cc-2cf2-44cb-a62c-c7522c1ed905`, image digest
+  `sha256:7ad8d4fd3fe3d480ed789395d0a945aa5f76ab29f32071a1585314b8bf6f5a01`;
+- production deployment `1913ad33-8abd-48a8-a36f-193a08f0d5ce`, image digest
+  `sha256:a4d7e4b86db47b02dd465e90c08b634aa2cba40d5f68ce0abdb67943eafa3bbd`;
+- both services have no automatic repo/image source, so a branch push does not
+  auto-deploy production.
 
-1. Install with the lockfile and run the CI-equivalent quality job.
-2. Apply all committed migrations with `pnpm migrate:hosted-clawd`.
-3. Run `pnpm smoke:atlas-commons:postgres` against the target staging database.
-4. Start with `ATLAS_COMMONS_ENABLED=false` and verify `/ready` is healthy.
-5. Confirm the MCP tool list is the original seven tools.
-6. Configure OIDC and confirm protected-resource metadata advertises:
-   - `atlas:commons.read`
-   - `atlas:commons.write`
-7. Set a stable pseudonym secret and an independent operator token.
-8. Enable the flag in staging only.
-9. Verify `/ready.atlasCommons` reports `enabled=true`, `available=true`,
-   `databaseReady=true`, `authConfigured=true`, and `operatorConfigured=true`.
-10. Run anonymous read, authenticated pending post, operator approval, public
-    read, reaction, report, and mobile map checks.
+Immediately before mutation, both environments were healthy, reported no
+`atlasCommons` readiness block, exposed exactly seven tools, and returned 404
+for protected-resource metadata. Staging served widget `081c`; production
+served `0781v`.
 
-## Migration behavior
+## Configuration
 
-Migration `003_atlas_commons_public_notes.sql` is additive. It creates only:
+| Variable | Staging | Production |
+| --- | --- | --- |
+| `ATLAS_COMMONS_ENABLED` | `false` through deploy/migration/OAuth; `true` only for proof | `false` |
+| `DATABASE_URL` | isolated staging Postgres | do not change |
+| `ATLAS_COMMONS_PSEUDONYM_SECRET` | configured secret | do not change |
+| `ATLAS_COMMONS_OPS_TOKEN` | configured independent secret | do not change |
+| `ATLAS_OIDC_ISSUER` | required before enablement | do not change |
+| `ATLAS_OIDC_AUDIENCE` | staging MCP resource | do not change |
+| `ATLAS_OIDC_JWKS_URL` | required before enablement | do not change |
+| Hosted Clawd persistence/money/save surface | off | off |
 
-- `atlas_public_notes`
-- `atlas_note_reactions`
-- `atlas_note_reports`
-- `atlas_note_moderation_events`
-- `atlas_commons_actions`
+Secrets stay in the platform secret manager. The verifier accepts user,
+reporter, and operator credentials through environment variables only and does
+not print them.
 
-It does not rewrite existing Hosted Clawd tables or private/session note data.
-The migration runner records the migration and safely skips it on repeat runs.
+## Ordered staging sequence
 
-## Rollback
+1. Capture staging and production deployment IDs, image digests, `/ready`, and
+   MCP tool lists. Production must report seven tools.
+2. Push the green commit. Confirm no production deployment starts.
+3. Deploy that commit to staging with `ATLAS_COMMONS_ENABLED=false`.
+4. Run:
 
-### Immediate functional rollback
+   ```powershell
+   pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect disabled
+   ```
 
-1. Set `ATLAS_COMMONS_ENABLED=false` in the affected environment.
-2. Redeploy/restart the last approved server artifact through the normal
-   platform workflow.
-3. Verify `/ready` is healthy and no `atlasCommons` readiness requirement is
-   gating the server.
-4. Verify MCP lists exactly the original seven tools.
-5. Verify Riverside opens, renders, and keeps private notes in the current chat.
+5. Run the additive migration and staging Postgres smoke. The Railway CLI
+   smoke prefers its injected `DATABASE_PUBLIC_URL` because
+   `*.railway.internal` is not resolvable from the operator host.
+6. Configure the staging OIDC issuer, audience, JWKS URL, and exact scopes:
+   `atlas:commons.read` and `atlas:commons.write`.
+7. Refresh the ChatGPT staging connector. While the flag is off it must still
+   expose only seven tools and no Commons scopes.
+8. Enable Commons in staging, deploy/restart once, then run:
 
-This rollback leaves commons rows intact. That is intentional: an incident
-should not destroy moderation evidence or user submissions.
+   ```powershell
+   pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect enabled
+   ```
 
-### Artifact rollback
+9. For the real lifecycle proof, provide three distinct staging credentials:
+   `ATLAS_COMMONS_USER_TOKEN`, `ATLAS_COMMONS_REPORTER_TOKEN`, and
+   `ATLAS_COMMONS_OPS_TOKEN`, then add `--prove-moderation`. The verifier proves
+   anonymous OAuth challenges, pending isolation, operator queue/approval,
+   anonymous visibility, reaction, distinct-user report, removal, and cleanup.
+10. Prove rollback: flag off -> redeploy -> seven tools; flag on -> redeploy ->
+    nine tools. Leave staging enabled only if every enabled gate passes.
+11. Recheck production deployment ID, digest, `/ready`, and exactly seven tools
+    after every staging mutation phase.
 
-Promote the previously approved immutable commit/artifact, then repeat the
-health, tool-list, and Riverside map checks above. Do not roll back by editing
-the live filesystem or by using an unversioned image tag.
+## Migration and data safety
 
-### Schema removal
+Migration `003_atlas_commons_public_notes.sql` is additive and repeat-safe. It
+creates the notes, reactions, reports, moderation events, and action-ledger
+tables. It does not import or rewrite private/session notes.
 
-Do not drop commons tables during an incident. Schema removal is a separate,
-destructive data-retention decision that requires a backup, an approved
-retention/export plan, and explicit owner authorization. If that later decision
-is made, foreign-key order is actions, moderation events, reports, reactions,
-then notes. The existing `users` table must not be removed.
+Do not drop Commons tables during rollback. Keeping rows preserves moderation
+evidence and pending submissions. Schema removal requires a separate retention,
+backup, and destructive-change decision.
 
-## Monitoring and incident signals
+## Monitoring and stop conditions
 
-Watch:
+Watch Commons readiness, database readiness, authentication failures without
+token logging, operator queue age, report auto-hides, list latency, MCP error
+rates, connection saturation, and widget console errors.
 
-- `/ready` commons availability and database readiness;
-- `list_atlas_notes` and `write_atlas_note` error counts by public error code;
-- list latency against the 350 ms warm-service p95 target;
-- authentication failures without logging bearer tokens;
-- moderation queue age and volume;
-- report-threshold auto-hides;
-- database connection saturation;
-- widget console errors and failures that affect the map.
+Stop and return to the disabled staging state if any of these fail:
 
-If the commons fails while the map is healthy, disable only the commons flag.
-Map browsing and private/session notes must remain available.
+- the map readiness becomes unhealthy;
+- the disabled surface exposes more than seven tools;
+- enabled readiness is not fully true;
+- OAuth advertises Hosted Clawd scopes;
+- pending/removed notes appear anonymously;
+- moderation cannot remove a proof note;
+- production deployment ID, digest, tool count, or flag posture changes.
 
-## Operator moderation probe
-
-The operator endpoint is server-side only:
-
-`POST /api/atlas-commons/moderation`
-
-Send the operator token as a bearer credential and a JSON body with `noteId`
-and `action` (`approve` or `remove`). Never expose this endpoint as an MCP tool
-or put the operator token in the widget.
-
-## Release decision
-
-The local slice may be considered implementation-ready when CI, the real
-Postgres smoke, feature-disabled compatibility, feature-enabled staging smoke,
-and desktop/mobile map proof are green. Public launch still requires a separate
-owner decision covering moderation staffing, legal copy, retention, abuse
-response, and the production enablement window.
+Public launch remains a separate owner decision covering moderation staffing,
+retention, legal copy, abuse response, and a production window.

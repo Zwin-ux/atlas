@@ -1,6 +1,6 @@
 # Atlas ALL Public Notes Architecture
 
-Status: Accepted for `postalpha-0.81c-atlas-all-public-notes-foundation`
+Status: Accepted for `postalpha-0.81c-atlas-all-public-notes-foundation`; extended by `postalpha-0.81d-atlas-commons-map-radar`
 
 Companion requirements: `docs/ATLAS_ALL_PUBLIC_NOTES_SPEC.md`
 
@@ -71,6 +71,23 @@ The repository owns SQL and transaction boundaries. The service owns policy.
 
 The widget receives commons availability in tool-result `_meta`, then uses `tools/call` to load or mutate notes. `ALL / NEARBY / MINE` is a small overlay control. Public markers reuse the map's note-pin visual language with a distinct public label. Detail and actions appear only in the existing selected-place contextual surface.
 
+The map-radar slice keeps the server contract note-granular and adds a derived presentation layer in the widget:
+
+```mermaid
+flowchart LR
+    List[list_atlas_notes result] --> Group[Group public-safe notes by placeId]
+    Group --> Scene[Compile one note-count pin per mapped place]
+    Scene --> Pixi[Render activity rings or compact count beacon by zoom]
+    Group --> Selection[Resolve active place + selected note]
+    Selection --> Caption[One map-anchored note caption]
+    Selection --> Strip[One bottom action strip]
+    Strip --> Actions[react / report / explicit post]
+```
+
+`HOT / NEW` remains a server sort choice, stored in widget state and passed to `list_atlas_notes`; the client does not invent a second ranking algorithm. The selected-note ID is ephemeral view state. When refreshed results remove that note, selection falls back deterministically to the first note at the active place. The renderer receives only public-safe caption fields and the compiled scene; it never receives provider identity, moderation evidence, OAuth subject, or email.
+
+The bottom strip renders one note, not an array. Previous/next controls change the selected note within the already-loaded bounded page. The public composer is collapsed until the player chooses `Leave public note`, which preserves map area and makes the public/private boundary deliberate.
+
 Private/session notes remain in widget state. No migration, bulk promotion, or silent sync runs.
 
 ### Operator moderation route
@@ -120,12 +137,14 @@ Append-only note ID, prior status, next status, operator label, and timestamp. I
 reaction_count * 4 - report_count * 8 - age_hours / 12
 ```
 
-Ties resolve by publication time and ID. The first implementation uses an opaque base64url cursor containing versioned sort keys. It does not add Redis or a search service. If evidence later shows this query is a bottleneck, a materialized score or cache can be introduced without changing the tool contract.
+Ties resolve by publication time and ID. The first implementation uses an HMAC-signed opaque cursor containing versioned sort keys plus mode, sort, county, and place scope. A cursor cannot be edited or replayed against a different list scope. It does not add Redis or a search service. If evidence later shows this query is a bottleneck, a materialized score or cache can be introduced without changing the tool contract.
+
+Write-quota checks and mutations share a transaction guarded by a per-identity Postgres advisory lock. The repository checks idempotent state first, then counts recent accepted actions, then mutates and writes the action row before commit. This keeps retries unchanged and prevents concurrent new writes from stepping over the hourly ceiling.
 
 ## Identity and privacy boundary
 
 - OIDC subject and email remain in the private `users` table.
-- A public handle is `Atlas-` plus a 10-character uppercase HMAC-derived suffix using `ATLAS_COMMONS_PSEUDONYM_SECRET`.
+- A public handle is `Atlas-` plus a 16-character uppercase HMAC-derived suffix using `ATLAS_COMMONS_PSEUDONYM_SECRET`.
 - The service stores the handle snapshot with each note and never returns the subject or owner ID.
 - Changing the secret affects handles for future notes; it does not rewrite historical public authorship.
 - Public result objects are constructed by an allowlist mapper, not by spreading repository rows.
@@ -156,6 +175,9 @@ All are empty/off in `.env.example`. Production behavior is therefore unchanged 
 | Unknown/stale map anchor | Post rejected | Server checks committed anchor sources before persistence |
 | Missing operator token | Moderation route unavailable | No weak fallback and no moderator MCP surface |
 | Ranking query slows | Commons layer degrades | Hard caps and indexes first; add cache only after evidence |
+| Result refresh removes the selected note | Caption and strip could point at stale data | Reconcile selection by note ID, then fall back to the first note at the active place |
+| Many notes share one place | Overlapping markers and unreadable trays | Aggregate by canonical `placeId`; render one count beacon and one selected note |
+| Mobile composer would cover the map | Core map loop becomes inaccessible | Keep composer collapsed by default, enforce bounded bottom-sheet height, and preserve 44-pixel actions without horizontal scroll |
 
 ## Observability
 
@@ -251,6 +273,22 @@ Alternatives considered:
 - Separate commons page: deferred until national cross-county browsing has a proven use case.
 
 Consequences: Discovery is spatial and distinctive. Cross-county `ALL` exists at the service contract but does not get a national feed UI in this slice.
+
+### ADR-006: Aggregate presentation in the widget, preserve note-level service contracts
+
+Status: Accepted
+
+Context: Multiple approved notes can share a canonical place. Drawing each note as a separate pin creates overlap, while returning pre-clustered server records would couple storage and MCP contracts to one renderer and camera scale.
+
+Decision: Keep `list_atlas_notes` note-granular. Group the bounded public-safe result by `placeId` inside the widget, compile one count pin per place, and choose radar-ring versus compact-beacon treatment from the existing renderer zoom. Show exactly one selected note in the contextual UI and expose previous/next navigation for the rest.
+
+Alternatives considered:
+
+- Server-side geographic clusters: rejected because V1 anchors are already canonical places and the server does not know the current camera transform.
+- One marker and card per note: rejected because it creates overlap, feed behavior, and mobile overflow.
+- A new map-overlay service or client dependency: rejected because the existing React/Pixi boundary can derive the presentation from capped tool results.
+
+Consequences: No schema, migration, MCP output, or deployment topology changes are required. The client owns deterministic selection reconciliation and responsive presentation. The server remains the only authority for visibility, ranking, identity, and moderation.
 
 ## Review record
 

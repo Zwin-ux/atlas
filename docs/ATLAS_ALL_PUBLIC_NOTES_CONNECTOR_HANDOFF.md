@@ -1,51 +1,55 @@
-# Atlas ALL Public Notes Connector Handoff
+# Atlas Commons Connector Handoff
 
-Status: server contract implemented; production connector unchanged
+Status: staging connector points at staging MCP; OAuth and enabled refresh pending
 
-## Paste this into ChatGPT
+Slice: `postalpha-0.81d-atlas-commons-map-radar`
+
+## Paste this into ChatGPT after the connector shows nine tools
 
 ```text
-Open Atlas on Riverside County and use the public note layer as the main shared
-view. Start on ALL. Keep the full map dominant and let me switch between ALL,
-NEARBY, and MINE.
+Open Atlas on Riverside County and show the shared map on ALL, sorted HOT.
+Keep the map full-screen and let me switch between ALL, NEARBY, and MINE.
 
-ALL shows approved public notes pinned to places in the active county. NEARBY
-shows approved notes for the place I selected. MINE keeps my private notes in
-this chat and may show my public submissions with Pending review.
+ALL shows approved public notes as place activity on the map. NEARBY narrows to
+the place I select. MINE shows my public submissions and their review status;
+my private notes must stay only in this chat.
 
-Never publish, copy, or convert a private/session note. Only create a public
-note after I explicitly choose Review public post and then confirm Post
-publicly. Public notes are text-only, 240 characters maximum, no links, and
-moderated before other people can read them.
+Never publish or convert a private note. If I ask to share something publicly,
+show me Review public post first and call Post publicly only after I explicitly
+confirm it. Public notes are plain text, 240 characters maximum, no links, and
+must wait for moderation before anyone else sees them.
 ```
 
-## Connector contract
+## Staging connector contract
 
-- MCP endpoint: `<atlas-server-origin>/mcp`
-- OAuth protected-resource metadata:
-  `<atlas-server-origin>/.well-known/oauth-protected-resource`
-- Public read tool: `list_atlas_notes`
-- Explicit authenticated mutation tool: `write_atlas_note`
-- OAuth scopes:
-  - `atlas:commons.read`
-  - `atlas:commons.write`
+- Name: `Atlas Staging`
+- MCP endpoint: `https://atlas-backend-staging-9d6c.up.railway.app/mcp`
+- Protected-resource metadata:
+  `https://atlas-backend-staging-9d6c.up.railway.app/.well-known/oauth-protected-resource`
+- Public read: `list_atlas_notes`
+- Explicit authenticated mutation: `write_atlas_note`
+- Exact scopes: `atlas:commons.read`, `atlas:commons.write`
+- Widget resource: `ui://widget/atlas-city-world-081d.html`
 
-The tools are registered only when `ATLAS_COMMONS_ENABLED=true`. Anonymous
-approved-note reads remain open. `MINE`, posting, reacting, and reporting use a
-verified OIDC identity. Operator moderation is not a ChatGPT tool.
+The connector currently uses No Auth and sees the disabled seven-tool surface.
+Do not refresh it to the enabled surface until staging issuer, audience, JWKS,
+and the two exact scopes are configured.
 
-## Setup order after approval
+## Owner-authenticated setup
 
-1. Point a staging ChatGPT connector at the staging `/mcp` URL.
-2. Configure the staging OAuth issuer, audience, and JWKS URL.
-3. Add the two commons scopes to the authorization server/client policy.
-4. Run migrations and the Postgres smoke while the commons flag is still off.
-5. Enable the flag in staging and reconnect/refresh the connector so the two
-   new tools appear.
-6. Run the paste-in prompt above on desktop and mobile.
-7. Confirm posting challenges for identity, produces `Pending review`, and is
-   invisible to anonymous `ALL` until an operator approves it.
+1. Configure the staging authorization server/client with the two exact Commons
+   scopes. Do not add Hosted Clawd scopes.
+2. Set the staging OIDC issuer, MCP audience, and JWKS URL in Railway while
+   Commons remains off.
+3. Refresh/reconnect `Atlas Staging`; verify the server still exposes seven
+   tools while disabled.
+4. Enable Commons in staging and refresh once more. The connector must show
+   exactly nine tools and the versioned `081d` widget resource.
+5. Run the prompt above on desktop and mobile. Sign in when ChatGPT presents the
+   OAuth challenge; passwords, passkeys, and one-time codes remain owner-entered.
+6. Confirm a post becomes `Pending review`, stays absent from anonymous ALL,
+   appears in the operator queue, becomes public only after approval, accepts a
+   useful mark and a distinct-user report, then disappears after removal.
+7. Prove flag rollback to seven tools and re-enable to nine tools in staging.
 
-The local connector/server path was exercised with real persisted data. No
-production connector, Auth0 tenant, Railway environment, or public server was
-modified in this slice.
+Production connector and production environment remain unchanged/off.

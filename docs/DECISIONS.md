@@ -2339,3 +2339,30 @@ default-off, and disabling `ATLAS_COMMONS_ENABLED` is the first rollback. This
 decision authorizes the local foundation and staging preparation only; it does
 not authorize production migration, connector changes, Auth0 mutation, public
 enablement, or launch.
+
+## Decision 071: The owner reopens Commons in staging only
+
+The July 21 owner instruction supersedes the older blanket ban on persistence
+and new tools only for the isolated Atlas Commons staging lane. Staging may
+deploy the two conditional Commons tools, the additive migration, OAuth, and
+moderation proof. Production remains unchanged at seven tools with Commons off.
+The exception does not reopen Hosted Clawd, money, automation, private-note
+conversion, a generic feed, or production launch.
+
+## Decision 072: Public-note pagination uses one exact cursor clock
+
+Every list request creates one service-owned `asOf` instant and passes it into
+the repository and signed cursor. MINE orders on millisecond-normalized
+`created_at`; public NEW/HOT order on millisecond-normalized publication time
+plus ID. HOT scores are rounded to nine decimal places in memory, service, and
+Postgres. This avoids duplicates or gaps from database microseconds, query
+latency, or recomputing a score at a later wall-clock instant.
+
+## Decision 073: Rebaseline deferred JS without relaxing first paint
+
+The current lockfile rebuilds the committed pre-0.81D widget graph to
+1,293,334 bytes, already above the stale 1.25 MB aggregate ceiling. The 0.81D
+map-radar change adds about 4 KB (0.32%). The deferred warning/hard bands move
+to 1.28/1.35 MB, while the 400 KB eager-JS and 130 KB eager Brotli ceilings stay
+unchanged. This is a measured budget correction, not permission for another
+visual system.

@@ -8,6 +8,11 @@ import {
   createInMemoryAtlasCommonsRepository,
   type AtlasCommonsAuthContext,
 } from "../src/atlasCommons/index.js";
+import {
+  buildOAuthProtectedResourceMetadata,
+  HOSTED_CLAWD_READ_SCOPE,
+  HOSTED_CLAWD_WRITE_SCOPE,
+} from "../src/hostedClawd/auth.js";
 
 const owner: AtlasCommonsAuthContext = {
   subject: "oidc|owner",
@@ -28,10 +33,12 @@ function fixture(options: { reportThreshold?: number; writeLimitPerHour?: number
     config: {
       enabled: true,
       pseudonymSecret: "unit-test-pseudonym-secret",
+      operatorToken: "unit-test-operator-token",
       reportThreshold: options.reportThreshold ?? 2,
       writeLimitPerHour: options.writeLimitPerHour ?? 100,
     },
     repository,
+    authConfigured: true,
     resolveAnchor: (countySlug, placeId) =>
       countySlug === "riverside-ca" && placeId === "eastvale"
         ? { countySlug, placeId, placeLabel: "Eastvale" }
@@ -69,7 +76,7 @@ test("anonymous public reads expose only approved public-safe fields", async () 
   const result = await service.list({ countySlug: "riverside-ca" });
   assert.equal(result.notes.length, 1);
   assert.equal(result.notes[0]?.placeLabel, "Eastvale");
-  assert.match(result.notes[0]?.authorHandle ?? "", /^Atlas-[A-F0-9]{10}$/);
+  assert.match(result.notes[0]?.authorHandle ?? "", /^Atlas-[A-F0-9]{16}$/);
   assert.equal(result.notes[0]?.status, undefined);
   assert.equal("ownerUserId" in (result.notes[0] as object), false);
   assert.equal("email" in (result.notes[0] as object), false);
@@ -205,6 +212,51 @@ test("opaque cursors page without overlap and reject tampering", async () => {
       return true;
     },
   );
+  await assert.rejects(
+    () => service.list({ countySlug: "orange-ca", sort: "new", cursor: pageOne.nextCursor }),
+    (error: unknown) => {
+      assert.equal((error as AtlasCommonsError).code, "INVALID_NOTE");
+      return true;
+    },
+  );
+});
+
+test("mine pagination stays on creation order after an older note is approved late", async () => {
+  const { service, advance } = fixture();
+  const older = await createPending(service, owner, "mine-page-older");
+  advance(1_000);
+  const newer = await createPending(service, owner, "mine-page-newer");
+  advance(1_000);
+  await service.moderate(older.note.id, "approve", "test-operator");
+
+  const pageOne = await service.list({ mode: "mine", limit: 1 }, owner);
+  assert.equal(pageOne.notes[0]?.id, newer.note.id);
+  assert.ok(pageOne.nextCursor);
+  const pageTwo = await service.list({ mode: "mine", limit: 1, cursor: pageOne.nextCursor }, owner);
+  assert.equal(pageTwo.notes[0]?.id, older.note.id);
+});
+
+test("hot pagination pins one as-of instant across repository latency and cursor encoding", async () => {
+  const { service, repository, advance } = fixture();
+  const first = await createPending(service, owner, "hot-asof-first");
+  await service.moderate(first.note.id, "approve", "test-operator");
+  advance(1_000);
+  const second = await createPending(service, reader, "hot-asof-second");
+  await service.moderate(second.note.id, "approve", "test-operator");
+
+  const originalList = repository.listNotes.bind(repository);
+  let repositoryAsOf = "";
+  repository.listNotes = async (input) => {
+    repositoryAsOf = input.asOf;
+    const rows = await originalList(input);
+    advance(60_000);
+    return rows;
+  };
+
+  const page = await service.list({ sort: "hot", limit: 1 });
+  assert.ok(page.nextCursor);
+  const payload = JSON.parse(Buffer.from(page.nextCursor.split(".")[0]!, "base64url").toString("utf8")) as { asOf: string };
+  assert.equal(payload.asOf, repositoryAsOf);
 });
 
 test("reactions are unique and deterministic hot reads stay public-safe", async () => {
@@ -250,6 +302,30 @@ test("moderation transitions preserve the explicit state machine", async () => {
   assert.deepEqual({ previous: approved.previousStatus, next: approved.status }, { previous: "pending", next: "visible" });
   const removed = await service.moderate(created.note.id, "remove", "test-operator");
   assert.deepEqual({ previous: removed.previousStatus, next: removed.status }, { previous: "visible", next: "removed" });
+  await assert.rejects(() => service.moderate(created.note.id, "approve", "test-operator"), (error: unknown) => {
+    assert.equal((error as AtlasCommonsError).code, "INVALID_TRANSITION");
+    return true;
+  });
+});
+
+test("operator moderation queues are bounded, ordered, and exclude identity fields", async () => {
+  const { service, advance } = fixture();
+  const first = await createPending(service, owner, "queue-1");
+  advance(1_000);
+  const second = await createPending(service, reader, "queue-2");
+
+  const pending = await service.listModerationQueue("pending", 1);
+  assert.equal(pending.notes.length, 1);
+  assert.equal(pending.notes[0]?.id, first.note.id);
+  assert.equal("ownerUserId" in (pending.notes[0] as object), false);
+  assert.equal("oidcSubject" in (pending.notes[0] as object), false);
+  assert.equal("email" in (pending.notes[0] as object), false);
+  assert.equal("clientRequestId" in (pending.notes[0] as object), false);
+
+  await service.moderate(second.note.id, "remove", "test-operator");
+  const removed = await service.listModerationQueue("removed", 10);
+  assert.equal(removed.notes[0]?.id, second.note.id);
+  assert.equal(removed.notes[0]?.status, "removed");
 });
 
 test("write actions are rate limited per verified identity", async () => {
@@ -259,6 +335,21 @@ test("write actions are rate limited per verified identity", async () => {
     assert.equal((error as AtlasCommonsError).code, "RATE_LIMITED");
     return true;
   });
+});
+
+test("idempotent post retries return the original even after the hourly quota is full", async () => {
+  const { service } = fixture({ writeLimitPerHour: 1 });
+  const first = await createPending(service, owner, "quota-retry");
+  const retry = await service.post({
+    countySlug: "riverside-ca",
+    placeId: "eastvale",
+    placeLabel: "ignored",
+    body: "A changed retry body cannot overwrite the accepted post.",
+    clientRequestId: "quota-retry",
+  }, owner);
+  assert.equal(retry.status, "unchanged");
+  assert.equal(retry.note.id, first.note.id);
+  assert.equal(retry.note.body, first.note.body);
 });
 
 test("disabled and misconfigured services fail narrowly while reporting safe metadata", async () => {
@@ -281,4 +372,37 @@ test("disabled and misconfigured services fail narrowly while reporting safe met
     assert.equal((error as AtlasCommonsError).code, "COMMONS_UNAVAILABLE");
     return true;
   });
+});
+
+test("Commons-only OAuth metadata advertises no Hosted Clawd scopes", () => {
+  const metadata = buildOAuthProtectedResourceMetadata(
+    { issuer: "https://identity.example.test/", audience: "https://atlas.example.test/mcp", jwksUrl: "https://identity.example.test/jwks.json" },
+    "https://atlas.example.test/mcp",
+    [ATLAS_COMMONS_READ_SCOPE, ATLAS_COMMONS_WRITE_SCOPE],
+    false,
+  );
+  assert.deepEqual(metadata.scopes_supported, [ATLAS_COMMONS_READ_SCOPE, ATLAS_COMMONS_WRITE_SCOPE]);
+  assert.equal((metadata.scopes_supported as string[]).includes(HOSTED_CLAWD_READ_SCOPE), false);
+  assert.equal((metadata.scopes_supported as string[]).includes(HOSTED_CLAWD_WRITE_SCOPE), false);
+});
+
+test("bounded 100-note reads stay within the response and warm-latency budgets", async () => {
+  const { service, advance } = fixture({ writeLimitPerHour: 100 });
+  for (let index = 0; index < 100; index += 1) {
+    const created = await service.post({
+      countySlug: "riverside-ca",
+      placeId: "eastvale",
+      body: `Public map note ${String(index + 1).padStart(3, "0")}.`,
+      clientRequestId: `payload-${index}`,
+    }, owner);
+    await service.moderate(created.note.id, "approve", "test-operator");
+    advance(1_000);
+  }
+
+  const startedAt = performance.now();
+  const result = await service.list({ countySlug: "riverside-ca", sort: "hot", limit: 100 });
+  const elapsedMs = performance.now() - startedAt;
+  assert.equal(result.notes.length, 100);
+  assert.ok(Buffer.byteLength(JSON.stringify(result), "utf8") < 64 * 1024);
+  assert.ok(elapsedMs < 350, `Expected a warm bounded read below 350ms; got ${elapsedMs.toFixed(2)}ms.`);
 });

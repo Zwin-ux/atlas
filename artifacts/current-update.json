@@ -1,168 +1,94 @@
 {
-  "id": "postalpha-0.78-1v-chatgpt-plugin-submission-rc",
-  "name": "Post-Alpha 0.78-1V - ChatGPT Plugin Submission Release Candidate",
-  "status": "production_green_portal_and_real_host_pending",
-  "playerPromise": "Atlas County Scout opens a full-screen voxel county map, answers map-grounded questions, finds nearby places through bounded lookups, and turns a Scout Drop into a manual plan without pretending to save or automate work.",
-  "engineeringPromise": "Ship the current seven-tool read-only product with minimized public metadata, accurate legal and support pages, an exact plugin test packet, and a production-verifiable domain challenge route.",
-  "inputUpdate": "postalpha-0.78-1v-census-county-board-certification",
-  "selectedAxis": "chatgpt_plugin_submission_readiness",
-  "recommendedNextQuest": "0.78-2 Real Town Anchors after real-host G8",
-  "decision": "PLUGIN_SUBMISSION_PACKET_CERTIFIED_DEPLOY_PENDING",
-  "releaseCandidate": {
-    "baseSha": "6320e577c648d367ffb46fe97c65d4bf84843fa1",
-    "headSha": "0101861c36dc275615a7da521e9efb6b4132d24d",
-    "pathCount": 28549,
-    "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html"
-  },
+  "id": "postalpha-0.81d-atlas-commons-map-radar",
+  "name": "Post-Alpha 0.81D - Atlas Commons Map Radar",
+  "status": "implementation_green_staging_disabled_deploy_pending",
+  "playerPromise": "Atlas makes shared local activity visible on the map through restrained place beacons and one selected public note, without turning the product into a feed or publishing private notes.",
+  "engineeringPromise": "Ship a default-off, moderated, OAuth-scoped public-note layer with deterministic pagination, isolated readiness, transactional abuse controls, and flag-first rollback.",
+  "selectedAxis": "map_native_public_notes",
+  "recommendedNextQuest": "E11 Atlas Commons staging acceptance",
+  "decision": "OWNER_AUTHORIZED_STAGING_ONLY_PRODUCTION_LOCKED_OFF",
+  "widgetResourceUri": "ui://widget/atlas-city-world-081d.html",
   "metricResult": {
-    "featureFlag": "atlasGeoBoard=1",
-    "defaultEnabled": false,
-    "challengeCounties": [
-      "miami-dade-fl",
-      "loving-tx",
-      "kalawao-hi"
-    ],
-    "featureAudit": {
-      "cells": 12,
-      "pass": 151,
-      "warn": 0,
-      "fail": 0,
-      "framingChecks": 12,
-      "maxGraphics": 40,
-      "graphicsCeiling": 1600,
-      "maxRebuildMs": 6.2,
-      "rebuildCeilingMs": 350
-    },
-    "baselineAudit": {
-      "pass": 183,
-      "warn": 0,
-      "fail": 0
-    },
-    "coreTests": 161,
-    "publicToolTruth": {
-      "saveSurfaceDefault": "off",
-      "closedSurfaceOmitsHostedClawdCapabilities": true,
-      "overlappingPlayableQuestionTopic": "eastvale_first_slice",
-      "ordinaryEastvaleSourceQuestionTopic": "source_limits",
-      "accommodationLookupCategory": "service",
-      "exactProductionToolSet": true,
-      "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html",
-      "newMcpTools": 0
-    },
-    "pluginSubmission": {
-      "displayName": "Atlas County Scout",
-      "subtitle": "Explore voxel county maps",
-      "toolCount": 7,
-      "starterPromptCount": 4,
-      "positiveTestCount": 5,
-      "negativeTestCount": 3,
-      "implementationSha": "8bf5a4e139393d7ff208b058e32c6122dd70bb83",
-      "publicLookupInputs": [
-        "countySlug",
-        "placeId",
-        "radiusMeters"
-      ],
-      "publicLookupDiagnosticsRemoved": true,
-      "productionLookupPublicFields": [
-        "places",
-        "radiusMeters",
-        "resolvedLocation",
-        "type"
-      ],
-      "productionChallengeStatus": 404,
-      "supportRoute": "/support",
-      "domainChallengeRoute": "/.well-known/openai-apps-challenge"
-    },
-    "cameraContract": "full projected terrain and water footprint fits the certified desktop and mobile viewport",
-    "copyContract": "U.S. Census county identity plus real boundary and water; streets and places explicitly not mapped",
-    "unavailableControlsHidden": true,
-    "desktopMobileProof": true,
-    "lightDarkProof": true,
-    "newMcpTools": 0,
-    "providerGeometry": false,
-    "publicPlayablePromotion": false
+    "commonsTestsPassed": 19,
+    "coreTestsPassed": 271,
+    "hostedClawdRegressionTestsPassed": 33,
+    "desktopInnerViewport": "1280x720",
+    "mobileInnerViewport": "390x844",
+    "mobileMinimumTargetPx": 44,
+    "mobileVisibleMapRatio": 0.795,
+    "horizontalOverflow": 0,
+    "selectedPublicNotesRendered": 1,
+    "publicFeedRendered": false,
+    "disabledStagingToolCount": 7,
+    "enabledStagingToolCountExpected": 9,
+    "stagingPostgresSmoke": "pass",
+    "productionChanged": false
   },
   "verification": {
+    "focusedTests": "pnpm test:atlas-commons",
+    "focusedContract": "pnpm verify:atlas-commons",
+    "browser": "pnpm verify:atlas-commons:browser -- --base http://127.0.0.1:8791 --screenshots artifacts/emulator/atlas-commons-browser",
+    "stagingDisabled": "pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect disabled",
+    "stagingEnabled": "pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect enabled",
+    "stagingModeration": "pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect enabled --prove-moderation",
+    "postgres": "pnpm smoke:atlas-commons:postgres",
+    "typecheck": "pnpm typecheck",
+    "build": "pnpm build",
     "core": "pnpm test:core",
-    "typecheck": "pnpm typecheck:starter",
-    "toolResultShape": "node scripts/verify-tool-result-shape.mjs --json-only",
-    "providerBoundary": "node scripts/verify-provider-boundaries.mjs --json-only",
-    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --strict-selected-rc --rc-mode national-generation-contract --json-only",
-    "sourceOfTruth": "node scripts/verify-atlas-source-of-truth-drift.mjs --json-only",
-    "loopReadiness": "node scripts/verify-atlas-loop-readiness.mjs --json-only",
-    "saveSurface": "node scripts/verify-save-surface-flag.mjs",
-    "geoCategory": "packages/core/node_modules/.bin/vitest.cmd --root packages/geo run test/place-category-normalizer.test.ts",
-    "releaseToolContract": "node scripts/verify-release-prod.mjs --self-test",
-    "releasePreflight": "powershell -ExecutionPolicy Bypass -File scripts/release-deploy.ps1 -ExpectedSha <full-sha> -ExpectedUpdateId postalpha-0.78-1v-chatgpt-plugin-submission-rc -PreflightOnly",
-    "productionRelease": "node scripts/verify-release-prod.mjs",
-    "publicSanity": "node scripts/verify-alpha-public-sanity.mjs",
-    "liveSubmission": "ATLAS_MCP_URL=https://atlas-backend-production-e6fc.up.railway.app/mcp node scripts/verify-submission.mjs",
-    "liveQuestionRouting": "ask_county_question on production: three ordinary Eastvale source/provider questions -> source_limits; playable overlap -> eastvale_first_slice",
-    "baselineBrowser": "node scripts/verify-emulator-audit.mjs --json-only",
-    "censusBrowser": "node scripts/verify-emulator-audit.mjs --geo-board --viewport both --theme both --json-only",
-    "framing": "county_board_framing passes in all 12 Census-board cells",
-    "proof": "artifacts/emulator/audit/0.78-1v/report.json"
+    "splitGuard": "node scripts/verify-alpha-rc-split.mjs --working-tree --strict-selected-rc --rc-mode atlas-commons-foundation --json-only",
+    "localShip": "pnpm ship:check:local",
+    "designQa": "design-qa.md"
   },
-  "nextCodeStep": "Create the plugin portal draft, set its issued domain challenge token, scan all seven tools, and run the exact 5/3 test battery in real ChatGPT.",
+  "releaseState": {
+    "stagingBaseUrl": "https://atlas-backend-staging-9d6c.up.railway.app",
+    "stagingCommonsEnabled": false,
+    "stagingMigrationApplied": true,
+    "stagingPseudonymSecretConfigured": true,
+    "stagingOperatorTokenConfigured": true,
+    "stagingOidcConfigured": false,
+    "stagingConnectorToolCount": 7,
+    "productionBaseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
+    "productionCommonsEnabled": false,
+    "productionToolCount": 7,
+    "productionMutationAuthorized": false
+  },
+  "nextCodeStep": "Commit and push the green 0.81D bundle, deploy that commit to staging with Commons disabled, then complete the owner-authenticated OIDC and connector gate.",
   "forbiddenScope": [
-    "default-enable the Census board before owner approval",
-    "production deploy without the separate owner deploy gate",
-    "roads or town-detail work inside the certification packet",
-    "national 3,222-pack bake before the pack-integrity gate",
-    "new public MCP tools",
-    "provider-created geometry",
-    "persistence or public paid claims",
-    "public Anaheim/Ontario promotion"
+    "production migration, deploy, connector change, or Commons enablement",
+    "private or session note import",
+    "Hosted Clawd, billing, money, XP, evidence, or automation",
+    "moderator dashboard",
+    "generic feed or dashboard shell",
+    "unrelated roads, county generation, or provider geometry"
   ],
-  "deployment": {
-    "status": "production_green",
-    "completedAt": "2026-07-18T08:19:00-07:00",
-    "sha": "b4eea1caef009a4886abbb659d74ada27d256315",
-    "implementationSha": "331c8cf5f5290e135271b1984334f2f9e03701c1",
-    "railwayDeploymentId": "2c7bb3a4-d5b2-4869-8bf1-6e1763a395f5",
-    "service": "atlas-backend",
-    "publicBaseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
-    "releaseGatesPassed": 14,
-    "publicSanityChecksPassed": 3,
-    "workerDeployed": true,
-    "workerDeploymentId": "9d2d5d2a-2805-4b23-9c6c-d4357efbb4d6",
-    "workerReason": "First successful worker deployment 2026-07-18: the hardened worker answers /health and /ready on $PORT itself, clearing the historical healthcheck crash-loop."
-  },
   "gates": [
     {
-      "id": "owner-screenshot-review",
-      "label": "Owner reviews the 12 feature-on screenshots",
-      "required": true,
+      "id": "implementation-and-local-qa",
       "status": "passed",
-      "evidence": "artifacts/council/OWNER_APPROVAL_0781V_2026-07-13.md"
+      "evidence": "focused tests, full core/Hosted Clawd regressions, browser proof, design-qa.md"
     },
     {
-      "id": "census-board-production-deploy",
-      "label": "Owner ran the 0.78-1V Census-board release deploy and post-deploy proof ladder",
-      "required": true,
+      "id": "isolated-staging-database",
       "status": "passed",
-      "authorization": "approved",
-      "evidence": "Railway 232c69ee-63de-47d0-bb7c-257d9ca0c422; SHA 70167356abfe746d0b2257b4211bc9c8d2ff1de3; release 14/14; public sanity 3/3"
+      "evidence": "three repeat-safe migrations plus real staging Postgres smoke"
     },
     {
-      "id": "plugin-production-deploy",
-      "label": "Deploy the ChatGPT plugin submission contract and pass production verification",
-      "required": true,
-      "status": "passed",
-      "authorization": "approved",
-      "evidence": "Railway b4683672-40fb-40c0-aa5e-1b78e3ac8d23; SHA 6320e577c648d367ffb46fe97c65d4bf84843fa1; release 14/14; public sanity 3/3; live submission verifier passed"
-    },
-    {
-      "id": "plugin-domain-verification",
-      "label": "Set the portal-issued challenge token and verify the production domain",
-      "required": true,
+      "id": "disabled-staging-deploy",
       "status": "pending"
     },
     {
-      "id": "real-host-g8",
-      "label": "Real ChatGPT verifies the plugin surface after deploy",
-      "required": true,
+      "id": "owner-authenticated-oidc-and-connector",
+      "status": "pending",
+      "ownerAction": true
+    },
+    {
+      "id": "enabled-moderation-and-rollback-proof",
       "status": "pending"
+    },
+    {
+      "id": "production-isolation",
+      "status": "in_progress",
+      "evidence": "read-only baseline captured; must be rechecked after each staging phase"
     }
   ]
 }

@@ -19,7 +19,7 @@ import {
   type EmulatorDisplayMode,
   type EmulatorTheme,
 } from "./mockHost";
-import { createInjectedToolSource, createLiveMcpToolSource } from "./toolSource";
+import { createAtlasCommonsDemoToolSource, createInjectedToolSource, createLiveMcpToolSource } from "./toolSource";
 
 const params = new URLSearchParams(window.location.search);
 // The county slug is the only user-controlled string interpolated into
@@ -34,6 +34,7 @@ const truncateChars = Number(params.get("truncate") ?? "0") || 0;
 // Geo board is product default; only explicit 0 disables (matches MapChrome).
 const geoBoardEnabled = params.get("atlasGeoBoard") !== "0";
 const preferInjected = params.get("src") === "injected";
+const commonsDemo = params.get("commons") === "demo";
 const viewport = EMULATOR_VIEWPORTS[viewportKey];
 const assetOrigin = resolveEmulatorAssetOrigin(window.location.origin);
 
@@ -112,7 +113,8 @@ async function boot(): Promise<void> {
   frameBox.appendChild(iframe);
 
   setStatus("connecting tool source…");
-  const toolSource = (preferInjected ? createInjectedToolSource() : null) ?? (await createLiveMcpToolSource("/mcp"));
+  const baseToolSource = (preferInjected ? createInjectedToolSource() : null) ?? (await createLiveMcpToolSource("/mcp"));
+  const toolSource = commonsDemo ? createAtlasCommonsDemoToolSource(baseToolSource) : baseToolSource;
 
   const host = await createMockHost({
     iframe,

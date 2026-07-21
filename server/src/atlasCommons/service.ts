@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import type { AtlasCommonsListCursor, AtlasCommonsRepository } from "./repository.js";
 import {
   ATLAS_COMMONS_READ_SCOPE,
@@ -10,6 +10,9 @@ import {
   type AtlasCommonsListInput,
   type AtlasCommonsListResult,
   type AtlasCommonsModerationResult,
+  type AtlasCommonsModerationQueueItem,
+  type AtlasCommonsModerationQueueResult,
+  type AtlasCommonsModerationQueueStatus,
   type AtlasCommonsNoteRecord,
   type AtlasCommonsPostInput,
   type AtlasCommonsPublicMeta,
@@ -21,6 +24,7 @@ export type AtlasCommonsServiceOptions = {
   config: AtlasCommonsConfig;
   repository?: AtlasCommonsRepository;
   resolveAnchor: (countySlug: string, placeId: string) => AtlasCommonsAnchor | undefined;
+  authConfigured?: boolean;
   now?: () => Date;
 };
 
@@ -32,17 +36,25 @@ export class AtlasCommonsService {
   readonly config: AtlasCommonsConfig;
   private readonly repository?: AtlasCommonsRepository;
   private readonly resolveAnchor: AtlasCommonsServiceOptions["resolveAnchor"];
+  private readonly authConfigured: boolean;
   private readonly now: () => Date;
 
   constructor(options: AtlasCommonsServiceOptions) {
     this.config = options.config;
     this.repository = options.repository;
     this.resolveAnchor = options.resolveAnchor;
+    this.authConfigured = options.authConfigured === true;
     this.now = options.now ?? (() => new Date());
   }
 
   publicMeta(): AtlasCommonsPublicMeta {
-    const available = Boolean(this.config.enabled && this.repository && this.config.pseudonymSecret);
+    const available = Boolean(
+      this.config.enabled &&
+      this.repository &&
+      this.config.pseudonymSecret &&
+      this.config.operatorToken &&
+      this.authConfigured,
+    );
     return {
       enabled: this.config.enabled,
       available,
@@ -60,8 +72,22 @@ export class AtlasCommonsService {
   }
 
   async health(): Promise<boolean> {
-    if (!this.config.enabled || !this.repository || !this.config.pseudonymSecret) return false;
+    if (!this.config.enabled || !this.repository || !this.config.pseudonymSecret || !this.config.operatorToken || !this.authConfigured) return false;
     return this.repository.health();
+  }
+
+  async listModerationQueue(
+    status: AtlasCommonsModerationQueueStatus = "pending",
+    limit = 50,
+  ): Promise<AtlasCommonsModerationQueueResult> {
+    const repository = this.requireAvailable();
+    const boundedLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+    const notes = await repository.listModerationQueue(status, boundedLimit);
+    return {
+      type: "atlasPublicNoteModerationQueue",
+      status,
+      notes: notes.map(operatorNote),
+    };
   }
 
   async list(input: AtlasCommonsListInput, auth?: AtlasCommonsAuthContext): Promise<AtlasCommonsListResult> {
@@ -72,7 +98,9 @@ export class AtlasCommonsService {
     const placeId = optionalId(input.placeId, "placeId");
     if (placeId && !countySlug) throw new AtlasCommonsError("INVALID_NOTE", "A place filter requires a county.");
     const limit = Math.min(100, Math.max(1, Math.floor(input.limit ?? 30)));
-    const cursor = decodeCursor(input.cursor, sort);
+    const cursorScope = [mode, sort, countySlug ?? "*", placeId ?? "*"].join(":");
+    const cursor = decodeCursor(input.cursor, sort, cursorScope, this.config.pseudonymSecret!);
+    const asOf = cursor?.asOf ?? this.now().toISOString();
 
     let ownerUserId: string | undefined;
     let viewerUserId: string | undefined;
@@ -92,6 +120,7 @@ export class AtlasCommonsService {
     const rows = await repository.listNotes({
       mode,
       sort,
+      asOf,
       ...(countySlug ? { countySlug } : {}),
       ...(placeId ? { placeId } : {}),
       ...(ownerUserId ? { ownerUserId } : {}),
@@ -100,7 +129,9 @@ export class AtlasCommonsService {
       ...(cursor ? { cursor } : {}),
     });
     const page = rows.slice(0, limit);
-    const nextCursor = rows.length > limit && page.length > 0 ? encodeCursor(page[page.length - 1]!, sort, cursor?.asOf ?? this.now().toISOString()) : undefined;
+    const nextCursor = rows.length > limit && page.length > 0
+      ? encodeCursor(page[page.length - 1]!, mode, sort, asOf, cursorScope, this.config.pseudonymSecret!)
+      : undefined;
     return {
       type: "atlasPublicNoteList",
       notes: page.map((note) => publicNote(note, viewerUserId, mode === "mine")),
@@ -120,14 +151,31 @@ export class AtlasCommonsService {
     if (!anchor) throw new AtlasCommonsError("UNKNOWN_ANCHOR", "Choose a place that is currently mapped by Atlas.");
 
     const user = await repository.upsertUserByOidcSubject(verified.subject, verified.email);
-    await this.enforceRateLimit(repository, user.id);
-    const { note, reused } = await repository.createNote({
-      ownerUserId: user.id,
-      authorHandle: this.authorHandle(verified.subject),
-      ...anchor,
-      body,
-      clientRequestId,
-    });
+    const existing = await repository.findNoteByRequest(user.id, clientRequestId);
+    if (existing) {
+      return {
+        type: "atlasPublicNoteWrite",
+        operation: "post",
+        status: "unchanged",
+        note: publicNote(existing, user.id, true),
+        message: "This public post was already received.",
+      };
+    }
+    let note: AtlasCommonsNoteRecord;
+    let reused: boolean;
+    try {
+      ({ note, reused } = await repository.createNote({
+        ownerUserId: user.id,
+        authorHandle: this.authorHandle(verified.subject),
+        ...anchor,
+        body,
+        clientRequestId,
+      }, this.writeQuota()));
+    } catch (error) {
+      const limited = rateLimitError(error);
+      if (limited) throw limited;
+      throw new AtlasCommonsError("COMMONS_UNAVAILABLE", "Public posting is temporarily unavailable. Your private notes still work.");
+    }
     return {
       type: "atlasPublicNoteWrite",
       operation: "post",
@@ -141,9 +189,8 @@ export class AtlasCommonsService {
     const repository = this.requireAvailable();
     const verified = requireScope(auth, ATLAS_COMMONS_WRITE_SCOPE);
     const user = await repository.upsertUserByOidcSubject(verified.subject, verified.email);
-    await this.enforceRateLimit(repository, user.id);
     try {
-      const { note, changed } = await repository.setReaction(requiredId(noteId, "noteId"), user.id, active);
+      const { note, changed } = await repository.setReaction(requiredId(noteId, "noteId"), user.id, active, this.writeQuota());
       return {
         type: "atlasPublicNoteWrite",
         operation: "react",
@@ -162,13 +209,13 @@ export class AtlasCommonsService {
     const normalizedReason = reason.trim().toLowerCase();
     if (!REPORT_REASONS.has(normalizedReason)) throw new AtlasCommonsError("INVALID_NOTE", "Choose a valid report reason.");
     const user = await repository.upsertUserByOidcSubject(verified.subject, verified.email);
-    await this.enforceRateLimit(repository, user.id);
     try {
       const { note, changed, thresholdReached } = await repository.reportNote(
         requiredId(noteId, "noteId"),
         user.id,
         normalizedReason,
         this.config.reportThreshold,
+        this.writeQuota(),
       );
       return {
         type: "atlasPublicNoteWrite",
@@ -192,28 +239,31 @@ export class AtlasCommonsService {
       );
       return { type: "atlasPublicNoteModeration", noteId: note.id, previousStatus, status: note.status };
     } catch (error) {
+      if (error instanceof Error && error.message.startsWith("INVALID_TRANSITION")) {
+        throw new AtlasCommonsError("INVALID_TRANSITION", "That moderation transition is not allowed.");
+      }
       throw noteNotFound(error);
     }
   }
 
   private requireAvailable(): AtlasCommonsRepository {
     if (!this.config.enabled) throw new AtlasCommonsError("COMMONS_DISABLED", "Public notes are not enabled on this Atlas server.");
-    if (!this.repository || !this.config.pseudonymSecret) {
+    if (!this.repository || !this.config.pseudonymSecret || !this.config.operatorToken || !this.authConfigured) {
       throw new AtlasCommonsError("COMMONS_UNAVAILABLE", "Public notes are temporarily unavailable. Private notes still work.");
     }
     return this.repository;
   }
 
   private authorHandle(subject: string): string {
-    const suffix = createHmac("sha256", this.config.pseudonymSecret!).update(subject).digest("hex").slice(0, 10).toUpperCase();
+    const suffix = createHmac("sha256", this.config.pseudonymSecret!).update(subject).digest("hex").slice(0, 16).toUpperCase();
     return `Atlas-${suffix}`;
   }
 
-  private async enforceRateLimit(repository: AtlasCommonsRepository, ownerUserId: string): Promise<void> {
-    const since = new Date(this.now().getTime() - 3_600_000).toISOString();
-    if ((await repository.countRecentActions(ownerUserId, since)) >= this.config.writeLimitPerHour) {
-      throw new AtlasCommonsError("RATE_LIMITED", "Too many public-note actions. Try again later.");
-    }
+  private writeQuota() {
+    return {
+      since: new Date(this.now().getTime() - 3_600_000).toISOString(),
+      limit: this.config.writeLimitPerHour,
+    };
   }
 }
 
@@ -241,6 +291,26 @@ function publicNote(note: AtlasCommonsNoteRecord, viewerUserId: string | undefin
     ...(note.publishedAt ? { publishedAt: note.publishedAt } : {}),
     ...(viewerUserId !== undefined && note.viewerHasReacted !== undefined ? { viewerHasReacted: note.viewerHasReacted } : {}),
     viewerCanReport: note.status === "visible" && note.ownerUserId !== viewerUserId,
+  };
+}
+
+function operatorNote(note: AtlasCommonsNoteRecord): AtlasCommonsModerationQueueItem {
+  if (note.status !== "pending" && note.status !== "removed") {
+    throw new AtlasCommonsError("INVALID_TRANSITION", "Only pending or removed notes belong in the moderation queue.");
+  }
+  return {
+    id: note.id,
+    countySlug: note.countySlug,
+    placeId: note.placeId,
+    placeLabel: note.placeLabel,
+    body: note.body,
+    authorHandle: note.authorHandle,
+    status: note.status,
+    reactionCount: note.reactionCount,
+    reportCount: note.reportCount,
+    createdAt: note.createdAt,
+    ...(note.publishedAt ? { publishedAt: note.publishedAt } : {}),
+    ...(note.removedAt ? { removedAt: note.removedAt } : {}),
   };
 }
 
@@ -286,27 +356,49 @@ function boundedInteger(value: string | undefined, fallback: number, min: number
   return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback;
 }
 
-function encodeCursor(note: AtlasCommonsNoteRecord, sort: "hot" | "new", asOf: string): string {
-  const timestamp = note.publishedAt ?? note.createdAt;
-  const ageHours = Math.max(0, new Date(asOf).getTime() - new Date(timestamp).getTime()) / 3_600_000;
-  const cursor: AtlasCommonsListCursor & { v: 1; sort: "hot" | "new" } = {
+function encodeCursor(
+  note: AtlasCommonsNoteRecord,
+  mode: "all" | "mine",
+  sort: "hot" | "new",
+  asOf: string,
+  scope: string,
+  secret: string,
+): string {
+  const timestamp = mode === "mine" ? note.createdAt : note.publishedAt ?? note.createdAt;
+  const score = hotCursorScore(note, asOf, timestamp);
+  const cursor: AtlasCommonsListCursor & { v: 1; sort: "hot" | "new"; scope: string } = {
     v: 1,
     sort,
+    scope,
     asOf,
-    ...(sort === "hot" ? { score: note.reactionCount * 4 - note.reportCount * 8 - ageHours / 12 } : {}),
+    ...(sort === "hot" ? { score } : {}),
     timestamp,
     id: note.id,
   };
-  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
+  const payload = Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
+  const signature = createHmac("sha256", secret).update(payload).digest("base64url");
+  return `${payload}.${signature}`;
 }
 
-function decodeCursor(value: string | undefined, sort: "hot" | "new"): AtlasCommonsListCursor | undefined {
+function hotCursorScore(note: AtlasCommonsNoteRecord, asOf: string, timestamp: string): number {
+  const ageMs = Math.max(0, new Date(asOf).getTime() - new Date(timestamp).getTime());
+  return Math.round((note.reactionCount * 4 - note.reportCount * 8 - ageMs / 43_200_000) * 1_000_000_000) / 1_000_000_000;
+}
+
+function decodeCursor(value: string | undefined, sort: "hot" | "new", scope: string, secret: string): AtlasCommonsListCursor | undefined {
   if (!value) return undefined;
   try {
-    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Record<string, unknown>;
+    const parts = value.split(".");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) throw new Error("invalid");
+    const [payload, signature] = parts;
+    const expected = createHmac("sha256", secret).update(payload).digest();
+    const actual = Buffer.from(signature, "base64url");
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new Error("invalid");
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
     if (
       parsed.v !== 1 ||
       parsed.sort !== sort ||
+      parsed.scope !== scope ||
       typeof parsed.asOf !== "string" ||
       typeof parsed.timestamp !== "string" ||
       typeof parsed.id !== "string" ||
@@ -327,5 +419,13 @@ function decodeCursor(value: string | undefined, sort: "hot" | "new"): AtlasComm
 
 function noteNotFound(error: unknown): AtlasCommonsError {
   if (error instanceof AtlasCommonsError) return error;
+  const limited = rateLimitError(error);
+  if (limited) return limited;
   return new AtlasCommonsError("NOTE_NOT_FOUND", "That public note is not available.");
+}
+
+function rateLimitError(error: unknown): AtlasCommonsError | undefined {
+  return error instanceof Error && error.message.startsWith("RATE_LIMITED")
+    ? new AtlasCommonsError("RATE_LIMITED", "Too many public-note actions. Try again later.")
+    : undefined;
 }

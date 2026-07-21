@@ -5,12 +5,14 @@ import type {
   AtlasCommonsRepository,
   AtlasCommonsUserRecord,
 } from "./repository.js";
-import type { AtlasCommonsNoteRecord, AtlasCommonsNoteStatus } from "./types.js";
+import type { AtlasCommonsModerationQueueStatus, AtlasCommonsNoteRecord, AtlasCommonsNoteStatus } from "./types.js";
 
 type QueryRow = Record<string, unknown>;
-type PoolLike = {
+type Queryable = {
   query(sql: string, params?: unknown[]): Promise<{ rows: QueryRow[] }>;
 };
+type PoolClientLike = Queryable & { release(): void };
+type PoolLike = Queryable & { connect?: () => Promise<PoolClientLike> };
 
 const NOTE_COLUMNS = `
   n.id, n.owner_user_id, n.author_handle, n.county_slug, n.place_id, n.place_label,
@@ -50,37 +52,72 @@ export function createPostgresAtlasCommonsRepository(pool: PoolLike): AtlasCommo
       return Number(rows[0]?.action_count ?? 0);
     },
 
-    async createNote(input) {
-      const noteId = randomUUID();
+    async findNoteByRequest(ownerUserId, clientRequestId) {
       const { rows } = await pool.query(
-        `WITH inserted AS (
-           INSERT INTO atlas_public_notes (
-             id, owner_user_id, author_handle, county_slug, place_id, place_label, body, client_request_id
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (owner_user_id, client_request_id) DO NOTHING
-           RETURNING *
-         ), logged AS (
-           INSERT INTO atlas_commons_actions (id, owner_user_id, action_kind)
-           SELECT $9, owner_user_id, 'post' FROM inserted
-         ), selected AS (
-           SELECT * FROM inserted
-           UNION ALL
-           SELECT * FROM atlas_public_notes
-           WHERE owner_user_id = $2 AND client_request_id = $8 AND NOT EXISTS (SELECT 1 FROM inserted)
-           LIMIT 1
-         )
-         SELECT ${NOTE_COLUMNS.replaceAll("n.", "s.")},
-                EXISTS (SELECT 1 FROM inserted) AS inserted,
-                false AS viewer_has_reacted
-         FROM selected s`,
-        [noteId, input.ownerUserId, input.authorHandle, input.countySlug, input.placeId, input.placeLabel, input.body, input.clientRequestId, randomUUID()],
+        `SELECT ${NOTE_COLUMNS}, false AS viewer_has_reacted
+         FROM atlas_public_notes n
+         WHERE n.owner_user_id = $1 AND n.client_request_id = $2`,
+        [ownerUserId, clientRequestId],
       );
-      const row = requireRow(rows[0], "atlas_public_notes");
-      return { note: noteFromRow(row), reused: row.inserted !== true };
+      return rows[0] ? noteFromRow(rows[0]) : null;
+    },
+
+    async createNote(input, quota) {
+      const client = pool.connect ? await pool.connect() : undefined;
+      const database: Queryable = client ?? pool;
+      try {
+        await database.query("BEGIN");
+        await lockWriteQuota(database, input.ownerUserId);
+        const { rows: existingRows } = await database.query(
+          `SELECT ${NOTE_COLUMNS}, false AS viewer_has_reacted
+           FROM atlas_public_notes n
+           WHERE n.owner_user_id = $1 AND n.client_request_id = $2`,
+          [input.ownerUserId, input.clientRequestId],
+        );
+        if (existingRows[0]) {
+          await database.query("COMMIT");
+          return { note: noteFromRow(existingRows[0]), reused: true };
+        }
+        await assertWriteQuotaAvailable(database, input.ownerUserId, quota.since, quota.limit);
+        const { rows } = await database.query(
+          `WITH inserted AS (
+             INSERT INTO atlas_public_notes (
+               id, owner_user_id, author_handle, county_slug, place_id, place_label, body, client_request_id
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             RETURNING *
+           ), logged AS (
+             INSERT INTO atlas_commons_actions (id, owner_user_id, action_kind)
+             SELECT $9, owner_user_id, 'post' FROM inserted
+           )
+           SELECT ${NOTE_COLUMNS.replaceAll("n.", "i.")}, true AS inserted, false AS viewer_has_reacted
+           FROM inserted i`,
+          [randomUUID(), input.ownerUserId, input.authorHandle, input.countySlug, input.placeId, input.placeLabel, input.body, input.clientRequestId, randomUUID()],
+        );
+        const row = requireRow(rows[0], "atlas_public_notes");
+        await database.query("COMMIT");
+        return { note: noteFromRow(row), reused: false };
+      } catch (error) {
+        try { await database.query("ROLLBACK"); } catch { /* preserve original */ }
+        throw error;
+      } finally {
+        client?.release();
+      }
     },
 
     async listNotes(input) {
       return input.mode === "mine" ? listMine(pool, input) : listPublic(pool, input);
+    },
+
+    async listModerationQueue(status: AtlasCommonsModerationQueueStatus, limit: number) {
+      const { rows } = await pool.query(
+        `SELECT ${NOTE_COLUMNS}, false AS viewer_has_reacted
+         FROM atlas_public_notes n
+         WHERE n.moderation_status = $1
+         ORDER BY n.created_at ASC, n.id ASC
+         LIMIT $2`,
+        [status, limit],
+      );
+      return rows.map(noteFromRow);
     },
 
     async getNoteForViewer(noteId, viewerUserId) {
@@ -96,68 +133,132 @@ export function createPostgresAtlasCommonsRepository(pool: PoolLike): AtlasCommo
       return rows[0] ? noteFromRow(rows[0]) : null;
     },
 
-    async setReaction(noteId, ownerUserId, active) {
-      const mutation = active
-        ? `INSERT INTO atlas_note_reactions (note_id, owner_user_id)
-           SELECT id, $2 FROM target ON CONFLICT DO NOTHING RETURNING note_id`
-        : `DELETE FROM atlas_note_reactions
-           WHERE note_id IN (SELECT id FROM target) AND owner_user_id = $2 RETURNING note_id`;
-      const { rows } = await pool.query(
-        `WITH target AS (
-           SELECT id FROM atlas_public_notes WHERE id = $1 AND moderation_status = 'visible'
-         ), changed AS (
-           ${mutation}
-         ), logged AS (
-           INSERT INTO atlas_commons_actions (id, owner_user_id, action_kind)
-           SELECT $3, $2, $4 FROM changed
-         )
-         SELECT EXISTS (SELECT 1 FROM target) AS found,
-                EXISTS (SELECT 1 FROM changed) AS changed`,
-        [noteId, ownerUserId, randomUUID(), active ? "react" : "unreact"],
-      );
-      const result = requireRow(rows[0], "atlas_public_notes");
-      if (result.found !== true) throw new Error("NOTE_NOT_FOUND:atlas_public_notes");
-      const note = await selectNoteById(pool, noteId, ownerUserId);
-      return { note, changed: result.changed === true };
+    async setReaction(noteId, ownerUserId, active, quota) {
+      const client = pool.connect ? await pool.connect() : undefined;
+      const database: Queryable = client ?? pool;
+      try {
+        await database.query("BEGIN");
+        await lockWriteQuota(database, ownerUserId);
+        const { rows: targetRows } = await database.query(
+          `SELECT n.id,
+                  EXISTS (SELECT 1 FROM atlas_note_reactions r WHERE r.note_id = n.id AND r.owner_user_id = $2) AS active
+           FROM atlas_public_notes n
+           WHERE n.id = $1 AND n.moderation_status = 'visible'
+           FOR UPDATE`,
+          [noteId, ownerUserId],
+        );
+        const target = requireRow(targetRows[0], "atlas_public_notes");
+        const had = target.active === true;
+        if (had === active) {
+          const note = await selectNoteById(database, noteId, ownerUserId);
+          await database.query("COMMIT");
+          return { note, changed: false };
+        }
+        await assertWriteQuotaAvailable(database, ownerUserId, quota.since, quota.limit);
+        if (active) {
+          await database.query(
+            "INSERT INTO atlas_note_reactions (note_id, owner_user_id) VALUES ($1, $2)",
+            [noteId, ownerUserId],
+          );
+        } else {
+          await database.query(
+            "DELETE FROM atlas_note_reactions WHERE note_id = $1 AND owner_user_id = $2",
+            [noteId, ownerUserId],
+          );
+        }
+        await database.query(
+          "INSERT INTO atlas_commons_actions (id, owner_user_id, action_kind) VALUES ($1, $2, $3)",
+          [randomUUID(), ownerUserId, active ? "react" : "unreact"],
+        );
+        const note = await selectNoteById(database, noteId, ownerUserId);
+        await database.query("COMMIT");
+        return { note, changed: true };
+      } catch (error) {
+        try { await database.query("ROLLBACK"); } catch { /* preserve original */ }
+        throw error;
+      } finally {
+        client?.release();
+      }
     },
 
-    async reportNote(noteId, reporterUserId, reason, threshold) {
-      const { rows } = await pool.query(
-        `WITH target AS (
-           SELECT id FROM atlas_public_notes
+    async reportNote(noteId, reporterUserId, reason, threshold, quota) {
+      const client = pool.connect ? await pool.connect() : undefined;
+      const database: Queryable = client ?? pool;
+      try {
+        await database.query("BEGIN");
+        await lockWriteQuota(database, reporterUserId);
+        const { rows: targetRows } = await database.query(
+          `SELECT id FROM atlas_public_notes
            WHERE id = $1 AND moderation_status = 'visible' AND owner_user_id <> $2
-         ), inserted AS (
-           INSERT INTO atlas_note_reports (note_id, reporter_user_id, reason)
-           SELECT id, $2, $3 FROM target
-           ON CONFLICT DO NOTHING
-           RETURNING note_id
-         ), logged AS (
-           INSERT INTO atlas_commons_actions (id, owner_user_id, action_kind)
-           SELECT $5, $2, 'report' FROM inserted
-         ), report_total AS (
-           SELECT (
-             (SELECT count(*) FROM atlas_note_reports WHERE note_id IN (SELECT id FROM target))
-             + (SELECT count(*) FROM inserted)
-           )::int AS value
-         ), hidden AS (
-           UPDATE atlas_public_notes
-           SET moderation_status = 'removed', removed_at = now(), removal_reason = 'report_threshold'
-           WHERE id IN (SELECT id FROM target)
-             AND (SELECT value FROM report_total) >= $4
-           RETURNING id
-         )
-         SELECT EXISTS (SELECT 1 FROM target) AS found,
-                EXISTS (SELECT 1 FROM inserted) AS changed,
-                EXISTS (SELECT 1 FROM hidden) AS threshold_reached`,
-        [noteId, reporterUserId, reason, threshold, randomUUID()],
-      );
-      const result = requireRow(rows[0], "atlas_public_notes");
-      if (result.found !== true) throw new Error("NOTE_NOT_FOUND:atlas_public_notes");
-      const note = await selectNoteById(pool, noteId, reporterUserId);
-      return { note, changed: result.changed === true, thresholdReached: result.threshold_reached === true };
+           FOR UPDATE`,
+          [noteId, reporterUserId],
+        );
+        if (!targetRows[0]) throw new Error("NOTE_NOT_FOUND:atlas_public_notes");
+
+        const { rows: existingReportRows } = await database.query(
+          "SELECT 1 AS found FROM atlas_note_reports WHERE note_id = $1 AND reporter_user_id = $2",
+          [noteId, reporterUserId],
+        );
+        const changed = !existingReportRows[0];
+        if (changed) {
+          await assertWriteQuotaAvailable(database, reporterUserId, quota.since, quota.limit);
+          await database.query(
+            "INSERT INTO atlas_note_reports (note_id, reporter_user_id, reason) VALUES ($1, $2, $3)",
+            [noteId, reporterUserId, reason],
+          );
+          await database.query(
+            "INSERT INTO atlas_commons_actions (id, owner_user_id, action_kind) VALUES ($1, $2, 'report')",
+            [randomUUID(), reporterUserId],
+          );
+        }
+
+        const { rows: countRows } = await database.query(
+          "SELECT count(*)::int AS report_count FROM atlas_note_reports WHERE note_id = $1",
+          [noteId],
+        );
+        const thresholdReached = Number(countRows[0]?.report_count ?? 0) >= threshold;
+        if (thresholdReached) {
+          const { rows: hiddenRows } = await database.query(
+            `UPDATE atlas_public_notes
+             SET moderation_status = 'removed', removed_at = now(), removal_reason = 'report_threshold'
+             WHERE id = $1 AND moderation_status = 'visible'
+             RETURNING id`,
+            [noteId],
+          );
+          if (hiddenRows[0]) {
+            await database.query(
+              `INSERT INTO atlas_note_moderation_events
+                 (id, note_id, previous_status, next_status, operator_label)
+               VALUES ($1, $2, 'visible', 'removed', 'system:report-threshold')`,
+              [randomUUID(), noteId],
+            );
+          }
+        }
+        const note = await selectNoteById(database, noteId, reporterUserId);
+        await database.query("COMMIT");
+        return { note, changed, thresholdReached };
+      } catch (error) {
+        try {
+          await database.query("ROLLBACK");
+        } catch {
+          // Preserve the original error; readiness will catch a broken connection.
+        }
+        throw error;
+      } finally {
+        client?.release();
+      }
     },
 
     async moderateNote(noteId, status, operatorLabel) {
+      const { rows: priorRows } = await pool.query(
+        "SELECT moderation_status FROM atlas_public_notes WHERE id = $1",
+        [noteId],
+      );
+      const previousStatus = String(requireRow(priorRows[0], "atlas_public_notes").moderation_status) as AtlasCommonsNoteStatus;
+      const transitionAllowed =
+        (previousStatus === "pending" && (status === "visible" || status === "removed")) ||
+        (previousStatus === "visible" && status === "removed");
+      if (!transitionAllowed) throw new Error("INVALID_TRANSITION:atlas_public_notes");
       const { rows } = await pool.query(
         `WITH prior AS (
            SELECT moderation_status FROM atlas_public_notes WHERE id = $1
@@ -167,7 +268,7 @@ export function createPostgresAtlasCommonsRepository(pool: PoolLike): AtlasCommo
                published_at = CASE WHEN $2 = 'visible' THEN COALESCE(published_at, now()) ELSE published_at END,
                removed_at = CASE WHEN $2 = 'removed' THEN now() ELSE NULL END,
                removal_reason = CASE WHEN $2 = 'removed' THEN 'operator' ELSE NULL END
-           WHERE id = $1
+           WHERE id = $1 AND moderation_status = $5
            RETURNING *
          ), audited AS (
            INSERT INTO atlas_note_moderation_events (id, note_id, previous_status, next_status, operator_label)
@@ -177,15 +278,36 @@ export function createPostgresAtlasCommonsRepository(pool: PoolLike): AtlasCommo
                 prior.moderation_status AS previous_status,
                 false AS viewer_has_reacted
          FROM updated u, prior`,
-        [noteId, status, operatorLabel, randomUUID()],
+        [noteId, status, operatorLabel, randomUUID(), previousStatus],
       );
-      const row = requireRow(rows[0], "atlas_public_notes");
+      if (!rows[0]) throw new Error("INVALID_TRANSITION:atlas_public_notes");
+      const row = rows[0];
       return { note: noteFromRow(row), previousStatus: String(row.previous_status) as AtlasCommonsNoteStatus };
     },
   };
 }
 
-async function selectNoteById(pool: PoolLike, noteId: string, viewerUserId?: string): Promise<AtlasCommonsNoteRecord> {
+async function lockWriteQuota(database: Queryable, ownerUserId: string): Promise<void> {
+  await database.query(
+    "SELECT pg_advisory_xact_lock(hashtext('atlas_commons_write_quota'), hashtext($1))",
+    [ownerUserId],
+  );
+}
+
+async function assertWriteQuotaAvailable(
+  database: Queryable,
+  ownerUserId: string,
+  since: string,
+  limit: number,
+): Promise<void> {
+  const { rows } = await database.query(
+    "SELECT count(*)::int AS action_count FROM atlas_commons_actions WHERE owner_user_id = $1 AND created_at >= $2::timestamptz",
+    [ownerUserId, since],
+  );
+  if (Number(rows[0]?.action_count ?? 0) >= limit) throw new Error("RATE_LIMITED:atlas_commons_actions");
+}
+
+async function selectNoteById(pool: Queryable, noteId: string, viewerUserId?: string): Promise<AtlasCommonsNoteRecord> {
   const { rows } = await pool.query(
     `SELECT ${NOTE_COLUMNS},
             CASE WHEN $2::text IS NULL THEN NULL
@@ -198,30 +320,31 @@ async function selectNoteById(pool: PoolLike, noteId: string, viewerUserId?: str
 }
 
 async function listPublic(pool: PoolLike, input: AtlasCommonsListQuery): Promise<AtlasCommonsNoteRecord[]> {
-  const asOf = input.cursor?.asOf ?? new Date().toISOString();
+  const asOf = input.asOf;
   const params: unknown[] = [input.viewerUserId ?? null, asOf, input.countySlug ?? null, input.placeId ?? null];
   let cursorWhere = "";
   if (input.cursor) {
     if (input.sort === "hot") {
       params.push(input.cursor.score, input.cursor.timestamp, input.cursor.id);
-      cursorWhere = `AND (score < $5 OR (score = $5 AND (published_at < $6::timestamptz OR (published_at = $6::timestamptz AND id < $7))))`;
+      cursorWhere = `AND (score < $5 OR (score = $5 AND (cursor_timestamp < $6::timestamptz OR (cursor_timestamp = $6::timestamptz AND id < $7))))`;
     } else {
       params.push(input.cursor.timestamp, input.cursor.id);
-      cursorWhere = `AND (published_at < $5::timestamptz OR (published_at = $5::timestamptz AND id < $6))`;
+      cursorWhere = `AND (cursor_timestamp < $5::timestamptz OR (cursor_timestamp = $5::timestamptz AND id < $6))`;
     }
   }
   params.push(input.limit);
   const limitParam = `$${params.length}`;
-  const order = input.sort === "hot" ? "score DESC, published_at DESC, id DESC" : "published_at DESC, id DESC";
+  const order = input.sort === "hot" ? "score DESC, cursor_timestamp DESC, id DESC" : "cursor_timestamp DESC, id DESC";
   const { rows } = await pool.query(
     `WITH ranked AS (
        SELECT ${NOTE_COLUMNS},
               CASE WHEN $1::text IS NULL THEN NULL
                    ELSE EXISTS (SELECT 1 FROM atlas_note_reactions vr WHERE vr.note_id = n.id AND vr.owner_user_id = $1)
               END AS viewer_has_reacted,
-              ((SELECT count(*) FROM atlas_note_reactions r WHERE r.note_id = n.id) * 4
+              date_trunc('milliseconds', COALESCE(n.published_at, n.created_at)) AS cursor_timestamp,
+              round(((SELECT count(*) FROM atlas_note_reactions r WHERE r.note_id = n.id) * 4
                 - (SELECT count(*) FROM atlas_note_reports p WHERE p.note_id = n.id) * 8
-                - GREATEST(0, EXTRACT(EPOCH FROM ($2::timestamptz - n.published_at)) / 3600) / 12)::float8 AS score
+                - GREATEST(0, EXTRACT(EPOCH FROM ($2::timestamptz - date_trunc('milliseconds', COALESCE(n.published_at, n.created_at))))) / 43200)::numeric, 9)::float8 AS score
        FROM atlas_public_notes n
        WHERE n.moderation_status = 'visible'
          AND ($3::text IS NULL OR n.county_slug = $3)
@@ -239,7 +362,7 @@ async function listMine(pool: PoolLike, input: AtlasCommonsListQuery): Promise<A
   let cursorWhere = "";
   if (input.cursor) {
     params.push(input.cursor.timestamp, input.cursor.id);
-    cursorWhere = `AND (n.created_at < $4::timestamptz OR (n.created_at = $4::timestamptz AND n.id < $5))`;
+    cursorWhere = `AND (date_trunc('milliseconds', n.created_at) < $4::timestamptz OR (date_trunc('milliseconds', n.created_at) = $4::timestamptz AND n.id < $5))`;
   }
   params.push(input.limit);
   const limitParam = `$${params.length}`;
@@ -251,7 +374,7 @@ async function listMine(pool: PoolLike, input: AtlasCommonsListQuery): Promise<A
        AND ($2::text IS NULL OR n.county_slug = $2)
        AND ($3::text IS NULL OR n.place_id = $3)
        ${cursorWhere}
-     ORDER BY n.created_at DESC, n.id DESC LIMIT ${limitParam}`,
+     ORDER BY date_trunc('milliseconds', n.created_at) DESC, n.id DESC LIMIT ${limitParam}`,
     params,
   );
   return rows.map(noteFromRow);

@@ -19,6 +19,7 @@ export type WidgetSceneSession = {
 };
 
 export type AtlasCommonsMode = "all" | "nearby" | "mine";
+export type AtlasCommonsSort = "hot" | "new";
 
 export type AtlasCommonsPublicMeta = {
   enabled: boolean;
@@ -85,6 +86,7 @@ export type WidgetState = {
   /** One-time gesture hint: set after the first map interaction (persists across tool calls in this chat). */
   firstRunHintDismissed?: boolean | undefined;
   commonsMode?: AtlasCommonsMode | undefined;
+  commonsSort?: AtlasCommonsSort | undefined;
 };
 
 export type HostedClawdScreenState =

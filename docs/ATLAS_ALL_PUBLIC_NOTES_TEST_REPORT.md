@@ -1,120 +1,76 @@
-# Atlas ALL Public Notes Test Report
+# Atlas Commons 0.81D Test Report
 
-Status: local green, no deploy performed
+Status: implementation green; staging disabled; OAuth owner gate pending
 
-Slice: `postalpha-0.81c-atlas-all-public-notes-foundation`
-
-Date: 2026-07-20
+Date: 2026-07-21
 
 ## Result
 
-The default-off public-notes foundation passes its focused service, migration,
-Postgres, MCP registration, compatibility, build, and desktop/mobile map gates.
-No production database, connector, OAuth tenant, Railway environment, or public
-server was changed.
+The map-native public-note implementation, security boundaries, concurrency
+controls, real Postgres paths, and desktop/mobile UX are green. The isolated
+staging database and disabled seven-tool staging surface are proven. No
+production mutation was made.
 
 ## Automated evidence
 
 | Gate | Result |
 | --- | --- |
-| `pnpm test:atlas-commons` | 13/13 pass |
-| Node test coverage | `service.ts` 93.96% line, 81.25% branch; `repository.ts` 96.63% line |
-| `pnpm smoke:atlas-commons:postgres` | 3 migrations, idempotent post, unique reaction, report auto-hide: pass |
-| `pnpm verify:atlas-commons` | default-off seven tools; enabled nine tools; no-DB narrow failure: pass |
-| `pnpm test:core` | 271/271 pass |
-| Hosted Clawd regression tests | 33/33 pass across persistence, billing, protected writes, and saved reads |
+| `pnpm test:atlas-commons` | 19/19 pass |
+| `pnpm test:core` | 31 files, 271/271 pass |
+| Hosted Clawd isolation regressions | 33/33 pass |
+| `pnpm typecheck:starter` | pass after latest cursor and smoke changes |
+| `pnpm build` | full starter/workspace build pass |
+| `pnpm verify:atlas-commons` | pass; 7 tools off, 9 on, isolated readiness, `081d` widget URI |
+| live staging Postgres smoke | pass; three migrations, pooled transactions, concurrency and pagination |
+| disabled staging verifier | pass; healthy map, exactly 7 tools, moderation route hidden |
+| strict Commons RC split | pass after cleanup; 46 files, zero unexpected paths |
+| `pnpm verify:atlas-commons:browser` | pass; outer and inner viewports asserted, zero browser errors |
+| `design-qa.md` | pass after two visible correction cycles |
+| `pnpm ship:check:local` | 8/8 pass against the current disabled local server |
 | `pnpm audit --prod --audit-level=high` | no known vulnerabilities |
-| `pnpm typecheck:starter` | pass |
-| `pnpm build:web` | pass |
-| `pnpm typecheck` | full starter and workspace typecheck: pass |
-| `pnpm build` | full starter and workspace production build: pass |
-| `pnpm verify:mcp` | default-off seven-tool connector flow and explicit generated-study contract: pass |
-| `pnpm ship:check:local` | all 8 local release gates: pass |
-| strict selected-RC split | `atlas-commons-foundation`, zero unexpected paths: pass |
 
-The Postgres smoke used a throwaway local cluster and also passed when rerun
-against the isolated browser-QA database. The migration runner applied all
-three migrations and skipped already-applied migrations on repeat execution.
+## Service and database coverage
 
-## Service and security coverage
+- anonymous output allowlisting and pending/removed isolation;
+- exact read/write scope challenges and no Hosted Clawd scope leakage;
+- explicit post confirmation and idempotent retry;
+- canonical map anchors, plain-text bounds, link rejection, and pseudonyms;
+- bounded per-identity write quota serialized with advisory transaction locks;
+- unique reactions/reports and concurrent report-threshold auto-hide;
+- operator-safe pending/removed queues and irreversible moderation transitions;
+- signed, scope-bound cursors;
+- one service-owned `asOf` instant per list request;
+- millisecond-normalized MINE, NEW, and HOT pagination with ID tie-breaks;
+- matching nine-decimal HOT scores in memory, service, and Postgres;
+- same-millisecond and late-approval Postgres smoke cases;
+- Commons failures isolated from healthy map readiness.
 
-Covered behavior includes:
+## Browser and design proof
 
-- anonymous approved-note reads and public-field allowlisting;
-- pending-note isolation across users;
-- read/write scope enforcement;
-- explicit authenticated posting;
-- idempotent retries;
-- canonical anchor rejection;
-- 240-character acceptance and 241-character rejection;
-- link and injection-shaped anchor rejection;
-- markup/XSS-shaped bodies preserved as plain text;
-- stable per-identity pseudonyms;
-- reaction uniqueness and removal;
-- report uniqueness, self-report blocking, and threshold auto-hide;
-- moderation state transitions;
-- rate limiting;
-- stable pagination and cursor tamper rejection;
-- disabled and unavailable failure boundaries.
+Desktop uses an outer 1360x900 harness containing a measured 1280x720 Atlas
+emulator. Mobile uses an outer 430x1000 harness containing a measured 390x844
+emulator. The verifier now asserts both inner dimensions instead of implying
+that the outer screenshot itself has the inner size.
 
-## Browser proof
+Both surfaces prove:
 
-The required gstack `/browse` workflow exercised the live local MCP server with
-an isolated Postgres database and one approved Eastvale note.
+- one selected public note and no feed list;
+- HOT/NEW and ALL/NEARBY/MINE behavior;
+- place-level activity beacons instead of overlapping note cards;
+- explicit Review public post -> Post publicly confirmation;
+- zero horizontal overflow;
+- at least 44x44 mobile actions;
+- about 79.5% visible mobile map area with the Commons strip collapsed;
+- zero application console errors.
 
-Desktop, 1280 x 720:
+Evidence is under `artifacts/emulator/atlas-commons-*`; `design-qa.md` records
+the reference comparison and the caption/mobile-map corrections.
 
-- the full map remains the dominant surface;
-- `ALL / NEARBY / MINE` renders as one compact control;
-- the approved note renders as a restrained map pin and contextual note;
-- all three mode targets are 44 CSS pixels high;
-- horizontal overflow is 0;
-- `Review public post` opens a distinct `Post publicly` confirmation;
-- the confirmation was cancelled, so no test post was written;
-- `NEARBY` retained the selected-place note;
-- anonymous `MINE` returned direct identity recovery copy and kept the private
-  note input available.
+## Remaining release gates
 
-Mobile, 390 x 844:
-
-- horizontal overflow is 0;
-- mode targets are 75 x 44 CSS pixels;
-- `Useful` is 47 x 44, `Report` is 50 x 44, and the review action is 340 x 44;
-- the tray scrolls vertically from 0 to 96 pixels to reveal composition while
-  preserving the map behind it;
-- no permanent rail, dashboard, or generic card grid appears.
-
-Evidence:
-
-- `artifacts/emulator/atlas-commons-desktop.png`
-- `artifacts/emulator/atlas-commons-mobile.png`
-- `artifacts/emulator/atlas-commons-mobile-compose.png`
-
-The only console messages were the emulator's known sandbox warning and
-headless WebGL readback warnings. No application exception remained.
-
-## Defects found and closed
-
-Browser QA found that Riverside could choose an attached Census geo scene even
-though Riverside is the authored full-map county. An approved Eastvale note
-then referenced a place absent from that scene and crashed map compilation.
-
-The fix keeps Riverside on the authored full map and independently filters
-public map pins to place IDs present in the active scene. Cross-scene or stale
-data can no longer take down the map.
-
-Release QA also found that the legacy MCP flow verifier contradicted the live
-tool contract by expecting generated county layouts without the explicit
-`includeGeneratedDraft` opt-in and by querying obsolete generated place labels.
-The verifier now proves that Census boards and town anchors are the default,
-while generated layout studies appear only when requested.
-
-## Intentionally unproven
-
-- staging and production deployment;
-- a real staging OAuth login and end-to-end token exchange;
-- production moderator staffing and legal/retention policy;
-- public enablement and live traffic behavior.
-
-Those are owner-gated launch tasks, not implementation gaps to hide inside this
-default-off foundation.
+- commit and push the verified 0.81D bundle;
+- deploy that commit to staging with Commons disabled;
+- complete the owner-authenticated Auth0/OIDC and connector refresh;
+- run enabled OAuth, moderation, 9->7->9 rollback, desktop/mobile connector,
+  and production-isolation proof;
+- leave production unchanged/off.

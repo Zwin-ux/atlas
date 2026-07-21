@@ -10211,3 +10211,37 @@ Screenshots and machine-readable proof live under `artifacts/emulator/` and
 `artifacts/atlas-commons/`. CI is no longer a placeholder: it now runs full
 quality gates and an isolated Postgres 17 migration smoke. Production,
 Railway, Auth0, and the ChatGPT connector were not changed.
+
+## Entry 110
+
+**0.81D ATLAS COMMONS MAP RADAR - implementation and staging-data gates green,
+2026-07-21, Codex.** Reworked the public-note surface around the map: ALL /
+NEARBY / MINE and HOT / NEW stay compact, multiple notes collapse into one
+place activity beacon, one selected note occupies a restrained bottom strip,
+and public composition expands only on demand. Desktop and 390x844 browser QA
+prove no horizontal overflow, one-note presentation, 44px mobile actions, and a
+map-dominant viewport. Design comparison and QA evidence are recorded in
+`design-qa.md` and `artifacts/emulator/atlas-commons-*`.
+
+Backend hardening adds bounded operator queues, explicit moderation state
+transitions, isolated readiness, Commons-only OAuth metadata/challenges,
+transactional quota enforcement, serialized report thresholds, signed scoped
+cursors, and deterministic pagination across in-memory and Postgres stores.
+The Postgres smoke now exercises real pooled transactions, concurrent quota
+writes, concurrent reports, late approval, same-millisecond MINE/NEW pages, and
+HOT score cursors. The live isolated staging database passed the repeat-safe
+three-migration smoke while Commons remained disabled.
+
+Evidence so far: 19/19 focused Commons tests; 271/271 core tests; 33/33 Hosted
+Clawd isolation tests; full typecheck/build; focused verifier; disabled live
+staging 7-tool/isolation verifier; strict Commons RC split with 46 files and
+zero unexpected paths after unrelated verifier-generated golden drift cleanup. Production was
+read-only checked and remains unchanged/off. Remaining release work is commit +
+push, disabled staging deploy, owner-authenticated OIDC/connector refresh, live
+moderation proof, 9->7->9 staging rollback proof, and final production
+read-only recheck.
+
+The bundle gate also exposed a stale aggregate cap: the committed 0.81C graph
+rebuilds to 1,293,334 bytes under the current lockfile, already over 1.25 MB;
+0.81D adds only about 4 KB. The deferred warning/hard bands were rebaselined to
+1.28/1.35 MB. Eager JS and eager Brotli ceilings remain unchanged.

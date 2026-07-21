@@ -2673,13 +2673,17 @@ mutation.
 Acceptance:
 
 - Run migration `003_atlas_commons_public_notes.sql` on isolated staging while
-  the commons flag remains off.
+  the commons flag remains off. **Done; repeat-safe migration and live staging
+  Postgres smoke are green.**
 - Configure staging OIDC scopes, pseudonym secret, and operator credential in
-  the platform secret manager.
+  the platform secret manager. **Pseudonym and operator secrets are set; OIDC
+  issuer/audience/JWKS remain the owner-authenticated checkpoint.**
 - Prove the seven-tool baseline before enablement and nine-tool surface after
-  staging enablement.
+  staging enablement. **Seven-tool disabled baseline is green; nine-tool proof
+  waits for the pushed bundle plus OAuth configuration.**
 - Exercise a real connector login, pending post, operator approval, anonymous
-  read, reaction, report, and rollback on desktop and mobile.
+  read, reaction, report, and rollback on desktop and mobile. **Automated proof
+  is implemented; real login and enabled-staging execution remain pending.**
 - Record moderation ownership, retention policy, abuse response, and legal copy
   before any public launch decision.
 - Keep production `ATLAS_COMMONS_ENABLED=false` until a separate owner cutline.
