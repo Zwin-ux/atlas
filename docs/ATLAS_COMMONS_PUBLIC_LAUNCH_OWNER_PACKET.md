@@ -10,6 +10,17 @@ This packet turns the remaining Commons launch gates into explicit owner decisio
 - Production remains on the seven-tool, Commons-disabled surface.
 - The public-notes release runbook and technical test report record the staging evidence.
 
+### Policy-route deployment delta (read-only check, July 21, 2026)
+
+The current branch serves the draft Community Standard at `/community` and its
+local Commons verifier proves the route alongside `/privacy`, `/terms`, and
+`/support`. The existing staging service is healthy, but its `/community`
+request returned `404`; it is serving the preceding accepted staging build.
+That means the policy route is **not yet live in staging**, and no claim should
+say it is. An owner-controlled staging deployment is required before a renewed
+staging policy-route check. This does not change the enabled Commons state,
+OAuth configuration, moderator access, or production boundary.
+
 ## Required owner decisions
 
 All five items must be marked approved by a named owner before a production window can be scheduled.
