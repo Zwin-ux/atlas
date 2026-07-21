@@ -2325,3 +2325,17 @@ clay reference-board inputs, 0.75R handoff notes, and 0.76 work packets. These
 files are release-safety evidence and reviewer handoff material, not runtime
 scope expansion. They do not authorize public Anaheim/Ontario promotion, new MCP
 tools, provider geometry, persistence, money, deployment, or submission.
+
+## Decision 070: Public notes are an explicit moderated map layer
+
+Atlas may persist public notes only through the dedicated commons contract and
+only after a player explicitly confirms `Post publicly`. Existing
+private/session notes remain client-local and never auto-promote. Approved
+notes render as restrained anchors in the active map, with ALL scoped to the
+active county, NEARBY scoped to the selected place, and MINE preserving the
+private flow while exposing only the player's own pending submissions. Public
+identity is pseudonymous, new posts are pre-moderated, the feature is
+default-off, and disabling `ATLAS_COMMONS_ENABLED` is the first rollback. This
+decision authorizes the local foundation and staging preparation only; it does
+not authorize production migration, connector changes, Auth0 mutation, public
+enablement, or launch.

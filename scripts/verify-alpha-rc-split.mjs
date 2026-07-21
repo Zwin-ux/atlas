@@ -27,6 +27,7 @@ const RC_MODES = new Set([
   "mobile-interaction-hardening",
   "product-feel-cleanup",
   "national-generation-contract",
+  "atlas-commons-foundation",
 ]);
 
 const SAFE_FUNCTIONAL_RC_DOCS = new Set([
@@ -509,6 +510,41 @@ const NATIONAL_GENERATION_CONTRACT_PREFIXES = [
   "artifacts/national-generation/0.72b/",
 ];
 
+const ATLAS_COMMONS_FOUNDATION_FILES = new Set([
+  ".env.example",
+  ".github/workflows/ci.yml",
+  "package.json",
+  "docs/ATLAS_ALL_PUBLIC_NOTES_SPEC.md",
+  "docs/ATLAS_ALL_PUBLIC_NOTES_ARCHITECTURE.md",
+  "docs/ATLAS_ALL_PUBLIC_NOTES_RUNBOOK.md",
+  "docs/ATLAS_ALL_PUBLIC_NOTES_CONNECTOR_HANDOFF.md",
+  "docs/ATLAS_ALL_PUBLIC_NOTES_TEST_REPORT.md",
+  "docs/BUILD_LOG.md",
+  "docs/DECISIONS.md",
+  "docs/NEXT_QUESTS.md",
+  "migrations/hosted-clawd/003_atlas_commons_public_notes.sql",
+  "scripts/verify-atlas-commons-public-notes.mjs",
+  "scripts/verify-mcp-flow.mjs",
+  "scripts/verify-alpha-rc-split.mjs",
+  "server/src/hostedClawd/auth.ts",
+  "server/src/index.ts",
+  "server/test/atlas-commons-postgres-smoke.ts",
+  "server/test/atlas-commons-public-notes.test.ts",
+  "specs/atlas_all_public_notes_design.md",
+  "web/src/App.tsx",
+  "web/src/CityWorldView.tsx",
+  "web/src/bridge.ts",
+  "web/src/emulator/mockHost.ts",
+  "web/src/styles.css",
+  "web/src/types.ts",
+]);
+
+const ATLAS_COMMONS_FOUNDATION_PREFIXES = [
+  "artifacts/atlas-commons/",
+  "artifacts/emulator/atlas-commons-",
+  "server/src/atlasCommons/",
+];
+
 const EXACT_RULES = [
   ["hosted-clawd-parked", ".env.example", "DB and invite-token env placeholders are not part of public Alpha RC."],
   ["hosted-clawd-parked", "package.json", "Hosted Clawd DB scripts/dependencies must stay out of F2 Alpha RC."],
@@ -612,6 +648,9 @@ for the selected RC mode. Use this before staging/deploy claims.
   national-generation-contract
                          Allows 0.69H nationwide county identity and honest
                          shell files and proof artifacts.
+  atlas-commons-foundation
+                         Allows the named 0.81C default-off, moderated public
+                         notes foundation and its local verification evidence.
 
 The check is conservative. Parked runtime/backend/visual paths, shared docs
 that require hunk review, and unknown paths block a Functional Alpha RC.`);
@@ -845,6 +884,13 @@ function classifyPath(path) {
     return {
       classification: "product-code-rc-candidate",
       reason: "Allowed only in the named 0.70H national generation contract RC mode.",
+    };
+  }
+
+  if (rcMode === "atlas-commons-foundation" && isAtlasCommonsFoundationPath(path)) {
+    return {
+      classification: "product-code-rc-candidate",
+      reason: "Allowed only in the named 0.81C Atlas commons foundation RC mode.",
     };
   }
 
@@ -1121,6 +1167,11 @@ function getSelectedRcAllowedPaths(modeName) {
       paths.add(path);
     }
   }
+  if (modeName === "atlas-commons-foundation") {
+    for (const path of ATLAS_COMMONS_FOUNDATION_FILES) {
+      paths.add(path);
+    }
+  }
   return paths;
 }
 
@@ -1169,6 +1220,9 @@ function isSelectedRcAllowedPath(path) {
   }
   if (rcMode === "national-generation-contract") {
     return isNationalGenerationContractPath(path);
+  }
+  if (rcMode === "atlas-commons-foundation") {
+    return isAtlasCommonsFoundationPath(path);
   }
   return false;
 }
@@ -1252,6 +1306,13 @@ function isNationalGenerationContractPath(path) {
     isProductFeelCleanupPath(path) ||
     NATIONAL_GENERATION_CONTRACT_FILES.has(path) ||
     NATIONAL_GENERATION_CONTRACT_PREFIXES.some((prefix) => path.startsWith(prefix))
+  );
+}
+
+function isAtlasCommonsFoundationPath(path) {
+  return (
+    ATLAS_COMMONS_FOUNDATION_FILES.has(path) ||
+    ATLAS_COMMONS_FOUNDATION_PREFIXES.some((prefix) => path.startsWith(prefix))
   );
 }
 
@@ -1348,6 +1409,9 @@ function getSelectedRcAllowlistSummary(modeName) {
       ...PRODUCT_FEEL_CLEANUP_PREFIXES.map((prefix) => `${prefix}*`),
       ...NATIONAL_GENERATION_CONTRACT_PREFIXES.map((prefix) => `${prefix}*`),
     ];
+  }
+  if (modeName === "atlas-commons-foundation") {
+    return [...exact, ...ATLAS_COMMONS_FOUNDATION_PREFIXES.map((prefix) => `${prefix}*`)];
   }
   return exact;
 }

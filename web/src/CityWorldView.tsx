@@ -18,7 +18,7 @@ import { useOpenAiDisplayMode } from "./bridge";
 import { HostedClawdTray } from "./HostedClawdTray";
 import { MapChrome, readRequestedCameraPreset, readRequestedDebugMode } from "./MapChrome";
 import { PreviewPanel } from "./PreviewPanel";
-import type { HostedClawdContext } from "./types";
+import type { AtlasCommonsMode, AtlasCommonsPublicMeta, AtlasPublicNote, HostedClawdContext } from "./types";
 
 const CityWorldRenderer = lazy(async () => {
   const module = await import("./CityWorldRenderer");
@@ -42,6 +42,11 @@ export type CityWorldViewProps = {
   selectedPlaceId?: string | undefined;
   stickers?: VoxelSticker[];
   notes?: VoxelNote[];
+  atlasCommons?: AtlasCommonsPublicMeta | null;
+  commonsMode?: AtlasCommonsMode;
+  publicNotes?: AtlasPublicNote[];
+  publicNotesLoading?: boolean;
+  publicNotesMessage?: string;
   stickerMode?: VoxelStickerKind;
   noteDraft?: string;
   scoutPreview?: ScoutPreviewState | null;
@@ -63,6 +68,10 @@ export type CityWorldViewProps = {
   onPlaceSticker: (placeId: string, kind: VoxelStickerKind) => void;
   onNoteDraftChange: (value: string) => void;
   onSaveNote: (placeId: string, body: string) => void;
+  onSelectCommonsMode?: (mode: AtlasCommonsMode) => void;
+  onPostPublicNote?: (placeId: string, body: string) => Promise<boolean>;
+  onReactPublicNote?: (noteId: string, active: boolean) => Promise<void>;
+  onReportPublicNote?: (noteId: string) => Promise<void>;
 };
 
 // Quiet chrome: one pin mode by default (favorite). Debug/extra modes stay in type system.
@@ -103,6 +112,11 @@ export function CityWorldView({
   selectedPlaceId,
   stickers = [],
   notes = [],
+  atlasCommons = null,
+  commonsMode = "mine",
+  publicNotes = [],
+  publicNotesLoading = false,
+  publicNotesMessage = "",
   stickerMode = "favorite",
   noteDraft = "",
   scoutPreview = null,
@@ -124,6 +138,10 @@ export function CityWorldView({
   onPlaceSticker,
   onNoteDraftChange,
   onSaveNote,
+  onSelectCommonsMode,
+  onPostPublicNote,
+  onReactPublicNote,
+  onReportPublicNote,
   onCameraZoom,
   bandOptions,
   roadStatus,
@@ -143,14 +161,35 @@ export function CityWorldView({
   const placeNavigatorId = `${idPrefix}-place-navigator`;
   const [placeNavigatorExpanded, setPlaceNavigatorExpanded] = useState(false);
   const [navigatorActivePlaceId, setNavigatorActivePlaceId] = useState<string | null>(null);
+  const [publicDraft, setPublicDraft] = useState("");
+  const [publicConfirming, setPublicConfirming] = useState(false);
+  const commonsActive = Boolean(atlasCommons?.enabled);
+  const activeMapPlaceIds = useMemo(
+    () => new Set((generatedScene?.places ?? scene.world?.places ?? []).map((place) => place.id)),
+    [generatedScene, scene.world?.places],
+  );
+  const publicVoxelNotes = useMemo<VoxelNote[]>(
+    () => publicNotes
+      .filter((note) => activeMapPlaceIds.has(note.placeId))
+      .map((note) => ({ id: `public-${note.id}`, placeId: note.placeId, body: note.body })),
+    [activeMapPlaceIds, publicNotes],
+  );
+  const visibleMapNotes = useMemo(
+    () => commonsActive
+      ? commonsMode === "mine"
+        ? [...notes, ...publicVoxelNotes]
+        : publicVoxelNotes
+      : notes,
+    [commonsActive, commonsMode, notes, publicVoxelNotes],
+  );
   const cityScene = useMemo<CityWorldScene>(
     () => {
-      if (generatedScene) return withGeneratedSessionPins(generatedScene, stickers, notes);
+      if (generatedScene) return withGeneratedSessionPins(generatedScene, stickers, visibleMapNotes);
       const compiled = compileCityWorldScene(scene, {
         selectedDistrictId,
         selectedPlaceId,
         stickers,
-        notes,
+        notes: visibleMapNotes,
       });
       const focusPreset =
         cameraFocus?.sourceSceneId === scene.id && cameraFocus.preset.id === "focus"
@@ -162,7 +201,7 @@ export function CityWorldView({
         cameraPresets: [...compiled.cameraPresets.filter((preset) => preset.id !== "focus"), focusPreset],
       };
     },
-    [cameraFocus, generatedScene, notes, scene, selectedDistrictId, selectedPlaceId, stickers],
+    [cameraFocus, generatedScene, scene, selectedDistrictId, selectedPlaceId, stickers, visibleMapNotes],
   );
   // 0.57E parity — resolve selection against places that exist in THIS scene:
   // in generated mode the widget-state place id belongs to the county scene,
@@ -176,10 +215,13 @@ export function CityWorldView({
   const worldStickers = isGeneratedMode ? [] : scene.world?.stickers ?? [];
   const worldNotes = isGeneratedMode ? [] : scene.world?.notes ?? [];
   const stickerCount = stickers.length + worldStickers.length;
-  const noteCount = notes.length + worldNotes.length;
-  const placeNotes = activePlace ? [...worldNotes, ...notes].filter((note) => note.placeId === activePlace.id) : [];
-  const latestPlaceNote = placeNotes[placeNotes.length - 1];
-  const latestNoteBody = latestPlaceNote?.body ?? "";
+  const privatePlaceNotes = activePlace ? [...worldNotes, ...notes].filter((note) => note.placeId === activePlace.id) : [];
+  const placePublicNotes = activePlace ? publicNotes.filter((note) => note.placeId === activePlace.id) : [];
+  const visiblePlaceNoteCount = commonsActive && commonsMode !== "mine" ? placePublicNotes.length : privatePlaceNotes.length + placePublicNotes.length;
+  const noteCount = commonsActive ? visibleMapNotes.length + (commonsMode === "mine" ? worldNotes.length : 0) : notes.length + worldNotes.length;
+  const latestNoteBody = commonsActive && commonsMode !== "mine"
+    ? placePublicNotes.at(-1)?.body ?? ""
+    : privatePlaceNotes.at(-1)?.body ?? placePublicNotes.at(-1)?.body ?? "";
   const cameraPresetId = readRequestedCameraPreset(cityScene);
   const debugMode = readRequestedDebugMode();
   const displayMode = useOpenAiDisplayMode();
@@ -253,6 +295,20 @@ export function CityWorldView({
     setNoteStatus("Note saved.");
     if (typeof window !== "undefined") {
       window.setTimeout(() => setNoteStatus(""), 2000);
+    }
+  };
+
+  useEffect(() => {
+    setPublicConfirming(false);
+    setPublicDraft("");
+  }, [activePlace?.id, commonsMode]);
+
+  const postPublicNote = async () => {
+    if (!activePlace || !publicDraft.trim() || !onPostPublicNote) return;
+    const posted = await onPostPublicNote(activePlace.id, publicDraft);
+    if (posted) {
+      setPublicDraft("");
+      setPublicConfirming(false);
     }
   };
 
@@ -471,6 +527,23 @@ export function CityWorldView({
         centerLabel={isCountyBoardMode ? "Fit county" : undefined}
       />
 
+      {commonsActive && !hasPreview && !hasHostedClawdTray ? (
+        <div className="city-world-commons-mode" role="group" aria-label="Atlas note layer" data-qa="commons-mode">
+          {(["all", "nearby", "mine"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={commonsMode === mode}
+              className={commonsMode === mode ? "is-active" : ""}
+              data-qa={`commons-mode-${mode}`}
+              onClick={() => onSelectCommonsMode?.(mode)}
+            >
+              {mode.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {canNavigatePlaces ? (
         <div className={placeNavigatorExpanded ? "city-world-place-navigator is-expanded" : "city-world-place-navigator"}>
           <button
@@ -498,7 +571,8 @@ export function CityWorldView({
             {cityScene.places.map((place, index) => {
               const selected = place.id === activePlace?.id;
               const active = place.id === navigatorActivePlaceId;
-              const placeNoteCount = [...worldNotes, ...notes].filter((note) => note.placeId === place.id).length;
+              const placeNoteCount = [...(commonsMode === "mine" ? worldNotes : []), ...visibleMapNotes]
+                .filter((note) => note.placeId === place.id).length;
               return (
                 <div
                   key={place.id}
@@ -534,7 +608,7 @@ export function CityWorldView({
       ) : null}
 
       {/* National Census board + Riverside: notes/pins are the product loop. */}
-      {!hasPreview && !hasHostedClawdTray ? (
+      {!hasPreview && !hasHostedClawdTray && (!commonsActive || commonsMode === "mine") ? (
       <div className="city-world-stickers" aria-label="Pin tools" data-qa="sticker-tools" data-qa-sticker-mode={stickerMode}>
         {STICKER_ORDER.map((kind) => (
           <button
@@ -583,9 +657,9 @@ export function CityWorldView({
             <span className="city-world-place-type">{activePlace ? placeKindLabel(activePlace.kind) : "Place"}</span>
             <strong data-qa="selected-place-label">{activePlace?.label ?? "Select a place."}</strong>
           </div>
-          {placeNotes.length > 0 ? (
-            <span className="city-world-place-pulse" data-qa="place-note-count" aria-label={`${placeNotes.length} notes`}>
-              {placeNotes.length} note{placeNotes.length === 1 ? "" : "s"}
+          {visiblePlaceNoteCount > 0 ? (
+            <span className="city-world-place-pulse" data-qa="place-note-count" aria-label={`${visiblePlaceNoteCount} notes`}>
+              {visiblePlaceNoteCount} note{visiblePlaceNoteCount === 1 ? "" : "s"}
             </span>
           ) : null}
         </div>
@@ -595,44 +669,134 @@ export function CityWorldView({
           </div>
         ) : null}
         <div className="city-world-session-boundary" data-qa="session-only-boundary">
-          Pins and notes stay in this chat only.
+          {commonsActive
+            ? commonsMode === "mine"
+              ? "Private notes stay in this chat. Public submissions are labeled."
+              : "Public notes are moderated. Posting is always explicit."
+            : "Pins and notes stay in this chat only."}
         </div>
-        {showHostedClawdCta ? (
+        {showHostedClawdCta && (!commonsActive || commonsMode === "mine") ? (
           <button type="button" className="city-world-hosted-clawd-open" data-qa="hosted-clawd-open" onClick={handleHostedClawdOpen}>
             Save with ChatGPT
             <span>{hostedClawdContext?.sessionBoundary}</span>
           </button>
         ) : null}
-        {placeNotes.length > 0 ? (
-          <ul className="city-world-note-list" data-qa="place-note-list" aria-label="Notes for selected place">
-            {placeNotes.slice(-5).map((note) => (
-              <li key={note.id} className="city-world-latest-note" data-qa="latest-note">
-                {note.body}
-              </li>
-            ))}
-          </ul>
-        ) : activePlace ? (
-          <div className="city-world-latest-note city-world-note-empty" data-qa="note-empty">
-            No notes for this place.
-          </div>
-        ) : null}
-        <div className="city-world-note">
-          <input
-            value={noteDraft}
-            maxLength={120}
-            disabled={!activePlace}
-            data-qa="note-input"
-            onChange={(event) => onNoteDraftChange(event.currentTarget.value)}
-            placeholder={activePlace ? `Write a note for ${activePlace.label}. e.g. Parking is tight after 5.` : "Select a place first."}
-            aria-label={activePlace ? `Write a note for ${activePlace.label}` : "Select a place first"}
-          />
-          <button type="button" aria-label="Save note" data-qa="save-note-button" disabled={!activePlace || !noteDraft.trim()} onClick={saveNote}>
-            Save note
-          </button>
-        </div>
+        {!commonsActive || commonsMode === "mine" ? (
+          <>
+            {privatePlaceNotes.length > 0 ? (
+              <ul className="city-world-note-list" data-qa="place-note-list" aria-label="Private notes for selected place">
+                {privatePlaceNotes.slice(-5).map((note) => (
+                  <li key={note.id} className="city-world-latest-note" data-qa="latest-note">
+                    {note.body}
+                  </li>
+                ))}
+              </ul>
+            ) : activePlace ? (
+              <div className="city-world-latest-note city-world-note-empty" data-qa="note-empty">
+                No private notes for this place.
+              </div>
+            ) : null}
+            {commonsActive && placePublicNotes.length > 0 ? (
+              <ul className="city-world-public-note-list" aria-label="Your public-note submissions for selected place">
+                {placePublicNotes.map((note) => (
+                  <li key={note.id}>
+                    <div>
+                      <b>{note.status === "pending" ? "Pending review" : "Public"}</b>
+                      <span>{note.authorHandle}</span>
+                    </div>
+                    <p>{note.body}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="city-world-note">
+              <input
+                value={noteDraft}
+                maxLength={120}
+                disabled={!activePlace}
+                data-qa="note-input"
+                onChange={(event) => onNoteDraftChange(event.currentTarget.value)}
+                placeholder={activePlace ? `Private note for ${activePlace.label}` : "Select a place first."}
+                aria-label={activePlace ? `Write a private note for ${activePlace.label}` : "Select a place first"}
+              />
+              <button type="button" aria-label="Save private note" data-qa="save-note-button" disabled={!activePlace || !noteDraft.trim()} onClick={saveNote}>
+                Save private
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {publicNotesLoading ? (
+              <div className="city-world-public-note-state" role="status">Reading public notes…</div>
+            ) : placePublicNotes.length > 0 ? (
+              <ul className="city-world-public-note-list" data-qa="public-note-list" aria-label="Public notes for selected place">
+                {placePublicNotes.map((note) => (
+                  <li key={note.id} data-qa="public-note">
+                    <div>
+                      <b>{note.authorHandle}</b>
+                      <span>{relativeNoteTime(note.publishedAt ?? note.createdAt)}</span>
+                    </div>
+                    <p>{note.body}</p>
+                    <div className="city-world-public-note-actions">
+                      <button
+                        type="button"
+                        aria-pressed={note.viewerHasReacted === true}
+                        onClick={() => void onReactPublicNote?.(note.id, note.viewerHasReacted !== true)}
+                      >
+                        Useful {note.reactionCount > 0 ? note.reactionCount : ""}
+                      </button>
+                      {note.viewerCanReport ? (
+                        <button type="button" onClick={() => void onReportPublicNote?.(note.id)}>Report</button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : activePlace ? (
+              <div className="city-world-latest-note city-world-note-empty" data-qa="public-note-empty">
+                No moderated public notes pinned here yet.
+              </div>
+            ) : null}
+            <div className="city-world-public-compose">
+              <input
+                value={publicDraft}
+                maxLength={240}
+                disabled={!activePlace || publicNotesLoading || !atlasCommons?.available}
+                data-qa="public-note-input"
+                onChange={(event) => {
+                  setPublicDraft(event.currentTarget.value);
+                  setPublicConfirming(false);
+                }}
+                placeholder={activePlace ? `Leave a public note at ${activePlace.label}` : "Select a place first."}
+                aria-label={activePlace ? `Write a public note for ${activePlace.label}` : "Select a place first"}
+              />
+              {!publicConfirming ? (
+                <button
+                  type="button"
+                  data-qa="review-public-note"
+                  disabled={!activePlace || !publicDraft.trim() || publicNotesLoading || !atlasCommons?.available}
+                  onClick={() => setPublicConfirming(true)}
+                >
+                  Review public post
+                </button>
+              ) : (
+                <div className="city-world-public-confirm" role="group" aria-label="Confirm public post">
+                  <span>Everyone can read this after review.</span>
+                  <button type="button" data-qa="post-public-note" disabled={publicNotesLoading} onClick={() => void postPublicNote()}>
+                    Post publicly
+                  </button>
+                  <button type="button" onClick={() => setPublicConfirming(false)}>Cancel</button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
         <span className="city-world-sr-only" role="status" aria-live="polite" data-qa="note-status">
-          {noteStatus}
+          {noteStatus || publicNotesMessage}
         </span>
+        {commonsActive && publicNotesMessage ? (
+          <div className="city-world-public-note-state" role="status" data-qa="public-note-status">{publicNotesMessage}</div>
+        ) : null}
         {placePins.length > 0 ? (
           <div className="city-world-pin-row" aria-label="Pins on selected place" data-qa="selected-place-pins">
             {placePins.slice(-4).map((pin) => (
@@ -860,6 +1024,16 @@ function stickerLabel(kind: VoxelStickerKind): string {
     question: "Question",
   };
   return labels[kind];
+}
+
+function relativeNoteTime(value: string): string {
+  const elapsedMs = Math.max(0, Date.now() - new Date(value).getTime());
+  const minutes = Math.floor(elapsedMs / 60_000);
+  if (minutes < 1) return "now";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
 }
 
 function placeKindLabel(kind: CityWorldScene["places"][number]["kind"]): string {

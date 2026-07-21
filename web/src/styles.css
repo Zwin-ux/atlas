@@ -285,12 +285,57 @@ button {
 .city-world-generated-boundary,
 .city-world-zoom,
 .city-world-place-navigator,
+.city-world-commons-mode,
 .city-world-stickers,
 .city-world-tray {
   position: absolute;
   z-index: 3;
   color: var(--city-ink);
   font-family: var(--font-ui);
+}
+
+.city-world-commons-mode {
+  position: absolute;
+  z-index: 3;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(56px, auto));
+  gap: 2px;
+  padding: 3px;
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--r-control);
+  background: var(--city-panel-strong);
+  box-shadow: var(--elev-0);
+  transform: translateX(-50%);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+.city-world-commons-mode button {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: calc(var(--r-control) - 2px);
+  background: transparent;
+  color: var(--ink-3);
+  font: 700 10px/1 var(--font-ui);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.city-world-commons-mode button:hover {
+  background: var(--alpha-05);
+  color: var(--city-ink);
+}
+
+.city-world-commons-mode button.is-active {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.city-world-commons-mode button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 /* Left rail — ONE flex column for location + switcher + turn-district.
@@ -725,6 +770,125 @@ button {
   gap: 6px;
   max-height: 7.5rem;
   overflow: auto;
+}
+
+.city-world-public-note-list {
+  display: grid;
+  gap: 7px;
+  max-height: 10rem;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.city-world-public-note-list li {
+  display: grid;
+  gap: 3px;
+  padding: 7px 0;
+  border-top: var(--hairline) solid var(--border-subtle);
+}
+
+.city-world-public-note-list li > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.city-world-public-note-list p {
+  display: block;
+  margin: 0;
+  color: var(--city-ink);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.city-world-public-note-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.city-world-public-note-actions button {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--ink-3);
+  font: 600 11px/1 var(--font-ui);
+  cursor: pointer;
+}
+
+.city-world-public-note-actions button:hover,
+.city-world-public-note-actions button[aria-pressed="true"] {
+  background: var(--alpha-05);
+  color: var(--city-ink);
+}
+
+.city-world-public-note-actions button:focus-visible,
+.city-world-public-compose button:focus-visible,
+.city-world-public-compose input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.city-world-public-compose {
+  display: grid;
+  gap: 6px;
+}
+
+.city-world-public-compose > input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--r-control);
+  background: var(--surface-solid);
+  color: var(--city-ink);
+  font: 13px/1.3 var(--font-ui);
+}
+
+.city-world-public-compose > button,
+.city-world-public-confirm button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--r-control);
+  background: var(--ink);
+  color: var(--on-ink);
+  font: 600 12px/1 var(--font-ui);
+  cursor: pointer;
+}
+
+.city-world-public-compose button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.city-world-public-confirm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.city-world-public-confirm span {
+  line-height: 1.35;
+}
+
+.city-world-public-confirm button:last-child {
+  background: transparent;
+  color: var(--city-ink);
+}
+
+.city-world-public-note-state {
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .city-world-note-empty {
@@ -1739,6 +1903,17 @@ button {
     gap: 8px;
   }
 
+  .city-world-commons-mode {
+    top: max(68px, calc(env(safe-area-inset-top) + 68px));
+    grid-template-columns: repeat(3, minmax(64px, 1fr));
+    width: min(236px, calc(100vw - 96px));
+  }
+
+  .city-world-commons-mode button {
+    min-height: 44px;
+    padding: 0 6px;
+  }
+
   /* Mobile: toggle sits bottom-left above the sticker row; the list opens
      UP from it. Visibility/toggle mechanics are the universal defaults. */
   .city-world-place-navigator {
@@ -1941,6 +2116,22 @@ button {
 
   .city-world-tray p {
     display: none;
+  }
+
+  .city-world-tray .city-world-public-note-list p {
+    display: block;
+  }
+
+  .city-world-public-note-actions button {
+    min-height: 44px;
+  }
+
+  .city-world-public-confirm {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .city-world-public-confirm span {
+    grid-column: 1 / -1;
   }
 
   .city-world-tray strong {

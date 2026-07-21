@@ -82,11 +82,12 @@ export class HostedClawdAuthenticator {
 export function buildOAuthProtectedResourceMetadata(
   config: HostedClawdAuthConfig,
   resourceUrl: string,
+  additionalScopes: string[] = [],
 ): Record<string, unknown> {
   return {
     resource: resourceUrl,
     authorization_servers: [config.issuer],
-    scopes_supported: [HOSTED_CLAWD_READ_SCOPE, HOSTED_CLAWD_WRITE_SCOPE],
+    scopes_supported: [...new Set([HOSTED_CLAWD_READ_SCOPE, HOSTED_CLAWD_WRITE_SCOPE, ...additionalScopes])],
     bearer_methods_supported: ["header"],
   };
 }

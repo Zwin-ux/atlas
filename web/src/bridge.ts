@@ -203,6 +203,14 @@ export async function updateModelContext(text: string): Promise<void> {
   }
 }
 
+export async function callAtlasTool<T>(name: string, args: Record<string, unknown>): Promise<ToolResult<T>> {
+  return rpcRequest<ToolResult<T>>(
+    "tools/call",
+    { name, arguments: args },
+    12_000,
+  );
+}
+
 function readWidgetState<T>(fallback: T): T {
   const state = window.openai?.widgetState;
   if (state && typeof state === "object") return state as T;

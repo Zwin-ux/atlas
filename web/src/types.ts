@@ -4,6 +4,7 @@ export type ToolResult<T> = {
   structuredContent?: T;
   content?: unknown[];
   _meta?: Record<string, unknown>;
+  isError?: boolean;
 } | null;
 
 export type WidgetSceneSession = {
@@ -15,6 +16,54 @@ export type WidgetSceneSession = {
   stickers?: VoxelSticker[] | undefined;
   notes?: VoxelNote[] | undefined;
   noteDraft?: string | undefined;
+};
+
+export type AtlasCommonsMode = "all" | "nearby" | "mine";
+
+export type AtlasCommonsPublicMeta = {
+  enabled: boolean;
+  available: boolean;
+  requiresIdentityForPosting: true;
+  publicPostingIsExplicit: true;
+  privateNotesStayPrivate: true;
+  moderation: "pre_publication";
+  modes: readonly ["all", "nearby", "mine"];
+  statusLabel: string;
+};
+
+export type AtlasPublicNote = {
+  id: string;
+  countySlug: string;
+  placeId: string;
+  placeLabel: string;
+  body: string;
+  authorHandle: string;
+  status?: "pending" | "visible" | "removed";
+  reactionCount: number;
+  createdAt: string;
+  publishedAt?: string;
+  viewerHasReacted?: boolean;
+  viewerCanReport: boolean;
+};
+
+export type AtlasPublicNoteList = {
+  type: "atlasPublicNoteList";
+  notes: AtlasPublicNote[];
+  nextCursor?: string;
+  scope: {
+    mode: "all" | "mine";
+    sort: "hot" | "new";
+    countySlug?: string;
+    placeId?: string;
+  };
+};
+
+export type AtlasPublicNoteWrite = {
+  type: "atlasPublicNoteWrite";
+  operation: "post" | "react" | "report";
+  status: "accepted" | "unchanged";
+  note: AtlasPublicNote;
+  message: string;
 };
 
 export type WidgetState = {
@@ -35,6 +84,7 @@ export type WidgetState = {
   hostedClawdContext?: HostedClawdContext | undefined;
   /** One-time gesture hint: set after the first map interaction (persists across tool calls in this chat). */
   firstRunHintDismissed?: boolean | undefined;
+  commonsMode?: AtlasCommonsMode | undefined;
 };
 
 export type HostedClawdScreenState =

@@ -2664,3 +2664,22 @@ First implementation target after approval:
 - business profile row
 - saved campaign preview from an existing Scout Drop
 - ownership and idempotency tests first
+
+### Quest E11: Atlas Commons staging acceptance
+
+Owner gate: explicit approval before any staging or production environment
+mutation.
+
+Acceptance:
+
+- Run migration `003_atlas_commons_public_notes.sql` on isolated staging while
+  the commons flag remains off.
+- Configure staging OIDC scopes, pseudonym secret, and operator credential in
+  the platform secret manager.
+- Prove the seven-tool baseline before enablement and nine-tool surface after
+  staging enablement.
+- Exercise a real connector login, pending post, operator approval, anonymous
+  read, reaction, report, and rollback on desktop and mobile.
+- Record moderation ownership, retention policy, abuse response, and legal copy
+  before any public launch decision.
+- Keep production `ATLAS_COMMONS_ENABLED=false` until a separate owner cutline.

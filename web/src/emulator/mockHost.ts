@@ -321,6 +321,14 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
     qa.modelContext.push(text);
     return {};
   };
+  bridge.oncalltool = async (params) => {
+    const spec: ToolCallSpec = {
+      name: params.name,
+      arguments: params.arguments ?? {},
+    };
+    status(`widget tool call: ${spec.name}…`);
+    return toolSource.call(spec);
+  };
 
   // Seed turn: like production, the triggering tool's result arrives right
   // after the widget completes the handshake (subscriber is registered

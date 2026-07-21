@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slice": "postalpha-0.81c-atlas-all-public-notes-foundation",
+  "status": "local_verified_no_deploy",
+  "featureFlag": {
+    "name": "ATLAS_COMMONS_ENABLED",
+    "default": false
+  },
+  "verification": {
+    "serviceTests": { "passed": 13, "failed": 0 },
+    "serviceLineCoveragePercent": 93.96,
+    "postgresSmoke": true,
+    "migrationCount": 3,
+    "coreTests": { "passed": 271, "failed": 0 },
+    "hostedClawdRegressionTests": { "passed": 33, "failed": 0 },
+    "productionDependencyAudit": "no_known_vulnerabilities",
+    "fullTypecheck": true,
+    "fullProductionBuild": true,
+    "defaultOffMcpFlow": true,
+    "localShipCheck": { "passed": 8, "failed": 0 },
+    "strictSelectedRcSplit": true,
+    "desktopBrowserProof": true,
+    "mobileBrowserProof": true,
+    "horizontalOverflowPx": { "desktop": 0, "mobile": 0 }
+  },
+  "evidence": [
+    "docs/ATLAS_ALL_PUBLIC_NOTES_SPEC.md",
+    "docs/ATLAS_ALL_PUBLIC_NOTES_ARCHITECTURE.md",
+    "docs/ATLAS_ALL_PUBLIC_NOTES_TEST_REPORT.md",
+    "docs/ATLAS_ALL_PUBLIC_NOTES_RUNBOOK.md",
+    "artifacts/emulator/atlas-commons-desktop.png",
+    "artifacts/emulator/atlas-commons-mobile.png",
+    "artifacts/emulator/atlas-commons-mobile-compose.png"
+  ],
+  "productionChanged": false,
+  "deploymentAuthorized": false
+}

@@ -10186,3 +10186,28 @@ and final submission.
 - Forward plan: .gstack/plan-078R-execution.md (repo-local) — Lane A renderer
   adapter is the next session's browser-loop work; national bake HELD behind
   the 6-county identity + product gates.
+
+## Entry 109
+
+**0.81C ATLAS ALL PUBLIC NOTES FOUNDATION - local green, no deploy,
+2026-07-20, Codex.** Added a default-off, durable, moderated public-note
+layer without converting private/session notes or shrinking the map into a
+social dashboard. The map now carries a compact ALL / NEARBY / MINE control,
+approved place pins, pseudonymous note context, useful/report actions, and a
+two-step explicit public-post confirmation. Server work adds two conditional
+MCP tools, public-safe outputs, OIDC scope enforcement, canonical anchor
+validation, rate limits, operator-only moderation, an additive Postgres
+migration, readiness metadata, and a flag-first rollback.
+
+Evidence: 13/13 commons tests with 93.96% service line coverage; real
+Postgres migration/idempotency/reaction/report smoke green; default-off seven
+tools and enabled nine-tool contract green; 271/271 core tests; 33/33 Hosted
+Clawd regressions; full typecheck/build, eight-gate local ship suite, strict
+selected-RC split, and production dependency audit clean. gstack browser QA used
+real persisted Eastvale data at desktop and mobile, with zero horizontal
+overflow and 44px mobile actions. It found and closed a Riverside scene
+mismatch plus an active-anchor filtering failure that could crash the map.
+Screenshots and machine-readable proof live under `artifacts/emulator/` and
+`artifacts/atlas-commons/`. CI is no longer a placeholder: it now runs full
+quality gates and an isolated Postgres 17 migration smoke. Production,
+Railway, Auth0, and the ChatGPT connector were not changed.

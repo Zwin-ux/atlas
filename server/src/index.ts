@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { brotliCompressSync, gzipSync, constants as zlibConstants } from "node:zlib";
@@ -11,6 +11,7 @@ import {
   RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   previewCampaignFromScoutRequest,
@@ -72,6 +73,16 @@ import {
   type HostedClawdContextInput,
 } from "./hostedClawd/index.js";
 import {
+  ATLAS_COMMONS_READ_SCOPE,
+  ATLAS_COMMONS_WRITE_SCOPE,
+  AtlasCommonsError,
+  AtlasCommonsService,
+  createPostgresAtlasCommonsRepository,
+  readAtlasCommonsConfig,
+  type AtlasCommonsAuthContext,
+  type AtlasCommonsAnchor,
+} from "./atlasCommons/index.js";
+import {
   isLoopbackAddress,
   isPrivateOrLoopbackAddress,
   readServerSecurityConfig,
@@ -91,7 +102,7 @@ import {
 } from "./roadChunkStore.js";
 
 const SERVER_VERSION = "0.1.0";
-const WIDGET_URI = "ui://widget/atlas-city-world-0781v.html";
+const WIDGET_URI = "ui://widget/atlas-city-world-081c.html";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = resolve(__dirname, "../..");
 const MAX_WORLD_LOOKUP_CACHE_ENTRIES = 100;
@@ -143,7 +154,10 @@ async function nationalCountyMapMeta(
     : wantStudy
       ? " The layout study is preparing."
       : "";
-  const userFacingCopy = `${coverage.message} ${coverage.countyLabel ?? "This county"} is a national Census board in Atlas.${geoLine}${studyLine} Riverside/Eastvale is the full clay interactive map. Pins and notes stay in this chat.`;
+  const noteBoundary = atlasCommonsConfig.enabled
+    ? " Private notes stay in this chat; explicit public posts wait for moderation."
+    : " Pins and notes stay in this chat.";
+  const userFacingCopy = `${coverage.message} Preview only. ${coverage.countyLabel ?? "This county"} is a national Census board in Atlas.${geoLine}${studyLine} Real Census town names are attached. Atlas does not add verified streets, buildings, businesses, saved work, XP, evidence, outreach, or automation here. Riverside/Eastvale is fully explorable today.${noteBoundary}`;
   return { scenePacket, countyGeoPack, townAnchors, ...(generatedDraft ? { generatedDraft } : {}), userFacingCopy };
 }
 
@@ -181,15 +195,17 @@ const rateLimitRedisConnector: LazyRedisConnector | undefined = scenePacketRunti
 // The repository is intentionally independent from auth so webhooks and
 // readiness can use the database before the public account-linking gate opens.
 const hostedClawdFlags = readHostedClawdFeatureFlags(process.env);
+const atlasCommonsConfig = readAtlasCommonsConfig(process.env);
 const hostedClawdAuthConfig = readHostedClawdAuthConfig(process.env);
 const hostedClawdAuthenticator = hostedClawdAuthConfig
   ? new HostedClawdAuthenticator(hostedClawdAuthConfig)
   : undefined;
 const hostedClawdDatabaseUrl = process.env.DATABASE_URL?.trim() || undefined;
-const hostedClawdPool =
-  hostedClawdFlags.persistenceEnabled && hostedClawdDatabaseUrl
+const atlasDatabasePool =
+  (hostedClawdFlags.persistenceEnabled || atlasCommonsConfig.enabled) && hostedClawdDatabaseUrl
     ? createHostedClawdPool(hostedClawdDatabaseUrl)
     : undefined;
+const hostedClawdPool = hostedClawdFlags.persistenceEnabled ? atlasDatabasePool : undefined;
 const hostedClawdRepository =
   hostedClawdPool
     ? createPostgresHostedClawdRepository(hostedClawdPool)
@@ -216,6 +232,15 @@ const hostedClawdService = new HostedClawdService({
 });
 const hostedClawdWriteRouterMounted = Boolean(hostedClawdPersistence);
 const atlasSaveSurfaceEnabled = (process.env.ATLAS_SAVE_SURFACE ?? "off").trim().toLowerCase() === "on";
+const atlasCommonsRepository =
+  atlasCommonsConfig.enabled && atlasDatabasePool
+    ? createPostgresAtlasCommonsRepository(atlasDatabasePool)
+    : undefined;
+const atlasCommonsService = new AtlasCommonsService({
+  config: atlasCommonsConfig,
+  repository: atlasCommonsRepository,
+  resolveAnchor: resolveAtlasCommonsAnchor,
+});
 
 type WorldLookupCacheEntry = {
   response: WorldPlaceLookupResponse;
@@ -264,7 +289,7 @@ type RequestContext = {
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
 
-const MCP_TOOL_NAMES = [
+const BASE_MCP_TOOL_NAMES = [
   "lookup_world_places",
   "select_county",
   "ask_county_question",
@@ -272,6 +297,11 @@ const MCP_TOOL_NAMES = [
   "preview_scout_drop",
   "preview_campaign_engine",
   "get_upgrade_options",
+] as const;
+
+const MCP_TOOL_NAMES = [
+  ...BASE_MCP_TOOL_NAMES,
+  ...(atlasCommonsConfig.enabled ? (["list_atlas_notes", "write_atlas_note"] as const) : []),
 ] as const;
 
 type McpToolName = (typeof MCP_TOOL_NAMES)[number];
@@ -481,6 +511,41 @@ const voxelNoteSchema = z.object({
   body: z.string(),
   stickerId: z.string().optional(),
 });
+
+const atlasPublicNoteSchema = z.object({
+  id: z.string(),
+  countySlug: z.string(),
+  placeId: z.string(),
+  placeLabel: z.string(),
+  body: z.string().min(1).max(240),
+  authorHandle: z.string(),
+  status: z.enum(["pending", "visible", "removed"]).optional(),
+  reactionCount: z.number().int().nonnegative(),
+  createdAt: z.string(),
+  publishedAt: z.string().optional(),
+  viewerHasReacted: z.boolean().optional(),
+  viewerCanReport: z.boolean(),
+});
+
+const atlasPublicNoteListOutputSchema = {
+  type: z.literal("atlasPublicNoteList"),
+  notes: z.array(atlasPublicNoteSchema),
+  nextCursor: z.string().optional(),
+  scope: z.object({
+    mode: z.enum(["all", "mine"]),
+    sort: z.enum(["hot", "new"]),
+    countySlug: z.string().optional(),
+    placeId: z.string().optional(),
+  }),
+};
+
+const atlasPublicNoteWriteOutputSchema = {
+  type: z.literal("atlasPublicNoteWrite"),
+  operation: z.enum(["post", "react", "report"]),
+  status: z.enum(["accepted", "unchanged"]),
+  note: atlasPublicNoteSchema,
+  message: z.string(),
+};
 
 const voxelAmbientStateSchema = z.object({
   timeOfDay: z.enum(["morning", "midday", "evening"]),
@@ -1154,6 +1219,36 @@ function compileCountyScene(countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG, selec
   return compileVoxelSceneFromCountyPack(pack, { selectedNodeId });
 }
 
+function resolveAtlasCommonsAnchor(countySlug: string, requestedPlaceId: string): AtlasCommonsAnchor | undefined {
+  const anchoredCounty = countyTownAnchorIndex.counties[countySlug];
+  if (anchoredCounty) {
+    const requestedGeoid = requestedPlaceId
+      .replace(/^town-anchor-/, "")
+      .replace(/^census-place-/, "");
+    const town = anchoredCounty.anchors.find((anchor) => anchor.censusPlaceGeoid === requestedGeoid);
+    if (town) {
+      return {
+        countySlug,
+        placeId: `town-anchor-${town.censusPlaceGeoid}`,
+        placeLabel: town.label,
+      };
+    }
+  }
+
+  if (countySlug !== PLAYABLE_ENGINE_BETA_COUNTY_SLUG) return undefined;
+  try {
+    const scene = compileCountyScene(countySlug, requestedPlaceId);
+    const place = scene.world?.places.find(
+      (candidate) => candidate.id === requestedPlaceId || candidate.nodeId === requestedPlaceId,
+    );
+    return place
+      ? { countySlug, placeId: place.id, placeLabel: place.label }
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function getOrCreatePlayableScenePacket(
   countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
   selectedNodeId = "eastvale",
@@ -1659,6 +1754,52 @@ function publicHostedClawdCopy(value: string): string {
     .replace(/billing is off in session\./gi, "Billing is not live.")
     .replace(/\bexternal session promotion\b/gi, "public save promotion")
     .replace(/\bexternal preview promotion\b/gi, "public save promotion");
+}
+
+function atlasCommonsMeta(): { atlasCommons: ReturnType<AtlasCommonsService["publicMeta"]> } | Record<string, never> {
+  return atlasCommonsConfig.enabled ? { atlasCommons: atlasCommonsService.publicMeta() } : {};
+}
+
+function atlasCommonsAuthFromInfo(authInfo: AuthInfo | undefined): AtlasCommonsAuthContext | undefined {
+  if (!authInfo) return undefined;
+  const subject = authInfo?.extra?.subject;
+  if (typeof subject !== "string" || !subject.trim()) return undefined;
+  const email = authInfo?.extra?.email;
+  return {
+    subject: subject.trim(),
+    ...(typeof email === "string" && email.trim() ? { email: email.trim() } : {}),
+    scopes: [...authInfo.scopes],
+  };
+}
+
+function atlasCommonsMetadataUrl(): string {
+  const base = process.env.APP_BASE_URL?.trim() || `http://localhost:${PORT}`;
+  return new URL("/.well-known/oauth-protected-resource", base).toString();
+}
+
+function atlasCommonsToolError(error: unknown, requiredScope: string = ATLAS_COMMONS_WRITE_SCOPE) {
+  const known = error instanceof AtlasCommonsError
+    ? error
+    : new AtlasCommonsError("COMMONS_UNAVAILABLE", "Public notes are temporarily unavailable. Private notes still work.");
+  const authenticationError = known.code === "AUTH_REQUIRED" || known.code === "FORBIDDEN";
+  return {
+    isError: true,
+    content: [{ type: "text" as const, text: known.message }],
+    _meta: {
+      atlasCommons: atlasCommonsService.publicMeta(),
+      atlasCommonsError: { code: known.code },
+      ...(authenticationError
+        ? { "mcp/www_authenticate": [buildAuthChallengeHeader(atlasCommonsMetadataUrl(), requiredScope)] }
+        : {}),
+    },
+  };
+}
+
+function requiredCommonsToolString(value: string | undefined, label: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new AtlasCommonsError("INVALID_NOTE", `${label} is required for this public-note action.`);
+  }
+  return value.trim();
 }
 
 function hostedClawdContextForScene(scene: ScoutPreviewState["scene"], trigger: HostedClawdContextInput["trigger"]): HostedClawdContext {
@@ -2323,10 +2464,12 @@ async function readyPayload(): Promise<unknown> {
   const hostedClawdDatabaseReachable = await hostedClawdDatabaseReachablePayload();
   const hostedClawdDatabaseReady =
     !hostedClawdFlags.persistenceEnabled || hostedClawdDatabaseReachable === true;
+  const atlasCommonsReady = await atlasCommonsReadyPayload();
   const ok =
     webDistPresent &&
     redisReady &&
     hostedClawdDatabaseReady &&
+    (!atlasCommonsConfig.enabled || atlasCommonsReady === true) &&
     scenePacketRuntimeConfig.blockers.length === 0;
 
   return {
@@ -2357,6 +2500,17 @@ async function readyPayload(): Promise<unknown> {
             authConfigured: Boolean(hostedClawdAuthenticator),
             moneyEnabled: hostedClawdFlags.moneyEnabled,
             stripeConfigured: Boolean(hostedClawdBillingConfig),
+          },
+        }
+      : {}),
+    ...(atlasCommonsConfig.enabled
+      ? {
+          atlasCommons: {
+            ...atlasCommonsService.publicMeta(),
+            databaseConfigured: Boolean(hostedClawdDatabaseUrl),
+            databaseReady: atlasCommonsReady,
+            authConfigured: Boolean(hostedClawdAuthenticator),
+            operatorConfigured: Boolean(atlasCommonsConfig.operatorToken),
           },
         }
       : {}),
@@ -3108,7 +3262,7 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        "Atlas is a map app inside ChatGPT. Primary job: open maps and let the user explore places with session pins/notes in the widget. Use select_county to open Riverside/Eastvale (full clay interactive map) or any other supported US county as a Census geography board (real county outline, water, and town names — not verified streets or buildings). Never claim non-Riverside streets, buildings, or businesses are verified local coverage. Only pass includeGeneratedDraft=true when the user explicitly wants an illustrative generated layout study. Use render_voxel_county only to refresh/focus an already-open map. Use ask_county_question for map facts or displayed Census town anchors. Use lookup_world_places for nearby place lookup only (not coverage, not geometry, not saved lists). Prefer map + notes answers over scouting or campaigns. Do not push Clawd, Scout Drops, or 7-day plans unless the user explicitly asks. preview_scout_drop, preview_campaign_engine, and get_upgrade_options exist but are secondary and must not drive the default flow. Nothing is saved between chats; no checkout, XP, posting, DMs, ads, or automation. Keep structuredContent concise; large scenes and geo packs stay in _meta.",
+        `Atlas is a map app inside ChatGPT. Primary job: open maps and let the user explore places with session pins/notes in the widget. Use select_county to open Riverside/Eastvale (full clay interactive map) or any other supported US county as a Census geography board (real county outline, water, and town names — not verified streets or buildings). Never claim non-Riverside streets, buildings, or businesses are verified local coverage. Only pass includeGeneratedDraft=true when the user explicitly wants an illustrative generated layout study. Use render_voxel_county only to refresh/focus an already-open map. Use ask_county_question for map facts or displayed Census town anchors. Use lookup_world_places for nearby place lookup only (not coverage, not geometry, not saved lists). Prefer map + notes answers over scouting or campaigns. Do not push Clawd, Scout Drops, or 7-day plans unless the user explicitly asks. preview_scout_drop, preview_campaign_engine, and get_upgrade_options exist but are secondary and must not drive the default flow. ${atlasCommonsConfig.enabled ? "Approved public notes can be read with list_atlas_notes. Call write_atlas_note post only after the user explicitly chooses public posting; private/session notes never publish automatically. New public posts wait for moderation. No checkout, XP, DMs, ads, or automation." : "Nothing is saved between chats; no checkout, XP, posting, DMs, ads, or automation."} Keep structuredContent concise; large scenes and geo packs stay in _meta.`,
     },
   );
 
@@ -3127,7 +3281,9 @@ function createAtlasServer(): McpServer {
               resourceDomains: widgetResourceDomains(),
             },
           },
-          "openai/widgetDescription": "Shows Atlas county maps: Riverside/Eastvale full clay map, plus U.S. Census geography boards (real outline, water, town names). Pins and notes stay in this chat.",
+          "openai/widgetDescription": atlasCommonsConfig.enabled
+            ? "Shows Atlas county maps with moderated public place notes plus private notes that stay in this chat."
+            : "Shows Atlas county maps: Riverside/Eastvale full clay map, plus U.S. Census geography boards (real outline, water, town names). Pins and notes stay in this chat.",
         },
       },
     ],
@@ -3216,6 +3372,7 @@ function createAtlasServer(): McpServer {
           structuredContent: coverage,
           _meta: {
             scenePacket: national.scenePacket,
+            ...atlasCommonsMeta(),
             ...(atlasSaveSurfaceEnabled
               ? hostedClawdMeta(hostedClawdService.getContext({
                   trigger: "map_tray",
@@ -3243,13 +3400,16 @@ function createAtlasServer(): McpServer {
         _meta: {
           scene,
           scenePacket,
+          ...atlasCommonsMeta(),
           ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
           ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
         },
         content: [
           {
             type: "text" as const,
-            text: `Selected ${scene.county.name}. Eastvale is the full interactive map. Use the map for places, pins, and notes that stay in this chat.`,
+            text: atlasCommonsConfig.enabled
+              ? `Selected ${scene.county.name}. Eastvale is the full map. Private notes stay in this chat; public posts are explicit and moderated.`
+              : `Selected ${scene.county.name}. Eastvale is the full map. Use the map for places, pins, and notes that stay in this chat.`,
           },
         ],
       };
@@ -3319,6 +3479,7 @@ function createAtlasServer(): McpServer {
           structuredContent,
           _meta: {
             scenePacket: national.scenePacket,
+            ...atlasCommonsMeta(),
             ...(atlasSaveSurfaceEnabled
               ? hostedClawdMeta(hostedClawdService.getContext({
                   trigger: "map_tray",
@@ -3354,6 +3515,7 @@ function createAtlasServer(): McpServer {
         _meta: {
           scene,
           scenePacket,
+          ...atlasCommonsMeta(),
           ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
           ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
         },
@@ -3404,6 +3566,7 @@ function createAtlasServer(): McpServer {
           structuredContent: coverage,
           _meta: {
             scenePacket: national.scenePacket,
+            ...atlasCommonsMeta(),
             ...(atlasSaveSurfaceEnabled
               ? hostedClawdMeta(hostedClawdService.getContext({
                   trigger: "map_tray",
@@ -3434,13 +3597,16 @@ function createAtlasServer(): McpServer {
         _meta: {
           scene,
           scenePacket,
+          ...atlasCommonsMeta(),
           ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
           ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
         },
         content: [
           {
             type: "text" as const,
-            text: `Showing the Riverside/Eastvale full map. Pins and notes stay in this chat.`,
+            text: atlasCommonsConfig.enabled
+              ? "Showing the Riverside/Eastvale full map. Private notes stay in this chat; public posts are explicit and moderated."
+              : "Showing the Riverside/Eastvale full map. Pins and notes stay in this chat.",
           },
         ],
       };
@@ -3611,7 +3777,227 @@ function createAtlasServer(): McpServer {
     }),
   );
 
+  if (atlasCommonsConfig.enabled) {
+    // Keep the frozen seven-tool registration audit legible: commons tools are
+    // an explicit default-off extension, not part of the current RC surface.
+    const registerCommonsAppTool = registerAppTool;
+    registerCommonsAppTool(
+      server,
+      "list_atlas_notes",
+      {
+        title: "Read Atlas public notes",
+        description:
+          "Read the moderated Atlas commons. Use mode=all for approved public notes; countySlug narrows to a map and placeId narrows to one mapped place. Omit countySlug for the cross-county ALL feed. Use mode=mine only when the user asks for their submitted public notes; it requires Atlas identity. This never returns private/session notes.",
+        inputSchema: {
+          mode: z.enum(["all", "mine"]).optional().describe("Public ALL feed or the authenticated player's own public submissions."),
+          countySlug: z.string().optional().describe("Optional canonical Atlas county slug."),
+          placeId: z.string().optional().describe("Optional canonical Atlas place id; requires countySlug."),
+          sort: z.enum(["hot", "new"]).optional().describe("Deterministic public ranking. Defaults to hot; mine is always newest first."),
+          limit: z.number().int().min(1).max(100).optional().describe("Maximum notes to return. Defaults to 30."),
+          cursor: z.string().optional().describe("Opaque cursor returned by a prior call."),
+        },
+        outputSchema: atlasPublicNoteListOutputSchema,
+        annotations: {
+          readOnlyHint: true,
+          openWorldHint: true,
+          destructiveHint: false,
+        },
+        _meta: {
+          "openai/toolInvocation/invoking": "Reading Atlas ALL...",
+          "openai/toolInvocation/invoked": "Atlas public notes ready.",
+        },
+      },
+      async (input, extra) => {
+        try {
+          return await instrumentMcpTool("list_atlas_notes", async () => {
+            const result = await atlasCommonsService.list(input, atlasCommonsAuthFromInfo(extra.authInfo));
+            return {
+              structuredContent: result,
+              content: [{
+                type: "text" as const,
+                text: result.notes.length > 0
+                  ? `${result.notes.length} moderated Atlas public note${result.notes.length === 1 ? "" : "s"} ready. The map is the feed.`
+                  : result.scope.mode === "mine"
+                    ? "You have no public-note submissions in this scope. Private notes remain in this chat."
+                    : "No moderated public notes are visible in this scope yet.",
+              }],
+              _meta: { atlasCommons: atlasCommonsService.publicMeta() },
+            };
+          });
+        } catch (error) {
+          return atlasCommonsToolError(error, ATLAS_COMMONS_READ_SCOPE);
+        }
+      },
+    );
+
+    registerCommonsAppTool(
+      server,
+      "write_atlas_note",
+      {
+        title: "Post or respond to an Atlas public note",
+        description:
+          "Authenticated public-note action. post is explicit and creates a pending moderated note attached to a canonical Atlas place; it never publishes an existing private/session note. react adds or removes one useful mark. report sends one safety report. Never infer consent to post from note-taking language: call post only after the user explicitly chooses public posting.",
+        inputSchema: {
+          operation: z.enum(["post", "react", "report"]),
+          countySlug: z.string().optional().describe("Required for post: canonical Atlas county slug."),
+          placeId: z.string().optional().describe("Required for post: canonical Atlas place id from the map."),
+          placeLabel: z.string().optional().describe("Required for post as a display hint; the server stores the canonical Atlas label."),
+          body: z.string().max(240).optional().describe("Required for post. Plain text only; links are rejected."),
+          clientRequestId: z.string().optional().describe("Required for post. Stable retry id generated by the client."),
+          noteId: z.string().optional().describe("Required for react/report."),
+          active: z.boolean().optional().describe("For react: true to mark useful, false to remove the mark."),
+          reason: z.enum(["spam", "harassment", "privacy", "misleading", "other"]).optional().describe("Required for report."),
+        },
+        outputSchema: atlasPublicNoteWriteOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          openWorldHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+        },
+        _meta: {
+          "openai/toolInvocation/invoking": "Updating Atlas public notes...",
+          "openai/toolInvocation/invoked": "Atlas public-note action complete.",
+        },
+      },
+      async (input, extra) => {
+        try {
+          return await instrumentMcpTool("write_atlas_note", async () => {
+            const auth = atlasCommonsAuthFromInfo(extra.authInfo);
+            const result = input.operation === "post"
+              ? await atlasCommonsService.post({
+                  countySlug: requiredCommonsToolString(input.countySlug, "countySlug"),
+                  placeId: requiredCommonsToolString(input.placeId, "placeId"),
+                  placeLabel: requiredCommonsToolString(input.placeLabel, "placeLabel"),
+                  body: requiredCommonsToolString(input.body, "body"),
+                  clientRequestId: requiredCommonsToolString(input.clientRequestId, "clientRequestId"),
+                }, auth)
+              : input.operation === "react"
+                ? await atlasCommonsService.react(
+                    requiredCommonsToolString(input.noteId, "noteId"),
+                    input.active ?? true,
+                    auth,
+                  )
+                : await atlasCommonsService.report(
+                    requiredCommonsToolString(input.noteId, "noteId"),
+                    requiredCommonsToolString(input.reason, "reason"),
+                    auth,
+                  );
+            return {
+              structuredContent: result,
+              content: [{ type: "text" as const, text: result.message }],
+              _meta: { atlasCommons: atlasCommonsService.publicMeta() },
+            };
+          });
+        } catch (error) {
+          return atlasCommonsToolError(error);
+        }
+      },
+    );
+  }
+
   return server;
+}
+
+function secureBearerMatches(header: string | undefined, expected: string): boolean {
+  const supplied = /^Bearer\s+(.+)$/i.exec(header?.trim() ?? "")?.[1]?.trim();
+  if (!supplied) return false;
+  const suppliedBytes = Buffer.from(supplied, "utf8");
+  const expectedBytes = Buffer.from(expected, "utf8");
+  return suppliedBytes.length === expectedBytes.length && timingSafeEqual(suppliedBytes, expectedBytes);
+}
+
+async function handleAtlasCommonsModeration(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!atlasCommonsConfig.enabled || !atlasCommonsConfig.operatorToken || !atlasCommonsRepository) {
+    textResponse(res, 404, "Not Found");
+    return;
+  }
+  if (!secureBearerMatches(req.headers.authorization, atlasCommonsConfig.operatorToken)) {
+    logBackendEvent("atlas_commons_moderation_denied", {
+      requestId: String(res.getHeader("x-request-id") ?? ""),
+    });
+    jsonResponse(res, 401, { ok: false, error: { code: "AUTH_REQUIRED", message: "Operator credential required." } });
+    return;
+  }
+
+  try {
+    const body = await readJsonObjectBody(req);
+    const noteId = typeof body.noteId === "string" ? body.noteId.trim() : "";
+    const action = body.action === "approve" || body.action === "remove" ? body.action : undefined;
+    if (!noteId || !action) {
+      jsonResponse(res, 422, { ok: false, error: { code: "INVALID_REQUEST", message: "noteId and approve/remove action are required." } });
+      return;
+    }
+    const result = await atlasCommonsService.moderate(noteId, action, "atlas-operator");
+    logBackendEvent("atlas_commons_moderated", {
+      requestId: String(res.getHeader("x-request-id") ?? ""),
+      noteId: result.noteId,
+      previousStatus: result.previousStatus,
+      status: result.status,
+    });
+    jsonResponse(res, 200, { ok: true, result });
+  } catch (error) {
+    const known = error instanceof AtlasCommonsError ? error : undefined;
+    jsonResponse(res, known?.code === "NOTE_NOT_FOUND" ? 404 : 500, {
+      ok: false,
+      error: {
+        code: known?.code ?? "COMMONS_UNAVAILABLE",
+        message: known?.message ?? "Public-note moderation is temporarily unavailable.",
+      },
+    });
+  }
+}
+
+async function atlasCommonsReadyPayload(): Promise<boolean | null> {
+  if (!atlasCommonsConfig.enabled) return null;
+  try {
+    return await atlasCommonsService.health();
+  } catch (error) {
+    logBackendEvent("atlas_commons_ready_failed", {
+      message: error instanceof Error ? error.name : "unknown",
+    });
+    return false;
+  }
+}
+
+async function attachVerifiedMcpAuth(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+  const header = req.headers.authorization;
+  if (!header) return true;
+  if (!hostedClawdAuthenticator) {
+    setHostedClawdAuthChallenge(req, res, ATLAS_COMMONS_WRITE_SCOPE);
+    mcpJsonRpcError(res, 401, -32001, "Bearer authentication is not configured on this Atlas server");
+    return false;
+  }
+
+  const verdict = await hostedClawdAuthenticator.verifyAuthorizationHeader(header);
+  if (!verdict.ok) {
+    logBackendEvent("mcp_auth_denied", {
+      requestId: String(res.getHeader("x-request-id") ?? ""),
+      reason: verdict.reason,
+    });
+    setHostedClawdAuthChallenge(req, res, ATLAS_COMMONS_WRITE_SCOPE);
+    mcpJsonRpcError(res, 401, -32001, "Bearer token could not be verified");
+    return false;
+  }
+
+  const token = /^Bearer\s+(.+)$/i.exec(header.trim())?.[1]?.trim();
+  if (!token) {
+    setHostedClawdAuthChallenge(req, res, ATLAS_COMMONS_WRITE_SCOPE);
+    mcpJsonRpcError(res, 401, -32001, "Bearer token is missing");
+    return false;
+  }
+
+  (req as IncomingMessage & { auth?: AuthInfo }).auth = {
+    token,
+    clientId: "atlas-chatgpt-app",
+    scopes: [...verdict.auth.scopes],
+    resource: new URL(hostedClawdProtectedResourceUrl(req)),
+    extra: {
+      subject: verdict.auth.subject,
+      ...(verdict.auth.email ? { email: verdict.auth.email } : {}),
+    },
+  };
+  return true;
 }
 
 function mcpSessionIdFor(req: IncomingMessage): string | undefined {
@@ -3698,6 +4084,8 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
     res.end();
     return;
   }
+
+  if (!(await attachVerifiedMcpAuth(req, res))) return;
 
   evictMcpSessions();
   const sessionId = mcpSessionIdFor(req);
@@ -3910,6 +4298,11 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/api/atlas-commons/moderation" && req.method === "POST") {
+    await handleAtlasCommonsModeration(req, res);
+    return;
+  }
+
   // OAuth protected-resource metadata (RFC 9728) for Hosted Clawd account
   // linking. Only meaningful when the OIDC issuer/audience are configured.
   if (url.pathname === "/.well-known/oauth-protected-resource" && req.method === "GET") {
@@ -3924,7 +4317,11 @@ const httpServer = createServer(async (req, res) => {
     jsonResponse(
       res,
       200,
-      buildOAuthProtectedResourceMetadata(hostedClawdAuthConfig, hostedClawdProtectedResourceUrl(req)),
+      buildOAuthProtectedResourceMetadata(
+        hostedClawdAuthConfig,
+        hostedClawdProtectedResourceUrl(req),
+        atlasCommonsConfig.enabled ? [ATLAS_COMMONS_READ_SCOPE, ATLAS_COMMONS_WRITE_SCOPE] : [],
+      ),
     );
     return;
   }

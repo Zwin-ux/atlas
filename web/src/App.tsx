@@ -17,12 +17,24 @@ import {
   type VoxelSticker,
   type VoxelStickerKind,
 } from "@atlas/core/voxel";
-import { sendUserMessage, updateModelContext, useToolResult, useWidgetState } from "./bridge";
+import { callAtlasTool, sendUserMessage, updateModelContext, useToolResult, useWidgetState } from "./bridge";
 import { CountyCoverageView } from "./CountyCoverageView";
 import { CountySwitcher, type CountySwitchSlug } from "./CountySwitcher";
 import { CityWorldView } from "./CityWorldView";
 import { readRequestedCountySwitcherVisible, readRequestedGeneratedStudyEnabled, readRequestedGeoBoardEnabled } from "./MapChrome";
-import type { HostedClawdActionKind, HostedClawdContext, HostedClawdScreenState, WidgetSceneSession, WidgetState } from "./types";
+import type {
+  AtlasCommonsMode,
+  AtlasCommonsPublicMeta,
+  AtlasPublicNote,
+  AtlasPublicNoteList,
+  AtlasPublicNoteWrite,
+  HostedClawdActionKind,
+  HostedClawdContext,
+  HostedClawdScreenState,
+  ToolResult,
+  WidgetSceneSession,
+  WidgetState,
+} from "./types";
 
 type ScoutPreviewStructuredContent = Omit<ScoutPreviewState, "scene"> & {
   sceneId: string;
@@ -615,6 +627,60 @@ function normalizeLabel(value: string | undefined): string {
   return value?.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() ?? "";
 }
 
+function isAtlasCommonsPublicMeta(value: unknown): value is AtlasCommonsPublicMeta {
+  return Boolean(
+    isRecord(value) &&
+      typeof value.enabled === "boolean" &&
+      typeof value.available === "boolean" &&
+      value.requiresIdentityForPosting === true &&
+      value.publicPostingIsExplicit === true &&
+      value.privateNotesStayPrivate === true &&
+      value.moderation === "pre_publication" &&
+      Array.isArray(value.modes) &&
+      value.modes.join(",") === "all,nearby,mine" &&
+      typeof value.statusLabel === "string",
+  );
+}
+
+function isAtlasPublicNote(value: unknown): value is AtlasPublicNote {
+  return Boolean(
+    isRecord(value) &&
+      hasString(value, "id") &&
+      hasString(value, "countySlug") &&
+      hasString(value, "placeId") &&
+      hasString(value, "placeLabel") &&
+      hasString(value, "body") &&
+      (value.body as string).length <= 240 &&
+      hasString(value, "authorHandle") &&
+      typeof value.reactionCount === "number" &&
+      hasString(value, "createdAt") &&
+      typeof value.viewerCanReport === "boolean" &&
+      (value.status === undefined || value.status === "pending" || value.status === "visible" || value.status === "removed"),
+  );
+}
+
+function isAtlasPublicNoteList(value: unknown): value is AtlasPublicNoteList {
+  return Boolean(isRecord(value) && value.type === "atlasPublicNoteList" && Array.isArray(value.notes) && value.notes.every(isAtlasPublicNote));
+}
+
+function isAtlasPublicNoteWrite(value: unknown): value is AtlasPublicNoteWrite {
+  return Boolean(
+    isRecord(value) &&
+      value.type === "atlasPublicNoteWrite" &&
+      (value.operation === "post" || value.operation === "react" || value.operation === "report") &&
+      (value.status === "accepted" || value.status === "unchanged") &&
+      isAtlasPublicNote(value.note) &&
+      typeof value.message === "string",
+  );
+}
+
+function atlasToolErrorMessage(result: ToolResult<unknown>, fallback: string): string {
+  const content = result?.content;
+  if (!Array.isArray(content)) return fallback;
+  const text = content.find((entry) => isRecord(entry) && entry.type === "text" && typeof entry.text === "string");
+  return isRecord(text) && typeof text.text === "string" ? text.text : fallback;
+}
+
 export function App() {
   const result = useToolResult<ToolStructuredContent>(null);
   const [localCountySlug, setLocalCountySlug] = useState<CountySwitchSlug | null>(null);
@@ -628,6 +694,7 @@ export function App() {
   const metaScene = isVoxelScene(meta?.scene) ? meta.scene : null;
   const metaCameraFocus = isCameraFocus(meta?.cameraFocus) ? meta.cameraFocus : null;
   const metaHostedClawd = isHostedClawdContext(meta?.hostedClawd) ? publicHostedClawdContext(meta.hostedClawd) : null;
+  const metaAtlasCommons = isAtlasCommonsPublicMeta(meta?.atlasCommons) ? meta.atlasCommons : null;
   const coverageSummary = isCountyCoverageStructuredContent(structuredContent) ? structuredContent : null;
   const legacyCoverageShellScene = isCityWorldScene(meta?.coverageShellScene) ? meta.coverageShellScene : null;
   const compiledCoverageShellScene = useMemo(() => compileCoverageShellSceneFromSummary(coverageSummary), [coverageSummary]);
@@ -667,15 +734,20 @@ export function App() {
     generatedDraftSpecScene ??
     (allowGeneratedStudy && isCityWorldScene(meta?.generatedDraftScene) ? meta.generatedDraftScene : null);
   const generatedDraftScene = rawGeneratedDraftScene?.id === dismissedGeneratedDraftSceneId ? null : rawGeneratedDraftScene;
+  const playableRiversideActive =
+    localCountySlug === "riverside-ca" ||
+    metaScene?.county.slug === "riverside-ca" ||
+    (isVoxelScene(structuredContent) && structuredContent.county.slug === "riverside-ca");
   // Default national: geo board. Explicit tool study draft wins over geo.
-  // Census boards must never be labeled "generated".
+  // Census boards must never be labeled "generated". Riverside remains the
+  // authored full map even when its county geo pack is present in tool metadata.
   const activeGeneratedScene =
     generatedScene ??
     (hasToolGeneratedStudy && generatedDraftScene ? generatedDraftScene : null) ??
-    countyGeoScene ??
+    (playableRiversideActive ? null : countyGeoScene) ??
     generatedDraftScene;
   const isRealCountyBoard = Boolean(activeGeneratedScene && activeGeneratedScene === countyGeoScene);
-  const forcedPlayableCounty = localCountySlug === "riverside-ca";
+  const forcedPlayableCounty = playableRiversideActive;
   const localCoverageState = localCountySlug === "orange-ca"
     ? { coverage: orangeCoverageSummary, shellScene: orangeShellScene }
     : localCountySlug === "made-up-ca"
@@ -758,6 +830,60 @@ export function App() {
   const notes = activeSceneSession.notes ?? [];
   const stickerMode = activeSceneSession.stickerMode ?? "favorite";
   const noteDraft = activeSceneSession.noteDraft ?? "";
+  const commonsMode: AtlasCommonsMode = widgetState.commonsMode ?? "all";
+  const [publicNotes, setPublicNotes] = useState<AtlasPublicNote[]>([]);
+  const [publicNotesLoading, setPublicNotesLoading] = useState(false);
+  const [publicNotesMessage, setPublicNotesMessage] = useState("");
+  const activeCommonsCountySlug = activeCoverageSummary?.countySlug ?? rawCountyGeoPack?.countySlug ?? scene.county.slug;
+
+  useEffect(() => {
+    if (!metaAtlasCommons?.enabled) {
+      setPublicNotes([]);
+      setPublicNotesLoading(false);
+      setPublicNotesMessage("");
+      return;
+    }
+    if (!metaAtlasCommons.available) {
+      setPublicNotes([]);
+      setPublicNotesLoading(false);
+      setPublicNotesMessage(metaAtlasCommons.statusLabel);
+      return;
+    }
+
+    let cancelled = false;
+    setPublicNotesLoading(true);
+    setPublicNotesMessage("");
+    const mode = commonsMode === "mine" ? "mine" : "all";
+    const args: Record<string, unknown> = {
+      mode,
+      countySlug: activeCommonsCountySlug,
+      sort: commonsMode === "mine" ? "new" : "hot",
+      limit: 100,
+      ...(commonsMode === "nearby" && selectedPlaceId ? { placeId: selectedPlaceId } : {}),
+    };
+    void callAtlasTool<AtlasPublicNoteList>("list_atlas_notes", args)
+      .then((toolResult) => {
+        if (cancelled) return;
+        if (toolResult?.isError || !isAtlasPublicNoteList(toolResult?.structuredContent)) {
+          setPublicNotes([]);
+          setPublicNotesMessage(atlasToolErrorMessage(toolResult, "Public notes are unavailable right now."));
+          return;
+        }
+        setPublicNotes(toolResult.structuredContent.notes);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPublicNotes([]);
+          setPublicNotesMessage("Public notes are unavailable right now. Private notes still work.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPublicNotesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCommonsCountySlug, commonsMode, metaAtlasCommons, selectedPlaceId]);
   const storedHostedClawdContext = activeSceneMatches && !activeGeneratedScene && isHostedClawdContext(widgetState.hostedClawdContext)
     ? publicHostedClawdContext(widgetState.hostedClawdContext)
     : null;
@@ -913,6 +1039,88 @@ export function App() {
     });
   };
 
+  const selectCommonsMode = (mode: AtlasCommonsMode) => {
+    setPublicNotesMessage("");
+    setWidgetState((current) => ({ ...current, commonsMode: mode }));
+  };
+
+  const postPublicNote = async (placeId: string, body: string): Promise<boolean> => {
+    const place = activeInteractionPlaces.find((item) => item.id === placeId);
+    const trimmed = body.trim();
+    if (!place || !trimmed || trimmed.length > 240) {
+      setPublicNotesMessage("Public notes must be 1-240 characters and attached to a mapped place.");
+      return false;
+    }
+    if (/(?:https?:\/\/|www\.)\S+/i.test(trimmed)) {
+      setPublicNotesMessage("Links are not allowed in public notes yet.");
+      return false;
+    }
+
+    setPublicNotesLoading(true);
+    setPublicNotesMessage("");
+    try {
+      const toolResult = await callAtlasTool<AtlasPublicNoteWrite>("write_atlas_note", {
+        operation: "post",
+        countySlug: activeCommonsCountySlug,
+        placeId,
+        placeLabel: place.label,
+        body: trimmed,
+        clientRequestId: typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `public-note-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      });
+      if (toolResult?.isError || !isAtlasPublicNoteWrite(toolResult?.structuredContent)) {
+        setPublicNotesMessage(atlasToolErrorMessage(toolResult, "Connect your Atlas identity to post publicly."));
+        return false;
+      }
+      const write = toolResult.structuredContent;
+      setPublicNotes([write.note]);
+      setPublicNotesMessage(write.message);
+      setWidgetState((current) => ({ ...current, commonsMode: "mine" }));
+      void updateModelContext(`User explicitly posted a public Atlas note for ${place.label}; it is pending moderation.`);
+      return true;
+    } catch {
+      setPublicNotesMessage("Public posting is unavailable right now. Your private note draft was not published.");
+      return false;
+    } finally {
+      setPublicNotesLoading(false);
+    }
+  };
+
+  const reactToPublicNote = async (noteId: string, active: boolean): Promise<void> => {
+    setPublicNotesMessage("");
+    try {
+      const toolResult = await callAtlasTool<AtlasPublicNoteWrite>("write_atlas_note", { operation: "react", noteId, active });
+      if (toolResult?.isError || !isAtlasPublicNoteWrite(toolResult?.structuredContent)) {
+        setPublicNotesMessage(atlasToolErrorMessage(toolResult, "Connect your Atlas identity to mark a note useful."));
+        return;
+      }
+      const updated = toolResult.structuredContent.note;
+      setPublicNotes((current) => current.map((note) => (note.id === updated.id ? updated : note)));
+      setPublicNotesMessage(toolResult.structuredContent.message);
+    } catch {
+      setPublicNotesMessage("That public-note action did not go through.");
+    }
+  };
+
+  const reportPublicNote = async (noteId: string): Promise<void> => {
+    setPublicNotesMessage("");
+    try {
+      const toolResult = await callAtlasTool<AtlasPublicNoteWrite>("write_atlas_note", { operation: "report", noteId, reason: "other" });
+      if (toolResult?.isError || !isAtlasPublicNoteWrite(toolResult?.structuredContent)) {
+        setPublicNotesMessage(atlasToolErrorMessage(toolResult, "Connect your Atlas identity to report a note."));
+        return;
+      }
+      const updated = toolResult.structuredContent.note;
+      setPublicNotes((current) => updated.status === "removed"
+        ? current.filter((note) => note.id !== updated.id)
+        : current.map((note) => (note.id === updated.id ? updated : note)));
+      setPublicNotesMessage(toolResult.structuredContent.message);
+    } catch {
+      setPublicNotesMessage("The report did not go through. Try again shortly.");
+    }
+  };
+
   const openHostedClawd = () => {
     const context = hostedClawdContext;
     if (!context) return;
@@ -1024,6 +1232,11 @@ export function App() {
       selectedPlaceId={selectedPlaceId}
       stickers={stickers}
       notes={notes}
+      atlasCommons={metaAtlasCommons}
+      commonsMode={commonsMode}
+      publicNotes={publicNotes}
+      publicNotesLoading={publicNotesLoading}
+      publicNotesMessage={publicNotesMessage}
       stickerMode={stickerMode}
       noteDraft={noteDraft}
       scoutPreview={scoutPreview}
@@ -1052,6 +1265,10 @@ export function App() {
       onPlaceSticker={placeSticker}
       onNoteDraftChange={(value) => setWidgetState((current) => withSceneSession(current, activeInteractionSceneId, { noteDraft: value }))}
       onSaveNote={saveNote}
+      onSelectCommonsMode={selectCommonsMode}
+      onPostPublicNote={postPublicNote}
+      onReactPublicNote={reactToPublicNote}
+      onReportPublicNote={reportPublicNote}
     />
   );
 }
