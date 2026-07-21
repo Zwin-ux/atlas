@@ -324,7 +324,7 @@ function checkCurrentUpdate(update) {
 }
 
 function checkAtlasCommonsCurrentUpdate(update) {
-  if (update.status !== "implementation_green_staging_disabled_deploy_pending") {
+  if (update.status !== "staging_accepted_production_locked_off") {
     blockers.push(`Atlas Commons current-update status is unexpected: ${update.status ?? "missing"}.`);
   }
   if (update.selectedAxis !== "map_native_public_notes") {
@@ -364,8 +364,11 @@ function checkAtlasCommonsAuthority({ currentUpdate: update, northFace: face, ne
   if (manifest?.scripts?.["verify:atlas-commons:staging"] !== "node scripts/verify-atlas-commons-staging.mjs") {
     blockers.push("package.json must expose the Atlas Commons staging verifier.");
   }
-  if (update?.releaseState?.stagingCommonsEnabled !== false || update?.releaseState?.stagingOidcConfigured !== false) {
-    blockers.push("Current Atlas Commons record must not claim staging enablement or OIDC before those gates run.");
+  if (update?.releaseState?.stagingCommonsEnabled !== true || update?.releaseState?.stagingOidcConfigured !== true || update?.releaseState?.stagingConnectorToolCount !== 9) {
+    blockers.push("Current Atlas Commons record must preserve the accepted enabled staging state with OIDC and nine connector tools.");
+  }
+  if (update?.metricResult?.stagingModerationLifecycle !== "pass" || JSON.stringify(update?.metricResult?.stagingRollbackToolCounts) !== JSON.stringify([9, 7, 9])) {
+    blockers.push("Current Atlas Commons record must preserve the live moderation and 9 -> 7 -> 9 rollback proof.");
   }
 }
 

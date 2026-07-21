@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "slice": "postalpha-0.81d-atlas-commons-map-radar",
+  "status": "staging_accepted_production_locked_off",
+  "acceptedAt": "2026-07-21",
+  "commits": [
+    "ac34e2af",
+    "ea5225ec"
+  ],
+  "featureFlag": {
+    "name": "ATLAS_COMMONS_ENABLED",
+    "stagingFinal": true,
+    "production": false
+  },
+  "staging": {
+    "baseUrl": "https://atlas-backend-staging-9d6c.up.railway.app",
+    "finalDeploymentId": "fa23c787-0208-4dbc-87be-94c72c83aedf",
+    "finalImageDigest": "sha256:9fcb350bf048cb3ce00ebc287783b54bcb849c26381431dcb565f02709f866f5",
+    "toolCount": 9,
+    "widgetResourceUri": "ui://widget/atlas-city-world-081d.html",
+    "oidcIssuer": "https://dev-hezyg5zzb4od1yep.us.auth0.com/",
+    "oidcAudience": "https://atlas-backend-staging-9d6c.up.railway.app/mcp",
+    "scopes": [
+      "atlas:commons.read",
+      "atlas:commons.write"
+    ],
+    "connector": {
+      "name": "Atlas Staging",
+      "registration": "CIMD",
+      "authorizationSupported": "OAuth",
+      "authorizationUsed": "OAuth",
+      "actionCount": 9,
+      "refreshPropagationNote": "After OAuth completion, reopen Settings and refresh once if actions are still populating."
+    }
+  },
+  "deploymentSequence": [
+    {
+      "phase": "disabled_candidate",
+      "deploymentId": "040989f0-51ae-4d31-b8fc-a4b8ec2276e1",
+      "commonsEnabled": false
+    },
+    {
+      "phase": "disabled_oidc_configured",
+      "deploymentId": "7906f0bd-41c8-4127-a8b2-6c27ae1804e2",
+      "commonsEnabled": false
+    },
+    {
+      "phase": "first_enable",
+      "deploymentId": "3d7bc556-4ae4-4dd3-9b2d-712cad760d67",
+      "commonsEnabled": true
+    },
+    {
+      "phase": "oauth_policy_repair",
+      "deploymentId": "0a7d85a0-afce-457e-bf60-3e9cdc4a4a2f",
+      "commonsEnabled": true
+    },
+    {
+      "phase": "rollback_disabled",
+      "deploymentId": "06d79cea-0cad-4080-80ce-5a541df25884",
+      "commonsEnabled": false,
+      "toolCount": 7
+    },
+    {
+      "phase": "final_reenable",
+      "deploymentId": "fa23c787-0208-4dbc-87be-94c72c83aedf",
+      "commonsEnabled": true,
+      "toolCount": 9
+    }
+  ],
+  "verification": {
+    "commonsTests": {
+      "passed": 19,
+      "failed": 0
+    },
+    "coreTests": {
+      "passed": 271,
+      "failed": 0
+    },
+    "hostedClawdRegressionTests": {
+      "passed": 33,
+      "failed": 0
+    },
+    "fullTypecheck": true,
+    "fullProductionBuild": true,
+    "stagingPostgresSmoke": true,
+    "disabledVerifier": true,
+    "enabledVerifier": true,
+    "oauthDiscovery": true,
+    "invalidTokenRelink": true,
+    "chatgptOAuthLogin": true,
+    "chatgptActionCount": 9,
+    "moderationLifecycle": {
+      "distinctUsers": true,
+      "pendingIsolation": true,
+      "operatorApproval": true,
+      "anonymousVisibility": true,
+      "reaction": true,
+      "distinctUserReport": true,
+      "operatorRemoval": true,
+      "cleanup": true
+    },
+    "rollbackToolCounts": [
+      9,
+      7,
+      9
+    ]
+  },
+  "productionInvariant": {
+    "baseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
+    "deploymentId": "1913ad33-8abd-48a8-a36f-193a08f0d5ce",
+    "imageDigest": "sha256:a4d7e4b86db47b02dd465e90c08b634aa2cba40d5f68ce0abdb67943eafa3bbd",
+    "ready": true,
+    "commonsExposed": false,
+    "toolCount": 7,
+    "widgetResourceUri": "ui://widget/atlas-city-world-0781v.html",
+    "changed": false
+  },
+  "privacy": {
+    "tokensRecorded": false,
+    "emailsRecorded": false,
+    "oauthSubjectsRecorded": false,
+    "noteBodiesRecorded": false,
+    "reportReasonsRecorded": false
+  },
+  "productSources": [
+    "https://app.notion.com/p/3a39316183be8128bda0cdbf9cddf3c9",
+    "https://app.notion.com/p/3709316183be81d789f8ecca1f59b105"
+  ],
+  "productionEnablementAuthorized": false
+}

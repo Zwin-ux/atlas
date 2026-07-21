@@ -1,6 +1,6 @@
 # Atlas ALL Public Notes Foundation
 
-Status: Foundation shipped to staging; map-radar completion slice open
+Status: Foundation and map-radar staging acceptance complete; production off
 
 Slice ID: `postalpha-0.81d-atlas-commons-map-radar`
 
@@ -270,7 +270,7 @@ Errors shown to players use concise recovery copy and do not expose database, to
 - map UI tests for all three modes, pending copy, explicit public confirmation, empty/unavailable states, and mobile interaction targets;
 - map UI tests for place aggregation, county-scale radar treatment, selected-note cycling, `HOT / NEW`, one-note-only rendering, slim bottom-strip layout, and no horizontal overflow;
 - current Atlas typecheck, build, core tests, national-generation verifier, selected-RC split guard, emulator audit, and local ship check;
-- no production deploy or live mutation.
+- no production deploy or production mutation.
 
 ## Explicitly deferred
 

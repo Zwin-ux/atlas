@@ -241,7 +241,7 @@ Alternatives considered:
 - Anonymous posting: rejected because rate limiting, moderation, and repeat-abuse handling would be too weak.
 - Reuse Hosted Clawd scopes: rejected because public notes are a separate product boundary and should not revive or imply Hosted Clawd access.
 
-Consequences: Connector authorization must eventually expose the two commons scopes. Anonymous map behavior remains intact.
+Consequences: The staging connector exposes exactly the two Commons scopes. Anonymous map behavior remains intact.
 
 ### ADR-004: Pre-publication moderation with report auto-hide
 

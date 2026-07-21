@@ -2667,8 +2667,8 @@ First implementation target after approval:
 
 ### Quest E11: Atlas Commons staging acceptance
 
-Owner gate: explicit approval before any staging or production environment
-mutation.
+Owner gate: staging mutation approved and completed. Production mutation still
+requires a separate explicit approval.
 
 Acceptance:
 
@@ -2676,14 +2676,18 @@ Acceptance:
   the commons flag remains off. **Done; repeat-safe migration and live staging
   Postgres smoke are green.**
 - Configure staging OIDC scopes, pseudonym secret, and operator credential in
-  the platform secret manager. **Pseudonym and operator secrets are set; OIDC
-  issuer/audience/JWKS remain the owner-authenticated checkpoint.**
+  the platform secret manager. **Done; issuer/audience/JWKS and the exact
+  `atlas:commons.read` / `atlas:commons.write` scopes are configured.**
 - Prove the seven-tool baseline before enablement and nine-tool surface after
-  staging enablement. **Seven-tool disabled baseline is green; nine-tool proof
-  waits for the pushed bundle plus OAuth configuration.**
+  staging enablement. **Done; disabled seven-tool and enabled nine-tool
+  verifiers are green with widget `081d`.**
 - Exercise a real connector login, pending post, operator approval, anonymous
-  read, reaction, report, and rollback on desktop and mobile. **Automated proof
-  is implemented; real login and enabled-staging execution remain pending.**
+  read, reaction, report, and rollback on desktop and mobile. **Done; ChatGPT
+  OAuth is connected, all nine actions are visible, the two-user moderation
+  lifecycle passed, and the flag rollback restored 9 -> 7 -> 9.**
 - Record moderation ownership, retention policy, abuse response, and legal copy
-  before any public launch decision.
+  before any public launch decision. **Still open; this is now the next owner
+  and policy gate.**
 - Keep production `ATLAS_COMMONS_ENABLED=false` until a separate owner cutline.
+  **Confirmed after the final staging re-enable: production stayed on the same
+  deployment/digest, seven tools, and widget `0781v`.**

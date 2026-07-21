@@ -10245,3 +10245,31 @@ The bundle gate also exposed a stale aggregate cap: the committed 0.81C graph
 rebuilds to 1,293,334 bytes under the current lockfile, already over 1.25 MB;
 0.81D adds only about 4 KB. The deferred warning/hard bands were rebaselined to
 1.28/1.35 MB. Eager JS and eager Brotli ceilings remain unchanged.
+
+## Entry 111
+
+**0.81D ATLAS COMMONS STAGING ACCEPTANCE - OAuth, moderation, and rollback
+green; production unchanged, 2026-07-21, Codex.** Pushed the map-radar bundle
+and explicit OAuth-policy repair as `ac34e2af` and `ea5225ec`, then completed
+the owner-authorized isolated staging sequence. Auth0 now advertises the
+staging MCP audience with only `atlas:commons.read` and
+`atlas:commons.write`; ChatGPT registered through CIMD, completed OAuth, and
+shows all nine actions plus widget `081d`. The first empty action view was
+connector refresh propagation, not a server descriptor failure; reopening and
+refreshing populated the correct live nine-tool surface.
+
+Two distinct staging identities and the independent operator credential proved
+the complete moderation lifecycle: pending isolation, queue approval,
+anonymous visibility, reaction, distinct-user report, removal, and cleanup.
+Flag rollback deployment `06d79cea-0cad-4080-80ce-5a541df25884` removed the
+Commons surface to seven tools. Final re-enable deployment
+`fa23c787-0208-4dbc-87be-94c72c83aedf` restored nine tools and passed readiness,
+least-scope, anonymous challenge, and invalid-token relink checks on image
+digest `sha256:9fcb350bf048cb3ce00ebc287783b54bcb849c26381431dcb565f02709f866f5`.
+
+Production stayed on deployment `1913ad33-8abd-48a8-a36f-193a08f0d5ce` and
+digest `sha256:a4d7e4b86db47b02dd465e90c08b634aa2cba40d5f68ce0abdb67943eafa3bbd`:
+healthy, Commons-absent, seven-tool, and widget `0781v`. Public launch remains
+closed behind moderation staffing, retention, abuse-response, legal-copy, and
+a separate production approval. Release evidence is in
+`artifacts/atlas-commons/postalpha-0.81d-staging-acceptance.json`.

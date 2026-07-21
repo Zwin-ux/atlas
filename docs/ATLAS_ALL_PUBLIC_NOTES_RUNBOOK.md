@@ -1,6 +1,6 @@
 # Atlas Commons Staging Runbook
 
-Status: staging authorized; production locked off
+Status: staging acceptance complete; staging enabled; production locked off
 
 Slice: `postalpha-0.81d-atlas-commons-map-radar`
 
@@ -34,19 +34,20 @@ Read-only baseline captured July 21, 2026:
 Immediately before mutation, both environments were healthy, reported no
 `atlasCommons` readiness block, exposed exactly seven tools, and returned 404
 for protected-resource metadata. Staging served widget `081c`; production
-served `0781v`.
+served `0781v`. The final accepted staging deployment serves `081d`, advertises
+the Commons protected-resource metadata, and exposes exactly nine tools.
 
 ## Configuration
 
 | Variable | Staging | Production |
 | --- | --- | --- |
-| `ATLAS_COMMONS_ENABLED` | `false` through deploy/migration/OAuth; `true` only for proof | `false` |
+| `ATLAS_COMMONS_ENABLED` | `true` after successful proof and rollback | `false` |
 | `DATABASE_URL` | isolated staging Postgres | do not change |
 | `ATLAS_COMMONS_PSEUDONYM_SECRET` | configured secret | do not change |
 | `ATLAS_COMMONS_OPS_TOKEN` | configured independent secret | do not change |
-| `ATLAS_OIDC_ISSUER` | required before enablement | do not change |
+| `ATLAS_OIDC_ISSUER` | configured for the isolated Auth0 tenant | do not change |
 | `ATLAS_OIDC_AUDIENCE` | staging MCP resource | do not change |
-| `ATLAS_OIDC_JWKS_URL` | required before enablement | do not change |
+| `ATLAS_OIDC_JWKS_URL` | configured for the isolated Auth0 tenant | do not change |
 | Hosted Clawd persistence/money/save surface | off | off |
 
 Secrets stay in the platform secret manager. The verifier accepts user,
@@ -87,6 +88,39 @@ not print them.
     nine tools. Leave staging enabled only if every enabled gate passes.
 11. Recheck production deployment ID, digest, `/ready`, and exactly seven tools
     after every staging mutation phase.
+
+## Completed acceptance record
+
+Acceptance completed on July 21, 2026.
+
+- Commit `ac34e2af` deployed disabled as
+  `040989f0-51ae-4d31-b8fc-a4b8ec2276e1`; the disabled verifier saw seven
+  tools and isolated Commons readiness/routes.
+- OIDC configuration was applied while disabled and redeployed as
+  `7906f0bd-41c8-4127-a8b2-6c27ae1804e2`; migration and live staging
+  Postgres smoke remained green.
+- The first enabled deployment was
+  `3d7bc556-4ae4-4dd3-9b2d-712cad760d67`.
+- Commit `ea5225ec` repaired the explicit per-tool OAuth policy and complete
+  relink challenges; deployment `0a7d85a0-afce-457e-bf60-3e9cdc4a4a2f`
+  passed the enabled verifier.
+- Auth0 imported ChatGPT's Client Identifier Metadata Document, granted only
+  `atlas:commons.read` and `atlas:commons.write`, and connected `Atlas Staging`
+  through OAuth. ChatGPT shows all nine actions and widget `081d`. Connector
+  action propagation took one additional reopen/refresh after OAuth; the raw
+  MCP tool list was correct throughout.
+- Two distinct staging users plus the operator credential proved pending
+  isolation, queue approval, anonymous visibility, reaction, distinct-user
+  report, removal, and cleanup.
+- Rollback deployment `06d79cea-0cad-4080-80ce-5a541df25884` passed with
+  Commons off and exactly seven tools. Final re-enable deployment
+  `fa23c787-0208-4dbc-87be-94c72c83aedf` passed with exactly nine tools and
+  image digest
+  `sha256:9fcb350bf048cb3ce00ebc287783b54bcb849c26381431dcb565f02709f866f5`.
+- Production remained deployment `1913ad33-8abd-48a8-a36f-193a08f0d5ce`,
+  image digest
+  `sha256:a4d7e4b86db47b02dd465e90c08b634aa2cba40d5f68ce0abdb67943eafa3bbd`,
+  healthy, Commons-absent, seven-tool, and on widget `0781v`.
 
 ## Migration and data safety
 

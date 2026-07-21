@@ -1,7 +1,7 @@
 {
   "id": "postalpha-0.81d-atlas-commons-map-radar",
   "name": "Post-Alpha 0.81D - Atlas Commons Map Radar",
-  "status": "implementation_green_staging_disabled_deploy_pending",
+  "status": "staging_accepted_production_locked_off",
   "playerPromise": "Atlas makes shared local activity visible on the map through restrained place beacons and one selected public note, without turning the product into a feed or publishing private notes.",
   "engineeringPromise": "Ship a default-off, moderated, OAuth-scoped public-note layer with deterministic pagination, isolated readiness, transactional abuse controls, and flag-first rollback.",
   "selectedAxis": "map_native_public_notes",
@@ -20,8 +20,11 @@
     "selectedPublicNotesRendered": 1,
     "publicFeedRendered": false,
     "disabledStagingToolCount": 7,
-    "enabledStagingToolCountExpected": 9,
+    "enabledStagingToolCount": 9,
+    "stagingRollbackToolCounts": [9, 7, 9],
     "stagingPostgresSmoke": "pass",
+    "stagingModerationLifecycle": "pass",
+    "chatgptConnectorOauth": "pass",
     "productionChanged": false
   },
   "verification": {
@@ -31,6 +34,9 @@
     "stagingDisabled": "pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect disabled",
     "stagingEnabled": "pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect enabled",
     "stagingModeration": "pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect enabled --prove-moderation",
+    "chatgptConnector": "Atlas Staging connected through OAuth with nine actions, widget 081d, and exact Commons scopes",
+    "rollback": "staging flag off and redeploy -> disabled verifier -> flag on and redeploy -> enabled verifier",
+    "productionIsolation": "same production deployment and digest; ready; no atlasCommons field; seven tools; widget 0781v",
     "postgres": "pnpm smoke:atlas-commons:postgres",
     "typecheck": "pnpm typecheck",
     "build": "pnpm build",
@@ -41,18 +47,31 @@
   },
   "releaseState": {
     "stagingBaseUrl": "https://atlas-backend-staging-9d6c.up.railway.app",
-    "stagingCommonsEnabled": false,
+    "stagingCommonsEnabled": true,
     "stagingMigrationApplied": true,
     "stagingPseudonymSecretConfigured": true,
     "stagingOperatorTokenConfigured": true,
-    "stagingOidcConfigured": false,
-    "stagingConnectorToolCount": 7,
+    "stagingOidcConfigured": true,
+    "stagingOauthIssuer": "https://dev-hezyg5zzb4od1yep.us.auth0.com/",
+    "stagingOauthAudience": "https://atlas-backend-staging-9d6c.up.railway.app/mcp",
+    "stagingOauthScopes": [
+      "atlas:commons.read",
+      "atlas:commons.write"
+    ],
+    "stagingConnectorConnected": true,
+    "stagingConnectorToolCount": 9,
+    "stagingDeploymentId": "fa23c787-0208-4dbc-87be-94c72c83aedf",
+    "stagingImageDigest": "sha256:9fcb350bf048cb3ce00ebc287783b54bcb849c26381431dcb565f02709f866f5",
+    "rollbackDisabledDeploymentId": "06d79cea-0cad-4080-80ce-5a541df25884",
     "productionBaseUrl": "https://atlas-backend-production-e6fc.up.railway.app",
     "productionCommonsEnabled": false,
     "productionToolCount": 7,
+    "productionWidgetResourceUri": "ui://widget/atlas-city-world-0781v.html",
+    "productionDeploymentId": "1913ad33-8abd-48a8-a36f-193a08f0d5ce",
+    "productionImageDigest": "sha256:a4d7e4b86db47b02dd465e90c08b634aa2cba40d5f68ce0abdb67943eafa3bbd",
     "productionMutationAuthorized": false
   },
-  "nextCodeStep": "Commit and push the green 0.81D bundle, deploy that commit to staging with Commons disabled, then complete the owner-authenticated OIDC and connector gate.",
+  "nextCodeStep": "Keep staging under observation and close moderation staffing, retention, abuse-response, and legal-copy gates before requesting a separate production enablement decision.",
   "forbiddenScope": [
     "production migration, deploy, connector change, or Commons enablement",
     "private or session note import",
@@ -74,21 +93,29 @@
     },
     {
       "id": "disabled-staging-deploy",
-      "status": "pending"
+      "status": "passed",
+      "evidence": "disabled deployment and verifier exposed exactly seven tools with Commons isolated"
     },
     {
       "id": "owner-authenticated-oidc-and-connector",
-      "status": "pending",
-      "ownerAction": true
+      "status": "passed",
+      "evidence": "Auth0 CIMD import and exact scopes; ChatGPT OAuth connected with nine actions"
     },
     {
       "id": "enabled-moderation-and-rollback-proof",
-      "status": "pending"
+      "status": "passed",
+      "evidence": "two-user moderation lifecycle and 9 -> 7 -> 9 flag rollback passed"
     },
     {
       "id": "production-isolation",
-      "status": "in_progress",
-      "evidence": "read-only baseline captured; must be rechecked after each staging phase"
+      "status": "passed",
+      "evidence": "production deployment, digest, readiness, seven tools, and 0781v widget remained unchanged"
+    },
+    {
+      "id": "public-launch-policy-and-production-window",
+      "status": "pending",
+      "ownerAction": true,
+      "evidence": "moderation staffing, retention, abuse response, legal copy, and production approval remain separate gates"
     }
   ]
 }
