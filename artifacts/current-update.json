@@ -35,7 +35,7 @@
     "stagingEnabled": "pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect enabled",
     "stagingModeration": "pnpm verify:atlas-commons:staging -- --base https://atlas-backend-staging-9d6c.up.railway.app --expect enabled --prove-moderation",
     "chatgptConnector": "Atlas Staging connected through OAuth with nine actions, widget 081d, exact Commons scopes, and a successful authenticated MINE read",
-    "proofIdentityCleanup": "temporary users blocked; proof device grant disabled; proof Commons API grant revoked",
+    "proofIdentityCleanup": "author proof user blocked; proof device grant disabled; proof Commons API grant revoked; dedicated Atlas Staging Connector identity retained",
     "rollback": "staging flag off and redeploy -> disabled verifier -> flag on and redeploy -> enabled verifier",
     "productionIsolation": "same production deployment and digest; ready; no atlasCommons field; seven tools; widget 0781v",
     "postgres": "pnpm smoke:atlas-commons:postgres",

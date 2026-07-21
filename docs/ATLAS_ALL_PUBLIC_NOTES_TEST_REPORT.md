@@ -86,11 +86,12 @@ the reference comparison and the caption/mobile-map corrections.
 - production digest, unchanged:
   `sha256:a4d7e4b86db47b02dd465e90c08b634aa2cba40d5f68ce0abdb67943eafa3bbd`.
 
-The proof used two distinct temporary staging users and an independent operator
-credential. Both temporary users were blocked afterward; the proof client's
-device grant was disabled and its Commons API grant revoked. Tokens, provider
-subjects, emails, note bodies, and report reasons are intentionally excluded
-from release artifacts.
+The proof used two distinct staging identities and an independent operator
+credential. The author-only proof user was blocked afterward; the proof
+client's device grant was disabled and its Commons API grant revoked. The
+second identity was relabeled `Atlas Staging Connector` and retained for the
+real connector's token refresh. Tokens, provider subjects, emails, note bodies,
+and report reasons are intentionally excluded from release artifacts.
 
 ## Remaining public-launch gates
 

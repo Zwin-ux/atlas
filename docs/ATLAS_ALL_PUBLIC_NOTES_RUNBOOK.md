@@ -111,9 +111,10 @@ Acceptance completed on July 21, 2026.
   MCP tool list was correct throughout.
 - Two distinct staging users plus the operator credential proved pending
   isolation, queue approval, anonymous visibility, reaction, distinct-user
-  report, removal, and cleanup. After proof, both temporary users were blocked,
-  the proof client's device grant was disabled, and its Commons API grant was
-  revoked. The real `Atlas Staging` connector remained connected.
+  report, removal, and cleanup. After proof, the author-only proof user was
+  blocked, the proof client's device grant was disabled, and its Commons API
+  grant was revoked. The dedicated `Atlas Staging Connector` identity was
+  retained so the real ChatGPT connector can refresh and remain connected.
 - Rollback deployment `06d79cea-0cad-4080-80ce-5a541df25884` passed with
   Commons off and exactly seven tools. Final re-enable deployment
   `fa23c787-0208-4dbc-87be-94c72c83aedf` passed with exactly nine tools and

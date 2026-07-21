@@ -101,10 +101,12 @@
       "cleanup": true
     },
     "proofAccessCleanup": {
-      "temporaryUsersBlocked": true,
+      "authorProofUserBlocked": true,
       "deviceCodeGrantDisabled": true,
       "commonsApiGrantRevoked": true,
-      "chatgptConnectorPreserved": true
+      "chatgptConnectorPreserved": true,
+      "connectorIdentityRetained": true,
+      "connectorIdentityLabel": "Atlas Staging Connector"
     },
     "rollbackToolCounts": [
       9,
