@@ -102,6 +102,10 @@ and report reasons are intentionally excluded from release artifacts.
 - schedule a separate owner-approved production window. Production remains
   unchanged/off until that decision.
 
+The decision-ready form, proposed copy, and production-window checklist live in
+`docs/ATLAS_COMMONS_PUBLIC_LAUNCH_OWNER_PACKET.md`. Its approval table is
+intentionally pending and does not authorize production enablement.
+
 ## Product-source alignment
 
 The map-first cutline and production freeze were cross-checked against:

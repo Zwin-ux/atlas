@@ -153,3 +153,7 @@ Stop and return to the disabled staging state if any of these fail:
 
 Public launch remains a separate owner decision covering moderation staffing,
 retention, legal copy, abuse response, and a production window.
+
+Use `docs/ATLAS_COMMONS_PUBLIC_LAUNCH_OWNER_PACKET.md` to record those five
+decisions. Production remains disabled until every approval row is named and
+dated.
