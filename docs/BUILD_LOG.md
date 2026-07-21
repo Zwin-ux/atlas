@@ -10259,6 +10259,10 @@ call. The first empty action view was
 connector refresh propagation, not a server descriptor failure; reopening and
 refreshing populated the correct live nine-tool surface.
 
+After proof, both temporary staging users were blocked, the proof client's
+device-code grant was disabled, and its Commons API grant was revoked. The real
+`Atlas Staging` ChatGPT connector remains connected.
+
 Two distinct staging identities and the independent operator credential proved
 the complete moderation lifecycle: pending isolation, queue approval,
 anonymous visibility, reaction, distinct-user report, removal, and cleanup.
