@@ -43,6 +43,10 @@ try {
     const tools = toolDefinitions.map((tool) => tool.name).sort();
     const expectedTools = expectedState === "enabled" ? expectedEnabledTools : expectedBaseTools;
     assertSame(tools, expectedTools, "MCP tool surface");
+    for (const toolName of expectedBaseTools) {
+      const tool = toolDefinitions.find((definition) => definition.name === toolName);
+      assertSameJson(tool?._meta?.securitySchemes, [{ type: "noauth" }], `${toolName} noauth securitySchemes`);
+    }
     const selectCounty = toolDefinitions.find((tool) => tool.name === "select_county");
     assert(selectCounty?._meta?.["openai/outputTemplate"] === expectedWidgetUri, `select_county outputTemplate did not match ${expectedWidgetUri}`);
     assert(selectCounty?._meta?.ui?.resourceUri === expectedWidgetUri, `select_county resourceUri did not match ${expectedWidgetUri}`);
@@ -53,6 +57,16 @@ try {
       arguments: { countySlug: "riverside-ca" },
     }), "select_county");
     if (expectedState === "enabled") {
+      const listNotes = toolDefinitions.find((tool) => tool.name === "list_atlas_notes");
+      const writeNote = toolDefinitions.find((tool) => tool.name === "write_atlas_note");
+      assertSameJson(listNotes?._meta?.securitySchemes, [
+        { type: "noauth" },
+        { type: "oauth2", scopes: ["atlas:commons.read"] },
+      ], "list_atlas_notes compatibility securitySchemes");
+      assertSameJson(writeNote?._meta?.securitySchemes, [
+        { type: "oauth2", scopes: ["atlas:commons.write"] },
+      ], "write_atlas_note compatibility securitySchemes");
+      checks.push({ name: "tool OAuth security schemes", ok: true });
       const mineChallenge = await anonymous.client.callTool({
         name: "list_atlas_notes",
         arguments: { mode: "mine", limit: 1 },
@@ -103,7 +117,30 @@ try {
     assert(metadataResponse.ok, `enabled staging OAuth metadata returned ${metadataResponse.status}`);
     assert(metadata.resource === `${baseUrl}/mcp`, `OAuth resource expected ${baseUrl}/mcp, got ${String(metadata.resource)}`);
     assertSame([...(metadata.scopes_supported ?? [])].sort(), expectedCommonsScopes, "Commons OAuth scopes");
-    checks.push({ name: "enabled readiness and least scopes", ok: true });
+    const invalidTokenResponse = await fetch(`${baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Authorization: "Bearer invalid-staging-proof-token",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: "invalid-token-proof",
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "atlas-staging-verifier", version: "0.1.0" },
+        },
+      }),
+    });
+    const invalidChallenge = invalidTokenResponse.headers.get("www-authenticate") ?? "";
+    assert(invalidTokenResponse.status === 401, `invalid bearer returned ${invalidTokenResponse.status}, expected 401`);
+    assert(invalidChallenge.includes("resource_metadata="), "invalid bearer challenge omitted resource_metadata");
+    assert(invalidChallenge.includes('error="invalid_token"'), "invalid bearer challenge omitted invalid_token");
+    assert(/error_description="[^"]+"/.test(invalidChallenge), "invalid bearer challenge omitted error_description");
+    checks.push({ name: "enabled readiness, least scopes, and invalid-token relink", ok: true });
 
     if (proveModeration) {
       const userToken = requiredSecret("ATLAS_COMMONS_USER_TOKEN");
@@ -247,7 +284,13 @@ function assertAuthChallenge(result, scope, label) {
   const challenges = result?._meta?.["mcp/www_authenticate"];
   assert(Array.isArray(challenges) && challenges.length > 0, `${label} returned no mcp/www_authenticate challenge`);
   assert(challenges.some((challenge) => typeof challenge === "string" && challenge.includes(`scope="${scope}"`)), `${label} challenge did not request ${scope}`);
+  assert(challenges.every((challenge) => String(challenge).includes('error="insufficient_scope"')), `${label} challenge omitted insufficient_scope`);
+  assert(challenges.every((challenge) => /error_description="[^"]+"/.test(String(challenge))), `${label} challenge omitted error_description`);
   assert(challenges.every((challenge) => !String(challenge).includes("hosted_clawd")), `${label} challenge leaked a Hosted Clawd scope`);
+}
+
+function assertSameJson(actual, expected, label) {
+  assert(JSON.stringify(actual) === JSON.stringify(expected), `${label} mismatch: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
 }
 
 async function readJson(response, label) {

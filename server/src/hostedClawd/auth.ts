@@ -94,9 +94,16 @@ export function buildOAuthProtectedResourceMetadata(
   };
 }
 
-export function buildAuthChallengeHeader(resourceMetadataUrl: string, requiredScope?: string): string {
-  const parts = [`Bearer resource_metadata="${resourceMetadataUrl}"`];
-  if (requiredScope) parts.push(`scope="${requiredScope}"`);
+export function buildAuthChallengeHeader(
+  resourceMetadataUrl: string,
+  requiredScope?: string,
+  options: { error?: string; errorDescription?: string } = {},
+): string {
+  const quoted = (value: string) => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const parts = [`Bearer resource_metadata="${quoted(resourceMetadataUrl)}"`];
+  if (requiredScope) parts.push(`scope="${quoted(requiredScope)}"`);
+  if (options.error) parts.push(`error="${quoted(options.error)}"`);
+  if (options.errorDescription) parts.push(`error_description="${quoted(options.errorDescription)}"`);
   return parts.join(", ");
 }
 

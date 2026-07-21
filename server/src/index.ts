@@ -1790,7 +1790,16 @@ function atlasCommonsToolError(error: unknown, requiredScope: string = ATLAS_COM
       atlasCommons: atlasCommonsService.publicMeta(),
       atlasCommonsError: { code: known.code },
       ...(authenticationError
-        ? { "mcp/www_authenticate": [buildAuthChallengeHeader(atlasCommonsMetadataUrl(), requiredScope)] }
+        ? {
+            "mcp/www_authenticate": [buildAuthChallengeHeader(
+              atlasCommonsMetadataUrl(),
+              requiredScope,
+              {
+                error: "insufficient_scope",
+                errorDescription: "Sign in and grant the required Atlas Commons permission.",
+              },
+            )],
+          }
         : {}),
     },
   };
@@ -2964,7 +2973,10 @@ function setHostedClawdAuthChallenge(
 ): void {
   res.setHeader(
     "WWW-Authenticate",
-    buildAuthChallengeHeader(hostedClawdResourceMetadataUrl(req), requiredScope),
+    buildAuthChallengeHeader(hostedClawdResourceMetadataUrl(req), requiredScope, {
+      error: "invalid_token",
+      errorDescription: "The access token is invalid or expired.",
+    }),
   );
 }
 
@@ -3316,6 +3328,7 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
+        securitySchemes: [{ type: "noauth" }],
         "openai/toolInvocation/invoking": "Looking up nearby places...",
         "openai/toolInvocation/invoked": "Nearby places ready.",
       },
@@ -3359,6 +3372,7 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
+        securitySchemes: [{ type: "noauth" }],
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
         "openai/toolInvocation/invoking": "Opening Atlas county...",
@@ -3440,6 +3454,7 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
+        securitySchemes: [{ type: "noauth" }],
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
         "openai/toolInvocation/invoking": "Checking Atlas map data...",
@@ -3553,6 +3568,7 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
+        securitySchemes: [{ type: "noauth" }],
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
         "openai/toolInvocation/invoking": "Refreshing Atlas map...",
@@ -3638,6 +3654,7 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
+        securitySchemes: [{ type: "noauth" }],
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
         "openai/toolInvocation/invoking": "Dropping Clawd...",
@@ -3697,6 +3714,7 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
+        securitySchemes: [{ type: "noauth" }],
         ui: { resourceUri: WIDGET_URI },
         "openai/outputTemplate": WIDGET_URI,
         "openai/toolInvocation/invoking": "Drafting manual campaign...",
@@ -3752,6 +3770,7 @@ function createAtlasServer(): McpServer {
         destructiveHint: false,
       },
       _meta: {
+        securitySchemes: [{ type: "noauth" }],
         "openai/toolInvocation/invoking": "Checking save limits...",
         "openai/toolInvocation/invoked": "Save limits ready.",
       },
@@ -3805,6 +3824,10 @@ function createAtlasServer(): McpServer {
           destructiveHint: false,
         },
         _meta: {
+          securitySchemes: [
+            { type: "noauth" },
+            { type: "oauth2", scopes: [ATLAS_COMMONS_READ_SCOPE] },
+          ],
           "openai/toolInvocation/invoking": "Reading Atlas ALL...",
           "openai/toolInvocation/invoked": "Atlas public notes ready.",
         },
@@ -3858,6 +3881,9 @@ function createAtlasServer(): McpServer {
           idempotentHint: true,
         },
         _meta: {
+          securitySchemes: [
+            { type: "oauth2", scopes: [ATLAS_COMMONS_WRITE_SCOPE] },
+          ],
           "openai/toolInvocation/invoking": "Updating Atlas public notes...",
           "openai/toolInvocation/invoked": "Atlas public-note action complete.",
         },

@@ -114,6 +114,11 @@ if (blockers.length === 0) {
     if (JSON.stringify(disabled.tools) !== JSON.stringify(expectedFrozen)) {
       blockers.push(`Default-off runtime must expose seven tools; got ${disabled.tools.join(", ")}.`);
     }
+    for (const toolName of expectedFrozen) {
+      if (JSON.stringify(disabled.toolSecuritySchemes?.[toolName]) !== JSON.stringify([{ type: "noauth" }])) {
+        blockers.push(`Default-off ${toolName} must declare noauth securitySchemes.`);
+      }
+    }
     if (disabled.widgetTemplate !== WIDGET_URI) {
       blockers.push(`Default-off select_county widget URI expected ${WIDGET_URI}; got ${String(disabled.widgetTemplate)}.`);
     }
@@ -123,8 +128,22 @@ if (blockers.length === 0) {
     if (JSON.stringify(enabled.tools) !== JSON.stringify(expectedEnabled)) {
       blockers.push(`Enabled runtime tool surface mismatch; got ${enabled.tools.join(", ")}.`);
     }
+    for (const toolName of expectedFrozen) {
+      if (JSON.stringify(enabled.toolSecuritySchemes?.[toolName]) !== JSON.stringify([{ type: "noauth" }])) {
+        blockers.push(`Enabled ${toolName} must preserve noauth securitySchemes.`);
+      }
+    }
     if (enabled.widgetTemplate !== WIDGET_URI) {
       blockers.push(`Enabled select_county widget URI expected ${WIDGET_URI}; got ${String(enabled.widgetTemplate)}.`);
+    }
+    const expectedListSchemes = [
+      { type: "noauth" },
+      { type: "oauth2", scopes: ["atlas:commons.read"] },
+    ];
+    const expectedWriteSchemes = [{ type: "oauth2", scopes: ["atlas:commons.write"] }];
+    if (JSON.stringify(enabled.listMetaSecuritySchemes) !== JSON.stringify(expectedListSchemes)
+      || JSON.stringify(enabled.writeMetaSecuritySchemes) !== JSON.stringify(expectedWriteSchemes)) {
+      blockers.push("Commons tools must mirror securitySchemes in _meta for ChatGPT compatibility.");
     }
     if (enabled.commonsError !== "COMMONS_UNAVAILABLE") {
       blockers.push(`Enabled-without-DB read must fail narrowly with COMMONS_UNAVAILABLE; got ${enabled.commonsError ?? "none"}.`);
@@ -141,6 +160,12 @@ if (blockers.length === 0) {
     }
     if (enabled.metadata?.resource !== `${baseResource(enabled.baseUrl)}/mcp`) {
       blockers.push(`OAuth resource metadata must identify the MCP endpoint; got ${String(enabled.metadata?.resource)}.`);
+    }
+    if (enabled.invalidTokenStatus !== 401
+      || !enabled.invalidTokenChallenge?.includes("resource_metadata=")
+      || !enabled.invalidTokenChallenge?.includes('error="invalid_token"')
+      || !/error_description="[^"]+"/.test(enabled.invalidTokenChallenge)) {
+      blockers.push("Invalid MCP bearer tokens must return a complete 401 OAuth relink challenge.");
     }
   } catch (error) {
     blockers.push(`Runtime probe failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -187,14 +212,33 @@ async function probeRuntime(enabled) {
     await waitForHealth(`${baseUrl}/health`, child, () => output);
     const ready = await (await fetch(`${baseUrl}/ready`)).json();
     const metadata = enabled ? await (await fetch(`${baseUrl}/.well-known/oauth-protected-resource`)).json() : undefined;
+    const invalidTokenResponse = enabled ? await fetch(`${baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Authorization: "Bearer invalid-runtime-probe-token",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: "invalid-token-proof",
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "atlas-commons-verifier", version: "0.1.0" },
+        },
+      }),
+    }) : undefined;
     const client = new Client({ name: "atlas-commons-verifier", version: "0.1.0" });
     const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`));
     await client.connect(transport);
     try {
       const toolDefinitions = (await client.listTools()).tools;
       const tools = toolDefinitions.map((tool) => tool.name).sort();
+      const toolSecuritySchemes = Object.fromEntries(toolDefinitions.map((tool) => [tool.name, tool?._meta?.securitySchemes]));
       const widgetTemplate = toolDefinitions.find((tool) => tool.name === "select_county")?._meta?.["openai/outputTemplate"];
-      if (!enabled) return { tools, ready, baseUrl, widgetTemplate };
+      if (!enabled) return { tools, ready, baseUrl, widgetTemplate, toolSecuritySchemes };
       const list = await client.callTool({ name: "list_atlas_notes", arguments: { countySlug: "riverside-ca" } });
       const selected = await client.callTool({ name: "select_county", arguments: { countySlug: "riverside-ca" } });
       return {
@@ -202,9 +246,14 @@ async function probeRuntime(enabled) {
         widgetTemplate,
         ready,
         metadata,
+        invalidTokenStatus: invalidTokenResponse?.status,
+        invalidTokenChallenge: invalidTokenResponse?.headers.get("www-authenticate"),
         baseUrl,
         commonsError: list?._meta?.atlasCommonsError?.code,
         mapMeta: selected?._meta?.atlasCommons,
+        toolSecuritySchemes,
+        listMetaSecuritySchemes: toolDefinitions.find((tool) => tool.name === "list_atlas_notes")?._meta?.securitySchemes,
+        writeMetaSecuritySchemes: toolDefinitions.find((tool) => tool.name === "write_atlas_note")?._meta?.securitySchemes,
       };
     } finally {
       await client.close();
