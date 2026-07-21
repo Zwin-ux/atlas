@@ -66,6 +66,8 @@ For a removal request or privacy question, contact mzwin3545@gmail.com with the 
 ### Community standard
 
 The approval-ready draft is `docs/legal/ATLAS_COMMONS_COMMUNITY_STANDARD.md`.
+The served public route is `/community`; it must stay clearly labeled as a
+Commons-only policy until owner approval and production enablement.
 
 ## Approval record
 

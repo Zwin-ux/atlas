@@ -2413,6 +2413,36 @@ function termsPageHtml(): string {
   );
 }
 
+function communityPageHtml(): string {
+  return legalPageShell(
+    "Commons Community Standard",
+    `<p>This standard applies only if Atlas Commons public notes are enabled in
+      an approved release environment. Public notes are reviewed before they
+      are visible.</p>
+    <h2>Keep notes useful</h2>
+    <p>Write short, place-specific observations that help someone understand a
+      location: access, timing, wayfinding, atmosphere, or a practical local
+      detail. Treat every public note as public.</p>
+    <h2>Do not post</h2>
+    <ul>
+      <li>Personal contact details, precise routines, credentials, financial
+        details, or other sensitive personal information.</li>
+      <li>Hate, threats, harassment, sexual content, false accusations,
+        doxxing, impersonation, or content that could put someone at risk.</li>
+      <li>Spam, advertising, referral links, scams, malware, copied provider
+        data, or copyrighted material you do not have permission to share.</li>
+      <li>Emergency requests. Atlas Commons is not an emergency service.</li>
+    </ul>
+    <h2>Reports and removals</h2>
+    <p>Anyone can report a visible note. Moderators may reject, hide, remove,
+      restore, or limit content to enforce this standard or protect the service.
+      For a removal request, contact <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>
+      with the note link or selected place and approximate posting time. Do not
+      send sensitive information by email.</p>
+    <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/support">Support</a></p>`,
+  );
+}
+
 function supportPageHtml(): string {
   return legalPageShell(
     "Support",
@@ -4570,6 +4600,11 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/terms" && req.method === "GET") {
     htmlResponse(res, 200, termsPageHtml());
+    return;
+  }
+
+  if (url.pathname === "/community" && req.method === "GET") {
+    htmlResponse(res, 200, communityPageHtml());
     return;
   }
 
