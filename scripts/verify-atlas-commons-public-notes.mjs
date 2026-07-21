@@ -11,6 +11,7 @@ const blockers = [];
 const requiredFiles = [
   "docs/ATLAS_ALL_PUBLIC_NOTES_SPEC.md",
   "docs/ATLAS_ALL_PUBLIC_NOTES_ARCHITECTURE.md",
+  "docs/legal/ATLAS_COMMONS_COMMUNITY_STANDARD.md",
   "specs/atlas_all_public_notes_design.md",
   "server/src/atlasCommons/types.ts",
   "server/src/atlasCommons/repository.ts",
@@ -122,6 +123,14 @@ if (blockers.length === 0) {
     if (disabled.widgetTemplate !== WIDGET_URI) {
       blockers.push(`Default-off select_county widget URI expected ${WIDGET_URI}; got ${String(disabled.widgetTemplate)}.`);
     }
+    const expectedPublicPages = ["/privacy", "/terms", "/support", "/community"];
+    for (const page of expectedPublicPages) {
+      const response = disabled.publicPages?.[page];
+      if (response?.status !== 200) blockers.push(`Default-off public page ${page} must return 200; got ${String(response?.status)}.`);
+    }
+    if (!disabled.publicPages?.["/community"]?.body.includes("Commons Community Standard")) {
+      blockers.push("Default-off Community Standard page must remain publicly readable and correctly titled.");
+    }
 
     const enabled = await probeRuntime(true);
     const expectedEnabled = [...expectedFrozen, "list_atlas_notes", "write_atlas_note"].sort();
@@ -211,6 +220,9 @@ async function probeRuntime(enabled) {
   try {
     await waitForHealth(`${baseUrl}/health`, child, () => output);
     const ready = await (await fetch(`${baseUrl}/ready`)).json();
+    const publicPages = Object.fromEntries(await Promise.all(
+      ["/privacy", "/terms", "/support", "/community"].map(async (path) => [path, await readPublicPage(`${baseUrl}${path}`)]),
+    ));
     const metadata = enabled ? await (await fetch(`${baseUrl}/.well-known/oauth-protected-resource`)).json() : undefined;
     const invalidTokenResponse = enabled ? await fetch(`${baseUrl}/mcp`, {
       method: "POST",
@@ -238,7 +250,7 @@ async function probeRuntime(enabled) {
       const tools = toolDefinitions.map((tool) => tool.name).sort();
       const toolSecuritySchemes = Object.fromEntries(toolDefinitions.map((tool) => [tool.name, tool?._meta?.securitySchemes]));
       const widgetTemplate = toolDefinitions.find((tool) => tool.name === "select_county")?._meta?.["openai/outputTemplate"];
-      if (!enabled) return { tools, ready, baseUrl, widgetTemplate, toolSecuritySchemes };
+      if (!enabled) return { tools, ready, baseUrl, widgetTemplate, toolSecuritySchemes, publicPages };
       const list = await client.callTool({ name: "list_atlas_notes", arguments: { countySlug: "riverside-ca" } });
       const selected = await client.callTool({ name: "select_county", arguments: { countySlug: "riverside-ca" } });
       return {
@@ -249,6 +261,7 @@ async function probeRuntime(enabled) {
         invalidTokenStatus: invalidTokenResponse?.status,
         invalidTokenChallenge: invalidTokenResponse?.headers.get("www-authenticate"),
         baseUrl,
+        publicPages,
         commonsError: list?._meta?.atlasCommonsError?.code,
         mapMeta: selected?._meta?.atlasCommons,
         toolSecuritySchemes,
@@ -265,6 +278,11 @@ async function probeRuntime(enabled) {
       new Promise((resolve) => setTimeout(resolve, 2000)),
     ]);
   }
+}
+
+async function readPublicPage(url) {
+  const response = await fetch(url);
+  return { status: response.status, body: (await response.text()).slice(0, 20_000) };
 }
 
 function baseResource(baseUrl) {
