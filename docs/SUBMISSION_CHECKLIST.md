@@ -47,6 +47,10 @@ Use `chatgpt-app-submission.json` as the copy-and-evidence source. The portal cu
 - country availability;
 - release notes and policy attestations.
 
+The reviewer-facing prompt sequence and expected safety boundaries are in
+`docs/ATLAS_CHATGPT_REVIEWER_RUN.md`. Use that script for the real ChatGPT web
+and mobile evidence pass; do not substitute emulator-only proof.
+
 ## Ordered Finish Line
 
 1. Finish the local build/typecheck/core/backend/submission ladder and record the exact clean release envelope.
