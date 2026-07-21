@@ -2379,16 +2379,19 @@ function termsPageHtml(): string {
     "Terms of Service",
     `<p>By using Atlas County Scout you agree to these terms.</p>
     <h2>What Atlas is</h2>
-    <p>Atlas is a read-only voxel county map and local planning tool inside
-      ChatGPT. Riverside/Eastvale is the interactive map. Other supported counties
-      may open as clearly labeled generated district studies rather than verified
-      local coverage.</p>
+    <p>Atlas is a voxel county map and local planning tool inside ChatGPT.
+      Riverside/Eastvale is the interactive map. Other supported counties may
+      open as clearly labeled generated district studies rather than verified
+      local coverage. Public notes, if enabled, are moderated and governed by
+      the applicable community standard.</p>
     <h2>Planning boundaries</h2>
     <ul>
       <li>Scout Drops and manual campaign plans are planning aids, not guarantees
         of business, legal, financial, or marketing results.</li>
       <li>Atlas does not post, message, advertise, submit forms, create accounts,
-        process payments, or save public user work to an Atlas database.</li>
+        or process payments. Private notes stay in the ChatGPT conversation.
+        Approved public notes may be stored only when that feature is enabled
+        under the public launch policy.</li>
       <li>Nearby-place results are lookup-only and may be cached for up to 24
         hours; they do not prove map coverage or business opportunity.</li>
     </ul>

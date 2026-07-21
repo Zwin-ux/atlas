@@ -63,6 +63,10 @@ Thanks — this report is queued for review. We may hide or remove content that 
 
 For a removal request or privacy question, contact mzwin3545@gmail.com with the public note link or place and approximate posting time. Do not include passwords, payment details, or other sensitive information.
 
+### Community standard
+
+The approval-ready draft is `docs/legal/ATLAS_COMMONS_COMMUNITY_STANDARD.md`.
+
 ## Approval record
 
 | Date | Owner | Gate | Decision | Evidence link |
