@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "atlas-road-bake-proof/1",
+  "quest": "national-roads-origin-live",
+  "county": "maricopa-az",
+  "geoid": "04013",
+  "status": "pass",
+  "observedAt": "2026-07-21T01:12:51.671Z",
+  "sourceCommit": "8b0d3750e202de59fa92728c613eef6014c18eb8",
+  "command": "node scripts/build-county-road-chunks.mjs --county maricopa-az --band near --out-dir <temporary-proof-root>",
+  "previousFailure": {
+    "type": "RangeError",
+    "message": "Maximum call stack size exceeded",
+    "site": "scripts/build-county-road-chunks.mjs:568",
+    "cause": "allParts.push(...parts) expanded a layer result into more function arguments than V8 accepts"
+  },
+  "implementation": {
+    "change": "append fetched road parts with bounded iteration",
+    "productionStateChanged": false,
+    "gitRoadPackAdded": false
+  },
+  "input": {
+    "source": "US Census TIGERweb Transportation",
+    "serviceCurrentVersion": 11.5,
+    "documentVersion": "2.9.0",
+    "gazetteerYear": 2024,
+    "roadPartsFetched": 155251,
+    "footprintCells": 5931
+  },
+  "output": {
+    "packHash": "sha256-3ec61c1f4705fbd607a9651757c624988210fe7101b57ac3583fe82e862b2708",
+    "chunkCount": 4145,
+    "presentCellCount": 4145,
+    "emptyCellCount": 1786,
+    "distinctSourceFeatures": 127004,
+    "featureEntries": 157535,
+    "brotliBytes": 7404465,
+    "maxChunkBrotliBytes": 15844,
+    "warnZoneChunks": 0,
+    "ceilingBytes": 65536,
+    "ceilingViolations": 0,
+    "chunksDecoded": 4145,
+    "featureEntriesDecoded": 157535,
+    "roundTripGreen": true,
+    "elapsedSeconds": 245.5,
+    "temporaryOutputRetained": true
+  }
+}

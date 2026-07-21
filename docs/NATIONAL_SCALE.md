@@ -68,7 +68,8 @@ Key layout matches `data/road-chunks/<slug>/` (no rewrite).
 1. **Dogfood metros** — Miami-Dade, Cook, … (done)  
 2. **Priority metros** — `data/road-chunks/_priority-metros.json` (top population / demand)  
 3. **All remaining counties** — offline bake farm → upload to origin  
-4. **Maricopa-class failures** — fix bake; until then honesty = unavailable  
+4. **Maricopa-class failures** — bulk-spread stack overflow fixed and live
+   large-county bake proved; keep honesty = unavailable until a pack is published
 
 Never block Mode B on (2)–(4).
 

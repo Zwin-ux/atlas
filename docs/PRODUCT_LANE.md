@@ -49,7 +49,7 @@ See session plan / dogfood: Riverside clay; national board; honesty; notes on to
 | miami-dade-fl, cook-il | Dogfood metros |
 | apache-az, loving-tx, orleans-parish-la, sedgwick-ks, suffolk-ma | Earlier bakes |
 | adams-co, benton-ar, linn-ia | Mid-size dogfood |
-| maricopa-az | **Blocked** — bake stack overflow |
+| maricopa-az | Bake fixed; 4,145 chunks round-tripped with no ceiling violations |
 
 Honesty: band-aware banner + `roadStatus` (ready / sparse / loading / unavailable). No fake buildings.
 
@@ -57,9 +57,10 @@ Honesty: band-aware banner + `roadStatus` (ready / sparse / loading / unavailabl
 
 Full plan: session plan + `docs/NATIONAL_SCALE.md`. Agent law: `AGENTS.md` § National scale.
 
-1. **Phase 0** — AGENTS / BUILD_LOG / NEXT_QUESTS lock ✅ in progress  
-2. **Phase 1–2** — Sync dogfood packs to `atlas-road-chunks` bucket; public GET; set `ATLAS_ROAD_CHUNKS_ORIGIN` + `PUBLIC_ORIGIN`; prove `/map-config`  
-3. **Phase 3** — Windowed NEAR fetch (stop full-county prefetch)  
-4. **Phase 4** — Wave-1 metros → origin only (not multi-GB git)  
-5. **Phase 5** — Fix maricopa bake stack overflow  
-6. Human ChatGPT dogfood R1–R8; never restart national clay massing
+1. **Phase 0** — AGENTS / BUILD_LOG / NEXT_QUESTS lock ✅
+2. **Phase 1–2** — Dogfood packs synced to private S3; signed server fallback live ✅
+3. **Phase 3** — Windowed NEAR fetch, capped at 48 chunks ✅
+4. **Phase 4** — Maricopa large-county bake stability ✅
+5. Human ChatGPT dogfood R1–R8
+6. Wave-1 metros → origin only (not multi-GB Git)
+7. Optional public CDN; never restart national clay massing

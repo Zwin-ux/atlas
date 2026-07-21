@@ -1,5 +1,34 @@
 # Build Log
 
+## Entry 228
+
+Quest: `national-roads-origin-live` Windows continuation
+
+What changed:
+- Made `scripts/ship-check.mjs` launch `pnpm` steps through `ComSpec` on
+  Windows, while preserving direct process execution on other platforms.
+- Added explicit child-process launch errors to the ship-check report instead
+  of collapsing `ENOENT` into a silent null status.
+- Replaced the Maricopa road bake's unbounded `allParts.push(...parts)` call
+  with bounded iteration. The former bulk spread exceeded V8's argument stack
+  after the local-road layer returned more than 150,000 parts.
+
+Measured proof:
+- `pnpm ship:check:local`: 8/8 gates passed on Windows, including 271 core
+  tests, starter typecheck/build, generator parity, policy guards, and the
+  production MCP submission contract.
+- Live Maricopa TIGER bake: 155,251 fetched parts, 4,145 output chunks, 127,004
+  distinct source features, 157,535 round-tripped feature entries.
+- Compression gate held: 0 ceiling violations, 0 warn-zone chunks, 15,844-byte
+  maximum Brotli chunk against the 65,536-byte ceiling.
+- Proof: `artifacts/ops/maricopa-road-bake-proof.json`.
+
+Boundary:
+- No Railway variables, bucket objects, deployment, public origin, map UX, or
+  MCP tool contract changed.
+- Real ChatGPT Miami/Cook acceptance remains open because the headless session
+  hit Cloudflare verification and Chrome cookie import failed DPAPI decryption.
+
 ## Entry 227
 
 Quest: `national-roads-origin-live`

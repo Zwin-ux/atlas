@@ -565,7 +565,7 @@ async function bakeCounty({ county, band, skipExisting, pageSize }) {
       const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
       progress(`  fetch layer ${lyr} page ${page} (seen ${seen}, parts ${total}) ${elapsed}s`);
     });
-    allParts.push(...parts);
+    for (const part of parts) allParts.push(part);
     await sleep(POLITE_LAYER_MS);
   }
   process.stdout.write("\n");

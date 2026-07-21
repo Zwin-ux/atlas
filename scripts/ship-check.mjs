@@ -9,6 +9,24 @@ import process from "node:process";
 const jsonOnly = process.argv.includes("--json-only");
 const skipLive = process.argv.includes("--skip-live");
 
+function resolveInvocation(step) {
+  if (process.platform !== "win32" || step.command !== "pnpm") {
+    return { command: step.command, args: step.args };
+  }
+
+  const commandParts = [step.command, ...step.args];
+  for (const part of commandParts) {
+    if (!/^[A-Za-z0-9_./:@=-]+$/.test(part)) {
+      throw new Error(`Unsafe Windows ship-check command argument: ${part}`);
+    }
+  }
+
+  return {
+    command: process.env.ComSpec || "cmd.exe",
+    args: ["/d", "/s", "/c", commandParts.join(" ")],
+  };
+}
+
 const steps = [
   { id: "core-test", command: "pnpm", args: ["--dir", "packages/core", "test"] },
   { id: "typecheck-starter", command: "pnpm", args: ["typecheck:starter"] },
@@ -46,11 +64,13 @@ let failed = false;
 
 for (const step of steps) {
   const started = Date.now();
-  const run = spawnSync(step.command, step.args, {
+  const invocation = resolveInvocation(step);
+  const run = spawnSync(invocation.command, invocation.args, {
     cwd: process.cwd(),
     encoding: "utf8",
     env: { ...process.env, ...(step.env || {}) },
     maxBuffer: 20 * 1024 * 1024,
+    windowsHide: true,
   });
   const ok = run.status === 0;
   if (!ok) failed = true;
@@ -59,12 +79,16 @@ for (const step of steps) {
     ok,
     status: run.status,
     ms: Date.now() - started,
+    error: run.error
+      ? { code: run.error.code || null, message: run.error.message }
+      : null,
     stderr: (run.stderr || "").slice(-400),
     stdoutTail: (run.stdout || "").slice(-400),
   };
   results.push(entry);
   if (!jsonOnly) {
     console.log(`${ok ? "PASS" : "FAIL"}  ${step.id}  (${entry.ms}ms)`);
+    if (!ok && entry.error) console.log(entry.error.message);
     if (!ok && entry.stderr) console.log(entry.stderr);
   }
 }

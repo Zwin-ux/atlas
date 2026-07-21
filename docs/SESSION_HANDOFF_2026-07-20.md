@@ -30,9 +30,19 @@ GET /road-catalog/cook-il/current → 200
 
 1. ChatGPT dogfood: Miami + Cook streets + honesty.
 2. Wave-1 metro bakes → **S3 only** (LA, Harris, Dallas, …) — not multi-GB git.
-3. Maricopa bake stack-overflow fix.
-4. Optional public CDN + `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` (browser skip Node).
-5. Town-centered window (not only cell median).
+3. Optional public CDN + `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` (browser skip Node).
+4. Town-centered window (not only cell median).
+
+## Windows continuation
+
+- `pnpm ship:check:local` now runs cross-platform and passes 8/8 gates.
+- Maricopa's stack overflow was the bulk spread at the layer accumulator, not
+  quadtree recursion. Bounded iteration fixed it.
+- A fresh Maricopa bake fetched 155,251 parts and round-tripped 4,145 chunks
+  with no compression ceiling violations.
+- Real ChatGPT Miami/Cook dogfood is still pending; headless ChatGPT hit
+  Cloudflare verification and installed-Chrome cookie import failed DPAPI
+  decryption on this machine.
 
 ## Stop signs
 

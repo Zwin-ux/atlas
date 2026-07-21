@@ -21,18 +21,21 @@ origin for immutable bytes; windowed NEAR fetch; progressive metro bake.
 
 **Do now (in order):**
 
-1. Sync dogfood `data/road-chunks/*` → Railway bucket `atlas-road-chunks`
-2. Public HTTP GET proof; set `ATLAS_ROAD_CHUNKS_ORIGIN` + `PUBLIC_ORIGIN`
-3. Redeploy; `/map-config` shows non-null publicOrigin
-4. Windowed NEAR fetch in `web/src/countyRoadBand.ts`
-5. Wave-1 metros bake → origin only (not git bloat)
-6. Maricopa bake fix (stack overflow)
-7. ChatGPT dogfood Miami + Cook + one wave-1 metro
+1. [x] Sync dogfood `data/road-chunks/*` to the private Railway bucket.
+2. [x] Wire the signed S3 fallback; production `/ready` reports the store configured.
+3. [x] Cap the windowed NEAR selection at 48 chunks.
+4. [x] Fix and prove the Maricopa large-county bake on Windows.
+5. [ ] ChatGPT dogfood Miami + Cook streets + honesty.
+6. [ ] Bake wave-1 metros to object storage only, not Git.
+7. [ ] Add a public CDN / `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` when immutable
+   chunk bytes can be served with public GET + CORS. This is an optimization,
+   not a Mode B board blocker.
 
 **Stop:** national clay, Mapbox default, multi-GB roads in git, Clawd hero.
 
-**Baseline:** Mode B national live; 10 FS dogfood road packs; scale foundation
-commit `129d8b13`; bucket created empty of public proof.
+**Baseline:** Mode B national live; 10 dogfood road packs synced to private S3;
+signed server fallback and a 48-chunk NEAR window are live. Maricopa now bakes
+and round-trips locally; real ChatGPT Miami/Cook acceptance is still pending.
 
 ---
 
