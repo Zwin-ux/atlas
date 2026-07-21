@@ -26,7 +26,7 @@ original seven tools.
 | disabled staging verifier | pass; healthy map, exactly 7 tools, moderation route hidden |
 | enabled staging verifier | pass; healthy map, exactly 9 tools, `081d`, exact OAuth policies and relink challenges |
 | Auth0/OIDC discovery | pass; CIMD registration, issuer/audience/JWKS, exact read/write scopes |
-| ChatGPT `Atlas Staging` connector | pass; OAuth connected, 9 actions, `081d`, exact action scopes |
+| ChatGPT `Atlas Staging` connector | pass; OAuth connected, 9 actions, `081d`, exact action scopes, authenticated MINE read |
 | live two-user moderation lifecycle | pass; pending -> approved -> reported -> removed with cleanup |
 | flag rollback | pass; 9 -> 7 -> 9 across isolated staging redeploys |
 | final production isolation | pass; same deployment/digest, healthy, no Commons field, 7 tools, `0781v` |

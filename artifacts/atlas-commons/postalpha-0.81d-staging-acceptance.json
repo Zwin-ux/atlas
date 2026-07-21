@@ -89,6 +89,7 @@
     "invalidTokenRelink": true,
     "chatgptOAuthLogin": true,
     "chatgptActionCount": 9,
+    "chatgptProtectedMineRead": true,
     "moderationLifecycle": {
       "distinctUsers": true,
       "pendingIsolation": true,

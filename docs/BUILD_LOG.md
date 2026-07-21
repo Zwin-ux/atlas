@@ -10253,8 +10253,9 @@ green; production unchanged, 2026-07-21, Codex.** Pushed the map-radar bundle
 and explicit OAuth-policy repair as `ac34e2af` and `ea5225ec`, then completed
 the owner-authorized isolated staging sequence. Auth0 now advertises the
 staging MCP audience with only `atlas:commons.read` and
-`atlas:commons.write`; ChatGPT registered through CIMD, completed OAuth, and
-shows all nine actions plus widget `081d`. The first empty action view was
+`atlas:commons.write`; ChatGPT registered through CIMD, completed OAuth, shows
+all nine actions plus widget `081d`, and completed a protected read-only MINE
+call. The first empty action view was
 connector refresh propagation, not a server descriptor failure; reopening and
 refreshing populated the correct live nine-tool surface.
 
