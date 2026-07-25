@@ -19,3 +19,6 @@ web/dist/
 .DS_Store
 Thumbs.db
 .tmp-aws-sdk/
+
+# Built atlas plates — regenerate with `node scripts/build-atlas-plates.mjs`
+artifacts/atlas-plates/
