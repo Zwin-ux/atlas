@@ -106,7 +106,10 @@ export type AtlasCommonsModerationQueueResult = {
 
 export type AtlasCommonsPublicMeta = {
   enabled: boolean;
+  /** Reading published notes works. Independent of the identity provider. */
   available: boolean;
+  /** Posting, reacting, and reporting work. Requires identity + moderation credential. */
+  writable: boolean;
   requiresIdentityForPosting: true;
   publicPostingIsExplicit: true;
   privateNotesStayPrivate: true;

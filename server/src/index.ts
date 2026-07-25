@@ -290,14 +290,17 @@ type RequestContext = {
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
 
+// The public tool surface. Atlas is a county map with public community notes;
+// nothing else is exposed to the model. The scout/campaign/upgrade tools were
+// retired from the surface on 2026-07-25 (v0.2.0 launch scope) because the
+// server previously had to instruct the model not to use them — a tool the
+// model is told to avoid does not belong in a reviewed build.
+// `verify:tool-surface` fails the build if this list drifts.
 const BASE_MCP_TOOL_NAMES = [
   "lookup_world_places",
   "select_county",
   "ask_county_question",
   "render_voxel_county",
-  "preview_scout_drop",
-  "preview_campaign_engine",
-  "get_upgrade_options",
 ] as const;
 
 const MCP_TOOL_NAMES = [
@@ -1061,7 +1064,7 @@ const countyQuestionAnswerOutputSchema = {
     }),
   ),
   limitations: z.array(z.string()),
-  suggestedNextTool: z.enum(["select_county", "preview_scout_drop", "lookup_world_places"]).optional(),
+  suggestedNextTool: z.enum(["select_county", "lookup_world_places"]).optional(),
   targetNodeId: z.string().optional(),
   targetPlaceId: z.string().optional(),
   targetLabel: z.string().optional(),
@@ -2316,57 +2319,69 @@ function legalPageShell(title: string, bodyHtml: string): string {
 function privacyPageHtml(): string {
   return legalPageShell(
     "Privacy Policy",
-    `<p>Atlas County Scout is a ChatGPT app for exploring voxel county maps,
-      finding nearby places, and building local planning briefs. The production
-      surface is currently read-only. A moderated public-notes feature may be
-      enabled only in an approved release environment.</p>
+    `<p>Atlas County Maps is a ChatGPT app for exploring U.S. county maps,
+      looking up nearby places, and reading and writing short public notes about
+      the places on those maps. Reading notes is open to everyone. Writing a
+      note requires an Atlas identity and is currently limited to invited
+      contributors.</p>
     <h2>Data Atlas processes</h2>
     <ul>
-      <li>The county, Atlas place id, business type, goal, and other tool inputs
+      <li>The county, Atlas place id, question text, and other tool inputs
         needed to answer your request.</li>
-      <li>Map interactions such as pins and private notes, which remain in the
-        current ChatGPT conversation and are not written to an Atlas account.</li>
-      <li>When the moderated public-notes feature is enabled, the public note
-        text, its place id, a pseudonymous author label, moderation status,
-        reactions, reports, and moderation-event records needed to operate that
-        feature.</li>
-      <li>A nearby-place lookup and normalized results when you request live
+      <li>Map interactions such as pins and private notes. These remain in the
+        current ChatGPT conversation and are never written to Atlas storage
+        unless you explicitly choose to post a note publicly.</li>
+      <li>For a public note you choose to post: the note text, the Atlas place
+        it is attached to, a pseudonymous author label derived from your Atlas
+        identity, its moderation status, reactions, reports, and the moderation
+        events recorded against it.</li>
+      <li>A nearby-place lookup and its normalized results when you request live
         place information.</li>
+      <li>Service logs needed to run the app and prevent abuse, including
+        request timing, rate-limit counters, and error records.</li>
     </ul>
     <h2>How the data is used</h2>
-    <p>Atlas uses these inputs only to return the requested map, place summary,
-      Scout Drop, or manual campaign plan; keep the service reliable; and prevent
-      abuse. Atlas does not sell personal data, serve ads, build user profiles,
-      or use cross-site tracking.</p>
+    <p>Atlas uses these inputs to return the requested map, place summary, or
+      answer; to display and moderate public notes; to keep the service
+      reliable; and to prevent abuse. Atlas does not sell personal data, serve
+      ads, build advertising profiles, or use cross-site tracking.</p>
+    <h2>Public notes are public</h2>
+    <p>A note you post publicly is visible to anyone using Atlas, is attributed
+      to your pseudonymous author label, and can be reported by other people.
+      Do not put personal information, contact details, or anything you would
+      not want read by a stranger into a public note.</p>
     <h2>Recipients</h2>
     <p>OpenAI processes the conversation and tool call as the ChatGPT host. When
       you request nearby places, Atlas sends the Atlas-derived area label and
       radius to Google Maps Platform. The production hosting provider processes
-      the network request needed to run the service. Atlas does not send these
-      requests to advertisers or data brokers.</p>
+      the network request and stores the note database needed to run the
+      service. Atlas does not send these requests to advertisers or data
+      brokers.</p>
     <h2>Retention</h2>
     <ul>
-      <li>Atlas has no public user accounts. Pins, private notes, Scout Drops,
-        and campaign plans are not persisted in an Atlas database.</li>
-      <li>When public notes are enabled, Atlas retains public-note and
-        moderation records for the approved retention period so it can display
-        moderated notes, handle reports, enforce removals, and preserve
-        moderation evidence. The approved period and deletion process must be
-        published before public production enablement.</li>
+      <li>Atlas has no public user accounts and no password database. Pins and
+        private notes are not persisted in Atlas storage.</li>
+      <li>A published public note is retained until you or a moderator remove
+        it. A removed note is deleted from the readable store within 30 days.</li>
+      <li>Moderation records — the note id, the action taken, the reason, and
+        the timestamp — are retained for 12 months after the action so Atlas can
+        handle repeat abuse and appeals. These records do not contain the note
+        body after removal.</li>
       <li>Nearby-place lookups and normalized results may remain in an in-memory
         provider cache for up to 24 hours, then expire. The cache is not tied to
-        an account and is cleared when the server process restarts.</li>
+        an identity and is cleared when the server process restarts.</li>
       <li>Atlas does not copy conversation content into a separate analytics
         store. ChatGPT and infrastructure-provider retention follow their own
         published policies and service settings.</li>
     </ul>
     <h2>Your controls</h2>
-    <p>You can avoid the optional nearby-place lookup, stop using Atlas, and
-      manage or delete the ChatGPT conversation through ChatGPT controls. Because
-      Atlas has no public account database, there is no Atlas profile to delete.
-      If public notes are enabled, the public launch policy will explain how to
-      request removal of a public note or report content. Contact us with a
-      privacy or access question.</p>
+    <p>You can use Atlas without ever posting a note, avoid the optional
+      nearby-place lookup, and manage or delete the ChatGPT conversation through
+      ChatGPT controls. To remove a public note you wrote, or to request
+      deletion of every note tied to your Atlas identity, email the address
+      below with the place and approximate posting time; Atlas removes it within
+      30 days and confirms by reply. To report someone else's note, use the
+      report action in the app or email the same address.</p>
     <h2>Children</h2>
     <p>Atlas is not directed to children under 13.</p>
     <h2 id="contact">Contact</h2>
@@ -2377,32 +2392,47 @@ function privacyPageHtml(): string {
 function termsPageHtml(): string {
   return legalPageShell(
     "Terms of Service",
-    `<p>By using Atlas County Scout you agree to these terms.</p>
+    `<p>By using Atlas County Maps you agree to these terms.</p>
     <h2>What Atlas is</h2>
-    <p>Atlas is a voxel county map and local planning tool inside ChatGPT.
-      Riverside/Eastvale is the interactive map. Other supported counties may
-      open as clearly labeled generated district studies rather than verified
-      local coverage. Public notes, if enabled, are moderated and governed by
-      the applicable community standard.</p>
-    <h2>Planning boundaries</h2>
+    <p>Atlas is a U.S. county map inside ChatGPT with a public community-notes
+      layer. Riverside/Eastvale is the interactive map. Other supported counties
+      open on a real Census county outline with real town names, and their
+      streets and buildings are generated illustrations rather than verified
+      local coverage. Public notes are written by other people, moderated, and
+      governed by the <a href="/community">Commons Community Standard</a>.</p>
+    <h2>Boundaries</h2>
     <ul>
-      <li>Scout Drops and manual campaign plans are planning aids, not guarantees
-        of business, legal, financial, or marketing results.</li>
-      <li>Atlas does not post, message, advertise, submit forms, create accounts,
-        or process payments. Private notes stay in the ChatGPT conversation.
-        Approved public notes may be stored only when that feature is enabled
-        under the public launch policy.</li>
+      <li>Map content outside Riverside/Eastvale is a labeled illustration. Do
+        not rely on Atlas for navigation, emergency response, property
+        boundaries, or any decision that needs surveyed geography.</li>
+      <li>Public notes are opinions of the people who wrote them. Atlas does not
+        verify them and does not endorse them.</li>
+      <li>Atlas does not post on your behalf, message anyone, advertise, submit
+        forms, or process payments. Atlas has no paid tier and no checkout.</li>
+      <li>Private notes stay in the ChatGPT conversation. Nothing publishes
+        without you explicitly choosing to post it.</li>
       <li>Nearby-place results are lookup-only and may be cached for up to 24
-        hours; they do not prove map coverage or business opportunity.</li>
+        hours; they do not prove map coverage.</li>
+    </ul>
+    <h2>Posting rules</h2>
+    <ul>
+      <li>Writing a public note requires an Atlas identity. Invites are issued
+        by the operator and may be revoked.</li>
+      <li>You keep ownership of what you write and grant Atlas the right to
+        display, moderate, and remove it within the service.</li>
+      <li>You are responsible for what you post. Do not post anything you do not
+        have the right to share.</li>
+      <li>A note that receives three reports is hidden automatically pending
+        review. Moderation decisions are reviewed within 24 hours.</li>
     </ul>
     <h2>Acceptable use</h2>
-    <p>Do not use Atlas for spam, scraping, harassment, sensitive-trait targeting,
-      regulated outreach, provider-data extraction, or activity that violates
-      OpenAI's usage policies. Check applicable local rules before acting on a
-      plan.</p>
+    <p>Do not use Atlas for spam, scraping, harassment, doxxing, sensitive-trait
+      targeting, regulated outreach, provider-data extraction, or activity that
+      violates OpenAI's usage policies. The operator may remove content, revoke
+      an invite, or block access to enforce these terms.</p>
     <h2>Ownership</h2>
-    <p>Atlas, its voxel map interface, and app content belong to the Atlas project
-      or its licensors. You remain responsible for the ideas and materials you
+    <p>Atlas, its map interface, and app content belong to the Atlas project or
+      its licensors. You remain responsible for the ideas and materials you
       provide.</p>
     <h2>No warranty</h2>
     <p>Atlas is provided "as is" without warranties of any kind. To the maximum
@@ -2416,9 +2446,11 @@ function termsPageHtml(): string {
 function communityPageHtml(): string {
   return legalPageShell(
     "Commons Community Standard",
-    `<p>This standard applies only if Atlas Commons public notes are enabled in
-      an approved release environment. Public notes are reviewed before they
-      are visible.</p>
+    `<p>This standard governs every public note in Atlas. Anyone can read notes.
+      Writing one requires an Atlas identity and an invite from the operator.
+      The named moderation owner for Atlas is the operator reachable at
+      <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>, who
+      reviews reported content within 24 hours.</p>
     <h2>Keep notes useful</h2>
     <p>Write short, place-specific observations that help someone understand a
       location: access, timing, wayfinding, atmosphere, or a practical local
@@ -2434,11 +2466,15 @@ function communityPageHtml(): string {
       <li>Emergency requests. Atlas Commons is not an emergency service.</li>
     </ul>
     <h2>Reports and removals</h2>
-    <p>Anyone can report a visible note. Moderators may reject, hide, remove,
-      restore, or limit content to enforce this standard or protect the service.
-      For a removal request, contact <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>
-      with the note link or selected place and approximate posting time. Do not
-      send sensitive information by email.</p>
+    <p>Anyone can report a visible note. Three reports hide a note automatically
+      while it waits for review, so a harmful note stops being visible before a
+      human sees it. Moderators may reject, hide, remove, restore, or limit
+      content to enforce this standard or protect the service, and may revoke an
+      author's invite. Reported content is reviewed within 24 hours.</p>
+    <p>For a removal request, contact <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>
+      with the selected place and approximate posting time. Removed notes leave
+      the readable store within 30 days; a moderation record without the note
+      body is kept for 12 months. Do not send sensitive information by email.</p>
     <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/support">Support</a></p>`,
   );
 }
@@ -2446,7 +2482,7 @@ function communityPageHtml(): string {
 function supportPageHtml(): string {
   return legalPageShell(
     "Support",
-    `<p>For help with Atlas County Scout, email
+    `<p>For help with Atlas County Maps, email
       <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>
     <h2>What to include</h2>
     <ul>
@@ -2456,11 +2492,21 @@ function supportPageHtml(): string {
     </ul>
     <p>Do not send passwords, API keys, payment details, government identifiers,
       health information, or other sensitive personal data.</p>
+    <h2>Common requests</h2>
+    <ul>
+      <li><strong>Remove a note I wrote.</strong> Email the place and the
+        approximate posting time. Removal happens within 30 days.</li>
+      <li><strong>Report someone else's note.</strong> Use the report action in
+        the app, or email the same details. Reports are reviewed within 24
+        hours, and three reports hide a note automatically in the meantime.</li>
+      <li><strong>Request an invite to post.</strong> Reading notes needs no
+        account. Posting is invite-only while a single person moderates.</li>
+    </ul>
     <h2>Product boundaries</h2>
-    <p>Atlas does not provide public accounts, payments, automated outreach, or
-      saved campaigns. Nearby-place lookups are read-only and may use Google Maps
-      Platform.</p>
-    <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p>`,
+    <p>Atlas has no paid tier, no checkout, and no automated outreach. Nearby-place
+      lookups are read-only and may use Google Maps Platform. Map detail outside
+      Riverside/Eastvale is a labeled illustration, not surveyed geography.</p>
+    <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/community">Community Standard</a></p>`,
   );
 }
 
@@ -3322,7 +3368,11 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        `Atlas is a map app inside ChatGPT. Primary job: open maps and let the user explore places with session pins/notes in the widget. Use select_county to open Riverside/Eastvale (full clay interactive map) or any other supported US county as a Census geography board (real county outline, water, and town names — not verified streets or buildings). Never claim non-Riverside streets, buildings, or businesses are verified local coverage. Only pass includeGeneratedDraft=true when the user explicitly wants an illustrative generated layout study. Use render_voxel_county only to refresh/focus an already-open map. Use ask_county_question for map facts or displayed Census town anchors. Use lookup_world_places for nearby place lookup only (not coverage, not geometry, not saved lists). Prefer map + notes answers over scouting or campaigns. Do not push Clawd, Scout Drops, or 7-day plans unless the user explicitly asks. preview_scout_drop, preview_campaign_engine, and get_upgrade_options exist but are secondary and must not drive the default flow. ${atlasCommonsConfig.enabled ? "Approved public notes can be read with list_atlas_notes. Call write_atlas_note post only after the user explicitly chooses public posting; private/session notes never publish automatically. New public posts wait for moderation. No checkout, XP, DMs, ads, or automation." : "Nothing is saved between chats; no checkout, XP, posting, DMs, ads, or automation."} Keep structuredContent concise; large scenes and geo packs stay in _meta.`,
+        `Atlas opens a U.S. county map inside ChatGPT and lets the user explore it. Use select_county to open a county; Riverside/Eastvale is a full interactive map, and every other supported county opens as a Census geography board with the real county outline, water, and town names. Streets and buildings outside Riverside are not verified — never present them as real local coverage, and only pass includeGeneratedDraft=true when the user explicitly asks for an illustrative layout study. Use render_voxel_county only to refresh, refocus, or move a map that is already open. Use ask_county_question for map facts and the town names on screen. Use lookup_world_places for nearby-place lookup only — not coverage, not geometry, not a saved list.
+
+Speak in plain words. Never repeat internal codes, tier names, slugs, or field names in your prose — say "the county outline and town names are from the Census" rather than naming a coverage tier. If Atlas cannot resolve a place, say so plainly and offer the closest thing you can name; never guess a county.
+
+${atlasCommonsConfig.enabled ? "Atlas also carries public community notes. Use list_atlas_notes to read the moderated public notes for a county or place. Use write_atlas_note only after the user has explicitly chosen to post publicly — private notes in the widget stay in this chat and never publish on their own. Notes are attributable, reportable, and moderated." : "Notes stay in this chat and nothing is saved between chats."} Atlas has no checkout, payments, accounts, ads, messaging, or automated outreach — do not offer any. Keep structuredContent concise; large scenes and geo packs stay in _meta.`,
     },
   );
 
@@ -3677,176 +3727,10 @@ function createAtlasServer(): McpServer {
     }),
   );
 
-  registerAppTool(
-    server,
-    "preview_scout_drop",
-    {
-      title: "Preview Scout Drop",
-      description:
-        "Secondary tool — only if the user explicitly asks to scout a business or drop Clawd. Do not suggest this as the default Atlas flow; prefer opening the map and session notes first. Creates a temporary Scout Drop preview in this chat only; does not open maps. Nothing is saved, posted, or executed.",
-      inputSchema: {
-        countySlug: z.string().optional().describe("County id for the Scout context."),
-        nodeId: z.string().optional().describe("Atlas node id when known."),
-        locationLabel: z.string().optional().describe("Fallback location label, such as Eastvale or a requested place."),
-        businessType: z.string().optional().describe("Business type to scout, such as mobile detailing."),
-        goal: z.string().optional().describe("Scout goal."),
-        budget: z.string().optional().describe("Optional plain-language budget note."),
-        serviceRadius: z.string().optional().describe("Optional service radius note."),
-      },
-      outputSchema: scoutPreviewOutputSchema,
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-        destructiveHint: false,
-      },
-      _meta: {
-        securitySchemes: [{ type: "noauth" }],
-        ui: { resourceUri: WIDGET_URI },
-        "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Dropping Clawd...",
-        "openai/toolInvocation/invoked": "Scout Drop ready.",
-      },
-    },
-    async ({ countySlug, nodeId, locationLabel, businessType, goal, budget, serviceRadius }) => instrumentMcpTool("preview_scout_drop", async () => {
-      const preview = previewScoutDrop({
-        countySlug: countySlug ?? "riverside-ca",
-        nodeId,
-        locationLabel: locationLabel ?? "Eastvale",
-        businessType: businessType ?? "mobile detailing",
-        goal: goal ?? "Find the strongest first drop for a local mobile detailing offer.",
-        budget,
-        serviceRadius,
-      });
-      const structuredContent = scoutPreviewStructuredContent(preview);
-
-      return {
-        structuredContent,
-        _meta: {
-          scoutPreview: preview,
-          scene: preview.scene,
-          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScout(preview) } : {}),
-        },
-        content: [
-          {
-            type: "text" as const,
-            text: `${preview.summary} Best offer: ${preview.bestOffer}. This preview stays in this chat; it does not save, post, message, spend, grant XP, or execute outreach. Next: ${preview.alphaBoundary.userActionLabel}.`,
-          },
-        ],
-      };
-    }),
-  );
-
-  registerAppTool(
-    server,
-    "preview_campaign_engine",
-    {
-      title: "Preview Campaign Engine",
-      description:
-        "Secondary tool — only if the user already has a Scout Drop and explicitly asks for a 7-day plan. Do not open with this tool. Prefer map exploration and notes first. Pass scoutPreviewId when available. Plan stays in this chat only; no posting, DMs, ads, saves, or live execution.",
-      inputSchema: {
-        scoutPreviewId: z.string().describe("Scout Drop id returned by preview_scout_drop."),
-        countySlug: z.string().optional().describe("County id from the Scout Drop."),
-        nodeId: z.string().optional().describe("Atlas node id from the Scout Drop when known."),
-        locationLabel: z.string().optional().describe("Fallback location label from the Scout Drop."),
-        businessType: z.string().optional().describe("Business type from the Scout Drop, such as mobile detailing."),
-        goal: z.string().optional().describe("Scout goal from the Scout Drop."),
-        budget: z.string().optional().describe("Optional plain-language budget note from the Scout Drop."),
-        serviceRadius: z.string().optional().describe("Optional service radius note from the Scout Drop."),
-      },
-      outputSchema: campaignPreviewOutputSchema,
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-        destructiveHint: false,
-      },
-      _meta: {
-        securitySchemes: [{ type: "noauth" }],
-        ui: { resourceUri: WIDGET_URI },
-        "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Drafting manual campaign...",
-        "openai/toolInvocation/invoked": "Campaign preview ready.",
-      },
-    },
-    async ({ scoutPreviewId, countySlug, nodeId, locationLabel, businessType, goal, budget, serviceRadius }) => instrumentMcpTool("preview_campaign_engine", async () => {
-      const { campaignPreview, rebuiltScoutPreview } = previewCampaignFromScoutRequest({
-        scoutPreviewId,
-        countySlug: countySlug ?? "riverside-ca",
-        nodeId,
-        locationLabel: locationLabel ?? "Eastvale",
-        businessType: businessType ?? "mobile detailing",
-        goal: goal ?? "Find the strongest first drop for a local mobile detailing offer.",
-        budget,
-        serviceRadius,
-      });
-
-      return {
-        structuredContent: campaignPreviewStructuredContent(campaignPreview),
-        _meta: {
-          campaignPreview,
-          scene: campaignPreview.scene,
-          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForCampaign(campaignPreview) } : {}),
-        },
-        content: [
-          {
-            type: "text" as const,
-            text: `${rebuiltScoutPreview ? "Rebuilt Scout Drop from the supplied details. " : ""}${campaignPreview.summary} This manual preview stays in this chat; no posting, messaging, ad spend, saved work, evidence, or XP is performed. Next: ${campaignPreview.alphaBoundary.userActionLabel}.`,
-          },
-        ],
-      };
-    }),
-  );
-
-  registerAppTool(
-    server,
-    "get_upgrade_options",
-    {
-      title: "Explain save limits",
-      description:
-        "Use this when the user asks whether Atlas saves work, tracks evidence, or has a paid save plan. Explains that Atlas is a complete session-only map and that Hosted Clawd save options are not live and do not start checkout. Informational only — does not start checkout, create an account, post, message, buy ads, or save campaign state.",
-      inputSchema: {
-        trigger: z
-          .enum(["save_scout_drop", "save_campaign", "track_evidence", "pricing", "general"])
-          .optional()
-          .describe("Why the user is asking about save limits or future Hosted Clawd."),
-      },
-      outputSchema: upgradeOptionsOutputSchema,
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-        destructiveHint: false,
-      },
-      _meta: {
-        securitySchemes: [{ type: "noauth" }],
-        "openai/toolInvocation/invoking": "Checking save limits...",
-        "openai/toolInvocation/invoked": "Save limits ready.",
-      },
-    },
-    async ({ trigger }) => instrumentMcpTool("get_upgrade_options", async () => {
-      const options = upgradeOptionsStructuredContent(trigger);
-      // North Face fence: free public loop never attaches live Hosted Clawd
-      // checkout/meta while save surface is off (plugin review: no digital
-      // commerce claim).
-      const optionSummaryLabel = atlasSaveSurfaceEnabled ? options.hosted.label : options.free.label;
-      return {
-        structuredContent: options,
-        _meta: {
-          ...(atlasSaveSurfaceEnabled && "hostedClawd" in options && options.hostedClawd
-            ? hostedClawdMeta(options.hostedClawd)
-            : {}),
-        },
-        content: [
-          {
-            type: "text" as const,
-            text: `${optionSummaryLabel}: ${options.nextStep}`,
-          },
-        ],
-      };
-    }),
-  );
-
   if (atlasCommonsConfig.enabled) {
-    // Keep the frozen seven-tool registration audit legible: commons tools are
-    // an explicit default-off extension, not part of the current RC surface.
+    // Commons note tools are the second half of the v0.2.0 product (map +
+    // public notes). They register only when ATLAS_COMMONS_ENABLED is on so a
+    // Commons-less deployment still serves a coherent map-only surface.
     const registerCommonsAppTool = registerAppTool;
     registerCommonsAppTool(
       server,

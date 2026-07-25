@@ -30,7 +30,7 @@ export type CountyQuestionAnswer = {
   facts: CountyQuestionFact[];
   sourceNotes: CountySource[];
   limitations: string[];
-  suggestedNextTool?: "select_county" | "preview_scout_drop" | "lookup_world_places";
+  suggestedNextTool?: "select_county" | "lookup_world_places";
   targetNodeId?: string;
   targetPlaceId?: string;
   targetLabel?: string;
@@ -168,7 +168,7 @@ function businessSignalsAnswer(pack: CountyPack, question: string, businessKey: 
       value: `${node.scores[businessKey]} ${businessLabel} score; ${node.signals.join(", ")}. ${node.campaignSuggestion}`,
       sourceNodeIds: [node.id],
     })),
-    suggestedNextTool: businessKey === "mobile_detailing" ? "preview_scout_drop" : "select_county",
+    suggestedNextTool: "select_county",
   });
 }
 

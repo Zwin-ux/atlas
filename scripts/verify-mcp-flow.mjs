@@ -1,16 +1,11 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { assertToolSurface } from "./lib/atlas-tool-surface.mjs";
 
 const mcpUrl = new URL(process.env.ATLAS_MCP_URL ?? "http://127.0.0.1:8787/mcp");
-const expectedTools = [
-  "ask_county_question",
-  "get_upgrade_options",
-  "lookup_world_places",
-  "preview_campaign_engine",
-  "preview_scout_drop",
-  "render_voxel_county",
-  "select_county",
-];
+// A server started without ATLAS_COMMONS_ENABLED serves the map-only surface;
+// pass --map-only (or ATLAS_VERIFY_MAP_ONLY=1) to check against that instead.
+const commonsEnabled = !(process.argv.includes("--map-only") || process.env.ATLAS_VERIFY_MAP_ONLY === "1");
 const lookupRadiusMeters = Number(process.env.ATLAS_VERIFY_RADIUS_METERS ?? 3000 + (Date.now() % 900));
 
 function assert(condition, message) {
@@ -79,12 +74,7 @@ try {
 
   const toolList = await client.listTools();
   const tools = toolList.tools ?? [];
-  const actualTools = tools.map((tool) => tool.name).sort();
-
-  assert(
-    JSON.stringify(actualTools) === JSON.stringify(expectedTools),
-    `Unexpected MCP tools. Expected ${expectedTools.join(", ")}; got ${actualTools.join(", ")}.`,
-  );
+  const actualTools = assertToolSurface(tools.map((tool) => tool.name), { commonsEnabled });
 
   for (const tool of tools) {
     assert(tool.outputSchema, `${tool.name} is missing outputSchema.`);
@@ -109,7 +99,7 @@ try {
   assert(selectedCounty.type === "voxelSceneSummary", "select_county returned the wrong structured type.");
   assert(selectedCounty.selectedNodeId === "eastvale", "select_county must highlight Eastvale.");
   assert(/Eastvale is the full map/i.test(selectCountyText), "select_county text must describe Eastvale as the full map.");
-  assert(/notes that stay in this chat/i.test(selectCountyText), "select_county text must explain notes stay in this chat.");
+  assert(/(?:private )?(?:pins and )?notes (?:that )?stay in this chat/i.test(selectCountyText), "select_county text must explain notes stay in this chat.");
   assertNoForbiddenProductClaims(selectCountyText, "select_county");
   assertNoInternalLanguage(selectCountyText, "select_county");
   assert(selectCountyResult._meta?.scene?.world?.places?.length > 0, "select_county must return full scene in _meta.scene.");
@@ -268,7 +258,7 @@ try {
   assert(county.type === "voxelSceneSummary", "render_voxel_county returned the wrong structured type.");
   assert(county.selectedNodeId === "eastvale", "render_voxel_county did not preserve selectedNodeId.");
   assert(/Riverside\/Eastvale full map/i.test(countyText), "render_voxel_county text must name the full map.");
-  assert(/Pins and notes stay in this chat/i.test(countyText), "render_voxel_county text must preserve chat boundary.");
+  assert(/(?:private )?(?:pins and )?notes (?:that )?stay in this chat/i.test(countyText), "render_voxel_county text must preserve chat boundary.");
   assertNoForbiddenProductClaims(countyText, "render_voxel_county");
   assertNoInternalLanguage(countyText, "render_voxel_county");
   assert(countyResult._meta?.scene?.world?.places?.length > 0, "render_voxel_county must return full scene in _meta.scene.");
@@ -339,98 +329,41 @@ try {
   );
   assert(JSON.stringify(cachedLookup) === lookupJson, "Cached lookup must preserve the same minimized public result.");
 
-  const scout = getStructuredContent(
-    await client.callTool({
-      name: "preview_scout_drop",
+  // Community notes: reading is public and must work with no credentials, and
+  // an unauthenticated post must be refused honestly rather than dropped.
+  if (commonsEnabled) {
+    const notes = getStructuredContent(
+      await client.callTool({ name: "list_atlas_notes", arguments: { countySlug: "riverside-ca", limit: 5 } }),
+      "list_atlas_notes",
+    );
+    assert(notes.type === "atlasPublicNoteList", "list_atlas_notes returned the wrong structured type.");
+    assert(Array.isArray(notes.notes), "list_atlas_notes must return a notes array.");
+    assert(
+      notes.notes.every((note) => note.status === undefined || note.status === "visible"),
+      "list_atlas_notes must never return a pending or removed note to a reader.",
+    );
+
+    const anonymousWrite = await client.callTool({
+      name: "write_atlas_note",
       arguments: {
+        operation: "post",
         countySlug: "riverside-ca",
-        locationLabel: "Eastvale",
-        businessType: "mobile detailing",
-        goal: "Find the strongest first drop for a local mobile detailing offer.",
+        placeId: "eastvale",
+        placeLabel: "Eastvale",
+        body: "Flow verifier probe: this post must be refused.",
+        clientRequestId: `mcp-flow-${lookupRadiusMeters}`,
       },
-    }),
-    "preview_scout_drop",
-  );
-  assert(scout.type === "scoutPreview", "preview_scout_drop returned the wrong structured type.");
-  assert(typeof scout.id === "string" && scout.id.length > 0, "preview_scout_drop returned no id.");
-  assert(
-    Array.isArray(scout.signals) && scout.signals.some((signal) => signal.label === "Residential Demand"),
-    "preview_scout_drop did not return the expected Eastvale signal.",
-  );
-  assert(
-    Array.isArray(scout.limitations) && scout.limitations.some((limitation) => /Preview only|manual|stays in this chat/i.test(limitation)),
-    "preview_scout_drop must keep preview/manual limitations visible.",
-  );
-  assert(scout.alphaBoundary?.mode === "session_only_alpha", "preview_scout_drop must expose chat-only boundary.");
-  assert(scout.alphaBoundary?.savesState === false, "preview_scout_drop must not claim saved state.");
-  assert(scout.alphaBoundary?.executesActions === false, "preview_scout_drop must not execute actions.");
-  assert(scout.alphaBoundary?.grantsXp === false, "preview_scout_drop must not grant XP.");
-  assert(scout.alphaBoundary?.nextTool === "preview_campaign_engine", "preview_scout_drop should point to campaign preview next.");
-
-  const campaign = getStructuredContent(
-    await client.callTool({
-      name: "preview_campaign_engine",
-      arguments: {
-        scoutPreviewId: scout.id,
-        countySlug: scout.countySlug,
-        locationLabel: "Eastvale",
-        businessType: scout.businessType,
-        goal: scout.goal,
-      },
-    }),
-    "preview_campaign_engine",
-  );
-  assert(campaign.type === "campaignPreview", "preview_campaign_engine returned the wrong structured type.");
-  assert(campaign.scoutPreviewId === scout.id, "Campaign preview did not preserve scoutPreviewId.");
-  assert(Array.isArray(campaign.days) && campaign.days.length === 7, "Campaign preview must return 7 days.");
-  assert(
-    Array.isArray(campaign.guardrails) &&
-      campaign.guardrails.some((guardrail) => guardrail.includes("no posts")),
-    "Campaign preview did not return manual-action guardrails.",
-  );
-  assert(
-    campaign.guardrails.some((guardrail) => /no DMs|no ad spend|manual/i.test(guardrail)),
-    "Campaign preview must keep no-DM/no-ad/manual boundaries visible.",
-  );
-  assert(campaign.alphaBoundary?.mode === "session_only_alpha", "preview_campaign_engine must expose chat-only boundary.");
-  assert(campaign.alphaBoundary?.savesState === false, "preview_campaign_engine must not claim saved state.");
-  assert(campaign.alphaBoundary?.executesActions === false, "preview_campaign_engine must not execute actions.");
-  assert(campaign.alphaBoundary?.grantsXp === false, "preview_campaign_engine must not grant XP.");
-  assert(campaign.alphaBoundary?.nextTool === "get_upgrade_options", "preview_campaign_engine should point to Hosted Clawd options next.");
-
-  const upgrade = getStructuredContent(
-    await client.callTool({
-      name: "get_upgrade_options",
-      arguments: { trigger: "save_campaign" },
-    }),
-    "get_upgrade_options",
-  );
-  assert(upgrade.type === "upgradeOptions", "get_upgrade_options returned the wrong structured type.");
-  assert(
-    upgrade.hosted?.status === "planned_beta" || upgrade.hosted?.status === "owner_gated_test",
-    "Hosted Clawd status must be planned_beta or owner_gated_test.",
-  );
-  const saveSurfaceOff = upgrade.free?.label === "Atlas V1";
-  if (saveSurfaceOff) {
-    // ATLAS_SAVE_SURFACE=off (production V1): the honest boundary line is
-    // the no-checkout/no-money sentence in the V1 payload.
+    });
+    const anonymousWriteText = (anonymousWrite.content ?? [])
+      .map((part) => (typeof part?.text === "string" ? part.text : ""))
+      .join("\n");
     assert(
-      Array.isArray(upgrade.unavailableActions) &&
-        upgrade.unavailableActions.some((item) => /does not start checkout, charge money/i.test(item)),
-      "V1 upgrade output must clearly keep checkout and money closed.",
+      anonymousWrite.isError === true || /sign in|identity|invite|not authorized|permission|scope/i.test(anonymousWriteText),
+      "An unauthenticated write_atlas_note post must be refused with an honest reason.",
     );
-    assert(!("hostedClawd" in upgrade), "V1 upgrade output must not expose owner-gated Hosted Clawd capabilities.");
-  } else if (upgrade.hosted?.status === "planned_beta") {
     assert(
-      Array.isArray(upgrade.unavailableActions) &&
-        upgrade.unavailableActions.some((item) => item.includes("Checkout is not live")),
-      "Upgrade options must clearly say checkout is not live.",
-    );
-  } else {
-    assert(
-      Array.isArray(upgrade.unavailableActions) &&
-        upgrade.unavailableActions.some((item) => /Public paid access is not live/i.test(item)),
-      "Owner-gated Hosted Clawd output must clearly keep public paid access closed.",
+      !/published|posted|added your note/i.test(anonymousWriteText),
+      "An unauthenticated write_atlas_note post must not claim the note was published.",
     );
   }
 
@@ -447,9 +380,7 @@ try {
         countyQuestionTopic: countyQuestion.topic,
         generatedQuestionSummaries,
         unsupportedCountyQuestion: unsupportedCountyQuestion.supported,
-        scoutPreviewId: scout.id,
-        campaignPreviewId: campaign.id,
-        hostedClawdStatus: upgrade.hosted.status,
+        commonsChecked: commonsEnabled,
       },
       null,
       2,

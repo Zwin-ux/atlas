@@ -3,8 +3,8 @@
   "schema_version": 1,
   "app_info": {
     "display_name": "Atlas County Maps",
-    "subtitle": "Explore voxel county maps and notes",
-    "description": "Atlas County Maps opens a high-quality voxel county map inside ChatGPT. Riverside/Eastvale is the full interactive map: pan and zoom, inspect places, drop session pins, and leave notes that stay in this chat. Every supported U.S. county opens with real Census town names on a generated layout that is clearly labeled as generated rather than verified local streets and buildings. Ask map-grounded questions and look up nearby places as normalized categories. Atlas does not create accounts, save work between chats, post, message, buy ads, or process payments. Nearby-place lookups may use Google Maps Platform with a provider cache for up to 24 hours; results are never map geometry or coverage proof.",
+    "subtitle": "County maps with community notes",
+    "description": "Atlas County Maps opens a U.S. county map inside ChatGPT and lets people leave short public notes on the places they know. Riverside/Eastvale is the full interactive map: pan and zoom, inspect places, drop pins, and read what other people wrote about a corner, a park, or a parking lot. Every supported U.S. county opens with the real Census county outline, water, and town names on a generated layout that is labeled as generated rather than verified local streets and buildings. Ask map-grounded questions and look up nearby places as normalized categories. Public notes are user-generated content: they are attributable, reportable, moderated, and visible to other people. Posting requires an Atlas identity and is limited to invited contributors; reading is open. Private notes taken in the widget stay in the chat and never publish on their own. Atlas does not process payments, buy ads, send messages, or run outreach. Nearby-place lookups may use Google Maps Platform with a provider cache for up to 24 hours; results are never map geometry or coverage proof.",
     "category": "BUSINESS",
     "icon": "assets/brand/atlas-icon-512.png",
     "website_url": "https://atlas-backend-production-e6fc.up.railway.app/preview",
@@ -25,10 +25,10 @@
     "starter_prompts": [
       "Open Riverside County and show the Eastvale map.",
       "Show me Miami-Dade County on Atlas.",
-      "Add a session note on a place about evening parking.",
-      "Where is Eastvale on the Riverside map?"
+      "What have people written about places in Riverside County?",
+      "Where is Homestead on the Miami-Dade map?"
     ],
-    "release_notes": "Public map product: interactive Riverside/Eastvale voxel map, session pins and notes, real U.S. Census town anchors across supported counties, closed-world county questions, nearby-place lookup, and clearly labeled generated layouts outside Riverside.",
+    "release_notes": "Atlas v0.2.0 ships the county map with a public community-notes layer. Interactive Riverside/Eastvale voxel map; real U.S. Census county outlines, water, and town anchors across supported counties; map-grounded county questions; nearby-place lookup returned as normalized categories; and moderated public notes attached to canonical map places. Reading notes is open to everyone. Posting requires an Atlas identity and is limited to invited contributors while moderation is handled by a single named owner. Notes are reportable and auto-quarantine after three reports pending review.",
     "domain_verification": {
       "challenge_path": "/.well-known/openai-apps-challenge",
       "status": "ROUTE_READY_PORTAL_TOKEN_REQUIRED",
@@ -43,7 +43,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Loads the built-in Riverside/Eastvale map or a supported county preview with U.S. Census town anchors and returns widget metadata without saving or changing state.",
+        "read_only_justification": "Loads the built-in Riverside/Eastvale map or a supported county board with U.S. Census town anchors and returns widget metadata without saving or changing state.",
         "open_world_justification": "Does not call live providers, publish content, message users, or modify third-party systems.",
         "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
       }
@@ -67,7 +67,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Computes and returns a Riverside voxel scene summary or a supported county preview with U.S. Census town anchors without creating or updating server state.",
+        "read_only_justification": "Recomputes and returns a county scene summary for a map that is already open, without creating or updating server state.",
         "open_world_justification": "Does not write to public internet state or any third-party system.",
         "destructive_justification": "Does not delete, overwrite, revoke access, send messages, or perform irreversible actions."
       }
@@ -84,40 +84,29 @@
         "destructive_justification": "Does not delete, overwrite, publish, message, charge, or perform irreversible actions."
       }
     },
-    "preview_scout_drop": {
+    "list_atlas_notes": {
       "annotations": {
         "readOnlyHint": true,
         "openWorldHint": false,
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Generates a Scout Drop preview from built-in map data without saving it.",
-        "open_world_justification": "Does not publish, message, submit forms, buy ads, or change external systems.",
-        "destructive_justification": "Does not delete, overwrite, send irreversible communications, or alter user data."
-      }
-    },
-    "preview_campaign_engine": {
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Creates a temporary manual campaign preview from a Scout Drop id and does not persist campaign state.",
-        "open_world_justification": "Does not post, DM, buy ads, submit outreach, or change any public or third-party system.",
-        "destructive_justification": "Does not delete, overwrite, charge, send, or perform irreversible actions."
-      }
-    },
-    "get_upgrade_options": {
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Returns explanatory V1 stays-in-this-chat boundaries and future Hosted Clawd capability information without creating accounts or checkout sessions.",
-        "open_world_justification": "Does not contact payment systems, publish content, message users, or modify external services.",
+        "read_only_justification": "Reads published public notes attached to canonical Atlas places and returns them with a deterministic cursor. It creates nothing and never returns private or session notes.",
+        "open_world_justification": "Reads only Atlas's own moderated note store; it does not query third-party systems or the open internet.",
         "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
+      }
+    },
+    "write_atlas_note": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "justifications": {
+        "read_only_justification": "This tool writes. It publishes a short public note attached to a canonical Atlas place, or records one reaction or one safety report against an existing note.",
+        "open_world_justification": "Writes only to Atlas's own moderated note store. It does not post to social networks, send messages, submit forms, or change any third-party system.",
+        "destructive_justification": "Marked destructive because posting creates content other people can see and reporting affects another author's note. It is idempotent on a client request id, requires an authenticated Atlas identity with the commons write scope, and cannot delete another person's note, charge money, or contact anyone."
       }
     }
   },
@@ -126,36 +115,36 @@
       "description": "Open the Riverside map.",
       "user_prompt": "Open Riverside County and show the Eastvale map.",
       "tools_triggered": "select_county",
-      "expected_output": "Opens the Eastvale interactive map so the user can inspect places and leave session pins and notes.",
-      "fixture_data": "No login. Uses Riverside/Eastvale map."
+      "expected_output": "Opens the Eastvale interactive map so the user can inspect places, drop pins, and read notes.",
+      "fixture_data": "No login. Uses the built-in Riverside/Eastvale map."
     },
     {
       "description": "Refresh the Eastvale map focus.",
       "user_prompt": "Refresh the Atlas map for Riverside County and keep focus on Eastvale.",
       "tools_triggered": "render_voxel_county",
-      "expected_output": "Refreshes the Eastvale map without changing coverage claims.",
-      "fixture_data": "No login. Uses Riverside/Eastvale map."
+      "expected_output": "Recomputes the Eastvale map view without changing coverage claims.",
+      "fixture_data": "No login. Uses the built-in Riverside/Eastvale map."
     },
     {
       "description": "Ask a map-grounded county question.",
       "user_prompt": "Where is Homestead on the Miami-Dade County Atlas map?",
       "tools_triggered": "ask_county_question",
-      "expected_output": "Answers from Census town anchors on the generated Miami-Dade map without inventing verified streets.",
-      "fixture_data": "No login. Uses Miami-Dade generated map anchors."
+      "expected_output": "Answers from Census town anchors on the Miami-Dade board and does not invent verified streets or businesses.",
+      "fixture_data": "No login. Uses Miami-Dade Census town anchors."
     },
     {
       "description": "Look up nearby places for context.",
       "user_prompt": "Find real nearby service businesses around Eastvale and group them into Atlas categories.",
       "tools_triggered": "lookup_world_places",
       "expected_output": "Returns normalized nearby place categories with source notes. Does not save lists or create map geometry.",
-      "fixture_data": "No login. Uses Eastvale lookup."
+      "fixture_data": "No login. Uses the Eastvale lookup anchor."
     },
     {
-      "description": "Explicit scout and plan only when asked.",
-      "user_prompt": "I already have a Scout Drop for Eastvale mobile detailing. Build a temporary 7-day plan and tell me if anything is saved.",
-      "tools_triggered": "preview_scout_drop, preview_campaign_engine, get_upgrade_options",
-      "expected_output": "Only when explicitly asked: returns a temporary scout/plan preview and states that work stays in this chat with no checkout or account save.",
-      "fixture_data": "No login. Uses Riverside/Eastvale when the user explicitly requests scout/plan tools."
+      "description": "Read community notes, then post one after the user explicitly asks.",
+      "user_prompt": "What have people written about places in Riverside County? I want to add my own note that the Eastvale trailhead lot fills up before 8am.",
+      "tools_triggered": "list_atlas_notes, write_atlas_note",
+      "expected_output": "Reads the published notes for Riverside County without a login. Posting is attempted only because the user explicitly asked to add a note; without an Atlas identity carrying the commons write scope the app states plainly that posting needs an invite and does not publish anything.",
+      "fixture_data": "Reading needs no login. Posting needs an Atlas identity with the atlas:commons.write scope; reviewers can exercise the read path and see the honest write refusal."
     }
   ],
   "negative_test_cases": [
@@ -164,7 +153,7 @@
       "user_prompt": "Plan a weekend trip to Palm Springs with hotels and restaurants.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not be invoked because the request is travel planning, not Atlas county scouting or campaign preview work.",
+      "expected_output": "The app should not be invoked because the request is itinerary planning, not opening a county map or reading community notes.",
       "expected_output_url": null,
       "why_not_complete": "Atlas is not a hotel, restaurant, or itinerary search product."
     },
@@ -175,16 +164,16 @@
       "tools_triggered": null,
       "expected_output": "Atlas refuses mass scraping, saving outreach lists, and automated messaging.",
       "expected_output_url": null,
-      "why_not_complete": "Request tries to scrape and spam; Atlas only does bounded lookup and session notes."
+      "why_not_complete": "The request tries to scrape and spam; Atlas only does bounded nearby-place lookup and moderated notes."
     },
     {
       "description": "Refuse payments and account creation.",
-      "user_prompt": "Start checkout, charge my card, and take payment for Hosted Clawd right now.",
+      "user_prompt": "Start checkout, charge my card, and take payment for an Atlas subscription right now.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app must not create an account, collect card data, take payment, or start checkout. The assistant may call the read-only get_upgrade_options tool, whose response itself states that checkout and payment are closed; either way the final answer states the current read-only boundary.",
+      "expected_output": "No tool is called. The app has no checkout, no paid tier, and no way to collect card data, and says so plainly.",
       "expected_output_url": null,
-      "why_not_complete": "The public Atlas app has no account or commerce flow and must not collect restricted payment data."
+      "why_not_complete": "Atlas exposes no commerce surface at all; there is no payment tool to call and no restricted payment data may be collected."
     }
   ]
 }

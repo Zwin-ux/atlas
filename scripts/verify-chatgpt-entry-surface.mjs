@@ -2,21 +2,14 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { assertToolSurface } from "./lib/atlas-tool-surface.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const mcpUrl = new URL(args.mcpUrl ?? process.env.ATLAS_MCP_URL ?? "http://127.0.0.1:8787/mcp");
 const outPath = args.out ?? process.env.ATLAS_CHATGPT_ENTRY_PROOF_OUT;
 const jsonOutPath = args.jsonOut ?? process.env.ATLAS_GOLDEN_PROMPT_PRODUCT_PROOF_OUT;
 const districtSlug = args.district ?? "anaheim-candidate";
-const expectedTools = [
-  "ask_county_question",
-  "get_upgrade_options",
-  "lookup_world_places",
-  "preview_campaign_engine",
-  "preview_scout_drop",
-  "render_voxel_county",
-  "select_county",
-];
+const commonsEnabled = !(process.argv.includes("--map-only") || process.env.ATLAS_VERIFY_MAP_ONLY === "1");
 
 function parseArgs(argv) {
   const parsed = {};
@@ -151,7 +144,7 @@ const proof = {
     lookupNotCoverageProof: true,
     noInternalLanguage: true,
     noPersistencePaidXpEvidenceAutomationClaims: true,
-    sevenToolListStable: true,
+    toolSurfaceStable: true,
   },
   scenarios: [],
   toolTexts: {},
@@ -162,8 +155,7 @@ try {
   await client.connect(transport);
 
   const tools = (await client.listTools()).tools ?? [];
-  const actualTools = tools.map((tool) => tool.name).sort();
-  assert(JSON.stringify(actualTools) === JSON.stringify(expectedTools), `Unexpected tools: ${actualTools.join(", ")}`);
+  const actualTools = assertToolSurface(tools.map((tool) => tool.name), { commonsEnabled });
 
   const selectPlayableResult = await client.callTool({
     name: "select_county",
@@ -173,7 +165,7 @@ try {
   const selectPlayable = structuredContent(selectPlayableResult, "select_county playable");
   checkPublicText("select_county playable", selectPlayableText, [
     [/Eastvale is the full map/i, "Eastvale is the full map"],
-    [/notes that stay in this chat/i, "notes stay in this chat"],
+    [/(?:private )?(?:pins and )?notes (?:that )?stay in this chat/i, "notes stay in this chat"],
   ]);
   assert(selectPlayable.type === "voxelSceneSummary", "select_county playable must return a scene summary.");
   proof.scenarios.push(
@@ -186,7 +178,7 @@ try {
       selectPlayable,
       [
         [/Eastvale is the full map/i, "Eastvale is the full map"],
-        [/notes that stay in this chat/i, "notes stay in this chat"],
+        [/(?:private )?(?:pins and )?notes (?:that )?stay in this chat/i, "notes stay in this chat"],
       ],
     ),
   );
@@ -211,7 +203,18 @@ try {
   ]);
   assert(selectShell.coverageTier === "L1_COUNTY_SHELL", "select_county shell must return L1 shell coverage.");
   assert(selectShell.playableDistrictCount === 0, "select_county shell must not claim playable districts.");
-  assert(selectShellResult._meta?.generatedDraftSpec?.sourceBasis === "census_identity_and_town_anchors", "select_county shell must carry Census town anchors by default.");
+  // Town anchors ship on every shell county by default; the generated layout
+  // study is opt-in behind includeGeneratedDraft and is checked separately.
+  const shellAnchors = selectShellResult._meta?.townAnchors;
+  assert(Array.isArray(shellAnchors) && shellAnchors.length > 0, "select_county shell must carry Census town anchors by default.");
+  assert(
+    shellAnchors.every((anchor) => typeof anchor.censusPlaceGeoid === "string" && anchor.censusPlaceGeoid.length > 0 && typeof anchor.label === "string"),
+    "Every shell town anchor must be a real Census place with a GEOID and a name.",
+  );
+  assert(
+    selectShellResult._meta?.generatedDraftSpec === undefined,
+    "select_county must not attach a generated layout study unless includeGeneratedDraft was requested.",
+  );
   proof.scenarios.push(
     createScenario(
       "shell-browse-orange",
@@ -245,7 +248,7 @@ try {
   const renderPlayable = structuredContent(renderPlayableResult, "render_voxel_county playable");
   checkPublicText("render_voxel_county playable", renderPlayableText, [
     [/Riverside\/Eastvale full map/i, "Riverside/Eastvale full map"],
-    [/Pins and notes stay in this chat/i, "pins and notes stay in chat"],
+    [/(?:private )?(?:pins and )?notes (?:that )?stay in this chat/i, "pins and notes stay in chat"],
   ]);
   assert(renderPlayable.type === "voxelSceneSummary", "render_voxel_county playable must return a scene summary.");
   proof.toolTexts.renderVoxelCountyPlayable = renderPlayableText;
@@ -263,10 +266,14 @@ try {
   checkPublicText("render_voxel_county shell", renderShellText, [
     [/preview only/i, "preview render is preview only"],
     [/Real Census town names are attached/i, "real Census town anchors are attached"],
-    [/Open Riverside\/Eastvale for the fully explorable map/i, "Riverside/Eastvale full-map path"],
+    [/Riverside\/Eastvale is fully explorable today|Open Riverside\/Eastvale for the fully explorable map/i, "Riverside/Eastvale full-map path"],
   ]);
   assert(renderShell.coverageTier === "L1_COUNTY_SHELL", "render_voxel_county shell must return L1 shell coverage.");
-  assert(renderShellResult._meta?.generatedDraftSpec?.sourceBasis === "census_identity_and_town_anchors", "render_voxel_county shell must carry Census town anchors by default.");
+  const renderShellAnchors = renderShellResult._meta?.townAnchors;
+  assert(
+    Array.isArray(renderShellAnchors) && renderShellAnchors.length > 0,
+    "render_voxel_county shell must carry Census town anchors by default.",
+  );
   proof.scenarios.push(
     createScenario(
       "negative-anaheim-not-playable",
@@ -278,7 +285,7 @@ try {
       [
         [/preview only/i, "Anaheim's county preview is preview only"],
         [/Real Census town names are attached/i, "real Census town anchors are attached"],
-        [/Open Riverside\/Eastvale for the fully explorable map/i, "Riverside/Eastvale full-map path"],
+        [/Riverside\/Eastvale is fully explorable today|Open Riverside\/Eastvale for the fully explorable map/i, "Riverside/Eastvale full-map path"],
       ],
     ),
   );

@@ -47,33 +47,45 @@ export class AtlasCommonsService {
     this.now = options.now ?? (() => new Date());
   }
 
+  // Reading the commons is the public half of the product and must not depend
+  // on the identity provider. Reads need the note store and the secret that
+  // signs pagination cursors — nothing else. If Auth0 is misconfigured or down,
+  // people can still read every published note; only writing stops.
+  private get readable(): boolean {
+    return Boolean(this.config.enabled && this.repository && this.config.pseudonymSecret);
+  }
+
+  // Writing needs an identity to attribute the note to, and a moderation
+  // credential so an operator can act on what gets written.
+  private get writable(): boolean {
+    return Boolean(this.readable && this.config.operatorToken && this.authConfigured);
+  }
+
   publicMeta(): AtlasCommonsPublicMeta {
-    const available = Boolean(
-      this.config.enabled &&
-      this.repository &&
-      this.config.pseudonymSecret &&
-      this.config.operatorToken &&
-      this.authConfigured,
-    );
+    const readable = this.readable;
+    const writable = this.writable;
     return {
       enabled: this.config.enabled,
-      available,
+      available: readable,
+      writable,
       requiresIdentityForPosting: true,
       publicPostingIsExplicit: true,
       privateNotesStayPrivate: true,
       moderation: "pre_publication",
       modes: ["all", "nearby", "mine"],
-      statusLabel: available
+      statusLabel: writable
         ? "Public notes are ready. New posts wait for review."
-        : this.config.enabled
-          ? "Public notes are temporarily unavailable. Private notes still work."
-          : "Public notes are not enabled on this Atlas server.",
+        : readable
+          ? "You can read public notes. Posting is unavailable right now."
+          : this.config.enabled
+            ? "Public notes are temporarily unavailable. Private notes still work."
+            : "Public notes are not enabled on this Atlas server.",
     };
   }
 
   async health(): Promise<boolean> {
-    if (!this.config.enabled || !this.repository || !this.config.pseudonymSecret || !this.config.operatorToken || !this.authConfigured) return false;
-    return this.repository.health();
+    if (!this.readable) return false;
+    return this.repository!.health();
   }
 
   async listModerationQueue(
@@ -91,7 +103,8 @@ export class AtlasCommonsService {
   }
 
   async list(input: AtlasCommonsListInput, auth?: AtlasCommonsAuthContext): Promise<AtlasCommonsListResult> {
-    const repository = this.requireAvailable();
+    // Reading is public. mode="mine" still needs an identity, enforced below.
+    const repository = this.requireReadable();
     const mode = input.mode ?? "all";
     const sort = mode === "mine" ? "new" : input.sort ?? "hot";
     const countySlug = optionalSlug(input.countySlug, "countySlug");
@@ -246,12 +259,23 @@ export class AtlasCommonsService {
     }
   }
 
-  private requireAvailable(): AtlasCommonsRepository {
+  // Read path: available whenever the note store and cursor secret are present.
+  private requireReadable(): AtlasCommonsRepository {
     if (!this.config.enabled) throw new AtlasCommonsError("COMMONS_DISABLED", "Public notes are not enabled on this Atlas server.");
-    if (!this.repository || !this.config.pseudonymSecret || !this.config.operatorToken || !this.authConfigured) {
+    if (!this.readable) {
       throw new AtlasCommonsError("COMMONS_UNAVAILABLE", "Public notes are temporarily unavailable. Private notes still work.");
     }
-    return this.repository;
+    return this.repository!;
+  }
+
+  // Write path: additionally needs an identity provider and a moderation
+  // credential. Refusing here is honest — it never silently drops a note.
+  private requireAvailable(): AtlasCommonsRepository {
+    const repository = this.requireReadable();
+    if (!this.writable) {
+      throw new AtlasCommonsError("COMMONS_UNAVAILABLE", "Posting public notes is unavailable right now. Reading still works.");
+    }
+    return repository;
   }
 
   private authorHandle(subject: string): string {

@@ -368,10 +368,73 @@ test("disabled and misconfigured services fail narrowly while reporting safe met
     resolveAnchor: () => undefined,
   });
   assert.equal(unavailable.publicMeta().available, false);
+  assert.equal(unavailable.publicMeta().writable, false);
   await assert.rejects(() => unavailable.list({}), (error: unknown) => {
     assert.equal((error as AtlasCommonsError).code, "COMMONS_UNAVAILABLE");
     return true;
   });
+});
+
+// The public half of the product must survive an identity-provider outage.
+// Reading published notes needs the note store and the cursor secret; it must
+// never depend on OIDC being configured or reachable.
+test("reads stay live when the identity provider is unconfigured; only writes stop", async () => {
+  const now = () => new Date(Date.parse("2026-07-25T12:00:00.000Z"));
+  const repository = createInMemoryAtlasCommonsRepository(now);
+  const anchor = { countySlug: "riverside-ca", placeId: "eastvale", placeLabel: "Eastvale" };
+
+  // A fully configured service publishes one note...
+  const configured = new AtlasCommonsService({
+    config: {
+      enabled: true,
+      pseudonymSecret: "unit-test-pseudonym-secret",
+      operatorToken: "unit-test-operator-token",
+      reportThreshold: 3,
+      writeLimitPerHour: 30,
+    },
+    repository,
+    resolveAnchor: () => anchor,
+    authConfigured: true,
+    now,
+  });
+  const posted = await configured.post(
+    { ...anchor, body: "The trailhead lot fills before 8am.", clientRequestId: "req-1" },
+    owner,
+  );
+  await configured.moderate(posted.note!.id, "approve", "test-operator");
+
+  // ...and a service with no identity provider still serves that note.
+  const readOnly = new AtlasCommonsService({
+    config: {
+      enabled: true,
+      pseudonymSecret: "unit-test-pseudonym-secret",
+      operatorToken: "unit-test-operator-token",
+      reportThreshold: 3,
+      writeLimitPerHour: 30,
+    },
+    repository,
+    resolveAnchor: () => anchor,
+    authConfigured: false,
+    now,
+  });
+
+  const meta = readOnly.publicMeta();
+  assert.equal(meta.available, true, "reading must stay available without an identity provider");
+  assert.equal(meta.writable, false, "writing must be closed without an identity provider");
+  assert.equal(await readOnly.health(), true, "health must reflect the readable store");
+
+  const listed = await readOnly.list({ countySlug: "riverside-ca" });
+  assert.equal(listed.notes.length, 1);
+  assert.equal(listed.notes[0]!.body, "The trailhead lot fills before 8am.");
+
+  // Writing refuses honestly rather than silently dropping the note.
+  await assert.rejects(
+    () => readOnly.post({ ...anchor, body: "Should not publish.", clientRequestId: "req-2" }, owner),
+    (error: unknown) => {
+      assert.equal((error as AtlasCommonsError).code, "COMMONS_UNAVAILABLE");
+      return true;
+    },
+  );
 });
 
 test("Commons-only OAuth metadata advertises no Hosted Clawd scopes", () => {

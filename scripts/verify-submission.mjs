@@ -1,19 +1,18 @@
 import { readFileSync } from "node:fs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  assertToolSurface,
+  EXPECTED_ANNOTATIONS,
+  EXPECTED_TOOLS,
+  RETIRED_TOOLS,
+} from "./lib/atlas-tool-surface.mjs";
 
 const submissionPath = new URL("../chatgpt-app-submission.json", import.meta.url);
 const mcpUrl = new URL(process.env.ATLAS_MCP_URL ?? "http://127.0.0.1:8787/mcp");
 
-const expectedTools = [
-  "ask_county_question",
-  "get_upgrade_options",
-  "lookup_world_places",
-  "preview_campaign_engine",
-  "preview_scout_drop",
-  "render_voxel_county",
-  "select_county",
-];
+const expectedTools = [...EXPECTED_TOOLS];
+const expectedAnnotations = EXPECTED_ANNOTATIONS;
 const lookupRadiusMeters = Number(process.env.ATLAS_VERIFY_RADIUS_METERS ?? 3000 + (Date.now() % 900));
 
 function assert(condition, message) {
@@ -54,19 +53,38 @@ function parseSubmission() {
   assert(
     typeof subtitle === "string" &&
       subtitle.length <= 40 &&
-      /voxel county maps/i.test(subtitle) &&
+      /county maps/i.test(subtitle) &&
+      /notes/i.test(subtitle) &&
       !/demo|trial|alpha|beta|coming soon|planned|waitlist/i.test(subtitle),
-    "Submission subtitle must describe voxel county maps without unfinished-product language.",
+    "Submission subtitle must name both halves of the product (county maps + notes) without unfinished-product language.",
   );
   assert(
     typeof description === "string" &&
-      (/Riverside\/Eastvale is the (full )?interactive map/i.test(description) ||
-        description.includes("Riverside/Eastvale is the interactive map")) &&
-      (/session (pins|notes)|pins, and leave notes/i.test(description) || description.includes("session pins")) &&
-      (description.includes("read-only") || description.includes("does not create accounts")) &&
+      /Riverside\/Eastvale is the (full )?interactive map/i.test(description) &&
       description.includes("up to 24 hours") &&
       !/demo|trial|alpha|beta|coming soon|planned|waitlist|your county/i.test(description),
-    "Submission description must frame the map+notes product as complete and disclose lookup retention.",
+    "Submission description must frame the product as complete and disclose lookup retention.",
+  );
+  // UGC honesty: a reviewer reading the listing must learn, from the listing
+  // alone, that other people's writing shows up and how it is governed.
+  assert(
+    /user-generated/i.test(description) &&
+      /moderat/i.test(description) &&
+      /report/i.test(description) &&
+      /visible to other people|other people/i.test(description),
+    "Submission description must disclose that notes are user-generated, moderated, reportable, and visible to others.",
+  );
+  assert(
+    /invited contributors|invite/i.test(description) && /reading is open|open to everyone/i.test(description),
+    "Submission description must state the public-read / invite-write posture.",
+  );
+  assert(
+    /stay in the chat|stays in the chat|never publish on their own/i.test(description),
+    "Submission description must state that private widget notes never publish on their own.",
+  );
+  assert(
+    /does not process payments|no checkout|no paid tier/i.test(description),
+    "Submission description must state that Atlas has no payment surface.",
   );
 
   assertSquarePng(appInfo.icon, 512);
@@ -108,11 +126,14 @@ function parseSubmission() {
 
   for (const toolName of expectedTools) {
     const tool = submission.tools[toolName];
+    const expected = expectedAnnotations[toolName];
     assert(tool?.annotations, `${toolName} is missing submission annotations.`);
-    assert(tool.annotations.readOnlyHint === true, `${toolName} must be read-only.`);
-    assert(tool.annotations.destructiveHint === false, `${toolName} must be non-destructive.`);
-    const expectedOpenWorld = toolName === "lookup_world_places";
-    assert(tool.annotations.openWorldHint === expectedOpenWorld, `${toolName} has the wrong openWorldHint.`);
+    for (const hint of ["readOnlyHint", "openWorldHint", "destructiveHint"]) {
+      assert(
+        tool.annotations[hint] === expected[hint],
+        `${toolName} ${hint} must be ${expected[hint]}; submission says ${tool.annotations[hint]}.`,
+      );
+    }
     assert(tool.justifications?.read_only_justification, `${toolName} is missing read-only justification.`);
     assert(tool.justifications?.open_world_justification, `${toolName} is missing open-world justification.`);
     assert(tool.justifications?.destructive_justification, `${toolName} is missing destructive justification.`);
@@ -128,13 +149,23 @@ function parseSubmission() {
   const coveredTools = new Set(
     positiveTests.flatMap((test) => test.tools_triggered.split(",").map((tool) => tool.trim()).filter(Boolean)),
   );
-  assert(expectedTools.every((tool) => coveredTools.has(tool)), "Five positive tests must collectively exercise all seven tools.");
+  assert(
+    expectedTools.every((tool) => coveredTools.has(tool)),
+    `Five positive tests must collectively exercise all ${expectedTools.length} tools. Missing: ${expectedTools.filter((tool) => !coveredTools.has(tool)).join(", ")}.`,
+  );
 
   const negativePrompts = (submission.negative_test_cases ?? []).map((test) => `${test.user_prompt} ${test.expected_output}`);
   assert(submission.negative_test_cases?.length === 3, "Plugin portal requires exactly three negative test cases.");
   assert(submission.negative_test_cases.every((test) => test.why_not_complete), "Every negative test needs a reviewer-facing reason.");
   assert(negativePrompts.some((text) => /DMs|messaging|spam/i.test(text)), "Submission needs a messaging/spam negative case.");
   assert(negativePrompts.some((text) => /checkout|card|payment/i.test(text)), "Submission needs a payment negative case.");
+  // With no commerce tool on the surface, the payment refusal must be a plain
+  // "no tool is called" — not a tool call that explains why it cannot charge.
+  const paymentCase = (submission.negative_test_cases ?? []).find((test) => /checkout|card|payment/i.test(`${test.user_prompt} ${test.expected_output}`));
+  assert(
+    paymentCase?.tools_triggered === null || paymentCase?.tools_triggered === undefined,
+    "The payment negative case must trigger no tool at all; Atlas exposes no commerce surface.",
+  );
   assert(
     negativePrompts.some((text) => /Google|scraping|saving|mass outreach/i.test(text)),
     "Submission needs a live lookup boundary negative case.",
@@ -163,7 +194,7 @@ async function verifyPublicPage(path, requiredText) {
   assert(response.status === 200, `${path} returned HTTP ${response.status}.`);
   assert(/text\/html/i.test(response.headers.get("content-type") ?? ""), `${path} must return HTML.`);
   for (const token of requiredText) assert(body.includes(token), `${path} is missing required copy: ${token}`);
-  return { status: response.status, bytes: Buffer.byteLength(body) };
+  return { status: response.status, bytes: Buffer.byteLength(body), body };
 }
 
 function assertScenePacketMeta(result, expectedReadiness, toolName) {
@@ -185,9 +216,45 @@ const publicPages = {};
 let challengeStatus = 0;
 
 try {
-  publicPages.privacy = await verifyPublicPage("/privacy", ["Data Atlas processes", "Recipients", "up to 24 hours", "Your controls"]);
-  publicPages.terms = await verifyPublicPage("/terms", ["Planning boundaries", "up to 24", "Acceptable use", "Contact"]);
-  publicPages.support = await verifyPublicPage("/support", ["Atlas County Scout", "What to include", "Do not send passwords", "Privacy Policy"]);
+  // Every policy route a store reviewer opens must already describe the product
+  // that actually ships — including the parts that store user-generated content.
+  publicPages.privacy = await verifyPublicPage("/privacy", [
+    "Data Atlas processes",
+    "Public notes are public",
+    "Recipients",
+    "up to 24 hours",
+    "30 days",
+    "12 months",
+    "Your controls",
+  ]);
+  publicPages.terms = await verifyPublicPage("/terms", [
+    "Boundaries",
+    "Posting rules",
+    "up to 24",
+    "Acceptable use",
+    "three reports",
+    "Contact",
+  ]);
+  publicPages.support = await verifyPublicPage("/support", [
+    "Atlas County Maps",
+    "What to include",
+    "Do not send passwords",
+    "Remove a note I wrote",
+    "Privacy Policy",
+  ]);
+  publicPages.community = await verifyPublicPage("/community", [
+    "Commons Community Standard",
+    "24 hours",
+    "Three reports",
+    "Reports and removals",
+  ]);
+  // No policy page may still hedge Commons as a maybe-someday feature, and none
+  // may advertise a product Atlas no longer has.
+  for (const [name, page] of Object.entries(publicPages)) {
+    for (const stale of ["Atlas County Scout", "Scout Drop", "campaign plan", "if enabled", "may be enabled"]) {
+      assert(!page.body.includes(stale), `/${name} still contains retired product copy: "${stale}".`);
+    }
+  }
   const challengeResponse = await fetch(new URL("/.well-known/openai-apps-challenge", mcpUrl));
   const challengeBody = await challengeResponse.text();
   challengeStatus = challengeResponse.status;
@@ -202,11 +269,7 @@ try {
   await client.connect(transport);
   const toolList = await client.listTools();
   const tools = toolList.tools ?? [];
-  const actualTools = tools.map((tool) => tool.name).sort();
-  assert(
-    JSON.stringify(actualTools) === JSON.stringify(expectedTools),
-    `MCP tools mismatch. Expected ${expectedTools.join(", ")}; got ${actualTools.join(", ")}.`,
-  );
+  const actualTools = assertToolSurface(tools.map((tool) => tool.name));
 
   for (const tool of tools) {
     const submissionTool = submission.tools[tool.name];
@@ -215,6 +278,13 @@ try {
     assert(tool.annotations.readOnlyHint === submissionTool.annotations.readOnlyHint, `${tool.name} readOnlyHint mismatch.`);
     assert(tool.annotations.openWorldHint === submissionTool.annotations.openWorldHint, `${tool.name} openWorldHint mismatch.`);
     assert(tool.annotations.destructiveHint === submissionTool.annotations.destructiveHint, `${tool.name} destructiveHint mismatch.`);
+  }
+
+  // assertToolSurface already rejected retired and commerce-shaped tool names.
+  // The instructions the model reads must not name them either.
+  const serverInstructions = toolList._meta?.instructions ?? "";
+  for (const retired of RETIRED_TOOLS) {
+    assert(!serverInstructions.includes(retired), `Server instructions still reference the retired tool ${retired}.`);
   }
   const lookupTool = tools.find((tool) => tool.name === "lookup_world_places");
   const lookupInputs = lookupTool?.inputSchema?.properties ?? {};
@@ -317,75 +387,58 @@ try {
   );
   assert(JSON.stringify(cachedLookup) === JSON.stringify(lookup), "Cached lookup must preserve the same minimized public result shape.");
 
-  const scoutResult = await client.callTool({
-    name: "preview_scout_drop",
-    arguments: {
-      countySlug: "riverside-ca",
-      locationLabel: "Eastvale",
-      businessType: "mobile detailing",
-      goal: "Find the strongest first drop for a local mobile detailing offer.",
-    },
+  // Public read: anyone, including an unauthenticated reviewer, can read the
+  // commons. This is the half of the product that makes the map worth opening
+  // twice, so it must work with no credentials at all.
+  const notesResult = await client.callTool({
+    name: "list_atlas_notes",
+    arguments: { countySlug: "riverside-ca", limit: 5 },
   });
-  const scout = structuredContent(scoutResult, "preview_scout_drop");
-  const scoutText = textContent(scoutResult);
-  assert(scout.type === "scoutPreview", "preview_scout_drop returned wrong type.");
-  assert(/stays in this chat|does not save/i.test(scoutText), "Scout Drop content must mention chat-only save limits.");
-  assert(scout.alphaBoundary?.mode === "session_only_alpha", "Scout Drop must expose chat-only boundary.");
-  assert(scout.alphaBoundary?.savesState === false, "Scout Drop must not claim saved state.");
-  assert(scout.alphaBoundary?.executesActions === false, "Scout Drop must not claim action execution.");
-  assert(scout.alphaBoundary?.nextTool === "preview_campaign_engine", "Scout Drop should point to campaign preview next.");
-
-  const campaignResult = await client.callTool({
-    name: "preview_campaign_engine",
-    arguments: {
-      scoutPreviewId: scout.id,
-      countySlug: scout.countySlug,
-      locationLabel: "Eastvale",
-      businessType: scout.businessType,
-      goal: scout.goal,
-    },
-  });
-  const campaign = structuredContent(campaignResult, "preview_campaign_engine");
-  const campaignText = textContent(campaignResult);
-  assert(campaign.type === "campaignPreview", "preview_campaign_engine returned wrong type.");
-  assert(campaign.guardrails.some((guardrail) => /manual|no posts|no DMs|no ad spend/i.test(guardrail)), "Campaign guardrails must stay manual.");
-  assert(campaign.alphaBoundary?.mode === "session_only_alpha", "Campaign preview must expose chat-only boundary.");
-  assert(campaign.alphaBoundary?.savesState === false, "Campaign preview must not claim saved state.");
-  assert(campaign.alphaBoundary?.executesActions === false, "Campaign preview must not execute actions.");
-  assert(campaign.alphaBoundary?.nextTool === "get_upgrade_options", "Campaign preview should point to Hosted Clawd options next.");
-  assert(/manual|no posting|no messaging|ad spend|persistence/i.test(campaignText), "Campaign content must not imply execution.");
-
-  const upgrade = structuredContent(
-    await client.callTool({ name: "get_upgrade_options", arguments: { trigger: "save_campaign" } }),
-    "get_upgrade_options",
-  );
-  assert(upgrade.type === "upgradeOptions", "get_upgrade_options returned wrong type.");
+  const notes = structuredContent(notesResult, "list_atlas_notes");
+  assert(notes.type === "atlasPublicNoteList", "list_atlas_notes returned wrong type.");
+  assert(Array.isArray(notes.notes), "list_atlas_notes must return a notes array.");
   assert(
-    upgrade.hosted?.status === "planned_beta" || upgrade.hosted?.status === "owner_gated_test",
-    "Hosted Clawd must remain planned_beta or owner_gated_test.",
+    notes.notes.every((note) => note.status === undefined || note.status === "visible"),
+    "list_atlas_notes must only return visible notes; pending or removed notes must never reach a reader.",
   );
-  if (upgrade.free?.label === "Atlas V1") {
-    // ATLAS_SAVE_SURFACE=off (production V1) — assert its honest boundary.
-    assert(
-      Array.isArray(upgrade.unavailableActions) &&
-        upgrade.unavailableActions.some((item) => /does not start checkout, charge money/i.test(item)),
-      "V1 upgrade output must clearly keep checkout and money closed.",
-    );
-    assert(!("hostedClawd" in upgrade), "V1 upgrade output must not expose owner-gated Hosted Clawd capabilities.");
-  } else if (upgrade.hosted?.status === "owner_gated_test") {
-    assert(
-      Array.isArray(upgrade.unavailableActions) &&
-        upgrade.unavailableActions.some((item) => /Public paid access is not live/i.test(item)),
-      "Owner-gated Hosted Clawd output must clearly keep public paid access closed.",
-    );
-  }
+  assert(
+    notes.notes.every((note) => !("authorEmail" in note) && !("authorId" in note) && !("identity" in note)),
+    "list_atlas_notes leaked author identity fields; notes carry a pseudonymous handle only.",
+  );
+
+  // Invite-write posture: an unauthenticated post must be refused honestly, not
+  // silently accepted and not crashed on. This is the single most important
+  // negative on the whole surface — it is what keeps a public app from becoming
+  // an open write endpoint.
+  const anonymousWrite = await client.callTool({
+    name: "write_atlas_note",
+    arguments: {
+      operation: "post",
+      countySlug: "riverside-ca",
+      placeId: "eastvale",
+      placeLabel: "Eastvale",
+      body: "Submission verifier probe: this post must be refused.",
+      clientRequestId: `submission-verifier-${lookupRadiusMeters}`,
+    },
+  });
+  const anonymousWriteText = textContent(anonymousWrite);
+  assert(
+    anonymousWrite.isError === true || /sign in|identity|invite|not authorized|permission|scope/i.test(anonymousWriteText),
+    "An unauthenticated write_atlas_note post must be refused with an honest reason.",
+  );
+  assert(
+    !/published|posted|added your note/i.test(anonymousWriteText),
+    "An unauthenticated write_atlas_note post must not claim the note was published.",
+  );
 
   console.log(
     JSON.stringify(
       {
         ok: true,
         mcpUrl: mcpUrl.toString(),
-        publicPages,
+        publicPages: Object.fromEntries(
+          Object.entries(publicPages).map(([name, page]) => [name, { status: page.status, bytes: page.bytes }]),
+        ),
         challengeStatus,
         tools: actualTools,
         lookupPlaceCount: lookup.places.length,
@@ -394,7 +447,8 @@ try {
         countyQuestionTopic: countyQuestion.topic,
         unsupportedCountyQuestion: unsupportedQuestion.supported,
         sceneMetaPlaces: countyResult._meta.scene.world.places.length,
-        hostedClawdStatus: upgrade.hosted.status,
+        publicNotesRead: notes.notes.length,
+        anonymousWriteRefused: true,
       },
       null,
       2,
