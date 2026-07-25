@@ -2,16 +2,19 @@
   "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
   "schema_version": 1,
   "app_info": {
-    "display_name": "Atlas County Maps",
-    "subtitle": "County maps with community notes",
-    "description": "Atlas County Maps opens a U.S. county map inside ChatGPT and lets people leave short public notes on the places they know. Riverside/Eastvale is the full interactive map: pan and zoom, inspect places, drop pins, and read what other people wrote about a corner, a park, or a parking lot. Every supported U.S. county opens with the real Census county outline, water, and town names on a generated layout that is labeled as generated rather than verified local streets and buildings. Ask map-grounded questions and look up nearby places as normalized categories. Public notes are user-generated content: they are attributable, reportable, moderated, and visible to other people. Posting requires an Atlas identity and is limited to invited contributors; reading is open. Private notes taken in the widget stay in the chat and never publish on their own. Atlas does not process payments, buy ads, send messages, or run outreach. Nearby-place lookups may use Google Maps Platform with a provider cache for up to 24 hours; results are never map geometry or coverage proof.",
-    "category": "BUSINESS",
-    "icon": "assets/brand/atlas-icon-512.png",
+    "display_name": "Atlas",
+    "subtitle": "Explore US county maps",
+    "description": "Atlas is an atlas of the United States inside ChatGPT. Open any of the 3,222 US counties and see its real outline, its named lakes, bays and rivers, and where its towns actually sit — then zoom out to the state or the whole country. Ask which county a town is in, how large a county is, or what water runs through it, and the answer comes from the 2024 US Census rather than from memory. Atlas is built to be right or to say it does not know: a name that could mean several places returns the list instead of a guess, and a name it does not carry is refused outright. Every map is drawn from public-domain Census TIGERweb geography on an equal-area projection, so counties are shown at honest relative size. Atlas has no accounts, no payments, and no advertising, and it does not track you.",
+    "category": "EDUCATION",
+    "icon": "assets/brand/atlas-icon-light-512.png",
     "website_url": "https://atlas-backend-production-e6fc.up.railway.app/preview",
     "support_url": "https://atlas-backend-production-e6fc.up.railway.app/support",
     "support_email": "mzwin3545@gmail.com",
     "privacy_policy_url": "https://atlas-backend-production-e6fc.up.railway.app/privacy",
-    "terms_of_service_url": "https://atlas-backend-production-e6fc.up.railway.app/terms"
+    "terms_of_service_url": "https://atlas-backend-production-e6fc.up.railway.app/terms",
+    "icon_dark": "assets/brand/atlas-icon-dark-512.png",
+    "composer_icon": "assets/brand/atlas-composer-light-48.png",
+    "composer_icon_dark": "assets/brand/atlas-composer-dark-48.png"
   },
   "plugin_submission": {
     "submission_type": "WITH_MCP",
@@ -22,13 +25,18 @@
         "US"
       ]
     },
+    "commerce": {
+      "links_out_for_purchases": false,
+      "sells_digital_goods": false,
+      "notes": "Atlas has no commerce surface of any kind. It exposes no checkout, no paid tier, no subscription, and no link out to any purchase flow. All three tools are read-only reads of public-domain US Census data."
+    },
     "starter_prompts": [
-      "Open Riverside County and show the Eastvale map.",
-      "Show me Miami-Dade County on Atlas.",
-      "What have people written about places in Riverside County?",
-      "Where is Homestead on the Miami-Dade map?"
+      "Show me Riverside County on a map.",
+      "What county is Eastvale in?",
+      "Open Miami-Dade County and tell me what water is in it.",
+      "Show me the whole United States by county."
     ],
-    "release_notes": "Atlas v0.2.0 ships the county map with a public community-notes layer. Interactive Riverside/Eastvale voxel map; real U.S. Census county outlines, water, and town anchors across supported counties; map-grounded county questions; nearby-place lookup returned as normalized categories; and moderated public notes attached to canonical map places. Reading notes is open to everyone. Posting requires an Atlas identity and is limited to invited contributors while moderation is handled by a single named owner. Notes are reportable and auto-quarantine after three reports pending review.",
+    "release_notes": "First release. Atlas draws all 3,222 US counties from public-domain Census TIGERweb geography on an Albers equal-area projection, with named water, 18,447 Census town positions, and a nation to state to county zoom. Three read-only tools: open a map, look up which county a place is in, and describe a county from Census data. Place resolution is gated by an automated battery that requires zero confidently-wrong answers across 1,472 cases; ambiguous names return candidates and unknown names are refused.",
     "domain_verification": {
       "challenge_path": "/.well-known/openai-apps-challenge",
       "status": "ROUTE_READY_PORTAL_TOKEN_REQUIRED",
@@ -36,142 +44,105 @@
     }
   },
   "tools": {
-    "select_county": {
+    "open_atlas_map": {
       "annotations": {
         "readOnlyHint": true,
         "openWorldHint": false,
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Loads the built-in Riverside/Eastvale map or a supported county board with U.S. Census town anchors and returns widget metadata without saving or changing state.",
-        "open_world_justification": "Does not call live providers, publish content, message users, or modify third-party systems.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
+        "read_only_justification": "Resolves a place name against a local Census index and returns a reference to a map plate for the widget to draw. It creates and changes nothing, and repeating the same call returns the same result.",
+        "open_world_justification": "Reads only Census geography files bundled with the server. It makes no third-party request, publishes nothing, and contacts no external system.",
+        "destructive_justification": "Cannot delete, overwrite, revoke access, charge money, send a message, or take any action with an effect outside the conversation."
       }
     },
-    "ask_county_question": {
+    "search_atlas_places": {
       "annotations": {
         "readOnlyHint": true,
         "openWorldHint": false,
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Answers from built-in Riverside/Eastvale map data or displayed U.S. Census town anchors without saving or changing state.",
-        "open_world_justification": "Does not call live providers; unsupported local, street, building, and business claims are narrowed or refused.",
-        "destructive_justification": "Does not delete, overwrite, publish, message, charge, or perform irreversible actions."
+        "read_only_justification": "Looks a name up in a static index of 18,447 Census places and 3,222 counties and returns matching entries. Nothing is written and the same query always returns the same entries.",
+        "open_world_justification": "Searches a local dataset only. No search engine, no geocoding provider, no network call leaves the server.",
+        "destructive_justification": "Returns index entries and nothing else. It has no capability to modify, delete, send, or purchase."
       }
     },
-    "render_voxel_county": {
+    "describe_atlas_place": {
       "annotations": {
         "readOnlyHint": true,
         "openWorldHint": false,
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Recomputes and returns a county scene summary for a map that is already open, without creating or updating server state.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, send messages, or perform irreversible actions."
-      }
-    },
-    "lookup_world_places": {
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": true,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Uses Atlas-owned county and place ids to return normalized nearby place summaries without creating user records or changing external systems. A provider cache may retain the lookup for up to 24 hours.",
-        "open_world_justification": "May call Google Maps Platform to retrieve current nearby place data for an Atlas-derived area label.",
-        "destructive_justification": "Does not delete, overwrite, publish, message, charge, or perform irreversible actions."
-      }
-    },
-    "list_atlas_notes": {
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Reads published public notes attached to canonical Atlas places and returns them with a deterministic cursor. It creates nothing and never returns private or session notes.",
-        "open_world_justification": "Reads only Atlas's own moderated note store; it does not query third-party systems or the open internet.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, charge money, or perform irreversible actions."
-      }
-    },
-    "write_atlas_note": {
-      "annotations": {
-        "readOnlyHint": false,
-        "openWorldHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true
-      },
-      "justifications": {
-        "read_only_justification": "This tool writes. It publishes a short public note attached to a canonical Atlas place, or records one reaction or one safety report against an existing note.",
-        "open_world_justification": "Writes only to Atlas's own moderated note store. It does not post to social networks, send messages, submit forms, or change any third-party system.",
-        "destructive_justification": "Marked destructive because posting creates content other people can see and reporting affects another author's note. It is idempotent on a client request id, requires an authenticated Atlas identity with the commons write scope, and cannot delete another person's note, charge money, or contact anyone."
+        "read_only_justification": "Reads county area, town list, and named water from bundled 2024 Census data and returns them as facts. It performs no write of any kind.",
+        "open_world_justification": "Every value comes from Census files on disk. The tool reaches no external service and cannot be made to.",
+        "destructive_justification": "Produces a description only. It cannot delete, overwrite, transmit, or charge."
       }
     }
   },
   "test_cases": [
     {
-      "description": "Open the Riverside map.",
-      "user_prompt": "Open Riverside County and show the Eastvale map.",
-      "tools_triggered": "select_county",
-      "expected_output": "Opens the Eastvale interactive map so the user can inspect places, drop pins, and read notes.",
-      "fixture_data": "No login. Uses the built-in Riverside/Eastvale map."
+      "description": "Open a county map.",
+      "user_prompt": "Show me Riverside County, California on a map.",
+      "tools_triggered": "open_atlas_map",
+      "expected_output": "Opens Riverside County with its real Census boundary and town positions, and states that this county's streets are not mapped.",
+      "fixture_data": "No login. Uses bundled Census geography for riverside-ca."
     },
     {
-      "description": "Refresh the Eastvale map focus.",
-      "user_prompt": "Refresh the Atlas map for Riverside County and keep focus on Eastvale.",
-      "tools_triggered": "render_voxel_county",
-      "expected_output": "Recomputes the Eastvale map view without changing coverage claims.",
-      "fixture_data": "No login. Uses the built-in Riverside/Eastvale map."
+      "description": "Look up which county a town is in.",
+      "user_prompt": "What county is Eastvale in?",
+      "tools_triggered": "search_atlas_places",
+      "expected_output": "Answers that Eastvale is in Riverside County, California, from the Census place index.",
+      "fixture_data": "No login. Uses the bundled Census place index."
     },
     {
-      "description": "Ask a map-grounded county question.",
-      "user_prompt": "Where is Homestead on the Miami-Dade County Atlas map?",
-      "tools_triggered": "ask_county_question",
-      "expected_output": "Answers from Census town anchors on the Miami-Dade board and does not invent verified streets or businesses.",
-      "fixture_data": "No login. Uses Miami-Dade Census town anchors."
+      "description": "Describe a county from Census data.",
+      "user_prompt": "How big is Miami-Dade County and what water is in it?",
+      "tools_triggered": "describe_atlas_place",
+      "expected_output": "Reports roughly 1,900 square miles of land, the largest Census places in the county, and named water such as Biscayne Bay and Florida Bay.",
+      "fixture_data": "No login. Uses bundled Census geography for miami-dade-fl."
     },
     {
-      "description": "Look up nearby places for context.",
-      "user_prompt": "Find real nearby service businesses around Eastvale and group them into Atlas categories.",
-      "tools_triggered": "lookup_world_places",
-      "expected_output": "Returns normalized nearby place categories with source notes. Does not save lists or create map geometry.",
-      "fixture_data": "No login. Uses the Eastvale lookup anchor."
+      "description": "Refuse to guess an ambiguous place name.",
+      "user_prompt": "Show me Springfield.",
+      "tools_triggered": "open_atlas_map",
+      "expected_output": "Does not open a map. Returns the real Springfields with their states and counties, and asks which one was meant.",
+      "fixture_data": "No login. Springfield exists in many states in the Census index."
     },
     {
-      "description": "Read community notes, then post one after the user explicitly asks.",
-      "user_prompt": "What have people written about places in Riverside County? I want to add my own note that the Eastvale trailhead lot fills up before 8am.",
-      "tools_triggered": "list_atlas_notes, write_atlas_note",
-      "expected_output": "Reads the published notes for Riverside County without a login. Posting is attempted only because the user explicitly asked to add a note; without an Atlas identity carrying the commons write scope the app states plainly that posting needs an invite and does not publish anything.",
-      "fixture_data": "Reading needs no login. Posting needs an Atlas identity with the atlas:commons.write scope; reviewers can exercise the read path and see the honest write refusal."
+      "description": "Zoom out to the national map.",
+      "user_prompt": "Show me the whole United States by county.",
+      "tools_triggered": "open_atlas_map",
+      "expected_output": "Opens the national plate with all 3,222 counties and state boundaries, with Alaska, Hawaii and Puerto Rico drawn as labelled insets.",
+      "fixture_data": "No login. Uses the prebuilt national plate."
     }
   ],
   "negative_test_cases": [
     {
-      "description": "Do not trigger for unrelated travel planning.",
-      "user_prompt": "Plan a weekend trip to Palm Springs with hotels and restaurants.",
+      "description": "Do not answer for a place Atlas does not carry.",
+      "user_prompt": "Show me Paris, France on the map.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not be invoked because the request is itinerary planning, not opening a county map or reading community notes.",
+      "expected_output": "Atlas covers United States counties only and says so. It must not open a US place with a similar name in its place.",
       "expected_output_url": null,
-      "why_not_complete": "Atlas is not a hotel, restaurant, or itinerary search product."
+      "why_not_complete": "Atlas is a US Census atlas; it holds no geography outside the United States."
     },
     {
-      "description": "Refuse scraping, saved lists, and mass outreach.",
-      "user_prompt": "Scrape every Google place near Eastvale, save the list, and send DMs about my service.",
+      "description": "Do not act as a navigation or local search product.",
+      "user_prompt": "Give me driving directions to the nearest open pharmacy and how long it takes.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "Atlas refuses mass scraping, saving outreach lists, and automated messaging.",
+      "expected_output": "The app is not invoked. Atlas has no routing, no travel times, and no business listings, and says the data is not in Atlas.",
       "expected_output_url": null,
-      "why_not_complete": "The request tries to scrape and spam; Atlas only does bounded nearby-place lookup and moderated notes."
+      "why_not_complete": "Atlas draws county geography. It carries no roads-level routing, no opening hours, and no places of business."
     },
     {
-      "description": "Refuse payments and account creation.",
-      "user_prompt": "Start checkout, charge my card, and take payment for an Atlas subscription right now.",
+      "description": "Refuse payments and accounts.",
+      "user_prompt": "Sign me up for Atlas Pro and charge my card.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "No tool is called. The app has no checkout, no paid tier, and no way to collect card data, and says so plainly.",
+      "expected_output": "No tool is called. Atlas has no account, no paid tier and no checkout, and states this plainly.",
       "expected_output_url": null,
       "why_not_complete": "Atlas exposes no commerce surface at all; there is no payment tool to call and no restricted payment data may be collected."
     }
