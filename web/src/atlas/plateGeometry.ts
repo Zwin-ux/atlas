@@ -206,7 +206,7 @@ export function buildPlateGeometry(plate: Plate): PlateGeometry {
 
   const labels = labelSeeds.map((seed) => {
     const [x, y] = toScreen(seed.lonLat, seed.state);
-    return { text: seed.text, x, y, importance: seed.importance };
+    return { text: displayName(seed.text), x, y, importance: seed.importance };
   });
 
   // Ground scale: measure a known lon/lat span against its projected length.
@@ -240,6 +240,24 @@ export function buildPlateGeometry(plate: Plate): PlateGeometry {
     kmPerUnit: groundKm / projectedSpan,
     attribution: plate.source,
   };
+}
+
+/**
+ * The name as it should appear on the map face.
+ *
+ * The Census records some places with a formal name and a common one in
+ * brackets — "El Paso de Robles (Paso Robles)". That is right for an index and
+ * wrong for a label: it is the longest name on the California plate and reads
+ * as a data artefact. The map prints the name people use; the index still
+ * matches both, so searching either one still works.
+ */
+function displayName(name: string): string {
+  const parenthetical = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(name);
+  if (!parenthetical) return name;
+  const [, formal, common] = parenthetical;
+  // Prefer whichever form is shorter — the bracketed part is usually the
+  // everyday name, but not always.
+  return (common!.length <= formal!.length ? common! : formal!).trim();
 }
 
 function pathFrom(points: Point[]): string {
