@@ -1,9 +1,9 @@
 /**
  * The Atlas MCP tool surface.
  *
- * Three tools, all read-only, none touching a third party, none needing an
- * account. Atlas answers questions about US geography from Census data and
- * shows the corresponding plate; that is the whole contract.
+ * Two tools, both read-only, neither touching a third party, neither needing
+ * an account. Atlas draws US geography from Census data and answers from the
+ * same data; that is the whole contract.
  *
  * Descriptions follow OpenAI's guidance for tool metadata: each starts with
  * "Use this when…" and names what it must *not* be used for, because the most
@@ -22,7 +22,24 @@ import type { GazetteerPlace, Resolution } from "@atlas/core/atlas";
 import type { AtlasIndex } from "./atlasIndex.js";
 import type { AtlasPlateService } from "./atlasPlates.js";
 
-export const ATLAS_TOOL_NAMES = ["open_atlas_map", "search_atlas_places", "describe_atlas_place"] as const;
+/**
+ * Two tools, and each has to earn its place.
+ *
+ * OpenAI's guideline is that a plugin must do something "not natively
+ * supported by the products' built-in capabilities". The base model already
+ * knows which county a town is in and roughly how big it is, so a tool that
+ * only recites those facts is redundant — a reviewer can reasonably ask why it
+ * exists. What ChatGPT cannot do is *draw* the geography.
+ *
+ * So the surface collapsed from three tools to two:
+ *   open_atlas_map       draws a place, and returns its Census facts with it
+ *   search_atlas_places  the index — which places carry this name, and where
+ *
+ * describe_atlas_place was folded into open_atlas_map rather than deleted: the
+ * facts were worth returning, they just were not worth a separate tool that
+ * answered without showing anything.
+ */
+export const ATLAS_TOOL_NAMES = ["open_atlas_map", "search_atlas_places"] as const;
 
 export type AtlasToolName = (typeof ATLAS_TOOL_NAMES)[number];
 
@@ -91,7 +108,7 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
     {
       title: "Open the atlas",
       description:
-        "Use this when someone wants to see a place on a map: a US county, a state, a town, or the whole country. Pass the place name as the user said it. If the name is ambiguous the tool returns the candidates instead of a map — ask which one is meant and call again with the state. Do not use this to answer a factual question without showing a map (use describe_atlas_place), and do not use it for directions, travel time, businesses, or any country other than the United States.",
+        "Use this when someone wants to see a US place on a map, or asks a factual question about a US county or town — where it is, how big it is, which towns are in it, what water runs through it. Opens the map and returns the matching 2024 US Census facts together. Pass the place name as the user said it. If the name is ambiguous the tool returns the candidates instead of a map: ask which one is meant and call again with the state. Do not use it for directions, travel times, businesses, addresses, weather, or any country other than the United States.",
       inputSchema: {
         place: z
           .string()
@@ -114,6 +131,11 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
         coverage: z.string().optional(),
         townCount: z.number().optional(),
         areaSquareMiles: z.number().optional(),
+        // Absorbed from the retired describe_atlas_place: the facts ship with
+        // the map rather than needing a second call that shows nothing.
+        largestTowns: z.array(z.object({ name: z.string(), population: z.number() })).optional(),
+        water: z.array(z.string()).optional(),
+        source: z.string().optional(),
         status: z.enum(["opened", "ambiguous", "unresolved"]),
         candidates: z
           .array(
@@ -205,14 +227,40 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
         }
 
         const plate = plates.county(target.countySlug);
-        const areaSquareMiles = plate.ok
-          ? squareMiles((JSON.parse(plate.body) as { areaLandMeters?: number }).areaLandMeters)
+        const parsed = plate.ok
+          ? (JSON.parse(plate.body) as { areaLandMeters?: number; waterNames?: (string | null)[] })
           : undefined;
+        const areaSquareMiles = squareMiles(parsed?.areaLandMeters);
+
+        // Named water, de-duplicated. The Census lists a bay once per ring, and
+        // repeating "Biscayne Bay" four times reads as a bug.
+        const water = (parsed?.waterNames ?? [])
+          .filter((name): name is string => typeof name === "string" && name.length > 0)
+          .filter((name, position, all) => all.indexOf(name) === position)
+          .slice(0, 8);
+
+        const largestTowns = anchors.slice(0, 5).map((anchor) => ({
+          name: anchor.label,
+          population: anchor.population2024 ?? 0,
+        }));
 
         const where =
           target.kind === "place"
             ? `${target.name} is in ${target.countyName}, ${target.state.toUpperCase()}.`
             : `${target.countyName}, ${target.state.toUpperCase()} is open in Atlas.`;
+
+        const facts = [
+          areaSquareMiles
+            ? `The county covers about ${areaSquareMiles.toLocaleString("en-US")} square miles of land.`
+            : undefined,
+          anchors.length > 0
+            ? `Atlas maps ${anchors.length} Census place${anchors.length === 1 ? "" : "s"} in it, the largest being ${largestTowns
+                .slice(0, 3)
+                .map((town) => town.name)
+                .join(", ")}.`
+            : undefined,
+          water.length > 0 ? `Named water includes ${water.slice(0, 4).join(", ")}.` : undefined,
+        ].filter(Boolean);
 
         return {
           structuredContent: {
@@ -225,6 +273,9 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
             coverage: coverageFor(target.countySlug),
             townCount: anchors.length,
             ...(areaSquareMiles ? { areaSquareMiles } : {}),
+            largestTowns,
+            ...(water.length > 0 ? { water } : {}),
+            source: "2024 US Census (TIGERweb boundaries, Gazetteer place anchors)",
             status: "opened" as const,
           },
           _meta: {
@@ -238,7 +289,7 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
           content: [
             {
               type: "text" as const,
-              text: `${where} ${coverageFor(target.countySlug)}`,
+              text: [where, ...facts, coverageFor(target.countySlug)].join(" "),
             },
           ],
         };
@@ -328,112 +379,6 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
             status: resolution.status,
           },
           content: [{ type: "text" as const, text: refusalText(resolution) }],
-        };
-      }),
-  );
-
-  registerAppTool(
-    server,
-    "describe_atlas_place",
-    {
-      title: "Describe a place from atlas data",
-      description:
-        "Use this when someone asks a factual question about a US county or town that Atlas holds data for: which county a town belongs to, how large a county is, which towns are in it, or how many people live there. Answers come from the 2024 US Census only. Do not use this for directions, travel times, weather, businesses, history, or anything the map does not contain — say the data is not in Atlas instead.",
-      inputSchema: {
-        place: z.string().min(1).max(120).describe("Place or county the question is about."),
-      },
-      outputSchema: {
-        type: z.literal("atlasPlaceDescription"),
-        status: z.enum(["described", "ambiguous", "unresolved"]),
-        name: z.string().optional(),
-        county: z.string().optional(),
-        countySlug: z.string().optional(),
-        state: z.string().optional(),
-        areaSquareMiles: z.number().optional(),
-        townCount: z.number().optional(),
-        largestTowns: z
-          .array(z.object({ name: z.string(), population: z.number() }))
-          .optional(),
-        water: z.array(z.string()).optional(),
-        coverage: z.string().optional(),
-        source: z.string(),
-      },
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-        destructiveHint: false,
-      },
-      _meta: {
-        securitySchemes: [{ type: "noauth" }],
-        "openai/toolInvocation/invoking": "Reading the atlas...",
-        "openai/toolInvocation/invoked": "Atlas facts ready.",
-      },
-    },
-    async ({ place }) =>
-      instrument("describe_atlas_place", async () => {
-        const source = "2024 US Census (TIGERweb boundaries, Gazetteer place anchors)";
-        const resolution = index.gazetteer.resolve(place);
-
-        if (resolution.status !== "resolved") {
-          return {
-            structuredContent: {
-              type: "atlasPlaceDescription" as const,
-              status: resolution.status,
-              source,
-            },
-            content: [{ type: "text" as const, text: refusalText(resolution) }],
-          };
-        }
-
-        const target = resolution.place;
-        const anchors = index.anchorsFor(target.countySlug);
-        const plateResult = plates.county(target.countySlug);
-        const plate = plateResult.ok
-          ? (JSON.parse(plateResult.body) as { areaLandMeters?: number; waterNames?: (string | null)[] })
-          : undefined;
-
-        const water = (plate?.waterNames ?? [])
-          .filter((name): name is string => typeof name === "string" && name.length > 0)
-          .filter((name, position, all) => all.indexOf(name) === position)
-          .slice(0, 8);
-
-        const largestTowns = anchors.slice(0, 5).map((anchor) => ({
-          name: anchor.label,
-          population: anchor.population2024 ?? 0,
-        }));
-
-        const area = squareMiles(plate?.areaLandMeters);
-        const sentences = [
-          target.kind === "place"
-            ? `${target.name} is a Census place in ${target.countyName}, ${target.state.toUpperCase()}.`
-            : `${target.countyName} is in ${target.state.toUpperCase()}.`,
-          area ? `The county covers about ${area.toLocaleString("en-US")} square miles of land.` : undefined,
-          anchors.length > 0
-            ? `Atlas maps ${anchors.length} Census place${anchors.length === 1 ? "" : "s"} in it, the largest being ${largestTowns
-                .slice(0, 3)
-                .map((town) => town.name)
-                .join(", ")}.`
-            : undefined,
-          water.length > 0 ? `Named water in the county includes ${water.slice(0, 4).join(", ")}.` : undefined,
-          coverageFor(target.countySlug),
-        ].filter(Boolean);
-
-        return {
-          structuredContent: {
-            type: "atlasPlaceDescription" as const,
-            status: "described" as const,
-            name: target.name,
-            county: target.countyName,
-            countySlug: target.countySlug,
-            state: target.state.toUpperCase(),
-            ...(area ? { areaSquareMiles: area } : {}),
-            townCount: anchors.length,
-            largestTowns,
-            ...(water.length > 0 ? { water } : {}),
-            coverage: coverageFor(target.countySlug),
-            source,
-          },
-          content: [{ type: "text" as const, text: sentences.join(" ") }],
         };
       }),
   );

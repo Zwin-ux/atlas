@@ -37,11 +37,19 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 40;
 
 export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPlateProps) {
-  const geometry = useMemo(() => buildPlateGeometry(plate), [plate]);
+  const [size, setSize] = useState({ width: 640, height: 448 });
+
+  // Rebuild when the container's proportions change so the plate always fills
+  // the space it has, on a phone as well as a desktop. Laying out to a fixed
+  // landscape box letterboxed a wide county into a sliver on a 390px viewport
+  // and left most of the widget empty.
+  const geometry = useMemo(
+    () => buildPlateGeometry(plate, size.width / Math.max(size.height, 1)),
+    [plate, size.width, size.height],
+  );
   const base = geometry.viewBox;
 
   const [view, setView] = useState<Viewport>({ x: 0, y: 0, width: base.width, height: base.height });
-  const [size, setSize] = useState({ width: 640, height: 448 });
   const svgRef = useRef<SVGSVGElement | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; pointerId: number } | null>(null);
 
@@ -243,6 +251,14 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
           height={view.height}
           className="atlas-plate__sea"
         />
+
+        <g className="atlas-plate__context" strokeWidth={0.5 * strokeScale}>
+          {geometry.context.map((shape, i) => (
+            <path key={`context-${shape.id ?? i}`} d={shape.d}>
+              {shape.label ? <title>{shape.label}</title> : null}
+            </path>
+          ))}
+        </g>
 
         <g className="atlas-plate__land" strokeWidth={0.6 * strokeScale}>
           {geometry.land.map((shape, i) => (

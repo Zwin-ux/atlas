@@ -84,8 +84,122 @@ function etagFor(body: string): string {
   return `W/"${body.length.toString(36)}-${(hash >>> 0).toString(36)}"`;
 }
 
+type NeighborEntry = {
+  slug: string;
+  name: string;
+  state: string;
+  rings: number[][];
+  minLon: number;
+  maxLon: number;
+  minLat: number;
+  maxLat: number;
+};
+
 export function createAtlasPlateService(options: AtlasPlateServiceOptions): AtlasPlateService {
   const cache = new Map<string, PlateResult>();
+
+  /**
+   * Bounding boxes for every county, derived once from the national plate.
+   *
+   * A county drawn alone on empty water is a die-cut, not a map — you cannot
+   * tell where you are looking. Real atlases always run the neighbours off the
+   * edge of the plate. This index is what lets the county route ship that
+   * surrounding geography without a spatial database: the national plate is
+   * already in memory and already carries every county's simplified outline.
+   */
+  let neighborIndex: NeighborEntry[] | undefined;
+
+  function loadNeighborIndex(): NeighborEntry[] {
+    if (neighborIndex) return neighborIndex;
+
+    const plate = nation();
+    if (!plate.ok) {
+      neighborIndex = [];
+      return neighborIndex;
+    }
+
+    try {
+      const parsed = JSON.parse(plate.body) as {
+        encoding?: { decimals?: number };
+        counties?: Array<{ slug: string; name: string; state: string; rings: number[][] }>;
+      };
+      const decimals = parsed.encoding?.decimals ?? 3;
+      const factor = 10 ** decimals;
+
+      neighborIndex = (parsed.counties ?? []).map((county) => {
+        let minLon = Infinity;
+        let maxLon = -Infinity;
+        let minLat = Infinity;
+        let maxLat = -Infinity;
+
+        // Walk the delta-encoded rings without materialising lon/lat pairs.
+        for (const ring of county.rings ?? []) {
+          let lon = 0;
+          let lat = 0;
+          for (let i = 0; i + 1 < ring.length; i += 2) {
+            if (i === 0) {
+              lon = ring[0]!;
+              lat = ring[1]!;
+            } else {
+              lon += ring[i]!;
+              lat += ring[i + 1]!;
+            }
+            const realLon = lon / factor;
+            const realLat = lat / factor;
+            if (realLon < minLon) minLon = realLon;
+            if (realLon > maxLon) maxLon = realLon;
+            if (realLat < minLat) minLat = realLat;
+            if (realLat > maxLat) maxLat = realLat;
+          }
+        }
+
+        return { ...county, minLon, maxLon, minLat, maxLat };
+      });
+    } catch {
+      neighborIndex = [];
+    }
+
+    return neighborIndex;
+  }
+
+  /**
+   * Counties whose extent overlaps a window around the subject.
+   *
+   * The window is padded by 60% of the subject's own span, which is enough to
+   * show what a county borders without turning the plate into a regional map.
+   * Results are capped so a small county wedged among many neighbours cannot
+   * balloon the payload.
+   */
+  function neighborsFor(
+    subject: { minLon: number; maxLon: number; minLat: number; maxLat: number; slug: string },
+    limit = 40,
+  ): NeighborEntry[] {
+    // Padded generously and squared off: the widget may be much taller or much
+    // wider than the county, and a tight window leaves blank background filling
+    // the leftover space instead of the country that is actually there. Using
+    // the larger of the two spans for both axes means a long thin county still
+    // gets context above and below it.
+    const span = Math.max(subject.maxLon - subject.minLon, subject.maxLat - subject.minLat);
+    const padX = Math.max(span * 1.1, 0.3);
+    const padY = Math.max(span * 1.1, 0.3);
+    const window = {
+      minLon: subject.minLon - padX,
+      maxLon: subject.maxLon + padX,
+      minLat: subject.minLat - padY,
+      maxLat: subject.maxLat + padY,
+    };
+
+    return loadNeighborIndex()
+      .filter(
+        (entry) =>
+          entry.slug !== subject.slug &&
+          entry.minLon <= window.maxLon &&
+          entry.maxLon >= window.minLon &&
+          entry.minLat <= window.maxLat &&
+          entry.maxLat >= window.minLat,
+      )
+      .slice(0, limit);
+  }
 
   function readPlateFile(key: string, path: string): PlateResult {
     const cached = cache.get(key);
@@ -166,12 +280,40 @@ export function createAtlasPlateService(options: AtlasPlateServiceOptions): Atla
               population: anchor.population2024 ?? 0,
             }));
 
+          // Bounds of the subject, so the neighbour window is proportional to
+          // the county rather than a fixed degree box (Loving County and San
+            // Bernardino need very different windows).
+          let minLon = Infinity;
+          let maxLon = -Infinity;
+          let minLat = Infinity;
+          let maxLat = -Infinity;
+          for (const ring of pack.lod0.boundaryRings as Array<Array<[number, number]>>) {
+            for (const [lon, lat] of ring) {
+              if (lon < minLon) minLon = lon;
+              if (lon > maxLon) maxLon = lon;
+              if (lat < minLat) minLat = lat;
+              if (lat > maxLat) maxLat = lat;
+            }
+          }
+
+          const context = neighborsFor({ minLon, maxLon, minLat, maxLat, slug }).map((entry) => ({
+            slug: entry.slug,
+            name: entry.name,
+            state: entry.state,
+            rings: entry.rings,
+          }));
+
           const body = JSON.stringify({
             plate: "county",
             slug,
             geoid: pack.geoid,
             name: pack.name ?? identity?.name ?? slug,
             state: identity?.state,
+            // Surrounding counties, drawn muted and running off the plate edge.
+            // They carry the national plate's simplification and its delta
+            // encoding, which is why the encoding is declared per-layer below.
+            context,
+            contextEncoding: { rings: "delta-fixed-point", decimals: 3 },
             projection: "albers-centered",
             source: cleanAttribution(pack.source),
             // County plates carry raw lon/lat rather than the delta encoding:

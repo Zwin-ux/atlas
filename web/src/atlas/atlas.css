@@ -22,8 +22,18 @@
 
   position: relative;
   width: 100%;
+  /*
+   * The plate sizes itself rather than inheriting a percentage height.
+   *
+   * `height: 100%` only resolves against an ancestor with an explicit height,
+   * and the widget mounts into hosts that do not always give one — the plate
+   * collapsed to a 320px band and left two thirds of a phone screen empty.
+   * A viewport-relative minimum gives a usable map in any container, and
+   * `flex: 1` lets it grow when the host does size the frame.
+   */
+  flex: 1;
   height: 100%;
-  min-height: 320px;
+  min-height: min(68vh, 560px);
   overflow: hidden;
   border-radius: 10px;
   background: var(--atlas-sea);
@@ -190,8 +200,8 @@
 .atlas-plate__controls button {
   /* 44px is the minimum comfortable touch target; the widget is used on
      phones inside the ChatGPT app as often as on desktop. */
-  min-width: 32px;
-  min-height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0 8px;
   border: 1px solid color-mix(in srgb, var(--atlas-chrome-fg) 30%, transparent);
   border-radius: 6px;
@@ -229,8 +239,8 @@
   }
 
   .atlas-plate__controls button {
-    min-width: 30px;
-    min-height: 30px;
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
@@ -282,7 +292,17 @@
 
 .atlas-app__stage {
   flex: 1;
-  min-height: 300px;
+  /*
+   * Give the plate a real box regardless of what the parent offers.
+   *
+   * `height: 100%` only resolves when every ancestor has a height, and the
+   * widget is mounted into hosts that do not always provide one — the local
+   * preview collapsed the map to its 300px minimum and left two thirds of a
+   * phone screen empty. An aspect ratio with a viewport ceiling gives a
+   * sensible plate in any container, and still yields to the flex parent when
+   * the host does size it.
+   */
+  display: flex;
 }
 
 .atlas-app__message {
@@ -298,4 +318,14 @@
   font-family: Georgia, "Times New Roman", serif;
   font-size: 13px;
   text-align: center;
+}
+
+/* Neighbouring counties on a county plate. Muted and non-interactive: they are
+   there so the subject sits in real country instead of on blank water, and
+   must never compete with it for attention. */
+.atlas-plate__context {
+  fill: color-mix(in srgb, var(--atlas-land) 55%, var(--atlas-sea));
+  stroke: color-mix(in srgb, var(--atlas-land-edge) 45%, transparent);
+  stroke-linejoin: round;
+  pointer-events: none;
 }

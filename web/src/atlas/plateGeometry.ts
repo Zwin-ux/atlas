@@ -48,6 +48,8 @@ export type Plate = {
   waterNames?: (string | null)[];
   anchors?: Array<{ name: string; lon: number; lat: number; population: number }>;
   stateOutlines?: Record<string, number[][]>;
+  context?: Array<{ slug: string; name: string; state: string; rings: number[][] }>;
+  contextEncoding?: { rings: string; decimals?: number };
   outline?: number[][];
   areaLandMeters?: number;
 };
@@ -71,6 +73,7 @@ export type ShapePath = {
 
 export type PlateGeometry = {
   land: ShapePath[];
+  context: ShapePath[];
   water: ShapePath[];
   borders: ShapePath[];
   labels: Array<{ text: string; x: number; y: number; importance: number }>;
@@ -84,7 +87,7 @@ export type PlateGeometry = {
 };
 
 const PLATE_WIDTH = 1000;
-const PLATE_HEIGHT = 700;
+const DEFAULT_PLATE_HEIGHT = 700;
 
 /**
  * Build every path for a plate in a fixed 1000x700 coordinate space.
@@ -93,8 +96,14 @@ const PLATE_HEIGHT = 700;
  * pan and zoom cost nothing at runtime — no reprojection, no re-layout, no
  * dropped frames on a gesture. It is also why this renderer needs no WebGL.
  */
-export function buildPlateGeometry(plate: Plate): PlateGeometry {
+export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEFAULT_PLATE_HEIGHT): PlateGeometry {
+  // Lay out to the container's shape, not a fixed landscape box. A wide county
+  // fitted into a tall phone viewport letterboxed into a thin sliver with most
+  // of the widget left empty; matching the aspect ratio means the subject fills
+  // whatever space it is actually given.
+  const PLATE_HEIGHT = Math.round(PLATE_WIDTH / Math.max(aspectRatio, 0.2));
   const land: ShapePath[] = [];
+  const context: ShapePath[] = [];
   const water: ShapePath[] = [];
   const borders: ShapePath[] = [];
   const labelSeeds: Array<{ text: string; lonLat: LonLat; importance: number; state: string }> = [];
@@ -106,12 +115,27 @@ export function buildPlateGeometry(plate: Plate): PlateGeometry {
     state: string;
     id?: string | undefined;
     label?: string | undefined;
-    kind: "land" | "water";
+    kind: "land" | "water" | "context";
   };
   const gathered: Gathered[] = [];
 
   if (plate.plate === "county") {
     const state = plate.state ?? "";
+
+    // Neighbours first, so the subject county draws on top of them. Without
+    // this layer a county is a die-cut floating on water and you cannot tell
+    // where you are looking; with it, the surrounding country runs off the
+    // edge of the plate the way it does in a printed atlas.
+    for (const neighbor of plate.context ?? []) {
+      gathered.push({
+        rings: (neighbor.rings ?? []).map((ring) => toLonLat(ring as number[], plate.contextEncoding)),
+        state: neighbor.state,
+        id: neighbor.slug,
+        label: neighbor.name,
+        kind: "context",
+      });
+    }
+
     gathered.push({
       rings: (plate.rings ?? []).map((ring) => toLonLat(ring as number[], plate.encoding)),
       state,
@@ -167,8 +191,14 @@ export function buildPlateGeometry(plate: Plate): PlateGeometry {
   const project = (point: LonLat, state: string): Point =>
     useNational ? projectNational(point, state) : centered!.project(point);
 
+  // Fit to the subject, not to the neighbours. Including context geometry in
+  // the extent would shrink the county the reader actually asked for; the
+  // neighbours are meant to run off the edge, which is the point of them.
+  const fitSource = gathered.some((entry) => entry.kind === "land")
+    ? gathered.filter((entry) => entry.kind !== "context")
+    : gathered;
   const projectedAll: Point[] = [];
-  for (const entry of gathered) {
+  for (const entry of fitSource) {
     for (const ring of entry.rings) {
       for (const point of ring) projectedAll.push(project(point, entry.state));
     }
@@ -186,6 +216,7 @@ export function buildPlateGeometry(plate: Plate): PlateGeometry {
       if (!d) continue;
       const shape: ShapePath = { d, id: entry.id, label: entry.label };
       if (entry.kind === "land") land.push(shape);
+      else if (entry.kind === "context") context.push(shape);
       else water.push(shape);
     }
   }
@@ -232,6 +263,7 @@ export function buildPlateGeometry(plate: Plate): PlateGeometry {
 
   return {
     land,
+    context,
     water,
     borders,
     labels,

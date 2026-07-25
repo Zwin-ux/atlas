@@ -1,6 +1,6 @@
 // Single source of truth for the public MCP tool surface.
 //
-// Atlas v0.3.0 is an atlas of the United States: three read-only tools over US
+// Atlas v0.3.0 is an atlas of the United States: two read-only tools over US
 // Census geography. No accounts, no commerce, no third-party calls, and no tool
 // the model is instructed to avoid using. Every verifier that inspects the
 // surface imports from here, so it can only change in one place.
@@ -14,11 +14,7 @@
 // atlas). `FORBIDDEN_TOOL_PATTERNS` is what stops any of it drifting back.
 
 /** The exact public tool list, sorted. Compare against a sorted live list. */
-export const EXPECTED_TOOLS = Object.freeze([
-  "describe_atlas_place",
-  "open_atlas_map",
-  "search_atlas_places",
-]);
+export const EXPECTED_TOOLS = Object.freeze(["open_atlas_map", "search_atlas_places"]);
 
 /** Retired tool names that must never reappear on the surface. */
 export const RETIRED_TOOLS = Object.freeze([
@@ -31,6 +27,9 @@ export const RETIRED_TOOLS = Object.freeze([
   "ask_county_question",
   "list_atlas_notes",
   "write_atlas_note",
+  // Folded into open_atlas_map. It answered without showing anything, which
+  // duplicated a capability the base model already has.
+  "describe_atlas_place",
 ]);
 
 /**
@@ -56,7 +55,6 @@ export const FORBIDDEN_TOOL_PATTERNS = Object.freeze([
  * this table must change with it.
  */
 export const EXPECTED_ANNOTATIONS = Object.freeze({
-  describe_atlas_place: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
   open_atlas_map: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
   search_atlas_places: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
 });

@@ -36,7 +36,7 @@
       "Open Miami-Dade County and tell me what water is in it.",
       "Show me the whole United States by county."
     ],
-    "release_notes": "First release. Atlas draws all 3,222 US counties from public-domain Census TIGERweb geography on an Albers equal-area projection, with named water, 18,447 Census town positions, and a nation to state to county zoom. Three read-only tools: open a map, look up which county a place is in, and describe a county from Census data. Place resolution is gated by an automated battery that requires zero confidently-wrong answers across 1,472 cases; ambiguous names return candidates and unknown names are refused.",
+    "release_notes": "First release. Atlas draws all 3,222 US counties from public-domain Census TIGERweb geography on an Albers equal-area projection, with named water, 18,447 Census town positions, and a nation to state to county zoom. A county opens in context, with its neighbours running off the edge of the plate. Two read-only tools: open a place on the map with its Census facts, and look up which places carry a given name. Place resolution is gated by an automated battery requiring zero confidently-wrong answers across 1,472 cases; ambiguous names return candidates and unknown names are refused.",
     "domain_verification": {
       "challenge_path": "/.well-known/openai-apps-challenge",
       "status": "ROUTE_READY_PORTAL_TOKEN_REQUIRED",
@@ -51,7 +51,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Resolves a place name against a local Census index and returns a reference to a map plate for the widget to draw. It creates and changes nothing, and repeating the same call returns the same result.",
+        "read_only_justification": "Resolves a place name against a local Census index, returns a reference to a map plate for the widget to draw, and returns that county's Census facts (land area, largest places, named water). It creates and changes nothing, and repeating the same call returns the same result.",
         "open_world_justification": "Reads only Census geography files bundled with the server. It makes no third-party request, publishes nothing, and contacts no external system.",
         "destructive_justification": "Cannot delete, overwrite, revoke access, charge money, send a message, or take any action with an effect outside the conversation."
       }
@@ -66,18 +66,6 @@
         "read_only_justification": "Looks a name up in a static index of 18,447 Census places and 3,222 counties and returns matching entries. Nothing is written and the same query always returns the same entries.",
         "open_world_justification": "Searches a local dataset only. No search engine, no geocoding provider, no network call leaves the server.",
         "destructive_justification": "Returns index entries and nothing else. It has no capability to modify, delete, send, or purchase."
-      }
-    },
-    "describe_atlas_place": {
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Reads county area, town list, and named water from bundled 2024 Census data and returns them as facts. It performs no write of any kind.",
-        "open_world_justification": "Every value comes from Census files on disk. The tool reaches no external service and cannot be made to.",
-        "destructive_justification": "Produces a description only. It cannot delete, overwrite, transmit, or charge."
       }
     }
   },
@@ -97,10 +85,10 @@
       "fixture_data": "No login. Uses the bundled Census place index."
     },
     {
-      "description": "Describe a county from Census data.",
+      "description": "Open a county and get its Census facts with the map.",
       "user_prompt": "How big is Miami-Dade County and what water is in it?",
-      "tools_triggered": "describe_atlas_place",
-      "expected_output": "Reports roughly 1,900 square miles of land, the largest Census places in the county, and named water such as Biscayne Bay and Florida Bay.",
+      "tools_triggered": "open_atlas_map",
+      "expected_output": "Opens Miami-Dade and reports roughly 1,900 square miles of land, its largest Census places, and named water such as Biscayne Bay.",
       "fixture_data": "No login. Uses bundled Census geography for miami-dade-fl."
     },
     {
