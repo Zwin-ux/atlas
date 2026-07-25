@@ -17,6 +17,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { decodeRing } from "../packages/core/dist/atlas/ringCodec.js";
+import { labelBudget, placeLabels } from "../packages/core/dist/atlas/labels.js";
 import {
   boundsOf,
   extentOf,
@@ -55,6 +56,9 @@ const PALETTE = {
   label: "#33301f",
   frame: "#8a7f66",
   stateEdge: "#5c5340",
+  // Open sea sits a shade paler than inland water so coastline still reads.
+  sea: "#cfe0e9",
+  halo: "#faf7f0",
 };
 
 function loadPlate() {
@@ -141,23 +145,30 @@ function main() {
     }
   }
 
-  // Labels: on a state plate, print the largest place in each county that has
-  // one. On the national plate, print nothing — 3,222 labels is not a map.
-  const labels = [];
+  // Labels: on a state plate, print the places that fit, largest first. On the
+  // national plate, print nothing — 3,222 names is not a map.
+  let labels = [];
   if (plate.plate === "state") {
-    const ranked = [...projected].sort(
-      (a, b) => (b.county.population ?? 0) - (a.county.population ?? 0),
-    );
-    for (const entry of ranked.slice(0, 40)) {
-      const anchor = entry.county.anchors?.[0];
-      if (!anchor) continue;
-      const [x, y] = toScreen(projectPoint([anchor.lon, anchor.lat], entry.county));
-      labels.push({ name: anchor.name, x, y });
+    const candidates = [];
+    for (const entry of projected) {
+      for (const anchor of entry.county.anchors ?? []) {
+        const [x, y] = toScreen(projectPoint([anchor.lon, anchor.lat], entry.county));
+        candidates.push({ text: anchor.name, x, y, importance: anchor.population ?? 0 });
+      }
     }
+    labels = placeLabels(candidates, {
+      fontSize: 12,
+      markerRadius: 2,
+      maxLabels: labelBudget(width, height),
+      bounds: { minX: 4, minY: 4, maxX: width - 4, maxY: height - 4 },
+    });
   }
 
+  // The sea is filled, then land is drawn over it. A plate where the ocean is
+  // the same colour as the page reads as a cut-out rather than a map — the
+  // California plate showed exactly that before this went in.
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-<rect width="${width}" height="${height}" fill="${PALETTE.paper}"/>
+<rect width="${width}" height="${height}" fill="${PALETTE.sea}"/>
 <g fill="${PALETTE.land}" stroke="${PALETTE.landEdge}" stroke-width="0.5" stroke-linejoin="round">
 ${landPaths.map((d) => `<path d="${d}"/>`).join("\n")}
 </g>
@@ -167,8 +178,17 @@ ${waterPaths.map((d) => `<path d="${d}"/>`).join("\n")}
 <g fill="none" stroke="${PALETTE.stateEdge}" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round">
 ${statePaths.map((d) => `<path d="${d}"/>`).join("\n")}
 </g>
-<g font-family="Georgia, serif" font-size="11" fill="${PALETTE.label}" text-anchor="middle">
-${labels.map((l) => `<circle cx="${l.x.toFixed(1)}" cy="${l.y.toFixed(1)}" r="1.8" fill="${PALETTE.label}"/><text x="${l.x.toFixed(1)}" y="${(l.y - 5).toFixed(1)}">${escapeXml(l.name)}</text>`).join("\n")}
+<g font-family="Georgia, 'Times New Roman', serif" font-size="12">
+${labels
+  .map(
+    (l) =>
+      `<circle cx="${l.x.toFixed(1)}" cy="${l.y.toFixed(1)}" r="1.8" fill="${PALETTE.label}"/>` +
+      // Halo first, then the glyphs: keeps names legible where they cross a
+      // county line or a river without hiding the geometry underneath.
+      `<text x="${l.textX.toFixed(1)}" y="${l.textY.toFixed(1)}" text-anchor="${l.anchor}" stroke="${PALETTE.halo}" stroke-width="3" stroke-linejoin="round" fill="none">${escapeXml(l.text)}</text>` +
+      `<text x="${l.textX.toFixed(1)}" y="${l.textY.toFixed(1)}" text-anchor="${l.anchor}" fill="${PALETTE.label}">${escapeXml(l.text)}</text>`,
+  )
+  .join("\n")}
 </g>
 </svg>`;
 
