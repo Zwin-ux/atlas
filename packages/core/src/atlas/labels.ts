@@ -189,7 +189,12 @@ export function placeLabels(
  * printed page. Scaling with area rather than width keeps the visual density
  * roughly constant as the widget resizes.
  */
-export function labelBudget(width: number, height: number, perMegaPixel = 55): number {
+export function labelBudget(width: number, height: number, perMegaPixel = 130): number {
   const megapixels = (width * height) / 1_000_000;
-  return Math.max(6, Math.round(megapixels * perMegaPixel));
+  // Collision rejection is the real limiter — it refuses anything that would
+  // overlap, so a generous budget cannot produce a cluttered plate. A tight one
+  // can produce an empty one: at 55 per megapixel a phone-sized California
+  // showed six names out of seventy-eight, and the cap, not the geometry, was
+  // what stopped it.
+  return Math.max(8, Math.round(megapixels * perMegaPixel));
 }

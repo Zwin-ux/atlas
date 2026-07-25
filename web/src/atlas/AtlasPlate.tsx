@@ -177,6 +177,9 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
     [onOpenCounty, plate.plate],
   );
 
+  // Type scales with the plate; the drawn size must match what placement measured.
+  const labelFontSize = Math.max(9, Math.min(12, size.width / 52));
+
   // Labels are placed against the *visible* window, so zooming in reveals more
   // names rather than keeping the same handful spread further apart.
   const placed = useMemo(() => {
@@ -199,7 +202,11 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
         meta: label,
       })),
       {
-        fontSize: 11,
+        // Type scales with the plate. At a fixed 12px a phone-width plate gave
+        // labels boxes so large relative to the map that collision rejection
+        // dropped all but six of California's seventy-eight names — a state map
+        // with no place names on it. Clamped so it never becomes unreadable.
+        fontSize: labelFontSize,
         markerRadius: 2.5,
         maxLabels: labelBudget(size.width, size.height),
         bounds: { minX: 4, minY: 4, maxX: size.width - 4, maxY: size.height - 4 },
@@ -294,7 +301,7 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
           <span
             key={`${label.text}-${label.textX.toFixed(0)}-${label.textY.toFixed(0)}`}
             className="atlas-plate__label"
-            style={{ left: `${label.textX}px`, top: `${label.textY}px`, textAnchor: label.anchor }}
+            style={{ left: `${label.textX}px`, top: `${label.textY}px`, fontSize: `${labelFontSize}px` }}
             data-anchor={label.anchor}
           >
             {label.text}
