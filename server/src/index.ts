@@ -10,6 +10,9 @@ import {
   registerAppTool,
   RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server";
+import { loadAtlasIndex } from "./atlasIndex.js";
+import { createAtlasPlateService, plateHttpStatus } from "./atlasPlates.js";
+import { ATLAS_TOOL_NAMES, registerAtlasTools } from "./atlasTools.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -129,6 +132,37 @@ const countyTownAnchorIndex = loadCountyTownAnchorIndex(
 // the read-only /geo-pack route reuses the exact same loading path (D2-0).
 const GEO_PACKS_DIR = resolve(ROOT_DIR, "data", "geo-packs");
 const loadCountyGeoPack = createCountyGeoPackLoader(GEO_PACKS_DIR);
+
+// The atlas: the place index and the plate serving layer. The index is built
+// once at boot from the Census anchor file (~18,400 places); it is the same
+// index the Location Truth gate certifies, so the product and the gate can
+// never disagree about what Atlas knows.
+const ATLAS_PLATE_DIR = resolve(ROOT_DIR, "artifacts", "atlas-plates");
+const atlasIndex = loadAtlasIndex(resolve(ROOT_DIR, "data", "census", "us-county-town-anchors.json"));
+const atlasPlateService = createAtlasPlateService({
+  plateDir: ATLAS_PLATE_DIR,
+  geoPacksDir: GEO_PACKS_DIR,
+  townAnchorsFor: (slug) => atlasIndex.anchorsFor(slug),
+  countyIdentity: (slug) => atlasIndex.identityFor(slug),
+});
+
+// Counties with real baked TIGER street geometry. Everywhere else Atlas draws
+// boundary, water, and town positions only — and says so rather than implying
+// street-level detail it does not have.
+const COUNTIES_WITH_STREETS: ReadonlySet<string> = new Set(
+  (() => {
+    try {
+      const coverage = JSON.parse(
+        readFileSync(resolve(ROOT_DIR, "data", "road-chunks", "_coverage.json"), "utf8"),
+      ) as { counties?: Array<{ slug?: string } | string> };
+      return (coverage.counties ?? [])
+        .map((entry) => (typeof entry === "string" ? entry : entry.slug))
+        .filter((slug): slug is string => typeof slug === "string");
+    } catch {
+      return [];
+    }
+  })(),
+);
 
 /** National open: geo board + town anchors; generated clay only when explicitly requested. */
 async function nationalCountyMapMeta(
@@ -290,23 +324,11 @@ type RequestContext = {
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
 
-// The public tool surface. Atlas is a county map with public community notes;
-// nothing else is exposed to the model. The scout/campaign/upgrade tools were
-// retired from the surface on 2026-07-25 (v0.2.0 launch scope) because the
-// server previously had to instruct the model not to use them — a tool the
-// model is told to avoid does not belong in a reviewed build.
-// `verify:tool-surface` fails the build if this list drifts.
-const BASE_MCP_TOOL_NAMES = [
-  "lookup_world_places",
-  "select_county",
-  "ask_county_question",
-  "render_voxel_county",
-] as const;
-
-const MCP_TOOL_NAMES = [
-  ...BASE_MCP_TOOL_NAMES,
-  ...(atlasCommonsConfig.enabled ? (["list_atlas_notes", "write_atlas_note"] as const) : []),
-] as const;
+// The public tool surface: three read-only tools over US Census geography.
+// Atlas is an atlas. It has no accounts, no commerce, no third-party calls, and
+// no tool the model is told to avoid using. Definitions live in atlasTools.ts;
+// scripts/lib/atlas-tool-surface.mjs holds the same list for the verifiers.
+const MCP_TOOL_NAMES = ATLAS_TOOL_NAMES;
 
 type McpToolName = (typeof MCP_TOOL_NAMES)[number];
 
@@ -3368,11 +3390,17 @@ function createAtlasServer(): McpServer {
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        `Atlas opens a U.S. county map inside ChatGPT and lets the user explore it. Use select_county to open a county; Riverside/Eastvale is a full interactive map, and every other supported county opens as a Census geography board with the real county outline, water, and town names. Streets and buildings outside Riverside are not verified — never present them as real local coverage, and only pass includeGeneratedDraft=true when the user explicitly asks for an illustrative layout study. Use render_voxel_county only to refresh, refocus, or move a map that is already open. Use ask_county_question for map facts and the town names on screen. Use lookup_world_places for nearby-place lookup only — not coverage, not geometry, not a saved list.
+        `Atlas is an atlas of the United States inside ChatGPT. It draws real US Census geography: county and state boundaries, named water, and the position of every Census town. Use open_atlas_map to show a place, search_atlas_places to find which county and state a town is in, and describe_atlas_place to answer a factual question from Census data.
 
-Speak in plain words. Never repeat internal codes, tier names, slugs, or field names in your prose — say "the county outline and town names are from the Census" rather than naming a coverage tier. If Atlas cannot resolve a place, say so plainly and offer the closest thing you can name; never guess a county.
+Atlas covers the United States only, at the level of counties and towns. It does not do directions, travel times, businesses, addresses, postcodes, weather, or history. When someone asks for those, say Atlas does not carry that rather than answering from memory as though the map showed it.
 
-${atlasCommonsConfig.enabled ? "Atlas also carries public community notes. Use list_atlas_notes to read the moderated public notes for a county or place. Use write_atlas_note only after the user has explicitly chosen to post publicly — private notes in the widget stay in this chat and never publish on their own. Notes are attributable, reportable, and moderated." : "Notes stay in this chat and nothing is saved between chats."} Atlas has no checkout, payments, accounts, ads, messaging, or automated outreach — do not offer any. Keep structuredContent concise; large scenes and geo packs stay in _meta.`,
+Two honesty rules matter more than being helpful:
+
+First, never guess a location. When a tool reports a name as ambiguous it will list the real candidates — ask which one is meant and call again with the state, rather than picking the biggest. When a tool reports a name as unresolved, say plainly that Atlas does not have that place. A confidently wrong county is the worst answer this app can give.
+
+Second, only claim what the map draws. Most counties have real boundaries, water, and town positions but no street data; the tools say so per county. Do not describe individual roads, buildings, or businesses for a county whose streets are not mapped.
+
+Speak in plain words. Never repeat internal codes, slugs, or field names in your prose — say "from the 2024 Census" rather than naming a data tier. Atlas has no accounts, payments, checkout, ads, messaging, or saved state; do not offer any.`,
     },
   );
 
@@ -3399,460 +3427,16 @@ ${atlasCommonsConfig.enabled ? "Atlas also carries public community notes. Use l
     ],
   }));
 
-  registerAppTool(
-    server,
-    "lookup_world_places",
-    {
-      title: "Find nearby places",
-      description:
-        "Use this when the user asks for real nearby places or place categories around an Atlas county or a place already returned by Atlas. Pass only Atlas-owned county and place ids, never an address, coordinates, or conversation text. This is lookup-only and may use Google Maps Platform; it does not open, show, refresh, or unlock a county map. Results are read-only, are not saved to an Atlas account or map, may be cached for up to 24 hours, and are not coverage proof.",
-      inputSchema: {
-        countySlug: z.string().optional().describe("Atlas county id returned by Atlas. Defaults to riverside-ca."),
-        placeId: z.string().optional().describe("Optional Atlas place or district id from a prior Atlas result, such as eastvale."),
-        radiusMeters: z
-          .number()
-          .int()
-          .min(100)
-          .max(50_000)
-          .optional()
-          .describe("Lookup radius in meters. Defaults to 3500."),
-      },
-      outputSchema: worldPlaceLookupOutputSchema,
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: true,
-        destructiveHint: false,
-      },
-      _meta: {
-        securitySchemes: [{ type: "noauth" }],
-        "openai/toolInvocation/invoking": "Looking up nearby places...",
-        "openai/toolInvocation/invoked": "Nearby places ready.",
-      },
-    },
-    async ({ countySlug, placeId, radiusMeters }) => instrumentMcpTool("lookup_world_places", async () => {
-      const query = lookupQueryForAtlasContext(countySlug, placeId);
-      const lookup = await performWorldLookup(query, radiusMeters ?? 3500);
-      const publicLookup = publicWorldPlaceLookup(lookup);
-      const categories = [...new Set(lookup.places.map((place) => place.category))].sort();
-      const categoryText = categories.length > 0 ? categories.join(", ") : "none";
-      return {
-        structuredContent: publicLookup,
-        content: [
-          {
-            type: "text" as const,
-            text: `Found ${lookup.places.length} lookup-only places around ${lookup.resolvedLocation.label}. Categories: ${categoryText}. Results are normalized into Atlas categories, not saved to an Atlas account or map, and not coverage proof. Atlas may retain this lookup in a provider cache for up to 24 hours. This does not unlock a full county map.`,
-          },
-        ],
-      };
-    }),
-  );
-
-  registerAppTool(
-    server,
-    "select_county",
-    {
-      title: "Select county",
-      description:
-        "Use this when the user asks to show, open, load, view, map, or switch to a US county in Atlas, including bare requests like \"show me Riverside County.\" This is the entry point for county maps: safe, read-only, and normally instant. Riverside opens the full Eastvale clay map; other supported counties open as a Census geography board (real outline, water, town names). Streets and buildings are not mapped outside Riverside. For refreshing an already-open map, use render_voxel_county.",
-      inputSchema: {
-        countySlug: z.string().optional().describe("County id. Riverside opens the full clay map; other US counties open the Census geography board."),
-        includeGeneratedDraft: z
-          .boolean()
-          .optional()
-          .describe("Only set true when the user explicitly wants an illustrative generated layout study. Defaults to false. National default is the Census geo board."),
-      },
-      outputSchema: countySelectionOutputSchema,
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-        destructiveHint: false,
-      },
-      _meta: {
-        securitySchemes: [{ type: "noauth" }],
-        ui: { resourceUri: WIDGET_URI },
-        "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Opening Atlas county...",
-        "openai/toolInvocation/invoked": "Atlas county ready.",
-      },
-    },
-    async ({ countySlug, includeGeneratedDraft }) => instrumentMcpTool("select_county", async () => {
-      await enforceMcpExpensiveToolRateLimit("select_county");
-      if (!isPlayableEngineBetaCounty(countySlug)) {
-        const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
-        const national = await nationalCountyMapMeta(coverage, { includeGeneratedDraft });
-        return {
-          structuredContent: coverage,
-          _meta: {
-            scenePacket: national.scenePacket,
-            ...atlasCommonsMeta(),
-            ...(atlasSaveSurfaceEnabled
-              ? hostedClawdMeta(hostedClawdService.getContext({
-                  trigger: "map_tray",
-                  countySlug: coverage.countySlug,
-                  countyLabel: coverage.countyLabel,
-                }))
-              : {}),
-            ...(national.generatedDraft ?? {}),
-            ...(national.countyGeoPack ? { countyGeoPack: national.countyGeoPack } : {}),
-            ...(national.townAnchors.length > 0 ? { townAnchors: national.townAnchors } : {}),
-          },
-          content: [
-            {
-              type: "text" as const,
-              text: national.userFacingCopy,
-            },
-          ],
-        };
-      }
-
-      const { scene, scenePacket } = await getOrCreatePlayableScenePacket(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG, "eastvale");
-      const decoration = decorateCityWorldSceneWithCameraIntent(scene, defaultCameraIntentForScene(scene));
-      return {
-        structuredContent: voxelSceneStructuredContent(scene, decoration?.cameraIntent),
-        _meta: {
-          scene,
-          scenePacket,
-          ...atlasCommonsMeta(),
-          ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
-          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
-        },
-        content: [
-          {
-            type: "text" as const,
-            text: atlasCommonsConfig.enabled
-              ? `Selected ${scene.county.name}. Eastvale is the full map. Private notes stay in this chat; public posts are explicit and moderated.`
-              : `Selected ${scene.county.name}. Eastvale is the full map. Use the map for places, pins, and notes that stay in this chat.`,
-          },
-        ],
-      };
-    }),
-  );
-
-  registerAppTool(
-    server,
-    "ask_county_question",
-    {
-      title: "Ask county question",
-      description:
-        "Use this when the user asks a factual Riverside/Eastvale county, map, or local-business question, or asks where a displayed Census town is in another supported county. It answers from built-in map data and real Census town anchors plus honest preview labels; it does not search live nearby places. Closed-world and read-only; unsupported questions are refused rather than guessed.",
-      inputSchema: {
-        question: z.string().min(1).describe("County or map question to answer from built-in Atlas data."),
-        countySlug: z.string().optional().describe("County id. Riverside has the full map; preview counties can locate displayed Census town anchors and drawn places only."),
-        businessType: z
-          .string()
-          .optional()
-          .describe("Optional supported business lane, such as mobile detailing, cleaning, or local event."),
-      },
-      outputSchema: countyQuestionAnswerOutputSchema,
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-        destructiveHint: false,
-      },
-      _meta: {
-        securitySchemes: [{ type: "noauth" }],
-        ui: { resourceUri: WIDGET_URI },
-        "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Checking Atlas map data...",
-        "openai/toolInvocation/invoked": "County answer ready.",
-      },
-    },
-    async ({ question, countySlug, businessType }) => instrumentMcpTool("ask_county_question", async () => {
-      const requestedCountySlug = countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG;
-      if (!isPlayableEngineBetaCounty(requestedCountySlug)) {
-        const coverage = countyCoverageForSlug(requestedCountySlug);
-        // Keep geo board as widget surface — do not replace with generated clay study.
-        const national = await nationalCountyMapMeta(coverage, { includeGeneratedDraft: false });
-        let boardScene: CityWorldScene | undefined;
-        if (national.countyGeoPack) {
-          try {
-            boardScene = compileCountyGeoScene(national.countyGeoPack as CountyGeoPack, {
-              townAnchors: national.townAnchors,
-            });
-          } catch {
-            boardScene = undefined;
-          }
-        }
-        const answer = publicCountyQuestionAnswer(
-          countyQuestionService.answer({
-            question,
-            countySlug: coverage.countySlug,
-            businessType,
-            ...(boardScene ? { generatedScene: boardScene } : {}),
-            generatedCountyLabel: coverage.countyLabel,
-          }),
-        );
-        const cameraIntent = boardScene ? cameraIntentForGeneratedCountyAnswer(boardScene, answer) : undefined;
-        const structuredContent = {
-          ...answer,
-          ...(cameraIntent ? { cameraIntent } : {}),
-        };
-        const answerPrefix = answer.supported ? "Census board answer." : "Census board boundary.";
-        return {
-          structuredContent,
-          _meta: {
-            scenePacket: national.scenePacket,
-            ...atlasCommonsMeta(),
-            ...(atlasSaveSurfaceEnabled
-              ? hostedClawdMeta(hostedClawdService.getContext({
-                  trigger: "map_tray",
-                  countySlug: coverage.countySlug,
-                  countyLabel: coverage.countyLabel,
-                }))
-              : {}),
-            ...(national.countyGeoPack ? { countyGeoPack: national.countyGeoPack } : {}),
-            ...(national.townAnchors.length > 0 ? { townAnchors: national.townAnchors } : {}),
-          },
-          content: [
-            {
-              type: "text" as const,
-              text: `${answerPrefix} ${answer.answer}\n\nLimits: ${answer.limitations.join(" ")}`,
-            },
-          ],
-        };
-      }
-
-      const answer = publicCountyQuestionAnswer(countyQuestionService.answer({ question, countySlug, businessType }));
-      const requestedNodeId = answer.supported && answer.targetNodeId ? answer.targetNodeId : "eastvale";
-      const { scene, scenePacket } = await getOrCreatePlayableScenePacket(PLAYABLE_ENGINE_BETA_COUNTY_SLUG, requestedNodeId);
-      const decoration = decorateCityWorldSceneWithCameraIntent(scene, cameraIntentForCountyAnswer(scene, answer));
-      const structuredContent = {
-        ...answer,
-        ...(decoration ? { cameraIntent: decoration.cameraIntent } : {}),
-      };
-      const answerPrefix = answer.supported
-        ? "Riverside/Eastvale answer."
-        : "Atlas can only answer Riverside/Eastvale county questions right now.";
-      return {
-        structuredContent,
-        _meta: {
-          scene,
-          scenePacket,
-          ...atlasCommonsMeta(),
-          ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
-          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
-        },
-        content: [
-          {
-            type: "text" as const,
-            text: `${answerPrefix} ${answer.answer}\n\nLimits: ${answer.limitations.join(" ")} No saves, XP, evidence, or automation are created by this answer.`,
-          },
-        ],
-      };
-    }),
-  );
-
-  registerAppTool(
-    server,
-    "render_voxel_county",
-    {
-      title: "Render voxel county",
-      description:
-        "Use this when the user asks to refresh, re-render, refocus, or move the Atlas county map that is already open. It updates the widget scene or coverage state for the current county; it is not the entry point for bare \"show me X county\" requests. To show, open, map, or switch counties, use select_county.",
-      inputSchema: {
-        countySlug: z.string().optional().describe("County id. Riverside opens the full map; other supported US counties show generated studies with real Census town anchors."),
-        selectedNodeId: z.string().optional().describe("Atlas node id to focus, such as eastvale."),
-        includeGeneratedDraft: z
-          .boolean()
-          .optional()
-          .describe("Only set true for an illustrative generated layout study. Defaults to false; national refresh keeps the Census geo board."),
-      },
-      outputSchema: countySelectionOutputSchema,
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-        destructiveHint: false,
-      },
-      _meta: {
-        securitySchemes: [{ type: "noauth" }],
-        ui: { resourceUri: WIDGET_URI },
-        "openai/outputTemplate": WIDGET_URI,
-        "openai/toolInvocation/invoking": "Refreshing Atlas map...",
-        "openai/toolInvocation/invoked": "Atlas map refreshed.",
-      },
-    },
-    async ({ countySlug, selectedNodeId, includeGeneratedDraft }) => instrumentMcpTool("render_voxel_county", async () => {
-      await enforceMcpExpensiveToolRateLimit("render_voxel_county");
-      if (!isPlayableEngineBetaCounty(countySlug)) {
-        const coverage = countyCoverageForSlug(countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG);
-        const national = await nationalCountyMapMeta(coverage, { includeGeneratedDraft });
-        return {
-          structuredContent: coverage,
-          _meta: {
-            scenePacket: national.scenePacket,
-            ...atlasCommonsMeta(),
-            ...(atlasSaveSurfaceEnabled
-              ? hostedClawdMeta(hostedClawdService.getContext({
-                  trigger: "map_tray",
-                  countySlug: coverage.countySlug,
-                  countyLabel: coverage.countyLabel,
-                }))
-              : {}),
-            ...(national.generatedDraft ?? {}),
-            ...(national.countyGeoPack ? { countyGeoPack: national.countyGeoPack } : {}),
-            ...(national.townAnchors.length > 0 ? { townAnchors: national.townAnchors } : {}),
-          },
-          content: [
-            {
-              type: "text" as const,
-              text: national.userFacingCopy,
-            },
-          ],
-        };
-      }
-
-      const { scene, scenePacket } = await getOrCreatePlayableScenePacket(
-        countySlug ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
-        selectedNodeId ?? "eastvale",
-      );
-      const decoration = decorateCityWorldSceneWithCameraIntent(scene, defaultCameraIntentForScene(scene));
-      return {
-        structuredContent: voxelSceneStructuredContent(scene, decoration?.cameraIntent),
-        _meta: {
-          scene,
-          scenePacket,
-          ...atlasCommonsMeta(),
-          ...(decoration ? { cameraFocus: decoration.cameraFocus } : {}),
-          ...(atlasSaveSurfaceEnabled ? { hostedClawd: hostedClawdContextForScene(scene, "map_tray") } : {}),
-        },
-        content: [
-          {
-            type: "text" as const,
-            text: atlasCommonsConfig.enabled
-              ? "Showing the Riverside/Eastvale full map. Private notes stay in this chat; public posts are explicit and moderated."
-              : "Showing the Riverside/Eastvale full map. Pins and notes stay in this chat.",
-          },
-        ],
-      };
-    }),
-  );
-
-  if (atlasCommonsConfig.enabled) {
-    // Commons note tools are the second half of the v0.2.0 product (map +
-    // public notes). They register only when ATLAS_COMMONS_ENABLED is on so a
-    // Commons-less deployment still serves a coherent map-only surface.
-    const registerCommonsAppTool = registerAppTool;
-    registerCommonsAppTool(
-      server,
-      "list_atlas_notes",
-      {
-        title: "Read Atlas public notes",
-        description:
-          "Read the moderated Atlas commons. Use mode=all for approved public notes; countySlug narrows to a map and placeId narrows to one mapped place. Omit countySlug for the cross-county ALL feed. Use mode=mine only when the user asks for their submitted public notes; it requires Atlas identity. This never returns private/session notes.",
-        inputSchema: {
-          mode: z.enum(["all", "mine"]).optional().describe("Public ALL feed or the authenticated player's own public submissions."),
-          countySlug: z.string().optional().describe("Optional canonical Atlas county slug."),
-          placeId: z.string().optional().describe("Optional canonical Atlas place id; requires countySlug."),
-          sort: z.enum(["hot", "new"]).optional().describe("Deterministic public ranking. Defaults to hot; mine is always newest first."),
-          limit: z.number().int().min(1).max(100).optional().describe("Maximum notes to return. Defaults to 30."),
-          cursor: z.string().optional().describe("Opaque cursor returned by a prior call."),
-        },
-        outputSchema: atlasPublicNoteListOutputSchema,
-        annotations: {
-          readOnlyHint: true,
-          openWorldHint: false,
-          destructiveHint: false,
-        },
-        _meta: {
-          securitySchemes: [
-            { type: "noauth" },
-            { type: "oauth2", scopes: [ATLAS_COMMONS_READ_SCOPE] },
-          ],
-          "openai/toolInvocation/invoking": "Reading Atlas ALL...",
-          "openai/toolInvocation/invoked": "Atlas public notes ready.",
-        },
-      },
-      async (input, extra) => {
-        try {
-          return await instrumentMcpTool("list_atlas_notes", async () => {
-            const result = await atlasCommonsService.list(input, atlasCommonsAuthFromInfo(extra.authInfo));
-            return {
-              structuredContent: result,
-              content: [{
-                type: "text" as const,
-                text: result.notes.length > 0
-                  ? `${result.notes.length} moderated Atlas public note${result.notes.length === 1 ? "" : "s"} ready. The map is the feed.`
-                  : result.scope.mode === "mine"
-                    ? "You have no public-note submissions in this scope. Private notes remain in this chat."
-                    : "No moderated public notes are visible in this scope yet.",
-              }],
-              _meta: { atlasCommons: atlasCommonsService.publicMeta() },
-            };
-          });
-        } catch (error) {
-          return atlasCommonsToolError(error, ATLAS_COMMONS_READ_SCOPE);
-        }
-      },
-    );
-
-    registerCommonsAppTool(
-      server,
-      "write_atlas_note",
-      {
-        title: "Post or respond to an Atlas public note",
-        description:
-          "Authenticated public-note action. post is explicit and creates a pending moderated note attached to a canonical Atlas place; it never publishes an existing private/session note. react adds or removes one useful mark. report sends one safety report. Never infer consent to post from note-taking language: call post only after the user explicitly chooses public posting.",
-        inputSchema: {
-          operation: z.enum(["post", "react", "report"]),
-          countySlug: z.string().optional().describe("Required for post: canonical Atlas county slug."),
-          placeId: z.string().optional().describe("Required for post: canonical Atlas place id from the map."),
-          placeLabel: z.string().optional().describe("Required for post as a display hint; the server stores the canonical Atlas label."),
-          body: z.string().max(240).optional().describe("Required for post. Plain text only; links are rejected."),
-          clientRequestId: z.string().optional().describe("Required for post. Stable retry id generated by the client."),
-          noteId: z.string().optional().describe("Required for react/report."),
-          active: z.boolean().optional().describe("For react: true to mark useful, false to remove the mark."),
-          reason: z.enum(["spam", "harassment", "privacy", "misleading", "other"]).optional().describe("Required for report."),
-        },
-        outputSchema: atlasPublicNoteWriteOutputSchema,
-        annotations: {
-          readOnlyHint: false,
-          openWorldHint: false,
-          destructiveHint: true,
-          idempotentHint: true,
-        },
-        _meta: {
-          securitySchemes: [
-            { type: "oauth2", scopes: [ATLAS_COMMONS_WRITE_SCOPE] },
-          ],
-          "openai/toolInvocation/invoking": "Updating Atlas public notes...",
-          "openai/toolInvocation/invoked": "Atlas public-note action complete.",
-        },
-      },
-      async (input, extra) => {
-        try {
-          return await instrumentMcpTool("write_atlas_note", async () => {
-            const auth = atlasCommonsAuthFromInfo(extra.authInfo);
-            const result = input.operation === "post"
-              ? await atlasCommonsService.post({
-                  countySlug: requiredCommonsToolString(input.countySlug, "countySlug"),
-                  placeId: requiredCommonsToolString(input.placeId, "placeId"),
-                  placeLabel: requiredCommonsToolString(input.placeLabel, "placeLabel"),
-                  body: requiredCommonsToolString(input.body, "body"),
-                  clientRequestId: requiredCommonsToolString(input.clientRequestId, "clientRequestId"),
-                }, auth)
-              : input.operation === "react"
-                ? await atlasCommonsService.react(
-                    requiredCommonsToolString(input.noteId, "noteId"),
-                    input.active ?? true,
-                    auth,
-                  )
-                : await atlasCommonsService.report(
-                    requiredCommonsToolString(input.noteId, "noteId"),
-                    requiredCommonsToolString(input.reason, "reason"),
-                    auth,
-                  );
-            return {
-              structuredContent: result,
-              content: [{ type: "text" as const, text: result.message }],
-              _meta: { atlasCommons: atlasCommonsService.publicMeta() },
-            };
-          });
-        } catch (error) {
-          return atlasCommonsToolError(error);
-        }
-      },
-    );
-  }
+  // The Atlas tool surface lives in atlasTools.ts: three read-only tools over
+  // Census geography, no auth and no third-party calls. The voxel-era scout,
+  // campaign, upgrade, and public-note tools were retired with the 2D atlas.
+  registerAtlasTools(server, {
+    index: atlasIndex,
+    plates: atlasPlateService,
+    widgetUri: WIDGET_URI,
+    countiesWithStreets: COUNTIES_WITH_STREETS,
+    instrument: (tool, run) => instrumentMcpTool(tool, run),
+  });
 
   return server;
 }
@@ -4252,6 +3836,54 @@ const httpServer = createServer(async (req, res) => {
       return;
     }
     textResponse(res, 200, challengeToken);
+    return;
+  }
+
+  // Atlas plates. The widget fetches these directly rather than receiving them
+  // through the MCP payload: the national plate is ~550 KB, and this project
+  // has already crashed a ChatGPT session once by routing large geometry
+  // through connector storage (finding G8-2). Plates are immutable per build,
+  // so they carry a long cache lifetime and an ETag.
+  if (url.pathname.startsWith("/api/atlas/") && req.method === "GET") {
+    const rest = url.pathname.slice("/api/atlas/".length);
+    const [kind, id] = rest.split("/");
+
+    const result =
+      kind === "nation" && !id
+        ? atlasPlateService.nation()
+        : kind === "state" && id
+          ? atlasPlateService.state(id)
+          : kind === "county" && id
+            ? atlasPlateService.county(id)
+            : undefined;
+
+    if (!result) {
+      jsonResponse(res, 404, { error: "Unknown atlas plate." });
+      return;
+    }
+
+    const status = plateHttpStatus(result);
+    if (!result.ok) {
+      jsonResponse(res, status, {
+        error:
+          result.reason === "invalid"
+            ? "That is not a valid atlas plate id."
+            : result.reason === "missing"
+              ? "Atlas has no plate for that place."
+              : "The atlas plates have not been built on this server.",
+      });
+      return;
+    }
+
+    if (req.headers["if-none-match"] === result.etag) {
+      res.writeHead(304, { ETag: result.etag });
+      res.end();
+      return;
+    }
+
+    res.setHeader("ETag", result.etag);
+    res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+    jsonResponse(res, 200, JSON.parse(result.body));
     return;
   }
 

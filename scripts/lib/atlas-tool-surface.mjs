@@ -1,42 +1,36 @@
 // Single source of truth for the public MCP tool surface.
 //
-// Atlas v0.2.0 is a county map with a public community-notes layer. Six tools,
-// no more. Every verifier that inspects the surface imports from here, so the
-// surface can only change in one place and every gate moves with it.
+// Atlas v0.3.0 is an atlas of the United States: three read-only tools over US
+// Census geography. No accounts, no commerce, no third-party calls, and no tool
+// the model is instructed to avoid using. Every verifier that inspects the
+// surface imports from here, so it can only change in one place.
 //
-// History worth keeping: until 2026-07-25 the server also exposed
-// preview_scout_drop, preview_campaign_engine, and get_upgrade_options, and the
-// server instructions had to tell the model not to use them. A tool the model
-// is told to avoid does not belong in a reviewed build, so they were retired.
-// `forbiddenToolPatterns` is what stops them — or any commerce-shaped tool —
-// from drifting back onto a surface that has no commerce behind it.
+// History worth keeping. The voxel-era build exposed seven tools, three of
+// which (preview_scout_drop, preview_campaign_engine, get_upgrade_options) the
+// server's own instructions told the model not to use — a lead-generation
+// product wearing a map's clothes. They were retired on 2026-07-25, along with
+// the public-notes tools (deferred to a later version) and lookup_world_places
+// (a Google dependency, the only open-world tool on the surface, and not
+// atlas). `FORBIDDEN_TOOL_PATTERNS` is what stops any of it drifting back.
 
 /** The exact public tool list, sorted. Compare against a sorted live list. */
 export const EXPECTED_TOOLS = Object.freeze([
-  "ask_county_question",
-  "list_atlas_notes",
-  "lookup_world_places",
-  "render_voxel_county",
-  "select_county",
-  "write_atlas_note",
+  "describe_atlas_place",
+  "open_atlas_map",
+  "search_atlas_places",
 ]);
-
-/** Map tools only — the surface when ATLAS_COMMONS_ENABLED is off. */
-export const MAP_ONLY_TOOLS = Object.freeze([
-  "ask_county_question",
-  "lookup_world_places",
-  "render_voxel_county",
-  "select_county",
-]);
-
-/** Commons note tools — registered only when ATLAS_COMMONS_ENABLED is true. */
-export const COMMONS_TOOLS = Object.freeze(["list_atlas_notes", "write_atlas_note"]);
 
 /** Retired tool names that must never reappear on the surface. */
 export const RETIRED_TOOLS = Object.freeze([
   "preview_scout_drop",
   "preview_campaign_engine",
   "get_upgrade_options",
+  "lookup_world_places",
+  "select_county",
+  "render_voxel_county",
+  "ask_county_question",
+  "list_atlas_notes",
+  "write_atlas_note",
 ]);
 
 /**
@@ -55,30 +49,26 @@ export const FORBIDDEN_TOOL_PATTERNS = Object.freeze([
 ]);
 
 /**
- * write_atlas_note is the only tool that writes, and lookup_world_places is the
- * only tool that reaches a third party. Store review checks annotations against
- * observed behavior, so these are asserted rather than assumed.
+ * Every Atlas tool only reads, and none of them reach outside Atlas's own
+ * Census data. Store review checks annotations against observed behaviour and
+ * names incorrect labels as a common cause of rejection, so these are asserted
+ * rather than assumed. If a future tool writes anything or calls a third party,
+ * this table must change with it.
  */
 export const EXPECTED_ANNOTATIONS = Object.freeze({
-  ask_county_question: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
-  list_atlas_notes: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
-  lookup_world_places: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
-  render_voxel_county: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
-  select_county: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
-  write_atlas_note: { readOnlyHint: false, openWorldHint: false, destructiveHint: true },
+  describe_atlas_place: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
+  open_atlas_map: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
+  search_atlas_places: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
 });
 
 /**
  * Assert a live tool list matches the expected surface exactly.
  *
  * @param {string[]} actualToolNames names from a live tools/list response
- * @param {{ commonsEnabled?: boolean }} [options] when commonsEnabled is false,
- *   expects the map-only surface instead of the full one
  * @returns {string[]} the sorted actual names, for logging
  */
-export function assertToolSurface(actualToolNames, options = {}) {
-  const commonsEnabled = options.commonsEnabled ?? true;
-  const expected = commonsEnabled ? [...EXPECTED_TOOLS] : [...MAP_ONLY_TOOLS];
+export function assertToolSurface(actualToolNames) {
+  const expected = [...EXPECTED_TOOLS];
   const actual = [...actualToolNames].sort();
 
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -93,8 +83,7 @@ export function assertToolSurface(actualToolNames, options = {}) {
   }
 
   for (const name of actual) {
-    const retired = RETIRED_TOOLS.includes(name);
-    if (retired) throw new Error(`Retired tool is live on the MCP surface: ${name}.`);
+    if (RETIRED_TOOLS.includes(name)) throw new Error(`Retired tool is live on the MCP surface: ${name}.`);
     const pattern = FORBIDDEN_TOOL_PATTERNS.find((candidate) => candidate.test(name));
     if (pattern) throw new Error(`Tool name matches a forbidden pattern ${pattern}: ${name}.`);
   }
