@@ -48,6 +48,8 @@ export type Plate = {
   waterNames?: (string | null)[];
   anchors?: Array<{ name: string; lon: number; lat: number; population: number }>;
   stateOutlines?: Record<string, number[][]>;
+  /** Postal code to state name, used to label the national plate. */
+  states?: Record<string, string>;
   context?: Array<{ slug: string; name: string; state: string; rings: number[][] }>;
   contextEncoding?: { rings: string; decimals?: number };
   outline?: number[][];
@@ -218,6 +220,46 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
       if (entry.kind === "land") land.push(shape);
       else if (entry.kind === "context") context.push(shape);
       else water.push(shape);
+    }
+  }
+
+  // State names on the national plate.
+  //
+  // Without these the nation is 3,222 unlabelled shapes — recognisable as the
+  // United States, but useless for finding anything. A national plate labels
+  // its states; that is the level of detail the scale supports. The anchor is
+  // the centroid of the state's largest ring, which for all but a handful of
+  // states sits inside the state.
+  if (plate.plate === "nation" && plate.states) {
+    const decimals = plate.encoding?.decimals ?? 3;
+    for (const [code, rings] of Object.entries(plate.stateOutlines ?? {})) {
+      const name = plate.states[code];
+      if (!name) continue;
+
+      // Largest ring by vertex count stands in for the mainland; islands and
+      // slivers must not steal the label.
+      const largest = rings.reduce<number[] | undefined>(
+        (best, ring) => (!best || ring.length > best.length ? ring : best),
+        undefined,
+      );
+      if (!largest) continue;
+
+      const points = toLonLat(largest, { rings: "delta-fixed-point", decimals });
+      if (points.length === 0) continue;
+
+      let sumLon = 0;
+      let sumLat = 0;
+      for (const [lon, lat] of points) {
+        sumLon += lon;
+        sumLat += lat;
+      }
+      labelSeeds.push({
+        text: name,
+        lonLat: [sumLon / points.length, sumLat / points.length],
+        // Rank by area so a crowded northeast drops Rhode Island before Texas.
+        importance: points.length,
+        state: code,
+      });
     }
   }
 
