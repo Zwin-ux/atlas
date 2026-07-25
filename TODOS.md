@@ -39,3 +39,22 @@
   Design doc Lane 2.3: public-read / invite-write GA posture, 24h SLA.
 - **Depends on / blocked by:** Decision to open public writes (post-launch);
   Commons governance checklist items (named owner, policies) staying current.
+
+## 3. Atlas plate polish (from /qa, 2026-07-25)
+
+- **What:** Three deferred findings from the exhaustive QA pass.
+  - *Portrait letterbox (ISSUE-003, low):* a wide county in a tall phone plate
+    leaves vertical space. The plate fills its container and context is 46
+    neighbours deep, but the fit is computed against the subject alone. Fix is
+    to fit against subject-plus-margin with viewport awareness.
+  - *No legend (ISSUE-004, low):* nothing tells a reader what the fills and
+    line weights mean. Atlas plates carry a key.
+  - *No north indicator (ISSUE-005, low):* Albers rotates meridians away from
+    vertical, so north is not straight up at the plate edges.
+- **Why:** None block submission; all three are the difference between a map
+  that works and one that reads as cartography.
+- **Context:** `.gstack/qa-reports/qa-report-atlas-localhost-2026-07-25.md`.
+  Health score 87 -> 94 after fixing ISSUE-001 (no state labels) and ISSUE-002
+  (state plates nameless on mobile).
+- **Depends on / blocked by:** Nothing. ISSUE-003 needs care in the fit/zoom
+  cascade — an earlier attempt made it worse.
