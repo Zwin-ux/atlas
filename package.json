@@ -10,7 +10,7 @@
     "build:web": "pnpm build:core && node scripts/build-web.mjs",
     "build:geo": "pnpm --dir packages/geo build",
     "build:server": "pnpm build:core && pnpm build:geo && tsc -p server/tsconfig.json",
-    "build:starter": "pnpm build:web && pnpm build:server",
+    "build:starter": "pnpm build:web && pnpm build:server && pnpm build:atlas-plates",
     "build:workspaces": "tsc -p packages/config/tsconfig.json && tsc -p packages/core/tsconfig.json && tsc -p packages/assets/tsconfig.json && tsc -p packages/geo/tsconfig.json && tsc -p packages/mcp/tsconfig.json && tsc -p apps/web/tsconfig.json && pnpm --dir apps/widget build",
     "build": "pnpm build:starter && pnpm build:workspaces",
     "typecheck:starter": "pnpm build:core && pnpm build:geo && tsc -p server/tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
@@ -61,7 +61,9 @@
     "dev:widget": "pnpm --dir apps/widget dev",
     "dev": "pnpm build:web && pnpm build:geo && tsx server/src/index.ts",
     "start": "node scripts/railway-start.mjs",
-    "inspect": "pnpm dlx @modelcontextprotocol/inspector@latest --server-url http://localhost:8787/mcp --transport http"
+    "inspect": "pnpm dlx @modelcontextprotocol/inspector@latest --server-url http://localhost:8787/mcp --transport http",
+    "verify:location-truth": "node scripts/verify-location-truth.mjs",
+    "build:atlas-plates": "node scripts/build-atlas-plates.mjs"
   },
   "dependencies": {
     "@atlas/core": "workspace:*",

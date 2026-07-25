@@ -15,6 +15,10 @@
     "./scout": {
       "types": "./dist/scout/index.d.ts",
       "default": "./dist/scout/index.js"
+    },
+    "./atlas": {
+      "types": "./dist/atlas/index.d.ts",
+      "default": "./dist/atlas/index.js"
     }
   },
   "scripts": {
