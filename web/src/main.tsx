@@ -1,11 +1,13 @@
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
+
+import { AtlasApp } from "./atlas/AtlasApp";
+import { useToolPlate } from "./atlas/useToolPlate";
 
 /**
  * Shell theme plumbing.
  *
  * Reads `window.openai.theme` before first paint and stamps `data-theme` on
- * the document root so the Tier-2 tokens remap without a white flash, then
+ * the document root so the map's tokens remap without a white flash, then
  * follows the ChatGPT shell toggle via the host globals events. When the host
  * reports no theme, `data-theme` stays unset and the CSS
  * `prefers-color-scheme` fallback applies.
@@ -29,10 +31,23 @@ for (const eventType of HOST_GLOBALS_EVENT_TYPES) {
   window.addEventListener(eventType, (event) => applyShellTheme(readEventTheme(event)), { passive: true });
 }
 
+/**
+ * The widget is served from a per-app sandbox origin, so plate fetches need the
+ * absolute backend origin rather than a same-origin path. The bundle records it
+ * at build time; in the local preview the widget and the API share an origin
+ * and the empty default is correct.
+ */
+const API_BASE = (window as { __ATLAS_API_BASE__?: string }).__ATLAS_API_BASE__ ?? "";
+
+function AtlasWidget() {
+  const { ref, coverage } = useToolPlate();
+  return <AtlasApp initialRef={ref} coverage={coverage} apiBase={API_BASE} />;
+}
+
 const root = document.getElementById("root");
 
 if (!root) {
   throw new Error("Missing #root element for Atlas widget.");
 }
 
-createRoot(root).render(<App />);
+createRoot(root).render(<AtlasWidget />);

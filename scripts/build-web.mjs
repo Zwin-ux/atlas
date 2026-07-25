@@ -50,6 +50,10 @@ await esbuild.build({
   logLevel: "info",
 });
 
-await copyFile(resolve(root, "web/src/styles.css"), resolve(outdir, "component.css"));
+// component.css is emitted by esbuild from the CSS the widget imports. It used
+// to be overwritten here by a copy of the hand-maintained web/src/styles.css,
+// which silently discarded every bundled stylesheet — the atlas plate rendered
+// as black shapes because its rules never reached the browser. The widget now
+// imports its own CSS, so the bundler's output is the whole truth.
 
 console.log("built web/dist/component.js, web/dist/emulator.js and web/dist/component.css");

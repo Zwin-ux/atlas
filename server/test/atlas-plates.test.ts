@@ -24,7 +24,7 @@ function fixture(options: { withPlates?: boolean } = {}) {
       geoid: "06065",
       name: "Riverside County",
       countySlug: "riverside-ca",
-      source: "US Census Bureau TIGERweb (public domain)",
+      source: "US Census TIGERweb (public domain), geometryPrecision=4",
       areaLand: 18665,
       lod0: {
         boundaryRings: [[[-117.5, 33.7], [-116.5, 33.7], [-116.5, 34.1], [-117.5, 34.1], [-117.5, 33.7]]],
@@ -130,4 +130,18 @@ test("caches repeated reads", () => {
   service.state("ca");
   assert.ok(service.stats().cachedPlates >= 3);
   assert.equal(service.stats().built, true);
+});
+
+test("keeps pipeline parameters out of the on-map attribution", () => {
+  const { service } = fixture();
+  const result = service.county("riverside-ca");
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+
+  const plate = JSON.parse(result.body);
+  // The geo packs append build detail to the source string; it is drawn under
+  // every county plate, so it must read as a credit and nothing else.
+  assert.ok(!/=/.test(plate.source), `attribution leaked a parameter: ${plate.source}`);
+  assert.ok(/Census/i.test(plate.source));
+  assert.ok(/public domain/i.test(plate.source));
 });

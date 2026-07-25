@@ -1,0 +1,301 @@
+/*
+ * Atlas plate styling.
+ *
+ * Paper tones, one strong hue for water, hairline administrative lines. The
+ * geography carries the plate; nothing else competes with it. Every colour is
+ * a token with a dark-mode counterpart, because the widget inherits the
+ * ChatGPT shell's theme and a map that only works in light mode is half built.
+ */
+
+.atlas-plate {
+  --atlas-sea: #cfe0e9;
+  --atlas-land: #e3dcc9;
+  --atlas-land-edge: #9d9075;
+  --atlas-water: #9dc0d4;
+  --atlas-water-edge: #7ba5bd;
+  --atlas-border: #5c5340;
+  --atlas-label: #33301f;
+  --atlas-halo: #faf7f0;
+  --atlas-focus: #c9a227;
+  --atlas-chrome-bg: rgba(250, 247, 240, 0.92);
+  --atlas-chrome-fg: #4a4534;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--atlas-sea);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+:root[data-theme="dark"] .atlas-plate {
+  /* Not a tint of the light palette: on dark, land must read as the lit
+     surface and water as the recessed one, or the map inverts its own
+     figure/ground and stops looking like land at all. */
+  --atlas-sea: #16222b;
+  --atlas-land: #2f3a34;
+  --atlas-land-edge: #6f7a68;
+  --atlas-water: #22384a;
+  --atlas-water-edge: #3d5c74;
+  --atlas-border: #a9b3a0;
+  --atlas-label: #e8e4d5;
+  --atlas-halo: #16222b;
+  --atlas-focus: #e0b93f;
+  --atlas-chrome-bg: rgba(22, 34, 43, 0.92);
+  --atlas-chrome-fg: #cfd6c8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .atlas-plate {
+    --atlas-sea: #16222b;
+    --atlas-land: #2f3a34;
+    --atlas-land-edge: #6f7a68;
+    --atlas-water: #22384a;
+    --atlas-water-edge: #3d5c74;
+    --atlas-border: #a9b3a0;
+    --atlas-label: #e8e4d5;
+    --atlas-halo: #16222b;
+    --atlas-focus: #e0b93f;
+    --atlas-chrome-bg: rgba(22, 34, 43, 0.92);
+    --atlas-chrome-fg: #cfd6c8;
+  }
+}
+
+.atlas-plate__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  /* The plate owns horizontal drags; vertical scrolling still reaches the
+     conversation when the gesture begins outside it. */
+  touch-action: pan-y pinch-zoom;
+}
+
+.atlas-plate__canvas:active {
+  cursor: grabbing;
+}
+
+.atlas-plate__sea {
+  fill: var(--atlas-sea);
+}
+
+.atlas-plate__land {
+  fill: var(--atlas-land);
+  stroke: var(--atlas-land-edge);
+  stroke-linejoin: round;
+}
+
+.atlas-plate__county {
+  transition: fill 90ms ease-out;
+}
+
+.atlas-plate__county:hover {
+  fill: color-mix(in srgb, var(--atlas-land) 86%, var(--atlas-focus));
+}
+
+.atlas-plate__county.is-focused {
+  fill: color-mix(in srgb, var(--atlas-land) 72%, var(--atlas-focus));
+}
+
+.atlas-plate__water {
+  fill: var(--atlas-water);
+  stroke: var(--atlas-water-edge);
+  pointer-events: none;
+}
+
+.atlas-plate__borders {
+  stroke: var(--atlas-border);
+  pointer-events: none;
+}
+
+.atlas-plate__labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.atlas-plate__label {
+  position: absolute;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--atlas-label);
+  /* Halo so a name stays legible where it crosses a county line or a river. */
+  text-shadow:
+    0 0 3px var(--atlas-halo),
+    0 0 3px var(--atlas-halo),
+    0 0 2px var(--atlas-halo);
+}
+
+.atlas-plate__label[data-anchor="middle"] {
+  transform: translateX(-50%);
+}
+
+.atlas-plate__label[data-anchor="end"] {
+  transform: translateX(-100%);
+}
+
+.atlas-plate__dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 50%;
+  background: var(--atlas-label);
+}
+
+.atlas-plate__furniture {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.atlas-plate__scale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--atlas-chrome-fg);
+}
+
+.atlas-plate__scale-bar {
+  height: 3px;
+  border: 1px solid var(--atlas-chrome-fg);
+  border-top: none;
+  display: inline-block;
+}
+
+.atlas-plate__attribution {
+  margin: 0;
+  font-size: 9px;
+  opacity: 0.75;
+  color: var(--atlas-chrome-fg);
+}
+
+.atlas-plate__controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.atlas-plate__controls button {
+  /* 44px is the minimum comfortable touch target; the widget is used on
+     phones inside the ChatGPT app as often as on desktop. */
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--atlas-chrome-fg) 30%, transparent);
+  border-radius: 6px;
+  background: var(--atlas-chrome-bg);
+  color: var(--atlas-chrome-fg);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.atlas-plate__controls button:hover {
+  border-color: var(--atlas-chrome-fg);
+}
+
+.atlas-plate__coverage {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  max-width: min(60%, 420px);
+  margin: 0;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--atlas-chrome-bg);
+  color: var(--atlas-chrome-fg);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+@media (max-width: 480px) {
+  /* On a phone the coverage note would eat the map, so it sits under the
+     controls and stays short. */
+  .atlas-plate__coverage {
+    max-width: calc(100% - 60px);
+    font-size: 10px;
+  }
+
+  .atlas-plate__controls button {
+    min-width: 30px;
+    min-height: 30px;
+  }
+}
+
+/* --- Shell -------------------------------------------------------------- */
+
+.atlas-app {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+}
+
+.atlas-app__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+}
+
+.atlas-app__crumb {
+  padding: 2px 4px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.atlas-app__crumb:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.atlas-app__crumb.is-current {
+  cursor: default;
+  opacity: 1;
+  font-weight: 600;
+}
+
+.atlas-app__sep {
+  opacity: 0.4;
+}
+
+.atlas-app__stage {
+  flex: 1;
+  min-height: 300px;
+}
+
+.atlas-app__message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  border-radius: 10px;
+  background: rgba(127, 127, 127, 0.08);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  text-align: center;
+}

@@ -20,6 +20,25 @@ import { isValidCountySlug } from "./countyGeoPack.js";
 /** A state code is exactly two lowercase letters; nothing else can index a file. */
 const STATE_CODE_GUARD = /^[a-z]{2}$/;
 
+/**
+ * The attribution line is drawn on the map, so it must read as a credit rather
+ * than as a build record. The geo packs carry a source string with pipeline
+ * detail appended — "…(public domain), geometryPrecision=4" — and that trailing
+ * field was rendering under every county plate. Internal parameters in
+ * user-facing copy are the same defect class as the model reciting tier codes.
+ */
+function cleanAttribution(source: string | undefined): string {
+  const fallback = "US Census Bureau TIGERweb (public domain)";
+  if (!source) return fallback;
+  const cleaned = source
+    .split(",")
+    .filter((part) => !/^\s*[a-z][A-Za-z]*\s*=/.test(part))
+    .join(",")
+    .trim()
+    .replace(/[,;]\s*$/, "");
+  return cleaned || fallback;
+}
+
 export type PlateResult =
   | { ok: true; body: string; etag: string }
   | { ok: false; reason: "invalid" | "missing" | "not-built" };
@@ -154,7 +173,7 @@ export function createAtlasPlateService(options: AtlasPlateServiceOptions): Atla
             name: pack.name ?? identity?.name ?? slug,
             state: identity?.state,
             projection: "albers-centered",
-            source: pack.source ?? "US Census Bureau TIGERweb (public domain)",
+            source: cleanAttribution(pack.source),
             // County plates carry raw lon/lat rather than the delta encoding:
             // one county is small enough that the codec would save little, and
             // raw coordinates keep this route trivially inspectable.
