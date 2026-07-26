@@ -3002,53 +3002,8 @@ function publicWorldPlaceLookup(response: WorldPlaceLookupResponse) {
   };
 }
 
-function handleScoutDrop(url: URL, res: ServerResponse): void {
-  try {
-    const preview = previewScoutDrop({
-      countySlug: url.searchParams.get("countySlug") ?? "riverside-ca",
-      nodeId: url.searchParams.get("nodeId") ?? undefined,
-      locationLabel: url.searchParams.get("locationLabel") ?? "Eastvale",
-      businessType: url.searchParams.get("businessType") ?? "mobile detailing",
-      goal: url.searchParams.get("goal") ?? "Find the strongest first drop for a local mobile detailing offer.",
-      budget: url.searchParams.get("budget") ?? undefined,
-      serviceRadius: url.searchParams.get("serviceRadius") ?? undefined,
-    });
-    jsonResponse(res, 200, { ok: true, preview });
-  } catch (error) {
-    jsonResponse(res, 400, {
-      ok: false,
-      error: error instanceof Error ? error.message : "Scout Drop failed.",
-    });
-  }
-}
-
-function handleCampaignPreview(url: URL, res: ServerResponse): void {
-  const scoutPreviewId = url.searchParams.get("scoutPreviewId")?.trim();
-  if (!scoutPreviewId) {
-    jsonResponse(res, 400, { ok: false, error: "Missing scoutPreviewId from preview_scout_drop." });
-    return;
-  }
-
-  try {
-    const { campaignPreview, rebuiltScoutPreview } = previewCampaignFromScoutRequest({
-      scoutPreviewId,
-      countySlug: url.searchParams.get("countySlug") ?? "riverside-ca",
-      nodeId: url.searchParams.get("nodeId") ?? undefined,
-      locationLabel: url.searchParams.get("locationLabel") ?? "Eastvale",
-      businessType: url.searchParams.get("businessType") ?? "mobile detailing",
-      goal: url.searchParams.get("goal") ?? "Find the strongest first drop for a local mobile detailing offer.",
-      budget: url.searchParams.get("budget") ?? undefined,
-      serviceRadius: url.searchParams.get("serviceRadius") ?? undefined,
-    });
-
-    jsonResponse(res, 200, { ok: true, rebuiltScoutPreview, preview: campaignPreview });
-  } catch (error) {
-    jsonResponse(res, 400, {
-      ok: false,
-      error: error instanceof Error ? error.message : "Campaign preview failed.",
-    });
-  }
-}
+// handleScoutDrop and handleCampaignPreview were removed with their routes on
+// 2026-07-25. Atlas is a map; it has no scouting or campaign product.
 
 function hostedClawdInputFromUrl(url: URL): HostedClawdContextInput {
   return {
@@ -4099,16 +4054,13 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname === "/api/scout/drop" && req.method === "GET") {
-    handleScoutDrop(url, res);
-    return;
-  }
-
-  if (url.pathname === "/api/campaign/preview" && req.method === "GET") {
-    handleCampaignPreview(url, res);
-    return;
-  }
-
+  // /api/scout/drop and /api/campaign/preview were removed on 2026-07-25.
+  //
+  // Retiring the scout and campaign MCP tools left their HTTP routes serving
+  // 200 in production — a live lead-generation endpoint on a product whose
+  // listing states it has no campaign features. A tool scan would not have
+  // caught it, because it was never on the MCP surface. Found by QA against
+  // the deployed build, which is the only place it was visible.
   if (url.pathname === "/privacy" && req.method === "GET") {
     htmlResponse(res, 200, privacyPageHtml());
     return;
