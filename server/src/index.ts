@@ -3799,7 +3799,30 @@ const httpServer = createServer(async (req, res) => {
   // has already crashed a ChatGPT session once by routing large geometry
   // through connector storage (finding G8-2). Plates are immutable per build,
   // so they carry a long cache lifetime and an ETag.
-  if (url.pathname.startsWith("/api/atlas/") && req.method === "GET") {
+  if (url.pathname.startsWith("/api/atlas/") && (req.method === "GET" || req.method === "OPTIONS")) {
+    // Inside real ChatGPT the widget runs on a per-app sandbox origin and
+    // fetches these plates CROSS-ORIGIN. Without ACAO the browser discards
+    // every response and the map renders as an error — the exact failure that
+    // made the widget a blank screen in the first G8 session (finding G8-1),
+    // reproduced here because the plate routes were added after that fix and
+    // never inherited it. It does not reproduce on /preview, where the widget
+    // is same-origin.
+    //
+    // Plates are public-domain Census geography with no user data in them, so
+    // a wildcard is correct. /mcp CORS stays allowlisted.
+    res.setHeader("access-control-allow-origin", "*");
+    res.setHeader("cross-origin-resource-policy", "cross-origin");
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, {
+        "access-control-allow-methods": "GET, OPTIONS",
+        "access-control-allow-headers": "content-type, if-none-match",
+        "access-control-max-age": "86400",
+      });
+      res.end();
+      return;
+    }
+
     const rest = url.pathname.slice("/api/atlas/".length);
     const [kind, id] = rest.split("/");
 
