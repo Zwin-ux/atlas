@@ -13,3 +13,10 @@ assets/reference/
 .gstack/
 .github/
 .claude/
+
+# Baked TIGER road-chunk payloads (163 MB). The 2D atlas reads only
+# _coverage.json from this directory, to state honestly which counties have
+# real street geometry. The chunk bytes themselves serve the retired
+# /road-chunks routes and were pushing the upload past what Railway accepts.
+data/road-chunks/*
+!data/road-chunks/_coverage.json
