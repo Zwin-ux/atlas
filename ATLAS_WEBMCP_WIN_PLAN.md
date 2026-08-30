@@ -136,7 +136,7 @@ Use **five core tools**. Add the sixth only after the first five work perfectly 
 | `search_places` | Search the bundled Atlas place/county index and return exact or ambiguous candidates | None | `readOnlyHint: true` |
 | `open_place` | Open one U.S. state, county, or Census place on the visible map | Map navigates, focuses, and highlights target | `readOnlyHint: false` |
 | `add_map_note` | Attach a short session-only research note to a mapped place | Note appears visibly beside/on the map | `readOnlyHint: false`, `untrustedContentHint: true` |
-| `create_map_trail` | Create an editable ordered trail of two to five mapped places with a short research prompt at each stop | Trail rail appears; first stop opens and highlights | `readOnlyHint: false`, `untrustedContentHint: true` |
+| `create_map_trail` | Create an editable ordered trail of two to five mapped places with a short research prompt at each stop | Numbered route and trail rail appear on the national map | `readOnlyHint: false`, `untrustedContentHint: true` |
 
 ### Why no deletion tool in the first release
 
@@ -573,7 +573,7 @@ Prompt:
 
 > “Create a three-stop research trail comparing Eastvale, Norco, and Corona, with one question to investigate at each stop.”
 
-Show the editable trail rail appear and the first location open.
+Show the numbered national route and editable trail rail appear, then open one stop manually.
 
 ### 2:12–2:34 — prove WebMCP depth
 
@@ -695,4 +695,3 @@ Atlas should not try to win by being the biggest app. It should win by making on
 > **A map is more useful when the human and agent can see, change, and continue from the same geographic workspace.**
 
 The existing voxel/Census engine supplies the ambition. The challenge work must supply the shared page state, clean WebMCP implementation, visible collaboration, and ruthless product coherence.
-

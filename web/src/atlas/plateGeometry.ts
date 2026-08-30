@@ -79,6 +79,8 @@ export type PlateGeometry = {
   water: ShapePath[];
   borders: ShapePath[];
   labels: Array<{ text: string; x: number; y: number; importance: number }>;
+  /** Projected county centers for map-native overlays. Never returned by a tool. */
+  countyCenters: Readonly<Record<string, { x: number; y: number }>>;
   /** Plate-space viewBox the geometry was laid out in. */
   viewBox: { width: number; height: number };
   /** Convert a plate-space distance to kilometres, for the scale bar. */
@@ -212,6 +214,21 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
     return [x * fit.scale + fit.translateX, y * fit.scale + fit.translateY];
   };
 
+  const countyCenters: Record<string, { x: number; y: number }> = {};
+  for (const entry of gathered) {
+    if (entry.kind !== "land" || !entry.id) continue;
+    const projectedRings = entry.rings
+      .map((ring) => ring.map((point) => toScreen(point, entry.state)))
+      .filter((ring) => ring.length >= 3);
+    const largest = projectedRings.reduce<Point[] | undefined>(
+      (best, ring) => !best || Math.abs(polygonArea(ring)) > Math.abs(polygonArea(best)) ? ring : best,
+      undefined,
+    );
+    if (!largest) continue;
+    const [x, y] = polygonCenter(largest);
+    countyCenters[entry.id] = { x, y };
+  }
+
   for (const entry of gathered) {
     for (const ring of entry.rings) {
       const d = pathFrom(ring.map((point) => toScreen(point, entry.state)));
@@ -309,11 +326,44 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
     water,
     borders,
     labels,
+    countyCenters,
     scaleAppliesTo: useNational ? ("contiguous" as const) : ("all" as const),
     viewBox: { width: PLATE_WIDTH, height: PLATE_HEIGHT },
     kmPerUnit: groundKm / projectedSpan,
     attribution: plate.source,
   };
+}
+
+function polygonArea(points: Point[]): number {
+  let twiceArea = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index]!;
+    const next = points[(index + 1) % points.length]!;
+    twiceArea += current[0] * next[1] - next[0] * current[1];
+  }
+  return twiceArea / 2;
+}
+
+function polygonCenter(points: Point[]): Point {
+  const area = polygonArea(points);
+  if (Math.abs(area) < 1e-9) {
+    const [sumX, sumY] = points.reduce<Point>(
+      ([x, y], point) => [x + point[0], y + point[1]],
+      [0, 0],
+    );
+    return [sumX / points.length, sumY / points.length];
+  }
+
+  let weightedX = 0;
+  let weightedY = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index]!;
+    const next = points[(index + 1) % points.length]!;
+    const cross = current[0] * next[1] - next[0] * current[1];
+    weightedX += (current[0] + next[0]) * cross;
+    weightedY += (current[1] + next[1]) * cross;
+  }
+  return [weightedX / (6 * area), weightedY / (6 * area)];
 }
 
 /**

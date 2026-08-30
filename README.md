@@ -4,7 +4,7 @@ Atlas is a shared geographic canvas. A person explores U.S. counties on the map 
 
 No login. No saved profile. One map, one research session.
 
-![Atlas no-login U.S. map with the place finder](artifacts/webmcp-proof/judge-path-final-desktop.png)
+![Atlas national map with a numbered three-county research trail](artifacts/webmcp-proof/trail-overview-desktop.png)
 
 ## What the candidate does
 
@@ -12,7 +12,7 @@ No login. No saved profile. One map, one research session.
 - Lets a person pan, zoom, drill into counties, follow breadcrumbs, and find a U.S. city or county with the keyboard.
 - Preserves ambiguity. `Springfield` returns labeled candidates instead of silently choosing one.
 - Registers exactly five imperative WebMCP tools from the top-level page.
-- Shows agent activity and every write in the same interface the person is using.
+- Shows agent activity and every write in the same interface the person is using, including a numbered national trail overview.
 - Keeps notes and research trails in the current browser session only.
 - Falls back to a complete normal map when WebMCP is unavailable.
 
@@ -24,7 +24,7 @@ No login. No saved profile. One map, one research session.
 | `search_places` | Searches the bounded Census-backed place index without changing the map. |
 | `open_place` | Resolves one place and opens it visibly. Ambiguous names return candidates without mutation. |
 | `add_map_note` | Resolves a place, opens it, and adds one visible session-only note. |
-| `create_map_trail` | Resolves every stop first, then creates one visible editable 2-5 stop trail atomically. |
+| `create_map_trail` | Resolves every stop first, then atomically shows one editable 2-5 stop trail on the national map. |
 
 Human controls and tool callbacks share one `AtlasMapController`. Write calls resolve only after the matching map revision is visible. A canceled, failed, or superseded transition cannot report success.
 
@@ -56,7 +56,7 @@ pnpm typecheck
 pnpm build
 ```
 
-`pnpm verify:webmcp` covers the exact-five contract, schemas, annotations, output bounds, shared-controller path, ambiguity, cancellation, atomic trails, top-level registration, all-or-none rollback, route fencing, and normal-browser feature detection.
+`pnpm verify:webmcp` covers the exact-five contract, schemas, annotations, output bounds, shared-controller path, ambiguity, cancellation, atomic trails, projected county centers, top-level registration, all-or-none rollback, route fencing, and normal-browser feature detection.
 
 The full local gates currently pass. Browser proof covers 1280x720 and 390x844, keyboard place finding, ambiguity recovery, fallback behavior, accessibility landmarks, 44px visible mobile controls, and zero horizontal overflow. Real ChatGPT built-in-browser discovery remains a separate external acceptance gate.
 

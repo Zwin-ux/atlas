@@ -198,10 +198,24 @@ test("createMapTrail resolves every stop before one atomic mutation", async () =
     await new Promise<void>((resolve) => setImmediate(resolve));
     assert.equal(controller.getSnapshot().revision, 1);
     assert.equal(controller.getSnapshot().trail?.stops.length, 2);
+    assert.deepEqual(controller.getSnapshot().current, { level: "nation" });
+    assert.deepEqual(controller.getSnapshot().navigationStack, [{ level: "nation" }]);
+    assert.equal(controller.getSnapshot().selectedPlace?.name, "Eastvale");
     controller.acknowledgeVisible(1);
     const result = await resultPromise;
     assert.equal(result.ok, true);
     assert.equal(controller.getSnapshot().visibleRevision, 1);
+
+    const openStop = controller.openTrailStop(1);
+    assert.equal(controller.getSnapshot().trail?.activeIndex, 1);
+    assert.deepEqual(controller.getSnapshot().current, {
+      level: "county",
+      countySlug: "riverside-ca",
+      state: "ca",
+      name: "Riverside County",
+    });
+    controller.acknowledgeVisible(2);
+    await openStop;
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -226,6 +240,44 @@ test("one ambiguous trail stop leaves the complete workspace unchanged", async (
     ] });
     assert.equal(result.ok, false);
     assert.equal(controller.getSnapshot(), before);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("removing a stop before the active stop keeps the same active place after renumbering", async () => {
+  const originalFetch = globalThis.fetch;
+  const places = {
+    Riverside: { name: "Riverside County", countySlug: "riverside-ca", countyName: "Riverside County", state: "ca", kind: "county" },
+    Travis: { name: "Travis County", countySlug: "travis-tx", countyName: "Travis County", state: "tx", kind: "county" },
+    Miami: { name: "Miami-Dade County", countySlug: "miami-dade-fl", countyName: "Miami-Dade County", state: "fl", kind: "county" },
+  } as const;
+  globalThis.fetch = async (input) => {
+    const query = new URL(String(input), "http://atlas.test").searchParams.get("query")!;
+    return new Response(JSON.stringify({ ok: true, status: "resolved", place: places[query as keyof typeof places] }), { status: 200 });
+  };
+
+  try {
+    const controller = new AtlasMapController();
+    const create = controller.createMapTrail({ title: "County trail", stops: [
+      { place: "Riverside", prompt: "Start" },
+      { place: "Travis", prompt: "Compare" },
+      { place: "Miami", prompt: "Finish" },
+    ] });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    controller.acknowledgeVisible(1);
+    await create;
+
+    const open = controller.openTrailStop(2);
+    controller.acknowledgeVisible(2);
+    await open;
+
+    const remove = controller.removeTrailStop(0);
+    const pending = controller.getSnapshot();
+    assert.equal(pending.trail?.activeIndex, 1);
+    assert.equal(pending.trail?.stops[pending.trail.activeIndex]?.place.name, "Miami-Dade County");
+    controller.acknowledgeVisible(3);
+    await remove;
   } finally {
     globalThis.fetch = originalFetch;
   }

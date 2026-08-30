@@ -15,7 +15,7 @@ Current challenge deadline: September 3, 2026 at 1:00 PM Pacific. Re-check the o
 
 ## Short description
 
-Atlas is a no-login U.S. county map that a person and an agent can use together. A person pans, zooms, drills into counties, and finds places normally. In a supported browser, an agent discovers five browser-native tools that read the live map, search Census-backed places, open a place, add a session note, or create an editable research trail.
+Atlas is a no-login U.S. county map that a person and an agent can use together. A person pans, zooms, drills into counties, and finds places normally. In a supported browser, an agent discovers five browser-native tools that read the live map, search Census-backed places, open a place, add a session note, or create a numbered national research trail.
 
 Both sides operate on the same controller and the same visible session. Atlas does not maintain a hidden agent copy of the map.
 
@@ -37,7 +37,7 @@ The top-level page imperatively registers exactly five WebMCP tools:
 4. `add_map_note`
 5. `create_map_trail`
 
-The two read tools return bounded public projections. The three write tools update visible session state and wait for the matching map revision to render before returning success. Ambiguous locations return candidates. A trail resolves every stop before one atomic mutation, so a bad stop never leaves a partial trail.
+The two read tools return bounded public projections. The three write tools update visible session state and wait for the matching map revision to render before returning success. Ambiguous locations return candidates. A trail resolves every stop before one atomic mutation, then shows its numbered county route on the national map; a bad stop never leaves a partial trail.
 
 ## How it was built
 

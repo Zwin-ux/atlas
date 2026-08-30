@@ -177,7 +177,7 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
     {
       name: "create_map_trail",
       title: "Create a session map trail",
-      description: "Resolve two to five U.S. places, then atomically create one visible editable research trail and open its first stop.",
+      description: "Resolve two to five U.S. places, then atomically show one visible editable research trail as numbered stops on the national map.",
       inputSchema: {
         type: "object",
         additionalProperties: false,

@@ -10,10 +10,13 @@
 
 ## Current Slice
 
-- Slice: `9–10 — Challenge documentation and owner-gated release packet`
-- Status: `LOCALLY GREEN — owner-gated external actions remain`
-- Player-visible promise: `A judge or release owner can understand, run, verify, record, and safely release the focused Atlas WebMCP candidate without inheriting the retired Atlas story.`
-- Anti-scope: `No Scout, campaign, Hosted Clawd, Commons, billing, road expansion, or renderer rewrite.`
+- Slice: `11 — National research-trail overview`
+- Status: `LOCALLY GREEN — awaiting slice commit`
+- Player-visible promise: `Creating a trail immediately shows its numbered county stops and connecting route on the nationwide map; selecting a marker or rail stop opens that county through the shared controller.`
+- Smallest complete boundary: `Project county centers from the existing national plate, render one accessible overlay, land atomic trail creation on the nation view, and keep rail edits/removals synchronized without changing the exact-five tool cut.`
+- Likely files: `web/src/atlas/plateGeometry.ts`, `AtlasPlate.tsx`, `AtlasApp.tsx`, `AtlasMapController.ts`, `webmcpTools.ts`, `atlas.css`, focused tests, `CHALLENGE_DELTA.md`, and this ledger.`
+- Acceptance checks: `Focused controller/geometry/tool tests; pnpm verify:webmcp; pnpm typecheck; pnpm build; desktop and 390x844 browser proof; normal-browser fallback; /review with valid findings fixed.`
+- Anti-scope: `No sixth tool, raw coordinates in tool output, labels competing with the map, renderer rewrite, auth, persistence, or public release action.`
 
 ## Acceptance Checks
 
@@ -22,7 +25,7 @@
 - [x] Normal browsers keep full manual map behavior with an honest unavailable status.
 - [x] Activity rail shows availability, sequence, timestamp, tool, state, and concise effect.
 - [x] `add_map_note` resolves first, enforces 240 characters, renders text safely, and waits for visibility.
-- [x] `create_map_trail` resolves all 2–5 stops before one mutation and opens the first stop.
+- [x] `create_map_trail` resolves all 2–5 stops before one mutation and shows the completed numbered trail on the national map.
 - [x] Ambiguous or canceled trail resolution leaves the complete prior snapshot unchanged.
 - [x] Humans can edit/remove note text, trail title, prompts, and stops without delete tools.
 - [x] All tool outputs stay below 1,500 serialized characters in maximum-text tests.
@@ -79,6 +82,12 @@
 - `docs/webmcp/RELEASE_PACKET.md` — records the publication-safety audit, sanitized-repository boundary, owner gates, evidence, and rollback.
 - `scripts/verify-webmcp-docs.mjs` — guards the exact tool story, required placeholders, video budget, links, and challenge anti-scope.
 - `artifacts/webmcp-proof/judge-path-final-desktop.png` and `judge-path-final-mobile-390x844.png` — final masthead/44px design proof.
+- `web/src/atlas/plateGeometry.ts` — projects internal county-center coordinates from existing nation geometry without exposing them through WebMCP.
+- `web/src/atlas/AtlasPlate.tsx` — renders the national trail route and numbered, keyboard-operable stop markers above the map.
+- `web/src/atlas/AtlasMapController.ts` and `web/src/atlas/AtlasApp.tsx` — commit complete trails atomically to the nation overview, wait for visible overlay completion, and share one marker/rail stop-opening path.
+- `web/src/atlas/atlas.css` — adds restrained trail tokens, non-color active state, focus treatment, reduced-motion behavior, and mobile information-priority rules.
+- `web/test/plate-geometry.test.ts`, controller tests, tool tests, and `scripts/verify-webmcp.mjs` — verify projected centers, nation-first creation, synchronized stop editing, internal-coordinate boundaries, and updated tool guidance.
+- `artifacts/webmcp-proof/trail-overview-desktop.png` and `trail-overview-mobile-390x844.png` — national overlay proof at desktop and 390x844.
 
 ### Commands and results
 
@@ -130,6 +139,14 @@
 | Detached `4ba01042` `pnpm build` | PASS | Full starter, plates, and workspace build passed; only the recorded Radix and manifest-skip warnings. |
 | Detached `4ba01042` `pnpm verify:webmcp` | PASS | 26/26 tests plus runtime/static and judge-copy guards passed after the required build gate. |
 | Detached `4ba01042` `pnpm audit:webmcp:release` | PASS as audit | Confirmed the expected `DO_NOT_PUBLISH_CURRENT_REPOSITORY` boundary against the committed candidate. |
+| `pnpm test:webmcp-geometry` | PASS | 1/1 projected-county-center contract test. |
+| `pnpm test:atlas-controller` | PASS | 15/15 controller tests, including national trail creation, marker/rail shared navigation, atomic failure, and active-stop renumbering. |
+| `pnpm test:webmcp-core` | PASS | 6/6 descriptor/execution tests, including the national-overlay side-effect description. |
+| `pnpm verify:webmcp` | PASS | 28/28 focused tests plus exact-five, shared-controller, route, coordinate-boundary, and documentation guards. |
+| `pnpm typecheck` | PASS | Starter and all workspace TypeScript contracts passed after the trail-overlay changes. |
+| `pnpm build` | PASS | Full starter, Atlas plate, and workspace production builds passed; only the recorded pre-existing Radix and two manifest-skip warnings. |
+| `git diff --check` | PASS | No whitespace errors. |
+| `/review` | PASS | Two informational gaps were auto-fixed: stale first-stop documentation and missing active-stop renumber coverage. No unresolved critical or informational findings. |
 
 ### Browser proof
 
@@ -144,6 +161,12 @@
 - Ambiguity-safe judge path mobile 390x844: `artifacts/webmcp-proof/judge-path-ambiguous-mobile-390x844.png`.
 - Final design proof desktop: `artifacts/webmcp-proof/judge-path-final-desktop.png`.
 - Final design proof mobile 390x844: `artifacts/webmcp-proof/judge-path-final-mobile-390x844.png`.
+- National trail overview desktop: `artifacts/webmcp-proof/trail-overview-desktop.png`.
+- National trail overview mobile 390x844: `artifacts/webmcp-proof/trail-overview-mobile-390x844.png`.
+- A three-stop Riverside / Miami-Dade / Travis trail rendered one route and three numbered markers before the visible revision resolved.
+- All three marker targets measured 44x44 CSS pixels at desktop and 390x844; the mobile page remained at `scrollWidth=clientWidth=390`.
+- The accessibility tree named the trail image and every stop; Enter on stop 2 opened Miami-Dade through `openTrailStop`.
+- Removing a stop before the active stop renumbered both rail and overlay state without divergence.
 - Normal-browser fallback produced no application error. Chrome logged only the expected warning that the experimental `tools` feature was not enabled in this browser.
 
 ### Review
@@ -152,6 +175,7 @@
 - High findings: `0` in the exact-five implementation.
 - Medium findings: `0` after adding editable note text/title controls, timestamp visibility, 44px mobile removal targets, bounded state output, and an accessible page heading.
 - Design findings: `0` remaining after raising the desktop finder to 44px and adding the restrained `ATLAS / location` masthead.
+- Trail-overview findings: `0` remaining after fixing the overlay stacking order, stale first-stop copy, and active-stop renumber test coverage.
 - Disposition: `CLEAN` for local code. Real WebMCP-enabled Chrome and ChatGPT discovery remain external acceptance gates.
 
 ## Risks and Blockers
@@ -163,7 +187,7 @@
 
 ## Exact Next Action
 
-Owner reviews `docs/webmcp/RELEASE_PACKET.md` and makes the first explicit release decision. Do not publish this repository; the approved release path starts from a new empty sanitized repository and an owner-selected license.
+Pin and integrate `webmcp-evals@0.0.4`, derive evaluation fixtures from the real five descriptors, and add static-model, live-browser, and deterministic no-model browser-smoke commands without widening the tool cut.
 
 ## Slice Queue
 
@@ -177,4 +201,5 @@ Owner reviews `docs/webmcp/RELEASE_PACKET.md` and makes the first explicit relea
 8. Judge-path UX and browser proof — GREEN (`dda677d7`, design fixes `3a7dbf7a`, `b90182b6`)
 9. README/submission/video materials — GREEN (`4ba01042`)
 10. Clean-clone and public-release audit — LOCALLY GREEN; existing repo blocked, owner-gated sanitized path ready
+11. National research-trail overview — LOCALLY GREEN; awaiting coherent slice commit
 

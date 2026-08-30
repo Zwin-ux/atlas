@@ -241,7 +241,7 @@ export class AtlasMapController {
       return { place: resolution.place, prompt: input.stops[index]!.prompt.trim() };
     });
     const trail: MapTrail = { title, stops, activeIndex: 0 };
-    await this.commitWorkspace(navigationFor(stops[0]!.place), stops[0]!.place, { trail }, signal);
+    await this.commitWorkspace([{ level: "nation" }], stops[0]!.place, { trail }, signal);
     return { ok: true, trail, revision: this.viewSnapshot.revision };
   }
 
@@ -271,7 +271,10 @@ export class AtlasMapController {
     const trail = this.viewSnapshot.trail;
     if (!trail?.stops[index]) return Promise.reject(new Error("Atlas trail stop is out of range."));
     const stops = trail.stops.filter((_, stopIndex) => stopIndex !== index);
-    const nextTrail = stops.length >= 2 ? { ...trail, stops, activeIndex: Math.min(trail.activeIndex, stops.length - 1) } : null;
+    const activeIndex = index < trail.activeIndex
+      ? trail.activeIndex - 1
+      : Math.min(trail.activeIndex, stops.length - 1);
+    const nextTrail = stops.length >= 2 ? { ...trail, stops, activeIndex } : null;
     return this.commitWorkspace(this.viewSnapshot.navigationStack, this.viewSnapshot.selectedPlace, { trail: nextTrail });
   }
 

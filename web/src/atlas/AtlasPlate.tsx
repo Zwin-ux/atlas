@@ -15,10 +15,11 @@
  *    still scroll when the gesture starts outside it
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { labelBudget, placeLabels } from "@atlas/core/atlas";
 
+import type { MapTrail } from "./AtlasMapController";
 import { buildPlateGeometry, niceScaleDistance, type Plate } from "./plateGeometry";
 
 export type AtlasPlateProps = {
@@ -27,6 +28,12 @@ export type AtlasPlateProps = {
   focusSlug?: string | undefined;
   /** Called when the reader clicks through to a county. */
   onOpenCounty?: ((slug: string, name: string) => void) | undefined;
+  /** Active session trail, drawn only on the national plate. */
+  trail?: MapTrail | undefined;
+  /** Opens a trail stop through the shared controller. */
+  onOpenTrailStop?: ((index: number) => void) | undefined;
+  /** Confirms that the plate and every requested trail stop reached the DOM. */
+  onRendered?: ((result: { trailStopCount: number }) => void) | undefined;
   /** Coverage sentence from the tool; shown verbatim so copy stays honest. */
   coverage?: string | undefined;
 };
@@ -36,7 +43,7 @@ type Viewport = { x: number; y: number; width: number; height: number };
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 40;
 
-export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPlateProps) {
+export function AtlasPlate({ plate, focusSlug, onOpenCounty, trail, onOpenTrailStop, onRendered, coverage }: AtlasPlateProps) {
   const [size, setSize] = useState({ width: 640, height: 448 });
 
   // Rebuild when the container's proportions change so the plate always fills
@@ -225,6 +232,22 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
   }, [geometry.kmPerUnit, view.width, size.width]);
 
   const strokeScale = view.width / base.width;
+  const unitsPerPixel = view.width / Math.max(size.width, 1);
+  const trailStops = useMemo(
+    () => plate.plate === "nation" && trail ? projectTrailStops(trail, geometry.countyCenters) : [],
+    [geometry.countyCenters, plate.plate, trail],
+  );
+  const trailPath = trailStops.length > 1
+    ? trailStops.map((stop, index) => `${index === 0 ? "M" : "L"}${stop.x.toFixed(1)} ${stop.y.toFixed(1)}`).join("")
+    : undefined;
+
+  const activateTrailStop = useCallback((index: number) => {
+    onOpenTrailStop?.(index);
+  }, [onOpenTrailStop]);
+
+  useLayoutEffect(() => {
+    onRendered?.({ trailStopCount: trailStops.length });
+  }, [onRendered, trailStops.length]);
 
   return (
     <div className="atlas-plate">
@@ -291,6 +314,7 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
             <path key={`border-${shape.id ?? i}`} d={shape.d} />
           ))}
         </g>
+
       </svg>
 
       {/* Labels live in an HTML overlay rather than inside the SVG so their
@@ -315,6 +339,60 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
           />
         ))}
       </div>
+
+      {trailStops.length > 0 ? (
+        <svg
+          className="atlas-plate__trail-overlay"
+          viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
+          preserveAspectRatio="xMidYMid meet"
+          aria-label={`Research trail: ${trail?.title ?? "Untitled trail"}`}
+        >
+          {trailPath ? (
+            <path
+              className="atlas-plate__trail-route"
+              d={trailPath}
+              fill="none"
+              strokeWidth={2.5 * unitsPerPixel}
+            />
+          ) : null}
+          {trailStops.map((stop) => {
+            const active = stop.index === trail?.activeIndex;
+            const label = `Stop ${stop.index + 1}: ${stop.name}, ${stop.state.toUpperCase()}. ${stop.prompt}`;
+            const markerRadius = 11 * unitsPerPixel;
+            return (
+              <g
+                key={`${stop.countySlug}-${stop.index}`}
+                className={`atlas-plate__trail-marker${active ? " is-active" : ""}`}
+                transform={`translate(${stop.x} ${stop.y})`}
+                role={onOpenTrailStop ? "button" : undefined}
+                tabIndex={onOpenTrailStop ? 0 : undefined}
+                aria-label={label}
+                aria-current={active ? "step" : undefined}
+                onClick={() => activateTrailStop(stop.index)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  activateTrailStop(stop.index);
+                }}
+              >
+                <title>{label}</title>
+                <circle className="atlas-plate__trail-hit" r={22 * unitsPerPixel} />
+                {active ? <circle className="atlas-plate__trail-active-ring" r={16 * unitsPerPixel} /> : null}
+                <circle className="atlas-plate__trail-pin" r={markerRadius} />
+                <text
+                  className="atlas-plate__trail-number"
+                  y={0.5 * unitsPerPixel}
+                  fontSize={11 * unitsPerPixel}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {stop.index + 1}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      ) : null}
 
       <div className="atlas-plate__furniture">
         <div className="atlas-plate__scale" aria-label={`Scale bar: ${scaleBar.km} kilometres`}>
@@ -349,4 +427,44 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
       {coverage ? <p className="atlas-plate__coverage">{coverage}</p> : null}
     </div>
   );
+}
+
+type ProjectedTrailStop = {
+  index: number;
+  countySlug: string;
+  name: string;
+  state: string;
+  prompt: string;
+  x: number;
+  y: number;
+};
+
+function projectTrailStops(
+  trail: MapTrail,
+  countyCenters: Readonly<Record<string, { x: number; y: number }>>,
+): ProjectedTrailStop[] {
+  const occurrences = new Map<string, number>();
+  for (const stop of trail.stops) {
+    occurrences.set(stop.place.countySlug, (occurrences.get(stop.place.countySlug) ?? 0) + 1);
+  }
+
+  const seen = new Map<string, number>();
+  return trail.stops.flatMap((stop, index) => {
+    const center = countyCenters[stop.place.countySlug];
+    if (!center) return [];
+    const count = occurrences.get(stop.place.countySlug) ?? 1;
+    const occurrence = seen.get(stop.place.countySlug) ?? 0;
+    seen.set(stop.place.countySlug, occurrence + 1);
+    const angle = count > 1 ? -Math.PI / 2 + (occurrence * Math.PI * 2) / count : 0;
+    const offset = count > 1 ? 54 : 0;
+    return [{
+      index,
+      countySlug: stop.place.countySlug,
+      name: stop.place.name,
+      state: stop.place.state,
+      prompt: stop.prompt,
+      x: center.x + Math.cos(angle) * offset,
+      y: center.y + Math.sin(angle) * offset,
+    }];
+  });
 }

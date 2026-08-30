@@ -88,6 +88,8 @@ test("write descriptors enforce nested schemas and expose untrusted-content anno
   const schema = trail.inputSchema as { properties: { stops: { items: { additionalProperties: boolean } } } };
   assert.equal(schema.properties.stops.items.additionalProperties, false);
   assert.deepEqual(trail.annotations, { readOnlyHint: false, untrustedContentHint: true });
+  assert.match(trail.description, /numbered stops on the national map/);
+  assert.doesNotMatch(trail.description, /open its first stop/);
 });
 
 test("get_map_state stays below the tool output budget with maximum session text", async () => {

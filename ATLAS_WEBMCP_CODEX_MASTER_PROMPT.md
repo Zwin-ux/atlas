@@ -84,7 +84,7 @@ Implement exactly these five core tools first:
    - Writes session-only page state.
    - Accepts a title and 2–5 `{ place, prompt }` stops.
    - Resolves all stops first; mutation must be atomic.
-   - Displays an editable trail rail and opens the first stop.
+   - Displays an editable trail rail and numbered county route on the national map.
    - Set `untrustedContentHint: true`.
 
 Do not add more tools until all five pass automated and manual evals. Do not expose a deletion tool in the first release; the human can edit/remove notes and trail items through the UI.
@@ -234,4 +234,3 @@ Work in these slices and run relevant checks after each:
 - No deployment claim until the URL is tested in ChatGPT desktop and Chrome.
 
 Begin by reading the repository’s `main` branch, identifying the current route/render/state boundaries, and producing a short implementation map. Then implement the slices without asking for confirmation unless an action would change repository visibility, public deployment, licensing, secrets, billing, or destructive Git history.
-

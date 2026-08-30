@@ -12,7 +12,7 @@
  * the widget — no tool round-trip — so exploring the map is instant.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { AtlasPlate } from "./AtlasPlate";
 import { AtlasMapController, type PlateRef } from "./AtlasMapController";
@@ -122,12 +122,6 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
     };
   }, [current, map.revision, apiBase, controller]);
 
-  useLayoutEffect(() => {
-    if (load.status === "ready" && load.revision === map.revision) {
-      controller.acknowledgeVisible(map.revision);
-    }
-  }, [controller, load, map.revision]);
-
   const openCounty = useCallback((slug: string, name: string) => {
     controller.openCounty(slug, name).catch(() => undefined);
   }, [controller]);
@@ -139,6 +133,16 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
   const openTrailStop = useCallback((index: number) => {
     controller.openTrailStop(index).catch(() => undefined);
   }, [controller]);
+
+  const acknowledgePlate = useCallback(({ trailStopCount }: { trailStopCount: number }) => {
+    if (load.status !== "ready" || load.revision !== map.revision) return;
+    const expectedTrailStops = current.level === "nation" ? map.trail?.stops.length ?? 0 : 0;
+    if (trailStopCount !== expectedTrailStops) {
+      controller.rejectVisible(map.revision, new Error("Atlas could not place every research-trail stop on the national map."));
+      return;
+    }
+    controller.acknowledgeVisible(map.revision);
+  }, [controller, current.level, load, map.revision, map.trail?.stops.length]);
 
   const crumbs = useMemo(
     () => map.navigationStack.map((ref, depth) => ({
@@ -197,6 +201,9 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
             plate={load.plate}
             focusSlug={current.level === "county" ? current.countySlug : undefined}
             onOpenCounty={openCounty}
+            trail={current.level === "nation" ? map.trail : undefined}
+            onOpenTrailStop={openTrailStop}
+            onRendered={acknowledgePlate}
             coverage={map.navigationStack.length === 1 ? coverage : undefined}
           />
         ) : load.status === "error" ? (

@@ -13,57 +13,55 @@ Target runtime: **2:45**. Hard maximum: **2:55**. Record one continuous supporte
 
 ## Shot list and narration
 
-### 0:00-0:12, the shared surface
+### 0:00-0:12, the result first
 
-**Picture:** Full U.S. map, `ATLAS / United States`, place finder, no login screen.
+**Prompt:** “Create a civic research trail through Riverside County, California; Travis County, Texas; and Miami-Dade County, Florida, with one question at each stop.”
 
-**Narration:** “Atlas is a shared U.S. county canvas. I can explore it normally, and an agent can read and change this same live map through browser-native WebMCP tools.”
+**Picture:** The fitted U.S. map immediately gains three numbered markers, one connecting route, and the restrained editable trail rail.
 
-### 0:12-0:35, normal human exploration
+**Narration:** “Atlas is a shared U.S. county canvas. My agent just created this research route through the same live map I can use by hand.”
 
-**Action:** Pan or zoom once. Use the finder for `Riverside, CA`. Show the county plate and breadcrumb.
+### 0:12-0:40, human and agent share one state
 
-**Narration:** “The website works without an agent. I can pan, zoom, drill into counties, or find a place with the keyboard. Atlas uses its existing Census-backed county and place index.”
+**Action:** Click the Travis County marker, then ask: “What map am I looking at now?”
 
-### 0:35-0:58, ambiguity without guessing
+**Picture:** Travis County opens through the marker; `get_map_state` reads the same county and active stop.
 
-**Action:** Search `Springfield`. Pause on the candidate list, then press Escape or leave it open briefly.
+**Narration:** “A marker is not a decorative pin. It calls the same controller path as the rail and human finder. The agent reads my manual change without a second hidden map.”
 
-**Narration:** “Place names are messy. Atlas does not guess which Springfield I meant. It keeps the current map unchanged and returns labeled candidates.”
+### 0:40-1:10, ambiguity without guessing
 
-### 0:58-1:20, agent reads and opens the live map
+**Prompt:** “Search for Springfield, then open the Illinois candidate.”
 
-**Prompt:** “Read the current Atlas map state, then open Eastvale, California.”
+**Picture:** Show `search_places` returning labeled candidates before `open_place` receives the deliberate state-qualified choice.
 
-**Picture:** Show `get_map_state`, then `open_place`; activity line updates; Riverside County/Eastvale becomes visible.
+**Narration:** “Place names are messy. Atlas does not guess which Springfield I meant. Search is read-only; the map changes only after a specific candidate is chosen.”
 
-**Narration:** “The agent first reads a small projection of the live state. `open_place` then uses the same controller as the human finder and waits until the matching map revision is visible.”
+### 1:10-1:35, visible session note
 
-### 1:20-1:43, visible session note
-
-**Prompt:** “Add a map note at Eastvale: Compare flood-risk sources before quoting a number.”
+**Prompt:** “Add a map note at Springfield, Illinois: Verify the local source before quoting a number.”
 
 **Picture:** Show `add_map_note`, visible place transition, activity completion, and editable note.
 
-**Narration:** “Writes do not disappear into hidden model state. This note is visible, editable, and session-only before the tool returns success.”
+**Narration:** “Writes do not disappear into model state. This note is visible, editable, and session-only before the tool returns success.”
 
-### 1:43-2:14, atomic research trail
+### 1:35-2:00, manual trail edit
 
-**Prompt:** “Create a trail called River corridor with Eastvale, California: check flood sources; and Norco, California: compare river access.”
+**Action:** Return to the U.S. breadcrumb. Edit one prompt, remove the first stop, and click the newly renumbered active marker.
 
-**Picture:** Show `create_map_trail`, two visible stops, editable title/prompts, then click the second stop manually.
+**Picture:** The route and rail update together; the selected marker opens its county.
 
-**Narration:** “A trail resolves every stop first and mutates once. If one stop is unknown or ambiguous, Atlas creates nothing. When it succeeds, the person can edit it and keep exploring by hand.”
+**Narration:** “The person stays in control. Trail edits and removals immediately update the route, stop order, active state, and the next map action.”
 
-### 2:14-2:32, exact-five and fallback
+### 2:00-2:25, exact-five, atomic failure, fallback
 
-**Picture:** Briefly show the five tool names, then a pre-recorded normal-browser fallback frame if time allows.
+**Picture:** Show the exact five tool names, one unresolved trail attempt leaving the prior trail intact, and a short normal-browser fallback frame.
 
-**Narration:** “The cut is intentionally five tools. Registration is top-level and all-or-none. In a browser without WebMCP, the same no-login map stays fully usable and reports that site tools are unavailable.”
+**Narration:** “The cut is intentionally five tools. Trail creation resolves every stop before one mutation. In a browser without WebMCP, the same no-login map stays usable and says site tools are unavailable.”
 
-### 2:32-2:45, challenge delta
+### 2:25-2:45, challenge delta
 
-**Picture:** Return to the map with the trail and note visible.
+**Picture:** Return to the national trail overview. Show the verified public URL, source URL, and submitted commit only after those owner fields are real.
 
 **Narration:** “Atlas existed before the challenge. The challenge work is this browser-native shared-control layer: one map, one live controller, and visible bounded research actions for people and agents.”
 
@@ -74,6 +72,6 @@ Target runtime: **2:45**. Hard maximum: **2:55**. Record one continuous supporte
 - Tool picker shows exactly five names.
 - Every shown agent effect completes visibly.
 - Ambiguous search leaves the prior map unchanged.
-- Trail has two resolved stops and is editable.
+- Trail has three resolved stops, a visible national route, keyboard markers, and synchronized edits.
 - No login, public posting, or unrelated historical product story appears.
 - YouTube visibility and challenge form fields match current official rules.
