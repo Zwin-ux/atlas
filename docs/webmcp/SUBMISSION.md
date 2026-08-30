@@ -10,7 +10,7 @@ Current challenge deadline: September 3, 2026 at 1:00 PM Pacific. Re-check the o
 - Tagline: **Explore a county with a person and an agent on the same live map.**
 - Live app URL: `[OWNER REQUIRED: approved public deployment]`
 - Public source URL: `[OWNER REQUIRED: sanitized public repository]`
-- Open-source license: `[OWNER REQUIRED: owner-selected license]`
+- Open-source license: **Apache-2.0**
 - Demo video: `[OWNER REQUIRED: public YouTube URL, under three minutes, with audio]`
 
 ## Short description
@@ -84,8 +84,7 @@ Before submission:
 
 - verify all five tools in the real ChatGPT built-in browser;
 - record the demo from that real supported environment;
-- create a sanitized public source repository;
-- choose and add an open-source license;
+- approve and publish the verified sanitized source repository;
 - approve and publish the deployment;
 - run the public URL verifier and clean-source audit;
 - submit the final owner-approved fields on Devpost.
@@ -108,6 +107,6 @@ No account system, public posting, or sixth tool is part of this candidate.
 
 ## Claim discipline
 
-- Do not say the public deployment, ChatGPT acceptance, source release, license, video, or Devpost submission is complete until the corresponding URL or owner action exists.
+- Do not say the public deployment, ChatGPT acceptance, source publication, video, or Devpost submission is complete until the corresponding URL or owner action exists.
 - Do not claim generated streets or buildings as verified geography.
 - Do not present unrelated historical Atlas work as part of this WebMCP entry.

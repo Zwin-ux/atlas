@@ -1,0 +1,66 @@
+import { readFile } from "node:fs/promises";
+
+const expected = ["get_map_state", "search_places", "open_place", "add_map_note", "create_map_trail"];
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource] = await Promise.all([
+  readFile("web/src/atlas/webmcpTools.ts", "utf8"),
+  readFile("web/src/atlas/webmcpRegistry.ts", "utf8"),
+  readFile("web/src/atlas/webmcpEvalSchema.ts", "utf8"),
+  readFile("web/src/main.tsx", "utf8"),
+  readFile("web/src/atlas/AtlasPlaceFinder.tsx", "utf8"),
+  readFile("web/src/atlas/AtlasApp.tsx", "utf8"),
+  readFile("web/src/atlas/AtlasPlate.tsx", "utf8"),
+  readFile("web/src/atlas/plateGeometry.ts", "utf8"),
+  readFile("server/src/index.ts", "utf8"),
+  readFile("package.json", "utf8"),
+  readFile("evals/atlas-webmcp.evals.json", "utf8"),
+  readFile("evals/atlas-webmcp.smoke.json", "utf8"),
+  readFile("scripts/run-webmcp-evals.mjs", "utf8"),
+]);
+
+const packageJson = JSON.parse(packageSource);
+const modelEvals = JSON.parse(modelEvalsSource);
+const smokeEvals = JSON.parse(smokeEvalsSource);
+const registeredNames = [...toolsSource.matchAll(/\n\s+name: "([a-z_]+)",/g)].map((match) => match[1]);
+
+function functionNames(value, names = []) {
+  if (Array.isArray(value)) {
+    for (const item of value) functionNames(item, names);
+  } else if (value && typeof value === "object") {
+    if (typeof value.functionName === "string") names.push(value.functionName);
+    for (const child of Object.values(value)) functionNames(child, names);
+  }
+  return names;
+}
+
+assert(JSON.stringify(registeredNames) === JSON.stringify(expected), `Expected exactly ${expected.join(", ")}; found ${registeredNames.join(", ")}.`);
+assert(!/select_county|scout|campaign|hosted_clawd/i.test(registeredNames.join(" ")), "A retired tool leaked into the public cut.");
+assert((toolsSource.match(/additionalProperties: false/g) ?? []).length >= 6, "Tool schemas must reject extra root and nested properties.");
+assert((toolsSource.match(/context\?\.signal/g) ?? []).length === 4, "Async tools must accept Chrome's optional invocation context.");
+assert(registrySource.includes("Promise.all(") && registrySource.includes("lifecycle.abort()"), "Registration must be all-or-none with rollback.");
+assert(evalSchemaSource.includes("createAtlasWebMcpTools(controller)"), "Eval schemas must come from runtime descriptors.");
+assert(mainSource.includes("<ChallengeAtlas />") && mainSource.includes("mountAtlasWebMcp(controller)"), "The top-level page must mount the WebMCP registry.");
+assert(!mainSource.includes("LegacyAtlasWidget") && !mainSource.includes("useToolPlate"), "The standalone challenge entry must not include the historical widget writer.");
+assert(finderSource.includes("controller.openPlace(") && finderSource.includes("controller.openCandidate("), "Human place actions must use the shared controller.");
+assert(appSource.includes("onOpenTrailStop={openTrailStop}"), "Trail markers and the rail must share the controller path.");
+assert(plateSource.includes("geometry.countyCenters") && geometrySource.includes("countyCenters"), "The national trail overlay requires projected county centers.");
+assert(!toolsSource.includes("countyCenters"), "Raw/internal trail geometry must not enter tool output.");
+assert(serverSource.includes('"origin-agent-cluster": "?1"') && serverSource.includes('"permissions-policy": "tools=(self)"'), "Judge routes require WebMCP-compatible response headers.");
+assert(!/@atlas\//.test(serverSource), "The standalone server must not depend on the historical workspace packages.");
+assert(packageJson.devDependencies?.["webmcp-evals"] === "0.0.4", "webmcp-evals must stay pinned to 0.0.4.");
+assert(Object.keys(packageJson.dependencies ?? {}).sort().join(",") === "react,react-dom", "Runtime dependencies must stay at the two-package public cut.");
+assert(["eval:webmcp:static", "eval:webmcp:browser", "eval:webmcp:smoke"].every((script) => packageJson.scripts?.[script]), "All three eval commands are required.");
+assert(evalRunnerSource.includes("Math.max(3, requestedRuns)") && evalRunnerSource.includes("Math.max(0.90, requestedThreshold)"), "Model thresholds must stay at three runs and 90% minimum.");
+
+for (const suite of [modelEvals, smokeEvals]) {
+  const names = functionNames(suite);
+  assert(names.every((name) => expected.includes(name)), "An eval references a tool outside the exact-five cut.");
+  assert(expected.every((name) => names.includes(name)), "An eval suite does not cover all five tools.");
+}
+
+console.log(JSON.stringify({ ok: true, tools: expected, entry: "standalone top-level", dependencies: ["react", "react-dom"] }, null, 2));
+

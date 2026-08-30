@@ -27,10 +27,10 @@ This section is an implementation ledger, not a roadmap claim. An item moves to 
 | Official WebMCP eval fixtures and Chrome smoke acceptance | DETERMINISTIC VERIFIED / MODEL GATED | `webmcp-evals@0.0.4`; 9/9 official smoke steps and 13 tool executions with all Atlas assertions passing on Chrome 152; model runs require a working model backend |
 | Judge-path accessibility and desktop/mobile proof | VERIFIED | Shared keyboard/touch finder, design review, accessibility tree, and 1280x720/390x844 proof |
 | Challenge-first README, submission copy, and video script | VERIFIED | Root README plus `docs/webmcp/SUBMISSION.md`, `VIDEO_SCRIPT.md`, and automated retired-scope guard |
-| Clean-clone and public-release safety audit | AUDITED / OWNER-GATED | Existing repository/history is not publication-safe; `docs/webmcp/RELEASE_PACKET.md` defines the new sanitized-repository path |
+| Clean-clone and public-release safety audit | LOCALLY VERIFIED / OWNER-GATED | Sanitized candidate `25dd4973679342461b2ee80273e1fe9b60d01059`: frozen install, typecheck, build, 30 tests, Chrome 9/9 + 13 deeper executions, release audit, and exact 3,329-file generator match |
 
 ## Submission boundary
 
 The challenge experience does not claim that generated roads or buildings are verified geography. It does not require login and does not expose persistence, public posting, campaigns, Scout, Hosted Clawd, billing, pricing, checkout, or subscriptions. Notes and research trails are session-only.
 
-Repository visibility, open-source license selection, public deployment, and Devpost submission remain explicit owner decisions.
+The owner-selected Apache-2.0 license is present in the sanitized challenge edition. Repository visibility, public deployment, and Devpost submission remain explicit owner decisions.

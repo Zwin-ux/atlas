@@ -2,145 +2,137 @@
 
 ## Current verdict
 
-The local candidate is green. The existing repository and its history are **not safe to publish**. Public source, license, deployment, built-in-browser acceptance, video upload, and Devpost submission remain owner gates.
+The standalone challenge repository is locally reproducible and green. It remains private and local. The historical Atlas repository and its Git history are still **not safe to publish**.
 
-Do not change the current repository from private to public.
+Do not change the historical repository's visibility. Do not publish the sanitized repository, create a Railway service, configure secrets, or submit Devpost without the matching owner gate.
 
-## Local candidate evidence
+## Sanitized candidate
 
-- Branch: `webmcp-challenge`
-- Challenge baseline: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Latest code/design commit before this packet: `b90182b64fa27b78a8d07738360c1cb842b833b4`
-- Required local gates: `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm verify:webmcp`, `pnpm eval:webmcp:smoke`
-- Browser proof: 1280x720 and 390x844 no-login route, ambiguity recovery, fallback, accessibility tree, zero mobile overflow, and 44px visible controls
-- Design review: two medium findings fixed and verified; map remains the single visual anchor
+- Local repository: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release`
+- Branch: `main`
+- Candidate SHA: `25dd4973679342461b2ee80273e1fe9b60d01059`
+- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-Final`
+- Challenge baseline disclosed in the public repo: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
+- Owner-selected license: Apache-2.0
+- Public tools: exactly `get_map_state`, `search_places`, `open_place`, `add_map_note`, and `create_map_trail`
 
-The final documentation commit and final clean verification SHA must be recorded in `WEBMCP_STATE.md` before any owner action.
+The repository contains one challenge-only React entry, one small no-login Node server, the exact-five controller/tool/eval path, focused tests, public submission documents, a Railway config, selected map proof, 3,222 runtime county packs, and 52 state plates. It has no dependency on the historical `@atlas/*` workspaces.
 
-## Publication-safety audit
+## Final local proof
 
-Current tracked inventory:
+The candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `25dd4973679342461b2ee80273e1fe9b60d01059`:
 
-- 37,259 tracked files
-- 440.85 MiB packed Git objects
-- 33.50 MiB loose objects in the local shared repository
-- 410 Markdown files visible to a broad repository audit
-- no root `LICENSE`
+| Command | Result |
+|---|---|
+| `pnpm install --frozen-lockfile` | PASS; lockfile policy green, 135 packages installed |
+| `pnpm typecheck` | PASS; standalone web and server contracts |
+| `pnpm build` | PASS; challenge client and server built |
+| `pnpm verify:webmcp` | PASS; 30/30 focused tests plus runtime and judge-copy guards |
+| `pnpm eval:webmcp:smoke` | PASS; Chrome 152, 9/9 official steps, 13 deeper tool executions |
+| `pnpm audit:release` | PASS; clean Git state, no audit failures |
 
-The tree contains historical product and submission material outside the WebMCP cut, including `chatgpt-app-submission.json`, session handoffs, council/conversation artifacts, Codex/Fable result packets, old billing/Commons/Scout documentation, and files containing local Windows paths or session metadata.
+The release assembler was also run into a separate directory and compared to the committed sanitized repository: 3,329 expected files, 3,329 generated files, zero missing, zero extra, and zero SHA-256 mismatches.
 
-A narrow positive scan found no tracked filename matching common credential extensions and no obvious private-key, `sk-`, `ghp_`, or `AKIA` pattern. That is **not** a secret-safety verdict. The repository has not passed entropy scanning, full history rewriting, provenance review, or a public-fork inspection.
+## Scope, secret, size, and provenance audit
 
-Asset and data provenance is also incomplete. The map UI credits U.S. Census TIGERweb, but the broad repository contains many historical visual/reference assets that have not been cleared for a new open-source release.
+The sanitized repository audit reports:
 
-## Required public-source boundary
+- 3,329 tracked files;
+- 88,096,272 audited source/data bytes in the final clean clone;
+- 3,222 county geo packs and 52 state plates;
+- no tracked build output, eval output, `node_modules`, `.env`, historical apps, or historical workspace packages;
+- no file larger than 5 MiB;
+- no common private-key, AWS, GitHub, OpenAI, Slack, or local-user-path pattern in audited text;
+- no retired product term in the standalone `server/` or `web/` runtime;
+- only `react` and `react-dom` as runtime dependencies;
+- a full Apache-2.0 license, Census attribution, and frozen dependency-license inventory.
 
-Create a new empty challenge repository from a reviewed allowlist. Do not fork or expose this repository and do not copy its `.git` directory.
+`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the new history contains only five local commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
 
-The sanitized repository should contain only:
+The selected README image was visually inspected: it contains only the Atlas national trail overview and no terminal, local path, account, or credential surface.
 
-- the no-login challenge server and map client;
-- the minimal `@atlas/core/atlas` and geography code required by that client;
-- required Census-backed county/place data with a provenance notice;
-- the exact-five registry, tools, controller, and focused tests;
-- `pnpm verify:webmcp`, typecheck, build, and public smoke scripts;
-- this challenge-first README and `docs/webmcp/` packet;
-- selected current browser proof with no local paths or private metadata;
-- an owner-selected open-source license.
+## Historical repository boundary
 
-Exclude old Apps SDK/plugin surfaces, Scout, campaigns, Hosted Clawd, Commons, billing, auth, persistence, old submissions, prompt packs, agent transcripts, session handoffs, private review packets, unrelated renderer experiments, deployment credentials, and historical Git objects.
+The historical repository remains excluded because it contains tens of thousands of unrelated files, old product/submission material, local/session artifacts, and uncleared visual references. The sanitized repository does not copy its `.git` directory or broad history. It imports only a reviewed allowlist.
+
+Two internal geo-pack build reports (`_manifest.json` and `_failures.json`) were deliberately excluded because the runtime never reads them. They remain recoverable from the private source checkout.
 
 ## Owner gates
 
-### Gate 1, license
+### Gate 1 — create the private remote and push the candidate
 
-Owner chooses the license. No agent should infer or add one.
+Proposed action: create a new private repository named `Zwin-ux/atlas-webmcp-challenge` and push local candidate `25dd4973679342461b2ee80273e1fe9b60d01059` as its initial `main` history.
 
-Required evidence:
+Evidence: all clean-clone gates above, exact generator match, Apache-2.0 present, no historical Git objects.
 
-- license name;
-- exact `LICENSE` text in the sanitized repository;
-- dependency and data compatibility check;
-- README license statement.
+Risk: creates an external copy and associates the challenge source with the owner's GitHub account. It remains non-public.
 
-### Gate 2, sanitized public source
+Rollback: delete the still-private repository or remove its contents before visibility changes; the local candidate remains intact.
 
-Proposed action: create a new private empty repository, import the audited challenge allowlist as one clean history, run scans, then approve visibility separately.
+### Gate 2 — public visibility
 
-Required evidence before visibility changes:
+Required before changing visibility:
 
-```powershell
-pnpm install --frozen-lockfile
-pnpm typecheck
-pnpm build
-pnpm verify:webmcp
-pnpm eval:webmcp:smoke
-pnpm audit:webmcp:release
-git status --short --branch
-```
+- owner reviews the private GitHub tree and About panel;
+- GitHub or an owner-approved scanner reports no secrets across the complete five-commit history;
+- license is detected as Apache-2.0;
+- README image and attribution render correctly;
+- GitHub Actions or a fresh remote clone repeats install, typecheck, build, verify, and smoke as applicable;
+- candidate SHA still matches `25dd4973679342461b2ee80273e1fe9b60d01059` or a new SHA is fully re-verified.
 
-Also require:
+Rollback: return the repository to private immediately. Do not attempt to repair an exposure by rewriting the historical Atlas repository.
 
-- tracked-file inventory review;
-- secret and entropy scan across the complete new history;
-- no local paths, emails, session IDs, transcripts, or retired product copy;
-- dependency/data/asset provenance notice;
-- owner-selected license present;
-- clean clone repeats all four gates.
+### Gate 3 — Railway deployment
 
-Rollback: keep the new repository private or delete the unpublished new repository. Never “fix” exposure by rewriting the current Atlas history after publication.
-
-### Gate 3, deployment
-
-Proposed action: publish the candidate SHA to an owner-approved HTTPS host with no login and no secrets in client output.
+Proposed action: create a new Railway service from the sanitized repository and publish the candidate with the included `railway.toml` contract.
 
 Required evidence:
 
-- exact candidate SHA and deployment target;
-- `/` and `/explore` return 200;
+- exact candidate SHA and service/project identifier;
+- `/ready`, `/`, and `/explore` return healthy responses over HTTPS;
 - `Origin-Agent-Cluster: ?1` and `Permissions-Policy: tools=(self)` are present;
-- same-origin place APIs work;
+- same-origin place and plate APIs work;
 - normal-browser fallback works;
-- public `pnpm verify:webmcp` equivalent passes;
-- rollback command or prior deployment identifier is recorded.
+- the deterministic smoke suite passes against the public URL;
+- rollback is recorded as the prior deployment or service removal.
 
-### Gate 4, real WebMCP acceptance
+Railway's current config-as-code documentation says `railway.toml` remains supported for legacy services until December 1, 2026, although Railway now prefers its Infrastructure as Code path. That does not block the September 3 challenge deployment, but the owner should not treat this file as a long-term platform contract.
 
-Use a supported Chrome/WebMCP or ChatGPT built-in-browser environment. Do not inject a fake API.
+### Gate 4 — real WebMCP acceptance
 
-The local production build now has Chrome `152.0.7977.64` protocol proof: exact-five discovery, 9/9 official smoke steps, 13 deeper tool executions, visible trail completion, ambiguity/atomicity safety, and zero console errors. Repeat the same command against the owner-approved deployed URL; ChatGPT built-in-browser acceptance remains separate.
-
-Required evidence:
-
-- exactly five discovered tools;
-- one successful call per tool;
-- visible completion before all three write successes;
-- Springfield ambiguity without mutation;
-- one bad trail stop leaves the prior trail/map state intact;
-- top-level registration only;
-- no raw geometry, secrets, or oversized outputs.
-
-### Gate 5, video and Devpost
+Use supported Chrome/WebMCP and ChatGPT built-in-browser environments without injecting a fake API.
 
 Required evidence:
 
-- public deployment URL;
-- sanitized public source URL;
-- license;
-- public YouTube video under three minutes with audio;
+- exactly five tools discovered;
+- one real call per tool;
+- all write tools visibly complete before success;
+- Springfield ambiguity leaves state unchanged;
+- one unresolved trail stop preserves the previous map and trail;
+- refresh and route transitions do not duplicate tools;
+- no raw geometry, secret, or oversized result enters tool output.
+
+Local Chrome 152 already proves this behavior. Repeat it against the deployed URL; ChatGPT built-in-browser acceptance remains separate.
+
+### Gate 5 — video and Devpost
+
+Required evidence:
+
+- approved public deployment URL;
+- approved public source URL;
+- public YouTube video under three minutes with audible narration;
 - final copy reviewed against current official rules;
 - challenge-period delta accurately disclosed;
 - owner approval to submit.
 
-## Exact owner decision sequence
+## Exact owner sequence
 
-1. Choose an open-source license.
-2. Approve creation of a new sanitized challenge repository.
-3. Review the new repository’s clean-clone, history, secret, and provenance audit.
-4. Approve public visibility.
-5. Approve and publish the deployment.
-6. Run real built-in-browser acceptance.
-7. Record and upload the demo.
-8. Review final Devpost fields and approve submission.
+1. Approve creation of the new private GitHub repository and initial push.
+2. Review its secret scan, license detection, tree, and clean remote clone.
+3. Approve public visibility.
+4. Approve the new Railway service and deployment.
+5. Run public Chrome and ChatGPT built-in-browser acceptance.
+6. Record and upload the demo.
+7. Review the final Devpost fields and approve submission.
 
-Each decision should name the candidate SHA, exact action, evidence, risk, and rollback. None is implied by local green tests.
+Each gate names an exact action, evidence, risk, and rollback. None is implied by local green tests.

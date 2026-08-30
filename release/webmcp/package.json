@@ -1,0 +1,39 @@
+{
+  "name": "atlas-webmcp-challenge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "build:server": "tsc -p server/tsconfig.json",
+    "build": "pnpm build:web && pnpm build:server",
+    "typecheck": "tsc -p web/tsconfig.json --noEmit && tsc -p server/tsconfig.json --noEmit",
+    "dev": "pnpm build && node server/dist/index.js",
+    "start": "node server/dist/index.js",
+    "verify:webmcp": "tsx --test server/test/atlas-place-search.test.ts web/test/atlas-map-controller.test.ts web/test/plate-geometry.test.ts web/test/webmcp-tools.test.ts web/test/webmcp-registry.test.ts web/test/webmcp-eval-schema.test.ts && node scripts/verify-webmcp.mjs && node scripts/verify-webmcp-docs.mjs",
+    "eval:webmcp:prepare": "tsx scripts/write-webmcp-eval-tools.ts",
+    "eval:webmcp:static": "node scripts/run-webmcp-evals.mjs local",
+    "eval:webmcp:browser": "node scripts/run-webmcp-evals.mjs browser",
+    "eval:webmcp:smoke": "node scripts/run-webmcp-evals.mjs smoke",
+    "audit:release": "node scripts/audit-release.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "esbuild": "^0.25.12",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2",
+    "webmcp-evals": "0.0.4",
+    "webmcp-types": "0.1.5"
+  }
+}
+

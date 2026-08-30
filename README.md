@@ -82,7 +82,7 @@ See [CHALLENGE_DELTA.md](CHALLENGE_DELTA.md) for the capability ledger and [WEBM
 
 The challenge experience requires no account and keeps its research artifacts session-only. It makes no generated-street or building claims. Tool output excludes raw geometry, large scene objects, credentials, and third-party payloads.
 
-Repository visibility, license selection, public deployment, and Devpost submission require explicit owner approval. The current repository history is not safe to publish as-is; use the audited sanitized-release path in [docs/webmcp/RELEASE_PACKET.md](docs/webmcp/RELEASE_PACKET.md).
+The owner-selected Apache-2.0 license is applied only to the sanitized challenge edition. Repository visibility, public deployment, and Devpost submission still require explicit owner approval. The current historical repository is not safe to publish as-is; use the audited sanitized-release path in [docs/webmcp/RELEASE_PACKET.md](docs/webmcp/RELEASE_PACKET.md).
 
 ## Submission materials
 

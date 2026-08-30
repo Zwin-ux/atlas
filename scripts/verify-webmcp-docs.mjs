@@ -38,7 +38,8 @@ for (const [path, content] of story) {
   }
 }
 
-assert((submission.match(/\[OWNER REQUIRED:/g) ?? []).length === 4, "Submission copy must keep four explicit owner placeholders.");
+assert((submission.match(/\[OWNER REQUIRED:/g) ?? []).length === 3, "Submission copy must keep three explicit external owner placeholders.");
+assert(submission.includes("Apache-2.0"), "Submission copy must identify the owner-selected Apache-2.0 license.");
 assert(video.includes("Target runtime: **2:45**") && video.includes("Hard maximum: **2:55**"), "Video script must keep its under-three-minute budget.");
 assert(readme.includes("docs/webmcp/SUBMISSION.md") && readme.includes("docs/webmcp/VIDEO_SCRIPT.md") && readme.includes("docs/webmcp/RELEASE_PACKET.md"), "README must link the release documents.");
 assert(release.includes("not safe to publish") && release.includes("## Owner gates"), "Release packet must preserve the public-safety stop gate.");
@@ -47,7 +48,8 @@ console.log(JSON.stringify({
   ok: true,
   judgeStoryFiles,
   tools: toolNames,
-  ownerPlaceholders: 4,
+  ownerPlaceholders: 3,
+  license: "Apache-2.0",
   videoTarget: "2:45",
   retiredScope: "absent",
 }, null, 2));
