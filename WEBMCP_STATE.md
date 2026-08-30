@@ -5,13 +5,13 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `c574bee471f6edfab20ea72a76313a193e856790`
+- Last green content commit: `74a1672be2beed673b3141695484019a2bce2057`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
 - Slice: `14 — Sanitized local release repository and clean-clone proof`
-- Status: `IN_PROGRESS`
+- Status: `GREEN — OWNER GATE`
 - Player-visible promise: `The challenge candidate can be reproduced from a compact Atlas-only repository with no retired product surface, historical artifacts, or hidden dependence on the private monorepo.`
 - Smallest complete boundary: `Assemble a new local repository from an explicit allowlist, retain only the judge runtime/data/tests/docs/deployment contract, apply the owner-locked Apache-2.0 license, audit scope/secrets/size, and prove the documented gates from a clean clone.`
 - Likely files: `scripts/audit-webmcp-release.mjs`, `docs/webmcp/RELEASE_PACKET.md`, this ledger, and a new local sibling release repository outside the historical Git tree.`
@@ -96,6 +96,10 @@
 - `web/test/webmcp-eval-schema.test.ts`, `web/test/webmcp-tools.test.ts`, and `scripts/verify-webmcp.mjs` — prevent descriptor drift, callback regression, tool-cut widening, and release-threshold weakening.
 - `docs/webmcp/EVALS.md`, README/submission/release copy, and `CHALLENGE_DELTA.md` — document deterministic proof, credential/model requirements, thresholds, and the unclaimed model-score boundary.
 - `artifacts/webmcp-proof/webmcp-browser-smoke.json` — bounded Chrome 152 exact-five tool transcript with successful and mutation-safe journeys.
+- `scripts/assemble-webmcp-release.mjs` and `release/webmcp/` — assemble the challenge-only repository from an explicit allowlist with a standalone server/client, exact-five tools, tests, data, Apache-2.0 license, attribution, audit, and deployment contract.
+- `docs/webmcp/RELEASE_PACKET.md`, `CHALLENGE_DELTA.md`, README, and submission docs — record the exact sanitized SHA, local proof, publication boundaries, and owner-gated sequence.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` — local sanitized Git repository; exact candidate `7f52ffb86e3e0362e2ee9d9c9a7e815e4a7162e7`.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-7f52ffb` — clean no-local clone used for final reproduction proof.
 
 ### Commands and results
 
@@ -164,6 +168,15 @@
 | `pnpm eval:webmcp:smoke` | PASS | Official Chrome WebMCP smoke passed 9/9 steps across six fresh-page cases; Atlas assertions passed 13 tool executions, visible overlay, keyboard shared state, ambiguity/atomicity, refresh/route registration, and zero console errors. |
 | `ATLAS_WEBMCP_EVAL_MODEL=ollama:gemma4:e2b pnpm eval:webmcp:static` | BLOCKED, not passed | Existing GPU service failed CUDA PTX compilation; an isolated CPU-only service reached the model through `/v1` but failed startup on a 369,827,840-byte allocation. No cloud provider key is present and no model score is claimed. |
 | Eval-slice `/review` | PASS | Chrome callback compatibility and threshold-floor findings plus visible-revision and Node-floor gaps were auto-fixed; no unresolved findings. |
+| Release assembler exact-match check | PASS | 3,329 expected files, 3,329 generated files, zero missing, zero extra, and zero SHA-256 mismatches. |
+| Sanitized `pnpm install --frozen-lockfile` | PASS | Exact candidate `7f52ffb`; locked standalone dependency graph installed without mutation. |
+| Sanitized `pnpm typecheck` | PASS | Standalone React and Node server TypeScript contracts passed. |
+| Sanitized `pnpm build` | PASS | Standalone challenge client and server built from the clean clone. |
+| Sanitized `pnpm verify:webmcp` | PASS | 30/30 focused tests plus exact-five runtime and challenge-document guards. |
+| Sanitized `pnpm eval:webmcp:smoke` | PASS | Chrome `152.0.7977.64`; 9/9 official smoke steps and 13 deeper protocol executions. |
+| Sanitized `pnpm audit:release` | PASS | 3,329 files, 88,096,235 bytes, 3,222 county packs, 52 state plates, six commits, clean Git state, zero audit failures. |
+| Sanitized `git diff --check` and SHA check | PASS | No whitespace errors; exact candidate `7f52ffb86e3e0362e2ee9d9c9a7e815e4a7162e7`. |
+| Sanitized-release `/review` | PASS | Seven issues were auto-fixed: tracked forbidden-path coverage, internal build-report leakage, public evidence links, target-boundary safety, docs guards, deterministic import rewriting, and formatting-gate enforcement. No unresolved findings. |
 
 ### Browser proof
 
@@ -190,6 +203,7 @@
 - Springfield ambiguity and an unresolved trail stop preserved revision, visible revision, selected place, note summary, current map, and trail.
 - Refresh, `/`, and `/explore` each exposed exactly five tools; the WebMCP journey logged zero console/page errors.
 - Normal-browser fallback produced no application error. Chrome logged only the expected warning that the experimental `tools` feature was not enabled in this browser.
+- The exact sanitized candidate `7f52ffb` repeated the Chrome 152 proof from a fresh clone: exactly five top-level tools, 9/9 official smoke steps, 13 deeper executions, visible national trail completion, and a clean browser report.
 
 ### Review
 
@@ -199,19 +213,21 @@
 - Design findings: `0` remaining after raising the desktop finder to 44px and adding the restrained `ATLAS / location` masthead.
 - Trail-overview findings: `0` remaining after fixing the overlay stacking order, stale first-stop copy, and active-stop renumber test coverage.
 - Eval-slice findings: `0` remaining after fixing Chrome's missing execution-context invocation, clamping the minimum model runs/threshold, comparing visible revisions, and raising the documented Node floor.
-- Disposition: `CLEAN` for local code and Chrome 152 WebMCP execution. Deployed-URL repetition, model score, and ChatGPT discovery remain external acceptance gates.
+- Sanitized-release findings: `0` remaining after fixing tracked-path scanning, internal report exclusion, public evidence links, target-boundary safety, docs guards, deterministic generation, and whitespace enforcement.
+- Disposition: `CLEAN` for local code, sanitized clean-clone reproduction, and Chrome 152 WebMCP execution. Repository publication, deployed-URL repetition, model score, and ChatGPT discovery remain external acceptance gates.
 
 ## Risks and Blockers
 
-- Public visibility, license selection, deployment, and Devpost submission remain owner gates.
+- Private remote creation/push, public visibility, deployment, and Devpost submission remain owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 WebMCP acceptance is now proven locally without API injection; ChatGPT built-in-browser acceptance and deployed-URL repetition remain external gates.
 - The three-run model-evaluation threshold is not met or claimed: no cloud provider credential is available, the installed Ollama GPU path crashes during PTX compilation, and the isolated CPU path cannot allocate the model buffer.
-- The existing repository and history are not publication-safe: old transcripts, challenge-scope leakage, missing license/provenance, and a roughly 414 MB tracked tree require a sanitized release boundary.
+- The historical repository and history remain unfit for publication. The sanitized six-commit repository is locally green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
+- Three disposable assembler-check directories remain under `C:\Users\mzwin\AppData\Local\Temp` because recursive cleanup was blocked twice by the command safety policy. They are outside both Git repositories and do not affect the candidate.
 
 ## Exact Next Action
 
-Commit the deterministic eval/browser slice, then assemble the audited sanitized challenge repository locally, add the owner-locked Apache-2.0 license, and run its clean-clone gates without publishing or deploying it.
+Owner decision: approve creating a new private GitHub repository named `Zwin-ux/atlas-webmcp-challenge` and pushing sanitized candidate `7f52ffb86e3e0362e2ee9d9c9a7e815e4a7162e7` as its initial `main` history. Do not publish it or create a Railway service in this gate.
 
 ## Slice Queue
 
@@ -228,5 +244,6 @@ Commit the deterministic eval/browser slice, then assemble the audited sanitized
 11. National research-trail overview — GREEN (`f9a2614c`)
 12. WebMCP evaluation and deterministic browser smoke — DETERMINISTIC GREEN / MODEL ENVIRONMENT BLOCKED (`c574bee4`)
 13. Real Chrome and normal-browser acceptance — LOCALLY GREEN; deployed URL and ChatGPT built-in browser remain external
-14. Sanitized release repository and clean-clone proof — IN PROGRESS
+14. Sanitized release repository and clean-clone proof — GREEN (`74a1672b`; sanitized candidate `7f52ffb`)
+15. Private remote creation and initial push — OWNER GATE
 
