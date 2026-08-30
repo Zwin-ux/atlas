@@ -5,13 +5,13 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `59ac56d14bbda6a42b5d7923a67587f828ce95fc`
+- Last green content commit: `1e5a2c1c98eb636ef6037edd6d575c6fa697340e`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
 - Slice: `19 — isolated Railway deployment and bounded Ralph release loop`
-- Status: `IN_PROGRESS — private candidate promoted; correcting one pre-build Railway TOML failure, adding regression coverage, then redeploying and proving the public ChatGPT/WebMCP route`
+- Status: `GREEN — exact sanitized candidate 986cf864 is privately mirrored and live on an isolated Railway service; public Chrome/WebMCP, clean-clone, mobile, fallback, and Product Design proof pass. Real ChatGPT transcript and Grok model runs remain credential-gated.`
 - Player-visible promise: `A judge can open the exact deployed Atlas URL in ChatGPT's built-in browser, ask naturally for state, navigation, a place note, and a multi-county trail, and review evidence that every successful write became visible while every failed write left the shared map unchanged.`
 - Smallest complete boundary: `Quote and guard the Railway schema key, reproduce the sanitized candidate, deploy only the approved isolated service, verify the public route and shared-map journey, run a screenshot-backed Product Design audit, and add a bounded Ralph-style release loop that stops at credentials and owner gates.`
 - Likely files: `release/webmcp/railway.toml`, source and sanitized verification scripts, current-run proof artifacts, release/Ralph documentation, and the durable state ledger.`
@@ -45,6 +45,12 @@
 - [x] One composed E2E command verifies deployed-page readiness, exact-five metadata, real Chrome protocol execution, and independently reports missing ChatGPT/model proof instead of claiming release readiness.
 - [x] A captured-transcript validator requires one real call per tool, visible note/trail evidence, marker-to-rail state handoff, ambiguity safety, and failed-trail atomicity before accepting ChatGPT evidence.
 - [x] The optional adversarial lane targets exact `xai:grok-4.6`, three runs per case, and a 90% trajectory threshold without storing or printing the credential.
+- [x] Railway configuration uses valid TOML and both source/release verifiers guard the quoted `$schema`, healthcheck, build, and start commands.
+- [x] Exact sanitized candidate `986cf864927219f5f269a04b21a96f8440988cba` passes the complete no-local clean-clone gate sequence and equals private remote `main`.
+- [x] Isolated Railway deployment `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82` serves the judge route over HTTPS without reusing historical Atlas services.
+- [x] Public Chrome 152 repeats the exact-five 9/9 official smoke and thirteen deeper WebMCP executions against the deployed route.
+- [x] Current live desktop, Springfield ambiguity, 390x844 mobile, and WebMCP-created trail states are captured and reviewed.
+- [x] The bounded Ralph release loop advances one priority at a time and hard-stops at credentials, public visibility, and submission gates.
 
 ## Work Log
 
@@ -118,8 +124,12 @@
 - `scripts/verify-chatgpt-transcript.mjs` and `evals/atlas-chatgpt.transcript.template.json` — reject placeholder evidence and validate a real ChatGPT journey across all five tools, visible notes/trails, manual marker handoff, ambiguity, and atomic failure.
 - `scripts/run-grok-webmcp-evals.mjs` and `scripts/run-webmcp-evals.mjs` — provide an exact `xai:grok-4.6` adversarial adapter over the pinned official eval package with three-run/90% thresholds and credential-safe child environment mapping.
 - `docs/webmcp/CHATGPT_E2E.md`, acceptance/eval/verification docs, package commands, and release projection guards — make the live ChatGPT evidence lane reproducible without misrepresenting local Chrome as ChatGPT proof.
+- `release/webmcp/railway.toml` and source/release verifier scripts — quote and guard the Railway schema key plus the exact build/start/health contract.
+- `docs/webmcp/RALPH_RELEASE_LOOP.md` — adapts the Ralph loop into a bounded one-priority release cadence with hard owner and credential stops.
+- `docs/webmcp/RELEASE_PRODUCT_DESIGN_AUDIT.md` and `artifacts/product-design-audit/release-cc45be3/` — record the live desktop/mobile/ambiguity/trail review of the deployed release.
+- Root/release README, submission, delta, release packet, and documentation guards — publish the verified live URL while keeping source, video, and submission owner gates explicit.
 - `docs/webmcp/CHATGPT_E2E_PRODUCT_AUDIT.md` and `artifacts/product-design-audit/chatgpt-e2e/` — record a current-run Product Design index pass over the map entry, Springfield recovery, 390x844 density, and real WebMCP trail state.
-- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` and `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-049ec22` — hold exact ten-commit sanitized candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a`; the existing private remote is confirmed at `04aa4aaa` pending one new fast-forward gate.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` and `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-986cf86` — hold exact twelve-commit sanitized candidate `986cf864927219f5f269a04b21a96f8440988cba`; private remote `main` and the active isolated Railway deployment identify that SHA.
 
 ### Commands and results
 
@@ -227,6 +237,13 @@
 | Private fast-forward `git push origin main:main` | PASS | Owner activated release mode; clean sanitized `main` advanced normally from `04aa4aaa` to exact candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a` with no force push. |
 | Post-push `git ls-remote`, `gh repo view`, and ancestry check | PASS | Remote `main` equals `049ec222`; repository remains `PRIVATE`, default branch remains `main`, and local/remote are `0 0`. |
 | `railway whoami` and read-only project inventory | PASS | Railway CLI is authenticated. An existing `atlas-chatgpt-app` project contains historical backend, worker, Postgres, and Redis services, so the challenge deployment must use a new isolated project/service instead of reusing it. |
+| First isolated Railway deployment `0b8cea34` | FAILED, resolved | Railway rejected the unquoted TOML `$schema` key before build. The key was quoted and regression guards were added; no public source visibility or historical service changed. |
+| Source `pnpm verify:webmcp`, `pnpm typecheck`, and `pnpm build` after Railway fix | PASS | 32/32 focused checks, full TypeScript contracts, and production build passed. |
+| Sanitized candidates `cc45be38` and `986cf864` | PASS | Valid Railway config and live-URL documentation were committed, verified, and normally fast-forwarded to the still-private remote without force push. |
+| Railway deployment `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82` | PASS | Exact candidate `986cf864` deployed successfully to isolated project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`. |
+| Public `ATLAS_CHATGPT_URL=https://atlas-webmcp-production.up.railway.app/explore pnpm e2e:chatgpt` | AUTOMATION PASS / REAL CHATGPT GATED | HTTPS readiness, headers, no-login route, five titles, Springfield ambiguity, Chrome 152 9/9 official smoke, and thirteen deeper executions passed. `releaseReady` remains false only because the real ChatGPT transcript and Grok result are absent. |
+| Clean `986cf864` complete release sequence | PASS | No-local clone passed frozen install, typecheck, build, 32/32 verification, 9/9 smoke with thirteen executions, release audit, diff check, and clean status. Audit: 3,336 files, 88,169,265 bytes, 3,222 county packs, 52 plates, twelve commits. |
+| Live release Product Design audit | PASS | Four deployed states were captured and reviewed; the 390x844 page had zero horizontal overflow, marker/action targets remained usable, and no application console errors appeared. |
 
 ### Browser proof
 
@@ -263,6 +280,10 @@
 - The live-E2E Product Design audit records four current-run states under `artifacts/product-design-audit/chatgpt-e2e/`: map entry, Springfield ambiguity recovery, the exact 390x844 recovery state, and the WebMCP-created national trail.
 - The composed clean-clone run against `http://127.0.0.1:8898/explore` verified `Origin-Agent-Cluster: ?1`, `Permissions-Policy: tools=(self)`, the no-login route, all five human titles, eight Springfield candidates, Riverside resolution, 9/9 official Chrome steps, and 13 deeper executions.
 - The composed report distinguishes `ok: true` from `releaseReady: false`; this is intentional proof hygiene until the same journey is captured in ChatGPT's built-in browser and the Grok 4.6 model lane reaches its threshold.
+- Exact candidate `986cf864` is live at `https://atlas-webmcp-production.up.railway.app/explore`; `/ready` reports 3,222 counties and 18,447 places and the required origin headers are present.
+- Live release evidence is captured at `artifacts/product-design-audit/release-cc45be3/01-live-entry-desktop.png`, `02-springfield-ambiguity-desktop.png`, `03-springfield-ambiguity-mobile-390x844.png`, and `04-webmcp-trail-desktop.png`.
+- The 390x844 live page measured `scrollWidth=clientWidth=390`; the visual audit found no remaining high or medium issue and kept the national trail overlay as the single focal event.
+- A headed ChatGPT window is open on the sign-in screen. No credentials or browser-session data were accessed; the built-in-browser transcript awaits user sign-in.
 
 ### Review
 
@@ -276,20 +297,21 @@
 - Product-design findings: `0` remaining after fixing negative fallback language, undersized desktop edit targets, color-dependent active state, missing session/count context, clipped mobile candidates, map-label competition, missing smoke screenshot output, semantic section headings, and verifier specificity.
 - ChatGPT-first findings: `0` remaining after requiring the new acceptance document in sanitized guards and covering maximum-result budgets for every write tool.
 - Live-E2E findings: `0` remaining after requiring the manual marker-2 handoff to prove both `miami-dade-fl` navigation and `trail.activeIndex: 1` in captured ChatGPT evidence.
-- Disposition: `CLEAN` for local code, exact sanitized clean-clone reproduction, Chrome 152 WebMCP execution, and the owner-approved private fast-forward. Deployment, real ChatGPT discovery, public visibility, and the Grok model threshold remain separate gates.
+- Release/deployment findings: `0` remaining after fixing the invalid Railway schema key, guarding config-as-code values, replacing stale candidate/deployment copy, and confirming the live Product Design evidence against the exact public route.
+- Disposition: `CLEAN` for local code, exact sanitized clean-clone reproduction, private remote `986cf864`, isolated Railway deployment, public Chrome 152 WebMCP execution, normal-browser fallback, and responsive design proof. Real ChatGPT discovery, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
 
-- The private GitHub remote exists and remains `PRIVATE` at exact verified candidate `049ec222`. Public visibility, deployment, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- The private GitHub remote exists and remains `PRIVATE` at exact verified candidate `986cf864`. Public visibility and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
-- Chrome 152 WebMCP acceptance is now proven locally without API injection; ChatGPT built-in-browser acceptance and deployed-URL repetition remain external gates.
+- Chrome 152 WebMCP acceptance is proven against the public deployed URL without API injection; ChatGPT built-in-browser acceptance remains an external credential-safe gate.
 - The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
-- The historical repository and history remain unfit for publication. The sanitized ten-commit repository is locally green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
+- The historical repository and history remain unfit for publication. The sanitized twelve-commit repository is clean-clone green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
 - Three disposable assembler-check directories remain under `C:\Users\mzwin\AppData\Local\Temp` because recursive cleanup was blocked twice by the command safety policy. They are outside both Git repositories and do not affect the candidate.
 
 ## Exact Next Action
 
-Request one narrow owner decision: approve creation of an isolated Railway project `atlas-webmcp-challenge` with service `atlas-webmcp` from exact private candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a`, deploy it with the included `railway.toml`, and verify `/ready`, `/`, `/explore`, origin headers, fallback, and Chrome WebMCP smoke over HTTPS. Do not reuse the historical `atlas-chatgpt-app` project; keep GitHub private and do not submit Devpost.
+Sign in to the already-open headed ChatGPT window, connect/open `https://atlas-webmcp-production.up.railway.app/explore` in the supported built-in browser, and run the exact five-tool journey in `docs/webmcp/CHATGPT_E2E.md`. Save the exported transcript locally and validate it with `pnpm verify:chatgpt-transcript`. Do not expose credentials, publish the repository, or submit Devpost.
 
 ## Slice Queue
 
@@ -310,5 +332,6 @@ Request one narrow owner decision: approve creation of an isolated Railway proje
 15. Product-design pass for human-agent session legibility — GREEN (`08a5b84a`; sanitized candidate `ad0d5ab`)
 16. Private remote creation and initial push — GREEN (`ad0d5ab`; private `Zwin-ux/atlas-webmcp-challenge`)
 17. ChatGPT-first site-tool conversation contract — GREEN (`9a86b708`; sanitized candidate `04aa4aaa`)
-18. Live ChatGPT WebMCP E2E environment — GREEN (`59ac56d1`; sanitized candidate `049ec222`; private push complete, deployment/real ChatGPT/Grok external-gated)
+18. Live ChatGPT WebMCP E2E environment — GREEN (`59ac56d1`; sanitized candidate superseded by `986cf864`)
+19. Isolated Railway deployment and bounded Ralph release loop — GREEN (`a165ad11`; sanitized candidate `986cf864`; live Chrome/design proof complete, real ChatGPT/Grok credential-gated)
 
