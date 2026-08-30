@@ -339,7 +339,7 @@ body {
 .atlas-app__finder form {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  min-height: 36px;
+  min-height: 44px;
   border: 1px solid color-mix(in srgb, var(--atlas-page-fg) 28%, transparent);
   border-radius: 5px;
   background: color-mix(in srgb, var(--atlas-page-bg) 96%, transparent);
