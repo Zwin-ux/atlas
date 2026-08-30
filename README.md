@@ -1,168 +1,81 @@
-# Atlas County Maps (ChatGPT App)
+# Atlas WebMCP
 
-**Product law:** [`docs/NORTH_FACE.md`](docs/NORTH_FACE.md).
+Atlas is a shared geographic canvas. A person explores U.S. counties on the map while an agent reads and changes the same live session through browser-native WebMCP tools.
 
-Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget) for **high-quality
-voxel county maps** and **session notes**. The playable proof is Riverside /
-Eastvale: pan, inspect places, pin, and leave notes that stay in this chat.
-Other US counties open as honest generated maps with real Census town names.
-Clawd / Scout / campaign planning is parked for later. Map-first, not a dashboard.
+No login. No saved profile. One map, one research session.
 
-Hero prompts:
+![Atlas no-login U.S. map with the place finder](artifacts/webmcp-proof/judge-path-final-desktop.png)
 
-> Open Riverside County and show the Eastvale map.  
-> Show me Miami-Dade County.
+## What the candidate does
 
-The current engineering route is Alpha-first:
+- Opens a nationwide Census-backed county map at `/` and `/explore`.
+- Lets a person pan, zoom, drill into counties, follow breadcrumbs, and find a U.S. city or county with the keyboard.
+- Preserves ambiguity. `Springfield` returns labeled candidates instead of silently choosing one.
+- Registers exactly five imperative WebMCP tools from the top-level page.
+- Shows agent activity and every write in the same interface the person is using.
+- Keeps notes and research trails in the current browser session only.
+- Falls back to a complete normal map when WebMCP is unavailable.
 
-- Curated county JSON.
-- Typed service contracts.
-- PixiJS `VoxelScene` renderer with SVG fallback.
-- Google Maps behind `GeoDataAdapter`, not as the main renderer.
-- Apps SDK/MCP tools as the ChatGPT entrypoint.
+## The five tools
 
-This repo already has a lean starter for the OpenAI Apps SDK pattern:
+| Tool | Effect |
+|---|---|
+| `get_map_state` | Reads the visible location, selection, recent notes, and active trail. |
+| `search_places` | Searches the bounded Census-backed place index without changing the map. |
+| `open_place` | Resolves one place and opens it visibly. Ambiguous names return candidates without mutation. |
+| `add_map_note` | Resolves a place, opens it, and adds one visible session-only note. |
+| `create_map_trail` | Resolves every stop first, then creates one visible editable 2-5 stop trail atomically. |
 
-- A TypeScript MCP server exposed at `/mcp`.
-- A separate React widget bundle rendered inside ChatGPT.
-- The MCP Apps bridge for iframe communication.
-- A decoupled data tool and render tool, so the model can reason over structured data before mounting UI.
+Human controls and tool callbacks share one `AtlasMapController`. Write calls resolve only after the matching map revision is visible. A canceled, failed, or superseded transition cannot report success.
 
-This repo is intentionally not a generic SaaS shell. The current root `server/` and `web/` starter is a temporary Apps SDK sandbox; the Atlas monorepo skeleton now lives under `apps/` and `packages/`.
+## Run locally
 
-## Tooling
-
-Use `pnpm`. On this machine, global `npm` fails under `walk-up-path`, so the scripts are written around `pnpm` and Corepack.
-
-Required:
-
-- Node.js 18 or newer. Current local check found Node `v24.16.0`.
-- pnpm. Current local check found pnpm `11.7.0`.
-- Git.
-
-No OpenAI API key is required for this local MCP app scaffold. ChatGPT connects to the `/mcp` endpoint through developer mode and a public HTTPS tunnel or deployment.
-
-## Commands
+Requirements: Node.js 18 or newer, pnpm 11, and Git.
 
 ```powershell
-pnpm install
-pnpm env:check
-pnpm typecheck:workspaces
-pnpm build
-pnpm verify:mcp
+pnpm install --frozen-lockfile
+pnpm build:atlas-plates
 pnpm dev
 ```
 
-The dev server listens on:
+Open:
 
-- `http://localhost:8787/` for a plain health page.
-- `http://localhost:8787/preview` for the local widget preview.
-- `http://localhost:8787/mcp` for ChatGPT, MCP Inspector, or a tunnel.
+- `http://127.0.0.1:8787/` for the top-level judge route.
+- `http://127.0.0.1:8787/explore` for the equivalent explicit route.
+- `http://127.0.0.1:8787/preview` only for the fenced legacy widget preview.
 
-`pnpm verify:mcp` is a client smoke for a running MCP server. By default it
-checks `http://127.0.0.1:8787/mcp`; set `ATLAS_MCP_URL` to verify another local,
-tunnel, or Railway endpoint.
+The challenge route feature-detects `document.modelContext?.registerTool`. A normal browser shows `Site tools unavailable` and keeps the human map fully usable.
 
-To test with MCP Inspector:
+Current WebMCP setup details live in the [OpenAI Site Tools documentation](https://learn.chatgpt.com/docs/webmcp), [Chrome imperative API guide](https://developer.chrome.com/docs/ai/webmcp/imperative-api), and [WebMCP draft](https://webmachinelearning.github.io/webmcp/).
 
-```powershell
-pnpm inspect
-```
-
-To connect from ChatGPT during development, expose the local server with a tunnel such as ngrok:
+## Verify the candidate
 
 ```powershell
-ngrok http 8787
+pnpm verify:webmcp
+pnpm typecheck
+pnpm build
 ```
 
-Then create a ChatGPT connector in developer mode with the HTTPS URL ending in `/mcp`.
+`pnpm verify:webmcp` covers the exact-five contract, schemas, annotations, output bounds, shared-controller path, ambiguity, cancellation, atomic trails, top-level registration, all-or-none rollback, route fencing, and normal-browser feature detection.
 
-## Structure
+The full local gates currently pass. Browser proof covers 1280x720 and 390x844, keyboard place finding, ambiguity recovery, fallback behavior, accessibility landmarks, 44px visible mobile controls, and zero horizontal overflow. Real ChatGPT built-in-browser discovery remains a separate external acceptance gate.
 
-```text
-engineering-prompt-pack/ preserved source copy of the engineering prompt pack
-prompt-pack/             preserved source copy of the first Atlas prompt pack
-prompts/                 active Codex prompt sequence
-docs/                    product and engineering route docs
-plugins/                 Atlas daemon skill scaffold
-data/county_packs/       curated county data
-assets/                  asset prompts and placeholders
-apps/widget/             Vite + React placeholder widget shell
-apps/web/                placeholder web shell
-packages/config/         shared constants placeholder
-packages/core/           core contracts placeholder
-packages/geo/            geo adapter placeholder
-packages/mcp/            MCP layer placeholder
-packages/assets/         asset package placeholder
-server/
-  src/index.ts        MCP server, tools, resources, HTTP endpoint
-web/
-  src/                React widget and MCP Apps bridge helpers
-  dist/               Generated bundle, ignored by Git
-scripts/
-  build-web.mjs       esbuild widget build
-  check-env.mjs       local environment sanity check
-docs/
-  apps-sdk-notes.md   distilled setup notes from the supplied docs
-```
+## Challenge-period delta
 
-The official Apps SDK examples repo is cloned under `.reference/openai-apps-sdk-examples` for inspection and is intentionally ignored by Git.
+Atlas existed before the WebMCP Challenge opened on August 25, 2026. The submission delta begins at baseline commit `b6f2f8213a9acef3629a2c5f9f84cebab32fea56` and adds the no-login top-level route, shared live controller, exact-five WebMCP surface, visible activity, session notes, atomic trails, verifier, and judge-path accessibility work.
 
-## Current Quest
+See [CHALLENGE_DELTA.md](CHALLENGE_DELTA.md) for the capability ledger and [WEBMCP_STATE.md](WEBMCP_STATE.md) for exact commands, results, screenshots, and current gates.
 
-Current implementation direction is defined by `docs/NEXT_QUESTS.md` and
-`artifacts/current-update.json`. README is an app overview, not the active
-quest authority.
+## Deliberate boundaries
 
-The active ChatGPT county entrypoint is `select_county` for the
-Riverside/Eastvale playable slice:
+The challenge experience requires no account and keeps its research artifacts session-only. It makes no generated-street or building claims. Tool output excludes raw geometry, large scene objects, credentials, and third-party payloads.
 
-- `select_county`
-- `ask_county_question`
-- `render_voxel_county`
-- `lookup_world_places`
-- `preview_scout_drop`
-- `preview_campaign_engine`
-- `get_upgrade_options`
+Repository visibility, license selection, public deployment, and Devpost submission require explicit owner approval. The current repository history is not safe to publish as-is; use the audited sanitized-release path in [docs/webmcp/RELEASE_PACKET.md](docs/webmcp/RELEASE_PACKET.md).
 
-The Railway backend is live at `https://atlas-backend-production-e6fc.up.railway.app` with Google geo configured server-side.
+## Submission materials
 
-## OpenAI Build Week extension
-
-Atlas existed before the OpenAI Build Week submission period. The hackathon
-entry is the meaningful extension built from July 13 through July 18, 2026,
-not the earlier prototype.
-
-Work added during the submission period includes:
-
-- real 2024 U.S. Census town anchors for all 3,222 supported counties, with
-  13,797 named places and explicit generated-layout limits outside Riverside;
-- a hardened seven-tool MCP submission contract, minimized provider results,
-  public support/legal routes, and an exact positive/negative reviewer battery;
-- stronger ChatGPT emulator fidelity, desktop/mobile visual audits, and a
-  mobile place-sheet interaction fix;
-- Redis scene-packet worker recovery, health/readiness behavior, release
-  rollback gates, and the first successful production worker deployment; and
-- a release-gated national Census geography bake for all supported counties,
-  kept behind the `atlasGeoBoard` feature flag.
-
-The main Codex build thread used GPT-5.6 and has session ID
-`019f687a-82d3-7df0-ac27-5b7ca38b099c`. Codex helped audit the existing
-product, build and verify the national anchor pipeline, harden worker failure
-paths, tighten the MCP contract, run the release and browser proof ladders,
-and isolate the submission envelope. The human product decisions stayed
-explicit: keep Atlas map-first, submit the focused session-only County Scout,
-label generated geography honestly, and leave persistence, payments, and
-automated outreach out of the public entry.
-
-The full Devpost copy, demo script, test prompts, and judging handoff are in
-[`docs/DEVPOST_BUILD_WEEK_SUBMISSION.md`](docs/DEVPOST_BUILD_WEEK_SUBMISSION.md).
-
-## State Model
-
-- Server or backend owns business data.
-- Widget state owns ephemeral view behavior such as selected district/place, stickers, and notes.
-- Durable cross-session state belongs in a backend storage layer once the product needs it.
-- The widget can call `ui/update-model-context` when UI state should affect the model's next turn.
-
-Avoid putting secrets, tokens, or private data in `structuredContent`, `content`, `_meta`, or widget state.
+- [Devpost copy and evidence map](docs/webmcp/SUBMISSION.md)
+- [Under-three-minute video script](docs/webmcp/VIDEO_SCRIPT.md)
+- [Owner-gated release packet](docs/webmcp/RELEASE_PACKET.md)
+- [Official challenge page](https://webmcp.devpost.com/)
+- [Official rules](https://webmcp.devpost.com/rules)

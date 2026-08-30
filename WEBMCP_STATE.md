@@ -5,14 +5,14 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green commit: `f9f98a18fa018c2e3793f6789fca9e760d068230`
+- Last green commit: `b90182b64fa27b78a8d07738360c1cb842b833b4`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `8 — Keyboard place finding and judge-path accessibility`
+- Slice: `9–10 — Challenge documentation and owner-gated release packet`
 - Status: `GREEN — awaiting commit`
-- Player-visible promise: `A keyboard or touch user can resolve and open a U.S. place through the same live controller as the five browser tools, without covering the map.`
+- Player-visible promise: `A judge or release owner can understand, run, verify, record, and safely release the focused Atlas WebMCP candidate without inheriting the retired Atlas story.`
 - Anti-scope: `No Scout, campaign, Hosted Clawd, Commons, billing, road expansion, or renderer rewrite.`
 
 ## Acceptance Checks
@@ -31,6 +31,9 @@
 - [x] A newer or canceled transition cannot inherit a later visible success.
 - [x] The place finder has a persistent visible label, specific error recovery, and native keyboard controls.
 - [x] The 390x844 view has no horizontal overflow or undersized visible form/button controls.
+- [x] Root README describes only the focused WebMCP candidate and its honest evidence boundary.
+- [x] Submission copy, an under-three-minute video script, and an owner-gated release packet exist.
+- [x] Documentation verification enforces the exact five tools, owner placeholders, time budget, and retired-scope exclusion.
 
 ## Work Log
 
@@ -70,6 +73,12 @@
 - `web/src/atlas/atlas.css` — adds map-first desktop/mobile finder layout, persistent labels, focus treatment, and 44px mobile targets.
 - `web/test/atlas-map-controller.test.ts` — covers candidate opening, cancellation, and successful/failed supersession.
 - `artifacts/webmcp-proof/judge-path-ambiguous-desktop.png` and `judge-path-ambiguous-mobile-390x844.png` — responsive ambiguity and fallback proof.
+- `README.md` — replaces the retired product story with the no-login shared county-canvas candidate, exact tools, run/verify commands, and explicit gates.
+- `docs/webmcp/SUBMISSION.md` — provides challenge-period copy, evidence mapping, and owner placeholders without unverified claims.
+- `docs/webmcp/VIDEO_SCRIPT.md` — provides a 2:45 real-browser demo script with an explicit no-simulation rule.
+- `docs/webmcp/RELEASE_PACKET.md` — records the publication-safety audit, sanitized-repository boundary, owner gates, evidence, and rollback.
+- `scripts/verify-webmcp-docs.mjs` — guards the exact tool story, required placeholders, video budget, links, and challenge anti-scope.
+- `artifacts/webmcp-proof/judge-path-final-desktop.png` and `judge-path-final-mobile-390x844.png` — final masthead/44px design proof.
 
 ### Commands and results
 
@@ -111,6 +120,10 @@
 | `pnpm verify:webmcp` | PASS | 26 focused tests plus exact-five, shared-controller, lifecycle, route, and header checks. |
 | `pnpm typecheck` | PASS | Starter and workspace TypeScript checks passed after the finder and cancellation changes. |
 | `pnpm build` | PASS | Full starter, plate, and workspace production build completed with only the recorded pre-existing warnings. |
+| `/design-review` | PASS | Two medium findings fixed in `3a7dbf7a` and `b90182b6`; final trunk test 6/6, zero 390px overflow/undersized controls. |
+| Publication-safety inventory | PASS as audit, BLOCKED as release | 37,259 tracked files, 440.85 MiB pack, 410 Markdown files, no root license, historical local/session material; existing repo must remain private. |
+| `pnpm audit:webmcp:release` | PASS as audit | Verdict `DO_NOT_PUBLISH_CURRENT_REPOSITORY`; 201 tracked historical-risk paths, no license, and explicit limited-scan coverage. |
+| `pnpm verify:webmcp` with docs guard | PASS | 26 focused tests, exact-five runtime/static checks, four owner placeholders, 2:45 script budget, and no retired-scope pattern in judge story files. |
 
 ### Browser proof
 
@@ -123,6 +136,8 @@
 - Five-tool fallback mobile 390x844: `artifacts/webmcp-proof/five-tool-fallback-mobile.png`.
 - Ambiguity-safe judge path desktop: `artifacts/webmcp-proof/judge-path-ambiguous-desktop.png`.
 - Ambiguity-safe judge path mobile 390x844: `artifacts/webmcp-proof/judge-path-ambiguous-mobile-390x844.png`.
+- Final design proof desktop: `artifacts/webmcp-proof/judge-path-final-desktop.png`.
+- Final design proof mobile 390x844: `artifacts/webmcp-proof/judge-path-final-mobile-390x844.png`.
 - Normal-browser fallback produced no application error. Chrome logged only the expected warning that the experimental `tools` feature was not enabled in this browser.
 
 ### Review
@@ -130,6 +145,7 @@
 - Reviewer: `/review` checklist plus independent WebMCP specification and release-safety reviews.
 - High findings: `0` in the exact-five implementation.
 - Medium findings: `0` after adding editable note text/title controls, timestamp visibility, 44px mobile removal targets, bounded state output, and an accessible page heading.
+- Design findings: `0` remaining after raising the desktop finder to 44px and adding the restrained `ATLAS / location` masthead.
 - Disposition: `CLEAN` for local code. Real WebMCP-enabled Chrome and ChatGPT discovery remain external acceptance gates.
 
 ## Risks and Blockers
@@ -142,7 +158,7 @@
 
 ## Exact Next Action
 
-Commit Slice 8, run `/design-review` from its required clean tree, then write the challenge-first README, submission/video materials, and sanitized owner-gated release packet.
+Run the final documentation/code review, commit Slice 9-10, then verify the exact committed candidate from a clean detached worktree and record the final candidate SHA.
 
 ## Slice Queue
 
@@ -153,7 +169,7 @@ Commit Slice 8, run `/design-review` from its required clean tree, then write th
 5. Session note tool — GREEN (`f9f98a18`)
 6. Atomic research trail — GREEN (`f9f98a18`)
 7. WebMCP verifier and negative cases — GREEN (`f9f98a18`)
-8. Judge-path UX and browser proof — GREEN, awaiting commit
-9. README/submission/video materials — QUEUED
-10. Clean-clone and public-release audit — AUDITED; remediation queued
+8. Judge-path UX and browser proof — GREEN (`dda677d7`, design fixes `3a7dbf7a`, `b90182b6`)
+9. README/submission/video materials — GREEN, awaiting commit
+10. Clean-clone and public-release audit — AUDITED; existing repo blocked, owner-gated sanitized path ready
 

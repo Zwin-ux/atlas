@@ -1,0 +1,111 @@
+# Atlas WebMCP Submission Draft
+
+This copy is ready for owner review. Replace every `[OWNER REQUIRED]` field only with verified public evidence. Do not submit before the release checklist is green.
+
+Current challenge deadline: September 3, 2026 at 1:00 PM Pacific. Re-check the official rules immediately before submission.
+
+## Listing fields
+
+- Project name: **Atlas**
+- Tagline: **Explore a county with a person and an agent on the same live map.**
+- Live app URL: `[OWNER REQUIRED: approved public deployment]`
+- Public source URL: `[OWNER REQUIRED: sanitized public repository]`
+- Open-source license: `[OWNER REQUIRED: owner-selected license]`
+- Demo video: `[OWNER REQUIRED: public YouTube URL, under three minutes, with audio]`
+
+## Short description
+
+Atlas is a no-login U.S. county map that a person and an agent can use together. A person pans, zooms, drills into counties, and finds places normally. In a supported browser, an agent discovers five browser-native tools that read the live map, search Census-backed places, open a place, add a session note, or create an editable research trail.
+
+Both sides operate on the same controller and the same visible session. Atlas does not maintain a hidden agent copy of the map.
+
+## Inspiration
+
+Research about an unfamiliar county usually breaks across map tabs, notes, and a chat window. The person sees geography while the agent sees text. Atlas makes the map the shared surface: both can inspect the same county, leave the same bounded research artifacts, and recover from ambiguous place names without guessing.
+
+The target users are students, local journalists, civic researchers, and community organizers starting an investigation in an unfamiliar U.S. county.
+
+## What it does
+
+Atlas opens directly to a full-screen national county map. The normal interface supports pan, zoom, county drill-in, breadcrumbs, and a keyboard/touch place finder.
+
+The top-level page imperatively registers exactly five WebMCP tools:
+
+1. `get_map_state`
+2. `search_places`
+3. `open_place`
+4. `add_map_note`
+5. `create_map_trail`
+
+The two read tools return bounded public projections. The three write tools update visible session state and wait for the matching map revision to render before returning success. Ambiguous locations return candidates. A trail resolves every stop before one atomic mutation, so a bad stop never leaves a partial trail.
+
+## How it was built
+
+- TypeScript server and React map shell.
+- Existing Census-backed national, state, county, and place data.
+- Imperative top-level `document.modelContext.registerTool` registration with feature detection.
+- One `AtlasMapController` external store for human navigation and agent actions.
+- Narrow JSON Schemas with `additionalProperties: false` at root and nested levels.
+- One shared abort lifecycle for all-or-none tool registration.
+- Session-only React state for notes, trails, activity, and edits.
+- Focused Node tests plus a static `pnpm verify:webmcp` contract verifier.
+
+## Meaningful challenge-period extension
+
+Atlas predates the challenge. Judges should evaluate the work after baseline `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`:
+
+- no-login top-level `/` and `/explore` routes;
+- shared human/agent controller and visible-revision acknowledgment;
+- the exact five browser-native tools;
+- Census-backed bounded search and ambiguity-safe resolution;
+- visible site-tool activity;
+- editable session notes and atomic editable research trails;
+- exact-five, cancellation, rollback, output-bound, and fallback verification;
+- keyboard place finding, responsive proof, accessibility audit, and design review.
+
+The detailed evidence ledger is in `CHALLENGE_DELTA.md` and `WEBMCP_STATE.md`.
+
+## Hard parts
+
+The hard part was not registering five functions. It was making them truthful.
+
+Atlas had to prevent stale React state, keep manual and agent behavior on one transition path, avoid giant geometry payloads, preserve ambiguous Census place names, roll back partial registration, resolve a whole trail before mutation, and wait until a write was actually visible before claiming success.
+
+## What we learned
+
+Browser-native tools work best when they expose a small, legible projection of an existing interface. The agent does not need raw geometry. It needs the current location, a bounded place index, and a few clear actions whose effects the person can see.
+
+The normal-browser fallback also matters. A WebMCP experiment should still be a good website when the experimental API is absent.
+
+## What comes next
+
+Before submission:
+
+- verify all five tools in the real ChatGPT built-in browser;
+- record the demo from that real supported environment;
+- create a sanitized public source repository;
+- choose and add an open-source license;
+- approve and publish the deployment;
+- run the public URL verifier and clean-source audit;
+- submit the final owner-approved fields on Devpost.
+
+No account system, public posting, or sixth tool is part of this candidate.
+
+## Evidence map
+
+| Claim | Evidence |
+|---|---|
+| No-login top-level map | Route verifier and desktop/mobile screenshots in `artifacts/webmcp-proof/` |
+| Exactly five tools | `pnpm verify:webmcp`, registry tests, and `web/src/atlas/webmcpTools.ts` |
+| Shared human/agent state | `AtlasMapController`, place-finder verifier check, controller tests |
+| Visible completion | revision acknowledgment tests and browser map transitions |
+| Ambiguity safety | Springfield API/controller/browser proof |
+| Atomic trails | success/failure controller tests |
+| Normal fallback | fallback screenshots and feature-detected registry |
+| Accessibility | gstack accessibility tree, 390x844 target/overflow audit, design review |
+
+## Claim discipline
+
+- Do not say the public deployment, ChatGPT acceptance, source release, license, video, or Devpost submission is complete until the corresponding URL or owner action exists.
+- Do not claim generated streets or buildings as verified geography.
+- Do not present unrelated historical Atlas work as part of this WebMCP entry.

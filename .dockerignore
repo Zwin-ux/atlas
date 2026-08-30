@@ -15,6 +15,12 @@ artifacts/atlas-plates
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
 
 # Agent, session, and tooling state.
 .claude
@@ -24,6 +30,8 @@ artifacts/atlas-plates
 .context
 .tmp-*
 .reference
+browser-data
+browser-profile
 *.log
 .atlas-*.log
 

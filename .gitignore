@@ -2,6 +2,12 @@ node_modules/
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
 
 # Build output
 apps/*/dist/
@@ -13,6 +19,8 @@ web/dist/
 .codex/
 .gstack/
 .reference/
+browser-data/
+browser-profile/
 
 # Logs and OS noise
 *.log
