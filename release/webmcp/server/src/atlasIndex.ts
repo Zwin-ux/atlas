@@ -77,4 +77,3 @@ export function loadAtlasIndex(anchorsPath: string): AtlasIndex {
     }),
   };
 }
-

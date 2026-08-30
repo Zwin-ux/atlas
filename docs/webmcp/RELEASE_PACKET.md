@@ -10,8 +10,8 @@ Do not change the historical repository's visibility. Do not publish the sanitiz
 
 - Local repository: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release`
 - Branch: `main`
-- Candidate SHA: `25dd4973679342461b2ee80273e1fe9b60d01059`
-- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-Final`
+- Candidate SHA: `7f52ffb86e3e0362e2ee9d9c9a7e815e4a7162e7`
+- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-7f52ffb`
 - Challenge baseline disclosed in the public repo: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
 - Owner-selected license: Apache-2.0
 - Public tools: exactly `get_map_state`, `search_places`, `open_place`, `add_map_note`, and `create_map_trail`
@@ -20,7 +20,7 @@ The repository contains one challenge-only React entry, one small no-login Node 
 
 ## Final local proof
 
-The candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `25dd4973679342461b2ee80273e1fe9b60d01059`:
+The candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `7f52ffb86e3e0362e2ee9d9c9a7e815e4a7162e7`:
 
 | Command | Result |
 |---|---|
@@ -38,7 +38,7 @@ The release assembler was also run into a separate directory and compared to the
 The sanitized repository audit reports:
 
 - 3,329 tracked files;
-- 88,096,272 audited source/data bytes in the final clean clone;
+- 88,096,235 audited source/data bytes in the final clean clone;
 - 3,222 county geo packs and 52 state plates;
 - no tracked build output, eval output, `node_modules`, `.env`, historical apps, or historical workspace packages;
 - no file larger than 5 MiB;
@@ -47,7 +47,7 @@ The sanitized repository audit reports:
 - only `react` and `react-dom` as runtime dependencies;
 - a full Apache-2.0 license, Census attribution, and frozen dependency-license inventory.
 
-`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the new history contains only five local commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
+`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the new history contains only six local commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
 
 The selected README image was visually inspected: it contains only the Atlas national trail overview and no terminal, local path, account, or credential surface.
 
@@ -61,7 +61,7 @@ Two internal geo-pack build reports (`_manifest.json` and `_failures.json`) were
 
 ### Gate 1 — create the private remote and push the candidate
 
-Proposed action: create a new private repository named `Zwin-ux/atlas-webmcp-challenge` and push local candidate `25dd4973679342461b2ee80273e1fe9b60d01059` as its initial `main` history.
+Proposed action: create a new private repository named `Zwin-ux/atlas-webmcp-challenge` and push local candidate `7f52ffb86e3e0362e2ee9d9c9a7e815e4a7162e7` as its initial `main` history.
 
 Evidence: all clean-clone gates above, exact generator match, Apache-2.0 present, no historical Git objects.
 
@@ -74,11 +74,11 @@ Rollback: delete the still-private repository or remove its contents before visi
 Required before changing visibility:
 
 - owner reviews the private GitHub tree and About panel;
-- GitHub or an owner-approved scanner reports no secrets across the complete five-commit history;
+- GitHub or an owner-approved scanner reports no secrets across the complete six-commit history;
 - license is detected as Apache-2.0;
 - README image and attribution render correctly;
 - GitHub Actions or a fresh remote clone repeats install, typecheck, build, verify, and smoke as applicable;
-- candidate SHA still matches `25dd4973679342461b2ee80273e1fe9b60d01059` or a new SHA is fully re-verified.
+- candidate SHA still matches `7f52ffb86e3e0362e2ee9d9c9a7e815e4a7162e7` or a new SHA is fully re-verified.
 
 Rollback: return the repository to private immediately. Do not attempt to repair an exposure by rewriting the historical Atlas repository.
 

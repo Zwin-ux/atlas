@@ -43,4 +43,3 @@ test("query validation trims input and rejects empty or oversized values", () =>
   assert.equal(validateAtlasPlaceQuery("   "), undefined);
   assert.equal(validateAtlasPlaceQuery("x".repeat(121)), undefined);
 });
-

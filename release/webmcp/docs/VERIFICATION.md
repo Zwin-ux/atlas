@@ -25,4 +25,3 @@ pnpm eval:webmcp:browser
 Each model case runs at least three trajectories, requires at least 90% correct tool/argument steps, and rejects every critical write-selection or atomicity failure. A missing credential or unavailable model backend is blocked evidence, not a pass.
 
 Before release, record the immutable candidate with `git rev-parse HEAD`. Public deployment, real ChatGPT built-in-browser acceptance, video upload, and Devpost submission require their own URLs and owner approval.
-

@@ -57,4 +57,3 @@ The deterministic gates pass locally. Credentialed model scores, the public URL,
 ## License
 
 Source code is available under [Apache-2.0](LICENSE). U.S. Census data attribution and third-party package licenses are described in [ATTRIBUTION.md](ATTRIBUTION.md).
-

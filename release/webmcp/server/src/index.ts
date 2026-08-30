@@ -193,4 +193,3 @@ const server = createServer((req, res) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Atlas listening on http://0.0.0.0:${PORT}`);
 });
-

@@ -27,4 +27,3 @@ await esbuild.build({
 });
 
 console.log("Built the standalone Atlas challenge client.");
-

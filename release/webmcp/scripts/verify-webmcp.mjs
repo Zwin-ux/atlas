@@ -63,4 +63,3 @@ for (const suite of [modelEvals, smokeEvals]) {
 }
 
 console.log(JSON.stringify({ ok: true, tools: expected, entry: "standalone top-level", dependencies: ["react", "react-dom"] }, null, 2));
-

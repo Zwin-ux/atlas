@@ -11,4 +11,3 @@ export {
   type Point,
 } from "./projection";
 export { decodeRing } from "./ringCodec";
-

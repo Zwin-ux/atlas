@@ -14,4 +14,3 @@ credentials*.json
 service-account*.json
 .DS_Store
 Thumbs.db
-
