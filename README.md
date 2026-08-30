@@ -72,6 +72,15 @@ pnpm eval:webmcp:browser
 
 Both model commands run each case three times, require at least 90% correct tool/argument trajectories, and reject any critical write-selection or atomicity failure. See [docs/webmcp/EVALS.md](docs/webmcp/EVALS.md) for provider options and evidence boundaries.
 
+For the deployed judge route, one command runs HTTPS/page preflight and the real Chrome WebMCP journey against the same URL:
+
+```powershell
+$env:ATLAS_CHATGPT_URL = "https://DEPLOYED_HOST/explore"
+pnpm e2e:chatgpt
+```
+
+The report keeps automated protocol proof, the real ChatGPT transcript, and the model threshold as separate evidence fields. See [docs/webmcp/CHATGPT_E2E.md](docs/webmcp/CHATGPT_E2E.md) for the captured-transcript contract and the Grok 4.6 adversarial lane.
+
 The deterministic local gates currently pass. Chrome 152 WebMCP proof covers exact-five discovery, 9/9 official smoke steps, 13 deeper browser executions, visible trail rendering, keyboard marker navigation, ambiguity recovery, atomic failure, refresh/route registration, and zero console errors. Model-score and real ChatGPT built-in-browser acceptance remain separate credentialed or external gates.
 
 ## Challenge-period delta
@@ -93,5 +102,6 @@ The owner-selected Apache-2.0 license is applied only to the sanitized challenge
 - [Owner-gated release packet](docs/webmcp/RELEASE_PACKET.md)
 - [Evaluation guide and thresholds](docs/webmcp/EVALS.md)
 - [ChatGPT Site Tools acceptance script](docs/webmcp/CHATGPT_ACCEPTANCE.md)
+- [Live ChatGPT end-to-end environment](docs/webmcp/CHATGPT_E2E.md)
 - [Official challenge page](https://webmcp.devpost.com/)
 - [Official rules](https://webmcp.devpost.com/rules)

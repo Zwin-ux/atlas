@@ -24,4 +24,21 @@ pnpm eval:webmcp:browser
 
 Each model case runs at least three trajectories, requires at least 90% correct tool/argument steps, and rejects every critical write-selection or atomicity failure. A missing credential or unavailable model backend is blocked evidence, not a pass.
 
+For the public judge route, run the complete page and Chrome protocol proof against one exact HTTPS URL:
+
+```powershell
+$env:ATLAS_CHATGPT_URL = "https://DEPLOYED_HOST/explore"
+pnpm e2e:chatgpt
+```
+
+Then capture and validate the real ChatGPT record described in `docs/CHATGPT_E2E.md`. For the independent model threshold:
+
+```powershell
+$env:XAI_API_KEY = "..."
+$env:ATLAS_WEBMCP_URL = $env:ATLAS_CHATGPT_URL
+pnpm eval:webmcp:grok
+```
+
+The consolidated report separates automated success from `releaseReady`; it cannot label missing ChatGPT or model evidence as complete.
+
 Before release, record the immutable candidate with `git rev-parse HEAD`. Public deployment, real ChatGPT built-in-browser acceptance, video upload, and Devpost submission require their own URLs and owner approval.

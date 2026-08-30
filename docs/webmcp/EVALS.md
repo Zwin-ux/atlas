@@ -38,7 +38,17 @@ pnpm eval:webmcp:static
 pnpm eval:webmcp:browser
 ```
 
-Supported model prefixes follow the official package: `openai:`, `anthropic:`, `google:`, and `ollama:`. Set `ATLAS_WEBMCP_EVAL_BACKEND` only when a non-default official backend is required. For a non-default local Ollama server, `OLLAMA_HOST` may be either its origin or its `/v1` base; the runner normalizes the origin form. `ATLAS_WEBMCP_URL` can point the browser run at an already running judge route; otherwise the command starts the local built server.
+Supported package prefixes are `openai:`, `anthropic:`, `google:`, and `ollama:`. Atlas also provides a narrow `xai:` adapter over xAI's OpenAI-compatible endpoint. Set `ATLAS_WEBMCP_EVAL_BACKEND` only when a non-default official backend is required. For a non-default local Ollama server, `OLLAMA_HOST` may be either its origin or its `/v1` base; the runner normalizes the origin form. `ATLAS_WEBMCP_URL` can point the browser run at an already running judge route; otherwise the command starts the local built server.
+
+The focused adversarial run is:
+
+```powershell
+$env:XAI_API_KEY = "..."
+$env:ATLAS_WEBMCP_URL = "https://DEPLOYED_HOST/explore"
+pnpm eval:webmcp:grok
+```
+
+It selects the exact `grok-4.6` model ID, passes the key only to the child evaluation process, and applies the same three-run, 90%, zero-critical-failure threshold. It challenges tool choice and arguments; it does not stand in for real ChatGPT Site Tools discovery.
 
 Both commands default to three runs per case and enforce:
 

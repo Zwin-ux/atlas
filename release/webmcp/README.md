@@ -51,6 +51,7 @@ Atlas existed before the challenge as a Census-backed map engine. [CHALLENGE_DEL
 
 - [Evaluation guide](docs/EVALS.md)
 - [ChatGPT Site Tools acceptance script](docs/CHATGPT_ACCEPTANCE.md)
+- [Live ChatGPT end-to-end environment](docs/CHATGPT_E2E.md)
 - [Verification boundary](docs/VERIFICATION.md)
 - [Devpost copy](docs/SUBMISSION.md)
 - [Under-three-minute video script](docs/VIDEO_SCRIPT.md)

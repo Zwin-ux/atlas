@@ -13,6 +13,7 @@ The challenge edition adds:
 - an activity record, ambiguity handling, cancellation, and normal-browser fallback;
 - deterministic unit, contract, route, and real Chrome WebMCP smoke proof;
 - model-eval fixtures projected from the production tool descriptors;
+- one live-URL ChatGPT preflight, real-transcript validator, and Grok 4.6 adversarial model lane;
 - desktop, mobile, keyboard, and reduced-motion treatment.
 
 The challenge edition intentionally contains no account system, persistence, public posting, payment flow, or sixth tool. It includes only the runtime and evidence needed to reproduce the submitted experience.

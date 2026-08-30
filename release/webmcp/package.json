@@ -19,6 +19,10 @@
     "eval:webmcp:static": "node scripts/run-webmcp-evals.mjs local",
     "eval:webmcp:browser": "node scripts/run-webmcp-evals.mjs browser",
     "eval:webmcp:smoke": "node scripts/run-webmcp-evals.mjs smoke",
+    "eval:webmcp:grok": "node scripts/run-grok-webmcp-evals.mjs",
+    "e2e:chatgpt:preflight": "node scripts/verify-chatgpt-live.mjs",
+    "e2e:chatgpt:transcript": "node scripts/verify-chatgpt-transcript.mjs",
+    "e2e:chatgpt": "node scripts/run-chatgpt-e2e.mjs",
     "audit:release": "node scripts/audit-release.mjs"
   },
   "dependencies": {

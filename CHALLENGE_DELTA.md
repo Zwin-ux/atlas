@@ -26,9 +26,10 @@ This section is an implementation ledger, not a roadmap claim. An item moves to 
 | WebMCP verifier, lifecycle, negative cases, and fallback proof | VERIFIED | `pnpm verify:webmcp` plus desktop/mobile normal-browser proof |
 | Official WebMCP eval fixtures and Chrome smoke acceptance | DETERMINISTIC VERIFIED / MODEL GATED | `webmcp-evals@0.0.4`; 9/9 official smoke steps and 13 tool executions with all Atlas assertions passing on Chrome 152; model runs require a working model backend |
 | ChatGPT-first Site Tools conversation contract | DETERMINISTIC VERIFIED / CHATGPT GATED | Human-readable titles, intent-specific descriptions, visible/unchanged write signals, 12 natural-language trajectories, and Chrome protocol proof; actual ChatGPT built-in-browser acceptance remains external |
+| Live ChatGPT end-to-end evidence environment | LOCALLY VERIFIED / DEPLOYMENT, CHATGPT, MODEL GATED | One deployed-URL preflight plus Chrome protocol run, a placeholder-rejecting ChatGPT transcript contract, and an exact `grok-4.6` three-run/90% adversarial lane; public URL, real transcript, and model credential remain external |
 | Judge-path accessibility and desktop/mobile proof | VERIFIED | Shared keyboard/touch finder, design review, accessibility tree, and 1280x720/390x844 proof |
 | Challenge-first README, submission copy, and video script | VERIFIED | Root README plus `docs/webmcp/SUBMISSION.md`, `VIDEO_SCRIPT.md`, and automated retired-scope guard |
-| Clean-clone and public-release safety audit | LOCALLY VERIFIED / OWNER-GATED | Sanitized candidate `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c`: frozen install, typecheck, build, 30 tests, Chrome 9/9 + 13 deeper executions, release audit, product-design proof, and exact 3,329-file generator match |
+| Clean-clone and public-release safety audit | LOCALLY VERIFIED / OWNER-GATED | Sanitized candidate will be refreshed after the live ChatGPT E2E slice; the prior `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20` candidate remains the last clean-clone proof |
 
 ## Submission boundary
 

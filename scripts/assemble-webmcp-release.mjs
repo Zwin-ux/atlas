@@ -58,7 +58,12 @@ const testFiles = [
 const evalFiles = [
   "evals/atlas-webmcp.evals.json",
   "evals/atlas-webmcp.smoke.json",
+  "evals/atlas-chatgpt.transcript.template.json",
+  "scripts/run-chatgpt-e2e.mjs",
+  "scripts/run-grok-webmcp-evals.mjs",
   "scripts/run-webmcp-evals.mjs",
+  "scripts/verify-chatgpt-live.mjs",
+  "scripts/verify-chatgpt-transcript.mjs",
   "scripts/verify-webmcp-browser-smoke.mjs",
   "scripts/write-webmcp-eval-tools.ts",
 ];
@@ -101,6 +106,7 @@ await copyFile("artifacts/webmcp-proof/trail-overview-desktop.png", "docs/assets
 await copyFile("docs/webmcp/VIDEO_SCRIPT.md", "docs/VIDEO_SCRIPT.md");
 await copyFile("docs/webmcp/EVALS.md", "docs/EVALS.md");
 await copyFile("docs/webmcp/CHATGPT_ACCEPTANCE.md", "docs/CHATGPT_ACCEPTANCE.md");
+await copyFile("docs/webmcp/CHATGPT_E2E.md", "docs/CHATGPT_E2E.md");
 await copyFile("docs/webmcp/SUBMISSION.md", "docs/SUBMISSION.md");
 
 const submissionPath = resolve(targetRoot, "docs/SUBMISSION.md");

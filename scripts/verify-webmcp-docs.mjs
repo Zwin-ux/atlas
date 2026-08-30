@@ -27,6 +27,7 @@ const submission = story.get("docs/webmcp/SUBMISSION.md") ?? "";
 const video = story.get("docs/webmcp/VIDEO_SCRIPT.md") ?? "";
 const release = await readFile("docs/webmcp/RELEASE_PACKET.md", "utf8");
 const chatgptAcceptance = await readFile("docs/webmcp/CHATGPT_ACCEPTANCE.md", "utf8");
+const chatgptE2e = await readFile("docs/webmcp/CHATGPT_E2E.md", "utf8");
 
 for (const name of toolNames) {
   assert(readme.includes(`\`${name}\``), `README is missing the ${name} tool.`);
@@ -44,8 +45,11 @@ assert(submission.includes("Apache-2.0"), "Submission copy must identify the own
 assert(video.includes("Target runtime: **2:45**") && video.includes("Hard maximum: **2:55**"), "Video script must keep its under-three-minute budget.");
 assert(readme.includes("docs/webmcp/SUBMISSION.md") && readme.includes("docs/webmcp/VIDEO_SCRIPT.md") && readme.includes("docs/webmcp/RELEASE_PACKET.md"), "README must link the release documents.");
 assert(readme.includes("docs/webmcp/CHATGPT_ACCEPTANCE.md"), "README must link the ChatGPT Site Tools acceptance script.");
+assert(readme.includes("docs/webmcp/CHATGPT_E2E.md"), "README must link the live ChatGPT end-to-end environment.");
 assert(chatgptAcceptance.includes("GPT-5.6 Sol") && chatgptAcceptance.includes("GPT-5.6 Terra") && chatgptAcceptance.includes("GPT-5.6 Luna"), "ChatGPT acceptance must record the current supported-model boundary.");
 assert(chatgptAcceptance.includes("mapChanged: false") && chatgptAcceptance.includes("stopNumber") && chatgptAcceptance.includes("Recently used"), "ChatGPT acceptance must cover ambiguity, trail recovery, and browser evidence.");
+assert(chatgptE2e.includes("releaseReady") && chatgptE2e.includes("pnpm e2e:chatgpt") && chatgptE2e.includes("pnpm eval:webmcp:grok"), "ChatGPT E2E docs must distinguish complete evidence and record the Grok lane.");
+assert(chatgptE2e.includes("page-native WebMCP") && chatgptE2e.includes("should not expose a second `/mcp` mutation path"), "ChatGPT E2E docs must preserve the shared-page architecture boundary.");
 assert(release.includes("not safe to publish") && release.includes("## Owner gates"), "Release packet must preserve the public-safety stop gate.");
 
 console.log(JSON.stringify({

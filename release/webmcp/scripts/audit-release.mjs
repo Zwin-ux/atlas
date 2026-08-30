@@ -59,7 +59,7 @@ for (const path of relativeFiles) {
   }
 }
 
-for (const required of ["LICENSE", "ATTRIBUTION.md", "README.md", "CHALLENGE_DELTA.md", "docs/CHATGPT_ACCEPTANCE.md", "pnpm-lock.yaml", "railway.toml", "data/census/us-county-town-anchors.json", "data/atlas-plates/nation.json"]) {
+for (const required of ["LICENSE", "ATTRIBUTION.md", "README.md", "CHALLENGE_DELTA.md", "docs/CHATGPT_ACCEPTANCE.md", "docs/CHATGPT_E2E.md", "evals/atlas-chatgpt.transcript.template.json", "scripts/run-chatgpt-e2e.mjs", "scripts/verify-chatgpt-live.mjs", "scripts/verify-chatgpt-transcript.mjs", "pnpm-lock.yaml", "railway.toml", "data/census/us-county-town-anchors.json", "data/atlas-plates/nation.json"]) {
   if (!relativeFiles.includes(required)) failures.push(`Missing required release file: ${required}`);
 }
 

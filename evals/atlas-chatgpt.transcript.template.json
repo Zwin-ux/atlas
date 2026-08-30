@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "status": "template",
+  "capturedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+  "url": "https://replace-with-deployed-atlas.example/explore",
+  "client": {
+    "name": "ChatGPT desktop",
+    "version": "RECORD_ME",
+    "model": "GPT-5.6 Sol"
+  },
+  "siteTools": [
+    { "name": "get_map_state", "title": "What's on the Atlas map" },
+    { "name": "search_places", "title": "Find U.S. places" },
+    { "name": "open_place", "title": "Show a place on Atlas" },
+    { "name": "add_map_note", "title": "Add a place note" },
+    { "name": "create_map_trail", "title": "Build a research trail" }
+  ],
+  "steps": [
+    {
+      "id": "initial_state",
+      "prompt": "What am I looking at in Atlas right now?",
+      "tool": "get_map_state",
+      "arguments": {},
+      "result": { "ok": true, "current": { "level": "nation" } }
+    },
+    {
+      "id": "ambiguous_search",
+      "prompt": "I'd like to look at Springfield, but I'm not sure which state. Show me the choices first.",
+      "tool": "search_places",
+      "arguments": { "query": "Springfield" },
+      "result": {
+        "ok": true,
+        "query": "Springfield",
+        "candidates": [
+          { "name": "Springfield", "countyName": "Sangamon County", "countySlug": "sangamon-il", "state": "il", "kind": "place" },
+          { "name": "Springfield", "countyName": "Greene County", "countySlug": "greene-mo", "state": "mo", "kind": "place" }
+        ]
+      }
+    },
+    {
+      "id": "open_resolved_place",
+      "prompt": "Take me to Riverside County, California.",
+      "tool": "open_place",
+      "arguments": { "place": "Riverside County, CA" },
+      "result": {
+        "ok": true,
+        "mapChanged": true,
+        "visible": true,
+        "view": { "level": "county", "name": "Riverside County", "state": "ca" }
+      }
+    },
+    {
+      "id": "add_visible_note",
+      "prompt": "At Miami-Dade County, Florida, leave this note for me: Compare transit access around county offices.",
+      "tool": "add_map_note",
+      "arguments": { "place": "Miami-Dade County, FL", "body": "Compare transit access around county offices." },
+      "result": {
+        "ok": true,
+        "mapChanged": true,
+        "noteAdded": true,
+        "visible": true,
+        "view": { "level": "county", "name": "Miami-Dade County", "state": "fl" }
+      }
+    },
+    {
+      "id": "create_visible_trail",
+      "prompt": "Set up a research trail called County access check: first Riverside County, CA for public records, then Miami-Dade County, FL for transit access, then Travis County, TX for meeting notices.",
+      "tool": "create_map_trail",
+      "arguments": {
+        "title": "County access check",
+        "stops": [
+          { "place": "Riverside County, CA", "prompt": "Study public records" },
+          { "place": "Miami-Dade County, FL", "prompt": "Compare transit access" },
+          { "place": "Travis County, TX", "prompt": "Review meeting notices" }
+        ]
+      },
+      "result": {
+        "ok": true,
+        "mapChanged": true,
+        "trailChanged": true,
+        "visible": true,
+        "view": { "level": "nation", "overlay": "research_trail" },
+        "stopCount": 3
+      }
+    },
+    {
+      "id": "manual_stop_state",
+      "prompt": "I clicked the second trail stop myself. What am I looking at now?",
+      "humanAction": "Opened trail stop 2 from the map marker",
+      "tool": "get_map_state",
+      "arguments": {},
+      "result": {
+        "ok": true,
+        "current": { "level": "county", "countySlug": "miami-dade-fl", "name": "Miami-Dade County", "state": "fl" },
+        "trail": { "title": "County access check", "activeIndex": 1, "stops": [] }
+      }
+    },
+    {
+      "id": "ambiguous_open_unchanged",
+      "prompt": "Open Springfield.",
+      "tool": "open_place",
+      "arguments": { "place": "Springfield" },
+      "result": {
+        "ok": false,
+        "mapChanged": false,
+        "error": {
+          "code": "AMBIGUOUS_PLACE",
+          "message": "That name matches several indexed places.",
+          "candidates": [
+            { "name": "Springfield", "countyName": "Sangamon County", "countySlug": "sangamon-il", "state": "il", "kind": "place" },
+            { "name": "Springfield", "countyName": "Greene County", "countySlug": "greene-mo", "state": "mo", "kind": "place" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "failed_trail_unchanged",
+      "prompt": "Build a trail from Riverside County to Atlantis-by-the-Pacific.",
+      "tool": "create_map_trail",
+      "arguments": {
+        "title": "Failure check",
+        "stops": [
+          { "place": "Riverside County, CA", "prompt": "Check records" },
+          { "place": "Atlantis-by-the-Pacific", "prompt": "Check permits" }
+        ]
+      },
+      "result": {
+        "ok": false,
+        "mapChanged": false,
+        "trailChanged": false,
+        "stopNumber": 2,
+        "error": { "code": "UNKNOWN_PLACE", "message": "Atlas could not find that place.", "stopIndex": 1, "candidates": [] }
+      }
+    }
+  ],
+  "evidence": {
+    "availableSiteToolsScreenshot": "RECORD_ME",
+    "recentlyUsedScreenshot": "RECORD_ME",
+    "trailScreenshot": "RECORD_ME",
+    "consoleOrNotes": "RECORD_ME"
+  }
+}

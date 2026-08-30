@@ -25,11 +25,11 @@ const runs = Math.max(3, requestedRuns);
 const threshold = Math.max(0.90, requestedThreshold);
 const chromeChannel = process.env.ATLAS_WEBMCP_CHROME_CHANNEL ?? "chrome";
 
-function runNode(args) {
+function runNode(args, env = {}) {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(process.execPath, args, {
       cwd: root,
-      env: process.env,
+      env: { ...process.env, ...env },
       stdio: "inherit",
       windowsHide: true,
     });
@@ -114,6 +114,17 @@ function requireModelConfiguration() {
   if (model.startsWith("openai:") && !process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY is required for the selected OpenAI eval model.");
   }
+  if (model.startsWith("xai:")) {
+    if (!process.env.XAI_API_KEY) throw new Error("XAI_API_KEY is required for the selected xAI eval model.");
+    return {
+      backend: "vercel",
+      model: `openai:${model.slice("xai:".length)}`,
+      env: {
+        OPENAI_API_KEY: process.env.XAI_API_KEY,
+        OPENAI_BASE_URL: process.env.XAI_BASE_URL ?? "https://api.x.ai/v1",
+      },
+    };
+  }
   if (model.startsWith("anthropic:") && !process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY is required for the selected Anthropic eval model.");
   }
@@ -125,7 +136,7 @@ function requireModelConfiguration() {
     if (host.pathname === "/") host.pathname = "/v1";
     process.env.OLLAMA_HOST = host.href.replace(/\/$/, "");
   }
-  return { backend, model };
+  return { backend, model, env: {} };
 }
 
 async function latestJsonReport(outputDir) {
@@ -171,7 +182,7 @@ try {
     ]);
     await runNode([resolve(root, "scripts/verify-webmcp-browser-smoke.mjs"), "--url", url, "--chrome-channel", chromeChannel]);
   } else {
-    const { backend, model } = requireModelConfiguration();
+    const { backend, model, env } = requireModelConfiguration();
     const outputDir = resolve(root, ".evals", `${mode}-${Date.now()}`);
     if (mode === "browser") {
       localServer = process.env.ATLAS_WEBMCP_URL ? undefined : await startLocalServer();
@@ -191,7 +202,7 @@ try {
     if (mode === "local") commandArgs.push("-t", toolSchemaPath);
     else commandArgs.push("-u", url);
     commandArgs.push("-e", modelSuitePath);
-    await runNode(commandArgs);
+    await runNode(commandArgs, env);
     enforceModelThreshold(await latestJsonReport(outputDir));
   }
 } catch (error) {
