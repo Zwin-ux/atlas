@@ -19,7 +19,7 @@ This section is an implementation ledger, not a roadmap claim. An item moves to 
 |---|---|---|
 | Top-level no-login Atlas judge route | VERIFIED | Slice 1 route verifier plus desktop and 390x844 browser proof |
 | Shared human/agent `AtlasMapController` | VERIFIED | Slice 2 focused tests plus browser county/breadcrumb proof |
-| `get_map_state`, `search_places`, `open_place` | NOT STARTED | Slice 3 |
+| `get_map_state`, `search_places`, `open_place` | IMPLEMENTED | Slice 3 contracts and tests; registration held until exact-five set is complete |
 | Visible site-tool activity rail | NOT STARTED | Slice 4 |
 | Session-only `add_map_note` workflow | NOT STARTED | Slice 5 |
 | Atomic editable `create_map_trail` workflow | NOT STARTED | Slice 6 |

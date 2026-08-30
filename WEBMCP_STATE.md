@@ -5,27 +5,28 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green commit: `370ec495aebd14fcefd7bac5d99fa8a4c1147a51`
+- Last green commit: `491a7ddbbc7bd77987716dd141621df956d034d9`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `2 — Shared live map controller`
+- Slice: `3 — Census search/resolution and core WebMCP contracts`
 - Status: `GREEN — awaiting commit`
-- Player-visible promise: `Human county clicks, breadcrumbs, and future browser tools change one live map instead of competing copies of state.`
+- Player-visible promise: `An agent can read the current map, search Census-backed places, and open one unambiguous place on the visible map.`
 - Anti-scope: `No Scout, campaign, Hosted Clawd, Commons, billing, road expansion, or renderer rewrite.`
 
 ## Acceptance Checks
 
-- [x] Navigation state moved into one stable controller.
-- [x] Human county opening and breadcrumb navigation use controller transitions.
-- [x] A transition resolves only after its matching rendered revision is acknowledged.
-- [x] Failed and superseded transitions reject without hanging.
-- [x] The challenge route does not subscribe to the legacy Apps SDK tool writer.
-- [x] Legacy `/preview` behavior remains available.
-- [x] Focused controller tests pass.
-- [x] Typecheck and web build pass.
-- [x] Browser county drill-in and breadcrumb return pass.
+- [x] Same-origin search and resolution reuse the production Census gazetteer.
+- [x] Search returns at most eight public candidates without coordinates or raw geometry.
+- [x] Ambiguous and unknown names return structured results without mutation.
+- [x] Resolved places mutate once and wait for visible controller acknowledgment.
+- [x] Browser API payloads are runtime-validated before mutation.
+- [x] `get_map_state`, `search_places`, and `open_place` descriptors have narrow schemas and exact annotations.
+- [x] Execution cancellation reaches fetch and is checked before mutation.
+- [x] Official `webmcp-types` is pinned at `0.1.5`.
+- [x] Partial registration is withheld until all five descriptors exist.
+- [x] Focused tests and typecheck pass.
 
 ## Work Log
 
@@ -43,6 +44,15 @@
 - `web/src/main.tsx` — fences the legacy Apps SDK subscription away from `/` and `/explore`.
 - `web/test/atlas-map-controller.test.ts` — covers visible acknowledgment, breadcrumbs, failures, supersession, and invalid depth.
 - `package.json` — adds the focused controller test command.
+- `server/src/atlasPlaceSearch.ts` — exposes a bounded public projection of Census-backed place results.
+- `server/src/index.ts` — adds same-origin `/api/atlas/search` and `/api/atlas/resolve` routes.
+- `server/test/atlas-place-search.test.ts` — covers bounded search, ambiguity, unknown places, and query validation.
+- `web/src/atlas/webmcpTools.ts` — defines the first three imperative WebMCP descriptors without registering a partial set.
+- `web/src/atlas/AtlasMapController.ts` — adds validated search/open operations and visible selected-place state.
+- `web/src/atlas/AtlasApp.tsx` and `web/src/atlas/atlas.css` — render a restrained selected-place HUD.
+- `web/test/webmcp-tools.test.ts` — verifies names, annotations, schemas, state reads, signal propagation, and invalid inputs.
+- `web/test/atlas-map-controller.test.ts` — adds resolved, ambiguous, and malformed-payload mutation tests.
+- `package.json` and `pnpm-lock.yaml` — pin `webmcp-types@0.1.5` and add focused commands.
 
 ### Commands and results
 
@@ -66,6 +76,13 @@
 | `pnpm test:atlas-controller` | PASS | 5 tests; visible acknowledgment, navigation, failure, supersession, and invalid depth. |
 | `pnpm typecheck:starter` | PASS | Controller and React integration typecheck cleanly. |
 | `pnpm build:web` | PASS | Controller-backed browser bundle built successfully. |
+| `pnpm test:atlas-place-search` | PASS | 4 server search/resolution contract tests. |
+| `pnpm test:webmcp-core` | PASS | 4 descriptor and execution tests. |
+| `pnpm test:atlas-controller` | PASS | 8 tests including resolved, ambiguous, and malformed place responses. |
+| Live `/api/atlas/search?query=Riverside, CA` | PASS | Returned Riverside city and county candidates without geometry. |
+| Live `/api/atlas/resolve?query=Riverside, CA` | PASS | Resolved to Riverside in Riverside County, California. |
+| Live `/api/atlas/resolve?query=Springfield` | PASS | Returned eight candidates; no guessed mutation. |
+| Live `/api/atlas/resolve?query=Atlantis-by-the-Pacific` | PASS | Returned honest `unresolved` with no candidates. |
 
 ### Browser proof
 
@@ -78,10 +95,10 @@
 
 ### Review
 
-- Reviewer: `/review` checklist plus independent architecture and WebMCP specification reviews.
-- High findings: `0` in Slice 2.
-- Medium findings: `0` after fixing a pre-review superseded-transition hang.
-- Disposition: `CLEAN`. Read/search/open behavior and actual WebMCP registration are intentionally Slice 3.
+- Reviewer: `/review` checklist plus independent WebMCP specification review.
+- High findings: `0` in Slice 3.
+- Medium findings: `0` after adding runtime validation for browser API payloads before mutation.
+- Disposition: `CLEAN`. Registration remains intentionally withheld until the exact five-tool set exists.
 
 ## Risks and Blockers
 
@@ -92,14 +109,14 @@
 
 ## Exact Next Action
 
-Commit the shared controller slice, then add narrow Census-backed search and resolution contracts before registering the three read/open WebMCP tools.
+Commit the core tool contract slice, then add the visible site-tool activity rail and session-only note mutation.
 
 ## Slice Queue
 
 1. No-login challenge route and baseline — GREEN (`370ec495`)
-2. Shared AtlasMapController — GREEN, awaiting commit
-3. Read/search/open WebMCP tools — QUEUED
-4. AgentActivityRail — QUEUED
+2. Shared AtlasMapController — GREEN (`491a7ddb`)
+3. Read/search/open WebMCP tools — GREEN, awaiting commit; registration held for exact-five cut
+4. AgentActivityRail — NEXT
 5. Session note tool — QUEUED
 6. Atomic research trail — QUEUED
 7. WebMCP verifier and negative cases — QUEUED

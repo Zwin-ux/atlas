@@ -11,6 +11,7 @@ import {
   RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server";
 import { loadAtlasIndex } from "./atlasIndex.js";
+import { createAtlasPlaceSearch, validateAtlasPlaceQuery } from "./atlasPlaceSearch.js";
 import { createAtlasPlateService, plateHttpStatus } from "./atlasPlates.js";
 import { ATLAS_TOOL_NAMES, registerAtlasTools } from "./atlasTools.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -139,6 +140,7 @@ const loadCountyGeoPack = createCountyGeoPackLoader(GEO_PACKS_DIR);
 // never disagree about what Atlas knows.
 const ATLAS_PLATE_DIR = resolve(ROOT_DIR, "artifacts", "atlas-plates");
 const atlasIndex = loadAtlasIndex(resolve(ROOT_DIR, "data", "census", "us-county-town-anchors.json"));
+const atlasPlaceSearch = createAtlasPlaceSearch(atlasIndex);
 const atlasPlateService = createAtlasPlateService({
   plateDir: ATLAS_PLATE_DIR,
   geoPacksDir: GEO_PACKS_DIR,
@@ -3834,6 +3836,22 @@ const httpServer = createServer(async (req, res) => {
 
     const rest = url.pathname.slice("/api/atlas/".length);
     const [kind, id] = rest.split("/");
+
+    if ((kind === "search" || kind === "resolve") && !id) {
+      const query = validateAtlasPlaceQuery(url.searchParams.get("query"));
+      if (!query) {
+        jsonResponse(res, 400, { ok: false, error: "query must contain 1 to 120 characters" });
+        return;
+      }
+
+      if (kind === "search") {
+        jsonResponse(res, 200, { ok: true, query, candidates: atlasPlaceSearch.search(query) });
+        return;
+      }
+
+      jsonResponse(res, 200, { ok: true, ...atlasPlaceSearch.resolve(query) });
+      return;
+    }
 
     const result =
       kind === "nation" && !id

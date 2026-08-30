@@ -18,6 +18,8 @@
     "typecheck": "pnpm typecheck:starter && pnpm typecheck:workspaces",
     "test:core": "pnpm --dir packages/core test",
     "test:atlas-controller": "tsx --test web/test/atlas-map-controller.test.ts",
+    "test:atlas-place-search": "tsx --test server/test/atlas-place-search.test.ts",
+    "test:webmcp-core": "tsx --test web/test/webmcp-tools.test.ts",
     "test:hosted-clawd": "tsx --test server/test/hosted-clawd-persistence-foundation.test.ts",
     "test:hosted-clawd-billing": "tsx --test server/test/hosted-clawd-stripe-test-billing.test.ts",
     "test:hosted-clawd-protected-tool-gate": "tsx --test server/test/hosted-clawd-protected-tool-gate.test.ts",
@@ -90,6 +92,7 @@
     "esbuild": "^0.25.12",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2",
-    "vite": "^7.1.1"
+    "vite": "^7.1.1",
+    "webmcp-types": "0.1.5"
   }
 }

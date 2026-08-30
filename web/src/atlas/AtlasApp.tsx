@@ -67,7 +67,7 @@ export type AtlasAppProps = {
 
 export function AtlasApp({ initialRef, coverage, apiBase = "", controller: externalController }: AtlasAppProps) {
   const ownedController = useRef<AtlasMapController | null>(null);
-  if (!ownedController.current) ownedController.current = new AtlasMapController(initialRef);
+  if (!ownedController.current) ownedController.current = new AtlasMapController(initialRef, apiBase);
   const controller = externalController ?? ownedController.current;
   const map = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
@@ -162,6 +162,15 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
           </span>
         ))}
       </nav>
+
+      {map.selectedPlace ? (
+        <div className="atlas-app__selection" role="status" aria-live="polite">
+          <strong>{map.selectedPlace.name}</strong>
+          <span>
+            {map.selectedPlace.kind === "county" ? map.selectedPlace.state.toUpperCase() : `${map.selectedPlace.countyName}, ${map.selectedPlace.state.toUpperCase()}`}
+          </span>
+        </div>
+      ) : null}
 
       <div className="atlas-app__stage">
         {load.status === "ready" ? (

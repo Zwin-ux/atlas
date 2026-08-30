@@ -75,6 +75,9 @@ importers:
       vite:
         specifier: ^7.1.1
         version: 7.3.6(@types/node@24.13.2)(tsx@4.22.4)
+      webmcp-types:
+        specifier: 0.1.5
+        version: 0.1.5
 
   apps/web:
     devDependencies:
@@ -1542,6 +1545,7 @@ packages:
   '@xmldom/xmldom@0.8.13':
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   accepts@2.0.0:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
@@ -2293,6 +2297,9 @@ packages:
         optional: true
       jsdom:
         optional: true
+
+  webmcp-types@0.1.5:
+    resolution: {integrity: sha512-QAfuzNJ+hiY2JLpPbD/6xZruLQlsqtWUDqQCRruqD0dbtZHDg6IUZ2K0zctlRokwuscGlr47i6hKv8mQPSQLhw==}
 
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
@@ -4493,6 +4500,8 @@ snapshots:
       - terser
       - tsx
       - yaml
+
+  webmcp-types@0.1.5: {}
 
   which@2.0.2:
     dependencies:

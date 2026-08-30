@@ -70,3 +70,85 @@ test("invalid breadcrumb depth does not mutate state", async () => {
   await assert.rejects(controller.goToDepth(2), /out of range/);
   assert.equal(controller.getSnapshot(), before);
 });
+
+test("openPlace resolves every name before one visible controller mutation", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    ok: true,
+    status: "resolved",
+    place: {
+      name: "Riverside",
+      countySlug: "riverside-ca",
+      countyName: "Riverside County",
+      state: "ca",
+      kind: "place",
+    },
+  }), { status: 200, headers: { "content-type": "application/json" } });
+
+  try {
+    const transition = controllerOpenPlace();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    const pending = transition.controller.getSnapshot();
+    assert.equal(pending.revision, 1);
+    assert.equal(pending.current.level, "county");
+    assert.equal(pending.selectedPlace?.name, "Riverside");
+
+    transition.controller.acknowledgeVisible(1);
+    assert.deepEqual(await transition.result, {
+      ok: true,
+      place: pending.selectedPlace,
+      revision: 1,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("ambiguous openPlace results leave the complete map snapshot unchanged", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    ok: true,
+    status: "ambiguous",
+    query: "Springfield",
+    candidates: [{
+      name: "Springfield",
+      countySlug: "sangamon-il",
+      countyName: "Sangamon County",
+      state: "il",
+      kind: "place",
+    }],
+  }), { status: 200, headers: { "content-type": "application/json" } });
+
+  try {
+    const controller = new AtlasMapController();
+    const before = controller.getSnapshot();
+    const result = await controller.openPlace({ place: "Springfield" });
+    assert.equal(result.ok, false);
+    assert.equal(controller.getSnapshot(), before);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("invalid resolution payloads fail before mutation", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    ok: true,
+    status: "resolved",
+    place: { name: "Riverside", countySlug: "../../escape", countyName: "Riverside County", state: "ca", kind: "place" },
+  }), { status: 200, headers: { "content-type": "application/json" } });
+
+  try {
+    const controller = new AtlasMapController();
+    const before = controller.getSnapshot();
+    await assert.rejects(controller.openPlace({ place: "Riverside" }), /invalid resolved place/);
+    assert.equal(controller.getSnapshot(), before);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+function controllerOpenPlace() {
+  const controller = new AtlasMapController();
+  return { controller, result: controller.openPlace({ place: "Riverside, CA" }) };
+}

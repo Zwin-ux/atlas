@@ -324,6 +324,31 @@ body {
   font-weight: 600;
 }
 
+.atlas-app__selection {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, var(--atlas-page-fg) 20%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--atlas-page-bg) 90%, transparent);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.atlas-app__selection strong,
+.atlas-app__selection span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atlas-app__selection span {
+  color: color-mix(in srgb, var(--atlas-page-fg) 68%, transparent);
+}
+
 .atlas-app__sep {
   opacity: 0.4;
 }
