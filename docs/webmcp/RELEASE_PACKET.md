@@ -83,13 +83,13 @@ Risk: the private remote now contains the ChatGPT-first descriptors, result cont
 
 Rollback: move the private branch back to `ad0d5ab` only with a separate explicit destructive-history approval, or revert the one new commit with a normal follow-up commit.
 
-### Gate 1c - fast-forward the private remote to the live E2E candidate - READY, OWNER APPROVAL REQUIRED
+### Gate 1c - fast-forward the private remote to the live E2E candidate - COMPLETE
 
-Proposed action: push local `main` from `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` to the existing private GitHub repository. This is a one-commit fast-forward from remote `04aa4aaa` to exact locally verified candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a`; visibility remains private and no deployment is created.
+Completed August 30, 2026: owner activated release mode and sanitized `main` was pushed normally from remote `04aa4aaa` to exact candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a`. Post-push checks confirm `refs/heads/main` at that SHA, local and remote at `0 0`, default branch `main`, and repository visibility still `PRIVATE`. No deployment was created.
 
 Evidence: the generated tree matches the reviewed assembler output across all 3,336 files; a no-local clone at the exact candidate passes frozen install, typecheck, build, 32/32 WebMCP verification, Chrome 152 smoke (9/9 official steps and 13 deeper executions), the composed ChatGPT E2E automated lane, and the release audit with zero failures. The E2E report deliberately remains `releaseReady: false` because real ChatGPT and Grok evidence are not fabricated.
 
-Risk: the private remote gains the live-URL preflight, transcript validator, Grok 4.6 adapter, and supporting documentation. No visibility, deployment, authentication, or persistent storage changes.
+Risk: the private remote now contains the live-URL preflight, transcript validator, Grok 4.6 adapter, and supporting documentation. No visibility, deployment, authentication, or persistent storage changed.
 
 Rollback: revert this single commit with a normal follow-up commit. Moving the branch backward requires a separate destructive-history approval.
 
@@ -106,9 +106,9 @@ Required before changing visibility:
 
 Rollback: return the repository to private immediately. Do not attempt to repair an exposure by rewriting the historical Atlas repository.
 
-### Gate 3 — Railway deployment
+### Gate 3 — Railway deployment — READY, OWNER APPROVAL REQUIRED
 
-Proposed action: create a new Railway service from the sanitized repository and publish the candidate with the included `railway.toml` contract.
+Proposed action: create an isolated Railway project `atlas-webmcp-challenge` with service `atlas-webmcp` from private repository `Zwin-ux/atlas-webmcp-challenge` at exact candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a`, deploy it with the included `railway.toml`, and keep GitHub visibility private. Do not reuse the existing historical `atlas-chatgpt-app` project or its backend, worker, Postgres, and Redis services.
 
 Required evidence:
 
@@ -119,6 +119,10 @@ Required evidence:
 - normal-browser fallback works;
 - the deterministic smoke suite passes against the public URL;
 - rollback is recorded as the prior deployment or service removal.
+
+Risk: this creates the first public, no-login Atlas runtime and consumes Railway resources. A bad runtime would be reachable by URL even though the source repository remains private.
+
+Rollback: remove the new service or roll it back to its previous successful deployment. Because this is a new challenge service, service removal is the clean initial rollback.
 
 Railway's current config-as-code documentation says `railway.toml` remains supported for legacy services until December 1, 2026, although Railway now prefers its Infrastructure as Code path. That does not block the September 3 challenge deployment, but the owner should not treat this file as a long-term platform contract.
 
@@ -153,7 +157,7 @@ Required evidence:
 
 1. ~~Approve creation of the new private GitHub repository and initial push.~~ Complete at `ad0d5ab`.
 2. ~~Approve the one-commit private fast-forward to the ChatGPT-first candidate.~~ Complete at `04aa4aaa`.
-3. Approve the one-commit private fast-forward to live-E2E candidate `049ec222`.
+3. ~~Approve the one-commit private fast-forward to live-E2E candidate.~~ Complete at `049ec222`.
 4. Review the private tree, secret scan, license detection, and clean remote clone.
 5. Approve the new Railway service and deployment while keeping the repository private.
 6. Run public Chrome, ChatGPT built-in-browser, and Grok 4.6 acceptance using `docs/CHATGPT_E2E.md`.
