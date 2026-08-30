@@ -148,6 +148,102 @@ test("invalid resolution payloads fail before mutation", async () => {
   }
 });
 
+test("createMapTrail resolves every stop before one atomic mutation", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const query = new URL(String(input), "http://atlas.test").searchParams.get("query")!;
+    const byQuery = {
+      "Eastvale, CA": { name: "Eastvale", countySlug: "riverside-ca", countyName: "Riverside County", state: "ca", kind: "place" },
+      "Norco, CA": { name: "Norco", countySlug: "riverside-ca", countyName: "Riverside County", state: "ca", kind: "place" },
+    } as const;
+    return new Response(JSON.stringify({ ok: true, status: "resolved", place: byQuery[query as keyof typeof byQuery] }), { status: 200 });
+  };
+
+  try {
+    const controller = new AtlasMapController();
+    const resultPromise = controller.createMapTrail({ title: "River corridor", stops: [
+      { place: "Eastvale, CA", prompt: "Check flood sources" },
+      { place: "Norco, CA", prompt: "Compare river access" },
+    ] });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(controller.getSnapshot().revision, 1);
+    assert.equal(controller.getSnapshot().trail?.stops.length, 2);
+    controller.acknowledgeVisible(1);
+    const result = await resultPromise;
+    assert.equal(result.ok, true);
+    assert.equal(controller.getSnapshot().visibleRevision, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("one ambiguous trail stop leaves the complete workspace unchanged", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const query = new URL(String(input), "http://atlas.test").searchParams.get("query")!;
+    const body = query === "Springfield"
+      ? { ok: true, status: "ambiguous", query, candidates: [{ name: "Springfield", countySlug: "sangamon-il", countyName: "Sangamon County", state: "il", kind: "place" }] }
+      : { ok: true, status: "resolved", place: { name: "Eastvale", countySlug: "riverside-ca", countyName: "Riverside County", state: "ca", kind: "place" } };
+    return new Response(JSON.stringify(body), { status: 200 });
+  };
+
+  try {
+    const controller = new AtlasMapController();
+    const before = controller.getSnapshot();
+    const result = await controller.createMapTrail({ title: "Ambiguous trail", stops: [
+      { place: "Eastvale, CA", prompt: "Start here" },
+      { place: "Springfield", prompt: "Needs a state" },
+    ] });
+    assert.equal(result.ok, false);
+    assert.equal(controller.getSnapshot(), before);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("addMapNote resolves the place and displays the note before success", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    ok: true,
+    status: "resolved",
+    place: { name: "Eastvale", countySlug: "riverside-ca", countyName: "Riverside County", state: "ca", kind: "place" },
+  }), { status: 200 });
+
+  try {
+    const controller = new AtlasMapController();
+    const resultPromise = controller.addMapNote({ place: "Eastvale, CA", body: "Verify coastal flooding sources." });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(controller.getSnapshot().notes[0]?.body, "Verify coastal flooding sources.");
+    assert.equal(controller.getSnapshot().revision, 1);
+    controller.acknowledgeVisible(1);
+    const result = await resultPromise;
+    assert.equal(result.ok, true);
+    assert.equal(controller.getSnapshot().visibleRevision, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("execution cancellation during resolution leaves map state untouched", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => new Promise<Response>((_resolve, reject) => {
+    const signal = init?.signal;
+    signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+  });
+
+  try {
+    const controller = new AtlasMapController();
+    const before = controller.getSnapshot();
+    const execution = new AbortController();
+    const result = controller.openPlace({ place: "Riverside, CA" }, execution.signal);
+    execution.abort(new Error("canceled"));
+    await assert.rejects(result, /canceled/);
+    assert.equal(controller.getSnapshot(), before);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 function controllerOpenPlace() {
   const controller = new AtlasMapController();
   return { controller, result: controller.openPlace({ place: "Riverside, CA" }) };

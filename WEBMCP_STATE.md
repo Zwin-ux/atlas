@@ -5,28 +5,28 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green commit: `491a7ddbbc7bd77987716dd141621df956d034d9`
+- Last green commit: `7e2d2d8f562678941ce4fdc6e25c8f9b03f61c80`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `3 — Census search/resolution and core WebMCP contracts`
+- Slice: `4–7 — Exact-five registration, activity, notes, trails, and verifier`
 - Status: `GREEN — awaiting commit`
-- Player-visible promise: `An agent can read the current map, search Census-backed places, and open one unambiguous place on the visible map.`
+- Player-visible promise: `A supported browser discovers exactly five Atlas tools; every write leaves a visible, editable session artifact before success.`
 - Anti-scope: `No Scout, campaign, Hosted Clawd, Commons, billing, road expansion, or renderer rewrite.`
 
 ## Acceptance Checks
 
-- [x] Same-origin search and resolution reuse the production Census gazetteer.
-- [x] Search returns at most eight public candidates without coordinates or raw geometry.
-- [x] Ambiguous and unknown names return structured results without mutation.
-- [x] Resolved places mutate once and wait for visible controller acknowledgment.
-- [x] Browser API payloads are runtime-validated before mutation.
-- [x] `get_map_state`, `search_places`, and `open_place` descriptors have narrow schemas and exact annotations.
-- [x] Execution cancellation reaches fetch and is checked before mutation.
-- [x] Official `webmcp-types` is pinned at `0.1.5`.
-- [x] Partial registration is withheld until all five descriptors exist.
-- [x] Focused tests and typecheck pass.
+- [x] Exactly five descriptors register from top-level `/` and `/explore` only.
+- [x] Registration is all-or-none and one shared abort signal removes partial success.
+- [x] Normal browsers keep full manual map behavior with an honest unavailable status.
+- [x] Activity rail shows availability, sequence, timestamp, tool, state, and concise effect.
+- [x] `add_map_note` resolves first, enforces 240 characters, renders text safely, and waits for visibility.
+- [x] `create_map_trail` resolves all 2–5 stops before one mutation and opens the first stop.
+- [x] Ambiguous or canceled trail resolution leaves the complete prior snapshot unchanged.
+- [x] Humans can edit/remove note text, trail title, prompts, and stops without delete tools.
+- [x] All tool outputs stay below 1,500 serialized characters in maximum-text tests.
+- [x] `pnpm verify:webmcp`, full typecheck, and full build pass.
 
 ## Work Log
 
@@ -53,6 +53,14 @@
 - `web/test/webmcp-tools.test.ts` — verifies names, annotations, schemas, state reads, signal propagation, and invalid inputs.
 - `web/test/atlas-map-controller.test.ts` — adds resolved, ambiguous, and malformed-payload mutation tests.
 - `package.json` and `pnpm-lock.yaml` — pin `webmcp-types@0.1.5` and add focused commands.
+- `web/src/atlas/webmcpRegistry.ts` — feature-detects and registers the exact five top-level tools with rollback.
+- `web/src/atlas/webmcpTools.ts` — completes note and atomic-trail descriptors, execution activity, and bounded outputs.
+- `web/src/atlas/AtlasMapController.ts` — adds session notes, atomic trails, human edits/removals, activity, and cancellation-safe transitions.
+- `web/src/atlas/AtlasApp.tsx` and `web/src/atlas/atlas.css` — add the restrained activity and editable research rails with mobile touch targets.
+- `web/src/main.tsx` — mounts one challenge controller and registry while preserving the legacy preview fence.
+- `web/test/webmcp-registry.test.ts` — proves exact-five lifecycle and partial-registration rollback.
+- `scripts/verify-webmcp.mjs` — verifies the exact cut, schema guards, registration path, route fence, and origin headers.
+- `artifacts/webmcp-proof/five-tool-fallback-mobile.png` and `five-tool-fallback-desktop.png` — normal-browser fallback proof.
 
 ### Commands and results
 
@@ -71,6 +79,7 @@
 | `pnpm build` | PASS | Production build completed; only pre-existing bundler and manifest-skip warnings. |
 | `pnpm typecheck:starter` | PASS | Starter server and web contracts passed after route changes. |
 | `pnpm build:web` | PASS | `component.js` and `component.css` rebuilt successfully. |
+| Rebuilt-bundle heading check | PASS | The compiled bundle contains `Atlas shared U.S. map`; gstack `/browse` reports one level-one heading on `/explore`. |
 | `ATLAS_PREVIEW_URL=http://127.0.0.1:8797/preview pnpm verify:preview:http` | PASS | `/`, `/explore`, and `/preview` returned 200; judge routes exposed the required origin headers. |
 | `git diff --check` | PASS | No whitespace errors. |
 | `pnpm test:atlas-controller` | PASS | 5 tests; visible acknowledgment, navigation, failure, supersession, and invalid depth. |
@@ -83,6 +92,11 @@
 | Live `/api/atlas/resolve?query=Riverside, CA` | PASS | Resolved to Riverside in Riverside County, California. |
 | Live `/api/atlas/resolve?query=Springfield` | PASS | Returned eight candidates; no guessed mutation. |
 | Live `/api/atlas/resolve?query=Atlantis-by-the-Pacific` | PASS | Returned honest `unresolved` with no candidates. |
+| `pnpm verify:webmcp` | PASS | 24 focused tests plus static exact-five and route/registration checks. |
+| `pnpm typecheck` | PASS | Starter and workspace TypeScript checks passed. |
+| `pnpm build` | PASS | Starter, atlas plates, and workspace production builds completed; only pre-existing Radix and two skipped-manifest warnings. |
+| gstack `/browse` normal-browser fallback | PASS | `/explore` rendered at 1280x720 and 390x844 with manual zoom controls and no application errors. |
+| gstack accessibility tree | PASS | One main landmark, Atlas page heading, location navigation, map image label, attribution, and named 44px map controls. |
 
 ### Browser proof
 
@@ -91,36 +105,39 @@
 - Browser network isolation showed only same-origin map assets and `/api/atlas/nation`, all HTTP 200.
 - Manual county drill-in changed the visible map from the U.S. to Abbeville County and exposed a working U.S. breadcrumb.
 - Controller regression proof changed the map to Abbeville County and the shared breadcrumb returned it to the nationwide map.
+- Five-tool fallback desktop: `artifacts/webmcp-proof/five-tool-fallback-desktop.png`.
+- Five-tool fallback mobile 390x844: `artifacts/webmcp-proof/five-tool-fallback-mobile.png`.
 - Normal-browser fallback produced no application error. Chrome logged only the expected warning that the experimental `tools` feature was not enabled in this browser.
 
 ### Review
 
-- Reviewer: `/review` checklist plus independent WebMCP specification review.
-- High findings: `0` in Slice 3.
-- Medium findings: `0` after adding runtime validation for browser API payloads before mutation.
-- Disposition: `CLEAN`. Registration remains intentionally withheld until the exact five-tool set exists.
+- Reviewer: `/review` checklist plus independent WebMCP specification and release-safety reviews.
+- High findings: `0` in the exact-five implementation.
+- Medium findings: `0` after adding editable note text/title controls, timestamp visibility, 44px mobile removal targets, bounded state output, and an accessible page heading.
+- Disposition: `CLEAN` for local code. Real WebMCP-enabled Chrome and ChatGPT discovery remain external acceptance gates.
 
 ## Risks and Blockers
 
 - Public visibility, license selection, deployment, and Devpost submission remain owner gates.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - The normal local browser does not expose `document.modelContext`; WebMCP-enabled Chrome and ChatGPT acceptance remain unproven until the five tools exist.
+- The normal local browser still does not expose `document.modelContext`; an attempted browser-CLI injection hit a Windows argument-parser limit, while executable registry mocks pass. Do not claim real built-in-browser acceptance.
 - The existing repository and history are not publication-safe: old transcripts, challenge-scope leakage, missing license/provenance, and a roughly 414 MB tracked tree require a sanitized release boundary.
 
 ## Exact Next Action
 
-Commit the core tool contract slice, then add the visible site-tool activity rail and session-only note mutation.
+Commit the exact-five interaction slice, then finish judge-path accessibility, challenge-first documentation, and the sanitized owner-gated release packet.
 
 ## Slice Queue
 
 1. No-login challenge route and baseline — GREEN (`370ec495`)
 2. Shared AtlasMapController — GREEN (`491a7ddb`)
-3. Read/search/open WebMCP tools — GREEN, awaiting commit; registration held for exact-five cut
-4. AgentActivityRail — NEXT
-5. Session note tool — QUEUED
-6. Atomic research trail — QUEUED
-7. WebMCP verifier and negative cases — QUEUED
-8. Judge-path UX and browser proof — QUEUED
+3. Read/search/open WebMCP tools — GREEN (`7e2d2d8f` contracts)
+4. AgentActivityRail — GREEN, awaiting commit
+5. Session note tool — GREEN, awaiting commit
+6. Atomic research trail — GREEN, awaiting commit
+7. WebMCP verifier and negative cases — GREEN, awaiting commit
+8. Judge-path UX and browser proof — IN PROGRESS
 9. README/submission/video materials — QUEUED
 10. Clean-clone and public-release audit — AUDITED; remediation queued
 

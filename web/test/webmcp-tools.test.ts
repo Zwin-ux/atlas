@@ -4,21 +4,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { AtlasMapController } from "../src/atlas/AtlasMapController";
-import { ATLAS_CORE_WEBMCP_TOOL_NAMES, createAtlasCoreWebMcpTools } from "../src/atlas/webmcpTools";
+import { ATLAS_WEBMCP_TOOL_NAMES, createAtlasWebMcpTools } from "../src/atlas/webmcpTools";
 
 function tool(name: string, controller = new AtlasMapController()): WebMCP.ModelContextTool {
-  const found = createAtlasCoreWebMcpTools(controller).find((candidate) => candidate.name === name);
+  const found = createAtlasWebMcpTools(controller).find((candidate) => candidate.name === name);
   assert.ok(found, `missing ${name}`);
   return found;
 }
 
 test("core descriptors have the exact names, narrow schemas, and annotation cut", () => {
-  const tools = createAtlasCoreWebMcpTools(new AtlasMapController());
-  assert.deepEqual(tools.map((candidate) => candidate.name), [...ATLAS_CORE_WEBMCP_TOOL_NAMES]);
+  const tools = createAtlasWebMcpTools(new AtlasMapController());
+  assert.deepEqual(tools.map((candidate) => candidate.name), [...ATLAS_WEBMCP_TOOL_NAMES]);
   assert.deepEqual(tools.map((candidate) => candidate.annotations), [
     { readOnlyHint: true, untrustedContentHint: true },
     { readOnlyHint: true, untrustedContentHint: false },
     { readOnlyHint: false, untrustedContentHint: false },
+    { readOnlyHint: false, untrustedContentHint: true },
+    { readOnlyHint: false, untrustedContentHint: true },
   ]);
 
   for (const candidate of tools) {
@@ -42,11 +44,13 @@ test("get_map_state reads the controller's current visible state", async () => {
     current: { level: "county", countySlug: "riverside-ca", name: "Riverside County", state: "ca" },
     selectedPlace: {
       name: "Riverside County",
-      countySlug: "riverside-ca",
       countyName: "Riverside County",
       state: "ca",
       kind: "county",
     },
+    noteCount: 0,
+    recentNotes: [],
+    trail: null,
   });
 });
 
@@ -73,5 +77,36 @@ test("open_place returns structured validation errors before mutation", async ()
     ok: false,
     error: { code: "INVALID_INPUT", message: "place must contain 1 to 120 characters" },
   });
-  assert.equal(controller.getSnapshot(), before);
+  assert.equal(controller.getSnapshot().revision, before.revision);
+  assert.deepEqual(controller.getSnapshot().navigationStack, before.navigationStack);
+  assert.deepEqual(controller.getSnapshot().notes, before.notes);
+});
+
+test("write descriptors enforce nested schemas and expose untrusted-content annotations", () => {
+  const tools = createAtlasWebMcpTools(new AtlasMapController());
+  const trail = tools.find((candidate) => candidate.name === "create_map_trail")!;
+  const schema = trail.inputSchema as { properties: { stops: { items: { additionalProperties: boolean } } } };
+  assert.equal(schema.properties.stops.items.additionalProperties, false);
+  assert.deepEqual(trail.annotations, { readOnlyHint: false, untrustedContentHint: true });
+});
+
+test("get_map_state stays below the tool output budget with maximum session text", async () => {
+  const controller = new AtlasMapController();
+  const place = { name: "N".repeat(120), countySlug: "long-county-ca", countyName: "C".repeat(120), state: "ca", kind: "place" as const };
+  Object.defineProperty(controller, "getSnapshot", { value: () => ({
+    revision: 9,
+    visibleRevision: 9,
+    navigationStack: [{ level: "nation" }],
+    current: { level: "county", countySlug: "long-county-ca", name: "C".repeat(120) },
+    selectedPlace: place,
+    notes: [
+      { id: "note-1", place, body: "A".repeat(240) },
+      { id: "note-2", place, body: "B".repeat(240) },
+    ],
+    trail: { title: "T".repeat(60), activeIndex: 0, stops: Array.from({ length: 5 }, () => ({ place, prompt: "P".repeat(100) })) },
+    toolStatus: "available",
+  }) });
+
+  const result = await tool("get_map_state", controller).execute({}, { signal: new AbortController().signal });
+  assert.ok(JSON.stringify(result).length < 1_500);
 });

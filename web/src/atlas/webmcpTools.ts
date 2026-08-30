@@ -1,21 +1,27 @@
 /// <reference types="webmcp-types" />
 
-import type { AtlasMapController } from "./AtlasMapController";
+import type {
+  AddMapNoteResult,
+  AtlasMapController,
+  AtlasPlaceCandidate,
+  CreateMapTrailResult,
+  OpenPlaceResult,
+  PlaceSearchResult,
+} from "./AtlasMapController";
 
-export const ATLAS_CORE_WEBMCP_TOOL_NAMES = ["get_map_state", "search_places", "open_place"] as const;
+export const ATLAS_WEBMCP_TOOL_NAMES = [
+  "get_map_state",
+  "search_places",
+  "open_place",
+  "add_map_note",
+  "create_map_trail",
+] as const;
 
-const QUERY_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    query: {
-      type: "string",
-      minLength: 1,
-      maxLength: 120,
-      description: "A U.S. place, county, or place plus state, such as Riverside, CA.",
-    },
-  },
-  required: ["query"],
+const QUERY_PROPERTY = {
+  type: "string",
+  minLength: 1,
+  maxLength: 120,
+  description: "A U.S. place, county, or place plus state, such as Riverside, CA.",
 } as const;
 
 function readBoundedString(input: Record<string, unknown>, key: string, maxLength: number): string | undefined {
@@ -29,59 +35,186 @@ function invalidInput(message: string) {
   return { ok: false, error: { code: "INVALID_INPUT", message } };
 }
 
-export function createAtlasCoreWebMcpTools(controller: AtlasMapController): WebMCP.ModelContextTool[] {
+function clip(value: string, maxLength: number): string {
+  return value.length <= maxLength ? value : `${value.slice(0, maxLength - 1)}…`;
+}
+
+async function runTool<T>(controller: AtlasMapController, name: string, runningSummary: string, work: () => Promise<T> | T, completedSummary: (result: T) => string): Promise<T> {
+  controller.recordToolActivity(name, "running", runningSummary);
+  try {
+    const result = await work();
+    controller.recordToolActivity(name, "completed", completedSummary(result));
+    return result;
+  } catch (error) {
+    controller.recordToolActivity(name, "failed", "The tool stopped before completing.");
+    throw error;
+  }
+}
+
+function compactCandidates(candidates: AtlasPlaceCandidate[]): AtlasPlaceCandidate[] {
+  const compact: AtlasPlaceCandidate[] = [];
+  for (const candidate of candidates) {
+    const next = [...compact, candidate];
+    if (JSON.stringify(next).length > 950) break;
+    compact.push(candidate);
+  }
+  return compact;
+}
+
+function compactResolution<T extends OpenPlaceResult | AddMapNoteResult>(result: T): T {
+  if (result.ok || !("candidates" in result.error)) return result;
+  return { ...result, error: { ...result.error, candidates: compactCandidates(result.error.candidates) } } as T;
+}
+
+function compactSearch(result: PlaceSearchResult): PlaceSearchResult {
+  return { ...result, candidates: compactCandidates(result.candidates) };
+}
+
+function compactTrail(result: CreateMapTrailResult) {
+  if (!result.ok) {
+    return {
+      ...result,
+      error: { ...result.error, ...(result.error.candidates ? { candidates: compactCandidates(result.error.candidates) } : {}) },
+    };
+  }
+  return {
+    ok: true,
+    revision: result.revision,
+    title: result.trail.title,
+    stopCount: result.trail.stops.length,
+    stops: result.trail.stops.map((stop) => ({ name: stop.place.name, state: stop.place.state })),
+  };
+}
+
+export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.ModelContextTool[] {
   return [
     {
       name: "get_map_state",
       title: "Read Atlas map state",
-      description: "Read the location and visible selection on the live Atlas map. This does not change the map.",
+      description: "Read the visible location, recent session notes, and active research trail on the live Atlas map. This does not change the map.",
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
-      execute: () => {
+      execute: () => runTool(controller, "get_map_state", "Reading the live map.", () => {
         const snapshot = controller.getSnapshot();
         return {
           ok: true,
           revision: snapshot.revision,
           visibleRevision: snapshot.visibleRevision,
-          current: snapshot.current,
-          selectedPlace: snapshot.selectedPlace ?? null,
+          current: snapshot.current.level === "county"
+            ? { level: "county", countySlug: clip(snapshot.current.countySlug, 80), name: snapshot.current.name ? clip(snapshot.current.name, 50) : undefined, state: snapshot.current.state }
+            : snapshot.current,
+          selectedPlace: snapshot.selectedPlace ? {
+            name: clip(snapshot.selectedPlace.name, 40),
+            countyName: clip(snapshot.selectedPlace.countyName, 40),
+            state: snapshot.selectedPlace.state,
+            kind: snapshot.selectedPlace.kind,
+          } : null,
+          noteCount: snapshot.notes.length,
+          recentNotes: snapshot.notes.slice(-2).map((note) => ({
+            id: note.id,
+            place: clip(note.place.name, 40),
+            state: note.place.state,
+            body: clip(note.body, 80),
+          })),
+          trail: snapshot.trail ? {
+            title: snapshot.trail.title,
+            activeIndex: snapshot.trail.activeIndex,
+            stops: snapshot.trail.stops.map((stop) => ({ name: clip(stop.place.name, 35), state: stop.place.state, prompt: clip(stop.prompt, 40) })),
+          } : null,
         };
-      },
+      }, () => "Read the current map state."),
     },
     {
       name: "search_places",
       title: "Search Atlas places",
       description: "Search the Census-backed Atlas index for U.S. places and counties. This does not change the map.",
-      inputSchema: QUERY_SCHEMA,
+      inputSchema: { type: "object", additionalProperties: false, properties: { query: QUERY_PROPERTY }, required: ["query"] },
       annotations: { readOnlyHint: true, untrustedContentHint: false },
-      execute: async (input, { signal }) => {
+      execute: (input, { signal }) => runTool(controller, "search_places", "Searching the Census place index.", async () => {
         const query = readBoundedString(input, "query", 120);
         if (!query) return invalidInput("query must contain 1 to 120 characters");
-        return controller.searchPlaces(query, signal);
-      },
+        return compactSearch(await controller.searchPlaces(query, signal));
+      }, (result) => result.ok ? `Found ${"candidates" in result ? result.candidates.length : 0} place candidates.` : "Search input was invalid."),
     },
     {
       name: "open_place",
       title: "Open a place on Atlas",
       description: "Resolve one U.S. place or county and open it on the visible Atlas map. Ambiguous names return candidates without changing the map.",
       inputSchema: {
-        ...QUERY_SCHEMA,
-        properties: {
-          place: {
-            type: "string",
-            minLength: 1,
-            maxLength: 120,
-            description: "The U.S. place or county to open, preferably including its state.",
-          },
-        },
+        type: "object",
+        additionalProperties: false,
+        properties: { place: { ...QUERY_PROPERTY, description: "The U.S. place or county to open, preferably including its state." } },
         required: ["place"],
       },
       annotations: { readOnlyHint: false, untrustedContentHint: false },
-      execute: async (input, { signal }) => {
+      execute: (input, { signal }) => runTool(controller, "open_place", "Resolving and opening a place.", async () => {
         const place = readBoundedString(input, "place", 120);
         if (!place) return invalidInput("place must contain 1 to 120 characters");
-        return controller.openPlace({ place }, signal);
+        return compactResolution(await controller.openPlace({ place }, signal));
+      }, (result) => result.ok && "place" in result ? `Opened ${result.place.name}.` : "The place needs clarification."),
+    },
+    {
+      name: "add_map_note",
+      title: "Add a session map note",
+      description: "Resolve a mapped U.S. place, open it, and add one visible session-only research note. The note is not posted or persisted.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          place: QUERY_PROPERTY,
+          body: { type: "string", minLength: 1, maxLength: 240, description: "A session-only research note." },
+        },
+        required: ["place", "body"],
       },
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+      execute: (input, { signal }) => runTool(controller, "add_map_note", "Resolving the note location.", async () => {
+        const place = readBoundedString(input, "place", 120);
+        const body = readBoundedString(input, "body", 240);
+        if (!place || !body) return invalidInput("place must be 1 to 120 characters and body must be 1 to 240 characters");
+        return compactResolution(await controller.addMapNote({ place, body }, signal));
+      }, (result) => result.ok && "note" in result ? `Added a note at ${result.note.place.name}.` : "The note was not added."),
+    },
+    {
+      name: "create_map_trail",
+      title: "Create a session map trail",
+      description: "Resolve two to five U.S. places, then atomically create one visible editable research trail and open its first stop.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string", minLength: 1, maxLength: 60, description: "A short investigation title." },
+          stops: {
+            type: "array",
+            minItems: 2,
+            maxItems: 5,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                place: QUERY_PROPERTY,
+                prompt: { type: "string", minLength: 1, maxLength: 100, description: "What to investigate at this stop." },
+              },
+              required: ["place", "prompt"],
+            },
+          },
+        },
+        required: ["title", "stops"],
+      },
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+      execute: (input, { signal }) => runTool(controller, "create_map_trail", "Resolving every trail stop.", async () => {
+        const title = readBoundedString(input, "title", 60);
+        const stops = input.stops;
+        if (!title || !Array.isArray(stops) || stops.length < 2 || stops.length > 5) return invalidInput("title must be 1 to 60 characters and stops must contain 2 to 5 items");
+        const parsedStops = stops.map((stop) => {
+          if (typeof stop !== "object" || stop === null || Array.isArray(stop)) return undefined;
+          const record = stop as Record<string, unknown>;
+          const place = readBoundedString(record, "place", 120);
+          const prompt = readBoundedString(record, "prompt", 100);
+          return place && prompt ? { place, prompt } : undefined;
+        });
+        if (parsedStops.some((stop) => !stop)) return invalidInput("each stop needs a valid place and prompt");
+        return compactTrail(await controller.createMapTrail({ title, stops: parsedStops as Array<{ place: string; prompt: string }> }, signal));
+      }, (result) => result.ok ? `Created a ${"stopCount" in result ? result.stopCount : 0}-stop trail.` : "The trail was not created."),
     },
   ];
 }

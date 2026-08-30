@@ -19,11 +19,11 @@ This section is an implementation ledger, not a roadmap claim. An item moves to 
 |---|---|---|
 | Top-level no-login Atlas judge route | VERIFIED | Slice 1 route verifier plus desktop and 390x844 browser proof |
 | Shared human/agent `AtlasMapController` | VERIFIED | Slice 2 focused tests plus browser county/breadcrumb proof |
-| `get_map_state`, `search_places`, `open_place` | IMPLEMENTED | Slice 3 contracts and tests; registration held until exact-five set is complete |
-| Visible site-tool activity rail | NOT STARTED | Slice 4 |
-| Session-only `add_map_note` workflow | NOT STARTED | Slice 5 |
-| Atomic editable `create_map_trail` workflow | NOT STARTED | Slice 6 |
-| WebMCP verifier, lifecycle, negative cases, and fallback proof | NOT STARTED | Slice 7 |
+| `get_map_state`, `search_places`, `open_place` | VERIFIED | Exact-five registry plus controller, descriptor, lifecycle, and output tests |
+| Visible site-tool activity rail | VERIFIED | Availability, sequence, timestamp, tool state, and effect summary |
+| Session-only `add_map_note` workflow | VERIFIED | Resolution-first controller test and editable visible note rail |
+| Atomic editable `create_map_trail` workflow | VERIFIED | All-stops-first success/failure tests and editable stop rail |
+| WebMCP verifier, lifecycle, negative cases, and fallback proof | VERIFIED | `pnpm verify:webmcp` plus desktop/mobile normal-browser proof |
 | Judge-path accessibility and desktop/mobile proof | NOT STARTED | Slice 8 |
 | Challenge-first README, submission copy, and video script | NOT STARTED | Slice 9 |
 | Clean-clone and public-release safety audit | BLOCKED | Existing repository/history is not publication-safe; sanitized challenge edition recommended |

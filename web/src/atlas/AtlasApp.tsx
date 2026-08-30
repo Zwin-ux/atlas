@@ -135,6 +135,10 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
     controller.goToDepth(depth).catch(() => undefined);
   }, [controller]);
 
+  const openTrailStop = useCallback((index: number) => {
+    controller.openTrailStop(index).catch(() => undefined);
+  }, [controller]);
+
   const crumbs = useMemo(
     () => map.navigationStack.map((ref, depth) => ({
       ref,
@@ -146,6 +150,7 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
 
   return (
     <div className="atlas-app">
+      <h1 className="sr-only">Atlas shared U.S. map</h1>
       <nav className="atlas-app__crumbs" aria-label="Atlas location">
         {crumbs.map((crumb, i) => (
           <span key={`${crumb.ref.level}-${i}`}>
@@ -172,6 +177,15 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
         </div>
       ) : null}
 
+      <div className="atlas-app__activity" data-status={map.toolStatus} aria-live="polite">
+        <span className="atlas-app__activity-status">Site tools {map.toolStatus}</span>
+        {map.lastActivity ? (
+          <span className="atlas-app__activity-event">
+            #{map.lastActivity.sequence} <time dateTime={map.lastActivity.at}>{new Date(map.lastActivity.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time> {map.lastActivity.tool}: {map.lastActivity.summary}
+          </span>
+        ) : null}
+      </div>
+
       <div className="atlas-app__stage">
         {load.status === "ready" ? (
           <AtlasPlate
@@ -195,6 +209,52 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
           </div>
         )}
       </div>
+
+      {map.trail || map.notes.length > 0 ? (
+        <aside className="atlas-app__research" aria-label="Session research">
+          {map.trail ? (
+            <section>
+              <p className="atlas-app__eyebrow">Map trail</p>
+              <label>
+                <span className="sr-only">Trail title</span>
+                <input className="atlas-app__trail-title" key={map.trail.title} defaultValue={map.trail.title} maxLength={60} onBlur={(event) => controller.updateTrailTitle(event.currentTarget.value).catch(() => undefined)} />
+              </label>
+              <ol className="atlas-app__trail">
+                {map.trail.stops.map((stop, index) => (
+                  <li key={`${stop.place.countySlug}-${index}`} className={index === map.trail?.activeIndex ? "is-active" : undefined}>
+                    <button type="button" className="atlas-app__trail-place" onClick={() => openTrailStop(index)}>
+                      <span>{index + 1}</span> {stop.place.name}, {stop.place.state.toUpperCase()}
+                    </button>
+                    <label>
+                      <span className="sr-only">Prompt for {stop.place.name}</span>
+                      <input key={stop.prompt} defaultValue={stop.prompt} maxLength={100} onBlur={(event) => controller.updateTrailPrompt(index, event.currentTarget.value).catch(() => undefined)} />
+                    </label>
+                    <button type="button" className="atlas-app__remove" aria-label={`Remove ${stop.place.name} from trail`} onClick={() => controller.removeTrailStop(index).catch(() => undefined)}>×</button>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+
+          {map.notes.length > 0 ? (
+            <section>
+              <p className="atlas-app__eyebrow">Session notes</p>
+              <ul className="atlas-app__notes">
+                {map.notes.map((note) => (
+                  <li key={note.id}>
+                    <strong>{note.place.name}</strong>
+                    <label>
+                      <span className="sr-only">Note at {note.place.name}</span>
+                      <textarea key={note.body} defaultValue={note.body} maxLength={240} rows={2} onBlur={(event) => controller.updateNote(note.id, event.currentTarget.value).catch(() => undefined)} />
+                    </label>
+                    <button type="button" className="atlas-app__remove" aria-label={`Remove note at ${note.place.name}`} onClick={() => controller.removeNote(note.id).catch(() => undefined)}>×</button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </aside>
+      ) : null}
     </div>
   );
 }

@@ -9,6 +9,10 @@ export type AtlasMapViewSnapshot = Readonly<{
   navigationStack: readonly PlateRef[];
   current: PlateRef;
   selectedPlace?: AtlasPlaceCandidate;
+  notes: readonly MapNote[];
+  trail?: MapTrail;
+  toolStatus: "unavailable" | "registering" | "available" | "failed";
+  lastActivity?: AtlasToolActivity;
 }>;
 
 export type AtlasPlaceCandidate = {
@@ -27,15 +31,42 @@ export type PlaceSearchResult = {
 
 export type OpenPlaceInput = { place: string };
 
+export type MapNote = {
+  id: string;
+  place: AtlasPlaceCandidate;
+  body: string;
+};
+
+export type AddMapNoteInput = { place: string; body: string };
+type PlaceResolutionError = {
+  code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE";
+  message: string;
+  candidates: AtlasPlaceCandidate[];
+};
+export type AddMapNoteResult =
+  | { ok: true; note: MapNote; revision: number }
+  | { ok: false; error: PlaceResolutionError | { code: "INVALID_INPUT"; message: string; candidates: [] } };
+
+export type MapTrailStop = { place: AtlasPlaceCandidate; prompt: string };
+export type MapTrail = { title: string; stops: readonly MapTrailStop[]; activeIndex: number };
+export type CreateMapTrailInput = { title: string; stops: Array<{ place: string; prompt: string }> };
+export type CreateMapTrailResult =
+  | { ok: true; trail: MapTrail; revision: number }
+  | { ok: false; error: { code: "INVALID_INPUT" | "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE"; message: string; stopIndex?: number; candidates?: AtlasPlaceCandidate[] } };
+
+export type AtlasToolActivity = {
+  sequence: number;
+  at: string;
+  tool: string;
+  state: "running" | "completed" | "failed";
+  summary: string;
+};
+
 export type OpenPlaceResult =
   | { ok: true; place: AtlasPlaceCandidate; revision: number }
   | {
       ok: false;
-      error: {
-        code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE";
-        message: string;
-        candidates: AtlasPlaceCandidate[];
-      };
+      error: PlaceResolutionError;
     };
 
 type VisibleWaiter = {
@@ -63,6 +94,8 @@ export class AtlasMapController {
   private visibleWaiters = new Map<number, VisibleWaiter>();
   private viewSnapshot: AtlasMapViewSnapshot;
   private readonly apiBase: string;
+  private noteSequence = 0;
+  private activitySequence = 0;
 
   constructor(initialRef: PlateRef = { level: "nation" }, apiBase = "") {
     this.apiBase = apiBase.replace(/\/+$/, "");
@@ -71,6 +104,8 @@ export class AtlasMapController {
       visibleRevision: -1,
       navigationStack: [initialRef],
       current: initialRef,
+      notes: [],
+      toolStatus: "unavailable",
     };
   }
 
@@ -80,6 +115,20 @@ export class AtlasMapController {
   };
 
   readonly getSnapshot = (): AtlasMapViewSnapshot => this.viewSnapshot;
+
+  setToolStatus(toolStatus: AtlasMapViewSnapshot["toolStatus"]): void {
+    if (toolStatus === this.viewSnapshot.toolStatus) return;
+    this.viewSnapshot = { ...this.viewSnapshot, toolStatus };
+    this.emit();
+  }
+
+  recordToolActivity(tool: string, state: AtlasToolActivity["state"], summary: string): void {
+    this.viewSnapshot = {
+      ...this.viewSnapshot,
+      lastActivity: { sequence: ++this.activitySequence, at: new Date().toISOString(), tool, state, summary },
+    };
+    this.emit();
+  }
 
   openCounty(countySlug: string, name: string, state?: string): Promise<void> {
     const county: PlateRef = {
@@ -137,9 +186,110 @@ export class AtlasMapController {
   }
 
   async openPlace(input: OpenPlaceInput, signal?: AbortSignal): Promise<OpenPlaceResult> {
+    const resolution = await this.resolvePlace(input.place, signal);
+    if (!resolution.ok) return resolution;
+    signal?.throwIfAborted();
+    const place = resolution.place;
+    await this.commitNavigation(navigationFor(place), place);
+    return { ok: true, place, revision: this.viewSnapshot.revision };
+  }
+
+  async addMapNote(input: AddMapNoteInput, signal?: AbortSignal): Promise<AddMapNoteResult> {
+    const body = input.body.trim();
+    if (!body || body.length > 240) {
+      return { ok: false, error: { code: "INVALID_INPUT", message: "body must contain 1 to 240 characters", candidates: [] } };
+    }
+    const resolution = await this.resolvePlace(input.place, signal);
+    if (!resolution.ok) return resolution;
+    signal?.throwIfAborted();
+
+    const note: MapNote = { id: `note-${++this.noteSequence}`, place: resolution.place, body };
+    await this.commitWorkspace(navigationFor(resolution.place), resolution.place, {
+      notes: [...this.viewSnapshot.notes, note],
+    });
+    return { ok: true, note, revision: this.viewSnapshot.revision };
+  }
+
+  async createMapTrail(input: CreateMapTrailInput, signal?: AbortSignal): Promise<CreateMapTrailResult> {
+    const title = input.title.trim();
+    if (!title || title.length > 60 || input.stops.length < 2 || input.stops.length > 5) {
+      return { ok: false, error: { code: "INVALID_INPUT", message: "title must be 1 to 60 characters and stops must contain 2 to 5 items" } };
+    }
+    for (const stop of input.stops) {
+      if (!stop.place.trim() || stop.place.trim().length > 120 || !stop.prompt.trim() || stop.prompt.trim().length > 100) {
+        return { ok: false, error: { code: "INVALID_INPUT", message: "each stop needs a 1 to 120 character place and 1 to 100 character prompt" } };
+      }
+    }
+
+    const resolutions = await Promise.all(input.stops.map((stop) => this.resolvePlace(stop.place.trim(), signal)));
+    const failedIndex = resolutions.findIndex((resolution) => !resolution.ok);
+    if (failedIndex >= 0) {
+      const failure = resolutions[failedIndex]!;
+      if (failure.ok) throw new Error("Atlas trail resolution state was inconsistent.");
+      return { ok: false, error: { ...failure.error, stopIndex: failedIndex } };
+    }
+    signal?.throwIfAborted();
+
+    const stops: MapTrailStop[] = resolutions.map((resolution, index) => {
+      if (!resolution.ok) throw new Error("Atlas trail resolution changed after validation.");
+      return { place: resolution.place, prompt: input.stops[index]!.prompt.trim() };
+    });
+    const trail: MapTrail = { title, stops, activeIndex: 0 };
+    await this.commitWorkspace(navigationFor(stops[0]!.place), stops[0]!.place, { trail });
+    return { ok: true, trail, revision: this.viewSnapshot.revision };
+  }
+
+  openTrailStop(index: number): Promise<void> {
+    const trail = this.viewSnapshot.trail;
+    const stop = trail?.stops[index];
+    if (!trail || !stop) return Promise.reject(new Error("Atlas trail stop is out of range."));
+    return this.commitWorkspace(navigationFor(stop.place), stop.place, { trail: { ...trail, activeIndex: index } });
+  }
+
+  updateTrailPrompt(index: number, prompt: string): Promise<void> {
+    const trail = this.viewSnapshot.trail;
+    const body = prompt.trim();
+    if (!trail?.stops[index] || !body || body.length > 100) return Promise.reject(new Error("Trail prompt must contain 1 to 100 characters."));
+    const stops = trail.stops.map((stop, stopIndex) => stopIndex === index ? { ...stop, prompt: body } : stop);
+    return this.commitWorkspace(this.viewSnapshot.navigationStack, this.viewSnapshot.selectedPlace, { trail: { ...trail, stops } });
+  }
+
+  updateTrailTitle(title: string): Promise<void> {
+    const trail = this.viewSnapshot.trail;
+    const value = title.trim();
+    if (!trail || !value || value.length > 60) return Promise.reject(new Error("Trail title must contain 1 to 60 characters."));
+    return this.commitWorkspace(this.viewSnapshot.navigationStack, this.viewSnapshot.selectedPlace, { trail: { ...trail, title: value } });
+  }
+
+  removeTrailStop(index: number): Promise<void> {
+    const trail = this.viewSnapshot.trail;
+    if (!trail?.stops[index]) return Promise.reject(new Error("Atlas trail stop is out of range."));
+    const stops = trail.stops.filter((_, stopIndex) => stopIndex !== index);
+    const nextTrail = stops.length >= 2 ? { ...trail, stops, activeIndex: Math.min(trail.activeIndex, stops.length - 1) } : null;
+    return this.commitWorkspace(this.viewSnapshot.navigationStack, this.viewSnapshot.selectedPlace, { trail: nextTrail });
+  }
+
+  removeNote(id: string): Promise<void> {
+    const notes = this.viewSnapshot.notes.filter((note) => note.id !== id);
+    if (notes.length === this.viewSnapshot.notes.length) return Promise.reject(new Error("Atlas note was not found."));
+    return this.commitWorkspace(this.viewSnapshot.navigationStack, this.viewSnapshot.selectedPlace, { notes });
+  }
+
+  updateNote(id: string, body: string): Promise<void> {
+    const value = body.trim();
+    const index = this.viewSnapshot.notes.findIndex((note) => note.id === id);
+    if (index < 0 || !value || value.length > 240) return Promise.reject(new Error("Map note must contain 1 to 240 characters."));
+    const notes = this.viewSnapshot.notes.map((note, noteIndex) => noteIndex === index ? { ...note, body: value } : note);
+    return this.commitWorkspace(this.viewSnapshot.navigationStack, this.viewSnapshot.selectedPlace, { notes });
+  }
+
+  private async resolvePlace(query: string, signal?: AbortSignal): Promise<
+    | { ok: true; place: AtlasPlaceCandidate }
+    | Extract<OpenPlaceResult, { ok: false }>
+  > {
     const request: RequestInit = { headers: { accept: "application/json" } };
     if (signal) request.signal = signal;
-    const response = await fetch(`${this.apiBase}/api/atlas/resolve?query=${encodeURIComponent(input.place)}`, {
+    const response = await fetch(`${this.apiBase}/api/atlas/resolve?query=${encodeURIComponent(query)}`, {
       ...request,
     });
     if (!response.ok) throw new Error(await responseError(response, "Atlas could not resolve that place."));
@@ -166,16 +316,9 @@ export class AtlasMapController {
       };
     }
 
-    signal?.throwIfAborted();
     const place = parseCandidate(resolution.place);
     if (!place) throw new Error("Atlas returned an invalid resolved place.");
-    const navigation: PlateRef[] = [
-      { level: "nation" },
-      { level: "state", state: place.state },
-      { level: "county", countySlug: place.countySlug, state: place.state, name: place.countyName },
-    ];
-    await this.commitNavigation(navigation, place);
-    return { ok: true, place, revision: this.viewSnapshot.revision };
+    return { ok: true, place };
   }
 
   acknowledgeVisible(revision: number): void {
@@ -211,6 +354,14 @@ export class AtlasMapController {
   }
 
   private commitNavigation(navigationStack: readonly PlateRef[], selectedPlace?: AtlasPlaceCandidate): Promise<void> {
+    return this.commitWorkspace(navigationStack, selectedPlace, {});
+  }
+
+  private commitWorkspace(
+    navigationStack: readonly PlateRef[],
+    selectedPlace: AtlasPlaceCandidate | undefined,
+    changes: { notes?: readonly MapNote[]; trail?: MapTrail | null },
+  ): Promise<void> {
     const revision = this.viewSnapshot.revision + 1;
     const current = navigationStack[navigationStack.length - 1];
     if (!current) return Promise.reject(new Error("Atlas navigation cannot be empty."));
@@ -219,13 +370,16 @@ export class AtlasMapController {
       this.visibleWaiters.set(revision, { resolve, reject });
     });
 
-    const { selectedPlace: _previousSelection, ...previous } = this.viewSnapshot;
+    const { selectedPlace: _previousSelection, trail: previousTrail, ...previous } = this.viewSnapshot;
+    const nextTrail = "trail" in changes ? changes.trail : previousTrail;
     this.viewSnapshot = {
       ...previous,
       revision,
       navigationStack: [...navigationStack],
       current,
       ...(selectedPlace ? { selectedPlace } : {}),
+      ...(changes.notes ? { notes: changes.notes } : {}),
+      ...(nextTrail ? { trail: nextTrail } : {}),
     };
     this.emit();
     return visible;
@@ -287,4 +441,12 @@ function parseCandidates(value: unknown): AtlasPlaceCandidate[] {
   const parsed = value.slice(0, 8).map(parseCandidate);
   if (parsed.some((candidate) => !candidate)) throw new Error("Atlas returned an invalid place candidate.");
   return parsed as AtlasPlaceCandidate[];
+}
+
+function navigationFor(place: AtlasPlaceCandidate): PlateRef[] {
+  return [
+    { level: "nation" },
+    { level: "state", state: place.state },
+    { level: "county", countySlug: place.countySlug, state: place.state, name: place.countyName },
+  ];
 }

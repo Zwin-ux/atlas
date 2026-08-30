@@ -1,7 +1,10 @@
+import { useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 
 import { AtlasApp } from "./atlas/AtlasApp";
+import { AtlasMapController } from "./atlas/AtlasMapController";
 import { useToolPlate } from "./atlas/useToolPlate";
+import { mountAtlasWebMcp } from "./atlas/webmcpRegistry";
 
 /**
  * Shell theme plumbing.
@@ -44,6 +47,15 @@ function LegacyAtlasWidget() {
   return <AtlasApp initialRef={ref} coverage={coverage} apiBase={API_BASE} />;
 }
 
+function ChallengeAtlas() {
+  const controllerRef = useRef<AtlasMapController | null>(null);
+  if (!controllerRef.current) controllerRef.current = new AtlasMapController({ level: "nation" }, API_BASE);
+  const controller = controllerRef.current;
+
+  useEffect(() => mountAtlasWebMcp(controller), [controller]);
+  return <AtlasApp apiBase={API_BASE} controller={controller} />;
+}
+
 const isChallengeRoute = window.location.pathname === "/" || window.location.pathname === "/explore";
 
 const root = document.getElementById("root");
@@ -52,4 +64,4 @@ if (!root) {
   throw new Error("Missing #root element for Atlas widget.");
 }
 
-createRoot(root).render(isChallengeRoute ? <AtlasApp apiBase={API_BASE} /> : <LegacyAtlasWidget />);
+createRoot(root).render(isChallengeRoute ? <ChallengeAtlas /> : <LegacyAtlasWidget />);
