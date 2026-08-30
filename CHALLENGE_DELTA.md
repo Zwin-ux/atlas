@@ -27,7 +27,7 @@ This section is an implementation ledger, not a roadmap claim. An item moves to 
 | Official WebMCP eval fixtures and Chrome smoke acceptance | DETERMINISTIC VERIFIED / MODEL GATED | `webmcp-evals@0.0.4`; 9/9 official smoke steps and 13 tool executions with all Atlas assertions passing on Chrome 152; model runs require a working model backend |
 | Judge-path accessibility and desktop/mobile proof | VERIFIED | Shared keyboard/touch finder, design review, accessibility tree, and 1280x720/390x844 proof |
 | Challenge-first README, submission copy, and video script | VERIFIED | Root README plus `docs/webmcp/SUBMISSION.md`, `VIDEO_SCRIPT.md`, and automated retired-scope guard |
-| Clean-clone and public-release safety audit | LOCALLY VERIFIED / OWNER-GATED | Sanitized candidate `7f52ffb86e3e0362e2ee9d9c9a7e815e4a7162e7`: frozen install, typecheck, build, 30 tests, Chrome 9/9 + 13 deeper executions, release audit, and exact 3,329-file generator match |
+| Clean-clone and public-release safety audit | LOCALLY VERIFIED / OWNER-GATED | Sanitized candidate `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c`: frozen install, typecheck, build, 30 tests, Chrome 9/9 + 13 deeper executions, release audit, product-design proof, and exact 3,329-file generator match |
 
 ## Submission boundary
 
