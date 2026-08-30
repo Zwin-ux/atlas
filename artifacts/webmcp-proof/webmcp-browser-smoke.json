@@ -1,0 +1,507 @@
+{
+  "browser": "Chrome/152.0.7977.64",
+  "url": "http://127.0.0.1:54663/explore",
+  "tools": [
+    "get_map_state",
+    "search_places",
+    "open_place",
+    "add_map_note",
+    "create_map_trail"
+  ],
+  "checks": [
+    {
+      "name": "get_map_state",
+      "input": {},
+      "output": {
+        "ok": true,
+        "revision": 0,
+        "visibleRevision": 0,
+        "current": {
+          "level": "nation"
+        },
+        "selectedPlace": null,
+        "noteCount": 0,
+        "recentNotes": [],
+        "trail": null
+      }
+    },
+    {
+      "name": "search_places",
+      "input": {
+        "query": "Riverside County, CA"
+      },
+      "output": {
+        "ok": true,
+        "query": "Riverside County, CA",
+        "candidates": [
+          {
+            "name": "Riverside County",
+            "countySlug": "riverside-ca",
+            "countyName": "Riverside County",
+            "state": "ca",
+            "kind": "county"
+          }
+        ]
+      }
+    },
+    {
+      "name": "open_place",
+      "input": {
+        "place": "Riverside County, CA"
+      },
+      "output": {
+        "ok": true,
+        "place": {
+          "name": "Riverside County",
+          "countySlug": "riverside-ca",
+          "countyName": "Riverside County",
+          "state": "ca",
+          "kind": "county"
+        },
+        "revision": 1
+      }
+    },
+    {
+      "name": "add_map_note",
+      "input": {
+        "place": "Miami-Dade County, FL",
+        "body": "Compare transit access around county offices."
+      },
+      "output": {
+        "ok": true,
+        "note": {
+          "id": "note-1",
+          "place": {
+            "name": "Miami-Dade County",
+            "countySlug": "miami-dade-fl",
+            "countyName": "Miami-Dade County",
+            "state": "fl",
+            "kind": "county"
+          },
+          "body": "Compare transit access around county offices."
+        },
+        "revision": 2
+      }
+    },
+    {
+      "name": "create_map_trail",
+      "input": {
+        "title": "County access check",
+        "stops": [
+          {
+            "place": "Riverside County, CA",
+            "prompt": "Study public records"
+          },
+          {
+            "place": "Miami-Dade County, FL",
+            "prompt": "Compare transit access"
+          },
+          {
+            "place": "Travis County, TX",
+            "prompt": "Review meeting notices"
+          }
+        ]
+      },
+      "output": {
+        "ok": true,
+        "revision": 3,
+        "title": "County access check",
+        "stopCount": 3,
+        "stops": [
+          {
+            "name": "Riverside County",
+            "state": "ca"
+          },
+          {
+            "name": "Miami-Dade County",
+            "state": "fl"
+          },
+          {
+            "name": "Travis County",
+            "state": "tx"
+          }
+        ]
+      }
+    },
+    {
+      "name": "get_map_state",
+      "input": {},
+      "output": {
+        "ok": true,
+        "revision": 4,
+        "visibleRevision": 3,
+        "current": {
+          "level": "county",
+          "countySlug": "miami-dade-fl",
+          "name": "Miami-Dade County",
+          "state": "fl"
+        },
+        "selectedPlace": {
+          "name": "Miami-Dade County",
+          "countyName": "Miami-Dade County",
+          "state": "fl",
+          "kind": "county"
+        },
+        "noteCount": 1,
+        "recentNotes": [
+          {
+            "id": "note-1",
+            "place": "Miami-Dade County",
+            "state": "fl",
+            "body": "Compare transit access around county offices."
+          }
+        ],
+        "trail": {
+          "title": "County access check",
+          "activeIndex": 1,
+          "stops": [
+            {
+              "name": "Riverside County",
+              "state": "ca",
+              "prompt": "Study public records"
+            },
+            {
+              "name": "Miami-Dade County",
+              "state": "fl",
+              "prompt": "Compare transit access"
+            },
+            {
+              "name": "Travis County",
+              "state": "tx",
+              "prompt": "Review meeting notices"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "create_map_trail",
+      "input": {
+        "title": "County access check",
+        "stops": [
+          {
+            "place": "Riverside County, CA",
+            "prompt": "Study public records"
+          },
+          {
+            "place": "Miami-Dade County, FL",
+            "prompt": "Compare transit access"
+          },
+          {
+            "place": "Travis County, TX",
+            "prompt": "Review meeting notices"
+          }
+        ]
+      },
+      "output": {
+        "ok": true,
+        "revision": 5,
+        "title": "County access check",
+        "stopCount": 3,
+        "stops": [
+          {
+            "name": "Riverside County",
+            "state": "ca"
+          },
+          {
+            "name": "Miami-Dade County",
+            "state": "fl"
+          },
+          {
+            "name": "Travis County",
+            "state": "tx"
+          }
+        ]
+      }
+    },
+    {
+      "name": "get_map_state",
+      "input": {},
+      "output": {
+        "ok": true,
+        "revision": 5,
+        "visibleRevision": 5,
+        "current": {
+          "level": "nation"
+        },
+        "selectedPlace": {
+          "name": "Riverside County",
+          "countyName": "Riverside County",
+          "state": "ca",
+          "kind": "county"
+        },
+        "noteCount": 1,
+        "recentNotes": [
+          {
+            "id": "note-1",
+            "place": "Miami-Dade County",
+            "state": "fl",
+            "body": "Compare transit access around county offices."
+          }
+        ],
+        "trail": {
+          "title": "County access check",
+          "activeIndex": 0,
+          "stops": [
+            {
+              "name": "Riverside County",
+              "state": "ca",
+              "prompt": "Study public records"
+            },
+            {
+              "name": "Miami-Dade County",
+              "state": "fl",
+              "prompt": "Compare transit access"
+            },
+            {
+              "name": "Travis County",
+              "state": "tx",
+              "prompt": "Review meeting notices"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "create_map_trail",
+      "input": {
+        "title": "Unknown-stop check",
+        "stops": [
+          {
+            "place": "Riverside County, CA",
+            "prompt": "Study records"
+          },
+          {
+            "place": "Atlantis-by-the-Pacific",
+            "prompt": "Review permits"
+          }
+        ]
+      },
+      "output": {
+        "ok": false,
+        "error": {
+          "code": "UNKNOWN_PLACE",
+          "message": "Atlas could not find that place. Try a nearby candidate or include the state.",
+          "candidates": [],
+          "stopIndex": 1
+        }
+      }
+    },
+    {
+      "name": "get_map_state",
+      "input": {},
+      "output": {
+        "ok": true,
+        "revision": 5,
+        "visibleRevision": 5,
+        "current": {
+          "level": "nation"
+        },
+        "selectedPlace": {
+          "name": "Riverside County",
+          "countyName": "Riverside County",
+          "state": "ca",
+          "kind": "county"
+        },
+        "noteCount": 1,
+        "recentNotes": [
+          {
+            "id": "note-1",
+            "place": "Miami-Dade County",
+            "state": "fl",
+            "body": "Compare transit access around county offices."
+          }
+        ],
+        "trail": {
+          "title": "County access check",
+          "activeIndex": 0,
+          "stops": [
+            {
+              "name": "Riverside County",
+              "state": "ca",
+              "prompt": "Study public records"
+            },
+            {
+              "name": "Miami-Dade County",
+              "state": "fl",
+              "prompt": "Compare transit access"
+            },
+            {
+              "name": "Travis County",
+              "state": "tx",
+              "prompt": "Review meeting notices"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_map_state",
+      "input": {},
+      "output": {
+        "ok": true,
+        "revision": 5,
+        "visibleRevision": 5,
+        "current": {
+          "level": "nation"
+        },
+        "selectedPlace": {
+          "name": "Riverside County",
+          "countyName": "Riverside County",
+          "state": "ca",
+          "kind": "county"
+        },
+        "noteCount": 1,
+        "recentNotes": [
+          {
+            "id": "note-1",
+            "place": "Miami-Dade County",
+            "state": "fl",
+            "body": "Compare transit access around county offices."
+          }
+        ],
+        "trail": {
+          "title": "County access check",
+          "activeIndex": 0,
+          "stops": [
+            {
+              "name": "Riverside County",
+              "state": "ca",
+              "prompt": "Study public records"
+            },
+            {
+              "name": "Miami-Dade County",
+              "state": "fl",
+              "prompt": "Compare transit access"
+            },
+            {
+              "name": "Travis County",
+              "state": "tx",
+              "prompt": "Review meeting notices"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "open_place",
+      "input": {
+        "place": "Springfield"
+      },
+      "output": {
+        "ok": false,
+        "error": {
+          "code": "AMBIGUOUS_PLACE",
+          "message": "That name matches several indexed places. Choose a state or county from the candidates.",
+          "candidates": [
+            {
+              "name": "Springfield",
+              "countySlug": "greene-mo",
+              "countyName": "Greene County",
+              "state": "mo",
+              "kind": "place"
+            },
+            {
+              "name": "Springfield",
+              "countySlug": "hampden-ma",
+              "countyName": "Hampden County",
+              "state": "ma",
+              "kind": "place"
+            },
+            {
+              "name": "Springfield",
+              "countySlug": "sangamon-il",
+              "countyName": "Sangamon County",
+              "state": "il",
+              "kind": "place"
+            },
+            {
+              "name": "Springfield",
+              "countySlug": "lane-or",
+              "countyName": "Lane County",
+              "state": "or",
+              "kind": "place"
+            },
+            {
+              "name": "Springfield",
+              "countySlug": "clark-oh",
+              "countyName": "Clark County",
+              "state": "oh",
+              "kind": "place"
+            },
+            {
+              "name": "Springfield",
+              "countySlug": "robertson-tn",
+              "countyName": "Robertson County",
+              "state": "tn",
+              "kind": "place"
+            },
+            {
+              "name": "Springfield",
+              "countySlug": "bay-fl",
+              "countyName": "Bay County",
+              "state": "fl",
+              "kind": "place"
+            },
+            {
+              "name": "Springfield",
+              "countySlug": "calhoun-mi",
+              "countyName": "Calhoun County",
+              "state": "mi",
+              "kind": "place"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_map_state",
+      "input": {},
+      "output": {
+        "ok": true,
+        "revision": 5,
+        "visibleRevision": 5,
+        "current": {
+          "level": "nation"
+        },
+        "selectedPlace": {
+          "name": "Riverside County",
+          "countyName": "Riverside County",
+          "state": "ca",
+          "kind": "county"
+        },
+        "noteCount": 1,
+        "recentNotes": [
+          {
+            "id": "note-1",
+            "place": "Miami-Dade County",
+            "state": "fl",
+            "body": "Compare transit access around county offices."
+          }
+        ],
+        "trail": {
+          "title": "County access check",
+          "activeIndex": 0,
+          "stops": [
+            {
+              "name": "Riverside County",
+              "state": "ca",
+              "prompt": "Study public records"
+            },
+            {
+              "name": "Miami-Dade County",
+              "state": "fl",
+              "prompt": "Compare transit access"
+            },
+            {
+              "name": "Travis County",
+              "state": "tx",
+              "prompt": "Review meeting notices"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "consoleErrors": []
+}

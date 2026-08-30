@@ -130,10 +130,10 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
       description: "Search the Census-backed Atlas index for U.S. places and counties. This does not change the map.",
       inputSchema: { type: "object", additionalProperties: false, properties: { query: QUERY_PROPERTY }, required: ["query"] },
       annotations: { readOnlyHint: true, untrustedContentHint: false },
-      execute: (input, { signal }) => runTool(controller, "search_places", "Searching the Census place index.", async () => {
+      execute: (input, context) => runTool(controller, "search_places", "Searching the Census place index.", async () => {
         const query = readBoundedString(input, "query", 120);
         if (!query) return invalidInput("query must contain 1 to 120 characters");
-        return compactSearch(await controller.searchPlaces(query, signal));
+        return compactSearch(await controller.searchPlaces(query, context?.signal));
       }, (result) => result.ok ? `Found ${"candidates" in result ? result.candidates.length : 0} place candidates.` : "Search input was invalid."),
     },
     {
@@ -147,10 +147,10 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
         required: ["place"],
       },
       annotations: { readOnlyHint: false, untrustedContentHint: false },
-      execute: (input, { signal }) => runTool(controller, "open_place", "Resolving and opening a place.", async () => {
+      execute: (input, context) => runTool(controller, "open_place", "Resolving and opening a place.", async () => {
         const place = readBoundedString(input, "place", 120);
         if (!place) return invalidInput("place must contain 1 to 120 characters");
-        return compactResolution(await controller.openPlace({ place }, signal));
+        return compactResolution(await controller.openPlace({ place }, context?.signal));
       }, (result) => result.ok && "place" in result ? `Opened ${result.place.name}.` : "The place needs clarification."),
     },
     {
@@ -167,11 +167,11 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
         required: ["place", "body"],
       },
       annotations: { readOnlyHint: false, untrustedContentHint: true },
-      execute: (input, { signal }) => runTool(controller, "add_map_note", "Resolving the note location.", async () => {
+      execute: (input, context) => runTool(controller, "add_map_note", "Resolving the note location.", async () => {
         const place = readBoundedString(input, "place", 120);
         const body = readBoundedString(input, "body", 240);
         if (!place || !body) return invalidInput("place must be 1 to 120 characters and body must be 1 to 240 characters");
-        return compactResolution(await controller.addMapNote({ place, body }, signal));
+        return compactResolution(await controller.addMapNote({ place, body }, context?.signal));
       }, (result) => result.ok && "note" in result ? `Added a note at ${result.note.place.name}.` : "The note was not added."),
     },
     {
@@ -201,7 +201,7 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
         required: ["title", "stops"],
       },
       annotations: { readOnlyHint: false, untrustedContentHint: true },
-      execute: (input, { signal }) => runTool(controller, "create_map_trail", "Resolving every trail stop.", async () => {
+      execute: (input, context) => runTool(controller, "create_map_trail", "Resolving every trail stop.", async () => {
         const title = readBoundedString(input, "title", 60);
         const stops = input.stops;
         if (!title || !Array.isArray(stops) || stops.length < 2 || stops.length > 5) return invalidInput("title must be 1 to 60 characters and stops must contain 2 to 5 items");
@@ -213,7 +213,7 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
           return place && prompt ? { place, prompt } : undefined;
         });
         if (parsedStops.some((stop) => !stop)) return invalidInput("each stop needs a valid place and prompt");
-        return compactTrail(await controller.createMapTrail({ title, stops: parsedStops as Array<{ place: string; prompt: string }> }, signal));
+        return compactTrail(await controller.createMapTrail({ title, stops: parsedStops as Array<{ place: string; prompt: string }> }, context?.signal));
       }, (result) => result.ok ? `Created a ${"stopCount" in result ? result.stopCount : 0}-stop trail.` : "The trail was not created."),
     },
   ];

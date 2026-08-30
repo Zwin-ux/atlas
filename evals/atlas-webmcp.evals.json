@@ -1,0 +1,298 @@
+[
+  {
+    "name": "[direct] Read the current shared map",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "What county or national view is Atlas showing right now? Read the live map state."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_map_state",
+        "arguments": {},
+        "mockOutput": {
+          "ok": true,
+          "revision": 0,
+          "visibleRevision": 0,
+          "current": { "level": "nation" },
+          "noteCount": 0,
+          "recentNotes": [],
+          "trail": null
+        }
+      }
+    ]
+  },
+  {
+    "name": "[direct] Search for a specific county",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Search Atlas for Riverside County, California, but do not change the map."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "search_places",
+        "arguments": { "query": { "$contains": "Riverside" } },
+        "mockOutput": {
+          "ok": true,
+          "query": "Riverside County, California",
+          "candidates": [
+            {
+              "name": "Riverside County",
+              "countyName": "Riverside County",
+              "countySlug": "riverside-ca",
+              "state": "ca",
+              "kind": "county"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "[direct] Open one unambiguous county",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Open Riverside County, California on the visible Atlas map."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "open_place",
+        "arguments": { "place": { "$contains": "Riverside" } },
+        "mockOutput": {
+          "ok": true,
+          "revision": 1,
+          "place": {
+            "name": "Riverside County",
+            "countyName": "Riverside County",
+            "countySlug": "riverside-ca",
+            "state": "ca",
+            "kind": "county"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "[critical] Add one note without creating a trail",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Add a session-only note at Miami-Dade County, Florida: Compare transit access around county offices. Do not create a trail."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "add_map_note",
+        "arguments": {
+          "place": { "$contains": "Miami-Dade" },
+          "body": { "$contains": "transit access" }
+        },
+        "mockOutput": {
+          "ok": true,
+          "revision": 1,
+          "note": {
+            "id": "note-1",
+            "body": "Compare transit access around county offices.",
+            "place": {
+              "name": "Miami-Dade County",
+              "countyName": "Miami-Dade County",
+              "countySlug": "miami-dade-fl",
+              "state": "fl",
+              "kind": "county"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "[critical] Create an ordered three-stop civic trail",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Create a session research trail titled County access check in this exact order: Riverside County, CA to study public records; Miami-Dade County, FL to compare transit access; Travis County, TX to review meeting notices."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "create_map_trail",
+        "arguments": {
+          "title": { "$contains": "County access" },
+          "stops": [
+            {
+              "place": { "$contains": "Riverside" },
+              "prompt": { "$contains": "public records" }
+            },
+            {
+              "place": { "$contains": "Miami-Dade" },
+              "prompt": { "$contains": "transit access" }
+            },
+            {
+              "place": { "$contains": "Travis" },
+              "prompt": { "$contains": "meeting notices" }
+            }
+          ]
+        },
+        "mockOutput": {
+          "ok": true,
+          "revision": 1,
+          "title": "County access check",
+          "stopCount": 3,
+          "stops": [
+            { "name": "Riverside County", "state": "ca" },
+            { "name": "Miami-Dade County", "state": "fl" },
+            { "name": "Travis County", "state": "tx" }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "[ambiguity] Search Springfield before any open",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "I need Springfield, but I did not give a state. Search first and do not guess or change the map if several Springfields match."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "search_places",
+        "arguments": { "query": "Springfield" },
+        "mockOutput": {
+          "ok": true,
+          "query": "Springfield",
+          "candidates": [
+            { "name": "Springfield", "countyName": "Greene County", "countySlug": "greene-mo", "state": "mo", "kind": "place" },
+            { "name": "Springfield", "countyName": "Sangamon County", "countySlug": "sangamon-il", "state": "il", "kind": "place" }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "[chain] Read state then search then open",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Read the current Atlas state, search for Riverside County, California, then open the unambiguous county result."
+      }
+    ],
+    "expectedCall": [
+      {
+        "ordered": [
+          {
+            "functionName": "get_map_state",
+            "arguments": {},
+            "mockOutput": {
+              "ok": true,
+              "revision": 0,
+              "visibleRevision": 0,
+              "current": { "level": "nation" },
+              "noteCount": 0,
+              "recentNotes": [],
+              "trail": null
+            }
+          },
+          {
+            "functionName": "search_places",
+            "arguments": { "query": { "$contains": "Riverside" } },
+            "mockOutput": {
+              "ok": true,
+              "query": "Riverside County, California",
+              "candidates": [
+                { "name": "Riverside County", "countyName": "Riverside County", "countySlug": "riverside-ca", "state": "ca", "kind": "county" }
+              ]
+            }
+          },
+          {
+            "functionName": "open_place",
+            "arguments": { "place": { "$contains": "Riverside" } },
+            "mockOutput": {
+              "ok": true,
+              "revision": 1,
+              "place": { "name": "Riverside County", "countyName": "Riverside County", "countySlug": "riverside-ca", "state": "ca", "kind": "county" }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "[critical] Failed trail is followed by an unchanged state read",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Read the map state, try to create a trail titled Unknown-stop check with Riverside County, CA for records and Atlantis-by-the-Pacific for permits, then read the map state again so I can confirm the failed stop did not partially change anything."
+      }
+    ],
+    "expectedCall": [
+      {
+        "ordered": [
+          {
+            "functionName": "get_map_state",
+            "arguments": {},
+            "mockOutput": { "ok": true, "revision": 0, "visibleRevision": 0, "current": { "level": "nation" }, "noteCount": 0, "recentNotes": [], "trail": null }
+          },
+          {
+            "functionName": "create_map_trail",
+            "arguments": {
+              "title": { "$contains": "Unknown-stop" },
+              "stops": [
+                { "place": { "$contains": "Riverside" }, "prompt": { "$contains": "records" } },
+                { "place": "Atlantis-by-the-Pacific", "prompt": { "$contains": "permits" } }
+              ]
+            },
+            "mockOutput": { "ok": false, "error": { "code": "NOT_FOUND", "message": "No Atlas place matched Atlantis-by-the-Pacific." } }
+          },
+          {
+            "functionName": "get_map_state",
+            "arguments": {},
+            "mockOutput": { "ok": true, "revision": 0, "visibleRevision": 0, "current": { "level": "nation" }, "noteCount": 0, "recentNotes": [], "trail": null }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "[safe] A state read must not choose a write tool",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Tell me what Atlas currently shows. Do not navigate, add a note, or create a trail."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_map_state",
+        "arguments": {},
+        "mockOutput": { "ok": true, "revision": 0, "visibleRevision": 0, "current": { "level": "nation" }, "noteCount": 0, "recentNotes": [], "trail": null }
+      }
+    ]
+  },
+  {
+    "name": "[safe] General county question needs no site tool",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "In one sentence, explain what a U.S. county is. Do not use Atlas or change the page."
+      }
+    ],
+    "expectedCall": null
+  }
+]

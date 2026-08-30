@@ -27,6 +27,7 @@ browser-profile/
 .DS_Store
 Thumbs.db
 .tmp-aws-sdk/
+.evals/
 
 # Built atlas plates — regenerate with `node scripts/build-atlas-plates.mjs`
 artifacts/atlas-plates/

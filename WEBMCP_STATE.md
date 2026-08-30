@@ -11,7 +11,7 @@
 ## Current Slice
 
 - Slice: `12 — WebMCP evaluation and deterministic browser smoke`
-- Status: `IN_PROGRESS`
+- Status: `DETERMINISTIC GREEN / MODEL ENVIRONMENT BLOCKED — awaiting slice commit`
 - Player-visible promise: `The exact five Atlas tools are described clearly enough for an agent to choose and chain them correctly, while a no-key browser smoke proves the same descriptors execute against the real judge route.`
 - Smallest complete boundary: `Pin the official evaluation package, derive its schema fixture from Atlas's real descriptors, add static and live evaluation commands, and add a deterministic browser smoke that injects WebMCP before the production page mounts.`
 - Likely files: `package.json`, `pnpm-lock.yaml`, one shared evaluation fixture/helper, model and live-browser eval configs, deterministic browser smoke, focused tests, verifier/docs, and this ledger.`
@@ -88,6 +88,14 @@
 - `web/src/atlas/atlas.css` — adds restrained trail tokens, non-color active state, focus treatment, reduced-motion behavior, and mobile information-priority rules.
 - `web/test/plate-geometry.test.ts`, controller tests, tool tests, and `scripts/verify-webmcp.mjs` — verify projected centers, nation-first creation, synchronized stop editing, internal-coordinate boundaries, and updated tool guidance.
 - `artifacts/webmcp-proof/trail-overview-desktop.png` and `trail-overview-mobile-390x844.png` — national overlay proof at desktop and 390x844.
+- `web/src/atlas/webmcpEvalSchema.ts` and `scripts/write-webmcp-eval-tools.ts` — derive the static evaluation schema from the five runtime descriptors and write it only to ignored `.evals/` output.
+- `evals/atlas-webmcp.evals.json` — covers direct selection, Springfield ambiguity, state/search/open chains, note-versus-trail choice, ordered civic trails, no-tool requests, and failure-followed-by-state-read behavior.
+- `evals/atlas-webmcp.smoke.json`, `scripts/run-webmcp-evals.mjs`, and `scripts/verify-webmcp-browser-smoke.mjs` — provide official static/browser/smoke commands, enforce the three-run/90% floor, start a built local route, and assert visible/atomic state through Chrome WebMCP.
+- `web/src/atlas/webmcpTools.ts` — accepts Chrome's one-argument imperative invocation while retaining optional execution cancellation when a client supplies context.
+- `package.json`, `pnpm-lock.yaml`, and `pnpm-workspace.yaml` — pin `webmcp-evals@0.0.4` and explicitly deny its two unneeded transitive build scripts while retaining the existing esbuild approval.
+- `web/test/webmcp-eval-schema.test.ts`, `web/test/webmcp-tools.test.ts`, and `scripts/verify-webmcp.mjs` — prevent descriptor drift, callback regression, tool-cut widening, and release-threshold weakening.
+- `docs/webmcp/EVALS.md`, README/submission/release copy, and `CHALLENGE_DELTA.md` — document deterministic proof, credential/model requirements, thresholds, and the unclaimed model-score boundary.
+- `artifacts/webmcp-proof/webmcp-browser-smoke.json` — bounded Chrome 152 exact-five tool transcript with successful and mutation-safe journeys.
 
 ### Commands and results
 
@@ -147,6 +155,15 @@
 | `pnpm build` | PASS | Full starter, Atlas plate, and workspace production builds passed; only the recorded pre-existing Radix and two manifest-skip warnings. |
 | `git diff --check` | PASS | No whitespace errors. |
 | `/review` | PASS | Two informational gaps were auto-fixed: stale first-stop documentation and missing active-stop renumber coverage. No unresolved critical or informational findings. |
+| Official `webmcp-evals@0.0.4` documentation audit via gstack `/browse` | PASS | Verified published `local`, `browser`, and `smoke` modes, schema shape, Chrome feature flag, and no-key smoke semantics from official Chrome sources. |
+| `pnpm install --frozen-lockfile` | PASS | Locked eval dependency graph installs with `@google/genai` and `protobufjs` build scripts explicitly denied; no approval policy was widened. |
+| `pnpm test:webmcp-eval-schema` | PASS | 1/1 descriptor-projection drift test. |
+| `pnpm verify:webmcp` | PASS | 30/30 focused tests plus exact-five, optional-context, eval coverage, threshold-floor, route, and documentation guards. |
+| `pnpm typecheck` | PASS | Starter and every workspace TypeScript contract passed with the eval projection and Chrome callback fix. |
+| `pnpm build` | PASS | Full starter, plate, and workspace production builds passed with only the recorded pre-existing Radix and two manifest-skip warnings. |
+| `pnpm eval:webmcp:smoke` | PASS | Official Chrome WebMCP smoke passed 9/9 steps across six fresh-page cases; Atlas assertions passed 13 tool executions, visible overlay, keyboard shared state, ambiguity/atomicity, refresh/route registration, and zero console errors. |
+| `ATLAS_WEBMCP_EVAL_MODEL=ollama:gemma4:e2b pnpm eval:webmcp:static` | BLOCKED, not passed | Existing GPU service failed CUDA PTX compilation; an isolated CPU-only service reached the model through `/v1` but failed startup on a 369,827,840-byte allocation. No cloud provider key is present and no model score is claimed. |
+| Eval-slice `/review` | PASS | Chrome callback compatibility and threshold-floor findings plus visible-revision and Node-floor gaps were auto-fixed; no unresolved findings. |
 
 ### Browser proof
 
@@ -167,6 +184,11 @@
 - All three marker targets measured 44x44 CSS pixels at desktop and 390x844; the mobile page remained at `scrollWidth=clientWidth=390`.
 - The accessibility tree named the trail image and every stop; Enter on stop 2 opened Miami-Dade through `openTrailStop`.
 - Removing a stop before the active stop renumbered both rail and overlay state without divergence.
+- Chrome `152.0.7977.64` discovered exactly five top-level tools and executed every tool through the actual WebMCP protocol.
+- The official deterministic suite passed 9/9 steps; the deeper harness completed 13 tool executions and wrote `artifacts/webmcp-proof/webmcp-browser-smoke.json`.
+- `create_map_trail` returned only after the national route and three markers existed; keyboard Enter on stop 2 changed the same state read by `get_map_state`.
+- Springfield ambiguity and an unresolved trail stop preserved revision, visible revision, selected place, note summary, current map, and trail.
+- Refresh, `/`, and `/explore` each exposed exactly five tools; the WebMCP journey logged zero console/page errors.
 - Normal-browser fallback produced no application error. Chrome logged only the expected warning that the experimental `tools` feature was not enabled in this browser.
 
 ### Review
@@ -176,18 +198,20 @@
 - Medium findings: `0` after adding editable note text/title controls, timestamp visibility, 44px mobile removal targets, bounded state output, and an accessible page heading.
 - Design findings: `0` remaining after raising the desktop finder to 44px and adding the restrained `ATLAS / location` masthead.
 - Trail-overview findings: `0` remaining after fixing the overlay stacking order, stale first-stop copy, and active-stop renumber test coverage.
-- Disposition: `CLEAN` for local code. Real WebMCP-enabled Chrome and ChatGPT discovery remain external acceptance gates.
+- Eval-slice findings: `0` remaining after fixing Chrome's missing execution-context invocation, clamping the minimum model runs/threshold, comparing visible revisions, and raising the documented Node floor.
+- Disposition: `CLEAN` for local code and Chrome 152 WebMCP execution. Deployed-URL repetition, model score, and ChatGPT discovery remain external acceptance gates.
 
 ## Risks and Blockers
 
 - Public visibility, license selection, deployment, and Devpost submission remain owner gates.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
-- The normal local browser does not expose `document.modelContext`; an attempted browser-CLI injection hit a Windows argument-parser limit, while executable registry mocks pass. Do not claim real WebMCP-enabled Chrome or ChatGPT built-in-browser acceptance.
+- Chrome 152 WebMCP acceptance is now proven locally without API injection; ChatGPT built-in-browser acceptance and deployed-URL repetition remain external gates.
+- The three-run model-evaluation threshold is not met or claimed: no cloud provider credential is available, the installed Ollama GPU path crashes during PTX compilation, and the isolated CPU path cannot allocate the model buffer.
 - The existing repository and history are not publication-safe: old transcripts, challenge-scope leakage, missing license/provenance, and a roughly 414 MB tracked tree require a sanitized release boundary.
 
 ## Exact Next Action
 
-Pin and integrate `webmcp-evals@0.0.4`, derive evaluation fixtures from the real five descriptors, and add static-model, live-browser, and deterministic no-model browser-smoke commands without widening the tool cut.
+Commit the deterministic eval/browser slice, then assemble the audited sanitized challenge repository locally, add the owner-locked Apache-2.0 license, and run its clean-clone gates without publishing or deploying it.
 
 ## Slice Queue
 
@@ -202,5 +226,7 @@ Pin and integrate `webmcp-evals@0.0.4`, derive evaluation fixtures from the real
 9. README/submission/video materials — GREEN (`4ba01042`)
 10. Clean-clone and public-release audit — LOCALLY GREEN; existing repo blocked, owner-gated sanitized path ready
 11. National research-trail overview — GREEN (`f9a2614c`)
-12. WebMCP evaluation and deterministic browser smoke — IN PROGRESS
+12. WebMCP evaluation and deterministic browser smoke — DETERMINISTIC GREEN / MODEL ENVIRONMENT BLOCKED; awaiting coherent slice commit
+13. Real Chrome and normal-browser acceptance — LOCALLY GREEN; deployed URL and ChatGPT built-in browser remain external
+14. Sanitized release repository and clean-clone proof — NEXT
 

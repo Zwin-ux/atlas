@@ -68,6 +68,23 @@ test("search_places trims valid input and passes the execution signal", async ()
   assert.deepEqual(result, { ok: true, query: "Riverside, CA", candidates: [] });
 });
 
+test("async descriptors tolerate Chrome's one-argument imperative invocation", async () => {
+  const controller = new AtlasMapController();
+  let observedSignal: AbortSignal | undefined;
+  controller.searchPlaces = async (query, signal) => {
+    observedSignal = signal;
+    return { ok: true, query, candidates: [] };
+  };
+  const execute = tool("search_places", controller).execute as (input: Record<string, unknown>) => Promise<unknown>;
+
+  assert.deepEqual(await execute({ query: "Riverside County, CA" }), {
+    ok: true,
+    query: "Riverside County, CA",
+    candidates: [],
+  });
+  assert.equal(observedSignal, undefined);
+});
+
 test("open_place returns structured validation errors before mutation", async () => {
   const controller = new AtlasMapController();
   const before = controller.getSnapshot();

@@ -1,0 +1,80 @@
+[
+  {
+    "name": "Read the live national state",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Read the current Atlas map state." }
+    ],
+    "expectedCall": [
+      { "functionName": "get_map_state", "arguments": {} }
+    ]
+  },
+  {
+    "name": "Search without navigation",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Search for Riverside County, California." }
+    ],
+    "expectedCall": [
+      { "functionName": "search_places", "arguments": { "query": "Riverside County, CA" } }
+    ]
+  },
+  {
+    "name": "Open a resolved county",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Open Riverside County, California." }
+    ],
+    "expectedCall": [
+      { "functionName": "open_place", "arguments": { "place": "Riverside County, CA" } }
+    ]
+  },
+  {
+    "name": "Add one visible session note",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Add a note in Riverside County." }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "add_map_note",
+        "arguments": { "place": "Riverside County, CA", "body": "Check public-records access." }
+      }
+    ]
+  },
+  {
+    "name": "Create and read a three-stop trail",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Create the county access trail, then read it." }
+    ],
+    "expectedCall": [
+      {
+        "ordered": [
+          {
+            "functionName": "create_map_trail",
+            "arguments": {
+              "title": "County access check",
+              "stops": [
+                { "place": "Riverside County, CA", "prompt": "Study public records" },
+                { "place": "Miami-Dade County, FL", "prompt": "Compare transit access" },
+                { "place": "Travis County, TX", "prompt": "Review meeting notices" }
+              ]
+            }
+          },
+          { "functionName": "get_map_state", "arguments": {} }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Read search and open chain",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Read, search, then open Riverside County." }
+    ],
+    "expectedCall": [
+      {
+        "ordered": [
+          { "functionName": "get_map_state", "arguments": {} },
+          { "functionName": "search_places", "arguments": { "query": "Riverside County, CA" } },
+          { "functionName": "open_place", "arguments": { "place": "Riverside County, CA" } }
+        ]
+      }
+    ]
+  }
+]

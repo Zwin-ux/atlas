@@ -30,7 +30,7 @@ Human controls and tool callbacks share one `AtlasMapController`. Write calls re
 
 ## Run locally
 
-Requirements: Node.js 18 or newer, pnpm 11, and Git.
+Requirements: Node.js 22.12 or newer, pnpm 11, Git, and Chrome for the WebMCP smoke gate.
 
 ```powershell
 pnpm install --frozen-lockfile
@@ -54,11 +54,23 @@ Current WebMCP setup details live in the [OpenAI Site Tools documentation](https
 pnpm verify:webmcp
 pnpm typecheck
 pnpm build
+pnpm eval:webmcp:smoke
 ```
 
-`pnpm verify:webmcp` covers the exact-five contract, schemas, annotations, output bounds, shared-controller path, ambiguity, cancellation, atomic trails, projected county centers, top-level registration, all-or-none rollback, route fencing, and normal-browser feature detection.
+`pnpm verify:webmcp` covers the exact-five contract, schemas, annotations, output bounds, shared-controller path, ambiguity, cancellation, atomic trails, projected county centers, top-level registration, all-or-none rollback, route fencing, normal-browser feature detection, and evaluation-fixture drift. `pnpm eval:webmcp:smoke` starts the built judge route, enables Chrome WebMCP, executes all five real tools without a model or API key, and checks visible completion plus mutation-safe failures.
 
-The full local gates currently pass. Browser proof covers 1280x720 and 390x844, keyboard place finding, ambiguity recovery, fallback behavior, accessibility landmarks, 44px visible mobile controls, and zero horizontal overflow. Real ChatGPT built-in-browser discovery remains a separate external acceptance gate.
+Model-selection runs are credentialed, explicit gates:
+
+```powershell
+$env:ATLAS_WEBMCP_EVAL_MODEL = "openai:gpt-5-mini"
+$env:OPENAI_API_KEY = "..."
+pnpm eval:webmcp:static
+pnpm eval:webmcp:browser
+```
+
+Both model commands run each case three times, require at least 90% correct tool/argument trajectories, and reject any critical write-selection or atomicity failure. See [docs/webmcp/EVALS.md](docs/webmcp/EVALS.md) for provider options and evidence boundaries.
+
+The deterministic local gates currently pass. Chrome 152 WebMCP proof covers exact-five discovery, 9/9 official smoke steps, 13 deeper browser executions, visible trail rendering, keyboard marker navigation, ambiguity recovery, atomic failure, refresh/route registration, and zero console errors. Model-score and real ChatGPT built-in-browser acceptance remain separate credentialed or external gates.
 
 ## Challenge-period delta
 
@@ -77,5 +89,6 @@ Repository visibility, license selection, public deployment, and Devpost submiss
 - [Devpost copy and evidence map](docs/webmcp/SUBMISSION.md)
 - [Under-three-minute video script](docs/webmcp/VIDEO_SCRIPT.md)
 - [Owner-gated release packet](docs/webmcp/RELEASE_PACKET.md)
+- [Evaluation guide and thresholds](docs/webmcp/EVALS.md)
 - [Official challenge page](https://webmcp.devpost.com/)
 - [Official rules](https://webmcp.devpost.com/rules)

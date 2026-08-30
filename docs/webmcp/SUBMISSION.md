@@ -48,7 +48,7 @@ The two read tools return bounded public projections. The three write tools upda
 - Narrow JSON Schemas with `additionalProperties: false` at root and nested levels.
 - One shared abort lifecycle for all-or-none tool registration.
 - Session-only React state for notes, trails, activity, and edits.
-- Focused Node tests plus a static `pnpm verify:webmcp` contract verifier.
+- Focused Node tests, a static `pnpm verify:webmcp` contract verifier, and official `webmcp-evals@0.0.4` suites generated from the live descriptors.
 
 ## Meaningful challenge-period extension
 
@@ -61,6 +61,7 @@ Atlas predates the challenge. Judges should evaluate the work after baseline `b6
 - visible site-tool activity;
 - editable session notes and atomic editable research trails;
 - exact-five, cancellation, rollback, output-bound, and fallback verification;
+- deterministic Chrome WebMCP execution of all five tools plus credentialed static/live model-eval commands;
 - keyboard place finding, responsive proof, accessibility audit, and design review.
 
 The detailed evidence ledger is in `CHALLENGE_DELTA.md` and `WEBMCP_STATE.md`.
@@ -96,11 +97,12 @@ No account system, public posting, or sixth tool is part of this candidate.
 | Claim | Evidence |
 |---|---|
 | No-login top-level map | Route verifier and desktop/mobile screenshots in `artifacts/webmcp-proof/` |
-| Exactly five tools | `pnpm verify:webmcp`, registry tests, and `web/src/atlas/webmcpTools.ts` |
-| Shared human/agent state | `AtlasMapController`, place-finder verifier check, controller tests |
-| Visible completion | revision acknowledgment tests and browser map transitions |
-| Ambiguity safety | Springfield API/controller/browser proof |
-| Atomic trails | success/failure controller tests |
+| Exactly five tools | `pnpm verify:webmcp`, registry tests, generated eval schema, and Chrome 152 discovery |
+| Shared human/agent state | `AtlasMapController`, place-finder verifier check, controller tests, and keyboard-marker/browser-agent smoke |
+| Visible completion | revision acknowledgment tests, browser map transitions, and completed national-overlay smoke transcript |
+| Ambiguity safety | Springfield API/controller/browser proof plus unchanged-state WebMCP smoke assertion |
+| Atomic trails | success/failure controller tests plus unresolved-stop unchanged-state browser assertion |
+| Agent understanding | 10-case model suite with three-run/90% threshold; execution is credential-gated and must not be claimed until a report exists |
 | Normal fallback | fallback screenshots and feature-detected registry |
 | Accessibility | gstack accessibility tree, 390x844 target/overflow audit, design review |
 

@@ -11,7 +11,7 @@ Do not change the current repository from private to public.
 - Branch: `webmcp-challenge`
 - Challenge baseline: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
 - Latest code/design commit before this packet: `b90182b64fa27b78a8d07738360c1cb842b833b4`
-- Required local gates: `pnpm install --frozen-lockfile`, `pnpm verify:webmcp`, `pnpm typecheck`, `pnpm build`
+- Required local gates: `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm verify:webmcp`, `pnpm eval:webmcp:smoke`
 - Browser proof: 1280x720 and 390x844 no-login route, ambiguity recovery, fallback, accessibility tree, zero mobile overflow, and 44px visible controls
 - Design review: two medium findings fixed and verified; map remains the single visual anchor
 
@@ -71,9 +71,10 @@ Required evidence before visibility changes:
 
 ```powershell
 pnpm install --frozen-lockfile
-pnpm verify:webmcp
 pnpm typecheck
 pnpm build
+pnpm verify:webmcp
+pnpm eval:webmcp:smoke
 pnpm audit:webmcp:release
 git status --short --branch
 ```
@@ -106,6 +107,8 @@ Required evidence:
 ### Gate 4, real WebMCP acceptance
 
 Use a supported Chrome/WebMCP or ChatGPT built-in-browser environment. Do not inject a fake API.
+
+The local production build now has Chrome `152.0.7977.64` protocol proof: exact-five discovery, 9/9 official smoke steps, 13 deeper tool executions, visible trail completion, ambiguity/atomicity safety, and zero console errors. Repeat the same command against the owner-approved deployed URL; ChatGPT built-in-browser acceptance remains separate.
 
 Required evidence:
 
