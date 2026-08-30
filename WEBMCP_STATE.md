@@ -5,13 +5,13 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green commit: `b90182b64fa27b78a8d07738360c1cb842b833b4`
+- Last green content commit: `4ba01042c37764a2a17c84c151c5b0e206b893e5`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
 - Slice: `9–10 — Challenge documentation and owner-gated release packet`
-- Status: `GREEN — awaiting commit`
+- Status: `LOCALLY GREEN — owner-gated external actions remain`
 - Player-visible promise: `A judge or release owner can understand, run, verify, record, and safely release the focused Atlas WebMCP candidate without inheriting the retired Atlas story.`
 - Anti-scope: `No Scout, campaign, Hosted Clawd, Commons, billing, road expansion, or renderer rewrite.`
 
@@ -121,9 +121,15 @@
 | `pnpm typecheck` | PASS | Starter and workspace TypeScript checks passed after the finder and cancellation changes. |
 | `pnpm build` | PASS | Full starter, plate, and workspace production build completed with only the recorded pre-existing warnings. |
 | `/design-review` | PASS | Two medium findings fixed in `3a7dbf7a` and `b90182b6`; final trunk test 6/6, zero 390px overflow/undersized controls. |
-| Publication-safety inventory | PASS as audit, BLOCKED as release | 37,259 tracked files, 440.85 MiB pack, 410 Markdown files, no root license, historical local/session material; existing repo must remain private. |
+| Publication-safety inventory | PASS as audit, BLOCKED as release | 37,266 tracked files, 440.85 MiB pack, 410 Markdown files, no root license, historical local/session material; existing repo must remain private. |
 | `pnpm audit:webmcp:release` | PASS as audit | Verdict `DO_NOT_PUBLISH_CURRENT_REPOSITORY`; 201 tracked historical-risk paths, no license, and explicit limited-scan coverage. |
 | `pnpm verify:webmcp` with docs guard | PASS | 26 focused tests, exact-five runtime/static checks, four owner placeholders, 2:45 script budget, and no retired-scope pattern in judge story files. |
+| Detached `4ba01042` `pnpm install --frozen-lockfile` | PASS | All eight workspace projects installed from the locked dependency graph. |
+| Detached `4ba01042` verifier before build | EXPECTED FAIL, resolved by required order | Fresh install had not generated `packages/core/dist`; no source mutation. The documented typecheck/build gates generated workspace outputs before verification. |
+| Detached `4ba01042` `pnpm typecheck` | PASS | Starter and all workspace TypeScript checks passed from the detached worktree. |
+| Detached `4ba01042` `pnpm build` | PASS | Full starter, plates, and workspace build passed; only the recorded Radix and manifest-skip warnings. |
+| Detached `4ba01042` `pnpm verify:webmcp` | PASS | 26/26 tests plus runtime/static and judge-copy guards passed after the required build gate. |
+| Detached `4ba01042` `pnpm audit:webmcp:release` | PASS as audit | Confirmed the expected `DO_NOT_PUBLISH_CURRENT_REPOSITORY` boundary against the committed candidate. |
 
 ### Browser proof
 
@@ -152,13 +158,12 @@
 
 - Public visibility, license selection, deployment, and Devpost submission remain owner gates.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
-- The normal local browser does not expose `document.modelContext`; WebMCP-enabled Chrome and ChatGPT acceptance remain unproven until the five tools exist.
-- The normal local browser still does not expose `document.modelContext`; an attempted browser-CLI injection hit a Windows argument-parser limit, while executable registry mocks pass. Do not claim real built-in-browser acceptance.
+- The normal local browser does not expose `document.modelContext`; an attempted browser-CLI injection hit a Windows argument-parser limit, while executable registry mocks pass. Do not claim real WebMCP-enabled Chrome or ChatGPT built-in-browser acceptance.
 - The existing repository and history are not publication-safe: old transcripts, challenge-scope leakage, missing license/provenance, and a roughly 414 MB tracked tree require a sanitized release boundary.
 
 ## Exact Next Action
 
-Run the final documentation/code review, commit Slice 9-10, then verify the exact committed candidate from a clean detached worktree and record the final candidate SHA.
+Owner reviews `docs/webmcp/RELEASE_PACKET.md` and makes the first explicit release decision. Do not publish this repository; the approved release path starts from a new empty sanitized repository and an owner-selected license.
 
 ## Slice Queue
 
@@ -170,6 +175,6 @@ Run the final documentation/code review, commit Slice 9-10, then verify the exac
 6. Atomic research trail — GREEN (`f9f98a18`)
 7. WebMCP verifier and negative cases — GREEN (`f9f98a18`)
 8. Judge-path UX and browser proof — GREEN (`dda677d7`, design fixes `3a7dbf7a`, `b90182b6`)
-9. README/submission/video materials — GREEN, awaiting commit
-10. Clean-clone and public-release audit — AUDITED; existing repo blocked, owner-gated sanitized path ready
+9. README/submission/video materials — GREEN (`4ba01042`)
+10. Clean-clone and public-release audit — LOCALLY GREEN; existing repo blocked, owner-gated sanitized path ready
 
