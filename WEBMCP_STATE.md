@@ -10,13 +10,13 @@
 
 ## Current Slice
 
-- Slice: `18 — live ChatGPT WebMCP end-to-end environment`
-- Status: `GREEN — local code and sanitized clean-clone proof complete; private push, deployment, real ChatGPT, and paid model execution remain explicit gates`
+- Slice: `19 — isolated Railway deployment and bounded Ralph release loop`
+- Status: `IN_PROGRESS — private candidate promoted; correcting one pre-build Railway TOML failure, adding regression coverage, then redeploying and proving the public ChatGPT/WebMCP route`
 - Player-visible promise: `A judge can open the exact deployed Atlas URL in ChatGPT's built-in browser, ask naturally for state, navigation, a place note, and a multi-county trail, and review evidence that every successful write became visible while every failed write left the shared map unchanged.`
-- Smallest complete boundary: `Add one live-URL preflight, one consolidated deterministic WebMCP runner, one real-ChatGPT transcript validator/template, and an optional Grok 4.6 adversarial model lane; keep the page-native exact-five tools and session-only notes/trails unchanged.`
-- Likely files: `scripts/run-chatgpt-e2e.mjs`, live-URL and transcript verifiers, Grok-aware eval runner, focused fixtures/tests, ChatGPT acceptance docs, package commands, release projection, and the state/release ledgers.`
-- Acceptance checks: `Private fast-forward verified; local and HTTPS preflight contracts cover readiness, headers, no-login route, exact tool metadata, ambiguity, and resolution; consolidated runner executes real Chrome smoke against one URL; transcript validator rejects incomplete or false ChatGPT proof; xai:grok-4.6 configuration is supported without logging credentials; verifier, typecheck, build, smoke, review, and clean-clone release proof pass.`
-- Anti-scope: `No sixth tool, detached chatbot, duplicate remote-MCP state, auth, persistence, public posting, renderer rewrite, deployment, visibility change, or Devpost action in this local slice.`
+- Smallest complete boundary: `Quote and guard the Railway schema key, reproduce the sanitized candidate, deploy only the approved isolated service, verify the public route and shared-map journey, run a screenshot-backed Product Design audit, and add a bounded Ralph-style release loop that stops at credentials and owner gates.`
+- Likely files: `release/webmcp/railway.toml`, source and sanitized verification scripts, current-run proof artifacts, release/Ralph documentation, and the durable state ledger.`
+- Acceptance checks: `Valid Railway TOML is enforced; private source and sanitized candidates are green; isolated deployment reports success; /ready, /, and /explore pass over HTTPS; exactly five tools execute through Chrome; normal-browser fallback and 390x844 layout remain usable; Product Design evidence is current-run; the Ralph loop cannot publish, submit, widen tools, or bypass credentials.`
+- Anti-scope: `No sixth tool, detached remote MCP state, auth, persistence, public posting, historical Railway reuse, public repository visibility, secrets, or Devpost submission.`
 
 ## Acceptance Checks
 

@@ -63,6 +63,14 @@ for (const required of ["LICENSE", "ATTRIBUTION.md", "README.md", "CHALLENGE_DEL
   if (!relativeFiles.includes(required)) failures.push(`Missing required release file: ${required}`);
 }
 
+if (relativeFiles.includes("railway.toml")) {
+  const railwayConfig = await readFile(resolve(root, "railway.toml"), "utf8");
+  if (!railwayConfig.startsWith('"$schema" = "https://railway.com/railway.schema.json"')) failures.push("Railway schema key must be quoted valid TOML.");
+  if (!railwayConfig.includes('buildCommand = "corepack enable && pnpm install --frozen-lockfile && pnpm build"') || !railwayConfig.includes('startCommand = "pnpm start"') || !railwayConfig.includes('healthcheckPath = "/ready"')) {
+    failures.push("Railway build, start, or readiness contract drifted.");
+  }
+}
+
 const geoPacks = relativeFiles.filter((path) => path.startsWith("data/geo-packs/") && path.endsWith(".json")).length;
 const statePlates = relativeFiles.filter((path) => path.startsWith("data/atlas-plates/state/") && path.endsWith(".json")).length;
 if (geoPacks < 3_200) failures.push(`Expected nationwide county data; found ${geoPacks} geo packs.`);

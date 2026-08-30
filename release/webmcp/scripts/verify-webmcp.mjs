@@ -14,7 +14,7 @@ function cssRule(source, selector, startAt = 0) {
   return blockStart === -1 || blockEnd === -1 ? "" : source.slice(blockStart + 1, blockEnd);
 }
 
-const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource] = await Promise.all([
+const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource] = await Promise.all([
   readFile("web/src/atlas/webmcpTools.ts", "utf8"),
   readFile("web/src/atlas/webmcpRegistry.ts", "utf8"),
   readFile("web/src/atlas/webmcpEvalSchema.ts", "utf8"),
@@ -34,6 +34,7 @@ const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, 
   readFile("scripts/verify-chatgpt-transcript.mjs", "utf8"),
   readFile("evals/atlas-chatgpt.transcript.template.json", "utf8"),
   readFile("scripts/run-grok-webmcp-evals.mjs", "utf8"),
+  readFile("railway.toml", "utf8"),
 ]);
 
 const packageJson = JSON.parse(packageSource);
@@ -89,6 +90,8 @@ assert(["eval:webmcp:static", "eval:webmcp:browser", "eval:webmcp:smoke", "eval:
 assert(evalRunnerSource.includes("Math.max(3, requestedRuns)") && evalRunnerSource.includes("Math.max(0.90, requestedThreshold)"), "Model thresholds must stay at three runs and 90% minimum.");
 assert(evalRunnerSource.includes('model.startsWith("xai:")') && evalRunnerSource.includes("XAI_API_KEY") && evalRunnerSource.includes("https://api.x.ai/v1"), "The xAI model lane must use the explicit Grok adapter and environment credential.");
 assert(grokRunnerSource.includes('xai:grok-4.6') && !grokRunnerSource.includes("OPENAI_API_KEY"), "The focused Grok runner must select grok-4.6 without copying credentials into source.");
+assert(railwayConfigSource.startsWith('"$schema" = "https://railway.com/railway.schema.json"'), "Railway's schema key must be quoted so the deployment config is valid TOML.");
+assert(railwayConfigSource.includes('buildCommand = "corepack enable && pnpm install --frozen-lockfile && pnpm build"') && railwayConfigSource.includes('startCommand = "pnpm start"') && railwayConfigSource.includes('healthcheckPath = "/ready"'), "Railway must install reproducibly, build, start, and health-check the standalone challenge service.");
 assert(chatgptRunnerSource.includes("verify-chatgpt-live.mjs") && chatgptRunnerSource.includes('run-webmcp-evals.mjs", ["smoke"]') && chatgptRunnerSource.includes("verify-chatgpt-transcript.mjs"), "The ChatGPT runner must compose live preflight, protocol smoke, and transcript proof.");
 assert(chatgptRunnerSource.includes("releaseReady") && chatgptRunnerSource.includes("realChatGpt") && chatgptRunnerSource.includes("modelThreshold"), "The ChatGPT report must distinguish automated success from complete release evidence.");
 assert(livePreflightSource.includes("tools=(self)") && livePreflightSource.includes("Springfield") && livePreflightSource.includes("Riverside"), "The live preflight must cover WebMCP headers and ambiguity/resolution contracts.");
