@@ -5,18 +5,18 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `08a5b84a7d58e6f4e77b8ce4b39e552cb7b14700`
+- Last green content commit: `9a86b7082371a3d3451d3b641114f8516de49284`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `15 — Product-design pass for human-agent session legibility`
-- Status: `GREEN — OWNER GATE`
-- Player-visible promise: `A judge can tell that the map is ready, recognize the active research stop, and edit the shared session comfortably without the trail rail or fallback state feeling like test UI.`
-- Smallest complete boundary: `Refine readiness language, research-trail hierarchy, active-stop semantics, edit target sizes, and mobile information priority while preserving the full-screen map, exact-five tools, shared controller, and existing renderer.`
-- Likely files: `web/src/atlas/AtlasApp.tsx`, `web/src/atlas/AtlasPlaceFinder.tsx`, `web/src/atlas/atlas.css`, focused verifier/docs, current audit artifacts, and the sanitized release projection.`
-- Acceptance checks: `Current-run desktop/mobile audit evidence; calm normal-browser fallback; explicit session-only trail metadata and non-color active-stop label; at least 32px desktop and 44px mobile trail edit targets; no 390x844 overflow; exact-five verifier, typecheck, build, normal-browser flow, Chrome WebMCP smoke, review, clean-clone release proof.`
-- Anti-scope: `No sixth tool, renderer rewrite, new dashboard/panel system, auth, persistence, public posting, marketing page, deployment, publication, or Devpost action.`
+- Slice: `17 — ChatGPT-first site-tool conversation contract`
+- Status: `GREEN`
+- Player-visible promise: `In ChatGPT's built-in browser, a person can ask naturally what Atlas shows, navigate, leave one note, or create a multi-place trail; the agent can select the right tool, recover from ambiguity, and describe only changes that are already visible on the shared map.`
+- Smallest complete boundary: `Sharpen the exact-five descriptors around natural intent and tool sequencing, make write results explicit about visible completion and mutation-safe recovery, add realistic conversation trajectories, and document a short ChatGPT acceptance script without changing the map UI or tool schemas.`
+- Likely files: `web/src/atlas/webmcpTools.ts`, focused tool tests, eval fixtures, verifier, ChatGPT acceptance documentation, release ledger, and the sanitized release projection.`
+- Acceptance checks: `Exact-five descriptors remain non-overlapping and schema-identical; natural state/search/open/note/trail prompts are covered; ambiguous and failed writes return bounded recovery context with unchanged-state evidence; successful writes identify their visible map effect; focused tests, verifier, typecheck, build, Chrome smoke, review, and clean-clone release proof pass.`
+- Anti-scope: `No sixth tool, map redesign, chat panel, custom agent, renderer rewrite, auth, persistence, public visibility, deployment, or Devpost action.`
 
 ## Acceptance Checks
 
@@ -41,6 +41,7 @@
 - [x] The research rail exposes stop count and session-only scope, echoes map marker numbers, and labels the active stop with text plus `aria-current="step"`.
 - [x] Trail title, place, prompt, and remove controls measure at least 32px on desktop and 44px on mobile.
 - [x] Current-run light, dark, keyboard-focus, ambiguity, and `390x844` evidence is captured in the product-design audit.
+- [x] ChatGPT-facing Site Tools use five distinct human titles, natural-intent guidance, and bounded visible/unchanged write results without changing the public schemas.
 
 ## Work Log
 
@@ -107,6 +108,9 @@
 - `docs/webmcp/PRODUCT_DESIGN_AUDIT.md` and `artifacts/product-design-audit/` — record before/after desktop, mobile, dark-mode, keyboard, ambiguity, and real-WebMCP evidence.
 - `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` — local sanitized Git repository; exact candidate `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c`.
 - `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-ad0d5ab` — clean no-local clone used for final reproduction proof.
+- `web/src/atlas/webmcpTools.ts`, focused tests, and `evals/atlas-webmcp.evals.json` — give ChatGPT five distinct natural-language Site Tools, explicit visible/unchanged write results, and 12 realistic conversation trajectories without changing schemas or adding a tool.
+- `docs/webmcp/CHATGPT_ACCEPTANCE.md`, judge copy, and release guards — define the supported ChatGPT built-in-browser journey, evidence boundary, and current model/client prerequisites.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` and `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-04aa4aa` — hold the fully verified nine-commit sanitized candidate `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20`; the existing private remote remains at `ad0d5ab` pending a separate fast-forward gate.
 
 ### Commands and results
 
@@ -190,6 +194,17 @@
 | Sanitized `pnpm audit:release` | PASS | 3,329 files, 88,114,588 bytes, 3,222 county packs, 52 state plates, eight commits, clean Git state, zero audit failures. |
 | Sanitized `git diff --check` and SHA check | PASS | No whitespace errors; exact candidate `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c`. |
 | Sanitized-release `/review` | PASS | Seven issues were auto-fixed: tracked forbidden-path coverage, internal build-report leakage, public evidence links, target-boundary safety, docs guards, deterministic import rewriting, and formatting-gate enforcement. No unresolved findings. |
+| OpenAI Site Tools and Chrome WebMCP audit via gstack `/browse` | PASS | Confirmed ChatGPT's imperative top-level/page-scoped support, Site Tools discovery surface, current supported model boundary, visible-completion guidance, and deterministic/probabilistic evaluation guidance from official sources. |
+| ChatGPT-first `pnpm test:webmcp-core` | PASS | 9/9 descriptor tests, including human titles, visible write effects, mutation-safe failure signals, and maximum-output budgets. |
+| ChatGPT-first `pnpm verify:webmcp` | PASS | 32/32 focused tests plus exact-five runtime, 12-case eval, ChatGPT acceptance-doc, route, and judge-copy guards. |
+| ChatGPT-first `pnpm typecheck` and `pnpm build` | PASS | Full private TypeScript and production gates passed; only the recorded historical Radix and manifest-skip warnings remained. |
+| ChatGPT-first `pnpm eval:webmcp:smoke` | PASS | Chrome `152.0.7977.64`; five human-readable titles verified through `document.modelContext.getTools()`, 9/9 official steps, 13 deeper executions, visible write results, and mutation-safe failures. |
+| ChatGPT-first `/review` | PASS | Two informational gaps were auto-fixed: sanitized-release guards now require the ChatGPT acceptance document, and maximum write-output coverage now includes every mutating tool. No unresolved findings. |
+| Sanitized tree match | PASS | 3,330 expected files, 3,330 files in the nine-commit candidate, zero missing, zero extra, and zero Git-blob mismatches. |
+| Clean `04aa4aaa` `pnpm install --frozen-lockfile` | PASS | Locked standalone graph installed in a no-local clone without lockfile mutation. |
+| Clean `04aa4aaa` `pnpm typecheck`, `pnpm build`, and `pnpm verify:webmcp` | PASS | Standalone contracts and production build passed; verifier passed 32/32 focused tests plus runtime and judge-copy guards. |
+| Clean `04aa4aaa` `pnpm eval:webmcp:smoke` | PASS | Chrome `152.0.7977.64`; exactly five tools, 9/9 official steps, and 13 deeper executions. |
+| Clean `04aa4aaa` `pnpm audit:release` and `git diff --check` | PASS | 3,330 files, 88,133,162 bytes, 3,222 county packs, 52 state plates, nine commits, clean Git state, and zero audit failures. |
 
 ### Browser proof
 
@@ -220,6 +235,9 @@
 - Desktop trail title, place, prompt, and remove controls measure at least 32px; mobile research and map controls remain 44px with `scrollWidth=clientWidth=390`.
 - Current-run screenshots cover the start, Springfield ambiguity, three-stop trail, dark mode, keyboard focus, and real WebMCP execution under `artifacts/product-design-audit/`.
 - The exact sanitized candidate `ad0d5ab` repeated the Chrome 152 proof from a fresh clone: exactly five top-level tools, 9/9 official smoke steps, 13 deeper executions, visible national trail completion, saved screenshot, and a clean browser report.
+- The ChatGPT-first proof reads the real `document.modelContext.getTools()` surface and verifies the exact human titles: `What's on the Atlas map`, `Find U.S. places`, `Show a place on Atlas`, `Add a place note`, and `Build a research trail`.
+- Successful open, note, and trail calls reported `visible: true` with the resulting county or national-trail view; ambiguous and unresolved writes reported `mapChanged: false`, and failed trail creation also reported `trailChanged: false` plus the one-based failing stop number.
+- The exact sanitized candidate `04aa4aaa` repeated this contract from a fresh no-local clone in Chrome 152: five tools, 9/9 official steps, 13 deeper executions, visible national trail completion, and zero release-audit failures.
 
 ### Review
 
@@ -231,20 +249,21 @@
 - Eval-slice findings: `0` remaining after fixing Chrome's missing execution-context invocation, clamping the minimum model runs/threshold, comparing visible revisions, and raising the documented Node floor.
 - Sanitized-release findings: `0` remaining after fixing tracked-path scanning, internal report exclusion, public evidence links, target-boundary safety, docs guards, deterministic generation, and whitespace enforcement.
 - Product-design findings: `0` remaining after fixing negative fallback language, undersized desktop edit targets, color-dependent active state, missing session/count context, clipped mobile candidates, map-label competition, missing smoke screenshot output, semantic section headings, and verifier specificity.
-- Disposition: `CLEAN` for local code, sanitized clean-clone reproduction, and Chrome 152 WebMCP execution. Repository publication, deployed-URL repetition, model score, and ChatGPT discovery remain external acceptance gates.
+- ChatGPT-first findings: `0` remaining after requiring the new acceptance document in sanitized guards and covering maximum-result budgets for every write tool.
+- Disposition: `CLEAN` for local code, sanitized clean-clone reproduction, and Chrome 152 WebMCP execution. The private remote still points to the prior green candidate; its fast-forward, repository publication, deployed-URL repetition, model score, and real ChatGPT discovery remain separate gates.
 
 ## Risks and Blockers
 
-- Private remote creation/push, public visibility, deployment, and Devpost submission remain owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- The private GitHub remote exists and remains `PRIVATE` at `ad0d5ab`. Fast-forwarding it to verified candidate `04aa4aaa`, public visibility, deployment, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 WebMCP acceptance is now proven locally without API injection; ChatGPT built-in-browser acceptance and deployed-URL repetition remain external gates.
 - The three-run model-evaluation threshold is not met or claimed: no cloud provider credential is available, the installed Ollama GPU path crashes during PTX compilation, and the isolated CPU path cannot allocate the model buffer.
-- The historical repository and history remain unfit for publication. The sanitized eight-commit repository is locally green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
+- The historical repository and history remain unfit for publication. The sanitized nine-commit repository is locally green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
 - Three disposable assembler-check directories remain under `C:\Users\mzwin\AppData\Local\Temp` because recursive cleanup was blocked twice by the command safety policy. They are outside both Git repositories and do not affect the candidate.
 
 ## Exact Next Action
 
-Owner decision: approve creating a new private GitHub repository named `Zwin-ux/atlas-webmcp-challenge` and pushing sanitized candidate `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c` as its initial `main` history. Do not publish it or create a Railway service in this gate.
+Request one narrow owner decision: approve a normal fast-forward push of sanitized `main` from `ad0d5ab` to exact green candidate `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20` in the existing private repository. Do not change visibility or deploy.
 
 ## Slice Queue
 
@@ -263,5 +282,6 @@ Owner decision: approve creating a new private GitHub repository named `Zwin-ux/
 13. Real Chrome and normal-browser acceptance — LOCALLY GREEN; deployed URL and ChatGPT built-in browser remain external
 14. Sanitized release repository and clean-clone proof — GREEN (`74a1672b`; sanitized candidate superseded by `ad0d5ab`)
 15. Product-design pass for human-agent session legibility — GREEN (`08a5b84a`; sanitized candidate `ad0d5ab`)
-16. Private remote creation and initial push — OWNER GATE
+16. Private remote creation and initial push — GREEN (`ad0d5ab`; private `Zwin-ux/atlas-webmcp-challenge`)
+17. ChatGPT-first site-tool conversation contract — GREEN (`9a86b708`; sanitized candidate `04aa4aaa`)
 

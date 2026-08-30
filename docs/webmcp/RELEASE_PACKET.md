@@ -2,7 +2,7 @@
 
 ## Current verdict
 
-The standalone challenge repository is locally reproducible and green. It remains private and local. The historical Atlas repository and its Git history are still **not safe to publish**.
+The standalone challenge repository is locally reproducible and green. Its GitHub remote remains private. The historical Atlas repository and its Git history are still **not safe to publish**.
 
 Do not change the historical repository's visibility. Do not publish the sanitized repository, create a Railway service, configure secrets, or submit Devpost without the matching owner gate.
 
@@ -10,8 +10,8 @@ Do not change the historical repository's visibility. Do not publish the sanitiz
 
 - Local repository: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release`
 - Branch: `main`
-- Candidate SHA: `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c`
-- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-ad0d5ab`
+- Candidate SHA: `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20`
+- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-04aa4aa`
 - Challenge baseline disclosed in the public repo: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
 - Owner-selected license: Apache-2.0
 - Public tools: exactly `get_map_state`, `search_places`, `open_place`, `add_map_note`, and `create_map_trail`
@@ -20,27 +20,27 @@ The repository contains one challenge-only React entry, one small no-login Node 
 
 ## Final local proof
 
-The candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c`:
+The candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20`:
 
 | Command | Result |
 |---|---|
 | `pnpm install --frozen-lockfile` | PASS; lockfile policy green, 135 packages installed |
 | `pnpm typecheck` | PASS; standalone web and server contracts |
 | `pnpm build` | PASS; challenge client and server built |
-| `pnpm verify:webmcp` | PASS; 30/30 focused tests plus runtime and judge-copy guards |
+| `pnpm verify:webmcp` | PASS; 32/32 focused tests plus runtime and judge-copy guards |
 | `pnpm eval:webmcp:smoke` | PASS; Chrome 152, 9/9 official steps, 13 deeper tool executions |
 | `pnpm audit:release` | PASS; clean Git state, no audit failures |
 
-The release-facing trail proof now includes the refined national overlay, explicit session-only context, numbered rail markers, a non-color `Current` state, 32px desktop edit floors, 44px mobile controls, and the real Chrome WebMCP activity rail.
+The release-facing trail proof now includes the refined national overlay, explicit session-only context, numbered rail markers, a non-color `Current` state, 32px desktop edit floors, 44px mobile controls, and the real Chrome WebMCP activity rail. ChatGPT-facing Site Tools also have plain-language titles, natural-intent descriptions, and bounded visible/unchanged result signals.
 
-The release assembler was also run into a separate directory and compared to the committed sanitized repository: 3,329 expected files, 3,329 generated files, zero missing, zero extra, and zero SHA-256 mismatches.
+The release assembler was also run into a separate directory and compared to the committed sanitized repository: 3,330 expected files, 3,330 generated files, zero missing, zero extra, and zero Git-blob mismatches.
 
 ## Scope, secret, size, and provenance audit
 
 The sanitized repository audit reports:
 
-- 3,329 tracked files;
-- 88,114,588 audited source/data bytes in the final clean clone;
+- 3,330 tracked files;
+- 88,133,162 audited source/data bytes in the final clean clone;
 - 3,222 county geo packs and 52 state plates;
 - no tracked build output, eval output, `node_modules`, `.env`, historical apps, or historical workspace packages;
 - no file larger than 5 MiB;
@@ -49,7 +49,7 @@ The sanitized repository audit reports:
 - only `react` and `react-dom` as runtime dependencies;
 - a full Apache-2.0 license, Census attribution, and frozen dependency-license inventory.
 
-`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the new history contains only six local commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
+`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the new history contains only nine challenge commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
 
 The selected README image was visually inspected: it contains only the Atlas national trail overview and no terminal, local path, account, or credential surface.
 
@@ -65,22 +65,32 @@ Two internal geo-pack build reports (`_manifest.json` and `_failures.json`) were
 
 Completed August 30, 2026: created private repository `Zwin-ux/atlas-webmcp-challenge` and pushed local candidate `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c` as its initial `main` history.
 
-Evidence: GitHub reports `PRIVATE`, the default branch is `main`, and `refs/heads/main` resolves to the exact audited SHA above. The clean-clone gates, exact generator match, Apache-2.0 license, and no-historical-objects boundary remain recorded above.
+Evidence: GitHub reports `PRIVATE`, the default branch is `main`, and `refs/heads/main` resolves to `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c`. The clean-clone gates, exact generator match, Apache-2.0 license, and no-historical-objects boundary remain recorded in the prior ledger entry.
 
 Risk: creates an external copy and associates the challenge source with the owner's GitHub account. It remains non-public.
 
 Rollback: delete the still-private repository or remove its contents before visibility changes; the local candidate remains intact.
+
+### Gate 1b - fast-forward the private remote to the ChatGPT-first candidate - READY, OWNER APPROVAL REQUIRED
+
+Proposed action: push local `main` from `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` to the existing private GitHub repository. This is a one-commit fast-forward from `ad0d5ab` to `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20`; visibility remains private.
+
+Evidence: the generated tree matches the reviewed assembler output across all 3,330 tracked files; a no-local clean clone at the exact candidate SHA passes frozen install, typecheck, build, 32 focused WebMCP tests, Chrome 152 smoke (9/9 official steps and 13 deeper executions), and the release audit with zero failures.
+
+Risk: the private remote begins serving the new ChatGPT-first descriptors, result contract, evaluation set, and acceptance document. No public visibility or deployment changes.
+
+Rollback: move the private branch back to `ad0d5ab` only with a separate explicit destructive-history approval, or revert the one new commit with a normal follow-up commit.
 
 ### Gate 2 — public visibility
 
 Required before changing visibility:
 
 - owner reviews the private GitHub tree and About panel;
-- GitHub or an owner-approved scanner reports no secrets across the complete eight-commit history;
+- GitHub or an owner-approved scanner reports no secrets across the complete nine-commit history;
 - license is detected as Apache-2.0;
 - README image and attribution render correctly;
 - GitHub Actions or a fresh remote clone repeats install, typecheck, build, verify, and smoke as applicable;
-- candidate SHA still matches `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c` or a new SHA is fully re-verified.
+- candidate SHA still matches `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20` or a new SHA is fully re-verified.
 
 Rollback: return the repository to private immediately. Do not attempt to repair an exposure by rewriting the historical Atlas repository.
 
@@ -130,11 +140,12 @@ Required evidence:
 ## Exact owner sequence
 
 1. ~~Approve creation of the new private GitHub repository and initial push.~~ Complete at `ad0d5ab`.
-2. Review the next fully verified candidate, secret scan, license detection, tree, and clean remote clone.
-3. Approve public visibility.
-4. Approve the new Railway service and deployment.
-5. Run public Chrome and ChatGPT built-in-browser acceptance using `docs/CHATGPT_ACCEPTANCE.md`.
-6. Record and upload the demo.
-7. Review the final Devpost fields and approve submission.
+2. Approve the one-commit private fast-forward to fully verified candidate `04aa4aaa`.
+3. Review the private tree, secret scan, license detection, and clean remote clone.
+4. Approve public visibility.
+5. Approve the new Railway service and deployment.
+6. Run public Chrome and ChatGPT built-in-browser acceptance using `docs/CHATGPT_ACCEPTANCE.md`.
+7. Record and upload the demo.
+8. Review the final Devpost fields and approve submission.
 
 Each gate names an exact action, evidence, risk, and rollback. None is implied by local green tests.
