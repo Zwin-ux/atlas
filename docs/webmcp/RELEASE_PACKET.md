@@ -61,11 +61,11 @@ Two internal geo-pack build reports (`_manifest.json` and `_failures.json`) were
 
 ## Owner gates
 
-### Gate 1 — create the private remote and push the candidate
+### Gate 1 — create the private remote and push the candidate — COMPLETE
 
-Proposed action: create a new private repository named `Zwin-ux/atlas-webmcp-challenge` and push local candidate `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c` as its initial `main` history.
+Completed August 30, 2026: created private repository `Zwin-ux/atlas-webmcp-challenge` and pushed local candidate `ad0d5ab6a1c61ec44254a67308777dcb6a2ca37c` as its initial `main` history.
 
-Evidence: all clean-clone gates above, exact generator match, Apache-2.0 present, no historical Git objects.
+Evidence: GitHub reports `PRIVATE`, the default branch is `main`, and `refs/heads/main` resolves to the exact audited SHA above. The clean-clone gates, exact generator match, Apache-2.0 license, and no-historical-objects boundary remain recorded above.
 
 Risk: creates an external copy and associates the challenge source with the owner's GitHub account. It remains non-public.
 
@@ -129,11 +129,11 @@ Required evidence:
 
 ## Exact owner sequence
 
-1. Approve creation of the new private GitHub repository and initial push.
-2. Review its secret scan, license detection, tree, and clean remote clone.
+1. ~~Approve creation of the new private GitHub repository and initial push.~~ Complete at `ad0d5ab`.
+2. Review the next fully verified candidate, secret scan, license detection, tree, and clean remote clone.
 3. Approve public visibility.
 4. Approve the new Railway service and deployment.
-5. Run public Chrome and ChatGPT built-in-browser acceptance.
+5. Run public Chrome and ChatGPT built-in-browser acceptance using `docs/CHATGPT_ACCEPTANCE.md`.
 6. Record and upload the demo.
 7. Review the final Devpost fields and approve submission.
 

@@ -25,6 +25,7 @@ const readme = content.get("README.md") ?? "";
 const submission = content.get("docs/SUBMISSION.md") ?? "";
 const video = content.get("docs/VIDEO_SCRIPT.md") ?? "";
 const license = await readFile("LICENSE", "utf8");
+const chatgptAcceptance = await readFile("docs/CHATGPT_ACCEPTANCE.md", "utf8");
 
 for (const toolName of toolNames) {
   assert(readme.includes(`\`${toolName}\``), `README is missing ${toolName}.`);
@@ -38,6 +39,9 @@ assert((submission.match(/\[OWNER REQUIRED:/g) ?? []).length === 3, "Submission 
 assert(submission.includes("Apache-2.0"), "Submission copy must identify the owner-selected Apache-2.0 license.");
 assert(video.includes("Target runtime: **2:45**") && video.includes("Hard maximum: **2:55**"), "The video must remain under three minutes.");
 assert(readme.includes("docs/SUBMISSION.md") && readme.includes("docs/VIDEO_SCRIPT.md") && readme.includes("docs/EVALS.md"), "README must link the public challenge documents.");
+assert(readme.includes("docs/CHATGPT_ACCEPTANCE.md"), "README must link the ChatGPT Site Tools acceptance script.");
+assert(chatgptAcceptance.includes("GPT-5.6 Sol") && chatgptAcceptance.includes("GPT-5.6 Terra") && chatgptAcceptance.includes("GPT-5.6 Luna"), "ChatGPT acceptance must record the current supported-model boundary.");
+assert(chatgptAcceptance.includes("mapChanged: false") && chatgptAcceptance.includes("stopNumber") && chatgptAcceptance.includes("Recently used"), "ChatGPT acceptance must cover ambiguity, trail recovery, and browser evidence.");
 assert(!submission.includes("WEBMCP_STATE.md") && !submission.includes("artifacts/webmcp-proof"), "Submission evidence must resolve inside the sanitized repository.");
 assert(license.includes("Apache License") && license.includes("Version 2.0, January 2004"), "Apache-2.0 license text is missing.");
 

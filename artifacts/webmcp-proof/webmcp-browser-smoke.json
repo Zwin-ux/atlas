@@ -1,12 +1,34 @@
 {
   "browser": "Chrome/152.0.7977.64",
-  "url": "http://127.0.0.1:54663/explore",
+  "url": "http://127.0.0.1:50967/explore",
   "tools": [
     "get_map_state",
     "search_places",
     "open_place",
     "add_map_note",
     "create_map_trail"
+  ],
+  "toolTitles": [
+    {
+      "name": "add_map_note",
+      "title": "Add a place note"
+    },
+    {
+      "name": "create_map_trail",
+      "title": "Build a research trail"
+    },
+    {
+      "name": "get_map_state",
+      "title": "What's on the Atlas map"
+    },
+    {
+      "name": "open_place",
+      "title": "Show a place on Atlas"
+    },
+    {
+      "name": "search_places",
+      "title": "Find U.S. places"
+    }
   ],
   "checks": [
     {
@@ -58,7 +80,14 @@
           "state": "ca",
           "kind": "county"
         },
-        "revision": 1
+        "revision": 1,
+        "mapChanged": true,
+        "visible": true,
+        "view": {
+          "level": "county",
+          "name": "Riverside County",
+          "state": "ca"
+        }
       }
     },
     {
@@ -80,7 +109,15 @@
           },
           "body": "Compare transit access around county offices."
         },
-        "revision": 2
+        "revision": 2,
+        "mapChanged": true,
+        "noteAdded": true,
+        "visible": true,
+        "view": {
+          "level": "county",
+          "name": "Miami-Dade County",
+          "state": "fl"
+        }
       }
     },
     {
@@ -105,6 +142,13 @@
       "output": {
         "ok": true,
         "revision": 3,
+        "mapChanged": true,
+        "trailChanged": true,
+        "visible": true,
+        "view": {
+          "level": "nation",
+          "overlay": "research_trail"
+        },
         "title": "County access check",
         "stopCount": 3,
         "stops": [
@@ -129,7 +173,7 @@
       "output": {
         "ok": true,
         "revision": 4,
-        "visibleRevision": 3,
+        "visibleRevision": 4,
         "current": {
           "level": "county",
           "countySlug": "miami-dade-fl",
@@ -196,6 +240,13 @@
       "output": {
         "ok": true,
         "revision": 5,
+        "mapChanged": true,
+        "trailChanged": true,
+        "visible": true,
+        "view": {
+          "level": "nation",
+          "overlay": "research_trail"
+        },
         "title": "County access check",
         "stopCount": 3,
         "stops": [
@@ -284,7 +335,10 @@
           "message": "Atlas could not find that place. Try a nearby candidate or include the state.",
           "candidates": [],
           "stopIndex": 1
-        }
+        },
+        "mapChanged": false,
+        "trailChanged": false,
+        "stopNumber": 2
       }
     },
     {
@@ -451,7 +505,8 @@
               "kind": "place"
             }
           ]
-        }
+        },
+        "mapChanged": false
       }
     },
     {
@@ -503,5 +558,6 @@
       }
     }
   ],
-  "consoleErrors": []
+  "consoleErrors": [],
+  "screenshot": "C:\\Users\\mzwin\\Documents\\Atlas-WebMCP\\.evals\\browser-smoke-trail.png"
 }

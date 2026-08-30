@@ -100,6 +100,7 @@ await copyFile("artifacts/webmcp-proof/trail-overview-desktop.png", "docs/assets
 
 await copyFile("docs/webmcp/VIDEO_SCRIPT.md", "docs/VIDEO_SCRIPT.md");
 await copyFile("docs/webmcp/EVALS.md", "docs/EVALS.md");
+await copyFile("docs/webmcp/CHATGPT_ACCEPTANCE.md", "docs/CHATGPT_ACCEPTANCE.md");
 await copyFile("docs/webmcp/SUBMISSION.md", "docs/SUBMISSION.md");
 
 const submissionPath = resolve(targetRoot, "docs/SUBMISSION.md");

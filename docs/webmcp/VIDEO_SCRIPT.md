@@ -55,9 +55,9 @@ Target runtime: **2:45**. Hard maximum: **2:55**. Record one continuous supporte
 
 ### 2:00-2:25, exact-five, atomic failure, fallback
 
-**Picture:** Show the exact five tool names, one unresolved trail attempt leaving the prior trail intact, and a short normal-browser fallback frame.
+**Picture:** Show the exact five tools with their human-readable Site Tools titles, one unresolved trail attempt leaving the prior trail intact, and a short normal-browser fallback frame.
 
-**Narration:** “The cut is intentionally five tools. Trail creation resolves every stop before one mutation. In a browser without WebMCP, the same no-login map stays usable and says site tools are unavailable.”
+**Narration:** “The cut is intentionally five tools. Every write tells ChatGPT what is already visible, and a failed trail says the prior state stayed intact. In a normal browser, the same no-login map stays usable and calmly says site tools were not detected.”
 
 ### 2:25-2:45, challenge delta
 

@@ -28,6 +28,8 @@ No login. No saved profile. One map, one research session.
 
 Human controls and tool callbacks share one `AtlasMapController`. Write calls resolve only after the matching map revision is visible. A canceled, failed, or superseded transition cannot report success.
 
+ChatGPT sees concise human-readable Site Tools titles and intent-specific descriptions. Successful writes return the visible map effect; ambiguous or failed writes explicitly report that the map stayed unchanged, so the conversation can recover without guessing.
+
 ## Run locally
 
 Requirements: Node.js 22.12 or newer, pnpm 11, Git, and Chrome for the WebMCP smoke gate.
@@ -90,5 +92,6 @@ The owner-selected Apache-2.0 license is applied only to the sanitized challenge
 - [Under-three-minute video script](docs/webmcp/VIDEO_SCRIPT.md)
 - [Owner-gated release packet](docs/webmcp/RELEASE_PACKET.md)
 - [Evaluation guide and thresholds](docs/webmcp/EVALS.md)
+- [ChatGPT Site Tools acceptance script](docs/webmcp/CHATGPT_ACCEPTANCE.md)
 - [Official challenge page](https://webmcp.devpost.com/)
 - [Official rules](https://webmcp.devpost.com/rules)

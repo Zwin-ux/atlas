@@ -50,6 +50,10 @@ Reports are written under `.evals/`. API keys are read from the environment and 
 
 ## Suite coverage
 
-The model suite covers direct selection of all five tools, state-search-open chaining, ambiguity-first Springfield search, note-versus-trail discrimination, a three-stop ordered civic trail, a no-tool request, a read-only request that must not mutate, and a failed trail followed by an unchanged state read.
+The model suite covers direct selection of all five tools, state-search-open chaining, ambiguity-first Springfield search, note-versus-trail discrimination, a three-stop ordered civic trail, a no-tool request, a read-only request that must not mutate, and a failed trail followed by an unchanged state read. The prompts use natural ChatGPT phrasing rather than internal tool names, and include both a Springfield follow-up turn and a state read after the person changes the map manually.
+
+Write-tool mock results mirror the browser contract: successful writes include `visible: true` plus the map effect, while recoverable failures include `mapChanged: false`; a failed trail also identifies the one-based `stopNumber` and confirms `trailChanged: false`. This gives the model enough bounded context to explain what happened without inventing a visible change or making a redundant verification call.
+
+The deterministic browser harness also reads `document.modelContext.getTools()` and checks the five human-facing titles that ChatGPT presents in its Site Tools menu. This catches a class of integration drift that the lower-level Puppeteer tool projection does not expose.
 
 The deterministic suite uses only concrete calls. Failure-state assertions live in the Atlas browser harness because the official `smoke` command executes calls but does not compare returned application state.

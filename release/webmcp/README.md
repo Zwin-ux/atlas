@@ -24,6 +24,8 @@ The map supports pan, zoom, county drill-in, breadcrumbs, and a keyboard/touch p
 
 Human controls and tools use one `AtlasMapController`. A write returns success only after the matching map revision is visible. Failed, canceled, ambiguous, or superseded work cannot claim a visible success.
 
+ChatGPT sees concise human-readable Site Tools titles and intent-specific descriptions. Successful writes return the visible map effect; ambiguous or failed writes explicitly report that the map stayed unchanged, so the conversation can recover without guessing.
+
 ## Run locally
 
 Requirements: Node.js 22.12+, pnpm 11, and Chrome for the browser smoke gate.
@@ -48,6 +50,7 @@ Atlas existed before the challenge as a Census-backed map engine. [CHALLENGE_DEL
 ## Evidence and submission material
 
 - [Evaluation guide](docs/EVALS.md)
+- [ChatGPT Site Tools acceptance script](docs/CHATGPT_ACCEPTANCE.md)
 - [Verification boundary](docs/VERIFICATION.md)
 - [Devpost copy](docs/SUBMISSION.md)
 - [Under-three-minute video script](docs/VIDEO_SCRIPT.md)

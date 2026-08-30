@@ -39,6 +39,8 @@ The top-level page imperatively registers exactly five WebMCP tools:
 
 The two read tools return bounded public projections. The three write tools update visible session state and wait for the matching map revision to render before returning success. Ambiguous locations return candidates. A trail resolves every stop before one atomic mutation, then shows its numbered county route on the national map; a bad stop never leaves a partial trail.
 
+In ChatGPT's Site Tools menu, the same five tools use plain human-readable titles and descriptions that say when each action fits. Successful writes return the visible map effect. Ambiguous or failed writes return an explicit unchanged-state signal and bounded recovery context, including which trail stop needs clarification.
+
 ## How it was built
 
 - TypeScript server and React map shell.
@@ -62,6 +64,7 @@ Atlas predates the challenge. Judges should evaluate the work after baseline `b6
 - editable session notes and atomic editable research trails;
 - exact-five, cancellation, rollback, output-bound, and fallback verification;
 - deterministic Chrome WebMCP execution of all five tools plus credentialed static/live model-eval commands;
+- natural-language tool-selection and follow-up trajectories for ChatGPT, including manual-map-state reads and ambiguity recovery;
 - keyboard place finding, responsive proof, accessibility audit, and design review.
 
 The detailed evidence ledger is in `CHALLENGE_DELTA.md` and `WEBMCP_STATE.md`.
@@ -101,7 +104,7 @@ No account system, public posting, or sixth tool is part of this candidate.
 | Visible completion | revision acknowledgment tests, browser map transitions, and completed national-overlay smoke transcript |
 | Ambiguity safety | Springfield API/controller/browser proof plus unchanged-state WebMCP smoke assertion |
 | Atomic trails | success/failure controller tests plus unresolved-stop unchanged-state browser assertion |
-| Agent understanding | 10-case model suite with three-run/90% threshold; execution is credential-gated and must not be claimed until a report exists |
+| Agent understanding | 12-case natural-language model suite with three-run/90% threshold; execution is credential-gated and must not be claimed until a report exists |
 | Normal fallback | fallback screenshots and feature-detected registry |
 | Accessibility | gstack accessibility tree, 390x844 target/overflow audit, design review |
 

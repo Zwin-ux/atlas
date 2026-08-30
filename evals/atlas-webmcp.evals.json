@@ -5,7 +5,7 @@
       {
         "role": "user",
         "type": "message",
-        "content": "What county or national view is Atlas showing right now? Read the live map state."
+        "content": "What am I looking at in Atlas right now?"
       }
     ],
     "expectedCall": [
@@ -30,7 +30,7 @@
       {
         "role": "user",
         "type": "message",
-        "content": "Search Atlas for Riverside County, California, but do not change the map."
+        "content": "I'm researching Riverside County, California. Find the Atlas match first so I can check it before we move."
       }
     ],
     "expectedCall": [
@@ -59,7 +59,7 @@
       {
         "role": "user",
         "type": "message",
-        "content": "Open Riverside County, California on the visible Atlas map."
+        "content": "Take me to Riverside County, California."
       }
     ],
     "expectedCall": [
@@ -69,6 +69,9 @@
         "mockOutput": {
           "ok": true,
           "revision": 1,
+          "mapChanged": true,
+          "visible": true,
+          "view": { "level": "county", "name": "Riverside County", "state": "ca" },
           "place": {
             "name": "Riverside County",
             "countyName": "Riverside County",
@@ -86,7 +89,7 @@
       {
         "role": "user",
         "type": "message",
-        "content": "Add a session-only note at Miami-Dade County, Florida: Compare transit access around county offices. Do not create a trail."
+        "content": "At Miami-Dade County, Florida, leave this note for me: Compare transit access around county offices."
       }
     ],
     "expectedCall": [
@@ -99,6 +102,10 @@
         "mockOutput": {
           "ok": true,
           "revision": 1,
+          "mapChanged": true,
+          "noteAdded": true,
+          "visible": true,
+          "view": { "level": "county", "name": "Miami-Dade County", "state": "fl" },
           "note": {
             "id": "note-1",
             "body": "Compare transit access around county offices.",
@@ -120,7 +127,7 @@
       {
         "role": "user",
         "type": "message",
-        "content": "Create a session research trail titled County access check in this exact order: Riverside County, CA to study public records; Miami-Dade County, FL to compare transit access; Travis County, TX to review meeting notices."
+        "content": "Set up a research trail called County access check: first Riverside County, CA for public records, then Miami-Dade County, FL for transit access, then Travis County, TX for meeting notices."
       }
     ],
     "expectedCall": [
@@ -146,6 +153,10 @@
         "mockOutput": {
           "ok": true,
           "revision": 1,
+          "mapChanged": true,
+          "trailChanged": true,
+          "visible": true,
+          "view": { "level": "nation", "overlay": "research_trail" },
           "title": "County access check",
           "stopCount": 3,
           "stops": [
@@ -163,7 +174,7 @@
       {
         "role": "user",
         "type": "message",
-        "content": "I need Springfield, but I did not give a state. Search first and do not guess or change the map if several Springfields match."
+        "content": "I'd like to look at Springfield, but I'm not sure which state. Show me the choices first."
       }
     ],
     "expectedCall": [
@@ -223,6 +234,9 @@
             "mockOutput": {
               "ok": true,
               "revision": 1,
+              "mapChanged": true,
+              "visible": true,
+              "view": { "level": "county", "name": "Riverside County", "state": "ca" },
               "place": { "name": "Riverside County", "countyName": "Riverside County", "countySlug": "riverside-ca", "state": "ca", "kind": "county" }
             }
           }
@@ -256,7 +270,18 @@
                 { "place": "Atlantis-by-the-Pacific", "prompt": { "$contains": "permits" } }
               ]
             },
-            "mockOutput": { "ok": false, "error": { "code": "NOT_FOUND", "message": "No Atlas place matched Atlantis-by-the-Pacific." } }
+            "mockOutput": {
+              "ok": false,
+              "mapChanged": false,
+              "trailChanged": false,
+              "stopNumber": 2,
+              "error": {
+                "code": "UNKNOWN_PLACE",
+                "message": "Atlas could not find that place. Try a nearby candidate or include the state.",
+                "stopIndex": 1,
+                "candidates": []
+              }
+            }
           },
           {
             "functionName": "get_map_state",
@@ -273,7 +298,7 @@
       {
         "role": "user",
         "type": "message",
-        "content": "Tell me what Atlas currently shows. Do not navigate, add a note, or create a trail."
+        "content": "I moved around the map myself. What does Atlas show now?"
       }
     ],
     "expectedCall": [
@@ -281,6 +306,66 @@
         "functionName": "get_map_state",
         "arguments": {},
         "mockOutput": { "ok": true, "revision": 0, "visibleRevision": 0, "current": { "level": "nation" }, "noteCount": 0, "recentNotes": [], "trail": null }
+      }
+    ]
+  },
+  {
+    "name": "[follow-up] Open the Springfield chosen in conversation",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Take me to Springfield."
+      },
+      {
+        "role": "model",
+        "type": "message",
+        "content": "Which Springfield do you mean?"
+      },
+      {
+        "role": "user",
+        "type": "message",
+        "content": "The one in Illinois."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "open_place",
+        "arguments": { "place": { "$pattern": "(?i)^(?=.*Springfield)(?=.*(?:IL|Illinois)).*$" } },
+        "mockOutput": {
+          "ok": true,
+          "revision": 1,
+          "mapChanged": true,
+          "visible": true,
+          "view": { "level": "county", "name": "Sangamon County", "state": "il" },
+          "place": { "name": "Springfield", "countyName": "Sangamon County", "countySlug": "sangamon-il", "state": "il", "kind": "place" }
+        }
+      }
+    ]
+  },
+  {
+    "name": "[human-action] Read the map after the person moves it",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "I clicked the second trail stop myself. What am I looking at now?"
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_map_state",
+        "arguments": {},
+        "mockOutput": {
+          "ok": true,
+          "revision": 2,
+          "visibleRevision": 2,
+          "current": { "level": "county", "countySlug": "miami-dade-fl", "name": "Miami-Dade County", "state": "fl" },
+          "selectedPlace": { "name": "Miami-Dade County", "countyName": "Miami-Dade County", "state": "fl", "kind": "county" },
+          "noteCount": 0,
+          "recentNotes": [],
+          "trail": { "title": "County access check", "activeIndex": 1, "stops": [] }
+        }
       }
     ]
   },

@@ -35,6 +35,7 @@ const packageJson = JSON.parse(packageSource);
 const modelEvals = JSON.parse(modelEvalsSource);
 const smokeEvals = JSON.parse(smokeEvalsSource);
 const registeredNames = [...toolsSource.matchAll(/\n\s+name: "([a-z_]+)",/g)].map((match) => match[1]);
+assert(modelEvals.length === 12, "The judge-facing agent-understanding claim requires the exact 12-case model suite.");
 
 function functionNames(value, names = []) {
   if (Array.isArray(value)) {
@@ -86,5 +87,9 @@ for (const suite of [modelEvals, smokeEvals]) {
   assert(names.every((name) => expected.includes(name)), "An eval references a tool outside the exact-five cut.");
   assert(expected.every((name) => names.includes(name)), "An eval suite does not cover all five tools.");
 }
+
+assert(modelEvals.some((entry) => entry.name.startsWith("[follow-up]") && entry.messages.length >= 3), "Model evals must cover conversational place clarification.");
+assert(modelEvals.some((entry) => entry.name.startsWith("[human-action]")), "Model evals must cover reading state after a person changes the shared map.");
+assert(toolsSource.includes("mapChanged: false") && toolsSource.includes("visible: true") && toolsSource.includes("stopNumber"), "Write results must expose visible success and bounded recovery state to ChatGPT.");
 
 console.log(JSON.stringify({ ok: true, tools: expected, entry: "standalone top-level", dependencies: ["react", "react-dom"] }, null, 2));

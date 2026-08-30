@@ -59,11 +59,15 @@ assert(evalRunnerSource.includes("Math.max(3, requestedRuns)"), "Model evals mus
 assert(evalRunnerSource.includes("Math.max(0.90, requestedThreshold)"), "Model evals must not weaken the 90% release threshold.");
 const modelEvalNames = collectFunctionNames(modelEvals);
 const smokeEvalNames = collectFunctionNames(smokeEvals);
+assert(modelEvals.length === 12, "The judge-facing agent-understanding claim requires the exact 12-case model suite.");
 assert(modelEvalNames.every((name) => expected.includes(name)), "Model evals reference a tool outside the exact-five cut.");
 assert(smokeEvalNames.every((name) => expected.includes(name)), "Smoke evals reference a tool outside the exact-five cut.");
 assert(expected.every((name) => modelEvalNames.includes(name) && smokeEvalNames.includes(name)), "Both eval suites must exercise all five tools.");
 assert(modelEvals.some((entry) => entry.expectedCall === null), "Model evals must include a no-tool request.");
 assert(modelEvals.filter((entry) => entry.name.startsWith("[critical]")).length >= 3, "Model evals must identify critical write/atomicity trajectories.");
+assert(modelEvals.some((entry) => entry.name.startsWith("[follow-up]") && entry.messages.length >= 3), "Model evals must cover conversational place clarification.");
+assert(modelEvals.some((entry) => entry.name.startsWith("[human-action]")), "Model evals must cover reading state after a person changes the shared map.");
+assert(toolsSource.includes("mapChanged: false") && toolsSource.includes("visible: true") && toolsSource.includes("stopNumber"), "Write results must expose visible success and bounded recovery state to ChatGPT.");
 assert(mainSource.includes("<ChallengeAtlas />") && mainSource.includes("<LegacyAtlasWidget />"), "Challenge and legacy widget writers must stay fenced.");
 assert(finderSource.includes("controller.openPlace(") && finderSource.includes("controller.openCandidate("), "The human place finder must use the shared map controller.");
 assert(appSource.includes("onOpenTrailStop={openTrailStop}"), "Trail markers and the rail must use the shared openTrailStop controller path.");

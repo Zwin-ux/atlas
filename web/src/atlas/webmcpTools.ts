@@ -66,6 +66,29 @@ function compactResolution<T extends OpenPlaceResult | AddMapNoteResult>(result:
   return { ...result, error: { ...result.error, candidates: compactCandidates(result.error.candidates) } } as T;
 }
 
+function compactOpenPlace(result: OpenPlaceResult) {
+  const compact = compactResolution(result);
+  if (!compact.ok) return { ...compact, mapChanged: false };
+  return {
+    ...compact,
+    mapChanged: true,
+    visible: true,
+    view: { level: "county", name: clip(compact.place.countyName, 50), state: compact.place.state },
+  };
+}
+
+function compactMapNote(result: AddMapNoteResult) {
+  const compact = compactResolution(result);
+  if (!compact.ok) return { ...compact, mapChanged: false, noteAdded: false };
+  return {
+    ...compact,
+    mapChanged: true,
+    noteAdded: true,
+    visible: true,
+    view: { level: "county", name: clip(compact.note.place.countyName, 50), state: compact.note.place.state },
+  };
+}
+
 function compactSearch(result: PlaceSearchResult): PlaceSearchResult {
   return { ...result, candidates: compactCandidates(result.candidates) };
 }
@@ -74,12 +97,19 @@ function compactTrail(result: CreateMapTrailResult) {
   if (!result.ok) {
     return {
       ...result,
+      mapChanged: false,
+      trailChanged: false,
+      ...(typeof result.error.stopIndex === "number" ? { stopNumber: result.error.stopIndex + 1 } : {}),
       error: { ...result.error, ...(result.error.candidates ? { candidates: compactCandidates(result.error.candidates) } : {}) },
     };
   }
   return {
     ok: true,
     revision: result.revision,
+    mapChanged: true,
+    trailChanged: true,
+    visible: true,
+    view: { level: "nation", overlay: "research_trail" },
     title: result.trail.title,
     stopCount: result.trail.stops.length,
     stops: result.trail.stops.map((stop) => ({ name: stop.place.name, state: stop.place.state })),
@@ -90,8 +120,8 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
   return [
     {
       name: "get_map_state",
-      title: "Read Atlas map state",
-      description: "Read the visible location, recent session notes, and active research trail on the live Atlas map. This does not change the map.",
+      title: "What's on the Atlas map",
+      description: "Read what the person can currently see on the live Atlas map: location, selected place, recent session notes, and active research trail. Use this for questions such as 'what am I looking at?' and after the person changes the map manually. The map stays unchanged.",
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
       execute: () => runTool(controller, "get_map_state", "Reading the live map.", () => {
@@ -126,8 +156,8 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
     },
     {
       name: "search_places",
-      title: "Search Atlas places",
-      description: "Search the Census-backed Atlas index for U.S. places and counties. This does not change the map.",
+      title: "Find U.S. places",
+      description: "Find matching U.S. places and counties in Atlas's Census-backed index without changing the map. Use this to compare candidates before a write when a name may refer to several places, such as Springfield without a state.",
       inputSchema: { type: "object", additionalProperties: false, properties: { query: QUERY_PROPERTY }, required: ["query"] },
       annotations: { readOnlyHint: true, untrustedContentHint: false },
       execute: (input, context) => runTool(controller, "search_places", "Searching the Census place index.", async () => {
@@ -138,8 +168,8 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
     },
     {
       name: "open_place",
-      title: "Open a place on Atlas",
-      description: "Resolve one U.S. place or county and open it on the visible Atlas map. Ambiguous names return candidates without changing the map.",
+      title: "Show a place on Atlas",
+      description: "Show one specific U.S. place or county on the visible Atlas map. Use this when the intended location is clear, such as a county with its state or a candidate chosen from search. Success is returned after the county view is visible; an ambiguous name returns candidates and leaves the map unchanged.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -149,14 +179,14 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
       annotations: { readOnlyHint: false, untrustedContentHint: false },
       execute: (input, context) => runTool(controller, "open_place", "Resolving and opening a place.", async () => {
         const place = readBoundedString(input, "place", 120);
-        if (!place) return invalidInput("place must contain 1 to 120 characters");
-        return compactResolution(await controller.openPlace({ place }, context?.signal));
+        if (!place) return { ...invalidInput("place must contain 1 to 120 characters"), mapChanged: false };
+        return compactOpenPlace(await controller.openPlace({ place }, context?.signal));
       }, (result) => result.ok && "place" in result ? `Opened ${result.place.name}.` : "The place needs clarification."),
     },
     {
       name: "add_map_note",
-      title: "Add a session map note",
-      description: "Resolve a mapped U.S. place, open it, and add one visible session-only research note. The note is not posted or persisted.",
+      title: "Add a place note",
+      description: "Attach one observation or research reminder to one U.S. place in the shared Atlas session. Atlas resolves and opens the place, then shows the editable note on the map. Success is returned after both are visible; the note remains session-only.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -170,14 +200,14 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
       execute: (input, context) => runTool(controller, "add_map_note", "Resolving the note location.", async () => {
         const place = readBoundedString(input, "place", 120);
         const body = readBoundedString(input, "body", 240);
-        if (!place || !body) return invalidInput("place must be 1 to 120 characters and body must be 1 to 240 characters");
-        return compactResolution(await controller.addMapNote({ place, body }, context?.signal));
+        if (!place || !body) return { ...invalidInput("place must be 1 to 120 characters and body must be 1 to 240 characters"), mapChanged: false, noteAdded: false };
+        return compactMapNote(await controller.addMapNote({ place, body }, context?.signal));
       }, (result) => result.ok && "note" in result ? `Added a note at ${result.note.place.name}.` : "The note was not added."),
     },
     {
       name: "create_map_trail",
-      title: "Create a session map trail",
-      description: "Resolve two to five U.S. places, then atomically show one visible editable research trail as numbered stops on the national map.",
+      title: "Build a research trail",
+      description: "Build one ordered two-to-five-place investigation on Atlas. Use this for a multi-place route with one research prompt per stop. Atlas resolves every stop before one atomic change, then shows the complete editable numbered trail on the national map; if any stop needs clarification, the prior map and trail stay unchanged.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -204,7 +234,9 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
       execute: (input, context) => runTool(controller, "create_map_trail", "Resolving every trail stop.", async () => {
         const title = readBoundedString(input, "title", 60);
         const stops = input.stops;
-        if (!title || !Array.isArray(stops) || stops.length < 2 || stops.length > 5) return invalidInput("title must be 1 to 60 characters and stops must contain 2 to 5 items");
+        if (!title || !Array.isArray(stops) || stops.length < 2 || stops.length > 5) {
+          return { ...invalidInput("title must be 1 to 60 characters and stops must contain 2 to 5 items"), mapChanged: false, trailChanged: false };
+        }
         const parsedStops = stops.map((stop) => {
           if (typeof stop !== "object" || stop === null || Array.isArray(stop)) return undefined;
           const record = stop as Record<string, unknown>;
@@ -212,7 +244,9 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
           const prompt = readBoundedString(record, "prompt", 100);
           return place && prompt ? { place, prompt } : undefined;
         });
-        if (parsedStops.some((stop) => !stop)) return invalidInput("each stop needs a valid place and prompt");
+        if (parsedStops.some((stop) => !stop)) {
+          return { ...invalidInput("each stop needs a valid place and prompt"), mapChanged: false, trailChanged: false };
+        }
         return compactTrail(await controller.createMapTrail({ title, stops: parsedStops as Array<{ place: string; prompt: string }> }, context?.signal));
       }, (result) => result.ok ? `Created a ${"stopCount" in result ? result.stopCount : 0}-stop trail.` : "The trail was not created."),
     },
