@@ -620,6 +620,20 @@ body {
   font-weight: 600;
 }
 
+.atlas-app__mark {
+  margin-right: 2px;
+  color: #3d6f58;
+  font: 800 10px/1 ui-monospace, "Cascadia Mono", monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.atlas-app__mark-sep {
+  margin-right: 2px;
+  color: color-mix(in srgb, var(--atlas-page-fg) 30%, transparent);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+}
+
 .atlas-app__selection {
   display: flex;
   align-items: baseline;

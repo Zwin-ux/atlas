@@ -153,6 +153,8 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
     <div className="atlas-app">
       <h1 className="sr-only">Atlas shared U.S. map</h1>
       <nav className="atlas-app__crumbs" aria-label="Atlas location">
+        <span className="atlas-app__mark">Atlas</span>
+        <span className="atlas-app__mark-sep" aria-hidden="true">/</span>
         {crumbs.map((crumb, i) => (
           <span key={`${crumb.ref.level}-${i}`}>
             {i > 0 ? <span className="atlas-app__sep" aria-hidden="true">›</span> : null}
