@@ -39,10 +39,12 @@ for (const eventType of HOST_GLOBALS_EVENT_TYPES) {
  */
 const API_BASE = (window as { __ATLAS_API_BASE__?: string }).__ATLAS_API_BASE__ ?? "";
 
-function AtlasWidget() {
+function LegacyAtlasWidget() {
   const { ref, coverage } = useToolPlate();
   return <AtlasApp initialRef={ref} coverage={coverage} apiBase={API_BASE} />;
 }
+
+const isChallengeRoute = window.location.pathname === "/" || window.location.pathname === "/explore";
 
 const root = document.getElementById("root");
 
@@ -50,4 +52,4 @@ if (!root) {
   throw new Error("Missing #root element for Atlas widget.");
 }
 
-createRoot(root).render(<AtlasWidget />);
+createRoot(root).render(isChallengeRoute ? <AtlasApp apiBase={API_BASE} /> : <LegacyAtlasWidget />);

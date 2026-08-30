@@ -12,22 +12,20 @@
  * the widget — no tool round-trip — so exploring the map is instant.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { AtlasPlate } from "./AtlasPlate";
+import { AtlasMapController, type PlateRef } from "./AtlasMapController";
 import type { Plate } from "./plateGeometry";
 import "./atlas.css";
 
-export type PlateRef =
-  | { level: "nation" }
-  | { level: "state"; state: string; stateName?: string }
-  | { level: "county"; countySlug: string; state?: string; name?: string };
+export type { PlateRef } from "./AtlasMapController";
 
 type LoadState =
   | { status: "idle" }
-  | { status: "loading"; ref: PlateRef }
-  | { status: "ready"; ref: PlateRef; plate: Plate }
-  | { status: "error"; ref: PlateRef; message: string };
+  | { status: "loading"; ref: PlateRef; revision: number }
+  | { status: "ready"; ref: PlateRef; plate: Plate; revision: number }
+  | { status: "error"; ref: PlateRef; message: string; revision: number };
 
 const STATE_NAMES: Record<string, string> = {
   al: "Alabama", ak: "Alaska", az: "Arizona", ar: "Arkansas", ca: "California",
@@ -63,27 +61,37 @@ export type AtlasAppProps = {
   coverage?: string | undefined;
   /** Base URL for plate fetches; the widget runs on a sandbox origin. */
   apiBase?: string | undefined;
+  /** Optional shared controller, primarily for browser-tool registration. */
+  controller?: AtlasMapController | undefined;
 };
 
-export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) {
-  const [trail, setTrail] = useState<PlateRef[]>([initialRef ?? { level: "nation" }]);
+export function AtlasApp({ initialRef, coverage, apiBase = "", controller: externalController }: AtlasAppProps) {
+  const ownedController = useRef<AtlasMapController | null>(null);
+  if (!ownedController.current) ownedController.current = new AtlasMapController(initialRef);
+  const controller = externalController ?? ownedController.current;
+  const map = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const requestId = useRef(0);
 
-  const current = trail[trail.length - 1]!;
+  const current = map.current;
 
-  // Follow the tool: when a new plate reference arrives, reset the trail to it.
+  // The legacy Apps SDK preview can still supply a new plate. Challenge routes
+  // do not mount that host subscription, so browser tools remain the only agent
+  // writer there.
   useEffect(() => {
     if (!initialRef) return;
-    setTrail([initialRef]);
-  }, [initialRef?.level, (initialRef as { countySlug?: string })?.countySlug, (initialRef as { state?: string })?.state]);
+    controller.replaceNavigation(initialRef).catch(() => undefined);
+  }, [controller, initialRef?.level, (initialRef as { countySlug?: string })?.countySlug, (initialRef as { state?: string })?.state]);
 
   useEffect(() => {
     const id = ++requestId.current;
-    let cancelled = false;
-    setLoad({ status: "loading", ref: current });
+    const request = new AbortController();
+    setLoad({ status: "loading", ref: current, revision: map.revision });
 
-    fetch(`${apiBase}${plateUrl(current)}`, { headers: { accept: "application/json" } })
+    fetch(`${apiBase}${plateUrl(current)}`, {
+      headers: { accept: "application/json" },
+      signal: request.signal,
+    })
       .then(async (response) => {
         if (!response.ok) {
           const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -93,34 +101,47 @@ export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) 
       })
       .then((plate) => {
         // A slow plate must not overwrite a newer one the reader already moved to.
-        if (cancelled || id !== requestId.current) return;
-        setLoad({ status: "ready", ref: current, plate });
+        if (request.signal.aborted || id !== requestId.current) return;
+        setLoad({ status: "ready", ref: current, plate, revision: map.revision });
       })
       .catch((error: unknown) => {
-        if (cancelled || id !== requestId.current) return;
+        if (request.signal.aborted || id !== requestId.current) return;
+        const failure = error instanceof Error ? error : new Error("Atlas could not load that map.");
         setLoad({
           status: "error",
           ref: current,
-          message: error instanceof Error ? error.message : "Atlas could not load that map.",
+          revision: map.revision,
+          message: failure.message,
         });
+        controller.rejectVisible(map.revision, failure);
       });
 
     return () => {
-      cancelled = true;
+      request.abort();
     };
-  }, [current, apiBase]);
+  }, [current, map.revision, apiBase, controller]);
+
+  useLayoutEffect(() => {
+    if (load.status === "ready" && load.revision === map.revision) {
+      controller.acknowledgeVisible(map.revision);
+    }
+  }, [controller, load, map.revision]);
 
   const openCounty = useCallback((slug: string, name: string) => {
-    setTrail((previous) => [...previous, { level: "county", countySlug: slug, name }]);
-  }, []);
+    controller.openCounty(slug, name).catch(() => undefined);
+  }, [controller]);
 
   const goTo = useCallback((depth: number) => {
-    setTrail((previous) => previous.slice(0, depth + 1));
-  }, []);
+    controller.goToDepth(depth).catch(() => undefined);
+  }, [controller]);
 
   const crumbs = useMemo(
-    () => trail.map((ref, depth) => ({ ref, depth, label: plateTitle(ref, load.status === "ready" && depth === trail.length - 1 ? load.plate : undefined) })),
-    [trail, load],
+    () => map.navigationStack.map((ref, depth) => ({
+      ref,
+      depth,
+      label: plateTitle(ref, load.status === "ready" && depth === map.navigationStack.length - 1 ? load.plate : undefined),
+    })),
+    [map.navigationStack, load],
   );
 
   return (
@@ -148,13 +169,13 @@ export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) 
             plate={load.plate}
             focusSlug={current.level === "county" ? current.countySlug : undefined}
             onOpenCounty={openCounty}
-            coverage={trail.length === 1 ? coverage : undefined}
+            coverage={map.navigationStack.length === 1 ? coverage : undefined}
           />
         ) : load.status === "error" ? (
           <div className="atlas-app__message" role="alert">
             <p>{load.message}</p>
-            {trail.length > 1 ? (
-              <button type="button" onClick={() => goTo(trail.length - 2)}>
+            {map.navigationStack.length > 1 ? (
+              <button type="button" onClick={() => goTo(map.navigationStack.length - 2)}>
                 Go back
               </button>
             ) : null}

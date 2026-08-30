@@ -17,6 +17,7 @@
     "typecheck:workspaces": "tsc -p packages/config/tsconfig.json --noEmit && tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/assets/tsconfig.json --noEmit && tsc -p packages/geo/tsconfig.json --noEmit && tsc -p packages/mcp/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/widget/tsconfig.json --noEmit",
     "typecheck": "pnpm typecheck:starter && pnpm typecheck:workspaces",
     "test:core": "pnpm --dir packages/core test",
+    "test:atlas-controller": "tsx --test web/test/atlas-map-controller.test.ts",
     "test:hosted-clawd": "tsx --test server/test/hosted-clawd-persistence-foundation.test.ts",
     "test:hosted-clawd-billing": "tsx --test server/test/hosted-clawd-stripe-test-billing.test.ts",
     "test:hosted-clawd-protected-tool-gate": "tsx --test server/test/hosted-clawd-protected-tool-gate.test.ts",
