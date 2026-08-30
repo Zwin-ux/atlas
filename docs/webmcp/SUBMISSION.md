@@ -1,6 +1,6 @@
 # Atlas WebMCP Submission Draft
 
-This copy is ready for owner review. Replace every `[OWNER REQUIRED]` field only with verified public evidence. Do not submit before the release checklist is green.
+This copy is ready for owner review. Replace the remaining `[OWNER REQUIRED]` fields only with verified public evidence. Do not submit before the release checklist is green.
 
 Current challenge deadline: September 3, 2026 at 1:00 PM Pacific. Re-check the official rules immediately before submission.
 
@@ -8,7 +8,7 @@ Current challenge deadline: September 3, 2026 at 1:00 PM Pacific. Re-check the o
 
 - Project name: **Atlas**
 - Tagline: **Explore a county with a person and an agent on the same live map.**
-- Live app URL: `[OWNER REQUIRED: approved public deployment]`
+- Live app URL: [https://atlas-webmcp-production.up.railway.app/explore](https://atlas-webmcp-production.up.railway.app/explore)
 - Public source URL: `[OWNER REQUIRED: sanitized public repository]`
 - Open-source license: **Apache-2.0**
 - Demo video: `[OWNER REQUIRED: public YouTube URL, under three minutes, with audio]`

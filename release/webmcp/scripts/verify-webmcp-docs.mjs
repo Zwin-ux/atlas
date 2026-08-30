@@ -36,7 +36,8 @@ for (const [path, body] of content) {
   for (const pattern of forbidden) assert(!pattern.test(body), `${path} leaks retired scope through ${pattern}.`);
 }
 
-assert((submission.match(/\[OWNER REQUIRED:/g) ?? []).length === 3, "Submission copy must retain exactly three external owner placeholders.");
+assert((submission.match(/\[OWNER REQUIRED:/g) ?? []).length === 2, "Submission copy must retain exactly the two source/video owner placeholders.");
+assert(readme.includes("https://atlas-webmcp-production.up.railway.app/explore") && submission.includes("https://atlas-webmcp-production.up.railway.app/explore"), "README and submission copy must link the verified live deployment.");
 assert(submission.includes("Apache-2.0"), "Submission copy must identify the owner-selected Apache-2.0 license.");
 assert(video.includes("Target runtime: **2:45**") && video.includes("Hard maximum: **2:55**"), "The video must remain under three minutes.");
 assert(readme.includes("docs/SUBMISSION.md") && readme.includes("docs/VIDEO_SCRIPT.md") && readme.includes("docs/EVALS.md"), "README must link the public challenge documents.");
@@ -49,4 +50,4 @@ assert(chatgptE2e.includes("page-native WebMCP") && chatgptE2e.includes("should 
 assert(!submission.includes("WEBMCP_STATE.md") && !submission.includes("artifacts/webmcp-proof"), "Submission evidence must resolve inside the sanitized repository.");
 assert(license.includes("Apache License") && license.includes("Version 2.0, January 2004"), "Apache-2.0 license text is missing.");
 
-console.log(JSON.stringify({ ok: true, judgeFiles, ownerPlaceholders: 3, license: "Apache-2.0", retiredScope: "absent" }, null, 2));
+console.log(JSON.stringify({ ok: true, judgeFiles, ownerPlaceholders: 2, license: "Apache-2.0", retiredScope: "absent" }, null, 2));

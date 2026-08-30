@@ -2,16 +2,19 @@
 
 ## Current verdict
 
-The standalone challenge repository is locally reproducible and green. Its GitHub remote remains private. The historical Atlas repository and its Git history are still **not safe to publish**.
+The standalone challenge repository is reproducible, privately mirrored, and live on an isolated Railway service. Its GitHub remote remains private. The historical Atlas repository and its Git history are still **not safe to publish**.
 
-Do not change the historical repository's visibility. Do not publish the sanitized repository, create a Railway service, configure secrets, or submit Devpost without the matching owner gate.
+Do not change the historical repository's visibility. Do not publish the sanitized repository, configure secrets, or submit Devpost without the matching owner gate.
 
 ## Sanitized candidate
 
 - Local repository: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release`
 - Branch: `main`
-- Candidate SHA: `049ec222a1a0fce1f1a17103e179c787a9d0df9a`
-- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-049ec22`
+- Candidate SHA: `986cf864927219f5f269a04b21a96f8440988cba`
+- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-986cf86`
+- Live route: `https://atlas-webmcp-production.up.railway.app/explore`
+- Railway project/service: `5c0ac24b-b588-4ba2-8d04-5118103b2999` / `807e65dc-37bd-43ae-8059-a05c4da62893`
+- Active deployment: `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82`
 - Challenge baseline disclosed in the public repo: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
 - Owner-selected license: Apache-2.0
 - Public tools: exactly `get_map_state`, `search_places`, `open_place`, `add_map_note`, and `create_map_trail`
@@ -20,7 +23,7 @@ The repository contains one challenge-only React entry, one small no-login Node 
 
 ## Final local proof
 
-The candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `049ec222a1a0fce1f1a17103e179c787a9d0df9a`:
+The candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `986cf864927219f5f269a04b21a96f8440988cba`:
 
 | Command | Result |
 |---|---|
@@ -29,20 +32,20 @@ The candidate was cloned with `git clone --no-local` into an empty directory. At
 | `pnpm build` | PASS; challenge client and server built |
 | `pnpm verify:webmcp` | PASS; 32/32 focused tests plus runtime and judge-copy guards |
 | `pnpm eval:webmcp:smoke` | PASS; Chrome 152, 9/9 official steps, 13 deeper tool executions |
-| `ATLAS_CHATGPT_URL=http://127.0.0.1:8898/explore pnpm e2e:chatgpt` | PASS for automated page/protocol proof; readiness, origin headers, exact-five metadata, place resolution, and Chrome execution passed. `releaseReady` remains false until a real ChatGPT transcript and Grok threshold run exist. |
-| `pnpm audit:release` | PASS; 3,336 files, 88,167,598 bytes, ten commits, clean Git state, no audit failures |
+| `ATLAS_CHATGPT_URL=https://atlas-webmcp-production.up.railway.app/explore pnpm e2e:chatgpt` | PASS for automated public HTTPS/page/protocol proof; `/ready`, origin headers, exact-five metadata, place resolution, and Chrome execution passed. `releaseReady` remains false until a real ChatGPT transcript and Grok threshold run exist. |
+| `pnpm audit:release` | PASS; 3,336 files, 88,169,265 bytes, 12 commits, clean Git state, no audit failures |
 | `git diff --check` and `git status --short --branch` | PASS; no whitespace errors and clean exact-SHA clone |
 
 The release-facing trail proof now includes the refined national overlay, explicit session-only context, numbered rail markers, a non-color `Current` state, 32px desktop edit floors, 44px mobile controls, and the real Chrome WebMCP activity rail. ChatGPT-facing Site Tools also have plain-language titles, natural-intent descriptions, and bounded visible/unchanged result signals.
 
-The release assembler was also run into a separate directory and compared byte-for-byte to the committed sanitized repository: 3,336 expected files, 3,336 generated files, zero missing, zero extra, and zero SHA-256 mismatches.
+The final candidate is also verified from the private remote: local `main`, remote `main`, the no-local clone, and the deployed release message all identify `986cf864927219f5f269a04b21a96f8440988cba`.
 
 ## Scope, secret, size, and provenance audit
 
 The sanitized repository audit reports:
 
 - 3,336 tracked files;
-- 88,167,598 audited source/data bytes in the final clean clone;
+- 88,169,265 audited source/data bytes in the final clean clone;
 - 3,222 county geo packs and 52 state plates;
 - no tracked build output, eval output, `node_modules`, `.env`, historical apps, or historical workspace packages;
 - no file larger than 5 MiB;
@@ -51,7 +54,7 @@ The sanitized repository audit reports:
 - only `react` and `react-dom` as runtime dependencies;
 - a full Apache-2.0 license, Census attribution, and frozen dependency-license inventory.
 
-`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the new history contains only ten challenge commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
+`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the new history contains only 12 challenge commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
 
 The selected README image was visually inspected: it contains only the Atlas national trail overview and no terminal, local path, account, or credential surface.
 
@@ -93,24 +96,34 @@ Risk: the private remote now contains the live-URL preflight, transcript validat
 
 Rollback: revert this single commit with a normal follow-up commit. Moving the branch backward requires a separate destructive-history approval.
 
+### Gate 1d - deployable config fix and verified live-URL documentation - COMPLETE
+
+Completed August 30, 2026: fixed the invalid unquoted Railway `$schema` key, added regression coverage in both source and sanitized verification, fast-forwarded the private remote normally through `cc45be38d2bb9d48ca3eb498bf6671b025f226ff`, and published the verified URL in candidate `986cf864927219f5f269a04b21a96f8440988cba`.
+
+Evidence: exact `986cf864` passes the full no-local clean-clone stack and equals private remote `main`. The repository remains `PRIVATE`.
+
+Risk: only the private challenge repository changed; no visibility, credential, persistence, or tool-surface change occurred.
+
+Rollback: revert the two narrow commits with normal follow-up commits. Moving the branch backward remains a separate destructive-history gate.
+
 ### Gate 2 — public visibility
 
 Required before changing visibility:
 
 - owner reviews the private GitHub tree and About panel;
-- GitHub or an owner-approved scanner reports no secrets across the complete ten-commit history;
+- GitHub or an owner-approved scanner reports no secrets across the complete 12-commit history;
 - license is detected as Apache-2.0;
 - README image and attribution render correctly;
 - GitHub Actions or a fresh remote clone repeats install, typecheck, build, verify, and smoke as applicable;
-- candidate SHA still matches `049ec222a1a0fce1f1a17103e179c787a9d0df9a` or a new SHA is fully re-verified.
+- candidate SHA still matches `986cf864927219f5f269a04b21a96f8440988cba` or a new SHA is fully re-verified.
 
 Rollback: return the repository to private immediately. Do not attempt to repair an exposure by rewriting the historical Atlas repository.
 
-### Gate 3 — Railway deployment — READY, OWNER APPROVAL REQUIRED
+### Gate 3 — isolated Railway deployment — COMPLETE
 
-Proposed action: create an isolated Railway project `atlas-webmcp-challenge` with service `atlas-webmcp` from private repository `Zwin-ux/atlas-webmcp-challenge` at exact candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a`, deploy it with the included `railway.toml`, and keep GitHub visibility private. Do not reuse the existing historical `atlas-chatgpt-app` project or its backend, worker, Postgres, and Redis services.
+Completed August 30, 2026: created isolated Railway project `atlas-webmcp-challenge` and service `atlas-webmcp`, deployed exact private candidate `986cf864927219f5f269a04b21a96f8440988cba`, and kept GitHub visibility private. The historical `atlas-chatgpt-app` project and its backend, worker, Postgres, and Redis services were not reused.
 
-Required evidence:
+Verified evidence:
 
 - exact candidate SHA and service/project identifier;
 - `/ready`, `/`, and `/explore` return healthy responses over HTTPS;
@@ -118,11 +131,13 @@ Required evidence:
 - same-origin place and plate APIs work;
 - normal-browser fallback works;
 - the deterministic smoke suite passes against the public URL;
-- rollback is recorded as the prior deployment or service removal.
+- rollback is recorded as prior successful deployment `020fa669-f926-47e6-9a15-0030d79863d7` or removal of the isolated challenge service.
 
-Risk: this creates the first public, no-login Atlas runtime and consumes Railway resources. A bad runtime would be reachable by URL even though the source repository remains private.
+The active deployment is `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82` in project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`. The live judge route is `https://atlas-webmcp-production.up.railway.app/explore`.
 
-Rollback: remove the new service or roll it back to its previous successful deployment. Because this is a new challenge service, service removal is the clean initial rollback.
+Risk: this is a public, no-login Atlas runtime and consumes Railway resources. A bad runtime would be reachable by URL even though the source repository remains private.
+
+Rollback: remove the isolated service or roll it back to successful deployment `020fa669-f926-47e6-9a15-0030d79863d7`.
 
 Railway's current config-as-code documentation says `railway.toml` remains supported for legacy services until December 1, 2026, although Railway now prefers its Infrastructure as Code path. That does not block the September 3 challenge deployment, but the owner should not treat this file as a long-term platform contract.
 
@@ -140,7 +155,7 @@ Required evidence:
 - refresh and route transitions do not duplicate tools;
 - no raw geometry, secret, or oversized result enters tool output.
 
-Local Chrome 152 already proves this behavior. Repeat it against the deployed URL; ChatGPT built-in-browser acceptance remains separate.
+Chrome 152 now proves this behavior against the deployed HTTPS URL: all five tools registered, all nine official smoke steps and thirteen deeper executions passed, writes completed visibly, ambiguity and failed trails remained mutation-safe, and refresh/route checks found no duplicates. A headed ChatGPT window is open, but it is signed out; the real ChatGPT built-in-browser transcript remains a credential-safe human gate.
 
 ### Gate 5 — video and Devpost
 
@@ -158,10 +173,10 @@ Required evidence:
 1. ~~Approve creation of the new private GitHub repository and initial push.~~ Complete at `ad0d5ab`.
 2. ~~Approve the one-commit private fast-forward to the ChatGPT-first candidate.~~ Complete at `04aa4aaa`.
 3. ~~Approve the one-commit private fast-forward to live-E2E candidate.~~ Complete at `049ec222`.
-4. Review the private tree, secret scan, license detection, and clean remote clone.
-5. Approve the new Railway service and deployment while keeping the repository private.
-6. Run public Chrome, ChatGPT built-in-browser, and Grok 4.6 acceptance using `docs/CHATGPT_E2E.md`.
-7. Approve public visibility only after the remote evidence is green.
+4. ~~Approve the isolated Railway service and deployment while keeping the repository private.~~ Complete at deployment `5ce284dc` from exact candidate `986cf864`.
+5. Sign in to the already-open headed ChatGPT window and capture the real built-in-browser five-tool transcript using `docs/CHATGPT_E2E.md`.
+6. Provide `XAI_API_KEY` only in the local environment and run the exact `xai:grok-4.6` three-run/90% lane without recording the credential.
+7. Review the private tree, run one additional full-history secret scan, confirm Apache-2.0 detection, and approve public visibility.
 8. Record and upload the demo.
 9. Review the final Devpost fields and approve submission.
 

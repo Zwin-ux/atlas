@@ -8,7 +8,7 @@ No login. No saved profile. One map, one research session.
 
 ## Try the shared map
 
-- Live app: `[OWNER REQUIRED: approved public deployment]`
+- Live app: [atlas-webmcp-production.up.railway.app/explore](https://atlas-webmcp-production.up.railway.app/explore)
 - Public source: `[OWNER REQUIRED: approved public repository]`
 - Suggested prompt: “Create a civic research trail through Riverside County, California; Travis County, Texas; and Miami-Dade County, Florida.”
 

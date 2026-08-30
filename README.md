@@ -4,6 +4,8 @@ Atlas is a shared geographic canvas. A person explores U.S. counties on the map 
 
 No login. No saved profile. One map, one research session.
 
+Live build: [atlas-webmcp-production.up.railway.app/explore](https://atlas-webmcp-production.up.railway.app/explore)
+
 ![Atlas national map with a numbered three-county research trail](artifacts/webmcp-proof/trail-overview-desktop.png)
 
 ## What the candidate does
@@ -103,5 +105,7 @@ The owner-selected Apache-2.0 license is applied only to the sanitized challenge
 - [Evaluation guide and thresholds](docs/webmcp/EVALS.md)
 - [ChatGPT Site Tools acceptance script](docs/webmcp/CHATGPT_ACCEPTANCE.md)
 - [Live ChatGPT end-to-end environment](docs/webmcp/CHATGPT_E2E.md)
+- [Bounded Ralph release loop](docs/webmcp/RALPH_RELEASE_LOOP.md)
+- [Live release product-design audit](docs/webmcp/RELEASE_PRODUCT_DESIGN_AUDIT.md)
 - [Official challenge page](https://webmcp.devpost.com/)
 - [Official rules](https://webmcp.devpost.com/rules)
