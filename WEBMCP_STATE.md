@@ -5,18 +5,18 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `4ba01042c37764a2a17c84c151c5b0e206b893e5`
+- Last green content commit: `f9a2614cfff8f08a06e6c77606e5c3ed9a868ce5`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `11 — National research-trail overview`
-- Status: `LOCALLY GREEN — awaiting slice commit`
-- Player-visible promise: `Creating a trail immediately shows its numbered county stops and connecting route on the nationwide map; selecting a marker or rail stop opens that county through the shared controller.`
-- Smallest complete boundary: `Project county centers from the existing national plate, render one accessible overlay, land atomic trail creation on the nation view, and keep rail edits/removals synchronized without changing the exact-five tool cut.`
-- Likely files: `web/src/atlas/plateGeometry.ts`, `AtlasPlate.tsx`, `AtlasApp.tsx`, `AtlasMapController.ts`, `webmcpTools.ts`, `atlas.css`, focused tests, `CHALLENGE_DELTA.md`, and this ledger.`
-- Acceptance checks: `Focused controller/geometry/tool tests; pnpm verify:webmcp; pnpm typecheck; pnpm build; desktop and 390x844 browser proof; normal-browser fallback; /review with valid findings fixed.`
-- Anti-scope: `No sixth tool, raw coordinates in tool output, labels competing with the map, renderer rewrite, auth, persistence, or public release action.`
+- Slice: `12 — WebMCP evaluation and deterministic browser smoke`
+- Status: `IN_PROGRESS`
+- Player-visible promise: `The exact five Atlas tools are described clearly enough for an agent to choose and chain them correctly, while a no-key browser smoke proves the same descriptors execute against the real judge route.`
+- Smallest complete boundary: `Pin the official evaluation package, derive its schema fixture from Atlas's real descriptors, add static and live evaluation commands, and add a deterministic browser smoke that injects WebMCP before the production page mounts.`
+- Likely files: `package.json`, `pnpm-lock.yaml`, one shared evaluation fixture/helper, model and live-browser eval configs, deterministic browser smoke, focused tests, verifier/docs, and this ledger.`
+- Acceptance checks: `Official 0.0.4 package/API verification; fixture drift guard; deterministic smoke at 100%; pnpm verify:webmcp; pnpm typecheck; pnpm build; /review; model threshold only when the required external model credential is available.`
+- Anti-scope: `No sixth tool, schema duplication, test-only application hooks, API-key requirement for deterministic gates, false model-evaluation claims, or public release action.`
 
 ## Acceptance Checks
 
@@ -201,5 +201,6 @@ Pin and integrate `webmcp-evals@0.0.4`, derive evaluation fixtures from the real
 8. Judge-path UX and browser proof — GREEN (`dda677d7`, design fixes `3a7dbf7a`, `b90182b6`)
 9. README/submission/video materials — GREEN (`4ba01042`)
 10. Clean-clone and public-release audit — LOCALLY GREEN; existing repo blocked, owner-gated sanitized path ready
-11. National research-trail overview — LOCALLY GREEN; awaiting coherent slice commit
+11. National research-trail overview — GREEN (`f9a2614c`)
+12. WebMCP evaluation and deterministic browser smoke — IN PROGRESS
 
