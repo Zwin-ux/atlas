@@ -29,7 +29,7 @@ This section is an implementation ledger, not a roadmap claim. An item moves to 
 | Live ChatGPT end-to-end evidence environment | LOCALLY VERIFIED / DEPLOYMENT, CHATGPT, MODEL GATED | One deployed-URL preflight plus Chrome protocol run, a placeholder-rejecting ChatGPT transcript contract, and an exact `grok-4.6` three-run/90% adversarial lane; public URL, real transcript, and model credential remain external |
 | Judge-path accessibility and desktop/mobile proof | VERIFIED | Shared keyboard/touch finder, design review, accessibility tree, and 1280x720/390x844 proof |
 | Challenge-first README, submission copy, and video script | VERIFIED | Root README plus `docs/webmcp/SUBMISSION.md`, `VIDEO_SCRIPT.md`, and automated retired-scope guard |
-| Clean-clone and public-release safety audit | LOCALLY VERIFIED / OWNER-GATED | Sanitized candidate will be refreshed after the live ChatGPT E2E slice; the prior `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20` candidate remains the last clean-clone proof |
+| Clean-clone and public-release safety audit | LOCALLY VERIFIED / OWNER-GATED | Exact sanitized candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a` passed a no-local clean-clone install, typecheck, build, 32/32 verifier, Chrome smoke, composed ChatGPT E2E automation, release audit, and clean-status proof; its private push remains a separate owner gate |
 
 ## Submission boundary
 

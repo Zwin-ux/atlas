@@ -5,18 +5,18 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `9a86b7082371a3d3451d3b641114f8516de49284`
+- Last green content commit: `59ac56d14bbda6a42b5d7923a67587f828ce95fc`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `17 — ChatGPT-first site-tool conversation contract`
-- Status: `GREEN`
-- Player-visible promise: `In ChatGPT's built-in browser, a person can ask naturally what Atlas shows, navigate, leave one note, or create a multi-place trail; the agent can select the right tool, recover from ambiguity, and describe only changes that are already visible on the shared map.`
-- Smallest complete boundary: `Sharpen the exact-five descriptors around natural intent and tool sequencing, make write results explicit about visible completion and mutation-safe recovery, add realistic conversation trajectories, and document a short ChatGPT acceptance script without changing the map UI or tool schemas.`
-- Likely files: `web/src/atlas/webmcpTools.ts`, focused tool tests, eval fixtures, verifier, ChatGPT acceptance documentation, release ledger, and the sanitized release projection.`
-- Acceptance checks: `Exact-five descriptors remain non-overlapping and schema-identical; natural state/search/open/note/trail prompts are covered; ambiguous and failed writes return bounded recovery context with unchanged-state evidence; successful writes identify their visible map effect; focused tests, verifier, typecheck, build, Chrome smoke, review, and clean-clone release proof pass.`
-- Anti-scope: `No sixth tool, map redesign, chat panel, custom agent, renderer rewrite, auth, persistence, public visibility, deployment, or Devpost action.`
+- Slice: `18 — live ChatGPT WebMCP end-to-end environment`
+- Status: `GREEN — local code and sanitized clean-clone proof complete; private push, deployment, real ChatGPT, and paid model execution remain explicit gates`
+- Player-visible promise: `A judge can open the exact deployed Atlas URL in ChatGPT's built-in browser, ask naturally for state, navigation, a place note, and a multi-county trail, and review evidence that every successful write became visible while every failed write left the shared map unchanged.`
+- Smallest complete boundary: `Add one live-URL preflight, one consolidated deterministic WebMCP runner, one real-ChatGPT transcript validator/template, and an optional Grok 4.6 adversarial model lane; keep the page-native exact-five tools and session-only notes/trails unchanged.`
+- Likely files: `scripts/run-chatgpt-e2e.mjs`, live-URL and transcript verifiers, Grok-aware eval runner, focused fixtures/tests, ChatGPT acceptance docs, package commands, release projection, and the state/release ledgers.`
+- Acceptance checks: `Private fast-forward verified; local and HTTPS preflight contracts cover readiness, headers, no-login route, exact tool metadata, ambiguity, and resolution; consolidated runner executes real Chrome smoke against one URL; transcript validator rejects incomplete or false ChatGPT proof; xai:grok-4.6 configuration is supported without logging credentials; verifier, typecheck, build, smoke, review, and clean-clone release proof pass.`
+- Anti-scope: `No sixth tool, detached chatbot, duplicate remote-MCP state, auth, persistence, public posting, renderer rewrite, deployment, visibility change, or Devpost action in this local slice.`
 
 ## Acceptance Checks
 
@@ -42,6 +42,9 @@
 - [x] Trail title, place, prompt, and remove controls measure at least 32px on desktop and 44px on mobile.
 - [x] Current-run light, dark, keyboard-focus, ambiguity, and `390x844` evidence is captured in the product-design audit.
 - [x] ChatGPT-facing Site Tools use five distinct human titles, natural-intent guidance, and bounded visible/unchanged write results without changing the public schemas.
+- [x] One composed E2E command verifies deployed-page readiness, exact-five metadata, real Chrome protocol execution, and independently reports missing ChatGPT/model proof instead of claiming release readiness.
+- [x] A captured-transcript validator requires one real call per tool, visible note/trail evidence, marker-to-rail state handoff, ambiguity safety, and failed-trail atomicity before accepting ChatGPT evidence.
+- [x] The optional adversarial lane targets exact `xai:grok-4.6`, three runs per case, and a 90% trajectory threshold without storing or printing the credential.
 
 ## Work Log
 
@@ -110,7 +113,13 @@
 - `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-ad0d5ab` — clean no-local clone used for final reproduction proof.
 - `web/src/atlas/webmcpTools.ts`, focused tests, and `evals/atlas-webmcp.evals.json` — give ChatGPT five distinct natural-language Site Tools, explicit visible/unchanged write results, and 12 realistic conversation trajectories without changing schemas or adding a tool.
 - `docs/webmcp/CHATGPT_ACCEPTANCE.md`, judge copy, and release guards — define the supported ChatGPT built-in-browser journey, evidence boundary, and current model/client prerequisites.
-- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` and `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-04aa4aa` — hold the fully verified nine-commit sanitized candidate `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20`; the existing private remote remains at `ad0d5ab` pending a separate fast-forward gate.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-04aa4aa` — preserves the prior fully verified nine-commit sanitized candidate `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20`; that exact candidate is now confirmed on the still-private remote.
+- `scripts/verify-chatgpt-live.mjs` and `scripts/run-chatgpt-e2e.mjs` — preflight one judge URL and compose readiness, exact-five bundle metadata, place-resolution checks, and real Chrome WebMCP execution while keeping automated success separate from release readiness.
+- `scripts/verify-chatgpt-transcript.mjs` and `evals/atlas-chatgpt.transcript.template.json` — reject placeholder evidence and validate a real ChatGPT journey across all five tools, visible notes/trails, manual marker handoff, ambiguity, and atomic failure.
+- `scripts/run-grok-webmcp-evals.mjs` and `scripts/run-webmcp-evals.mjs` — provide an exact `xai:grok-4.6` adversarial adapter over the pinned official eval package with three-run/90% thresholds and credential-safe child environment mapping.
+- `docs/webmcp/CHATGPT_E2E.md`, acceptance/eval/verification docs, package commands, and release projection guards — make the live ChatGPT evidence lane reproducible without misrepresenting local Chrome as ChatGPT proof.
+- `docs/webmcp/CHATGPT_E2E_PRODUCT_AUDIT.md` and `artifacts/product-design-audit/chatgpt-e2e/` — record a current-run Product Design index pass over the map entry, Springfield recovery, 390x844 density, and real WebMCP trail state.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` and `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-049ec22` — hold exact ten-commit sanitized candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a`; the existing private remote is confirmed at `04aa4aaa` pending one new fast-forward gate.
 
 ### Commands and results
 
@@ -205,6 +214,17 @@
 | Clean `04aa4aaa` `pnpm typecheck`, `pnpm build`, and `pnpm verify:webmcp` | PASS | Standalone contracts and production build passed; verifier passed 32/32 focused tests plus runtime and judge-copy guards. |
 | Clean `04aa4aaa` `pnpm eval:webmcp:smoke` | PASS | Chrome `152.0.7977.64`; exactly five tools, 9/9 official steps, and 13 deeper executions. |
 | Clean `04aa4aaa` `pnpm audit:release` and `git diff --check` | PASS | 3,330 files, 88,133,162 bytes, 3,222 county packs, 52 state plates, nine commits, clean Git state, and zero audit failures. |
+| Live-E2E source `pnpm verify:webmcp` | PASS | 32/32 focused tests plus exact-five runtime, ChatGPT-E2E script, transcript-contract, Grok-adapter, and documentation guards. |
+| Live-E2E source `pnpm typecheck` and `pnpm build` | PASS | Full private TypeScript and production builds passed; only the recorded pre-existing Radix and manifest-skip warnings remained. |
+| Live-E2E Product Design index audit | PASS | Current-run desktop, 390x844, ambiguity, and actual WebMCP trail states reviewed; mobile remained 390px wide with zero overflow and no application console errors. |
+| Live-E2E `/review` | PASS | One informational gap was fixed: transcript proof must assert marker 2 opens `miami-dade-fl` and sets `trail.activeIndex` to `1`. No unresolved critical or informational findings. |
+| Sanitized tree recovery and exact comparison | PASS | Removed only 3,323 verified generated root duplicates from the clean release repository after a relative-path API incompatibility; recopied all 3,336 generated files with checked path containment; zero missing, extra, or SHA-256 mismatches. |
+| Clean `049ec222` `pnpm install --frozen-lockfile` | PASS | Locked standalone graph installed in a new no-local clone; 135 packages, no lockfile mutation. |
+| Clean `049ec222` `pnpm typecheck`, `pnpm build`, and `pnpm verify:webmcp` | PASS | Standalone contracts/build passed; verifier passed 32/32 focused tests plus runtime and judge-copy guards. |
+| Clean `049ec222` `pnpm eval:webmcp:smoke` | PASS | Chrome `152.0.7977.64`; exactly five tools, 9/9 official steps, and 13 deeper executions. |
+| Clean `049ec222` local `pnpm e2e:chatgpt` | AUTOMATION PASS / RELEASE GATED | `/ready` exposed 3,222 counties and 18,447 places; headers, no-login route, five titles, Springfield ambiguity, and Chrome execution passed. Report is honestly `releaseReady: false` because real ChatGPT transcript and Grok evidence are absent. |
+| Clean `049ec222` `pnpm audit:release`, `git diff --check`, and clean status | PASS | 3,336 files, 88,167,598 bytes, 3,222 county packs, 52 state plates, ten commits, exact SHA, clean Git state, and zero audit failures. |
+| Private remote `git ls-remote origin refs/heads/main` | PASS | Existing private remote is confirmed at `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20`; candidate `049ec222` has not been pushed. |
 
 ### Browser proof
 
@@ -238,6 +258,9 @@
 - The ChatGPT-first proof reads the real `document.modelContext.getTools()` surface and verifies the exact human titles: `What's on the Atlas map`, `Find U.S. places`, `Show a place on Atlas`, `Add a place note`, and `Build a research trail`.
 - Successful open, note, and trail calls reported `visible: true` with the resulting county or national-trail view; ambiguous and unresolved writes reported `mapChanged: false`, and failed trail creation also reported `trailChanged: false` plus the one-based failing stop number.
 - The exact sanitized candidate `04aa4aaa` repeated this contract from a fresh no-local clone in Chrome 152: five tools, 9/9 official steps, 13 deeper executions, visible national trail completion, and zero release-audit failures.
+- The live-E2E Product Design audit records four current-run states under `artifacts/product-design-audit/chatgpt-e2e/`: map entry, Springfield ambiguity recovery, the exact 390x844 recovery state, and the WebMCP-created national trail.
+- The composed clean-clone run against `http://127.0.0.1:8898/explore` verified `Origin-Agent-Cluster: ?1`, `Permissions-Policy: tools=(self)`, the no-login route, all five human titles, eight Springfield candidates, Riverside resolution, 9/9 official Chrome steps, and 13 deeper executions.
+- The composed report distinguishes `ok: true` from `releaseReady: false`; this is intentional proof hygiene until the same journey is captured in ChatGPT's built-in browser and the Grok 4.6 model lane reaches its threshold.
 
 ### Review
 
@@ -250,20 +273,21 @@
 - Sanitized-release findings: `0` remaining after fixing tracked-path scanning, internal report exclusion, public evidence links, target-boundary safety, docs guards, deterministic generation, and whitespace enforcement.
 - Product-design findings: `0` remaining after fixing negative fallback language, undersized desktop edit targets, color-dependent active state, missing session/count context, clipped mobile candidates, map-label competition, missing smoke screenshot output, semantic section headings, and verifier specificity.
 - ChatGPT-first findings: `0` remaining after requiring the new acceptance document in sanitized guards and covering maximum-result budgets for every write tool.
-- Disposition: `CLEAN` for local code, sanitized clean-clone reproduction, and Chrome 152 WebMCP execution. The private remote still points to the prior green candidate; its fast-forward, repository publication, deployed-URL repetition, model score, and real ChatGPT discovery remain separate gates.
+- Live-E2E findings: `0` remaining after requiring the manual marker-2 handoff to prove both `miami-dade-fl` navigation and `trail.activeIndex: 1` in captured ChatGPT evidence.
+- Disposition: `CLEAN` for local code, exact sanitized clean-clone reproduction, and Chrome 152 WebMCP execution. The private remote remains at `04aa4aaa`; candidate push, deployment, real ChatGPT discovery, and the Grok model threshold remain separate gates.
 
 ## Risks and Blockers
 
-- The private GitHub remote exists and remains `PRIVATE` at `ad0d5ab`. Fast-forwarding it to verified candidate `04aa4aaa`, public visibility, deployment, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- The private GitHub remote exists and remains `PRIVATE` at `04aa4aaa`. Fast-forwarding it to verified candidate `049ec222`, public visibility, deployment, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 WebMCP acceptance is now proven locally without API injection; ChatGPT built-in-browser acceptance and deployed-URL repetition remain external gates.
-- The three-run model-evaluation threshold is not met or claimed: no cloud provider credential is available, the installed Ollama GPU path crashes during PTX compilation, and the isolated CPU path cannot allocate the model buffer.
-- The historical repository and history remain unfit for publication. The sanitized nine-commit repository is locally green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
+- The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
+- The historical repository and history remain unfit for publication. The sanitized ten-commit repository is locally green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
 - Three disposable assembler-check directories remain under `C:\Users\mzwin\AppData\Local\Temp` because recursive cleanup was blocked twice by the command safety policy. They are outside both Git repositories and do not affect the candidate.
 
 ## Exact Next Action
 
-Request one narrow owner decision: approve a normal fast-forward push of sanitized `main` from `ad0d5ab` to exact green candidate `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20` in the existing private repository. Do not change visibility or deploy.
+Request one narrow owner decision: approve a normal fast-forward push of sanitized `main` from remote `04aa4aaa58d1eda8cfa5cf4294d74810c8151a20` to exact green candidate `049ec222a1a0fce1f1a17103e179c787a9d0df9a` in the existing private repository. Do not change visibility or deploy.
 
 ## Slice Queue
 
@@ -284,4 +308,5 @@ Request one narrow owner decision: approve a normal fast-forward push of sanitiz
 15. Product-design pass for human-agent session legibility — GREEN (`08a5b84a`; sanitized candidate `ad0d5ab`)
 16. Private remote creation and initial push — GREEN (`ad0d5ab`; private `Zwin-ux/atlas-webmcp-challenge`)
 17. ChatGPT-first site-tool conversation contract — GREEN (`9a86b708`; sanitized candidate `04aa4aaa`)
+18. Live ChatGPT WebMCP E2E environment — GREEN (`59ac56d1`; sanitized candidate `049ec222`; private push, deployment, real ChatGPT, and Grok run owner/external-gated)
 
