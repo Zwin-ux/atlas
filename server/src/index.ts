@@ -1890,11 +1890,12 @@ function readBuiltWidget(): string {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Atlas City Map</title>
+    <meta name="description" content="Explore U.S. counties on a shared Census-backed map." />
+    <title>Atlas â€” Shared U.S. Map</title>
     <link rel="stylesheet" href="${assetBase}/component.css" />
   </head>
   <body>
-    <div id="root"></div>
+    <main id="root"></main>
     <script type="module" src="${assetBase}/component.js"></script>
   </body>
 </html>`;
@@ -1968,6 +1969,10 @@ function sendPreviewResponse(req: IncomingMessage, res: ServerResponse): void {
   const encoding = negotiatePreviewEncoding(req);
   const headers: Record<string, string> = {
     "content-type": "text/html; charset=utf-8",
+    "origin-agent-cluster": "?1",
+    "permissions-policy": "tools=(self)",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "x-content-type-options": "nosniff",
     vary: "Accept-Encoding",
   };
 
@@ -3771,8 +3776,12 @@ const httpServer = createServer(async (req, res) => {
     }
   }
 
-  if (url.pathname === "/" && req.method === "GET") {
-    textResponse(res, 200, `Atlas MCP server\nMCP: http://localhost:${PORT}${MCP_PATH}\nPreview: http://localhost:${PORT}/preview\n`);
+  if ((url.pathname === "/" || url.pathname === "/explore") && req.method === "GET") {
+    try {
+      sendPreviewResponse(req, res);
+    } catch (error) {
+      textResponse(res, 500, error instanceof Error ? error.message : "Atlas failed to load");
+    }
     return;
   }
 
