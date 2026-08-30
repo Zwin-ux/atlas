@@ -51,15 +51,45 @@ test("a failed visible transition rejects without falsifying the visible revisio
   assert.equal(controller.getSnapshot().visibleRevision, -1);
 });
 
-test("a failed newer transition rejects superseded transitions that can no longer render", async () => {
+test("a failed newer transition rejects both the superseded and current transitions", async () => {
   const controller = new AtlasMapController();
   const first = controller.openState("tx", "Texas");
+  const firstRejection = assert.rejects(first, /newer Atlas transition/);
   const second = controller.openCounty("travis-tx", "Travis County", "tx");
+  const secondRejection = assert.rejects(second, /latest plate failed/);
 
   controller.rejectVisible(2, new Error("latest plate failed"));
 
-  await assert.rejects(first, /latest plate failed/);
-  await assert.rejects(second, /latest plate failed/);
+  await Promise.all([firstRejection, secondRejection]);
+  assert.equal(controller.getSnapshot().visibleRevision, -1);
+});
+
+test("a newer transition rejects an older pending success claim", async () => {
+  const controller = new AtlasMapController();
+  const first = controller.openState("tx", "Texas");
+  const second = controller.openState("ca", "California");
+
+  await assert.rejects(first, /newer Atlas transition/);
+  controller.acknowledgeVisible(2);
+  await second;
+  assert.equal(controller.getSnapshot().visibleRevision, 2);
+  assert.deepEqual(controller.getSnapshot().current, { level: "state", state: "ca", stateName: "California" });
+});
+
+test("canceling a committed transition prevents a false success result", async () => {
+  const controller = new AtlasMapController();
+  const execution = new AbortController();
+  const transition = controller.openCandidate({
+    name: "Riverside",
+    countySlug: "riverside-ca",
+    countyName: "Riverside County",
+    state: "ca",
+    kind: "place",
+  }, execution.signal);
+
+  execution.abort(new Error("search canceled"));
+  await assert.rejects(transition, /search canceled/);
+  assert.equal(controller.getSnapshot().revision, 1);
   assert.equal(controller.getSnapshot().visibleRevision, -1);
 });
 

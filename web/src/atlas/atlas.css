@@ -11,17 +11,20 @@
   color-scheme: light dark;
   --atlas-page-bg: #f4efe3;
   --atlas-page-fg: #28281f;
+  --atlas-error: #8d3732;
 }
 
 :root[data-theme="dark"] {
   --atlas-page-bg: #10171c;
   --atlas-page-fg: #e8e4d5;
+  --atlas-error: #ee8f86;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --atlas-page-bg: #10171c;
     --atlas-page-fg: #e8e4d5;
+    --atlas-error: #ee8f86;
   }
 }
 
@@ -324,6 +327,130 @@ body {
   text-overflow: ellipsis;
 }
 
+.atlas-app__finder {
+  position: absolute;
+  z-index: 6;
+  top: -4px;
+  right: 0;
+  width: min(340px, 48vw);
+  font: 11px/1.25 ui-monospace, "Cascadia Mono", monospace;
+}
+
+.atlas-app__finder form {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  min-height: 36px;
+  border: 1px solid color-mix(in srgb, var(--atlas-page-fg) 28%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--atlas-page-bg) 96%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--atlas-page-fg) 10%, transparent);
+}
+
+.atlas-app__finder input,
+.atlas-app__finder form button {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.atlas-app__finder-label {
+  display: grid;
+  place-items: center;
+  padding: 0 9px;
+  border-right: 1px solid color-mix(in srgb, var(--atlas-page-fg) 18%, transparent);
+  color: color-mix(in srgb, var(--atlas-page-fg) 66%, transparent);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.atlas-app__finder input {
+  padding: 8px 10px;
+  outline: 0;
+  font-size: 14px;
+}
+
+.atlas-app__finder input::placeholder {
+  color: color-mix(in srgb, var(--atlas-page-fg) 52%, transparent);
+}
+
+.atlas-app__finder form:focus-within {
+  border-color: #3d8f68;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #3d8f68 25%, transparent);
+}
+
+.atlas-app__finder form button {
+  min-width: 54px;
+  padding: 0 10px;
+  border-left: 1px solid color-mix(in srgb, var(--atlas-page-fg) 18%, transparent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.atlas-app__finder form button:hover:not(:disabled) {
+  background: color-mix(in srgb, #3d8f68 10%, transparent);
+}
+
+.atlas-app__finder form button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.atlas-app__finder-feedback {
+  margin: 4px 0 0;
+  padding: 5px 7px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--atlas-page-bg) 96%, transparent);
+  color: color-mix(in srgb, var(--atlas-page-fg) 72%, transparent);
+}
+
+.atlas-app__finder-feedback[data-tone="error"] {
+  color: var(--atlas-error);
+}
+
+.atlas-app__finder-results {
+  max-height: min(260px, 44vh);
+  margin: 4px 0 0;
+  padding: 4px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--atlas-page-fg) 22%, transparent);
+  border-radius: 5px;
+  background: var(--atlas-page-bg);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--atlas-page-fg) 18%, transparent);
+  list-style: none;
+}
+
+.atlas-app__finder-results button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.atlas-app__finder-results button:hover,
+.atlas-app__finder-results button:focus-visible {
+  background: color-mix(in srgb, #3d8f68 12%, transparent);
+}
+
+.atlas-app__finder-results button:focus-visible {
+  outline: 2px solid #3d8f68;
+  outline-offset: -2px;
+}
+
+.atlas-app__finder-results span {
+  color: color-mix(in srgb, var(--atlas-page-fg) 62%, transparent);
+  font-size: 10px;
+}
+
 .atlas-app__research {
   position: absolute;
   z-index: 4;
@@ -362,7 +489,7 @@ body {
   color: inherit;
   font: 600 14px/1.2 Georgia, serif;
 }
-.atlas-app__trail-title:focus { border-bottom-color: currentColor; outline: none; }
+.atlas-app__trail-title:focus-visible { border-bottom-color: currentColor; outline: 2px solid #3d8f68; outline-offset: 2px; }
 
 .atlas-app__eyebrow {
   margin-bottom: 3px !important;
@@ -422,6 +549,29 @@ body {
 }
 
 @media (max-width: 720px) {
+  .atlas-app__finder {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+  }
+
+  .atlas-app__finder form {
+    min-height: 44px;
+  }
+
+  .atlas-app__finder input {
+    font-size: 16px;
+  }
+
+  .atlas-app__crumb,
+  .atlas-app__trail-place,
+  .atlas-app__trail-title,
+  .atlas-app__trail li input,
+  .atlas-app__notes textarea {
+    min-height: 44px;
+  }
+
   .atlas-app__research {
     position: static;
     width: auto;

@@ -5,14 +5,14 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green commit: `7e2d2d8f562678941ce4fdc6e25c8f9b03f61c80`
+- Last green commit: `f9f98a18fa018c2e3793f6789fca9e760d068230`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `4–7 — Exact-five registration, activity, notes, trails, and verifier`
+- Slice: `8 — Keyboard place finding and judge-path accessibility`
 - Status: `GREEN — awaiting commit`
-- Player-visible promise: `A supported browser discovers exactly five Atlas tools; every write leaves a visible, editable session artifact before success.`
+- Player-visible promise: `A keyboard or touch user can resolve and open a U.S. place through the same live controller as the five browser tools, without covering the map.`
 - Anti-scope: `No Scout, campaign, Hosted Clawd, Commons, billing, road expansion, or renderer rewrite.`
 
 ## Acceptance Checks
@@ -27,6 +27,10 @@
 - [x] Humans can edit/remove note text, trail title, prompts, and stops without delete tools.
 - [x] All tool outputs stay below 1,500 serialized characters in maximum-text tests.
 - [x] `pnpm verify:webmcp`, full typecheck, and full build pass.
+- [x] Keyboard/touch users can open resolved places or choose an ambiguity candidate through the shared controller.
+- [x] A newer or canceled transition cannot inherit a later visible success.
+- [x] The place finder has a persistent visible label, specific error recovery, and native keyboard controls.
+- [x] The 390x844 view has no horizontal overflow or undersized visible form/button controls.
 
 ## Work Log
 
@@ -61,6 +65,11 @@
 - `web/test/webmcp-registry.test.ts` — proves exact-five lifecycle and partial-registration rollback.
 - `scripts/verify-webmcp.mjs` — verifies the exact cut, schema guards, registration path, route fence, and origin headers.
 - `artifacts/webmcp-proof/five-tool-fallback-mobile.png` and `five-tool-fallback-desktop.png` — normal-browser fallback proof.
+- `web/src/atlas/AtlasPlaceFinder.tsx` — adds one restrained keyboard/touch place finder with ambiguity-safe recovery.
+- `web/src/atlas/AtlasMapController.ts` — routes candidate selection through the shared controller and rejects canceled or superseded visible claims.
+- `web/src/atlas/atlas.css` — adds map-first desktop/mobile finder layout, persistent labels, focus treatment, and 44px mobile targets.
+- `web/test/atlas-map-controller.test.ts` — covers candidate opening, cancellation, and successful/failed supersession.
+- `artifacts/webmcp-proof/judge-path-ambiguous-desktop.png` and `judge-path-ambiguous-mobile-390x844.png` — responsive ambiguity and fallback proof.
 
 ### Commands and results
 
@@ -97,6 +106,11 @@
 | `pnpm build` | PASS | Starter, atlas plates, and workspace production builds completed; only pre-existing Radix and two skipped-manifest warnings. |
 | gstack `/browse` normal-browser fallback | PASS | `/explore` rendered at 1280x720 and 390x844 with manual zoom controls and no application errors. |
 | gstack accessibility tree | PASS | One main landmark, Atlas page heading, location navigation, map image label, attribution, and named 44px map controls. |
+| Shared human place-finder flow | PASS | Riverside resolved visibly; Springfield returned eight labeled candidates; choosing Greene County opened the Missouri county plate through the controller. |
+| 390x844 overflow and target audit | PASS | `scrollWidth=clientWidth=390`; no visible `button` or `input` measured below 44px in either dimension. |
+| `pnpm verify:webmcp` | PASS | 26 focused tests plus exact-five, shared-controller, lifecycle, route, and header checks. |
+| `pnpm typecheck` | PASS | Starter and workspace TypeScript checks passed after the finder and cancellation changes. |
+| `pnpm build` | PASS | Full starter, plate, and workspace production build completed with only the recorded pre-existing warnings. |
 
 ### Browser proof
 
@@ -107,6 +121,8 @@
 - Controller regression proof changed the map to Abbeville County and the shared breadcrumb returned it to the nationwide map.
 - Five-tool fallback desktop: `artifacts/webmcp-proof/five-tool-fallback-desktop.png`.
 - Five-tool fallback mobile 390x844: `artifacts/webmcp-proof/five-tool-fallback-mobile.png`.
+- Ambiguity-safe judge path desktop: `artifacts/webmcp-proof/judge-path-ambiguous-desktop.png`.
+- Ambiguity-safe judge path mobile 390x844: `artifacts/webmcp-proof/judge-path-ambiguous-mobile-390x844.png`.
 - Normal-browser fallback produced no application error. Chrome logged only the expected warning that the experimental `tools` feature was not enabled in this browser.
 
 ### Review
@@ -126,18 +142,18 @@
 
 ## Exact Next Action
 
-Commit the exact-five interaction slice, then finish judge-path accessibility, challenge-first documentation, and the sanitized owner-gated release packet.
+Commit Slice 8, run `/design-review` from its required clean tree, then write the challenge-first README, submission/video materials, and sanitized owner-gated release packet.
 
 ## Slice Queue
 
 1. No-login challenge route and baseline — GREEN (`370ec495`)
 2. Shared AtlasMapController — GREEN (`491a7ddb`)
 3. Read/search/open WebMCP tools — GREEN (`7e2d2d8f` contracts)
-4. AgentActivityRail — GREEN, awaiting commit
-5. Session note tool — GREEN, awaiting commit
-6. Atomic research trail — GREEN, awaiting commit
-7. WebMCP verifier and negative cases — GREEN, awaiting commit
-8. Judge-path UX and browser proof — IN PROGRESS
+4. AgentActivityRail — GREEN (`f9f98a18`)
+5. Session note tool — GREEN (`f9f98a18`)
+6. Atomic research trail — GREEN (`f9f98a18`)
+7. WebMCP verifier and negative cases — GREEN (`f9f98a18`)
+8. Judge-path UX and browser proof — GREEN, awaiting commit
 9. README/submission/video materials — QUEUED
 10. Clean-clone and public-release audit — AUDITED; remediation queued
 

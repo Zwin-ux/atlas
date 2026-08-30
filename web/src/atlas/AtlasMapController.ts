@@ -190,8 +190,14 @@ export class AtlasMapController {
     if (!resolution.ok) return resolution;
     signal?.throwIfAborted();
     const place = resolution.place;
-    await this.commitNavigation(navigationFor(place), place);
+    await this.commitNavigation(navigationFor(place), place, signal);
     return { ok: true, place, revision: this.viewSnapshot.revision };
+  }
+
+  openCandidate(candidate: AtlasPlaceCandidate, signal?: AbortSignal): Promise<void> {
+    const place = parseCandidate(candidate);
+    if (!place) return Promise.reject(new Error("Atlas received an invalid place candidate."));
+    return this.commitNavigation(navigationFor(place), place, signal);
   }
 
   async addMapNote(input: AddMapNoteInput, signal?: AbortSignal): Promise<AddMapNoteResult> {
@@ -206,7 +212,7 @@ export class AtlasMapController {
     const note: MapNote = { id: `note-${++this.noteSequence}`, place: resolution.place, body };
     await this.commitWorkspace(navigationFor(resolution.place), resolution.place, {
       notes: [...this.viewSnapshot.notes, note],
-    });
+    }, signal);
     return { ok: true, note, revision: this.viewSnapshot.revision };
   }
 
@@ -235,7 +241,7 @@ export class AtlasMapController {
       return { place: resolution.place, prompt: input.stops[index]!.prompt.trim() };
     });
     const trail: MapTrail = { title, stops, activeIndex: 0 };
-    await this.commitWorkspace(navigationFor(stops[0]!.place), stops[0]!.place, { trail });
+    await this.commitWorkspace(navigationFor(stops[0]!.place), stops[0]!.place, { trail }, signal);
     return { ok: true, trail, revision: this.viewSnapshot.revision };
   }
 
@@ -353,21 +359,45 @@ export class AtlasMapController {
     this.listeners.clear();
   }
 
-  private commitNavigation(navigationStack: readonly PlateRef[], selectedPlace?: AtlasPlaceCandidate): Promise<void> {
-    return this.commitWorkspace(navigationStack, selectedPlace, {});
+  private commitNavigation(navigationStack: readonly PlateRef[], selectedPlace?: AtlasPlaceCandidate, signal?: AbortSignal): Promise<void> {
+    return this.commitWorkspace(navigationStack, selectedPlace, {}, signal);
   }
 
   private commitWorkspace(
     navigationStack: readonly PlateRef[],
     selectedPlace: AtlasPlaceCandidate | undefined,
     changes: { notes?: readonly MapNote[]; trail?: MapTrail | null },
+    signal?: AbortSignal,
   ): Promise<void> {
+    signal?.throwIfAborted();
     const revision = this.viewSnapshot.revision + 1;
     const current = navigationStack[navigationStack.length - 1];
     if (!current) return Promise.reject(new Error("Atlas navigation cannot be empty."));
 
+    for (const [pendingRevision, waiter] of this.visibleWaiters) {
+      this.visibleWaiters.delete(pendingRevision);
+      waiter.reject(new Error("A newer Atlas transition replaced this one before it became visible."));
+    }
+
     const visible = new Promise<void>((resolve, reject) => {
-      this.visibleWaiters.set(revision, { resolve, reject });
+      const cleanup = () => signal?.removeEventListener("abort", onAbort);
+      const waiter: VisibleWaiter = {
+        resolve: () => {
+          cleanup();
+          resolve();
+        },
+        reject: (error) => {
+          cleanup();
+          reject(error);
+        },
+      };
+      const onAbort = () => {
+        if (this.visibleWaiters.get(revision) !== waiter) return;
+        this.visibleWaiters.delete(revision);
+        waiter.reject(abortError(signal));
+      };
+      this.visibleWaiters.set(revision, waiter);
+      signal?.addEventListener("abort", onAbort, { once: true });
     });
 
     const { selectedPlace: _previousSelection, trail: previousTrail, ...previous } = this.viewSnapshot;
@@ -449,4 +479,8 @@ function navigationFor(place: AtlasPlaceCandidate): PlateRef[] {
     { level: "state", state: place.state },
     { level: "county", countySlug: place.countySlug, state: place.state, name: place.countyName },
   ];
+}
+
+function abortError(signal?: AbortSignal): Error {
+  return signal?.reason instanceof Error ? signal.reason : new DOMException("The Atlas transition was canceled.", "AbortError");
 }

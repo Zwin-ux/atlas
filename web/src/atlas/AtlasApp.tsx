@@ -16,6 +16,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, use
 
 import { AtlasPlate } from "./AtlasPlate";
 import { AtlasMapController, type PlateRef } from "./AtlasMapController";
+import { AtlasPlaceFinder } from "./AtlasPlaceFinder";
 import type { Plate } from "./plateGeometry";
 import "./atlas.css";
 
@@ -167,6 +168,8 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
           </span>
         ))}
       </nav>
+
+      <AtlasPlaceFinder controller={controller} />
 
       {map.selectedPlace ? (
         <div className="atlas-app__selection" role="status" aria-live="polite">
