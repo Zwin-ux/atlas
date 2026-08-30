@@ -5,18 +5,18 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `f9a2614cfff8f08a06e6c77606e5c3ed9a868ce5`
+- Last green content commit: `c574bee471f6edfab20ea72a76313a193e856790`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `12 — WebMCP evaluation and deterministic browser smoke`
-- Status: `DETERMINISTIC GREEN / MODEL ENVIRONMENT BLOCKED — awaiting slice commit`
-- Player-visible promise: `The exact five Atlas tools are described clearly enough for an agent to choose and chain them correctly, while a no-key browser smoke proves the same descriptors execute against the real judge route.`
-- Smallest complete boundary: `Pin the official evaluation package, derive its schema fixture from Atlas's real descriptors, add static and live evaluation commands, and add a deterministic browser smoke that injects WebMCP before the production page mounts.`
-- Likely files: `package.json`, `pnpm-lock.yaml`, one shared evaluation fixture/helper, model and live-browser eval configs, deterministic browser smoke, focused tests, verifier/docs, and this ledger.`
-- Acceptance checks: `Official 0.0.4 package/API verification; fixture drift guard; deterministic smoke at 100%; pnpm verify:webmcp; pnpm typecheck; pnpm build; /review; model threshold only when the required external model credential is available.`
-- Anti-scope: `No sixth tool, schema duplication, test-only application hooks, API-key requirement for deterministic gates, false model-evaluation claims, or public release action.`
+- Slice: `14 — Sanitized local release repository and clean-clone proof`
+- Status: `IN_PROGRESS`
+- Player-visible promise: `The challenge candidate can be reproduced from a compact Atlas-only repository with no retired product surface, historical artifacts, or hidden dependence on the private monorepo.`
+- Smallest complete boundary: `Assemble a new local repository from an explicit allowlist, retain only the judge runtime/data/tests/docs/deployment contract, apply the owner-locked Apache-2.0 license, audit scope/secrets/size, and prove the documented gates from a clean clone.`
+- Likely files: `scripts/audit-webmcp-release.mjs`, `docs/webmcp/RELEASE_PACKET.md`, this ledger, and a new local sibling release repository outside the historical Git tree.`
+- Acceptance checks: `Tracked-path and retired-scope inventory; secret and oversized-file scans; dependency/data attribution; clean git status; frozen install; full typecheck/build; pnpm verify:webmcp; pnpm eval:webmcp:smoke; exact candidate SHA.`
+- Anti-scope: `No publishing, visibility change, secret configuration, Railway service, live deployment, Devpost submission, main merge, or historical repository rewrite.`
 
 ## Acceptance Checks
 
@@ -226,7 +226,7 @@ Commit the deterministic eval/browser slice, then assemble the audited sanitized
 9. README/submission/video materials — GREEN (`4ba01042`)
 10. Clean-clone and public-release audit — LOCALLY GREEN; existing repo blocked, owner-gated sanitized path ready
 11. National research-trail overview — GREEN (`f9a2614c`)
-12. WebMCP evaluation and deterministic browser smoke — DETERMINISTIC GREEN / MODEL ENVIRONMENT BLOCKED; awaiting coherent slice commit
+12. WebMCP evaluation and deterministic browser smoke — DETERMINISTIC GREEN / MODEL ENVIRONMENT BLOCKED (`c574bee4`)
 13. Real Chrome and normal-browser acceptance — LOCALLY GREEN; deployed URL and ChatGPT built-in browser remain external
-14. Sanitized release repository and clean-clone proof — NEXT
+14. Sanitized release repository and clean-clone proof — IN PROGRESS
 
