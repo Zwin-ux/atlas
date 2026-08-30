@@ -44,7 +44,7 @@ Open:
 - `http://127.0.0.1:8787/explore` for the equivalent explicit route.
 - `http://127.0.0.1:8787/preview` only for the fenced legacy widget preview.
 
-The challenge route feature-detects `document.modelContext?.registerTool`. A normal browser shows `Site tools unavailable` and keeps the human map fully usable.
+The challenge route feature-detects `document.modelContext?.registerTool`. A normal browser shows `Map ready · Site tools not detected` and keeps the human map fully usable.
 
 Current WebMCP setup details live in the [OpenAI Site Tools documentation](https://learn.chatgpt.com/docs/webmcp), [Chrome imperative API guide](https://developer.chrome.com/docs/ai/webmcp/imperative-api), and [WebMCP draft](https://webmachinelearning.github.io/webmcp/).
 

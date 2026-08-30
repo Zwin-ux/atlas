@@ -46,7 +46,9 @@ export function AtlasPlaceFinder({ controller }: { controller: AtlasMapControlle
         setFeedback({ tone: "quiet", message: `Opened ${result.place.name}, ${result.place.state.toUpperCase()}.` });
       } else {
         setCandidates(result.error.candidates);
-        setFeedback({ tone: "error", message: result.error.message });
+        setFeedback(result.error.candidates.length > 0
+          ? { tone: "quiet", message: `${result.error.candidates.length} matches in Atlas. Choose a state or county to continue.` }
+          : { tone: "error", message: result.error.message });
       }
     } catch (error) {
       if (!request.signal.aborted) {

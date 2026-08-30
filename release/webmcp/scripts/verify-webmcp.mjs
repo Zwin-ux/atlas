@@ -6,7 +6,15 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource] = await Promise.all([
+function cssRule(source, selector, startAt = 0) {
+  const selectorIndex = source.indexOf(selector, startAt);
+  if (selectorIndex === -1) return "";
+  const blockStart = source.indexOf("{", selectorIndex);
+  const blockEnd = source.indexOf("}", blockStart);
+  return blockStart === -1 || blockEnd === -1 ? "" : source.slice(blockStart + 1, blockEnd);
+}
+
+const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource] = await Promise.all([
   readFile("web/src/atlas/webmcpTools.ts", "utf8"),
   readFile("web/src/atlas/webmcpRegistry.ts", "utf8"),
   readFile("web/src/atlas/webmcpEvalSchema.ts", "utf8"),
@@ -15,6 +23,7 @@ const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, 
   readFile("web/src/atlas/AtlasApp.tsx", "utf8"),
   readFile("web/src/atlas/AtlasPlate.tsx", "utf8"),
   readFile("web/src/atlas/plateGeometry.ts", "utf8"),
+  readFile("web/src/atlas/atlas.css", "utf8"),
   readFile("server/src/index.ts", "utf8"),
   readFile("package.json", "utf8"),
   readFile("evals/atlas-webmcp.evals.json", "utf8"),
@@ -47,7 +56,23 @@ assert(mainSource.includes("<ChallengeAtlas />") && mainSource.includes("mountAt
 assert(!mainSource.includes("LegacyAtlasWidget") && !mainSource.includes("useToolPlate"), "The standalone challenge entry must not include the historical widget writer.");
 assert(finderSource.includes("controller.openPlace(") && finderSource.includes("controller.openCandidate("), "Human place actions must use the shared controller.");
 assert(appSource.includes("onOpenTrailStop={openTrailStop}"), "Trail markers and the rail must share the controller path.");
+assert(appSource.includes("Map ready · Site tools not detected"), "Normal-browser fallback must read as a usable map state.");
+assert(appSource.includes("Research trail") && appSource.includes("session only"), "The trail rail must expose its purpose and session boundary.");
+assert(appSource.includes('aria-current={active ? "step" : undefined}') && appSource.includes("atlas-app__trail-current"), "The active trail stop requires semantic and visible non-color cues.");
 assert(plateSource.includes("geometry.countyCenters") && geometrySource.includes("countyCenters"), "The national trail overlay requires projected county centers.");
+assert(plateSource.includes('atlas-plate${trailStops.length > 0 ? " has-trail" : ""}') && cssSource.includes(".atlas-plate.has-trail"), "Trail mode must reduce label competition deliberately.");
+const mobileCssStart = cssSource.indexOf("@media (max-width: 720px)");
+assert(
+  cssRule(cssSource, ".atlas-app__trail-title").includes("min-height: 32px")
+    && cssRule(cssSource, ".atlas-app__trail-place").includes("min-height: 32px")
+    && cssRule(cssSource, ".atlas-app__trail li input").includes("min-height: 32px")
+    && cssRule(cssSource, ".atlas-app__remove").includes("width: 32px")
+    && cssRule(cssSource, ".atlas-app__remove").includes("height: 32px")
+    && cssRule(cssSource, ".atlas-app__trail-title,", mobileCssStart).includes("min-height: 44px")
+    && cssRule(cssSource, ".atlas-app__remove", mobileCssStart).includes("width: 44px")
+    && cssRule(cssSource, ".atlas-app__remove", mobileCssStart).includes("height: 44px"),
+  "Research controls must keep 32px desktop and 44px mobile target floors.",
+);
 assert(!toolsSource.includes("countyCenters"), "Raw/internal trail geometry must not enter tool output.");
 assert(serverSource.includes('"origin-agent-cluster": "?1"') && serverSource.includes('"permissions-policy": "tools=(self)"'), "Judge routes require WebMCP-compatible response headers.");
 assert(!/@atlas\//.test(serverSource), "The standalone server must not depend on the historical workspace packages.");

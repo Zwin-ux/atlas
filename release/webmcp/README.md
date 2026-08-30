@@ -37,7 +37,7 @@ pnpm eval:webmcp:smoke
 pnpm start
 ```
 
-Open `http://127.0.0.1:8787/` or `http://127.0.0.1:8787/explore`. A normal browser shows `Site tools unavailable` while retaining the complete human map.
+Open `http://127.0.0.1:8787/` or `http://127.0.0.1:8787/explore`. A normal browser shows `Map ready · Site tools not detected` while retaining the complete human map.
 
 ## What is included
 

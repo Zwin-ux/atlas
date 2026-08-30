@@ -43,6 +43,13 @@ const STATE_NAMES: Record<string, string> = {
   wv: "West Virginia", wi: "Wisconsin", wy: "Wyoming",
 };
 
+const TOOL_STATUS_COPY = {
+  unavailable: "Map ready · Site tools not detected",
+  registering: "Map ready · Connecting site tools",
+  available: "Map ready · Site tools on",
+  failed: "Map ready · Site tools offline",
+} as const;
+
 function plateUrl(ref: PlateRef): string {
   if (ref.level === "nation") return "/api/atlas/nation";
   if (ref.level === "state") return `/api/atlas/state/${encodeURIComponent(ref.state)}`;
@@ -187,10 +194,13 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
       ) : null}
 
       <div className="atlas-app__activity" data-status={map.toolStatus} aria-live="polite">
-        <span className="atlas-app__activity-status">Site tools {map.toolStatus}</span>
+        <span className="atlas-app__activity-status">{TOOL_STATUS_COPY[map.toolStatus]}</span>
         {map.lastActivity ? (
-          <span className="atlas-app__activity-event">
-            #{map.lastActivity.sequence} <time dateTime={map.lastActivity.at}>{new Date(map.lastActivity.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time> {map.lastActivity.tool}: {map.lastActivity.summary}
+          <span className="atlas-app__activity-event" data-state={map.lastActivity.state}>
+            <span className="atlas-app__activity-sequence">Run {map.lastActivity.sequence}</span>
+            <time dateTime={map.lastActivity.at}>{new Date(map.lastActivity.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time>
+            <strong>{map.lastActivity.tool}</strong>
+            <span className="atlas-app__activity-summary">{map.lastActivity.summary}</span>
           </span>
         ) : null}
       </div>
@@ -226,31 +236,42 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
         <aside className="atlas-app__research" aria-label="Session research">
           {map.trail ? (
             <section>
-              <p className="atlas-app__eyebrow">Map trail</p>
+              <div className="atlas-app__research-header">
+                <h2 className="atlas-app__eyebrow">Research trail</h2>
+                <p className="atlas-app__research-meta">{map.trail.stops.length} stops · session only</p>
+              </div>
               <label>
                 <span className="sr-only">Trail title</span>
                 <input className="atlas-app__trail-title" key={map.trail.title} defaultValue={map.trail.title} maxLength={60} onBlur={(event) => controller.updateTrailTitle(event.currentTarget.value).catch(() => undefined)} />
               </label>
               <ol className="atlas-app__trail">
-                {map.trail.stops.map((stop, index) => (
-                  <li key={`${stop.place.countySlug}-${index}`} className={index === map.trail?.activeIndex ? "is-active" : undefined}>
-                    <button type="button" className="atlas-app__trail-place" onClick={() => openTrailStop(index)}>
-                      <span>{index + 1}</span> {stop.place.name}, {stop.place.state.toUpperCase()}
-                    </button>
-                    <label>
-                      <span className="sr-only">Prompt for {stop.place.name}</span>
-                      <input key={stop.prompt} defaultValue={stop.prompt} maxLength={100} onBlur={(event) => controller.updateTrailPrompt(index, event.currentTarget.value).catch(() => undefined)} />
-                    </label>
-                    <button type="button" className="atlas-app__remove" aria-label={`Remove ${stop.place.name} from trail`} onClick={() => controller.removeTrailStop(index).catch(() => undefined)}>×</button>
-                  </li>
-                ))}
+                {map.trail.stops.map((stop, index) => {
+                  const active = index === map.trail?.activeIndex;
+                  return (
+                    <li key={`${stop.place.countySlug}-${index}`} className={active ? "is-active" : undefined}>
+                      <button type="button" className="atlas-app__trail-place" aria-current={active ? "step" : undefined} onClick={() => openTrailStop(index)}>
+                        <span className="atlas-app__trail-index" aria-hidden="true">{index + 1}</span>
+                        <span className="atlas-app__trail-location">{stop.place.name}, {stop.place.state.toUpperCase()}</span>
+                        {active ? <span className="atlas-app__trail-current">Current</span> : null}
+                      </button>
+                      <label>
+                        <span className="sr-only">Prompt for {stop.place.name}</span>
+                        <input className="atlas-app__research-input" key={stop.prompt} defaultValue={stop.prompt} maxLength={100} onBlur={(event) => controller.updateTrailPrompt(index, event.currentTarget.value).catch(() => undefined)} />
+                      </label>
+                      <button type="button" className="atlas-app__remove" aria-label={`Remove ${stop.place.name} from trail`} onClick={() => controller.removeTrailStop(index).catch(() => undefined)}>×</button>
+                    </li>
+                  );
+                })}
               </ol>
             </section>
           ) : null}
 
           {map.notes.length > 0 ? (
             <section>
-              <p className="atlas-app__eyebrow">Session notes</p>
+              <div className="atlas-app__research-header">
+                <h2 className="atlas-app__eyebrow">Session notes</h2>
+                <p className="atlas-app__research-meta">{map.notes.length} · session only</p>
+              </div>
               <ul className="atlas-app__notes">
                 {map.notes.map((note) => (
                   <li key={note.id}>

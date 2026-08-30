@@ -250,7 +250,7 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, trail, onOpenTrailS
   }, [onRendered, trailStops.length]);
 
   return (
-    <div className="atlas-plate">
+    <div className={`atlas-plate${trailStops.length > 0 ? " has-trail" : ""}`}>
       <svg
         ref={svgRef}
         className="atlas-plate__canvas"
@@ -352,7 +352,7 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, trail, onOpenTrailS
               className="atlas-plate__trail-route"
               d={trailPath}
               fill="none"
-              strokeWidth={2.5 * unitsPerPixel}
+              strokeWidth={3.25 * unitsPerPixel}
             />
           ) : null}
           {trailStops.map((stop) => {

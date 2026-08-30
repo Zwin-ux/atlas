@@ -81,6 +81,7 @@ function stableState(output) {
 }
 
 const page = await browser.newPage();
+await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
 page.on("console", (entry) => {
   if (entry.type() === "error") report.consoleErrors.push({ kind: "console", message: entry.text() });
 });
@@ -124,6 +125,10 @@ try {
   assert.equal(trail.stopCount, 3);
   assert.equal(await page.$$eval(".atlas-plate__trail-marker", (nodes) => nodes.length), 3);
   assert.equal(await page.$$eval(".atlas-plate__trail-route", (nodes) => nodes.length), 1);
+  const screenshotPath = resolve(process.cwd(), process.env.ATLAS_WEBMCP_SMOKE_SCREENSHOT ?? ".evals/browser-smoke-trail.png");
+  await mkdir(dirname(screenshotPath), { recursive: true });
+  await page.screenshot({ path: screenshotPath, type: "png" });
+  report.screenshot = screenshotPath;
 
   await page.$eval('.atlas-plate__trail-marker[aria-label^="Stop 2:"]', (marker) => marker.focus());
   await page.keyboard.press("Enter");
@@ -170,6 +175,7 @@ try {
     registeredTools: report.tools.length,
     toolExecutions: report.checks.length,
     report: reportPath,
+    screenshot: report.screenshot,
   }, null, 2));
 } finally {
   await page.close();
