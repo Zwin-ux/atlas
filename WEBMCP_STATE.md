@@ -5,13 +5,13 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `74fe86ea5e8ff3d92809bc59c8688795a353b597`
+- Last green content commit: `b2ddedd0a922067842c87bb0a8b2219c27118da5`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
 - Slice: `21 — cognitive-accessible human-agent flow and purposeful motion`
-- Status: `READY_TO_COMMIT — the cognitive-accessible human-agent flow, mobile active-editor handoff, purposeful motion, HCI manual, sanitized projection, and Chrome 152 browser gate are green.`
+- Status: `GREEN — the cognitive-accessible human-agent flow, mobile active-editor handoff, purposeful motion, HCI manual, source checks, fresh sanitized projection, and Chrome 152 browser gate are green at b2ddedd0.`
 - Player-visible promise: `ChatGPT actions read like human updates, the mobile research trail keeps the map primary while preserving every edit, and the national route appears with one short reduced-motion-safe continuity transition.`
 - Smallest complete boundary: `Replace visible tool diagnostics with plain-language agent feedback while keeping machine details inspectable; collapse inactive mobile trail editors behind their existing stop action; add restrained route, marker, result, and press feedback; install a source-linked HCI operating manual; and verify both motion and reduced-motion states.`
 - Likely files: `web/src/atlas/AtlasApp.tsx`, `AtlasPlaceFinder.tsx`, `AtlasPlate.tsx`, `atlas.css`, `docs/webmcp/HCI_OPERATING_MANUAL.md`, focused verifier/release projection, challenge delta, and current-run audit evidence.`
@@ -266,8 +266,11 @@
 | Slice 21 `pnpm build` | PASS | Full starter, plate, and workspace production build completed; only the recorded historical Radix and two manifest-skip warnings remained. |
 | Slice 21 final `pnpm build:web` | PASS | Rebuilt the exact final Atlas component and emulator after the last copy, contrast, and animation-fill fixes. |
 | Slice 21 `pnpm eval:webmcp:smoke` | PASS | Chrome `152.0.7977.64`; exactly five tools, 9/9 official steps, 15 deeper executions, one active mobile editor at 390x844, stop-2 handoff, zero overflow, and computed reduced-motion suppression. |
-| Slice 21 `/review` | PASS after fixes | Three parallel read-only lanes found five informational gaps: mobile/reduced-motion browser coverage, sanitized verifier drift, pin transform fill, inactive-prompt contrast, and ambiguous mobile tool copy. All five were fixed; no unresolved critical or informational finding remains. |
+| Slice 21 `/review` | PASS after fixes | Three parallel read-only lanes found six informational gaps: mobile browser coverage, reduced-motion browser coverage, sanitized verifier drift, pin transform fill, inactive-prompt contrast, and ambiguous mobile tool copy. All six were fixed; no unresolved critical or informational finding remains. |
 | `node --check` and `git diff --check` | PASS | Browser/release verifier scripts parse and the slice has no whitespace errors. |
+| Fresh sanitized `b2ddedd0` install and build sequence | PASS | New standalone projection at `C:\Users\mzwin\AppData\Local\Temp\Atlas-WebMCP-Slice21-bc028dae3afa4aa0b4a2b05c7809f577` installed 135 locked packages, then passed typecheck and the production build without source-checkout dependencies. |
+| Fresh sanitized `b2ddedd0` verification and Chrome smoke | PASS | 35/35 deterministic checks, exactly five top-level tools, 9/9 official Chrome steps, 15 deeper executions, exact 390x844 active-editor handoff, and computed reduced-motion suppression. |
+| Fresh sanitized `b2ddedd0` release audit | PASS | Audit found 3,339 files, 88,190,544 bytes, 3,222 county packs, 52 state plates, no oversized files, no failures, and a clean one-commit repository at `b902b1b741464665a0dbcc00e31385cafbcf12e9`. |
 
 ### Browser proof
 
@@ -312,6 +315,7 @@
 - Slice 21 before/after evidence is under `artifacts/product-design-audit/hci-motion-20260830/`, including entry, Springfield ambiguity, shared trail, exact 390x844 mobile, and the same-state desktop comparison.
 - At exact 390x844, the current stop exposes one prompt editor and one removal action; inactive stops retain one-line prompt context. Opening stop 2 exposes only its editor/action and enters Miami-Dade through `openTrailStop`.
 - Chrome smoke now saves `.evals/browser-smoke-trail-mobile.png`, verifies `scrollWidth=clientWidth=390`, and emulates reduced motion before checking route, marker, pin, active ring, activity, and result animations.
+- A fresh standalone projection from content commit `b2ddedd0` repeated the complete frozen-install, typecheck, build, 35/35 verifier, Chrome 152 smoke, release-audit, diff, and clean-status sequence; the sanitized repository root is `b902b1b741464665a0dbcc00e31385cafbcf12e9`.
 
 ### Review
 
@@ -328,11 +332,11 @@
 - Release/deployment findings: `0` remaining after fixing the invalid Railway schema key, guarding config-as-code values, replacing stale candidate/deployment copy, and confirming the live Product Design evidence against the exact public route.
 - ChatGPT-session findings: `0` remaining after adding explicit per-step observation, transcript-relative evidence, no-overwrite output, HTTPS/model checks, sanitized projection guards, and focused negative tests.
 - Cognitive-accessibility findings: `0` remaining after adding real mobile/reduced-motion smoke coverage, mirroring HCI guards into the sanitized verifier, releasing the pin transform after arrival, raising inactive-prompt contrast, and distinguishing agent tools from map controls on mobile.
-- Disposition: `CLEAN` for local code, exact sanitized clean-clone reproduction, the acceptance-session environment, private remote `986cf864`, isolated Railway deployment, public Chrome 152 WebMCP execution, normal-browser fallback, and responsive design proof. Real ChatGPT discovery, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
+- Disposition: `CLEAN` for local content commit `b2ddedd0`, its exact fresh sanitized reproduction, the acceptance-session environment, Chrome 152 WebMCP execution, normal-browser fallback, and responsive design proof. The private remote and isolated Railway deployment still identify older candidate `986cf864`; real ChatGPT discovery, the Grok model threshold, publishing or deploying `b2ddedd0`, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
 
-- The private GitHub remote exists and remains `PRIVATE` at exact verified candidate `986cf864`. Public visibility and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- The private GitHub remote and isolated Railway deployment remain on exact verified candidate `986cf864`; Slice 21 content commit `b2ddedd0` is verified locally and in a fresh sanitized repository but is not pushed or deployed. Publishing or deploying it, public visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 WebMCP acceptance is proven against the public deployed URL without API injection; ChatGPT built-in-browser acceptance remains an external credential-safe gate.
 - The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
@@ -341,7 +345,7 @@
 
 ## Exact Next Action
 
-In this task's right panel, open the live Atlas browser tab and the generated `RUNBOOK.md`; under **Site tools → Available site tools**, capture the exact five Atlas tools, then run the first state prompt and copy the real call into the adjacent `transcript.json`. Complete the remaining journey, mark only observed steps `true`, and validate with `pnpm e2e:chatgpt:transcript`. Do not expose credentials, publish the repository, or submit Devpost.
+Prepare the owner-gated deployment packet for content commit `b2ddedd0` with its fresh sanitized root `b902b1b`, exact evidence, risk, and rollback. If approved, update the private remote and isolated Railway service, re-run live Chrome and responsive proof, then use ChatGPT's Site tools UI plus the generated `RUNBOOK.md` to capture the real exact-five transcript. Do not expose credentials, make the repository public, or submit Devpost.
 
 ## Slice Queue
 
@@ -365,5 +369,5 @@ In this task's right panel, open the live Atlas browser tab and the generated `R
 18. Live ChatGPT WebMCP E2E environment — GREEN (`59ac56d1`; sanitized candidate superseded by `986cf864`)
 19. Isolated Railway deployment and bounded Ralph release loop — GREEN (`a165ad11`; sanitized candidate `986cf864`; live Chrome/design proof complete, real ChatGPT/Grok credential-gated)
 20. Real ChatGPT acceptance-session environment — GREEN (`74fe86ea`; exact sanitized install/35-test/typecheck/build proof complete, real ChatGPT interaction still user-gated)
-21. Cognitive-accessible human-agent flow and purposeful motion — READY TO COMMIT (exact-five tools unchanged; Chrome/mobile/reduced-motion proof green)
+21. Cognitive-accessible human-agent flow and purposeful motion — GREEN (`b2ddedd0`; exact-five tools unchanged; source and fresh sanitized Chrome/mobile/reduced-motion proof complete)
 
