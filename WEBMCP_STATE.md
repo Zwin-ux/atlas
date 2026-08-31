@@ -5,7 +5,7 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `ea739a5ce7b98d161d161a6aebeea73cdef74bf2`
+- Last green content commit: `22f8e28f27e6fc6b5d2b679ae096dd2063bc93e7`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
@@ -153,7 +153,7 @@
 - `web/src/atlas/AtlasPlaceFinder.tsx` and `webmcpTools.ts` — make ambiguity, failed notes, and failed trails explicitly mutation-safe in person-facing language while keeping the exact five public descriptors and schemas unchanged.
 - `web/test/webmcp-tools.test.ts`, `scripts/verify-webmcp.mjs`, and `release/webmcp/scripts/verify-webmcp.mjs` — guard the ready cue and unchanged-state contract in both source and sanitized projections.
 - `design-qa.md` and `artifacts/product-design-audit/implementation-20260831/` — record the matched before/after ambiguity comparison plus live WebMCP desktop and 390x844 states.
-- `C:\Users\mzwin\AppData\Local\Temp\atlas-webmcp-release-final-70e9829e7e194c4f932c8a6a5ba37588` — fresh post-review standalone projection used for frozen install, 36/36 verification, typecheck, and production-build proof.
+- `C:\Users\mzwin\AppData\Local\Temp\atlas-webmcp-release-22f8e28f` — fresh standalone projection from exact content commit `22f8e28f27e6fc6b5d2b679ae096dd2063bc93e7`, used for frozen install, 36/36 verification, typecheck, production build, and release-audit proof.
 
 ### Commands and results
 
@@ -301,7 +301,8 @@
 | Product Design matched comparison | PASS | The 1280x720 pre/post ambiguity captures were opened together; map composition and finder geometry stayed stable while `Map unchanged` became visible. No actionable P0/P1/P2 finding remained. |
 | 390x844 responsive acceptance | PASS | `scrollWidth=innerWidth=390`; Open, zoom, fit, active trail, and visible removal controls met the 44px floor; the map remained usable above the editable rail. |
 | Fresh sanitized projection `pnpm install --frozen-lockfile` | PASS | 135 locked packages installed with no source-checkout dependency or lockfile change. |
-| Fresh sanitized projection verification sequence | PASS | Standalone 36/36 verifier, typecheck, client build, and server build all passed from `atlas-webmcp-release-final-70e9829e7e194c4f932c8a6a5ba37588`. |
+| Exact `22f8e28f` sanitized projection sequence | PASS | Assembler recorded full source commit `22f8e28f27e6fc6b5d2b679ae096dd2063bc93e7`; frozen install, standalone 36/36 verifier, typecheck, client build, and server build all passed. |
+| Exact `22f8e28f` sanitized release audit | PASS | 3,339 files, 88,199,244 bytes, 3,222 county packs, 52 state plates, no oversized files, and zero failures. |
 
 ### Slice 22 HCI and Figma continuity
 
@@ -388,11 +389,11 @@
 - Cognitive-accessibility findings: `0` remaining after adding real mobile/reduced-motion smoke coverage, mirroring HCI guards into the sanitized verifier, releasing the pin transform after arrival, raising inactive-prompt contrast, and distinguishing agent tools from map controls on mobile.
 - Slice 23 `/review`: one informational trust-boundary finding was auto-fixed. Generic exceptions can happen after a controller revision commits but before visibility is confirmed, so the activity now says Atlas could not confirm the visible result instead of falsely promising no visible change. The focused regression test preserves the honest distinction from mutation-safe structured failures.
 - Slice 23 Product Design findings: `0` actionable P0/P1/P2 after adding the ready cue, explicit unchanged-state language, mobile activity priority, focused guards, live five-tool proof, same-state visual comparison, and clean standalone reproduction.
-- Disposition: `CLEAN` for the Slice 23 working tree, its fresh standalone projection, live in-app WebMCP execution, normal-browser fallback, shared human/agent edits, and responsive design proof. The private remote and isolated Railway deployment still identify older candidate `986cf864`; deploying this newer content, real ChatGPT conversation proof, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
+- Disposition: `CLEAN` for content commit `22f8e28f`, its exact fresh standalone projection, live in-app WebMCP execution, normal-browser fallback, shared human/agent edits, and responsive design proof. The private remote and isolated Railway deployment still identify older candidate `986cf864`; deploying this newer content, real ChatGPT conversation proof, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
 
-- The private GitHub remote and isolated Railway deployment remain on exact verified candidate `986cf864`; Slice 23 is verified locally and in a fresh standalone projection but is not pushed or deployed. Publishing or deploying it, public visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- The private GitHub remote and isolated Railway deployment remain on exact verified candidate `986cf864`; Slice 23 content commit `22f8e28f` is verified locally and in an exact fresh standalone projection but is not pushed or deployed. Publishing or deploying it, public visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 WebMCP acceptance is proven against the public deployed URL without API injection; ChatGPT built-in-browser acceptance remains an external credential-safe gate.
 - The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
@@ -401,7 +402,7 @@
 
 ## Exact Next Action
 
-After the green Slice 23 content commit is recorded, prepare one narrow owner-gated packet for fast-forwarding the private sanitized repository and updating the isolated Railway service. Include the exact SHA, current `986cf864` delta, fresh standalone proof, risk, and rollback; do not deploy, change visibility, expose credentials, or submit Devpost without that separate gate.
+Prepare one narrow owner-gated packet for fast-forwarding the private sanitized repository from `986cf864` to the sanitized projection of source content commit `22f8e28f`, then updating the isolated Railway service. Include the exact sanitized SHA, current deployment delta, fresh proof, risk, and rollback; do not deploy, change visibility, expose credentials, or submit Devpost without that separate gate.
 
 ## Slice Queue
 
@@ -427,5 +428,5 @@ After the green Slice 23 content commit is recorded, prepare one narrow owner-ga
 20. Real ChatGPT acceptance-session environment — GREEN (`74fe86ea`; exact sanitized install/35-test/typecheck/build proof complete, real ChatGPT interaction still user-gated)
 21. Cognitive-accessible human-agent flow and purposeful motion — GREEN (`b2ddedd0`; exact-five tools unchanged; source and fresh sanitized Chrome/mobile/reduced-motion proof complete)
 22. Judge-facing human-agent contract and Figma continuity — GREEN (`ea739a5c`; guide complete; FigJam wrapper `3:2` extended and screenshot-verified without changing the exact-five tool cut)
-23. Implemented human-agent comprehension and shared-control proof — GREEN (content SHA pending commit; exact-five tools unchanged; live WebMCP, normal-browser, 390x844, Product Design, and fresh standalone proof complete)
+23. Implemented human-agent comprehension and shared-control proof — GREEN (`22f8e28f`; exact-five tools unchanged; live WebMCP, normal-browser, 390x844, Product Design, and exact fresh standalone proof complete)
 
