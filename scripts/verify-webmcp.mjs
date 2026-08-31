@@ -14,7 +14,7 @@ function cssRule(source, selector, startAt = 0) {
   return blockStart === -1 || blockEnd === -1 ? "" : source.slice(blockStart + 1, blockEnd);
 }
 
-const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource] = await Promise.all([
+const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptSessionSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource] = await Promise.all([
   readFile(new URL("../web/src/atlas/webmcpTools.ts", import.meta.url), "utf8"),
   readFile(new URL("../web/src/atlas/webmcpRegistry.ts", import.meta.url), "utf8"),
   readFile(new URL("../web/src/atlas/webmcpEvalSchema.ts", import.meta.url), "utf8"),
@@ -29,6 +29,7 @@ const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, 
   readFile(new URL("../evals/atlas-webmcp.evals.json", import.meta.url), "utf8"),
   readFile(new URL("../evals/atlas-webmcp.smoke.json", import.meta.url), "utf8"),
   readFile(new URL("./run-webmcp-evals.mjs", import.meta.url), "utf8"),
+  readFile(new URL("./prepare-chatgpt-session.mjs", import.meta.url), "utf8"),
   readFile(new URL("./run-chatgpt-e2e.mjs", import.meta.url), "utf8"),
   readFile(new URL("./verify-chatgpt-live.mjs", import.meta.url), "utf8"),
   readFile(new URL("./verify-chatgpt-transcript.mjs", import.meta.url), "utf8"),
@@ -61,7 +62,7 @@ assert(registrySource.includes("lifecycle.abort()"), "Partial registration must 
 assert((toolsSource.match(/context\?\.signal/g) ?? []).length === 4, "Async descriptors must support Chrome's one-argument invocation while preserving optional abort signals.");
 assert(evalSchemaSource.includes("createAtlasWebMcpTools(controller)"), "Eval schemas must be projected from the real runtime descriptors.");
 assert(packageJson.devDependencies?.["webmcp-evals"] === "0.0.4", "webmcp-evals must stay pinned to 0.0.4.");
-assert(["eval:webmcp:static", "eval:webmcp:browser", "eval:webmcp:smoke", "eval:webmcp:grok", "e2e:chatgpt:preflight", "e2e:chatgpt:transcript", "e2e:chatgpt"].every((script) => packageJson.scripts?.[script]), "Static, browser, smoke, Grok, and ChatGPT end-to-end commands are required.");
+assert(["eval:webmcp:static", "eval:webmcp:browser", "eval:webmcp:smoke", "eval:webmcp:grok", "e2e:chatgpt:preflight", "e2e:chatgpt:session", "e2e:chatgpt:transcript", "e2e:chatgpt"].every((script) => packageJson.scripts?.[script]), "Static, browser, smoke, Grok, and ChatGPT end-to-end commands are required.");
 assert(evalRunnerSource.includes("Math.max(3, requestedRuns)"), "Model evals must not run fewer than three trajectories per case.");
 assert(evalRunnerSource.includes("Math.max(0.90, requestedThreshold)"), "Model evals must not weaken the 90% release threshold.");
 assert(evalRunnerSource.includes('model.startsWith("xai:")') && evalRunnerSource.includes("XAI_API_KEY") && evalRunnerSource.includes("https://api.x.ai/v1"), "The xAI model lane must use the explicit Grok adapter and environment credential.");
@@ -70,9 +71,12 @@ assert(railwayConfigSource.startsWith('"$schema" = "https://railway.com/railway.
 assert(railwayConfigSource.includes('buildCommand = "corepack enable && pnpm install --frozen-lockfile && pnpm build"') && railwayConfigSource.includes('startCommand = "pnpm start"') && railwayConfigSource.includes('healthcheckPath = "/ready"'), "Railway must install reproducibly, build, start, and health-check the standalone challenge service.");
 assert(chatgptRunnerSource.includes("verify-chatgpt-live.mjs") && chatgptRunnerSource.includes('run-webmcp-evals.mjs", ["smoke"]') && chatgptRunnerSource.includes("verify-chatgpt-transcript.mjs"), "The ChatGPT runner must compose live preflight, protocol smoke, and transcript proof.");
 assert(chatgptRunnerSource.includes("releaseReady") && chatgptRunnerSource.includes("realChatGpt") && chatgptRunnerSource.includes("modelThreshold"), "The ChatGPT report must distinguish automated success from complete release evidence.");
+assert(chatgptSessionSource.includes("Refusing to overwrite") && chatgptSessionSource.includes("evidence/available-site-tools.png") && chatgptSessionSource.includes("GPT-5.6 Luna does not support Site Tools"), "ChatGPT session preparation must be isolated, evidence-ready, and model-aware.");
 assert(livePreflightSource.includes("tools=(self)") && livePreflightSource.includes("Springfield") && livePreflightSource.includes("Riverside"), "The live preflight must cover WebMCP headers and ambiguity/resolution contracts.");
-assert(transcriptVerifierSource.includes("status captured") && transcriptVerifierSource.includes("mapChanged === false") && transcriptVerifierSource.includes("trailChanged === false") && transcriptVerifierSource.includes('countySlug === "miami-dade-fl"') && transcriptVerifierSource.includes('createHash("sha256")'), "The transcript verifier must reject placeholders, bind the human handoff to stop 2, hash evidence, and verify mutation-safe failures.");
+assert(transcriptVerifierSource.includes("status captured") && transcriptVerifierSource.includes("observed === true") && transcriptVerifierSource.includes("mapChanged === false") && transcriptVerifierSource.includes("trailChanged === false") && transcriptVerifierSource.includes('countySlug === "miami-dade-fl"') && transcriptVerifierSource.includes('createHash("sha256")'), "The transcript verifier must reject copied samples and placeholders, bind the human handoff to stop 2, hash evidence, and verify mutation-safe failures.");
+assert(transcriptVerifierSource.includes("dirname(transcriptPath)") && transcriptVerifierSource.includes("isAbsolute(evidence[key])"), "ChatGPT evidence paths must resolve relative to the captured transcript for portable session folders.");
 assert(transcriptTemplate.status === "template" && transcriptTemplate.siteTools.length === expected.length, "The real ChatGPT transcript template must preserve the exact-five cut.");
+assert(transcriptTemplate.steps.every((step) => step.observed === false), "Every ChatGPT template step must remain explicitly unobserved until a real client call is recorded.");
 assert(JSON.stringify(transcriptTemplate.siteTools.map(({ name }) => name)) === JSON.stringify(expected), "The ChatGPT transcript template tool order drifted.");
 assert(JSON.stringify(transcriptTemplate.steps.map(({ id }) => id)) === JSON.stringify(["initial_state", "ambiguous_search", "open_resolved_place", "add_visible_note", "create_visible_trail", "manual_stop_state", "ambiguous_open_unchanged", "failed_trail_unchanged"]), "The ChatGPT transcript template must cover the complete shared-map acceptance journey.");
 const modelEvalNames = collectFunctionNames(modelEvals);

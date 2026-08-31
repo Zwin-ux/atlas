@@ -27,11 +27,12 @@ Each model case runs at least three trajectories, requires at least 90% correct 
 For the public judge route, run the complete page and Chrome protocol proof against one exact HTTPS URL:
 
 ```powershell
-$env:ATLAS_CHATGPT_URL = "https://DEPLOYED_HOST/explore"
+$env:ATLAS_CHATGPT_URL = "https://atlas-webmcp-production.up.railway.app/explore"
+pnpm e2e:chatgpt:session
 pnpm e2e:chatgpt
 ```
 
-Then capture and validate the real ChatGPT record described in `docs/CHATGPT_E2E.md`. For the independent model threshold:
+The session command creates an ignored runbook, prefilled transcript, and portable evidence folder. Capture and validate the real ChatGPT record described in `docs/CHATGPT_E2E.md`. For the independent model threshold:
 
 ```powershell
 $env:XAI_API_KEY = "..."

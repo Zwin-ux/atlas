@@ -56,7 +56,7 @@ Atlas existed before the challenge as a Census-backed map engine. [CHALLENGE_DEL
 - [Devpost copy](docs/SUBMISSION.md)
 - [Under-three-minute video script](docs/VIDEO_SCRIPT.md)
 
-The deterministic gates pass locally. Credentialed model scores, the public URL, real ChatGPT acceptance, video upload, and Devpost submission remain separate external evidence and must not be claimed until their artifacts exist.
+The deterministic gates and public HTTPS route pass. Credentialed model scores, real ChatGPT acceptance, public source visibility, video upload, and Devpost submission remain separate evidence and must not be claimed until their artifacts exist.
 
 ## License
 

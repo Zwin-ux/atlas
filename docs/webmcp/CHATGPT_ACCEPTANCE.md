@@ -84,14 +84,20 @@ Capture this separately from Chrome protocol smoke:
 
 Do not mark this gate complete from local Chrome smoke alone. The browser smoke proves the page contract; this record proves the actual ChatGPT conversation.
 
-Copy `evals/atlas-chatgpt.transcript.template.json` outside the repository, replace each placeholder with the observed result and evidence path, set `status` to `captured`, and validate it with:
+Before testing, create an ignored, timestamped acceptance pack:
 
 ```powershell
-$env:ATLAS_CHATGPT_TRANSCRIPT = "C:\path\to\atlas-chatgpt-transcript.json"
+pnpm e2e:chatgpt:session
+```
+
+Open the generated `RUNBOOK.md` beside ChatGPT. Its `transcript.json` already contains the verified live URL, selected supported model, exact tool list, conversation steps, and evidence paths. Replace every sample argument/result with the observed call, set each completed step's `observed` field to `true`, set `status` to `captured`, save the named files under its `evidence/` folder, and validate it with:
+
+```powershell
+$env:ATLAS_CHATGPT_TRANSCRIPT = "C:\path\to\session\transcript.json"
 pnpm e2e:chatgpt:transcript
 ```
 
-The validator rejects a template, placeholder host, missing client version, wrong model, extra tool, invisible write, or mutation-unsafe failure. The full live-URL sequence is in `CHATGPT_E2E.md`.
+The validator resolves evidence relative to the transcript folder, hashes every file, and rejects an unobserved or copied template, placeholder host, missing client version, wrong model, extra tool, invisible write, or mutation-unsafe failure. The full live-URL sequence is in `CHATGPT_E2E.md`.
 
 ## Sources
 

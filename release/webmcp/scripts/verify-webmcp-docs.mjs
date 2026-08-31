@@ -45,7 +45,8 @@ assert(readme.includes("docs/CHATGPT_ACCEPTANCE.md"), "README must link the Chat
 assert(readme.includes("docs/CHATGPT_E2E.md"), "README must link the live ChatGPT end-to-end environment.");
 assert(chatgptAcceptance.includes("GPT-5.6 Sol") && chatgptAcceptance.includes("GPT-5.6 Terra") && chatgptAcceptance.includes("GPT-5.6 Luna"), "ChatGPT acceptance must record the current supported-model boundary.");
 assert(chatgptAcceptance.includes("mapChanged: false") && chatgptAcceptance.includes("stopNumber") && chatgptAcceptance.includes("Recently used"), "ChatGPT acceptance must cover ambiguity, trail recovery, and browser evidence.");
-assert(chatgptE2e.includes("releaseReady") && chatgptE2e.includes("pnpm e2e:chatgpt") && chatgptE2e.includes("pnpm eval:webmcp:grok"), "ChatGPT E2E docs must distinguish complete evidence and record the Grok lane.");
+assert(chatgptE2e.includes("releaseReady") && chatgptE2e.includes("pnpm e2e:chatgpt:session") && chatgptE2e.includes("pnpm e2e:chatgpt") && chatgptE2e.includes("pnpm eval:webmcp:grok"), "ChatGPT E2E docs must include session preparation, distinguish complete evidence, and record the Grok lane.");
+assert(chatgptE2e.includes("evidence/available-site-tools.png") && chatgptE2e.includes("relative evidence paths"), "ChatGPT E2E docs must define the portable acceptance evidence folder.");
 assert(chatgptE2e.includes("page-native WebMCP") && chatgptE2e.includes("should not expose a second `/mcp` mutation path"), "ChatGPT E2E docs must preserve the shared-page architecture boundary.");
 assert(!submission.includes("WEBMCP_STATE.md") && !submission.includes("artifacts/webmcp-proof"), "Submission evidence must resolve inside the sanitized repository.");
 assert(license.includes("Apache License") && license.includes("Version 2.0, January 2004"), "Apache-2.0 license text is missing.");

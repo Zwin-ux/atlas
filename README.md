@@ -77,11 +77,11 @@ Both model commands run each case three times, require at least 90% correct tool
 For the deployed judge route, one command runs HTTPS/page preflight and the real Chrome WebMCP journey against the same URL:
 
 ```powershell
-$env:ATLAS_CHATGPT_URL = "https://DEPLOYED_HOST/explore"
+$env:ATLAS_CHATGPT_URL = "https://atlas-webmcp-production.up.railway.app/explore"
 pnpm e2e:chatgpt
 ```
 
-The report keeps automated protocol proof, the real ChatGPT transcript, and the model threshold as separate evidence fields. See [docs/webmcp/CHATGPT_E2E.md](docs/webmcp/CHATGPT_E2E.md) for the captured-transcript contract and the Grok 4.6 adversarial lane.
+Run `pnpm e2e:chatgpt:session` first to create an ignored, timestamped ChatGPT desktop runbook, prefilled transcript, and evidence folder. The consolidated report keeps automated protocol proof, the real ChatGPT transcript, and the model threshold as separate evidence fields. See [docs/webmcp/CHATGPT_E2E.md](docs/webmcp/CHATGPT_E2E.md) for the complete session contract and the Grok 4.6 adversarial lane.
 
 The deterministic local gates currently pass. Chrome 152 WebMCP proof covers exact-five discovery, 9/9 official smoke steps, 13 deeper browser executions, visible trail rendering, keyboard marker navigation, ambiguity recovery, atomic failure, refresh/route registration, and zero console errors. Model-score and real ChatGPT built-in-browser acceptance remain separate credentialed or external gates.
 
@@ -95,7 +95,7 @@ See [CHALLENGE_DELTA.md](CHALLENGE_DELTA.md) for the capability ledger and [WEBM
 
 The challenge experience requires no account and keeps its research artifacts session-only. It makes no generated-street or building claims. Tool output excludes raw geometry, large scene objects, credentials, and third-party payloads.
 
-The owner-selected Apache-2.0 license is applied only to the sanitized challenge edition. Repository visibility, public deployment, and Devpost submission still require explicit owner approval. The current historical repository is not safe to publish as-is; use the audited sanitized-release path in [docs/webmcp/RELEASE_PACKET.md](docs/webmcp/RELEASE_PACKET.md).
+The owner-selected Apache-2.0 license is applied only to the sanitized challenge edition. Public source visibility and Devpost submission still require explicit owner approval. The current historical repository is not safe to publish as-is; use the audited sanitized-release path in [docs/webmcp/RELEASE_PACKET.md](docs/webmcp/RELEASE_PACKET.md).
 
 ## Submission materials
 

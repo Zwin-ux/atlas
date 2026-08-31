@@ -49,6 +49,7 @@ const runtimeFiles = [
   "web/src/atlas/webmcpTools.ts",
 ];
 const testFiles = [
+  "scripts/test/prepare-chatgpt-session.test.mjs",
   "web/test/atlas-map-controller.test.ts",
   "web/test/plate-geometry.test.ts",
   "web/test/webmcp-tools.test.ts",
@@ -59,6 +60,7 @@ const evalFiles = [
   "evals/atlas-webmcp.evals.json",
   "evals/atlas-webmcp.smoke.json",
   "evals/atlas-chatgpt.transcript.template.json",
+  "scripts/prepare-chatgpt-session.mjs",
   "scripts/run-chatgpt-e2e.mjs",
   "scripts/run-grok-webmcp-evals.mjs",
   "scripts/run-webmcp-evals.mjs",

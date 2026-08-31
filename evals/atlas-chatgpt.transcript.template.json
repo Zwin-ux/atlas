@@ -18,6 +18,7 @@
   "steps": [
     {
       "id": "initial_state",
+      "observed": false,
       "prompt": "What am I looking at in Atlas right now?",
       "tool": "get_map_state",
       "arguments": {},
@@ -25,6 +26,7 @@
     },
     {
       "id": "ambiguous_search",
+      "observed": false,
       "prompt": "I'd like to look at Springfield, but I'm not sure which state. Show me the choices first.",
       "tool": "search_places",
       "arguments": { "query": "Springfield" },
@@ -39,6 +41,7 @@
     },
     {
       "id": "open_resolved_place",
+      "observed": false,
       "prompt": "Take me to Riverside County, California.",
       "tool": "open_place",
       "arguments": { "place": "Riverside County, CA" },
@@ -51,6 +54,7 @@
     },
     {
       "id": "add_visible_note",
+      "observed": false,
       "prompt": "At Miami-Dade County, Florida, leave this note for me: Compare transit access around county offices.",
       "tool": "add_map_note",
       "arguments": { "place": "Miami-Dade County, FL", "body": "Compare transit access around county offices." },
@@ -64,6 +68,7 @@
     },
     {
       "id": "create_visible_trail",
+      "observed": false,
       "prompt": "Set up a research trail called County access check: first Riverside County, CA for public records, then Miami-Dade County, FL for transit access, then Travis County, TX for meeting notices.",
       "tool": "create_map_trail",
       "arguments": {
@@ -85,6 +90,7 @@
     },
     {
       "id": "manual_stop_state",
+      "observed": false,
       "prompt": "I clicked the second trail stop myself. What am I looking at now?",
       "humanAction": "Opened trail stop 2 from the map marker",
       "tool": "get_map_state",
@@ -97,6 +103,7 @@
     },
     {
       "id": "ambiguous_open_unchanged",
+      "observed": false,
       "prompt": "Open Springfield.",
       "tool": "open_place",
       "arguments": { "place": "Springfield" },
@@ -115,6 +122,7 @@
     },
     {
       "id": "failed_trail_unchanged",
+      "observed": false,
       "prompt": "Build a trail from Riverside County to Atlantis-by-the-Pacific.",
       "tool": "create_map_trail",
       "arguments": {

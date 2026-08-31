@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 
 const EXPECTED_TOOLS = [
   ["get_map_state", "What's on the Atlas map"],
@@ -26,6 +26,7 @@ const pathArg = args.find((arg) => !arg.startsWith("--")) ?? process.env.ATLAS_C
 assert(pathArg, "Usage: node scripts/verify-chatgpt-transcript.mjs <transcript.json>");
 
 const transcriptPath = resolve(pathArg);
+const transcriptDirectory = dirname(transcriptPath);
 const transcript = JSON.parse(await readFile(transcriptPath, "utf8"));
 assert(transcript.schemaVersion === 1, "The ChatGPT transcript schemaVersion must be 1.");
 assert(transcript.status === "captured" || (allowTemplate && transcript.status === "template"), "A release transcript must have status captured.");
@@ -50,6 +51,9 @@ assert(
 );
 
 assert(Array.isArray(transcript.steps), "The transcript steps must be an array.");
+if (transcript.status === "captured") {
+  assert(transcript.steps.every((candidate) => candidate?.observed === true), "Every captured step must be marked observed after copying the real ChatGPT call.");
+}
 const usedTools = new Set(transcript.steps.map((candidate) => candidate?.tool));
 for (const [name] of EXPECTED_TOOLS) assert(usedTools.has(name), `The transcript never called ${name}.`);
 assert([...usedTools].every((name) => EXPECTED_TOOLS.some(([expected]) => expected === name)), "The transcript contains a tool outside the exact-five cut.");
@@ -97,7 +101,7 @@ if (transcript.status === "captured") {
   const evidence = transcript.evidence ?? {};
   for (const key of ["availableSiteToolsScreenshot", "recentlyUsedScreenshot", "trailScreenshot", "consoleOrNotes"]) {
     assert(typeof evidence[key] === "string" && evidence[key].trim() && !/record_me/i.test(evidence[key]), `Record ${key} evidence.`);
-    const evidencePath = resolve(evidence[key]);
+    const evidencePath = isAbsolute(evidence[key]) ? resolve(evidence[key]) : resolve(transcriptDirectory, evidence[key]);
     const info = await stat(evidencePath).catch(() => undefined);
     assert(info?.isFile() && info.size > 0, `${key} must point to a non-empty local evidence file.`);
     const body = await readFile(evidencePath);

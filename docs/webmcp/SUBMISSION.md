@@ -110,6 +110,6 @@ No account system, public posting, or sixth tool is part of this candidate.
 
 ## Claim discipline
 
-- Do not say the public deployment, ChatGPT acceptance, source publication, video, or Devpost submission is complete until the corresponding URL or owner action exists.
+- Do not say real ChatGPT acceptance, source publication, video, or Devpost submission is complete until the corresponding artifact, URL, or owner action exists.
 - Do not claim generated streets or buildings as verified geography.
 - Do not present unrelated historical Atlas work as part of this WebMCP entry.
