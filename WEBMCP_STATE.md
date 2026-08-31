@@ -5,18 +5,18 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `b2ddedd0a922067842c87bb0a8b2219c27118da5`
+- Last green content commit: `ea739a5ce7b98d161d161a6aebeea73cdef74bf2`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `21 — cognitive-accessible human-agent flow and purposeful motion`
-- Status: `GREEN — the cognitive-accessible human-agent flow, mobile active-editor handoff, purposeful motion, HCI manual, source checks, fresh sanitized projection, and Chrome 152 browser gate are green at b2ddedd0.`
-- Player-visible promise: `ChatGPT actions read like human updates, the mobile research trail keeps the map primary while preserving every edit, and the national route appears with one short reduced-motion-safe continuity transition.`
-- Smallest complete boundary: `Replace visible tool diagnostics with plain-language agent feedback while keeping machine details inspectable; collapse inactive mobile trail editors behind their existing stop action; add restrained route, marker, result, and press feedback; install a source-linked HCI operating manual; and verify both motion and reduced-motion states.`
-- Likely files: `web/src/atlas/AtlasApp.tsx`, `AtlasPlaceFinder.tsx`, `AtlasPlate.tsx`, `atlas.css`, `docs/webmcp/HCI_OPERATING_MANUAL.md`, focused verifier/release projection, challenge delta, and current-run audit evidence.`
-- Acceptance checks: `Exactly five tools remain; no tool contract changes; mobile inactive stops retain place and prompt context but expose only the current editor/removal action; activity copy contains no raw tool name; route/marker/result motion is short and purposeful; prefers-reduced-motion disables it; 1280x720 and exact 390x844 have no overlap or horizontal overflow; focused tests, verify:webmcp, typecheck, and build pass.`
-- Anti-scope: `No sixth tool, detached remote MCP state, auth, persistence, public posting, historical Railway reuse, public repository visibility, secrets, or Devpost submission.`
+- Slice: `22 — judge-facing human-agent contract and Figma continuity`
+- Status: `GREEN / FIGMA WRITE DEFERRED — the source-linked human-agent contract, durable Product Design context, and exact FigJam extension packet are complete at ea739a5c. The existing FigJam board was not mutated because both Figma MCP paths reported the Starter-plan call limit.`
+- Player-visible promise: `A judge can understand what the Atlas agent can do, see every state change on the shared map, recover safely from ambiguity, and correct the result without learning tool names.`
+- Smallest complete boundary: `Translate Microsoft human-AI guidance, Nielsen Norman usability heuristics, and WCAG status/focus/target guidance into an Atlas-specific before/during/when-wrong/after contract; preserve the exact-five tool cut; save the challenge board and source context for future Product Design runs; and prepare the exact FigJam extension copy even if the current Figma Starter quota blocks the write.`
+- Likely files: `docs/webmcp/HCI_OPERATING_MANUAL.md`, `WEBMCP_STATE.md`, current-run Product Design audit evidence, and the Product Design user-context file outside the repository.`
+- Acceptance checks: `The guide names concrete Atlas behaviors and failure signals; references are authoritative and current; no conformance claim is added; exact-five scope and map-first hierarchy remain explicit; the FigJam copy is implementation-ready; docs verification passes.`
+- Anti-scope: `No sixth tool, detached remote MCP state, tutorial modal, ChatGPT-branded chrome, new product panel, auth, persistence, public posting, deployment, or Devpost submission.`
 
 ## Acceptance Checks
 
@@ -56,6 +56,7 @@
 - [x] Route, marker, active-ring, result, activity, and press effects are bounded, non-looping, and removed under `prefers-reduced-motion: reduce`.
 - [x] Chrome smoke emulates exact `390x844`, opens inactive stop 2 through the shared controller, verifies zero overflow, and checks computed reduced-motion animation names.
 - [x] The public HCI manual distinguishes W3C/ISO accessibility guidance from the ASD-STE100-inspired plain-language profile and makes no conformance claim.
+- [x] The HCI manual now defines the before/during/when-wrong/after human-agent contract, Atlas proof, release failure signals, and explicit Microsoft/NNGroup/WCAG source links without changing the exact-five tool cut.
 
 ## Work Log
 
@@ -139,6 +140,9 @@
 - `scripts/verify-chatgpt-transcript.mjs` and `evals/atlas-chatgpt.transcript.template.json` — resolve portable evidence relative to the transcript and require every captured step to be explicitly observed.
 - Source/release package commands, release assembler/audit, verifier guards, README, ChatGPT acceptance docs, and challenge delta — project and document the same acceptance-session contract in the sanitized edition.
 - `C:\Users\mzwin\AppData\Local\Temp\atlas-webmcp-session-proof-20260830-74fe86ea` — exact sanitized projection from source commit `74fe86ea5e8ff3d92809bc59c8688795a353b597` used for clean install, 35/35 verification, typecheck, and production-build proof.
+- `docs/webmcp/HCI_OPERATING_MANUAL.md` — translates the HCI source pass into one Atlas-specific human-agent contract and release rubric covering capability clarity, visible status, shared state, safe uncertainty, correction, consequences, and inclusive operation.
+- `C:\Users\mzwin\.codex\state\plugins\product-design\user-context.md` — saves the WebMCP challenge worktree, primary FigJam audit board, exact-five/map-first boundary, and authoritative HCI sources for future Product Design runs.
+- `artifacts/product-design-audit/judge-triage-20260831/FIGJAM_HCI_EXTENSION.md` — records the exact copy, layout, release tests, sources, and anti-scope for the deferred board extension.
 
 ### Commands and results
 
@@ -271,6 +275,15 @@
 | Fresh sanitized `b2ddedd0` install and build sequence | PASS | New standalone projection at `C:\Users\mzwin\AppData\Local\Temp\Atlas-WebMCP-Slice21-bc028dae3afa4aa0b4a2b05c7809f577` installed 135 locked packages, then passed typecheck and the production build without source-checkout dependencies. |
 | Fresh sanitized `b2ddedd0` verification and Chrome smoke | PASS | 35/35 deterministic checks, exactly five top-level tools, 9/9 official Chrome steps, 15 deeper executions, exact 390x844 active-editor handoff, and computed reduced-motion suppression. |
 | Fresh sanitized `b2ddedd0` release audit | PASS | Audit found 3,339 files, 88,190,544 bytes, 3,222 county packs, 52 state plates, no oversized files, no failures, and a clean one-commit repository at `b902b1b741464665a0dbcc00e31385cafbcf12e9`. |
+| Slice 22 `pnpm verify:webmcp` | PASS | 35/35 focused tests plus exact-five source, registration, route, and judge-document verification passed after the HCI contract update. |
+
+### Slice 22 HCI and Figma continuity
+
+- The Product Design research pass used Microsoft Research's 18 human-AI guidelines, Nielsen Norman Group's 10 usability heuristics, and WCAG 2.2 guidance for status messages, visible focus, and minimum target size.
+- The resulting contract is intentionally product-specific: tell the judge what the agent can do, show the state change, scope ambiguity without mutation, keep human correction efficient, and let the next agent read reflect manual changes.
+- The FigJam extension is ready as a four-phase row plus seven release tests and a source strip. It adds no product panel and no sixth tool.
+- `get_figjam` through both available Figma MCP paths returned the same Starter-plan tool-call limit. The gstack browser could not open the board anonymously and returned HTTP 403. No board mutation or visual verification is claimed for this slice.
+- Source commit `ea739a5ce7b98d161d161a6aebeea73cdef74bf2` contains the green repository guide; the Product Design context and FigJam extension packet are local durable artifacts outside that commit.
 
 ### Browser proof
 
@@ -336,6 +349,7 @@
 
 ## Risks and Blockers
 
+- The existing FigJam board remains at its prior seven-evidence-state version. Figma MCP writes and screenshots are externally blocked by the authenticated Starter-plan call limit; the exact extension packet is ready for the first call after the quota resets.
 - The private GitHub remote and isolated Railway deployment remain on exact verified candidate `986cf864`; Slice 21 content commit `b2ddedd0` is verified locally and in a fresh sanitized repository but is not pushed or deployed. Publishing or deploying it, public visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 WebMCP acceptance is proven against the public deployed URL without API injection; ChatGPT built-in-browser acceptance remains an external credential-safe gate.
@@ -345,7 +359,7 @@
 
 ## Exact Next Action
 
-Prepare the owner-gated deployment packet for content commit `b2ddedd0` with its fresh sanitized root `b902b1b`, exact evidence, risk, and rollback. If approved, update the private remote and isolated Railway service, re-run live Chrome and responsive proof, then use ChatGPT's Site tools UI plus the generated `RUNBOOK.md` to capture the real exact-five transcript. Do not expose credentials, make the repository public, or submit Devpost.
+After the Figma MCP quota resets, inspect section `3:2`, apply `artifacts/product-design-audit/judge-triage-20260831/FIGJAM_HCI_EXTENSION.md` below the current evidence row, resize the wrapper from content bounds, and screenshot-check the complete board. Then prepare the owner-gated deployment packet for the latest content commit without making the repository public or submitting Devpost.
 
 ## Slice Queue
 
@@ -370,4 +384,5 @@ Prepare the owner-gated deployment packet for content commit `b2ddedd0` with its
 19. Isolated Railway deployment and bounded Ralph release loop — GREEN (`a165ad11`; sanitized candidate `986cf864`; live Chrome/design proof complete, real ChatGPT/Grok credential-gated)
 20. Real ChatGPT acceptance-session environment — GREEN (`74fe86ea`; exact sanitized install/35-test/typecheck/build proof complete, real ChatGPT interaction still user-gated)
 21. Cognitive-accessible human-agent flow and purposeful motion — GREEN (`b2ddedd0`; exact-five tools unchanged; source and fresh sanitized Chrome/mobile/reduced-motion proof complete)
+22. Judge-facing human-agent contract and Figma continuity — GREEN / FIGMA WRITE DEFERRED (`ea739a5c`; guide, Product Design context, and extension packet complete; board write blocked by Starter quota)
 
