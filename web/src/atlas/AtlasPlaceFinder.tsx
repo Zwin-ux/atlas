@@ -47,7 +47,7 @@ export function AtlasPlaceFinder({ controller }: { controller: AtlasMapControlle
       } else {
         setCandidates(result.error.candidates);
         setFeedback(result.error.candidates.length > 0
-          ? { tone: "quiet", message: `${result.error.candidates.length} matches in Atlas. Choose a state or county to continue.` }
+          ? { tone: "quiet", message: `${result.error.candidates.length} matches in Atlas. Choose a state or county. Map unchanged.` }
           : { tone: "error", message: result.error.message });
       }
     } catch (error) {

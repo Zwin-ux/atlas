@@ -433,6 +433,24 @@ body {
   display: none;
 }
 
+.atlas-app__activity-prompt {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--atlas-page-fg) 76%, transparent);
+  text-overflow: ellipsis;
+}
+
+.atlas-app__activity-prompt::before {
+  margin-right: 8px;
+  color: color-mix(in srgb, var(--atlas-page-fg) 28%, transparent);
+  content: "/";
+}
+
+.atlas-app__activity-prompt-short {
+  display: none;
+}
+
 .atlas-app__activity-status::before {
   display: inline-block;
   width: 6px;
@@ -836,6 +854,19 @@ body {
 
   .atlas-app__activity-status-short {
     display: inline;
+  }
+
+  .atlas-app__activity-prompt-full {
+    display: none;
+  }
+
+  .atlas-app__activity-prompt-short {
+    display: inline;
+  }
+
+  .atlas-app__activity[data-has-activity="true"] .atlas-app__activity-status,
+  .atlas-app__activity[data-has-activity="true"] .atlas-app__activity-event::before {
+    display: none;
   }
 
   .atlas-app__remove {

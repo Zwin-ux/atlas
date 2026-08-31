@@ -46,7 +46,7 @@ async function runTool<T>(controller: AtlasMapController, name: string, runningS
     controller.recordToolActivity(name, "completed", completedSummary(result));
     return result;
   } catch (error) {
-    controller.recordToolActivity(name, "failed", "The tool stopped before completing.");
+    controller.recordToolActivity(name, "failed", "The action stopped before Atlas could confirm the visible result.");
     throw error;
   }
 }
@@ -160,11 +160,11 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
       description: "Find matching U.S. places and counties in Atlas's Census-backed index without changing the map. Use this to compare candidates before a write when a name may refer to several places, such as Springfield without a state.",
       inputSchema: { type: "object", additionalProperties: false, properties: { query: QUERY_PROPERTY }, required: ["query"] },
       annotations: { readOnlyHint: true, untrustedContentHint: false },
-      execute: (input, context) => runTool(controller, "search_places", "Searching the Census place index.", async () => {
+      execute: (input, context) => runTool(controller, "search_places", "Searching Atlas without changing the map.", async () => {
         const query = readBoundedString(input, "query", 120);
         if (!query) return invalidInput("query must contain 1 to 120 characters");
         return compactSearch(await controller.searchPlaces(query, context?.signal));
-      }, (result) => result.ok ? `Found ${"candidates" in result ? result.candidates.length : 0} place candidates.` : "Search input was invalid."),
+      }, (result) => result.ok ? `Found ${"candidates" in result ? result.candidates.length : 0} place candidates. Map unchanged.` : "Search input was invalid. Map unchanged."),
     },
     {
       name: "open_place",
@@ -177,11 +177,20 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
         required: ["place"],
       },
       annotations: { readOnlyHint: false, untrustedContentHint: false },
-      execute: (input, context) => runTool(controller, "open_place", "Resolving and opening a place.", async () => {
+      execute: (input, context) => runTool(controller, "open_place", "Resolving the place before changing the map.", async () => {
         const place = readBoundedString(input, "place", 120);
         if (!place) return { ...invalidInput("place must contain 1 to 120 characters"), mapChanged: false };
         return compactOpenPlace(await controller.openPlace({ place }, context?.signal));
-      }, (result) => result.ok && "place" in result ? `Opened ${result.place.name}.` : "The place needs clarification."),
+      }, (result) => {
+        if (result.ok && "place" in result) return `Opened ${result.place.name}.`;
+        if (!result.ok && "error" in result) {
+          const candidates = "candidates" in result.error ? result.error.candidates : undefined;
+          if (Array.isArray(candidates) && candidates.length > 0) {
+            return `${candidates.length} matches. Choose a state or county. Map unchanged.`;
+          }
+        }
+        return "Place not opened. Map unchanged.";
+      }),
     },
     {
       name: "add_map_note",
@@ -202,7 +211,7 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
         const body = readBoundedString(input, "body", 240);
         if (!place || !body) return { ...invalidInput("place must be 1 to 120 characters and body must be 1 to 240 characters"), mapChanged: false, noteAdded: false };
         return compactMapNote(await controller.addMapNote({ place, body }, context?.signal));
-      }, (result) => result.ok && "note" in result ? `Added a note at ${result.note.place.name}.` : "The note was not added."),
+      }, (result) => result.ok && "note" in result ? `Added a note at ${result.note.place.name}.` : "Note not added. Map unchanged."),
     },
     {
       name: "create_map_trail",
@@ -231,7 +240,7 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
         required: ["title", "stops"],
       },
       annotations: { readOnlyHint: false, untrustedContentHint: true },
-      execute: (input, context) => runTool(controller, "create_map_trail", "Resolving every trail stop.", async () => {
+      execute: (input, context) => runTool(controller, "create_map_trail", "Resolving all trail stops before changing the map.", async () => {
         const title = readBoundedString(input, "title", 60);
         const stops = input.stops;
         if (!title || !Array.isArray(stops) || stops.length < 2 || stops.length > 5) {
@@ -248,7 +257,11 @@ export function createAtlasWebMcpTools(controller: AtlasMapController): WebMCP.M
           return { ...invalidInput("each stop needs a valid place and prompt"), mapChanged: false, trailChanged: false };
         }
         return compactTrail(await controller.createMapTrail({ title, stops: parsedStops as Array<{ place: string; prompt: string }> }, context?.signal));
-      }, (result) => result.ok ? `Created a ${"stopCount" in result ? result.stopCount : 0}-stop trail.` : "The trail was not created."),
+      }, (result) => result.ok
+        ? `Created a ${"stopCount" in result ? result.stopCount : 0}-stop trail.`
+        : "stopNumber" in result
+          ? `Stop ${result.stopNumber} needs clarification. Trail and map unchanged.`
+          : "Trail not created. Map unchanged."),
     },
   ];
 }

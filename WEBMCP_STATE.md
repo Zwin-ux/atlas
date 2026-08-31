@@ -10,13 +10,13 @@
 
 ## Current Slice
 
-- Slice: `22 — judge-facing human-agent contract and Figma continuity`
-- Status: `GREEN — the source-linked human-agent contract is now visible on the existing FigJam judge board as a four-phase row, seven-test release strip, and grounded anti-scope footer. The original seven evidence cards remain untouched, and the live board passed containment, overlap, spacing, and screenshot review.`
-- Player-visible promise: `A judge can understand what the Atlas agent can do, see every state change on the shared map, recover safely from ambiguity, and correct the result without learning tool names.`
-- Smallest complete boundary: `Translate Microsoft human-AI guidance, Nielsen Norman usability heuristics, and WCAG status/focus/target guidance into an Atlas-specific before/during/when-wrong/after contract; preserve the exact-five tool cut; apply the prepared contract below the existing FigJam evidence row; and verify the complete board at overview resolution without moving prior evidence.`
-- Likely files: `docs/webmcp/HCI_OPERATING_MANUAL.md`, `WEBMCP_STATE.md`, current-run Product Design audit evidence, the existing FigJam board, and the Product Design user-context file outside the repository.`
-- Acceptance checks: `The guide names concrete Atlas behaviors and failure signals; references are authoritative and current; no conformance claim is added; exact-five scope and map-first hierarchy remain explicit; the FigJam extension renders without overlap or clipping; docs verification passes.`
-- Anti-scope: `No sixth tool, detached remote MCP state, tutorial modal, ChatGPT-branded chrome, new product panel, auth, persistence, public posting, deployment, or Devpost submission.`
+- Slice: `23 — implemented human-agent comprehension and shared-control proof`
+- Status: `GREEN — the Product Design contract now exists in the real /explore interface. The ready state teaches one useful ChatGPT action; ambiguity and atomic failure name the unchanged state; mobile preserves the agent outcome; and live WebMCP/browser proof confirms that map markers, rail buttons, fields, notes, finder, zoom, and fit use one shared workspace.`
+- Player-visible promise: `A judge can ask ChatGPT for a civic research trail, see it appear on the national map, correct it directly, and trust that ambiguous or failed actions did not silently change the workspace.`
+- Smallest complete boundary: `Implement the highest-impact HCI copy and responsive priority changes without adding a panel or sixth tool; exercise the five real page tools; prove human edits are visible to the next state read; and repeat deterministic, production-build, normal-browser, mobile, and sanitized-release checks.`
+- Likely files: `web/src/atlas/AtlasApp.tsx`, `AtlasPlaceFinder.tsx`, `webmcpTools.ts`, `atlas.css`, focused tests/verifiers, `design-qa.md`, Product Design evidence, `CHALLENGE_DELTA.md`, and this ledger.`
+- Acceptance checks: `Exactly five tools remain; ready/ambiguous/failure copy is visible and plain; ambiguous writes preserve revision; trail success waits for three visible markers and the rail; human marker/rail/edit/note actions reach the same controller; normal-browser search/map controls work; 390x844 has zero horizontal overflow and 44px visible controls; verification, typecheck, build, and a fresh sanitized projection pass.`
+- Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, deployment mutation, public visibility change, or Devpost submission.`
 
 ## Acceptance Checks
 
@@ -58,6 +58,10 @@
 - [x] The public HCI manual distinguishes W3C/ISO accessibility guidance from the ASD-STE100-inspired plain-language profile and makes no conformance claim.
 - [x] The HCI manual now defines the before/during/when-wrong/after human-agent contract, Atlas proof, release failure signals, and explicit Microsoft/NNGroup/WCAG source links without changing the exact-five tool cut.
 - [x] FigJam section `3:2` now contains the four-phase human-agent contract, seven release tests, source grounding, and anti-scope; its live audit reports zero containment failures and zero sibling overlaps.
+- [x] The real WebMCP-ready state suggests one useful civic-trail request without exposing raw tool names or adding a panel.
+- [x] Ambiguous opens and unresolved trail stops explicitly report that the map/trail stayed unchanged, with focused tests guarding the copy.
+- [x] Live in-app WebMCP proof covers exact-five refresh registration, ambiguity-safe revision stability, visible three-stop trail completion, human rail/marker navigation, and human trail/note edits reflected in the next state read.
+- [x] Current-run matched desktop and 390x844 evidence passes Product Design QA with no actionable P0/P1/P2 findings.
 
 ## Work Log
 
@@ -145,6 +149,11 @@
 - `C:\Users\mzwin\.codex\state\plugins\product-design\user-context.md` — saves the WebMCP challenge worktree, primary FigJam audit board, exact-five/map-first boundary, and authoritative HCI sources for future Product Design runs.
 - `artifacts/product-design-audit/judge-triage-20260831/FIGJAM_HCI_EXTENSION.md` — records the exact copy, layout, release tests, sources, and anti-scope applied to the board.
 - `artifacts/product-design-audit/judge-triage-20260831/figjam-hci-extension-4096.png` — current 4096px visual proof of the complete FigJam wrapper after the HCI extension.
+- `web/src/atlas/AtlasApp.tsx` and `atlas.css` — add a restrained ready-state action cue and make the mobile activity line prioritize the latest agent outcome once work begins.
+- `web/src/atlas/AtlasPlaceFinder.tsx` and `webmcpTools.ts` — make ambiguity, failed notes, and failed trails explicitly mutation-safe in person-facing language while keeping the exact five public descriptors and schemas unchanged.
+- `web/test/webmcp-tools.test.ts`, `scripts/verify-webmcp.mjs`, and `release/webmcp/scripts/verify-webmcp.mjs` — guard the ready cue and unchanged-state contract in both source and sanitized projections.
+- `design-qa.md` and `artifacts/product-design-audit/implementation-20260831/` — record the matched before/after ambiguity comparison plus live WebMCP desktop and 390x844 states.
+- `C:\Users\mzwin\AppData\Local\Temp\atlas-webmcp-release-final-70e9829e7e194c4f932c8a6a5ba37588` — fresh post-review standalone projection used for frozen install, 36/36 verification, typecheck, and production-build proof.
 
 ### Commands and results
 
@@ -282,6 +291,17 @@
 | Incremental FigJam write | PASS | Added header nodes `14:2`–`14:4` and contract nodes `17:2`–`17:43` below the existing evidence row; the wrapper alone was resized to 6400x4330. |
 | FigJam structure audit | PASS | Zero containment failures, zero extension sibling overlaps, 270px separation from prior evidence, 100px right padding, and 140px bottom padding. |
 | FigJam 4096px screenshot review | PASS | The complete wrapper renders as one map-evidence story followed by the human-agent contract; no clipping, overlap, or competing decorative panel was observed. |
+| Slice 23 `pnpm test:webmcp-core` | PASS | 10/10 focused descriptor tests, including visible ambiguity and atomic-failure summaries without raw tool names. |
+| Slice 23 `pnpm verify:webmcp` | PASS | 36/36 focused tests plus exact-five runtime, shared-controller, registration, mutation-safety, release projection, and judge-document guards. |
+| Slice 23 `pnpm typecheck` | PASS | Starter and every workspace TypeScript contract passed after the HCI copy and responsive priority changes. |
+| Slice 23 `pnpm build` | PASS | Full starter, 3,222-county plate, and workspace production builds completed; only the recorded historical Radix directive and two manifest-skip warnings remained. |
+| Slice 23 `git diff --check` | PASS | No whitespace errors; line-ending notices are the existing Windows checkout policy. |
+| Live in-app WebMCP acceptance | PASS | Exactly five tools after refresh; Springfield returned eight candidates at revision 0; a three-stop trail returned after three visible markers; human rail/marker/title/prompt/note actions were visible in later state reads. |
+| gstack `/browse` fallback acceptance | PASS | Human Springfield candidate selection opened Greene County; zoom in changed the SVG view box and zoom out/fit restored it; no application console errors appeared. |
+| Product Design matched comparison | PASS | The 1280x720 pre/post ambiguity captures were opened together; map composition and finder geometry stayed stable while `Map unchanged` became visible. No actionable P0/P1/P2 finding remained. |
+| 390x844 responsive acceptance | PASS | `scrollWidth=innerWidth=390`; Open, zoom, fit, active trail, and visible removal controls met the 44px floor; the map remained usable above the editable rail. |
+| Fresh sanitized projection `pnpm install --frozen-lockfile` | PASS | 135 locked packages installed with no source-checkout dependency or lockfile change. |
+| Fresh sanitized projection verification sequence | PASS | Standalone 36/36 verifier, typecheck, client build, and server build all passed from `atlas-webmcp-release-final-70e9829e7e194c4f932c8a6a5ba37588`. |
 
 ### Slice 22 HCI and Figma continuity
 
@@ -291,6 +311,15 @@
 - Figma MCP access succeeded on retry. The write used small atomic groups, returned every created node ID, and changed only new extension nodes plus wrapper `3:2` height.
 - Live `get_figjam` validation found the original evidence ending at y=2190 and the extension starting at y=2460. A 4096x2788 render of the 6400x4330 source board was downloaded and visually inspected.
 - Source commit `ea739a5ce7b98d161d161a6aebeea73cdef74bf2` contains the green repository guide; board URL `https://www.figma.com/board/lZBAfZeDClD4PG5KRkCwxa` contains the verified visual extension.
+
+### Slice 23 implemented HCI contract
+
+- Product Design triage selected comprehension and recovery over new surface area: one ready-state trail cue, explicit unchanged-state language, and mobile prioritization of the agent outcome.
+- Live WebMCP invocation used the page's real capability rather than direct controller calls. Refresh exposed the exact five descriptors once; Springfield ambiguity left revision and visible revision at zero.
+- `create_map_trail` produced Riverside / Miami-Dade / Travis as one national route with three numbered markers and an editable rail before returning `visible: true`.
+- A person opened Miami-Dade from the rail and Travis from the marker, then edited the trail title, Miami-Dade prompt, and Travis note. The next `get_map_state` returned those human changes through the same controller.
+- The normal-browser path independently opened a Springfield candidate and exercised zoom in, zoom out, and fit. At 390x844, the page had no horizontal overflow and preserved the map above the research rail.
+- The matched before/after ambiguity capture and additional WebMCP/mobile states are documented in `design-qa.md`; final result is `passed` with no actionable P0/P1/P2 finding.
 
 ### Browser proof
 
@@ -337,6 +366,10 @@
 - Chrome smoke now saves `.evals/browser-smoke-trail-mobile.png`, verifies `scrollWidth=clientWidth=390`, and emulates reduced motion before checking route, marker, pin, active ring, activity, and result animations.
 - A fresh standalone projection from content commit `b2ddedd0` repeated the complete frozen-install, typecheck, build, 35/35 verifier, Chrome 152 smoke, release-audit, diff, and clean-status sequence; the sanitized repository root is `b902b1b741464665a0dbcc00e31385cafbcf12e9`.
 - FigJam wrapper `3:2` now presents the judge evidence and HCI contract in one continuous artifact; the 4096px proof is `artifacts/product-design-audit/judge-triage-20260831/figjam-hci-extension-4096.png`.
+- Slice 23 matched normal-browser evidence is `artifacts/product-design-audit/implementation-20260831/02-current-springfield-ambiguity-desktop.png` and `08-implemented-human-ambiguity-desktop.png`; the map remained United States and the new feedback added `Map unchanged.` without layout drift.
+- Slice 23 live WebMCP evidence is `04-implemented-ambiguity-safe-desktop.png` and `05-implemented-trail-shared-state-desktop.png`; tool results reported mutation safety and the completed three-marker overlay before success.
+- Slice 23 mobile evidence is `06-implemented-mobile-390x844.png` and `07-implemented-ready-mobile-390x844.png`; zero horizontal overflow, 44px visible controls, the short ready cue, and the complete agent outcome were verified.
+- Current-run state proof: human rail click selected Miami-Dade at revision 2, human title/prompt edits reached revisions 3/4, a WebMCP-added Travis note was human-edited at revision 10, and a map-marker click selected Travis with trail active index 2.
 
 ### Review
 
@@ -353,11 +386,13 @@
 - Release/deployment findings: `0` remaining after fixing the invalid Railway schema key, guarding config-as-code values, replacing stale candidate/deployment copy, and confirming the live Product Design evidence against the exact public route.
 - ChatGPT-session findings: `0` remaining after adding explicit per-step observation, transcript-relative evidence, no-overwrite output, HTTPS/model checks, sanitized projection guards, and focused negative tests.
 - Cognitive-accessibility findings: `0` remaining after adding real mobile/reduced-motion smoke coverage, mirroring HCI guards into the sanitized verifier, releasing the pin transform after arrival, raising inactive-prompt contrast, and distinguishing agent tools from map controls on mobile.
-- Disposition: `CLEAN` for local content commit `b2ddedd0`, its exact fresh sanitized reproduction, the acceptance-session environment, Chrome 152 WebMCP execution, normal-browser fallback, and responsive design proof. The private remote and isolated Railway deployment still identify older candidate `986cf864`; real ChatGPT discovery, the Grok model threshold, publishing or deploying `b2ddedd0`, public source visibility, video, and Devpost remain separate gates.
+- Slice 23 `/review`: one informational trust-boundary finding was auto-fixed. Generic exceptions can happen after a controller revision commits but before visibility is confirmed, so the activity now says Atlas could not confirm the visible result instead of falsely promising no visible change. The focused regression test preserves the honest distinction from mutation-safe structured failures.
+- Slice 23 Product Design findings: `0` actionable P0/P1/P2 after adding the ready cue, explicit unchanged-state language, mobile activity priority, focused guards, live five-tool proof, same-state visual comparison, and clean standalone reproduction.
+- Disposition: `CLEAN` for the Slice 23 working tree, its fresh standalone projection, live in-app WebMCP execution, normal-browser fallback, shared human/agent edits, and responsive design proof. The private remote and isolated Railway deployment still identify older candidate `986cf864`; deploying this newer content, real ChatGPT conversation proof, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
 
-- The private GitHub remote and isolated Railway deployment remain on exact verified candidate `986cf864`; Slice 21 content commit `b2ddedd0` is verified locally and in a fresh sanitized repository but is not pushed or deployed. Publishing or deploying it, public visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- The private GitHub remote and isolated Railway deployment remain on exact verified candidate `986cf864`; Slice 23 is verified locally and in a fresh standalone projection but is not pushed or deployed. Publishing or deploying it, public visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 WebMCP acceptance is proven against the public deployed URL without API injection; ChatGPT built-in-browser acceptance remains an external credential-safe gate.
 - The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
@@ -366,7 +401,7 @@
 
 ## Exact Next Action
 
-Prepare the owner-gated deployment packet for the latest verified content commit, including the exact candidate SHA, private-remote and Railway delta, fresh sanitized proof, risk, and rollback. Do not make the repository public, deploy a newer candidate, expose credentials, or submit Devpost without a separate explicit gate.
+After the green Slice 23 content commit is recorded, prepare one narrow owner-gated packet for fast-forwarding the private sanitized repository and updating the isolated Railway service. Include the exact SHA, current `986cf864` delta, fresh standalone proof, risk, and rollback; do not deploy, change visibility, expose credentials, or submit Devpost without that separate gate.
 
 ## Slice Queue
 
@@ -392,4 +427,5 @@ Prepare the owner-gated deployment packet for the latest verified content commit
 20. Real ChatGPT acceptance-session environment — GREEN (`74fe86ea`; exact sanitized install/35-test/typecheck/build proof complete, real ChatGPT interaction still user-gated)
 21. Cognitive-accessible human-agent flow and purposeful motion — GREEN (`b2ddedd0`; exact-five tools unchanged; source and fresh sanitized Chrome/mobile/reduced-motion proof complete)
 22. Judge-facing human-agent contract and Figma continuity — GREEN (`ea739a5c`; guide complete; FigJam wrapper `3:2` extended and screenshot-verified without changing the exact-five tool cut)
+23. Implemented human-agent comprehension and shared-control proof — GREEN (content SHA pending commit; exact-five tools unchanged; live WebMCP, normal-browser, 390x844, Product Design, and fresh standalone proof complete)
 

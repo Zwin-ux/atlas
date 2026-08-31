@@ -96,10 +96,12 @@ assert(finderSource.includes("controller.openPlace(") && finderSource.includes("
 assert(appSource.includes("onOpenTrailStop={openTrailStop}"), "Trail markers and the rail must use the shared openTrailStop controller path.");
 assert(appSource.includes("Map ready · Site tools not detected"), "Normal-browser fallback must read as a usable map state, not a broken product state.");
 assert(appSource.includes("Map ready · Agent tools off") && appSource.includes("Map ready · Agent tools on"), "Mobile status must distinguish agent tools from the map's human controls.");
+assert(appSource.includes("Try “Build a 3-stop civic trail.”") && appSource.includes("Try a 3-stop trail."), "The ready state must suggest one useful agent action without exposing raw tool names.");
 assert(appSource.includes("Research trail") && appSource.includes("session only"), "The trail rail must explain its purpose, count, and session boundary.");
 assert(appSource.includes('aria-current={active ? "step" : undefined}') && appSource.includes("atlas-app__trail-current"), "The active trail stop must use semantic and visible non-color cues.");
 assert(appSource.includes("<strong>Agent</strong>") && !appSource.includes("<strong>{map.lastActivity.tool}</strong>"), "Visible site-tool activity must use human language while keeping raw diagnostics out of the primary flow.");
 assert(finderSource.includes('busy ? "Searching" : "Open"') && finderSource.includes("Searching Atlas…"), "Place-search progress must say what Atlas is doing instead of asking the person to wait.");
+assert(finderSource.includes("Map unchanged.") && toolsSource.includes("Trail and map unchanged."), "Ambiguity and failed trails must visibly state that no partial mutation occurred.");
 assert(plateSource.includes("geometry.countyCenters") && plateSource.includes("atlas-plate__trail-marker"), "The national plate must render trail markers from projected county centers.");
 assert(plateSource.includes('atlas-plate${trailStops.length > 0 ? " has-trail" : ""}') && cssSource.includes(".atlas-plate.has-trail"), "Trail mode must deliberately reduce label competition on the map.");
 const mobileCssStart = cssSource.indexOf("@media (max-width: 720px)");

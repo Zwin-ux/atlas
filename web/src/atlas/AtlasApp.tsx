@@ -200,11 +200,17 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
         </div>
       ) : null}
 
-      <div className="atlas-app__activity" data-status={map.toolStatus} aria-live="polite">
+      <div className="atlas-app__activity" data-status={map.toolStatus} data-has-activity={map.lastActivity ? "true" : "false"} aria-live="polite">
         <span className="atlas-app__activity-status">
           <span className="atlas-app__activity-status-full">{TOOL_STATUS_COPY[map.toolStatus]}</span>
           <span className="atlas-app__activity-status-short">{TOOL_STATUS_SHORT_COPY[map.toolStatus]}</span>
         </span>
+        {map.toolStatus === "available" && !map.lastActivity ? (
+          <span className="atlas-app__activity-prompt">
+            <span className="atlas-app__activity-prompt-full">Try “Build a 3-stop civic trail.”</span>
+            <span className="atlas-app__activity-prompt-short">Try a 3-stop trail.</span>
+          </span>
+        ) : null}
         {map.lastActivity ? (
           <span
             key={map.lastActivity.sequence}

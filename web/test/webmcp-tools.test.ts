@@ -184,6 +184,57 @@ test("write results tell ChatGPT what became visible and how failed writes recov
   });
 });
 
+test("visible activity explains ambiguity and atomic failure without raw tool names", async () => {
+  const controller = new AtlasMapController();
+  const place = {
+    name: "Springfield",
+    countyName: "Greene County",
+    countySlug: "greene-mo",
+    state: "mo",
+    kind: "place" as const,
+  };
+
+  controller.openPlace = async () => ({
+    ok: false,
+    error: {
+      code: "AMBIGUOUS_PLACE",
+      message: "That name matches several indexed places.",
+      candidates: [place, { ...place, countyName: "Hampden County", countySlug: "hampden-ma", state: "ma" }],
+    },
+  });
+  await tool("open_place", controller).execute({ place: "Springfield" }, {});
+  assert.equal(controller.getSnapshot().lastActivity?.summary, "2 matches. Choose a state or county. Map unchanged.");
+
+  controller.createMapTrail = async () => ({
+    ok: false,
+    error: {
+      code: "AMBIGUOUS_PLACE",
+      message: "That name matches several indexed places.",
+      stopIndex: 1,
+      candidates: [place],
+    },
+  });
+  await tool("create_map_trail", controller).execute({
+    title: "County access",
+    stops: [
+      { place: "Riverside County, CA", prompt: "Check records" },
+      { place: "Springfield", prompt: "Check notices" },
+    ],
+  }, {});
+  assert.equal(controller.getSnapshot().lastActivity?.summary, "Stop 2 needs clarification. Trail and map unchanged.");
+
+  controller.openPlace = async () => {
+    const transition = controller.openState("tx", "Texas");
+    controller.rejectVisible(controller.getSnapshot().revision, new Error("plate failed"));
+    await transition;
+    throw new Error("unreachable");
+  };
+  await assert.rejects(tool("open_place", controller).execute({ place: "Austin, TX" }, {}), /plate failed/);
+  assert.equal(controller.getSnapshot().lastActivity?.summary, "The action stopped before Atlas could confirm the visible result.");
+  assert.equal(controller.getSnapshot().revision, 1);
+  assert.equal(controller.getSnapshot().visibleRevision, -1);
+});
+
 test("get_map_state stays below the tool output budget with maximum session text", async () => {
   const controller = new AtlasMapController();
   const place = { name: "N".repeat(120), countySlug: "long-county-ca", countyName: "C".repeat(120), state: "ca", kind: "place" as const };
