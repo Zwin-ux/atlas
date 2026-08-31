@@ -15,7 +15,7 @@
  *    still scroll when the gesture starts outside it
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { labelBudget, placeLabels } from "@atlas/core/atlas";
 
@@ -352,6 +352,7 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, trail, onOpenTrailS
               className="atlas-plate__trail-route"
               d={trailPath}
               fill="none"
+              pathLength={1}
               strokeWidth={3.25 * unitsPerPixel}
             />
           ) : null}
@@ -364,6 +365,7 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, trail, onOpenTrailS
                 key={`${stop.countySlug}-${stop.index}`}
                 className={`atlas-plate__trail-marker${active ? " is-active" : ""}`}
                 transform={`translate(${stop.x} ${stop.y})`}
+                style={{ "--atlas-trail-delay": `${140 + stop.index * 70}ms` } as CSSProperties}
                 role={onOpenTrailStop ? "button" : undefined}
                 tabIndex={onOpenTrailStop ? 0 : undefined}
                 aria-label={label}

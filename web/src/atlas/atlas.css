@@ -174,10 +174,13 @@ body {
 
 .atlas-plate__trail-route {
   stroke: var(--atlas-trail);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.9;
   pointer-events: none;
+  animation: atlas-trail-route-reveal 440ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .atlas-plate__trail-overlay {
@@ -194,6 +197,8 @@ body {
   cursor: pointer;
   outline: none;
   pointer-events: all;
+  animation: atlas-trail-marker-arrive 220ms ease-out both;
+  animation-delay: var(--atlas-trail-delay, 140ms);
 }
 
 .atlas-plate__trail-hit {
@@ -206,7 +211,11 @@ body {
   stroke: var(--atlas-halo);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
-  transition: fill 90ms ease-out;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: fill 90ms ease-out, transform 90ms ease-out;
+  animation: atlas-trail-pin-arrive 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--atlas-trail-delay, 140ms);
 }
 
 .atlas-plate__trail-active-ring {
@@ -216,6 +225,9 @@ body {
   stroke-width: 3;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: atlas-trail-active-arrive 180ms ease-out both;
 }
 
 .atlas-plate__trail-number {
@@ -230,6 +242,30 @@ body {
 .atlas-plate__trail-marker:focus-visible .atlas-plate__trail-pin {
   fill: var(--atlas-focus);
   stroke-width: 4;
+}
+
+.atlas-plate__trail-marker:active .atlas-plate__trail-pin {
+  transform: scale(0.9);
+}
+
+@keyframes atlas-trail-route-reveal {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes atlas-trail-marker-arrive {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes atlas-trail-pin-arrive {
+  from { transform: scale(0.72); }
+  to { transform: scale(1); }
+}
+
+@keyframes atlas-trail-active-arrive {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .atlas-plate__trail-marker:focus-visible .atlas-plate__trail-active-ring {
@@ -393,6 +429,10 @@ body {
   flex: 0 0 auto;
 }
 
+.atlas-app__activity-status-short {
+  display: none;
+}
+
 .atlas-app__activity-status::before {
   display: inline-block;
   width: 6px;
@@ -414,6 +454,7 @@ body {
   gap: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
+  animation: atlas-activity-arrive 180ms ease-out both;
 }
 
 .atlas-app__activity-event::before {
@@ -426,9 +467,8 @@ body {
   font-weight: 700;
 }
 
-.atlas-app__activity-sequence,
-.atlas-app__activity-event time {
-  color: color-mix(in srgb, var(--atlas-page-fg) 52%, transparent);
+.atlas-app__activity-event[data-state="failed"] {
+  color: var(--atlas-error);
 }
 
 .atlas-app__activity-summary {
@@ -533,6 +573,10 @@ body {
   list-style: none;
 }
 
+.atlas-app__finder-results li {
+  animation: atlas-result-arrive 180ms ease-out both;
+}
+
 .atlas-app__finder-results button {
   display: grid;
   gap: 2px;
@@ -630,7 +674,7 @@ body {
 .atlas-app__trail,
 .atlas-app__notes { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .atlas-app__trail li,
-.atlas-app__notes li { position: relative; display: grid; gap: 5px; padding: 6px 38px 7px 8px; border-left: 3px solid transparent; background: color-mix(in srgb, var(--atlas-page-fg) 5%, transparent); }
+.atlas-app__notes li { position: relative; display: grid; gap: 5px; padding: 6px 38px 7px 8px; border-left: 3px solid transparent; background: color-mix(in srgb, var(--atlas-page-fg) 5%, transparent); transition: background-color 160ms ease-out, border-color 160ms ease-out; }
 .atlas-app__trail li.is-active {
   border-left-color: var(--atlas-accent);
   background: color-mix(in srgb, var(--atlas-accent) 8%, transparent);
@@ -688,6 +732,10 @@ body {
   text-transform: uppercase;
 }
 
+.atlas-app__trail-prompt-preview {
+  display: none;
+}
+
 .atlas-app__trail li input,
 .atlas-app__notes textarea { box-sizing: border-box; width: 100%; min-height: 32px; padding: 7px 8px; border: 1px solid color-mix(in srgb, var(--atlas-page-fg) 17%, transparent); border-radius: 3px; background: transparent; color: inherit; font: inherit; resize: vertical; }
 
@@ -713,6 +761,25 @@ body {
 }
 .atlas-app__remove:hover { background: color-mix(in srgb, #a94b42 12%, transparent); opacity: 1; }
 .atlas-app__remove:focus-visible { outline: 2px solid var(--atlas-error); outline-offset: 1px; opacity: 1; }
+
+.atlas-app__finder form button:active:not(:disabled),
+.atlas-app__finder-results button:active,
+.atlas-app__trail-place:active,
+.atlas-app__remove:active,
+.atlas-app__crumb:active,
+.atlas-plate__controls button:active {
+  transform: translateY(1px);
+}
+
+@keyframes atlas-activity-arrive {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes atlas-result-arrive {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .sr-only {
   position: absolute;
@@ -759,14 +826,40 @@ body {
   }
 
   .atlas-app__activity-event time,
-  .atlas-app__activity-summary,
   .atlas-app__selection span {
     display: none;
+  }
+
+  .atlas-app__activity-status-full {
+    display: none;
+  }
+
+  .atlas-app__activity-status-short {
+    display: inline;
   }
 
   .atlas-app__remove {
     width: 44px;
     height: 44px;
+  }
+
+  .atlas-app__trail li:not(.is-active) {
+    padding-right: 8px;
+  }
+
+  .atlas-app__trail li:not(.is-active) .atlas-app__trail-prompt,
+  .atlas-app__trail li:not(.is-active) .atlas-app__remove {
+    display: none;
+  }
+
+  .atlas-app__trail li:not(.is-active) .atlas-app__trail-prompt-preview {
+    display: block;
+    grid-column: 2 / -1;
+    overflow: hidden;
+    color: color-mix(in srgb, var(--atlas-page-fg) 72%, transparent);
+    font-weight: 400;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .atlas-app__trail li,
@@ -779,8 +872,18 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .atlas-plate__county,
-  .atlas-plate__trail-pin {
+  .atlas-plate__trail-pin,
+  .atlas-app__trail li {
     transition: none;
+  }
+
+  .atlas-plate__trail-route,
+  .atlas-plate__trail-marker,
+  .atlas-plate__trail-pin,
+  .atlas-plate__trail-active-ring,
+  .atlas-app__activity-event,
+  .atlas-app__finder-results li {
+    animation: none;
   }
 }
 

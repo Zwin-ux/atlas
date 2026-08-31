@@ -14,7 +14,7 @@ function cssRule(source, selector, startAt = 0) {
   return blockStart === -1 || blockEnd === -1 ? "" : source.slice(blockStart + 1, blockEnd);
 }
 
-const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptSessionSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource] = await Promise.all([
+const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptSessionSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource, hciManualSource] = await Promise.all([
   readFile("web/src/atlas/webmcpTools.ts", "utf8"),
   readFile("web/src/atlas/webmcpRegistry.ts", "utf8"),
   readFile("web/src/atlas/webmcpEvalSchema.ts", "utf8"),
@@ -36,6 +36,7 @@ const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, 
   readFile("evals/atlas-chatgpt.transcript.template.json", "utf8"),
   readFile("scripts/run-grok-webmcp-evals.mjs", "utf8"),
   readFile("railway.toml", "utf8"),
+  readFile("docs/HCI_OPERATING_MANUAL.md", "utf8"),
 ]);
 
 const packageJson = JSON.parse(packageSource);
@@ -66,8 +67,11 @@ assert(!mainSource.includes("LegacyAtlasWidget") && !mainSource.includes("useToo
 assert(finderSource.includes("controller.openPlace(") && finderSource.includes("controller.openCandidate("), "Human place actions must use the shared controller.");
 assert(appSource.includes("onOpenTrailStop={openTrailStop}"), "Trail markers and the rail must share the controller path.");
 assert(appSource.includes("Map ready · Site tools not detected"), "Normal-browser fallback must read as a usable map state.");
+assert(appSource.includes("Map ready · Agent tools off") && appSource.includes("Map ready · Agent tools on"), "Mobile status must distinguish agent tools from the map's human controls.");
 assert(appSource.includes("Research trail") && appSource.includes("session only"), "The trail rail must expose its purpose and session boundary.");
 assert(appSource.includes('aria-current={active ? "step" : undefined}') && appSource.includes("atlas-app__trail-current"), "The active trail stop requires semantic and visible non-color cues.");
+assert(appSource.includes("<strong>Agent</strong>") && !appSource.includes("<strong>{map.lastActivity.tool}</strong>"), "Visible site-tool activity must use human language while raw diagnostics remain secondary.");
+assert(finderSource.includes('busy ? "Searching" : "Open"') && finderSource.includes("Searching Atlas…"), "Place-search progress must describe the action in plain language.");
 assert(plateSource.includes("geometry.countyCenters") && geometrySource.includes("countyCenters"), "The national trail overlay requires projected county centers.");
 assert(plateSource.includes('atlas-plate${trailStops.length > 0 ? " has-trail" : ""}') && cssSource.includes(".atlas-plate.has-trail"), "Trail mode must reduce label competition deliberately.");
 const mobileCssStart = cssSource.indexOf("@media (max-width: 720px)");
@@ -75,14 +79,19 @@ assert(
   cssRule(cssSource, ".atlas-app__trail-title").includes("min-height: 32px")
     && cssRule(cssSource, ".atlas-app__trail-place").includes("min-height: 32px")
     && cssRule(cssSource, ".atlas-app__trail li input").includes("min-height: 32px")
-    && cssRule(cssSource, ".atlas-app__remove").includes("width: 32px")
-    && cssRule(cssSource, ".atlas-app__remove").includes("height: 32px")
+    && cssRule(cssSource, ".atlas-app__remove {").includes("width: 32px")
+    && cssRule(cssSource, ".atlas-app__remove {").includes("height: 32px")
     && cssRule(cssSource, ".atlas-app__trail-title,", mobileCssStart).includes("min-height: 44px")
-    && cssRule(cssSource, ".atlas-app__remove", mobileCssStart).includes("width: 44px")
-    && cssRule(cssSource, ".atlas-app__remove", mobileCssStart).includes("height: 44px"),
+    && cssRule(cssSource, ".atlas-app__remove {", mobileCssStart).includes("width: 44px")
+    && cssRule(cssSource, ".atlas-app__remove {", mobileCssStart).includes("height: 44px"),
   "Research controls must keep 32px desktop and 44px mobile target floors.",
 );
 assert(!toolsSource.includes("countyCenters"), "Raw/internal trail geometry must not enter tool output.");
+assert(plateSource.includes("pathLength={1}") && cssSource.includes("atlas-trail-route-reveal") && cssSource.includes("prefers-reduced-motion: reduce"), "Trail continuity motion must be short, bounded, and removable.");
+assert(cssSource.includes("atlas-trail-pin-arrive 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards"), "Trail arrival motion must release the pin transform so press feedback remains visible.");
+assert(cssSource.includes("var(--atlas-page-fg) 72%, transparent"), "Inactive mobile prompt context must keep normal-text contrast.");
+assert(cssSource.includes(".atlas-app__trail li:not(.is-active) .atlas-app__trail-prompt") && cssSource.includes(".atlas-app__trail-prompt-preview"), "Mobile trail editing must keep inactive stops compact without removing their context.");
+assert(hciManualSource.includes("ASD-STE100") && hciManualSource.includes("does not claim ASD-STE100 conformance") && hciManualSource.includes("W3C Cognitive Accessibility") && hciManualSource.includes("prefers-reduced-motion"), "The public HCI manual must preserve the standards boundary and motion rule.");
 assert(serverSource.includes('"origin-agent-cluster": "?1"') && serverSource.includes('"permissions-policy": "tools=(self)"'), "Judge routes require WebMCP-compatible response headers.");
 assert(!/@atlas\//.test(serverSource), "The standalone server must not depend on the historical workspace packages.");
 assert(packageJson.devDependencies?.["webmcp-evals"] === "0.0.4", "webmcp-evals must stay pinned to 0.0.4.");

@@ -50,6 +50,13 @@ const TOOL_STATUS_COPY = {
   failed: "Map ready · Site tools offline",
 } as const;
 
+const TOOL_STATUS_SHORT_COPY = {
+  unavailable: "Map ready · Agent tools off",
+  registering: "Map ready · Connecting",
+  available: "Map ready · Agent tools on",
+  failed: "Map ready · Agent tools offline",
+} as const;
+
 function plateUrl(ref: PlateRef): string {
   if (ref.level === "nation") return "/api/atlas/nation";
   if (ref.level === "state") return `/api/atlas/state/${encodeURIComponent(ref.state)}`;
@@ -194,12 +201,18 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
       ) : null}
 
       <div className="atlas-app__activity" data-status={map.toolStatus} aria-live="polite">
-        <span className="atlas-app__activity-status">{TOOL_STATUS_COPY[map.toolStatus]}</span>
+        <span className="atlas-app__activity-status">
+          <span className="atlas-app__activity-status-full">{TOOL_STATUS_COPY[map.toolStatus]}</span>
+          <span className="atlas-app__activity-status-short">{TOOL_STATUS_SHORT_COPY[map.toolStatus]}</span>
+        </span>
         {map.lastActivity ? (
-          <span className="atlas-app__activity-event" data-state={map.lastActivity.state}>
-            <span className="atlas-app__activity-sequence">Run {map.lastActivity.sequence}</span>
-            <time dateTime={map.lastActivity.at}>{new Date(map.lastActivity.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time>
-            <strong>{map.lastActivity.tool}</strong>
+          <span
+            key={map.lastActivity.sequence}
+            className="atlas-app__activity-event"
+            data-state={map.lastActivity.state}
+            title={`Site tool ${map.lastActivity.tool} · ${map.lastActivity.state} · run ${map.lastActivity.sequence} · ${new Date(map.lastActivity.at).toLocaleTimeString()}`}
+          >
+            <strong>Agent</strong>
             <span className="atlas-app__activity-summary">{map.lastActivity.summary}</span>
           </span>
         ) : null}
@@ -253,8 +266,9 @@ export function AtlasApp({ initialRef, coverage, apiBase = "", controller: exter
                         <span className="atlas-app__trail-index" aria-hidden="true">{index + 1}</span>
                         <span className="atlas-app__trail-location">{stop.place.name}, {stop.place.state.toUpperCase()}</span>
                         {active ? <span className="atlas-app__trail-current">Current</span> : null}
+                        <span className="atlas-app__trail-prompt-preview">{stop.prompt}</span>
                       </button>
-                      <label>
+                      <label className="atlas-app__trail-prompt">
                         <span className="sr-only">Prompt for {stop.place.name}</span>
                         <input className="atlas-app__research-input" key={stop.prompt} defaultValue={stop.prompt} maxLength={100} onBlur={(event) => controller.updateTrailPrompt(index, event.currentTarget.value).catch(() => undefined)} />
                       </label>

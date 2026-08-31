@@ -69,6 +69,17 @@ async function invoke(page, name, input = {}) {
   return output;
 }
 
+async function closeBrowserWithin(browser, timeoutMs = 5_000) {
+  const browserProcess = browser.process();
+  let closed = false;
+  await Promise.race([
+    browser.close().then(() => { closed = true; }),
+    new Promise((resolvePromise) => setTimeout(resolvePromise, timeoutMs)),
+  ]);
+  if (browser.connected) browser.disconnect();
+  if (!closed && browserProcess?.exitCode === null) browserProcess.kill();
+}
+
 function stableState(output) {
   return {
     revision: output.revision,
@@ -79,6 +90,26 @@ function stableState(output) {
     recentNotes: output.recentNotes,
     trail: output.trail,
   };
+}
+
+async function mobileTrailState(page) {
+  return page.evaluate(() => {
+    const visible = (node) => {
+      if (!(node instanceof HTMLElement)) return false;
+      const style = getComputedStyle(node);
+      return style.display !== "none" && style.visibility !== "hidden";
+    };
+    const rows = [...document.querySelectorAll(".atlas-app__trail li")];
+    return {
+      rows: rows.length,
+      activeIndex: rows.findIndex((row) => row.classList.contains("is-active")),
+      promptEditors: rows.filter((row) => visible(row.querySelector(".atlas-app__trail-prompt"))).length,
+      removeActions: rows.filter((row) => visible(row.querySelector(".atlas-app__remove"))).length,
+      promptPreviews: rows.filter((row) => visible(row.querySelector(".atlas-app__trail-prompt-preview"))).length,
+      viewportWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    };
+  });
 }
 
 const page = await browser.newPage();
@@ -152,6 +183,38 @@ try {
   await page.screenshot({ path: screenshotPath, type: "png" });
   report.screenshot = screenshotPath;
 
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+  const compactTrail = await mobileTrailState(page);
+  assert.deepEqual(compactTrail, {
+    rows: 3,
+    activeIndex: 0,
+    promptEditors: 1,
+    removeActions: 1,
+    promptPreviews: 2,
+    viewportWidth: 390,
+    scrollWidth: 390,
+  });
+  await page.$$eval(".atlas-app__trail-place", (nodes) => nodes[1]?.click());
+  await page.waitForFunction(() => (
+    [...document.querySelectorAll('.atlas-app__crumb[aria-current="page"]')]
+      .some((crumb) => crumb.textContent?.includes("Miami-Dade"))
+  ));
+  assert.deepEqual(await mobileTrailState(page), {
+    rows: 3,
+    activeIndex: 1,
+    promptEditors: 1,
+    removeActions: 1,
+    promptPreviews: 2,
+    viewportWidth: 390,
+    scrollWidth: 390,
+  });
+  const mobileScreenshotPath = resolve(process.cwd(), process.env.ATLAS_WEBMCP_SMOKE_MOBILE_SCREENSHOT ?? ".evals/browser-smoke-trail-mobile.png");
+  await page.screenshot({ path: mobileScreenshotPath, type: "png" });
+  report.mobileScreenshot = mobileScreenshotPath;
+
+  await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
+  await invoke(page, "create_map_trail", validTrailInput);
+
   await page.$eval('.atlas-plate__trail-marker[aria-label^="Stop 2:"]', (marker) => marker.focus());
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => (
@@ -191,6 +254,33 @@ try {
   await page.goto(new URL("/explore", url).href, { waitUntil: "networkidle2" });
   assert.equal((await waitForTools(page)).length, 5, "Route navigation must keep the exact-five cut.");
 
+  await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+  await page.reload({ waitUntil: "networkidle2" });
+  await invoke(page, "create_map_trail", validTrailInput);
+  const reducedMotion = await page.evaluate(() => {
+    const selectors = [
+      ".atlas-plate__trail-route",
+      ".atlas-plate__trail-marker",
+      ".atlas-plate__trail-pin",
+      ".atlas-plate__trail-active-ring",
+      ".atlas-app__activity-event",
+    ];
+    return Object.fromEntries(selectors.map((selector) => {
+      const node = document.querySelector(selector);
+      return [selector, node ? getComputedStyle(node).animationName : "missing"];
+    }));
+  });
+  assert.ok(Object.values(reducedMotion).every((name) => name === "none"), `Reduced motion must remove trail and activity animation: ${JSON.stringify(reducedMotion)}`);
+  await page.type('.atlas-app__finder input[placeholder="City or county, state"]', "Springfield");
+  await page.keyboard.press("Enter");
+  await page.waitForSelector(".atlas-app__finder-results li");
+  assert.equal(
+    await page.$eval(".atlas-app__finder-results li", (node) => getComputedStyle(node).animationName),
+    "none",
+    "Reduced motion must remove candidate-result animation.",
+  );
+  report.reducedMotion = reducedMotion;
+
   assert.deepEqual(report.consoleErrors, [], "The WebMCP browser journey must not log console or page errors.");
   const reportPath = resolve(process.cwd(), process.env.ATLAS_WEBMCP_SMOKE_REPORT ?? ".evals/browser-smoke.json");
   await mkdir(dirname(reportPath), { recursive: true });
@@ -202,8 +292,10 @@ try {
     toolExecutions: report.checks.length,
     report: reportPath,
     screenshot: report.screenshot,
+    mobileScreenshot: report.mobileScreenshot,
+    reducedMotion: true,
   }, null, 2));
 } finally {
   await page.close();
-  await browser.close();
+  await closeBrowserWithin(browser);
 }

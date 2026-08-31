@@ -17,5 +17,6 @@ The challenge edition adds:
 - one isolated ChatGPT desktop acceptance-session command with an exact runbook, explicit observation markers, and portable evidence paths;
 - an isolated Railway deployment verified over public HTTPS with the exact-five Chrome protocol suite;
 - desktop, mobile, keyboard, and reduced-motion treatment.
+- a source-linked HCI operating manual, plain-language agent feedback, and an exact `390x844` active-editor browser gate.
 
 The challenge edition intentionally contains no account system, persistence, public posting, payment flow, or sixth tool. It includes only the runtime and evidence needed to reproduce the submitted experience.

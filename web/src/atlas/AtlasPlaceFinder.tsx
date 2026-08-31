@@ -24,7 +24,7 @@ export function AtlasPlaceFinder({ controller }: { controller: AtlasMapControlle
     const request = new AbortController();
     activeRequest.current = request;
     setBusy(true);
-    setFeedback({ tone: "quiet", message: "Checking the Atlas place index…" });
+    setFeedback({ tone: "quiet", message: "Searching Atlas…" });
     return request;
   };
 
@@ -112,15 +112,15 @@ export function AtlasPlaceFinder({ controller }: { controller: AtlasMapControlle
             }
           }}
         />
-        <button type="submit" disabled={busy}>{busy ? "Wait" : "Open"}</button>
+        <button type="submit" disabled={busy}>{busy ? "Searching" : "Open"}</button>
       </form>
 
       {feedback ? <p id={feedbackId} className="atlas-app__finder-feedback" data-tone={feedback.tone} role="status">{feedback.message}</p> : null}
 
       {candidates.length > 0 ? (
         <ul id={resultsId} className="atlas-app__finder-results" aria-label="Matching Atlas places">
-          {candidates.map((candidate) => (
-            <li key={`${candidate.kind}-${candidate.name}-${candidate.countySlug}`}>
+          {candidates.map((candidate, index) => (
+            <li key={`${candidate.kind}-${candidate.name}-${candidate.countySlug}`} style={{ animationDelay: `${Math.min(index, 7) * 24}ms` }}>
               <button type="button" onClick={() => void chooseCandidate(candidate)}>
                 <strong>{candidate.name}</strong>
                 <span>{candidate.kind === "county" ? candidate.state.toUpperCase() : `${candidate.countyName}, ${candidate.state.toUpperCase()}`}</span>

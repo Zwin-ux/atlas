@@ -10,12 +10,12 @@
 
 ## Current Slice
 
-- Slice: `20 — real ChatGPT acceptance-session environment`
-- Status: `GREEN — one command now prepares an isolated, ignored, portable ChatGPT Site Tools runbook, transcript, and evidence pack; source and exact sanitized commit 74fe86ea pass 35/35 verification, typecheck, and production build. The actual ChatGPT conversation remains a user-controlled external gate.`
-- Player-visible promise: `A tester can open the live Atlas map beside a precise runbook, exercise the shared map through ChatGPT Site Tools, and produce a transcript that cannot pass unless each real call was observed and every required screenshot or note is present.`
-- Smallest complete boundary: `Create one no-overwrite session command, prefill the verified live URL and exact-five journey, make evidence paths portable, reject copied sample transcripts, project the command into the sanitized release, and reproduce all release gates from the exact committed source.`
-- Likely files: `scripts/prepare-chatgpt-session.mjs`, its focused test, the transcript template and validator, source/release package commands and guards, ChatGPT acceptance documentation, challenge delta, and the durable state ledger.`
-- Acceptance checks: `The command accepts only HTTPS public /explore targets and supported Site Tools models; every session is timestamped and ignored; evidence resolves relative to the transcript; captured proof requires observed=true for every step; exactly five tools remain; source and sanitized release gates pass; actual ChatGPT discovery is not misclaimed.`
+- Slice: `21 — cognitive-accessible human-agent flow and purposeful motion`
+- Status: `READY_TO_COMMIT — the cognitive-accessible human-agent flow, mobile active-editor handoff, purposeful motion, HCI manual, sanitized projection, and Chrome 152 browser gate are green.`
+- Player-visible promise: `ChatGPT actions read like human updates, the mobile research trail keeps the map primary while preserving every edit, and the national route appears with one short reduced-motion-safe continuity transition.`
+- Smallest complete boundary: `Replace visible tool diagnostics with plain-language agent feedback while keeping machine details inspectable; collapse inactive mobile trail editors behind their existing stop action; add restrained route, marker, result, and press feedback; install a source-linked HCI operating manual; and verify both motion and reduced-motion states.`
+- Likely files: `web/src/atlas/AtlasApp.tsx`, `AtlasPlaceFinder.tsx`, `AtlasPlate.tsx`, `atlas.css`, `docs/webmcp/HCI_OPERATING_MANUAL.md`, focused verifier/release projection, challenge delta, and current-run audit evidence.`
+- Acceptance checks: `Exactly five tools remain; no tool contract changes; mobile inactive stops retain place and prompt context but expose only the current editor/removal action; activity copy contains no raw tool name; route/marker/result motion is short and purposeful; prefers-reduced-motion disables it; 1280x720 and exact 390x844 have no overlap or horizontal overflow; focused tests, verify:webmcp, typecheck, and build pass.`
 - Anti-scope: `No sixth tool, detached remote MCP state, auth, persistence, public posting, historical Railway reuse, public repository visibility, secrets, or Devpost submission.`
 
 ## Acceptance Checks
@@ -23,7 +23,7 @@
 - [x] Exactly five descriptors register from top-level `/` and `/explore` only.
 - [x] Registration is all-or-none and one shared abort signal removes partial success.
 - [x] Normal browsers keep full manual map behavior with an honest unavailable status.
-- [x] Activity rail shows availability, sequence, timestamp, tool, state, and concise effect.
+- [x] Activity rail shows map/tool readiness plus `Agent` and the concise human-visible effect; raw tool name, sequence, state, and time remain secondary diagnostics.
 - [x] `add_map_note` resolves first, enforces 240 characters, renders text safely, and waits for visibility.
 - [x] `create_map_trail` resolves all 2–5 stops before one mutation and shows the completed numbered trail on the national map.
 - [x] Ambiguous or canceled trail resolution leaves the complete prior snapshot unchanged.
@@ -52,6 +52,10 @@
 - [x] Current live desktop, Springfield ambiguity, 390x844 mobile, and WebMCP-created trail states are captured and reviewed.
 - [x] The bounded Ralph release loop advances one priority at a time and hard-stops at credentials, public visibility, and submission gates.
 - [x] `pnpm e2e:chatgpt:session` creates a no-overwrite runbook, prefilled exact-five transcript, and portable evidence folder while the validator rejects unobserved copied samples.
+- [x] Mobile exposes exactly one active trail prompt editor and removal action while retaining every inactive stop's place and prompt context.
+- [x] Route, marker, active-ring, result, activity, and press effects are bounded, non-looping, and removed under `prefers-reduced-motion: reduce`.
+- [x] Chrome smoke emulates exact `390x844`, opens inactive stop 2 through the shared controller, verifies zero overflow, and checks computed reduced-motion animation names.
+- [x] The public HCI manual distinguishes W3C/ISO accessibility guidance from the ASD-STE100-inspired plain-language profile and makes no conformance claim.
 
 ## Work Log
 
@@ -255,6 +259,15 @@
 | Exact `74fe86ea` sanitized `pnpm verify:webmcp` | PASS | 35/35 focused tests plus standalone runtime and judge-copy guards. |
 | Exact `74fe86ea` sanitized `pnpm typecheck` and `pnpm build` | PASS | Standalone web/server contracts and production client/server build completed from the generated release tree. |
 | `git diff --check` and explicit tracked-file staging | PASS | No whitespace errors; only the acceptance-session slice entered commit `74fe86ea`; four unrelated user files remained untracked and untouched. |
+| Product Design index and gstack `/browse` audit | PASS | Compared entry, Springfield ambiguity, shared trail, and manual stop handoff before/after at 1280x720 and exact 390x844; the map remains the dominant surface and the page remains exactly 390px wide. |
+| Official HCI/standards source review | PASS with bounded claim | W3C WCAG 2.2, W3C COGA, ISO 9241-210, and ASD-STE100 official sources are linked in the repository manual; Atlas claims only an STE100-inspired plain-language profile, not conformance. |
+| Slice 21 `pnpm verify:webmcp` | PASS | 35/35 focused tests plus exact-five, plain-language activity, search-progress, motion, mobile active-editor, HCI-manual, release-projection, and judge-copy guards. |
+| Slice 21 `pnpm typecheck` | PASS | Starter and every workspace TypeScript contract passed after the final UI changes. |
+| Slice 21 `pnpm build` | PASS | Full starter, plate, and workspace production build completed; only the recorded historical Radix and two manifest-skip warnings remained. |
+| Slice 21 final `pnpm build:web` | PASS | Rebuilt the exact final Atlas component and emulator after the last copy, contrast, and animation-fill fixes. |
+| Slice 21 `pnpm eval:webmcp:smoke` | PASS | Chrome `152.0.7977.64`; exactly five tools, 9/9 official steps, 15 deeper executions, one active mobile editor at 390x844, stop-2 handoff, zero overflow, and computed reduced-motion suppression. |
+| Slice 21 `/review` | PASS after fixes | Three parallel read-only lanes found five informational gaps: mobile/reduced-motion browser coverage, sanitized verifier drift, pin transform fill, inactive-prompt contrast, and ambiguous mobile tool copy. All five were fixed; no unresolved critical or informational finding remains. |
+| `node --check` and `git diff --check` | PASS | Browser/release verifier scripts parse and the slice has no whitespace errors. |
 
 ### Browser proof
 
@@ -281,7 +294,7 @@
 - Springfield ambiguity and an unresolved trail stop preserved revision, visible revision, selected place, note summary, current map, and trail.
 - Refresh, `/`, and `/explore` each exposed exactly five tools; the WebMCP journey logged zero console/page errors.
 - Normal-browser fallback produced no application error. Chrome logged only the expected warning that the experimental `tools` feature was not enabled in this browser.
-- The refined fallback reads `Map ready · Site tools not detected`; supported Chrome reads `Map ready · Site tools on` and shows the run number, time, tool, and visible effect.
+- The refined fallback reads `Map ready · Site tools not detected`; supported Chrome reads `Map ready · Site tools on`, while the primary activity line says `Agent` plus the visible effect and keeps raw run/tool details secondary.
 - Desktop trail title, place, prompt, and remove controls measure at least 32px; mobile research and map controls remain 44px with `scrollWidth=clientWidth=390`.
 - Current-run screenshots cover the start, Springfield ambiguity, three-stop trail, dark mode, keyboard focus, and real WebMCP execution under `artifacts/product-design-audit/`.
 - The exact sanitized candidate `ad0d5ab` repeated the Chrome 152 proof from a fresh clone: exactly five top-level tools, 9/9 official smoke steps, 13 deeper executions, visible national trail completion, saved screenshot, and a clean browser report.
@@ -296,6 +309,9 @@
 - The 390x844 live page measured `scrollWidth=clientWidth=390`; the visual audit found no remaining high or medium issue and kept the national trail overlay as the single focal event.
 - A headed ChatGPT window is open on the sign-in screen. No credentials or browser-session data were accessed; the built-in-browser transcript awaits user sign-in.
 - The live `/explore` route plus the current ignored `RUNBOOK.md` and `transcript.json` were opened in this ChatGPT task's right panel; this is setup evidence only, not a completed Site Tools transcript.
+- Slice 21 before/after evidence is under `artifacts/product-design-audit/hci-motion-20260830/`, including entry, Springfield ambiguity, shared trail, exact 390x844 mobile, and the same-state desktop comparison.
+- At exact 390x844, the current stop exposes one prompt editor and one removal action; inactive stops retain one-line prompt context. Opening stop 2 exposes only its editor/action and enters Miami-Dade through `openTrailStop`.
+- Chrome smoke now saves `.evals/browser-smoke-trail-mobile.png`, verifies `scrollWidth=clientWidth=390`, and emulates reduced motion before checking route, marker, pin, active ring, activity, and result animations.
 
 ### Review
 
@@ -311,6 +327,7 @@
 - Live-E2E findings: `0` remaining after requiring the manual marker-2 handoff to prove both `miami-dade-fl` navigation and `trail.activeIndex: 1` in captured ChatGPT evidence.
 - Release/deployment findings: `0` remaining after fixing the invalid Railway schema key, guarding config-as-code values, replacing stale candidate/deployment copy, and confirming the live Product Design evidence against the exact public route.
 - ChatGPT-session findings: `0` remaining after adding explicit per-step observation, transcript-relative evidence, no-overwrite output, HTTPS/model checks, sanitized projection guards, and focused negative tests.
+- Cognitive-accessibility findings: `0` remaining after adding real mobile/reduced-motion smoke coverage, mirroring HCI guards into the sanitized verifier, releasing the pin transform after arrival, raising inactive-prompt contrast, and distinguishing agent tools from map controls on mobile.
 - Disposition: `CLEAN` for local code, exact sanitized clean-clone reproduction, the acceptance-session environment, private remote `986cf864`, isolated Railway deployment, public Chrome 152 WebMCP execution, normal-browser fallback, and responsive design proof. Real ChatGPT discovery, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
@@ -348,4 +365,5 @@ In this task's right panel, open the live Atlas browser tab and the generated `R
 18. Live ChatGPT WebMCP E2E environment — GREEN (`59ac56d1`; sanitized candidate superseded by `986cf864`)
 19. Isolated Railway deployment and bounded Ralph release loop — GREEN (`a165ad11`; sanitized candidate `986cf864`; live Chrome/design proof complete, real ChatGPT/Grok credential-gated)
 20. Real ChatGPT acceptance-session environment — GREEN (`74fe86ea`; exact sanitized install/35-test/typecheck/build proof complete, real ChatGPT interaction still user-gated)
+21. Cognitive-accessible human-agent flow and purposeful motion — READY TO COMMIT (exact-five tools unchanged; Chrome/mobile/reduced-motion proof green)
 

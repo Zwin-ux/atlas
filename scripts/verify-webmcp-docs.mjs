@@ -30,6 +30,7 @@ const chatgptAcceptance = await readFile("docs/webmcp/CHATGPT_ACCEPTANCE.md", "u
 const chatgptE2e = await readFile("docs/webmcp/CHATGPT_E2E.md", "utf8");
 const ralphLoop = await readFile("docs/webmcp/RALPH_RELEASE_LOOP.md", "utf8");
 const releaseDesignAudit = await readFile("docs/webmcp/RELEASE_PRODUCT_DESIGN_AUDIT.md", "utf8");
+const hciManual = await readFile("docs/webmcp/HCI_OPERATING_MANUAL.md", "utf8");
 
 for (const name of toolNames) {
   assert(readme.includes(`\`${name}\``), `README is missing the ${name} tool.`);
@@ -56,6 +57,7 @@ assert(chatgptE2e.includes("evidence/available-site-tools.png") && chatgptE2e.in
 assert(chatgptE2e.includes("page-native WebMCP") && chatgptE2e.includes("should not expose a second `/mcp` mutation path"), "ChatGPT E2E docs must preserve the shared-page architecture boundary.");
 assert(ralphLoop.includes("one bounded Ralph iteration") && ralphLoop.includes("must not") && ralphLoop.includes("releaseReady: true"), "The Ralph loop must stay single-item, evidence-driven, and bounded by hard stops.");
 assert(releaseDesignAudit.includes("390 × 844") && releaseDesignAudit.includes("three-county WebMCP trail") && releaseDesignAudit.includes("No high- or medium-severity"), "The live Product Design audit must cover mobile, the visible trail, and its release verdict.");
+assert(hciManual.includes("ASD-STE100") && hciManual.includes("does not claim ASD-STE100 conformance") && hciManual.includes("W3C Cognitive Accessibility"), "The HCI manual must explain its cognitive-accessibility and plain-language standards boundary.");
 assert(release.includes("not safe to publish") && release.includes("## Owner gates"), "Release packet must preserve the public-safety stop gate.");
 
 console.log(JSON.stringify({

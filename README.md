@@ -107,5 +107,6 @@ The owner-selected Apache-2.0 license is applied only to the sanitized challenge
 - [Live ChatGPT end-to-end environment](docs/webmcp/CHATGPT_E2E.md)
 - [Bounded Ralph release loop](docs/webmcp/RALPH_RELEASE_LOOP.md)
 - [Live release product-design audit](docs/webmcp/RELEASE_PRODUCT_DESIGN_AUDIT.md)
+- [HCI, cognitive-accessibility, plain-language, and motion operating manual](docs/webmcp/HCI_OPERATING_MANUAL.md)
 - [Official challenge page](https://webmcp.devpost.com/)
 - [Official rules](https://webmcp.devpost.com/rules)
