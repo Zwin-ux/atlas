@@ -21,6 +21,50 @@ Interface accessibility is based on WCAG 2.2 and W3C Cognitive Accessibility gui
 
 The map is the source of truth. Chat text must not become a detached second workspace.
 
+## Human-agent contract
+
+Atlas applies Microsoft Research's human-AI guidance as a four-phase contract. The contract describes what the person must be able to understand and control. It does not add another Site Tool.
+
+### Before an action
+
+- Say what the agent can do in concrete map terms: find a place, open a county, add a note, or build a trail.
+- Give one useful example when the session is empty: **Agent tools ready. Try: build a 3-stop civic trail.**
+- State the important limit at the point of use: notes and trails are session-only.
+- Do not expose raw tool names as the primary explanation.
+
+### During an action
+
+- Show a short status that names the object and action: **Searching Atlas** or **Building a 3-stop trail**.
+- Keep keyboard focus where the person left it. Announce important status changes through a programmatic status message instead of moving focus.
+- Keep the map, breadcrumb, trail rail, and agent activity consistent during the transition.
+- Return write success only after the visible state has rendered.
+
+### When Atlas is uncertain or wrong
+
+- Scope the action instead of guessing. An ambiguous place returns candidates and does not change the map.
+- Say what happened, what stayed unchanged, and what the person can do next: **8 matches. Choose a state. Map unchanged.**
+- Resolve every trail stop before the single commit. One unresolved stop leaves the previous map and trail intact.
+- Keep correction efficient. A person can open another marker, edit note or trail text, remove an item, or dismiss the candidates.
+
+### After an action
+
+- Make the consequence visible and specific: **Agent created a 3-stop trail** or **Agent added a note to Riverside County**.
+- Let the person edit the result in place. Agent output is a shared draft on the map, not a locked transcript artifact.
+- Read the person's latest manual change on the next `get_map_state` call.
+- Keep agent origin and session scope visible without turning the rail into a diagnostic dashboard.
+
+## HCI release rubric
+
+| Contract | Atlas proof | Release failure signal |
+| --- | --- | --- |
+| Capability is clear | The empty state gives one concrete trail example and the five human titles describe map outcomes. | A judge must read documentation or learn a raw tool name before trying the core action. |
+| Status is visible | Pending, success, ambiguity, and failure name the affected map object. | The map changes silently, status is clipped, or success appears before rendering. |
+| State is shared | Marker, breadcrumb, active trail row, and `get_map_state` agree. | Human and agent actions produce separate or stale selections. |
+| Uncertainty is safe | Ambiguity returns candidates and states that the map is unchanged. | Atlas guesses, partially mutates, or reports success on an unresolved place. |
+| Correction is efficient | Notes, title, prompts, stops, and active place remain manually editable. | The person needs a new tool or a reset to correct agent output. |
+| Consequences are legible | Agent origin, stop count, active stop, and session-only scope are visible. | A person cannot tell what changed, whether it persisted, or which stop is current. |
+| Operation is inclusive | Focus stays visible, mobile controls are at least 44px, map targets have rail equivalents, status is announced without focus theft, and reduced motion preserves the final state. | Keyboard order is unclear, a control is too small, focus disappears, status is only visual, or motion is required to understand the result. |
+
 ## Interaction laws
 
 - Keep the map as the largest region on desktop and mobile.
@@ -82,10 +126,20 @@ Do not add pulsing markers, floating panels, looping routes, parallax, confetti,
 - [ ] Target sizes and contrast meet the project checks.
 - [ ] Motion is brief, purposeful, and absent under reduced motion.
 - [ ] Copy review makes no unsupported standards or conformance claim.
+- [ ] The first useful agent action is understandable without exposing raw tool names.
+- [ ] Pending, success, ambiguity, and failure messages are programmatically available without moving focus.
+- [ ] Dense map markers have an equivalent control in the research rail.
+- [ ] Agent-created content remains visibly editable by the person.
 
 ## Authoritative references
 
+- [Microsoft Research Guidelines for Human-AI Interaction](https://www.microsoft.com/en-us/research/blog/guidelines-for-human-ai-interaction-design/)
+- [Microsoft Research CHI 2019 publication](https://www.microsoft.com/en-us/research/publication/guidelines-for-human-ai-interaction/)
+- [Nielsen Norman Group: 10 Usability Heuristics for User Interface Design](https://www.nngroup.com/articles/ten-usability-heuristics/)
 - [W3C Web Content Accessibility Guidelines (WCAG) 2.2](https://www.w3.org/TR/WCAG22/)
+- [W3C Understanding Status Messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+- [W3C Understanding Focus Visible](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html)
+- [W3C Understanding Target Size (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)
 - [W3C Cognitive Accessibility: Making Content Usable for People with Cognitive and Learning Disabilities](https://www.w3.org/TR/coga-usable/)
 - [W3C Cognitive Accessibility overview](https://www.w3.org/WAI/cognitive/)
 - [ISO 9241-210:2019 overview](https://www.iso.org/standard/77520.html)
