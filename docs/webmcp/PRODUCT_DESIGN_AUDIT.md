@@ -116,3 +116,13 @@ Health: **Purposeful and bounded.** The route draws once in 440ms. Markers arriv
 ### Evidence limits
 
 The local browser did not expose experimental Site Tools, so the current-run visual state was created through the same live `AtlasMapController` methods used by the five descriptors. This proves the interface and shared state path, not a new ChatGPT transcript. Exact-five Chrome WebMCP execution remains covered by the existing deterministic browser smoke evidence. The pass does not claim WCAG or ASD-STE100 conformance.
+
+## Quiet ready-state pass — August 31, 2026
+
+Health: **Release-ready.** The persistent `Try a 3-stop trail` coaching duplicated the agent-tools-ready signal and competed with the map before the user acted. The prompt and its responsive CSS were removed. Atlas now gives one calm availability signal, then reserves the activity line for completed or recoverable agent actions.
+
+![Quiet desktop ready state](../../artifacts/product-design-audit/release-quiet-20260831/desktop-ready.png)
+
+![Quiet 390x844 ready state](../../artifacts/product-design-audit/release-quiet-20260831/mobile-ready-390x844.png)
+
+Current browser proof reports no prompt text or prompt node, zero horizontal overflow at both widths, and a `374x732` visible map at `390x844`. The only console warning is Chrome's expected inactive-origin-trial notice for the experimental `tools` Permissions-Policy token; the normal map remains fully usable.

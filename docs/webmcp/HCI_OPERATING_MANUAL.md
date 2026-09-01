@@ -28,7 +28,7 @@ Atlas applies Microsoft Research's human-AI guidance as a four-phase contract. T
 ### Before an action
 
 - Say what the agent can do in concrete map terms: find a place, open a county, add a note, or build a trail.
-- Give one useful example when the session is empty: **Agent tools ready. Try: build a 3-stop civic trail.**
+- Keep the empty ready state quiet: confirm agent-tool availability without adding an unsolicited example beside the map. Conversation examples belong in the ChatGPT setup guide, not persistent map chrome.
 - State the important limit at the point of use: notes and trails are session-only.
 - Do not expose raw tool names as the primary explanation.
 
@@ -126,7 +126,7 @@ Do not add pulsing markers, floating panels, looping routes, parallax, confetti,
 - [ ] Target sizes and contrast meet the project checks.
 - [ ] Motion is brief, purposeful, and absent under reduced motion.
 - [ ] Copy review makes no unsupported standards or conformance claim.
-- [ ] The first useful agent action is understandable without exposing raw tool names.
+- [ ] The ready state communicates availability without an unsolicited prompt or raw tool names.
 - [ ] Pending, success, ambiguity, and failure messages are programmatically available without moving focus.
 - [ ] Dense map markers have an equivalent control in the research rail.
 - [ ] Agent-created content remains visibly editable by the person.

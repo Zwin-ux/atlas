@@ -6,7 +6,7 @@ No login. No saved profile. One map, one research session.
 
 ![Atlas national map with a numbered three-county research trail](docs/assets/trail-overview.png)
 
-## Try the shared map
+## Explore the shared map
 
 - Live app: [atlas-webmcp-production.up.railway.app/explore](https://atlas-webmcp-production.up.railway.app/explore)
 - Public source: `[OWNER REQUIRED: approved public repository]`
