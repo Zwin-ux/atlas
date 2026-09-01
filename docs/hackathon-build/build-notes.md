@@ -80,3 +80,42 @@
 - Created `docs/hackathon-build/scope.md` from the confirmed brain dump, reference reaction, three-day time budget, resolved ambiguities, and accepted cut list.
 - Scope keeps the existing Atlas implementation intact and defines the remaining winner slice as field-atlas quality, natural ChatGPT place opening, shared session notes/trails, one bounded Higgsfield study, real ChatGPT/video proof, and owner-gated release packaging.
 - The scope explicitly protects the top-level WebMCP surface while retaining only a functional secondary iframe preview; it does not authorize product code, generation spend, publication, or submission.
+
+## 2026-08-31 — Guided build PRD
+
+### Mandatory beat 1: precise visible behavior
+
+- The participant approved all four proposed behaviors with “sure yeah.”
+- First open: show the full United States immediately, keep the map dominant, provide one simple place finder, and avoid tutorials, empty dashboards, or unnecessary panels.
+- Single-place request: a clear ChatGPT request visibly opens the resolved county and updates breadcrumb/status and completion feedback.
+- Multi-place request: return to the national view, draw one numbered route in requested order, and show matching editable notebook entries.
+- Place note: keep each note visibly attached to its place, allow manual edit/removal, and identify it as session-only.
+- These behaviors remain user-facing requirements; implementation choices are deferred to build-spec.
+
+### Mandatory beats 2-3: user stories and acceptance criteria
+
+- The participant approved the proposed stories and criteria without changes.
+- **Open the atlas:** a curious person sees the United States immediately, with a dominant map, available finder, and no blocking empty panel.
+- **Explore with ChatGPT:** an explicit geographic request visibly opens the intended place, updates location/status, and leaves the person able to continue manually.
+- **Build a journey:** requested places appear as one ordered route whose markers, line, and notebook entries agree; either representation opens the same stop.
+- **Keep field notes:** notes stay visibly place-bound, manually editable/removable, and marked session-only.
+- **Trust the atlas:** ambiguous input returns candidates without mutation; unknown places and incomplete trails preserve the previous visible state.
+- Cross-story feel requirement: warm paper and ink, legible handwritten accents, restrained motion, and a map-dominant desktop/mobile composition.
+
+### Mandatory beats 4-5: edge cases and time-budget guard
+
+- The participant approved all recommended edge-case behaviors.
+- Ambiguous combined action: a request such as “Open Springfield and add this note” shows candidates and adds nothing until one place is deliberately chosen.
+- Broken trail: if any requested stop cannot resolve, no partial route appears and the previous map/trail remains intact.
+- Human correction: when the person edits or removes a stop or note, ChatGPT's next state read reflects the newest visible version rather than an earlier conversational assumption.
+- Refresh and overlapping actions: refresh intentionally clears session notes/trails; when actions overlap, only the newest visibly completed action remains.
+- Explicit later list: saved notebooks, richer iframe treatment, route services, broader geography, and additional authored asset studies. These are not required for the three-day submission.
+- Mandatory PRD beats are complete. The optional deepening-round decision is pending before `prd.md` is written.
+
+### PRD document decision
+
+- The participant chose “writ” instead of another deepening round.
+- Deepening rounds taken: 0.
+- Created `docs/hackathon-build/prd.md`, expanding the fixed scope into product goals, experience principles, a complete user journey, seven behavior epics, screen-observable criteria, edge cases, priority tiers, explicit later items, non-goals, and submission proof points.
+- The PRD is intentionally user-facing. Technical architecture and code decisions remain deferred to build-spec.
+- No product code, Higgsfield job, release action, repository visibility change, or Devpost submission was authorized or performed.

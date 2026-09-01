@@ -10,12 +10,12 @@
 
 ## Current Slice
 
-- Slice: `29 — Winner-focused guided scope`
-- Status: `SCOPE GREEN / PRD NEXT — scope.md is complete after all mandatory beats and zero deepening rounds. It defines Atlas as a ChatGPT-native U.S. field atlas, prioritizes the top-level WebMCP surface, preserves session notes/trails and exact-five tools, bounds Higgsfield to one accepted visual study, names the three-day execution blocks, and cuts routing, persistence, historical branch work, iframe rewrite, and generic visual slop.`
+- Slice: `30 — User-facing Atlas PRD`
+- Status: `PRD GREEN / SPEC NEXT — prd.md is complete after all mandatory beats and zero deepening rounds. It expands the scope into seven user-facing epics, observable acceptance criteria, first-run and failure behavior, priority tiers, later items, non-goals, field-atlas experience requirements, and challenge proof points without making technical design decisions.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Interview the brain dump, references, remaining time, ambiguities, and explicit cuts; offer the required optional deepening round; then write one repository-grounded scope that names the smallest high-quality field-atlas slice and its measurable demo path.`
-- Likely files: `docs/hackathon-build/scope.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
-- Acceptance checks: `The scope reflects participant intent and inspected repository truth; it records the actual time budget; includes named in-scope and cut items with rationale; treats Higgsfield as a bounded reference task with an acceptance bar; preserves exact-five/shared-controller/release gates; and does not mutate product code during stage navigation.`
+- Smallest complete boundary: `Interview the product behavior from first open through shared place exploration, trails, notes, errors, and completion feedback; express it as stable user stories with screen-observable acceptance criteria; guard the three-day cut; offer the optional deepening round; then write a substantial PRD.`
+- Likely files: `docs/hackathon-build/prd.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
+- Acceptance checks: `Every requirement describes user-visible behavior rather than implementation; each story has testable on-screen criteria; first-run and meaningful edge cases are explicit; existing verified behavior is not reinvented; cut features stay cut; no technical design, product code, generation credit, release, or submission action occurs during stage navigation.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
 
 ## Acceptance Checks
@@ -83,6 +83,7 @@
 - [x] The live Resources hub was reviewed and condensed to the specification, Chrome implementation/security/debug/evaluation guidance, and OpenAI WebMCP examples most relevant to Atlas; local plugin state records Resources complete and `next_command: prepare-submission`.
 - [x] Optional guided-build onboarding is repository-grounded and complete: learner profile, branch audit, consumer audience, technical calibration, field-atlas direction, Higgsfield boundary, and anti-slop constraints are durable; `next_command` is `build-scope`.
 - [x] Guided Scope is complete with brain dump, references, time budget, ambiguity resolution, named cuts, zero deepening rounds, measurable demo path, and definition of done; local journey state points to `build-prd`.
+- [x] Guided PRD is complete with approved stories, screen-observable criteria, meaningful edge cases, time-budget priorities, zero deepening rounds, a substantial prd.md, and local journey state pointing to `build-spec`.
 
 ## Work Log
 
@@ -403,6 +404,13 @@
 - `docs/hackathon-build/scope.md` defines the existing candidate's remaining winner slice, demo path, three execution blocks, definition of done, one bounded Higgsfield study, and the named non-goals protecting exact-five WebMCP scope.
 - `git diff --check` passes for the documentation/state changes. No runtime test was required because no product, build, or test code changed.
 
+### Slice 30 user-facing Atlas PRD
+
+- Participant-approved first-open, place-open, trail, note, trust, shared-control, and field-atlas behaviors were expanded into seven stable epics with screen-observable criteria.
+- Edge cases cover first-run state, ambiguous combined actions, unknown places, atomic trail failure, human correction precedence, overlapping actions, session reset, route lifecycle, keyboard/touch, mobile area, and reduced motion.
+- `docs/hackathon-build/prd.md` is 3,752 words versus the 1,240-word scope, satisfying the guided-build requirement for a materially more substantial product document without drifting into technical design.
+- Deepening rounds taken: 0. `git diff --check` passes. No runtime test was required because no product, build, or test code changed.
+
 ### Slice 23 implemented HCI contract
 
 - Product Design triage selected comprehension and recovery over new surface area: one ready-state trail cue, explicit unchanged-state language, and mobile prioritization of the agent outcome.
@@ -497,7 +505,7 @@
 
 ## Exact Next Action
 
-Run the build-prd skill using the completed learner profile, branch audit, and scope. Translate the scope into prioritized user outcomes and acceptance criteria without reopening cut features or mutating product code during stage navigation.
+Run the build-spec skill using learner-profile.md, scope.md, prd.md, the branch audit, and current repository truth. Translate the accepted product behavior into the smallest technical change/evidence plan without reopening non-goals or mutating code during stage navigation.
 
 ## Slice Queue
 
@@ -530,4 +538,5 @@ Run the build-prd skill using the completed learner profile, branch audit, and s
 27. Devpost narrative and Figma submission preflight — FIGMA GREEN / RESOURCES COMPLETE / PREPARE NEXT (FigJam section `27:2`; live Devpost registration, official-data preflight, rules acknowledgment, and resource review complete; no draft, visibility change, or submission)
 28. Repository-grounded guided build onboarding — GREEN / SCOPE NEXT (learner profile, all-branch audit, broad-user framing, field-atlas direction, Higgsfield boundary, and anti-slop constraints complete)
 29. Winner-focused guided scope — GREEN / PRD NEXT (mandatory beats complete, zero deepening rounds, scope.md and three-day cut finalized)
+30. User-facing Atlas PRD — GREEN / SPEC NEXT (seven behavior epics, observable criteria, edge cases, priorities, later list, non-goals, and proof points complete)
 
