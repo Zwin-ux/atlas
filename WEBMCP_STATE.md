@@ -10,12 +10,12 @@
 
 ## Current Slice
 
-- Slice: `28 — Repository-grounded guided build onboarding`
-- Status: `ONBOARD GREEN / SCOPE NEXT — the repository-grounded learner profile is complete. It records a broad consumer audience, high technical calibration, full branch triage, a provisional three-county opening, and a field-atlas identity with warm paper, ink, selective handwriting, satisfying map actions, bounded Higgsfield exploration, and an explicit ban on generic dark AI-dashboard styling.`
+- Slice: `29 — Winner-focused guided scope`
+- Status: `SCOPE GREEN / PRD NEXT — scope.md is complete after all mandatory beats and zero deepening rounds. It defines Atlas as a ChatGPT-native U.S. field atlas, prioritizes the top-level WebMCP surface, preserves session notes/trails and exact-five tools, bounds Higgsfield to one accepted visual study, names the three-day execution blocks, and cuts routing, persistence, historical branch work, iframe rewrite, and generic visual slop.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Initialize a durable learner profile and build journal from inspected repository truth, collect the participant's experience and project framing in three brisk onboarding rounds, then hand the confirmed context to Scope without changing product code.`
-- Likely files: `docs/hackathon-build/learner-profile.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
-- Acceptance checks: `Existing Atlas capability is summarized without invention; every local/remote branch and worktree is inventoried without checkout or mutation; legacy branches are triaged against the challenge cut; participant answers and active-shaping decisions are journaled; visual direction is specific and accessibility-aware; exact-five/map-first/release-gate constraints are preserved; no product code, generation credit, live deployment, repository visibility, or Devpost submission changes.`
+- Smallest complete boundary: `Interview the brain dump, references, remaining time, ambiguities, and explicit cuts; offer the required optional deepening round; then write one repository-grounded scope that names the smallest high-quality field-atlas slice and its measurable demo path.`
+- Likely files: `docs/hackathon-build/scope.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
+- Acceptance checks: `The scope reflects participant intent and inspected repository truth; it records the actual time budget; includes named in-scope and cut items with rationale; treats Higgsfield as a bounded reference task with an acceptance bar; preserves exact-five/shared-controller/release gates; and does not mutate product code during stage navigation.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
 
 ## Acceptance Checks
@@ -82,6 +82,7 @@
 - [x] The owner replied exactly `yes` to the current official rules review; local plugin state now records `rules_acknowledged: true`, `current_stage: resources`, and `next_command: resources` without creating a Devpost project or submission.
 - [x] The live Resources hub was reviewed and condensed to the specification, Chrome implementation/security/debug/evaluation guidance, and OpenAI WebMCP examples most relevant to Atlas; local plugin state records Resources complete and `next_command: prepare-submission`.
 - [x] Optional guided-build onboarding is repository-grounded and complete: learner profile, branch audit, consumer audience, technical calibration, field-atlas direction, Higgsfield boundary, and anti-slop constraints are durable; `next_command` is `build-scope`.
+- [x] Guided Scope is complete with brain dump, references, time budget, ambiguity resolution, named cuts, zero deepening rounds, measurable demo path, and definition of done; local journey state points to `build-prd`.
 
 ## Work Log
 
@@ -390,6 +391,18 @@
 - The owner replied exactly `yes` to the official rules review. Local plugin state now records `rules_acknowledged: true`, `current_stage: resources`, `submission.status: not-started`, and `next_command: resources`; no draft, project, visibility change, or Devpost submission was created.
 - The live organizer Resources hub was fetched through Devpost MCP. Atlas already exceeds the thin-wrapper and generic-chatbot anti-patterns, so the recommended fork is to skip optional guided planning and enter submission preparation only when the owner advances; no Devpost write occurred.
 
+### Slice 28 repository-grounded guided onboarding
+
+- The current repository, desktop/mobile trail proof, 25 local branches, 21 remote refs, and eight worktrees were inspected without checkout or mutation. Historical divergent branches were classified as legacy voxel, Apps SDK, release, or parked CityWorld work and excluded from the challenge cut.
+- The participant confirmed the broad-user ChatGPT exploration framing, high technical calibration, field-atlas identity, warm paper/ink, selective handwriting, satisfying map interactions, bounded Higgsfield role, and explicit anti-slop visual constraint.
+- `docs/hackathon-build/learner-profile.md` and the durable build journal were created; no product code, generation credit, deployment, visibility, or submission state changed.
+
+### Slice 29 winner-focused guided scope
+
+- Mandatory Scope beats covered the product brain dump, known reference reactions, a three-day time budget, conversational-geography versus routing, top-level versus iframe priority, and explicit cuts. The participant chose zero optional deepening rounds.
+- `docs/hackathon-build/scope.md` defines the existing candidate's remaining winner slice, demo path, three execution blocks, definition of done, one bounded Higgsfield study, and the named non-goals protecting exact-five WebMCP scope.
+- `git diff --check` passes for the documentation/state changes. No runtime test was required because no product, build, or test code changed.
+
 ### Slice 23 implemented HCI contract
 
 - Product Design triage selected comprehension and recovery over new surface area: one ready-state trail cue, explicit unchanged-state language, and mobile prioritization of the agent outcome.
@@ -484,7 +497,7 @@
 
 ## Exact Next Action
 
-Run the build-scope skill. Keep Scope focused on the high-quality field-atlas experience, broad-user ChatGPT exploration, satisfying shared-map actions, bounded Higgsfield visual studies, remaining judge-facing proof, and packaging; do not merge historical branches, reopen the exact-five tool cut, or mutate product code during stage navigation.
+Run the build-prd skill using the completed learner profile, branch audit, and scope. Translate the scope into prioritized user outcomes and acceptance criteria without reopening cut features or mutating product code during stage navigation.
 
 ## Slice Queue
 
@@ -516,4 +529,5 @@ Run the build-scope skill. Keep Scope focused on the high-quality field-atlas ex
 26. Pinned WebMCP and ChatGPT compatibility — GREEN / PRIVATE REMOTE AND RAILWAY DEPLOYED (`52b42b18`; exact sanitized candidate/private main `39d1e141`; deployment `cd899386`; current primary-source, 38-test, Chrome, real Codex in-app, shared human-agent handoff, refresh, clean-clone, public E2E, visual, and Gitleaks proof complete)
 27. Devpost narrative and Figma submission preflight — FIGMA GREEN / RESOURCES COMPLETE / PREPARE NEXT (FigJam section `27:2`; live Devpost registration, official-data preflight, rules acknowledgment, and resource review complete; no draft, visibility change, or submission)
 28. Repository-grounded guided build onboarding — GREEN / SCOPE NEXT (learner profile, all-branch audit, broad-user framing, field-atlas direction, Higgsfield boundary, and anti-slop constraints complete)
+29. Winner-focused guided scope — GREEN / PRD NEXT (mandatory beats complete, zero deepening rounds, scope.md and three-day cut finalized)
 

@@ -40,3 +40,43 @@
 - Explicit anti-reference: “Slop generic dark aesthetic that you default to.” Dark AI-dashboard styling, glow, floating panels, and generic SaaS visual defaults are prohibited.
 - Higgsfield capabilities are available in the current environment, but no generation job or credit-spending action was started during onboarding. A later scoped visual-development task should define the exact artifact, model, reference image, cost, and acceptance bar first.
 - Onboarding is complete. The learner profile now contains confirmed audience, technical calibration, branch decisions, map-first quality bar, and visual direction. Next step: Scope.
+
+## 2026-08-31 — Guided build scope
+
+### Mandatory beat 1: brain dump
+
+- Core ambition: “a good atlas for ChatGPT.” The participant sees current embedded-map experiences as too weak for direct geographic requests.
+- Product analogy: some of the immediacy and route legibility of Waze or Google Maps, combined with a notebook feeling that accumulates context while a person travels or explores.
+- Geographic boundary: focus on the United States.
+- Experience bar: animation and the ChatGPT-facing map surface must actually work, not merely appear in a submission mockup.
+- Higgsfield boundary: use it for authored assets and animation studies that make the submission visually memorable; do not use generated content as geographic truth or as a substitute for working interaction.
+- Pride condition: the result must be an actually high-quality atlas.
+- Scope ambiguity surfaced: “direct directions” may mean connecting chosen research/travel stops on the national map, or true street-by-street turn guidance. The current candidate proves the former and does not contain a verified road-routing stack for the latter.
+- Surface ambiguity surfaced: “widget” may mean the top-level Atlas page running inside ChatGPT's in-app browser or the fenced legacy iframe preview. The challenge architecture intentionally uses the top-level page for WebMCP registration and shared visible state.
+
+### Mandatory beats 2-3: reference reaction and time budget
+
+- Reference reaction: borrow the clarity and simplicity of mainstream maps, but make lookup feel native to how people already talk with ChatGPT rather than recreating a dense navigation product.
+- Directions resolved: the participant does not require street-by-street routing. When a conversation describes or discusses a U.S. location, ChatGPT should bring up that place in Atlas, preserve the visible geographic context, and let the person leave notes.
+- Existing implementation fit: `search_places`, `open_place`, and `add_map_note` already cover the core conversational geography loop; `create_map_trail` turns multiple discussed places into an ordered visual journey.
+- Surface preference: the participant wants both the iframe preview and top-level ChatGPT experience to feel excellent, while explicitly reaffirming that winning the WebMCP challenge remains the priority.
+- Technical constraint: WebMCP tools must remain registered at the top-level page. The iframe preview is a secondary visual surface and cannot replace top-level ChatGPT/WebMCP proof.
+- Time budget: three days until the deadline, with self-reported distraction risk. Scope must minimize parallel tracks and use explicit completion blocks.
+
+### Mandatory beats 4-5: sharpen and cut
+
+- Participant accepted the focused cut with “ok lets do it.”
+- Natural-language trigger: Atlas should open for clear geographic intent such as show, explore, compare, or note; it should not intrusively react to every casual place mention.
+- State boundary: session-only notes and trails are sufficient for the challenge and keep the shared-map promise honest.
+- Surface priority: the top-level Atlas page inside ChatGPT's browser is the winner surface because that is where the exact five WebMCP tools register and where shared visible state is proven. The fenced iframe preview receives additional polish only after the primary release, test, video, and submission gates are green.
+- Explicitly cut from the three-day scope: street-by-street navigation, a sixth WebMCP tool, accounts or persistence, voxel/CityWorld branch work, a full iframe rewrite, and more than one bounded Higgsfield visual study before primary release gates pass.
+- Three-block execution ruler: first one high-value visual/interaction slice; second real ChatGPT and video proof; third public-release and Devpost packaging under existing owner gates.
+- Mandatory scope beats are complete. Deepening-round decision is pending before `scope.md` is written.
+
+### Scope document decision
+
+- The participant chose “write” instead of another deepening round.
+- Deepening rounds taken: 0.
+- Created `docs/hackathon-build/scope.md` from the confirmed brain dump, reference reaction, three-day time budget, resolved ambiguities, and accepted cut list.
+- Scope keeps the existing Atlas implementation intact and defines the remaining winner slice as field-atlas quality, natural ChatGPT place opening, shared session notes/trails, one bounded Higgsfield study, real ChatGPT/video proof, and owner-gated release packaging.
+- The scope explicitly protects the top-level WebMCP surface while retaining only a functional secondary iframe preview; it does not authorize product code, generation spend, publication, or submission.
