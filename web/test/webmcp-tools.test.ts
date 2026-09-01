@@ -31,7 +31,12 @@ test("core descriptors have the exact names, narrow schemas, and annotation cut"
   ]);
 
   for (const candidate of tools) {
+    assert.match(candidate.name, /^[A-Za-z0-9_.-]{1,128}$/);
+    assert.ok(candidate.title?.trim());
+    assert.ok(candidate.description.trim());
     assert.equal((candidate.inputSchema as { additionalProperties?: unknown }).additionalProperties, false);
+    assert.deepEqual(JSON.parse(JSON.stringify(candidate.inputSchema)), candidate.inputSchema);
+    assert.ok(Object.keys(candidate.annotations ?? {}).every((key) => key === "readOnlyHint" || key === "untrustedContentHint"));
     assert.equal("outputSchema" in candidate, false);
     assert.equal("_meta" in candidate, false);
   }

@@ -52,6 +52,8 @@ The challenge route feature-detects `document.modelContext?.registerTool`. A nor
 
 Current WebMCP setup details live in the [OpenAI Site Tools documentation](https://learn.chatgpt.com/docs/webmcp), [Chrome imperative API guide](https://developer.chrome.com/docs/ai/webmcp/imperative-api), and [WebMCP draft](https://webmachinelearning.github.io/webmcp/).
 
+Atlas's source-pinned standards review is recorded in [docs/webmcp/OFFICIAL_COMPATIBILITY.md](docs/webmcp/OFFICIAL_COMPATIBILITY.md). It separates the page-native Site Tools path used by the challenge from a remote MCP/plugin integration and maps the current ChatGPT subset to executable Atlas checks.
+
 ## Verify the candidate
 
 ```powershell
@@ -108,5 +110,6 @@ The owner-selected Apache-2.0 license is applied only to the sanitized challenge
 - [Bounded Ralph release loop](docs/webmcp/RALPH_RELEASE_LOOP.md)
 - [Live release product-design audit](docs/webmcp/RELEASE_PRODUCT_DESIGN_AUDIT.md)
 - [HCI, cognitive-accessibility, plain-language, and motion operating manual](docs/webmcp/HCI_OPERATING_MANUAL.md)
+- [Official WebMCP and ChatGPT compatibility record](docs/webmcp/OFFICIAL_COMPATIBILITY.md)
 - [Official challenge page](https://webmcp.devpost.com/)
 - [Official rules](https://webmcp.devpost.com/rules)

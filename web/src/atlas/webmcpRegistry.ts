@@ -15,6 +15,10 @@ export function registerAtlasWebMcpTools(
   ).then(() => {
     if (!lifecycle.signal.aborted) controller.setToolStatus("available");
   }).catch(() => {
+    // The WebMCP registration contract allows aborting this signal to reject an
+    // in-flight registerTool() promise. React cleanup is therefore a normal
+    // lifecycle event, not evidence that Site Tools failed to register.
+    if (lifecycle.signal.aborted) return;
     lifecycle.abort();
     controller.setToolStatus("failed");
   });

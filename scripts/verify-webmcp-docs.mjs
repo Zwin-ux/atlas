@@ -31,6 +31,7 @@ const chatgptE2e = await readFile("docs/webmcp/CHATGPT_E2E.md", "utf8");
 const ralphLoop = await readFile("docs/webmcp/RALPH_RELEASE_LOOP.md", "utf8");
 const releaseDesignAudit = await readFile("docs/webmcp/RELEASE_PRODUCT_DESIGN_AUDIT.md", "utf8");
 const hciManual = await readFile("docs/webmcp/HCI_OPERATING_MANUAL.md", "utf8");
+const officialCompatibility = await readFile("docs/webmcp/OFFICIAL_COMPATIBILITY.md", "utf8");
 
 for (const name of toolNames) {
   assert(readme.includes(`\`${name}\``), `README is missing the ${name} tool.`);
@@ -58,6 +59,9 @@ assert(chatgptE2e.includes("page-native WebMCP") && chatgptE2e.includes("should 
 assert(ralphLoop.includes("one bounded Ralph iteration") && ralphLoop.includes("must not") && ralphLoop.includes("releaseReady: true"), "The Ralph loop must stay single-item, evidence-driven, and bounded by hard stops.");
 assert(releaseDesignAudit.includes("390 × 844") && releaseDesignAudit.includes("three-county WebMCP trail") && releaseDesignAudit.includes("No high- or medium-severity"), "The live Product Design audit must cover mobile, the visible trail, and its release verdict.");
 assert(hciManual.includes("ASD-STE100") && hciManual.includes("does not claim ASD-STE100 conformance") && hciManual.includes("W3C Cognitive Accessibility"), "The HCI manual must explain its cognitive-accessibility and plain-language standards boundary.");
+assert(officialCompatibility.includes("41d12f057167ccf5954dbcf49d99502cb6c84491") && officialCompatibility.includes("https://github.com/webmachinelearning/webmcp/commit/41d12f057167ccf5954dbcf49d99502cb6c84491"), "The compatibility record must pin the reviewed WebMCP source revision.");
+assert(officialCompatibility.includes("https://learn.chatgpt.com/docs/webmcp") && officialCompatibility.includes("top-level") && officialCompatibility.includes("document.modelContext.registerTool"), "The compatibility record must cover ChatGPT's current top-level imperative Site Tools subset.");
+assert(officialCompatibility.includes("AbortSignal") && officialCompatibility.includes("untrustedContentHint") && officialCompatibility.includes("not add a remote `/mcp` mutation path"), "The compatibility record must cover lifecycle cancellation, untrusted output, and the shared-page architecture boundary.");
 assert(release.includes("not safe to publish") && release.includes("## Owner gates"), "Release packet must preserve the public-safety stop gate.");
 
 console.log(JSON.stringify({

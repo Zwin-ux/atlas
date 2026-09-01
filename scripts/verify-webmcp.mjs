@@ -60,6 +60,7 @@ assert(!/select_county|scout|campaign|hosted_clawd/.test(registeredNames.join(" 
 assert((toolsSource.match(/additionalProperties: false/g) ?? []).length >= 6, "Root and nested schemas must reject extra properties.");
 assert(registrySource.includes("Promise.all("), "Tool registration must be all-or-none.");
 assert(registrySource.includes("lifecycle.abort()"), "Partial registration must roll back through one lifecycle signal.");
+assert(registrySource.includes("if (lifecycle.signal.aborted) return;"), "Normal AbortSignal cleanup must not be reported as a Site Tools registration failure.");
 assert((toolsSource.match(/context\?\.signal/g) ?? []).length === 4, "Async descriptors must support Chrome's one-argument invocation while preserving optional abort signals.");
 assert(evalSchemaSource.includes("createAtlasWebMcpTools(controller)"), "Eval schemas must be projected from the real runtime descriptors.");
 assert(packageJson.devDependencies?.["webmcp-evals"] === "0.0.4", "webmcp-evals must stay pinned to 0.0.4.");

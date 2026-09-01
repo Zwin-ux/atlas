@@ -39,3 +39,20 @@ test("one rejected registration aborts successful partial registrations", async 
   assert.equal(controller.getSnapshot().toolStatus, "failed");
   assert.ok(signals.length > 0 && signals.every((signal) => signal.aborted));
 });
+
+test("normal lifecycle cleanup cannot be misreported as a registration failure", async () => {
+  const controller = new AtlasMapController();
+  const cleanup = registerAtlasWebMcpTools(controller, {
+    registerTool: (_tool, options) => new Promise<void>((_resolve, reject) => {
+      options?.signal?.addEventListener("abort", () => reject(options.signal?.reason), { once: true });
+    }),
+  });
+
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(controller.getSnapshot().toolStatus, "registering");
+
+  registerAtlasWebMcpTools(controller, { registerTool: async () => undefined });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(controller.getSnapshot().toolStatus, "available");
+});
