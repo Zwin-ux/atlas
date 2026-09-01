@@ -124,10 +124,12 @@ Required before changing visibility:
 
 - owner reviews the private GitHub tree and About panel;
 - official Gitleaks `8.30.1` full-history scan reports zero findings across all 15 commits — COMPLETE;
-- license is detected as Apache-2.0;
+- license is detected as Apache-2.0 — COMPLETE;
 - README image and attribution render correctly;
 - GitHub Actions or a fresh remote clone repeats install, typecheck, build, verify, and smoke as applicable;
 - candidate SHA still matches `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` or a newer SHA is fully re-verified.
+
+Current read-only GitHub preflight: visibility remains `PRIVATE`; default branch is `main`; Apache-2.0 detection passes; the repository is enabled and not archived. The About description and homepage are blank, and there are no GitHub Actions runs. Set judge-facing metadata and choose CI versus the existing exact-SHA clean-clone/public-browser evidence only with explicit owner approval.
 
 Rollback: return the repository to private immediately. Do not attempt to repair an exposure by rewriting the historical Atlas repository.
 
