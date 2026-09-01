@@ -110,6 +110,7 @@ await copyFile("docs/webmcp/EVALS.md", "docs/EVALS.md");
 await copyFile("docs/webmcp/CHATGPT_ACCEPTANCE.md", "docs/CHATGPT_ACCEPTANCE.md");
 await copyFile("docs/webmcp/CHATGPT_E2E.md", "docs/CHATGPT_E2E.md");
 await copyFile("docs/webmcp/HCI_OPERATING_MANUAL.md", "docs/HCI_OPERATING_MANUAL.md");
+await copyFile("docs/webmcp/OFFICIAL_COMPATIBILITY.md", "docs/OFFICIAL_COMPATIBILITY.md");
 await copyFile("docs/webmcp/SUBMISSION.md", "docs/SUBMISSION.md");
 
 const submissionPath = resolve(targetRoot, "docs/SUBMISSION.md");

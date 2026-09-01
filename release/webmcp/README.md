@@ -56,6 +56,7 @@ Atlas existed before the challenge as a Census-backed map engine. [CHALLENGE_DEL
 - [Devpost copy](docs/SUBMISSION.md)
 - [Under-three-minute video script](docs/VIDEO_SCRIPT.md)
 - [HCI, cognitive-accessibility, plain-language, and motion manual](docs/HCI_OPERATING_MANUAL.md)
+- [Official WebMCP and ChatGPT compatibility record](docs/OFFICIAL_COMPATIBILITY.md)
 
 The deterministic gates and public HTTPS route pass. Credentialed model scores, real ChatGPT acceptance, public source visibility, video upload, and Devpost submission remain separate evidence and must not be claimed until their artifacts exist.
 

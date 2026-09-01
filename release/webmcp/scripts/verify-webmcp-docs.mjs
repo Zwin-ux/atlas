@@ -28,6 +28,7 @@ const license = await readFile("LICENSE", "utf8");
 const chatgptAcceptance = await readFile("docs/CHATGPT_ACCEPTANCE.md", "utf8");
 const chatgptE2e = await readFile("docs/CHATGPT_E2E.md", "utf8");
 const hciManual = await readFile("docs/HCI_OPERATING_MANUAL.md", "utf8");
+const officialCompatibility = await readFile("docs/OFFICIAL_COMPATIBILITY.md", "utf8");
 
 for (const toolName of toolNames) {
   assert(readme.includes(`\`${toolName}\``), `README is missing ${toolName}.`);
@@ -50,6 +51,8 @@ assert(chatgptE2e.includes("releaseReady") && chatgptE2e.includes("pnpm e2e:chat
 assert(chatgptE2e.includes("evidence/available-site-tools.png") && chatgptE2e.includes("relative evidence paths"), "ChatGPT E2E docs must define the portable acceptance evidence folder.");
 assert(chatgptE2e.includes("page-native WebMCP") && chatgptE2e.includes("should not expose a second `/mcp` mutation path"), "ChatGPT E2E docs must preserve the shared-page architecture boundary.");
 assert(hciManual.includes("ASD-STE100") && hciManual.includes("does not claim ASD-STE100 conformance") && hciManual.includes("W3C Cognitive Accessibility"), "The HCI manual must explain its cognitive-accessibility and plain-language standards boundary.");
+assert(officialCompatibility.includes("41d12f057167ccf5954dbcf49d99502cb6c84491") && officialCompatibility.includes("https://learn.chatgpt.com/docs/webmcp"), "The public compatibility record must pin the reviewed WebMCP source and current ChatGPT Site Tools documentation.");
+assert(officialCompatibility.includes("document.modelContext.registerTool") && officialCompatibility.includes("AbortSignal") && officialCompatibility.includes("untrustedContentHint") && officialCompatibility.includes("not add a remote `/mcp` mutation path"), "The public compatibility record must cover the supported imperative API, cancellation, untrusted output, and shared-page boundary.");
 assert(!submission.includes("WEBMCP_STATE.md") && !submission.includes("artifacts/webmcp-proof"), "Submission evidence must resolve inside the sanitized repository.");
 assert(license.includes("Apache License") && license.includes("Version 2.0, January 2004"), "Apache-2.0 license text is missing.");
 

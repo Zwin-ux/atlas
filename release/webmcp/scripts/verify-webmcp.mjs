@@ -61,6 +61,7 @@ assert(!/select_county|scout|campaign|hosted_clawd/i.test(registeredNames.join("
 assert((toolsSource.match(/additionalProperties: false/g) ?? []).length >= 6, "Tool schemas must reject extra root and nested properties.");
 assert((toolsSource.match(/context\?\.signal/g) ?? []).length === 4, "Async tools must accept Chrome's optional invocation context.");
 assert(registrySource.includes("Promise.all(") && registrySource.includes("lifecycle.abort()"), "Registration must be all-or-none with rollback.");
+assert(registrySource.includes("if (lifecycle.signal.aborted) return;"), "Normal AbortSignal cleanup must not be reported as a Site Tools registration failure.");
 assert(evalSchemaSource.includes("createAtlasWebMcpTools(controller)"), "Eval schemas must come from runtime descriptors.");
 assert(mainSource.includes("<ChallengeAtlas />") && mainSource.includes("mountAtlasWebMcp(controller)"), "The top-level page must mount the WebMCP registry.");
 assert(!mainSource.includes("LegacyAtlasWidget") && !mainSource.includes("useToolPlate"), "The standalone challenge entry must not include the historical widget writer.");
