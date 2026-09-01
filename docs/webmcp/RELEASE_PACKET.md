@@ -157,7 +157,7 @@ Railway's current config-as-code documentation says `railway.toml` remains suppo
 
 Completed August 31, 2026: exact candidate `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` was uploaded only to Railway project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`. Deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` reports `SUCCESS` with one running instance and no error-level deploy logs.
 
-Post-deploy evidence: `/ready` and `/explore` return HTTP 200; the route remains no-login and sends the required origin headers; preflight exposes the exact five human-titled tools and preserves Springfield's eight candidates; Chrome 152 passes 9/9 official steps and 15 deeper executions with visible atomic writes, exact 390x844 coverage, and reduced-motion checks. Fresh desktop/mobile captures were visually inspected and pass the map-first hierarchy.
+Post-deploy evidence: `/ready` and `/explore` return HTTP 200; the route remains no-login and sends the required origin headers; preflight exposes the exact five human-titled tools and preserves Springfield's eight candidates; Chrome 152 passes 9/9 official steps and 15 deeper executions with visible atomic writes, exact 390x844 coverage, and reduced-motion checks. Fresh desktop/mobile captures were visually inspected and pass the map-first hierarchy. The real Codex in-app browser separately discovered and invoked all five deployed Site Tools, proved ambiguity-safe state, rendered the note/trail, reflected a human marker click in the next agent read, and rediscovered the exact-five surface after refresh with no false offline status or captured warning/error.
 
 Risk: the public no-login runtime now serves the new candidate and consumes Railway resources. Post-deploy automated and visual acceptance found no regression.
 
@@ -177,7 +177,7 @@ Required evidence:
 - refresh and route transitions do not duplicate tools;
 - no raw geometry, secret, or oversized result enters tool output.
 
-Chrome 152 now proves this behavior against the deployed HTTPS URL: all five tools registered, all nine official smoke steps and fifteen deeper executions passed, writes completed visibly, ambiguity and failed trails remained mutation-safe, and refresh/route checks found no duplicates. A fresh acceptance session exists at `.evals/chatgpt-e2e/sessions/2026-09-01T03-46-41-354Z`; the real ChatGPT built-in-browser transcript remains a credential-safe human-observation gate.
+Chrome 152 proves this behavior against the deployed HTTPS URL: all five tools registered, all nine official smoke steps and fifteen deeper executions passed, writes completed visibly, ambiguity and failed trails remained mutation-safe, and refresh/route checks found no duplicates. The real Codex in-app browser independently called all five tools, verified human-to-agent state handoff, and passed a refresh lifecycle check. A fresh acceptance session exists at `.evals/chatgpt-e2e/sessions/2026-09-01T03-46-41-354Z`; the real ChatGPT conversation transcript remains a credential-safe human-observation gate.
 
 ### Gate 5 — video and Devpost
 

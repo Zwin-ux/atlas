@@ -11,7 +11,7 @@
 ## Current Slice
 
 - Slice: `26 — pinned WebMCP and ChatGPT compatibility`
-- Status: `GREEN / PRIVATE REMOTE AND ISOLATED RAILWAY UPDATED — exact sanitized candidate 39d1e141 is private remote main and deployment cd899386 is running at the public judge URL; live HTTPS preflight, exact-five Chrome execution, mobile/reduced-motion checks, visual inspection, and a full-history Gitleaks scan pass. Real ChatGPT conversation evidence, the model threshold, public source visibility, video, and Devpost remain separate gates.`
+- Status: `GREEN / PRIVATE REMOTE AND ISOLATED RAILWAY UPDATED — exact sanitized candidate 39d1e141 is private remote main and deployment cd899386 is running at the public judge URL; live HTTPS preflight, exact-five Chrome execution, real Codex in-app Site Tools execution, shared human-agent state handoff, refresh lifecycle, mobile/reduced-motion checks, visual inspection, and a full-history Gitleaks scan pass. Real ChatGPT conversation evidence, the model threshold, public source visibility, video, and Devpost remain separate gates.`
 - Player-visible promise: `ChatGPT can discover the same five page-native tools reliably while the visible map remains the shared source of truth, including across normal React teardown and remount.`
 - Smallest complete boundary: `Inspect current primary sources, pin the compatibility record, fix the registration-abort race, add contract guards, project one sanitized candidate, reproduce its complete clean-clone proof, fast-forward the still-private remote without force, deploy only the isolated challenge service, and rerun public acceptance with an explicit rollback point.`
 - Likely files: `webmcpRegistry.ts`, registry and descriptor tests, source/release verifiers, official compatibility record, release assembler, public README and delta, release packet, and this ledger.`
@@ -74,6 +74,7 @@
 - [x] Railway deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` runs exact candidate `39d1e141` on the isolated challenge service with prior deployment `5ce284dc` retained as the tested rollback point.
 - [x] The public judge URL passes readiness, headers, no-login, exact-five metadata, 9/9 official Chrome steps, 15 deeper executions, visible trail completion, ambiguity safety, mobile geometry/targets, reduced motion, and desktop/mobile visual inspection.
 - [x] Official Gitleaks `8.30.1`, checksum-verified against its release manifest, scanned all fifteen sanitized commits and 88.28 MB with zero findings.
+- [x] The real Codex in-app browser discovered exactly five deployed page tools, invoked every tool, preserved revision zero for ambiguous Springfield, rendered the note/trail before success, reflected a human marker-2 click in the next agent state read, and rediscovered the exact five after refresh without a false offline state or console warning/error.
 
 ## Work Log
 
@@ -358,6 +359,8 @@
 | Public `pnpm e2e:chatgpt` | AUTOMATION PASS / CHATGPT AND MODEL GATED | Chrome `152.0.7977.64`; exactly five human-titled tools, 9/9 official steps, 15 deeper executions, visible atomic writes, Springfield ambiguity recovery, exact 390x844 coverage, and reduced-motion proof. `releaseReady` correctly remains false because the real ChatGPT transcript and Grok threshold are absent. |
 | Public production visual inspection | PASS | Fresh desktop capture keeps the national route and three numbered stops dominant with a restrained research rail; fresh 390x844 capture keeps the county map, controls, active stop, and editor legible without horizontal clipping. |
 | Gitleaks `8.30.1` full-history scan | PASS | Official Windows x64 archive SHA-256 matched the release checksum; all 15 commits and about 88.28 MB scanned with zero leaks found. The disposable scanner directory remains under the exact Temp path because recursive cleanup was blocked by host policy. |
+| Real Codex in-app browser Site Tools acceptance | PASS | The deployed tab exposed the exact five tools with the expected origin, titles, schemas, and annotations. Direct app-native calls exercised all five: Springfield returned eight candidates and preserved revision/visibleRevision `0`; Riverside open/note and the three-stop trail returned `visible: true`; visible DOM showed all numbered markers, editable prompts, and the note. A human click on marker 2 opened Miami-Dade and the next `get_map_state` returned `activeIndex: 1`, county view, and revision/visibleRevision `4`. |
+| In-app refresh lifecycle regression | PASS | After a real deployed-tab reload, the app rediscovered exactly five tools, `get_map_state` returned a clean national revision zero, visible status read `Map ready · Site tools on`, `Site tools offline` count was zero, and captured warning/error logs were empty. |
 
 ### Slice 22 HCI and Figma continuity
 
@@ -447,13 +450,13 @@
 - Slice 24 review findings: `0` remaining after making the complete route and markers visible before success, measuring usable mobile map area and every visible 44px target, escaping generated PowerShell literals, rejecting unsafe target URLs, and requiring contained real evidence plus independent post-failure state reads.
 - Slice 25 Product Design findings: `0` remaining. The redundant idle instruction and 26 lines of prompt-only CSS were removed; availability, fallback, and meaningful activity feedback remain intact; current desktop/mobile captures preserve the map-first hierarchy.
 - Slice 26 standards review findings: `0` unresolved high/medium. The only implementation defect was a false offline status when normal cleanup rejected an in-flight registration promise; the lifecycle guard and remount regression test resolve it. Current descriptor names, schemas, annotations, signal forwarding, visible completion, and fallback are covered by executable guards.
-- Disposition: `CLEAN AND DEPLOYED` for source provenance commit `52b42b18`, exact sanitized candidate/private remote main `39d1e141`, Railway deployment `cd899386`, and the complete deterministic/Chrome/release/full-history scan sequence. Real ChatGPT conversation proof, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
+- Disposition: `CLEAN AND DEPLOYED` for source provenance commit `52b42b18`, exact sanitized candidate/private remote main `39d1e141`, Railway deployment `cd899386`, and the complete deterministic Chrome, real Codex in-app, release, visual, lifecycle, and full-history scan sequence. Real ChatGPT conversation proof, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
 
 - Private GitHub `main` and the isolated Railway deployment now identify exact candidate `39d1e141`; GitHub visibility remains `PRIVATE`. Public source visibility and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
-- Chrome 152 WebMCP acceptance is proven against the public deployed URL without API injection; ChatGPT built-in-browser acceptance remains an external credential-safe gate.
+- Chrome 152 and the real Codex in-app browser both prove page-native WebMCP acceptance against the public deployed URL without API injection; ChatGPT conversation acceptance remains a separate credential-safe evidence gate.
 - The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
 - The historical repository and history remain unfit for publication. The sanitized fifteen-commit repository is clean-clone green and official Gitleaks `8.30.1` reports zero full-history findings; public visibility still requires explicit owner approval and a final remote-tree review.
 - Obsolete, reproducible Atlas assembler-check directories under `C:\Users\mzwin\AppData\Local\Temp` were removed only after exact target validation to recover build space. One locked pack file from the disposable upstream clone remains outside both Git repositories and does not affect the candidate.
@@ -490,5 +493,5 @@ Complete the real ChatGPT desktop Site Tools journey using `C:\Users\mzwin\Docum
 23. Implemented human-agent comprehension and shared-control proof — GREEN (`22f8e28f`; exact-five tools unchanged; live WebMCP, normal-browser, 390x844, Product Design, and exact fresh standalone proof complete)
 24. Release-grade visible completion and ChatGPT proof integrity — LOCALLY GREEN / EXTERNALLY OWNER-GATED (`abfe898a`; exact sanitized candidate `110fd05f`; no-local 37-test/Chrome/mobile/release proof complete)
 25. Quiet release-ready map entry — LOCALLY GREEN / REPLACEMENT SHA OWNER-GATED (`cc757316`; exact sanitized candidate `111b8fd`; current desktop/mobile and full no-local release proof complete)
-26. Pinned WebMCP and ChatGPT compatibility — GREEN / PRIVATE REMOTE AND RAILWAY DEPLOYED (`52b42b18`; exact sanitized candidate/private main `39d1e141`; deployment `cd899386`; current primary-source, 38-test, Chrome, clean-clone, public E2E, visual, and Gitleaks proof complete)
+26. Pinned WebMCP and ChatGPT compatibility — GREEN / PRIVATE REMOTE AND RAILWAY DEPLOYED (`52b42b18`; exact sanitized candidate/private main `39d1e141`; deployment `cd899386`; current primary-source, 38-test, Chrome, real Codex in-app, shared human-agent handoff, refresh, clean-clone, public E2E, visual, and Gitleaks proof complete)
 
