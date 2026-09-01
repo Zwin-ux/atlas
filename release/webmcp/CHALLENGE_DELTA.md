@@ -11,6 +11,7 @@ The challenge edition adds:
 - visible place opening and session-only map notes;
 - an atomic editable research trail with numbered national markers and route;
 - an activity record, ambiguity handling, cancellation, and normal-browser fallback;
+- a source-pinned WebMCP and ChatGPT Site Tools compatibility record, descriptor contract guards, and lifecycle-cleanup race protection;
 - deterministic unit, contract, route, and real Chrome WebMCP smoke proof;
 - model-eval fixtures projected from the production tool descriptors;
 - one live-URL ChatGPT preflight, real-transcript validator, and Grok 4.6 adversarial model lane;
