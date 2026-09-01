@@ -10,12 +10,12 @@
 
 ## Current Slice
 
-- Slice: `27 — Devpost narrative and Figma submission preflight`
-- Status: `FIGMA GREEN / DEVPOST RESOURCES COMPLETE / PREPARE NEXT — the verified judge board includes a screenshot-reviewed six-beat Devpost storyboard. Live Devpost MCP confirms the account is registered, submissions are open, the rules are acknowledged, and the organizer's current WebMCP resources were reviewed for Atlas. No Devpost project, draft, public-visibility change, or submission was created.`
+- Slice: `28 — Repository-grounded guided build onboarding`
+- Status: `ONBOARD GREEN / SCOPE NEXT — the repository-grounded learner profile is complete. It records a broad consumer audience, high technical calibration, full branch triage, a provisional three-county opening, and a field-atlas identity with warm paper, ink, selective handwriting, satisfying map actions, bounded Higgsfield exploration, and an explicit ban on generic dark AI-dashboard styling.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Extend and validate the Devpost storyboard, initialize the official journey, verify registration, rules, requirements, criteria, and dates, record explicit rules acknowledgment, review the live organizer resources relevant to Atlas, and advance the local journey to submission preparation without creating or submitting a project.`
-- Likely files: `WEBMCP_STATE.md`, local `.devpost-hackathon-state.json`, and two FigJam proof captures under artifacts/product-design-audit/devpost-figma-20260901/.`
-- Acceptance checks: `Existing judge/HCI evidence remains intact; the new storyboard has six ordered beats, one opening outcome, one shared-control middle, and one evidence close; the complete 6400x6090 board has no clipping or overlap; official Devpost data comes only from the live plugin; registration is already complete; rules_acknowledged changed only after the owner replied exactly yes; no submission or public release action occurs.`
+- Smallest complete boundary: `Initialize a durable learner profile and build journal from inspected repository truth, collect the participant's experience and project framing in three brisk onboarding rounds, then hand the confirmed context to Scope without changing product code.`
+- Likely files: `docs/hackathon-build/learner-profile.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
+- Acceptance checks: `Existing Atlas capability is summarized without invention; every local/remote branch and worktree is inventoried without checkout or mutation; legacy branches are triaged against the challenge cut; participant answers and active-shaping decisions are journaled; visual direction is specific and accessibility-aware; exact-five/map-first/release-gate constraints are preserved; no product code, generation credit, live deployment, repository visibility, or Devpost submission changes.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
 
 ## Acceptance Checks
@@ -81,6 +81,7 @@
 - [x] Live official requirements confirm a working judge-accessible URL, a WebMCP-specific description, a public under-three-minute YouTube demo with audio, and a public licensed repository; the four judging criteria are WebMCP Leverage, Execution, Potential Impact, and Creativity & Ambition.
 - [x] The owner replied exactly `yes` to the current official rules review; local plugin state now records `rules_acknowledged: true`, `current_stage: resources`, and `next_command: resources` without creating a Devpost project or submission.
 - [x] The live Resources hub was reviewed and condensed to the specification, Chrome implementation/security/debug/evaluation guidance, and OpenAI WebMCP examples most relevant to Atlas; local plugin state records Resources complete and `next_command: prepare-submission`.
+- [x] Optional guided-build onboarding is repository-grounded and complete: learner profile, branch audit, consumer audience, technical calibration, field-atlas direction, Higgsfield boundary, and anti-slop constraints are durable; `next_command` is `build-scope`.
 
 ## Work Log
 
@@ -483,7 +484,7 @@
 
 ## Exact Next Action
 
-When the owner advances, run the prepare-submission skill, fetch current live project and submission requirements through Devpost MCP, and create `devpost-submission.md` from verified release evidence without submitting or changing repository visibility. The real ChatGPT conversation transcript, optional Grok threshold, public source visibility, video upload, and final Devpost submission remain separate gates.
+Run the build-scope skill. Keep Scope focused on the high-quality field-atlas experience, broad-user ChatGPT exploration, satisfying shared-map actions, bounded Higgsfield visual studies, remaining judge-facing proof, and packaging; do not merge historical branches, reopen the exact-five tool cut, or mutate product code during stage navigation.
 
 ## Slice Queue
 
@@ -514,4 +515,5 @@ When the owner advances, run the prepare-submission skill, fetch current live pr
 25. Quiet release-ready map entry — LOCALLY GREEN / REPLACEMENT SHA OWNER-GATED (`cc757316`; exact sanitized candidate `111b8fd`; current desktop/mobile and full no-local release proof complete)
 26. Pinned WebMCP and ChatGPT compatibility — GREEN / PRIVATE REMOTE AND RAILWAY DEPLOYED (`52b42b18`; exact sanitized candidate/private main `39d1e141`; deployment `cd899386`; current primary-source, 38-test, Chrome, real Codex in-app, shared human-agent handoff, refresh, clean-clone, public E2E, visual, and Gitleaks proof complete)
 27. Devpost narrative and Figma submission preflight — FIGMA GREEN / RESOURCES COMPLETE / PREPARE NEXT (FigJam section `27:2`; live Devpost registration, official-data preflight, rules acknowledgment, and resource review complete; no draft, visibility change, or submission)
+28. Repository-grounded guided build onboarding — GREEN / SCOPE NEXT (learner profile, all-branch audit, broad-user framing, field-atlas direction, Higgsfield boundary, and anti-slop constraints complete)
 
