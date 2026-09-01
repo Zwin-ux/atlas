@@ -5,17 +5,17 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `abfe898a4793f60b803b2c2ce108ecea75f8cb7f`
+- Last green content commit: `cc757316a7ff93d187536828c01e16671ff93b2f`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
 
-- Slice: `24 — release-grade visible completion and ChatGPT proof integrity`
-- Status: `GREEN LOCALLY / OWNER-GATED EXTERNALLY — the complete trail route and every numbered marker are visible before create_map_trail can report success; mobile smoke measures usable map area and every visible control; ChatGPT capture evidence requires real bounded PNG files, unique call IDs, timestamps, and independent post-failure state reads; and exact sanitized candidate 110fd05f passes a no-local clean-clone release sequence.`
-- Player-visible promise: `A judge sees the requested research trail immediately, can work with it on desktop or mobile, and can trust that the recorded ChatGPT demonstration represents real calls and unchanged-state recovery rather than edited claims.`
-- Smallest complete boundary: `Fix review findings that could let animation or acceptance artifacts overstate completion, mirror every guard into the standalone release, create one clean candidate, and stop before the private push or Railway update.`
-- Likely files: `AtlasPlate.tsx`, `atlas.css`, ChatGPT session/transcript scripts and template, browser smoke, source/release verifiers, release packet, challenge delta, and this ledger.`
-- Acceptance checks: `Exactly five tools remain; complete route and markers are nonzero before tool success; 390x844 preserves a usable map and 44px visible controls; transcript evidence is contained, bounded, typed, timestamped, uniquely identified, and independently state-checked; source and no-local sanitized gates pass; remote and deployment remain unchanged without owner approval.`
+- Slice: `25 — quiet release-ready map entry`
+- Status: `GREEN LOCALLY / REPLACEMENT SHA OWNER-GATED — the idle Try-a-trail coaching and its responsive CSS are removed; Atlas shows one calm availability signal until a real human or agent action occurs; desktop and exact 390x844 browser captures confirm the map-first hierarchy; and exact sanitized candidate 111b8fd passes the complete no-local release sequence.`
+- Player-visible promise: `A judge enters a confident geographic workspace, not a tutorial. The map and finder lead; agent activity appears only when it has meaningful state to report.`
+- Smallest complete boundary: `Remove the redundant idle prompt from source and standalone release, align the HCI contract and public README, capture desktop/mobile proof, reproduce a new exact candidate, and invalidate the prior SHA-specific approval without touching the remote or deployment.`
+- Likely files: `AtlasApp.tsx`, `atlas.css`, source/release verifier guards, HCI manual, public README, Product Design audit, release packet, challenge delta, and this ledger.`
+- Acceptance checks: `No activity-prompt text or node remains; normal fallback and agent-tool status remain clear; exactly five tools remain; desktop and 390x844 have zero overflow; mobile map remains usable; source and no-local candidate verification/build/Chrome/audit gates pass; remote and deployment remain unchanged until the new exact SHA is approved.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, deployment mutation, public visibility change, or Devpost submission.`
 
 ## Acceptance Checks
@@ -58,7 +58,7 @@
 - [x] The public HCI manual distinguishes W3C/ISO accessibility guidance from the ASD-STE100-inspired plain-language profile and makes no conformance claim.
 - [x] The HCI manual now defines the before/during/when-wrong/after human-agent contract, Atlas proof, release failure signals, and explicit Microsoft/NNGroup/WCAG source links without changing the exact-five tool cut.
 - [x] FigJam section `3:2` now contains the four-phase human-agent contract, seven release tests, source grounding, and anti-scope; its live audit reports zero containment failures and zero sibling overlaps.
-- [x] The real WebMCP-ready state suggests one useful civic-trail request without exposing raw tool names or adding a panel.
+- [x] The WebMCP-ready state communicates availability without an unsolicited example, raw tool names, or another panel.
 - [x] Ambiguous opens and unresolved trail stops explicitly report that the map/trail stayed unchanged, with focused tests guarding the copy.
 - [x] Live in-app WebMCP proof covers exact-five refresh registration, ambiguity-safe revision stability, visible three-stop trail completion, human rail/marker navigation, and human trail/note edits reflected in the next state read.
 - [x] Current-run matched desktop and 390x844 evidence passes Product Design QA with no actionable P0/P1/P2 findings.
@@ -66,6 +66,7 @@
 - [x] Browser smoke measures usable 390x844 map area and verifies every visible button, input, and textarea meets the 44px mobile target floor.
 - [x] ChatGPT evidence requires observed timestamps, unique non-placeholder call IDs, contained bounded evidence files, real PNG signatures, and independent state reads after ambiguous or failed writes.
 - [x] Exact sanitized candidate `110fd05f9fb4a78f66954ea3b0c952012b512e9a` passes a no-local clean-clone frozen install, typecheck, build, 37/37 verifier, 9/9 official Chrome smoke, 15 deeper executions, release audit, diff check, and clean-status proof.
+- [x] Exact sanitized candidate `111b8fd068f08752cf76c194dd56f19778d95d2d` supersedes `110fd05f` after the owner-requested prompt removal and repeats the full no-local release sequence.
 
 ## Work Log
 
@@ -164,6 +165,11 @@
 - `scripts/verify-webmcp.mjs` and `release/webmcp/scripts/verify-webmcp.mjs` — keep source and standalone release guards synchronized for visible completion and evidence integrity.
 - `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` — clean local sanitized branch `codex/release-design-pass` at exact candidate `110fd05f9fb4a78f66954ea3b0c952012b512e9a`, one commit ahead of untouched private remote `main`.
 - `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-110fd05` — no-local clone used for the exact final frozen-install, typecheck, build, verifier, Chrome smoke, audit, diff, and clean-status sequence.
+- `web/src/atlas/AtlasApp.tsx` and `atlas.css` — remove the idle `Try a 3-stop trail` prompt and all prompt-only desktop/mobile CSS while preserving the map-ready status and meaningful activity results.
+- `docs/webmcp/HCI_OPERATING_MANUAL.md`, `PRODUCT_DESIGN_AUDIT.md`, release README, and source/release verifiers — make the quiet-ready-state decision explicit, guard it against regression, and record current desktop/mobile proof.
+- `artifacts/product-design-audit/release-quiet-20260831/` — current 1280x720 and exact 390x844 ready-state captures with no idle prompt.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` — clean local sanitized branch at replacement candidate `111b8fd068f08752cf76c194dd56f19778d95d2d`, two commits ahead of untouched private remote `main`.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-111b8fd` — no-local clone used for the replacement candidate's full frozen-install, typecheck, build, verifier, Chrome smoke, audit, diff, and clean-status sequence.
 
 ### Commands and results
 
@@ -322,6 +328,12 @@
 | Exact `110fd05f` no-local Chrome smoke | PASS | Chrome 152 passed 9/9 official steps and 15 deeper executions; immediate route/marker visibility, exact-five registration, atomic writes, usable 390x844 map area, 44px visible controls, and reduced motion all passed. |
 | Exact `110fd05f` no-local release audit | PASS | 3,339 files, 88,220,753 bytes, 3,222 county packs, 52 state plates, 13 commits, no oversized files, clean Git state, and zero failures. |
 | External release state | UNCHANGED / OWNER-GATED | `git ls-remote` keeps private `main` at `986cf864927219f5f269a04b21a96f8440988cba`; Railway deployment `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82` remains active. No push, deploy, visibility, credential, or submission action occurred. |
+| Slice 25 source verifier/typecheck/build | PASS | 37/37 focused tests, full TypeScript contracts, and production builds pass with the quiet ready-state guard; only the recorded historical Radix directive and two manifest-skip warnings remain. |
+| Slice 25 gstack `/browse` ready-state QA | PASS | At 1280x720 and exact 390x844, prompt text and `.atlas-app__activity-prompt` are absent, horizontal overflow is zero, and the mobile map measures `374x732`. The only console warning is Chrome's expected inactive-origin-trial notice for experimental `tools`. |
+| Exact `cc757316` sanitized projection | PASS | 3,339 allowlisted files copied with zero SHA-256 mismatches and no removals. |
+| Exact `111b8fd` no-local install/typecheck/build/verify | PASS | Fresh clone installed 135 locked packages and passed standalone web/server contracts, production build, and 37/37 verification plus runtime/judge guards. |
+| Exact `111b8fd` no-local Chrome smoke | PASS | Chrome 152 passed 9/9 official steps and 15 deeper executions with exactly five tools, visible atomic writes, mobile geometry/targets, and reduced-motion proof. |
+| Exact `111b8fd` no-local release audit | PASS | 3,339 files, 88,219,971 bytes, 3,222 county packs, 52 state plates, 14 commits, no oversized files, clean Git state, and zero failures. |
 
 ### Slice 22 HCI and Figma continuity
 
@@ -409,20 +421,21 @@
 - Slice 23 `/review`: one informational trust-boundary finding was auto-fixed. Generic exceptions can happen after a controller revision commits but before visibility is confirmed, so the activity now says Atlas could not confirm the visible result instead of falsely promising no visible change. The focused regression test preserves the honest distinction from mutation-safe structured failures.
 - Slice 23 Product Design findings: `0` actionable P0/P1/P2 after adding the ready cue, explicit unchanged-state language, mobile activity priority, focused guards, live five-tool proof, same-state visual comparison, and clean standalone reproduction.
 - Slice 24 review findings: `0` remaining after making the complete route and markers visible before success, measuring usable mobile map area and every visible 44px target, escaping generated PowerShell literals, rejecting unsafe target URLs, and requiring contained real evidence plus independent post-failure state reads.
-- Disposition: `CLEAN` for source provenance commit `abfe898a`, exact sanitized candidate `110fd05f`, its no-local clone, and the full deterministic/Chrome/release sequence. The private remote and isolated Railway deployment still identify older candidate `986cf864`; the fast-forward, deployment, real ChatGPT conversation proof, Grok model threshold, public source visibility, video, and Devpost remain separate gates.
+- Slice 25 Product Design findings: `0` remaining. The redundant idle instruction and 26 lines of prompt-only CSS were removed; availability, fallback, and meaningful activity feedback remain intact; current desktop/mobile captures preserve the map-first hierarchy.
+- Disposition: `CLEAN` for source provenance commit `cc757316`, exact sanitized candidate `111b8fd`, its no-local clone, and the full deterministic/Chrome/release sequence. The private remote and isolated Railway deployment still identify older candidate `986cf864`; the fast-forward, deployment, real ChatGPT conversation proof, Grok model threshold, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
 
-- The private GitHub remote and isolated Railway deployment remain on exact verified candidate `986cf864`; sanitized candidate `110fd05f`, projected from source `abfe898a`, is verified locally and in an exact no-local clone but is not pushed or deployed. Publishing or deploying it, public visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- The private GitHub remote and isolated Railway deployment remain on exact verified candidate `986cf864`; sanitized candidate `111b8fd`, projected from source `cc757316`, is verified locally and in an exact no-local clone but is not pushed or deployed. The prior approval named superseded candidate `110fd05f` and was not executed after the same response requested this design change. Publishing or deploying the replacement, public visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 WebMCP acceptance is proven against the public deployed URL without API injection; ChatGPT built-in-browser acceptance remains an external credential-safe gate.
 - The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
-- The historical repository and history remain unfit for publication. The sanitized thirteen-commit repository is clean-clone green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
+- The historical repository and history remain unfit for publication. The sanitized fourteen-commit repository is clean-clone green, but `gitleaks` is unavailable; require GitHub secret scanning or an owner-approved entropy scan before public visibility.
 - Several disposable assembler-check directories remain under `C:\Users\mzwin\AppData\Local\Temp`. They are outside both Git repositories and do not affect the candidate; no recursive cleanup was attempted in this slice.
 
 ## Exact Next Action
 
-Request one narrow approval to fast-forward the still-private sanitized repository from `986cf864927219f5f269a04b21a96f8440988cba` to exact candidate `110fd05f9fb4a78f66954ea3b0c952012b512e9a`, then update only the isolated Railway service and run post-deploy `/ready`, `/explore`, exact-five, no-login, and Chrome smoke checks. Roll back Railway to deployment `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82` and use a normal Git revert if any check fails. Do not execute either external mutation without that approval.
+Request one narrow approval to fast-forward the still-private sanitized repository from `986cf864927219f5f269a04b21a96f8440988cba` to exact replacement candidate `111b8fd068f08752cf76c194dd56f19778d95d2d`, then update only the isolated Railway service and run post-deploy `/ready`, `/explore`, exact-five, no-login, and Chrome smoke checks. Roll back Railway to deployment `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82` and use a normal Git revert if any check fails. Do not execute either external mutation without approval of this new exact SHA.
 
 ## Slice Queue
 
@@ -450,4 +463,5 @@ Request one narrow approval to fast-forward the still-private sanitized reposito
 22. Judge-facing human-agent contract and Figma continuity — GREEN (`ea739a5c`; guide complete; FigJam wrapper `3:2` extended and screenshot-verified without changing the exact-five tool cut)
 23. Implemented human-agent comprehension and shared-control proof — GREEN (`22f8e28f`; exact-five tools unchanged; live WebMCP, normal-browser, 390x844, Product Design, and exact fresh standalone proof complete)
 24. Release-grade visible completion and ChatGPT proof integrity — LOCALLY GREEN / EXTERNALLY OWNER-GATED (`abfe898a`; exact sanitized candidate `110fd05f`; no-local 37-test/Chrome/mobile/release proof complete)
+25. Quiet release-ready map entry — LOCALLY GREEN / REPLACEMENT SHA OWNER-GATED (`cc757316`; exact sanitized candidate `111b8fd`; current desktop/mobile and full no-local release proof complete)
 
