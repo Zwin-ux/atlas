@@ -19,14 +19,18 @@
     {
       "id": "initial_state",
       "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
       "prompt": "What am I looking at in Atlas right now?",
       "tool": "get_map_state",
       "arguments": {},
-      "result": { "ok": true, "current": { "level": "nation" } }
+      "result": { "ok": true, "revision": 0, "visibleRevision": 0, "current": { "level": "nation" } }
     },
     {
       "id": "ambiguous_search",
       "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
       "prompt": "I'd like to look at Springfield, but I'm not sure which state. Show me the choices first.",
       "tool": "search_places",
       "arguments": { "query": "Springfield" },
@@ -42,6 +46,8 @@
     {
       "id": "open_resolved_place",
       "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
       "prompt": "Take me to Riverside County, California.",
       "tool": "open_place",
       "arguments": { "place": "Riverside County, CA" },
@@ -55,6 +61,8 @@
     {
       "id": "add_visible_note",
       "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
       "prompt": "At Miami-Dade County, Florida, leave this note for me: Compare transit access around county offices.",
       "tool": "add_map_note",
       "arguments": { "place": "Miami-Dade County, FL", "body": "Compare transit access around county offices." },
@@ -69,6 +77,8 @@
     {
       "id": "create_visible_trail",
       "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
       "prompt": "Set up a research trail called County access check: first Riverside County, CA for public records, then Miami-Dade County, FL for transit access, then Travis County, TX for meeting notices.",
       "tool": "create_map_trail",
       "arguments": {
@@ -91,19 +101,33 @@
     {
       "id": "manual_stop_state",
       "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
       "prompt": "I clicked the second trail stop myself. What am I looking at now?",
       "humanAction": "Opened trail stop 2 from the map marker",
       "tool": "get_map_state",
       "arguments": {},
       "result": {
         "ok": true,
+        "revision": 4,
+        "visibleRevision": 4,
         "current": { "level": "county", "countySlug": "miami-dade-fl", "name": "Miami-Dade County", "state": "fl" },
-        "trail": { "title": "County access check", "activeIndex": 1, "stops": [] }
+        "trail": {
+          "title": "County access check",
+          "activeIndex": 1,
+          "stops": [
+            { "name": "Riverside County", "state": "ca", "prompt": "Study public records" },
+            { "name": "Miami-Dade County", "state": "fl", "prompt": "Compare transit access" },
+            { "name": "Travis County", "state": "tx", "prompt": "Review meeting notices" }
+          ]
+        }
       }
     },
     {
       "id": "ambiguous_open_unchanged",
       "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
       "prompt": "Open Springfield.",
       "tool": "open_place",
       "arguments": { "place": "Springfield" },
@@ -121,8 +145,34 @@
       }
     },
     {
+      "id": "ambiguous_open_state",
+      "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
+      "prompt": "Confirm the current Atlas map after that ambiguous request.",
+      "tool": "get_map_state",
+      "arguments": {},
+      "result": {
+        "ok": true,
+        "revision": 4,
+        "visibleRevision": 4,
+        "current": { "level": "county", "countySlug": "miami-dade-fl", "name": "Miami-Dade County", "state": "fl" },
+        "trail": {
+          "title": "County access check",
+          "activeIndex": 1,
+          "stops": [
+            { "name": "Riverside County", "state": "ca", "prompt": "Study public records" },
+            { "name": "Miami-Dade County", "state": "fl", "prompt": "Compare transit access" },
+            { "name": "Travis County", "state": "tx", "prompt": "Review meeting notices" }
+          ]
+        }
+      }
+    },
+    {
       "id": "failed_trail_unchanged",
       "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
       "prompt": "Build a trail from Riverside County to Atlantis-by-the-Pacific.",
       "tool": "create_map_trail",
       "arguments": {
@@ -139,10 +189,35 @@
         "stopNumber": 2,
         "error": { "code": "UNKNOWN_PLACE", "message": "Atlas could not find that place.", "stopIndex": 1, "candidates": [] }
       }
+    },
+    {
+      "id": "failed_trail_state",
+      "observed": false,
+      "observedAt": "RECORD_ME",
+      "callId": "RECORD_ME",
+      "prompt": "Confirm the current Atlas map after that failed trail.",
+      "tool": "get_map_state",
+      "arguments": {},
+      "result": {
+        "ok": true,
+        "revision": 4,
+        "visibleRevision": 4,
+        "current": { "level": "county", "countySlug": "miami-dade-fl", "name": "Miami-Dade County", "state": "fl" },
+        "trail": {
+          "title": "County access check",
+          "activeIndex": 1,
+          "stops": [
+            { "name": "Riverside County", "state": "ca", "prompt": "Study public records" },
+            { "name": "Miami-Dade County", "state": "fl", "prompt": "Compare transit access" },
+            { "name": "Travis County", "state": "tx", "prompt": "Review meeting notices" }
+          ]
+        }
+      }
     }
   ],
   "evidence": {
     "availableSiteToolsScreenshot": "RECORD_ME",
+    "springfieldCandidatesScreenshot": "RECORD_ME",
     "recentlyUsedScreenshot": "RECORD_ME",
     "trailScreenshot": "RECORD_ME",
     "consoleOrNotes": "RECORD_ME"

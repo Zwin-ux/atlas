@@ -348,13 +348,21 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, trail, onOpenTrailS
           aria-label={`Research trail: ${trail?.title ?? "Untitled trail"}`}
         >
           {trailPath ? (
-            <path
-              className="atlas-plate__trail-route"
-              d={trailPath}
-              fill="none"
-              pathLength={1}
-              strokeWidth={3.25 * unitsPerPixel}
-            />
+            <>
+              <path
+                className="atlas-plate__trail-route-base"
+                d={trailPath}
+                fill="none"
+                strokeWidth={3.25 * unitsPerPixel}
+              />
+              <path
+                className="atlas-plate__trail-route"
+                d={trailPath}
+                fill="none"
+                pathLength={1}
+                strokeWidth={3.25 * unitsPerPixel}
+              />
+            </>
           ) : null}
           {trailStops.map((stop) => {
             const active = stop.index === trail?.activeIndex;

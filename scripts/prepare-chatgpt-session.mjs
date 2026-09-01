@@ -22,7 +22,13 @@ function assertTargetUrl(value) {
     throw new Error("A ChatGPT acceptance session must use HTTPS unless the target is loopback.");
   }
   if (url.pathname !== "/explore") throw new Error("A ChatGPT acceptance session must target the /explore route.");
+  if (url.username || url.password) throw new Error("A ChatGPT acceptance target must not include URL credentials.");
+  if (url.search || url.hash) throw new Error("A ChatGPT acceptance target must not include a query or fragment.");
   return url.toString();
+}
+
+function powershellLiteral(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
 }
 
 async function assertMissing(path) {
@@ -53,12 +59,15 @@ Run these prompts in order and copy the observed arguments/results into \`transc
 
 1. **State:** “What am I looking at in Atlas right now?”
 2. **Ambiguity:** “I'd like to look at Springfield, but I'm not sure which state. Show me the choices first.”
+   Save the visible choices as \`evidence/springfield-candidates.png\`.
 3. **Open:** “Take me to Riverside County, California.”
 4. **Note:** “At Miami-Dade County, Florida, leave this note for me: Compare transit access around county offices.”
 5. **Trail:** “Set up a research trail called County access check: first Riverside County, CA for public records, then Miami-Dade County, FL for transit access, then Travis County, TX for meeting notices.”
 6. Click marker 2 yourself, then ask: “What am I looking at now?”
 7. **Ambiguous write:** “Open Springfield.”
+   Then ask: “Confirm the current Atlas map after that ambiguous request.”
 8. **Atomic failure:** “Build a trail from Riverside County to Atlantis-by-the-Pacific.”
+   Then ask: “Confirm the current Atlas map after that failed trail.”
 
 Save the completed trail as \`evidence/trail.png\`. Open **Recently used** / Sources and save \`evidence/recently-used.png\`. Record the app version and any console/QA notes in \`evidence/console-or-notes.txt\`.
 
@@ -67,9 +76,9 @@ Save the completed trail as \`evidence/trail.png\`. Open **Recently used** / Sou
 Set \`status\` to \`captured\`, replace every \`RECORD_ME\` value, replace the sample arguments/results with the real calls, and set \`observed\` to \`true\` on every completed step. Then run from the Atlas repository:
 
 \`\`\`powershell
-$env:ATLAS_CHATGPT_TRANSCRIPT = "${transcriptPath}"
+$env:ATLAS_CHATGPT_TRANSCRIPT = ${powershellLiteral(transcriptPath)}
 pnpm e2e:chatgpt:transcript
-$env:ATLAS_CHATGPT_URL = "${url}"
+$env:ATLAS_CHATGPT_URL = ${powershellLiteral(url)}
 pnpm e2e:chatgpt
 \`\`\`
 
@@ -101,6 +110,7 @@ export async function prepareChatGptSession({
     client: { ...template.client, model },
     evidence: {
       availableSiteToolsScreenshot: "evidence/available-site-tools.png",
+      springfieldCandidatesScreenshot: "evidence/springfield-candidates.png",
       recentlyUsedScreenshot: "evidence/recently-used.png",
       trailScreenshot: "evidence/trail.png",
       consoleOrNotes: "evidence/console-or-notes.txt",

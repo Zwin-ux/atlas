@@ -97,9 +97,14 @@ async function mobileTrailState(page) {
     const visible = (node) => {
       if (!(node instanceof HTMLElement)) return false;
       const style = getComputedStyle(node);
-      return style.display !== "none" && style.visibility !== "hidden";
+      const rect = node.getBoundingClientRect();
+      return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
     };
     const rows = [...document.querySelectorAll(".atlas-app__trail li")];
+    const mapRect = document.querySelector(".atlas-plate")?.getBoundingClientRect();
+    const controls = [...document.querySelectorAll("button, input, textarea")]
+      .filter(visible)
+      .map((node) => node.getBoundingClientRect());
     return {
       rows: rows.length,
       activeIndex: rows.findIndex((row) => row.classList.contains("is-active")),
@@ -108,8 +113,36 @@ async function mobileTrailState(page) {
       promptPreviews: rows.filter((row) => visible(row.querySelector(".atlas-app__trail-prompt-preview"))).length,
       viewportWidth: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
+      mapWidth: Math.round(mapRect?.width ?? 0),
+      mapHeight: Math.round(mapRect?.height ?? 0),
+      mapTop: Math.round(mapRect?.top ?? 0),
+      mapBottom: Math.round(mapRect?.bottom ?? 0),
+      minControlWidth: Math.round(Math.min(...controls.map((rect) => rect.width))),
+      minControlHeight: Math.round(Math.min(...controls.map((rect) => rect.height))),
     };
   });
+}
+
+function assertMobileTrailState(state, activeIndex) {
+  assert.deepEqual({
+    rows: state.rows,
+    activeIndex: state.activeIndex,
+    promptEditors: state.promptEditors,
+    removeActions: state.removeActions,
+    promptPreviews: state.promptPreviews,
+    viewportWidth: state.viewportWidth,
+    scrollWidth: state.scrollWidth,
+  }, {
+    rows: 3,
+    activeIndex,
+    promptEditors: 1,
+    removeActions: 1,
+    promptPreviews: 2,
+    viewportWidth: 390,
+    scrollWidth: 390,
+  });
+  assert.ok(state.mapWidth >= 370 && state.mapHeight >= 240 && state.mapTop >= 0 && state.mapBottom <= 844, `The mobile map must remain a large visible canvas: ${JSON.stringify(state)}`);
+  assert.ok(state.minControlWidth >= 44 && state.minControlHeight >= 44, `Every visible mobile form or button target must be at least 44px: ${JSON.stringify(state)}`);
 }
 
 const page = await browser.newPage();
@@ -177,7 +210,20 @@ try {
   assert.equal(trail.visible, true);
   assert.deepEqual(trail.view, { level: "nation", overlay: "research_trail" });
   assert.equal(await page.$$eval(".atlas-plate__trail-marker", (nodes) => nodes.length), 3);
+  assert.equal(await page.$$eval(".atlas-plate__trail-route-base", (nodes) => nodes.length), 1);
   assert.equal(await page.$$eval(".atlas-plate__trail-route", (nodes) => nodes.length), 1);
+  const immediateTrailVisibility = await page.evaluate(() => ({
+    routeBaseOpacity: Number(getComputedStyle(document.querySelector(".atlas-plate__trail-route-base")).opacity),
+    markerOpacities: [...document.querySelectorAll(".atlas-plate__trail-marker")]
+      .map((marker) => Number(getComputedStyle(marker).opacity)),
+  }));
+  assert.ok(immediateTrailVisibility.routeBaseOpacity > 0, "The complete route must be visible when create_map_trail returns.");
+  assert.ok(
+    immediateTrailVisibility.markerOpacities.length === 3
+      && immediateTrailVisibility.markerOpacities.every((opacity) => opacity > 0),
+    "Every numbered stop must be visible when create_map_trail returns.",
+  );
+  report.immediateTrailVisibility = immediateTrailVisibility;
   const screenshotPath = resolve(process.cwd(), process.env.ATLAS_WEBMCP_SMOKE_SCREENSHOT ?? ".evals/browser-smoke-trail.png");
   await mkdir(dirname(screenshotPath), { recursive: true });
   await page.screenshot({ path: screenshotPath, type: "png" });
@@ -185,29 +231,13 @@ try {
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
   const compactTrail = await mobileTrailState(page);
-  assert.deepEqual(compactTrail, {
-    rows: 3,
-    activeIndex: 0,
-    promptEditors: 1,
-    removeActions: 1,
-    promptPreviews: 2,
-    viewportWidth: 390,
-    scrollWidth: 390,
-  });
+  assertMobileTrailState(compactTrail, 0);
   await page.$$eval(".atlas-app__trail-place", (nodes) => nodes[1]?.click());
   await page.waitForFunction(() => (
     [...document.querySelectorAll('.atlas-app__crumb[aria-current="page"]')]
       .some((crumb) => crumb.textContent?.includes("Miami-Dade"))
   ));
-  assert.deepEqual(await mobileTrailState(page), {
-    rows: 3,
-    activeIndex: 1,
-    promptEditors: 1,
-    removeActions: 1,
-    promptPreviews: 2,
-    viewportWidth: 390,
-    scrollWidth: 390,
-  });
+  assertMobileTrailState(await mobileTrailState(page), 1);
   const mobileScreenshotPath = resolve(process.cwd(), process.env.ATLAS_WEBMCP_SMOKE_MOBILE_SCREENSHOT ?? ".evals/browser-smoke-trail-mobile.png");
   await page.screenshot({ path: mobileScreenshotPath, type: "png" });
   report.mobileScreenshot = mobileScreenshotPath;

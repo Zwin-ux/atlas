@@ -90,14 +90,14 @@ Before testing, create an ignored, timestamped acceptance pack:
 pnpm e2e:chatgpt:session
 ```
 
-Open the generated `RUNBOOK.md` beside ChatGPT. Its `transcript.json` already contains the verified live URL, selected supported model, exact tool list, conversation steps, and evidence paths. Replace every sample argument/result with the observed call, set each completed step's `observed` field to `true`, set `status` to `captured`, save the named files under its `evidence/` folder, and validate it with:
+Open the generated `RUNBOOK.md` beside ChatGPT. Its `transcript.json` already contains the verified live URL, selected supported model, exact tool list, conversation steps, and evidence paths. Replace every sample argument/result with the observed call, record a unique `callId` and ISO `observedAt` time for each step, set `observed` to `true`, set `status` to `captured`, save the named files under its `evidence/` folder, and validate it with:
 
 ```powershell
 $env:ATLAS_CHATGPT_TRANSCRIPT = "C:\path\to\session\transcript.json"
 pnpm e2e:chatgpt:transcript
 ```
 
-The validator resolves evidence relative to the transcript folder, hashes every file, and rejects an unobserved or copied template, placeholder host, missing client version, wrong model, extra tool, invisible write, or mutation-unsafe failure. The full live-URL sequence is in `CHATGPT_E2E.md`.
+The validator confines evidence to the session's `evidence/` folder, validates PNG screenshot signatures and file-size limits, hashes every file, and rejects an unobserved or copied template, placeholder host, missing client version, wrong model, extra tool, invisible write, or mutation-unsafe failure. Post-failure `get_map_state` calls must exactly match the prior visible revision and trail. The full live-URL sequence is in `CHATGPT_E2E.md`.
 
 ## Sources
 

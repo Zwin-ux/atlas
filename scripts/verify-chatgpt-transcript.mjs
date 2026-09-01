@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { dirname, extname, isAbsolute, relative, resolve } from "node:path";
 
 const EXPECTED_TOOLS = [
   ["get_map_state", "What's on the Atlas map"],
@@ -20,6 +20,24 @@ function step(transcript, id) {
   return match;
 }
 
+function isContained(root, candidate) {
+  const pathFromRoot = relative(root, candidate);
+  return pathFromRoot.length > 0 && !pathFromRoot.startsWith("..") && !isAbsolute(pathFromRoot);
+}
+
+function visibleWorkspace(result) {
+  return {
+    revision: result?.revision,
+    visibleRevision: result?.visibleRevision,
+    current: result?.current,
+    trail: result?.trail ? {
+      title: result.trail.title,
+      activeIndex: result.trail.activeIndex,
+      stops: result.trail.stops,
+    } : null,
+  };
+}
+
 const args = process.argv.slice(2);
 const allowTemplate = args.includes("--allow-template");
 const pathArg = args.find((arg) => !arg.startsWith("--")) ?? process.env.ATLAS_CHATGPT_TRANSCRIPT;
@@ -34,6 +52,7 @@ assert(transcript.status === "captured" || (allowTemplate && transcript.status =
 const url = new URL(transcript.url);
 if (transcript.status === "captured") {
   assert(url.protocol === "https:" && url.pathname === "/explore", "A captured transcript must target the deployed HTTPS /explore route.");
+  assert(!url.username && !url.password && !url.search && !url.hash, "A captured transcript URL must not contain credentials, a query, or a fragment.");
   assert(!/replace-with|example/i.test(url.hostname), "A captured transcript cannot use a placeholder host.");
   assert(Number.isFinite(Date.parse(transcript.capturedAt)), "A captured transcript needs a valid capturedAt timestamp.");
 }
@@ -53,6 +72,9 @@ assert(
 assert(Array.isArray(transcript.steps), "The transcript steps must be an array.");
 if (transcript.status === "captured") {
   assert(transcript.steps.every((candidate) => candidate?.observed === true), "Every captured step must be marked observed after copying the real ChatGPT call.");
+  assert(transcript.steps.every((candidate) => Number.isFinite(Date.parse(candidate?.observedAt))), "Every captured step needs a real observedAt timestamp.");
+  assert(transcript.steps.every((candidate) => typeof candidate?.callId === "string" && candidate.callId.trim() && !/record_me/i.test(candidate.callId)), "Every captured step needs a non-placeholder ChatGPT callId.");
+  assert(new Set(transcript.steps.map((candidate) => candidate.callId)).size === transcript.steps.length, "Every captured ChatGPT callId must be unique.");
 }
 const usedTools = new Set(transcript.steps.map((candidate) => candidate?.tool));
 for (const [name] of EXPECTED_TOOLS) assert(usedTools.has(name), `The transcript never called ${name}.`);
@@ -85,28 +107,54 @@ assert(humanState.tool === "get_map_state" && typeof humanState.humanAction === 
 assert(humanState.result?.ok === true && humanState.result?.current?.level === "county", "The agent did not read the county opened by the person.");
 assert(humanState.result?.current?.countySlug === "miami-dade-fl", "The manual stop handoff must read Miami-Dade County from marker 2.");
 assert(humanState.result?.trail?.activeIndex === 1, "The manual stop handoff must preserve one-based stop 2 as zero-based activeIndex 1.");
+assert(Number.isInteger(humanState.result?.revision) && humanState.result?.visibleRevision === humanState.result.revision, "The manual stop state must record one fully visible revision.");
 
 const ambiguousOpen = step(transcript, "ambiguous_open_unchanged");
 assert(ambiguousOpen.tool === "open_place", "The ambiguous write check must use open_place.");
 assert(ambiguousOpen.result?.ok === false && ambiguousOpen.result?.mapChanged === false, "Ambiguous open_place must report that the map stayed unchanged.");
 assert(ambiguousOpen.result?.error?.candidates?.length > 1, "Ambiguous open_place must return candidates.");
 
+const ambiguousState = step(transcript, "ambiguous_open_state");
+assert(ambiguousState.tool === "get_map_state" && ambiguousState.result?.ok === true, "The ambiguous write must be followed by a live state read.");
+assert(
+  JSON.stringify(visibleWorkspace(ambiguousState.result)) === JSON.stringify(visibleWorkspace(humanState.result)),
+  "The state after ambiguous open_place must exactly match the prior visible workspace.",
+);
+
 const failedTrail = step(transcript, "failed_trail_unchanged");
 assert(failedTrail.tool === "create_map_trail", "The atomic failure check must use create_map_trail.");
 assert(failedTrail.result?.ok === false && failedTrail.result?.mapChanged === false && failedTrail.result?.trailChanged === false, "A failed trail must report no map or trail change.");
 assert(failedTrail.result?.stopNumber === 2, "The failed trail must identify its one-based failing stop.");
 
+const failedTrailState = step(transcript, "failed_trail_state");
+assert(failedTrailState.tool === "get_map_state" && failedTrailState.result?.ok === true, "The failed trail must be followed by a live state read.");
+assert(
+  JSON.stringify(visibleWorkspace(failedTrailState.result)) === JSON.stringify(visibleWorkspace(ambiguousState.result)),
+  "The state after a failed trail must exactly match the prior visible workspace.",
+);
+
 const evidenceManifest = {};
 if (transcript.status === "captured") {
   const evidence = transcript.evidence ?? {};
-  for (const key of ["availableSiteToolsScreenshot", "recentlyUsedScreenshot", "trailScreenshot", "consoleOrNotes"]) {
+  const evidenceRoot = resolve(transcriptDirectory, "evidence");
+  for (const key of ["availableSiteToolsScreenshot", "springfieldCandidatesScreenshot", "recentlyUsedScreenshot", "trailScreenshot", "consoleOrNotes"]) {
     assert(typeof evidence[key] === "string" && evidence[key].trim() && !/record_me/i.test(evidence[key]), `Record ${key} evidence.`);
-    const evidencePath = isAbsolute(evidence[key]) ? resolve(evidence[key]) : resolve(transcriptDirectory, evidence[key]);
+    assert(!isAbsolute(evidence[key]), `${key} must use a portable path inside the session evidence folder.`);
+    const evidencePath = resolve(transcriptDirectory, evidence[key]);
+    assert(isContained(evidenceRoot, evidencePath), `${key} must stay inside the session evidence folder.`);
     const info = await stat(evidencePath).catch(() => undefined);
     assert(info?.isFile() && info.size > 0, `${key} must point to a non-empty local evidence file.`);
+    const maxBytes = key === "consoleOrNotes" ? 1_000_000 : 10_000_000;
+    assert(info.size <= maxBytes, `${key} exceeds the ${maxBytes}-byte evidence limit.`);
     const body = await readFile(evidencePath);
+    if (key === "consoleOrNotes") {
+      assert(extname(evidencePath).toLowerCase() === ".txt", "consoleOrNotes must be a text file.");
+    } else {
+      const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      assert(extname(evidencePath).toLowerCase() === ".png" && body.subarray(0, pngSignature.length).equals(pngSignature), `${key} must be a PNG screenshot.`);
+    }
     evidenceManifest[key] = {
-      path: evidencePath,
+      path: relative(transcriptDirectory, evidencePath).replaceAll("\\", "/"),
       bytes: body.byteLength,
       sha256: createHash("sha256").update(body).digest("hex"),
     };

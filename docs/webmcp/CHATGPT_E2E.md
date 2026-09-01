@@ -42,7 +42,7 @@ Each run creates `.evals/chatgpt-e2e/sessions/<timestamp>/` with:
 
 - `RUNBOOK.md`: the exact conversation, human marker action, evidence names, and final commands;
 - `transcript.json`: the exact-five template with URL, timestamp, model, and portable relative evidence paths already filled;
-- `evidence/`: an empty destination for `evidence/available-site-tools.png`, `evidence/recently-used.png`, `evidence/trail.png`, and `evidence/console-or-notes.txt`.
+- `evidence/`: an empty destination for `evidence/available-site-tools.png`, `evidence/springfield-candidates.png`, `evidence/recently-used.png`, `evidence/trail.png`, and `evidence/console-or-notes.txt`.
 
 The command never overwrites an existing session. The whole folder remains ignored and can be moved or zipped because the validator resolves relative evidence paths from `transcript.json`, not from the repository working directory.
 
@@ -55,8 +55,9 @@ Automated Chrome proof does not prove ChatGPT discovery. In the latest ChatGPT d
 3. Inspect **Site tools → Available site tools** and confirm the exact five names and titles.
 4. Run the prompts in `CHATGPT_ACCEPTANCE.md`.
 5. Review **Recently used** / Sources and capture the requested screenshots.
-6. Open the generated session's `transcript.json`, replace every `RECORD_ME` value and every sample argument/result with observed evidence, set each completed step's `observed` field to `true`, then set `status` to `captured`.
-7. Save the four named evidence files in that session's `evidence/` folder.
+6. After the ambiguous open and failed trail, run the two state-read prompts in the runbook and copy those results too. They prove the visible revision and trail stayed unchanged instead of trusting a failed write's self-report.
+7. Open the generated session's `transcript.json`, replace every `RECORD_ME` value and every sample argument/result with observed evidence, record a unique `callId` and ISO `observedAt` time for each real call, set each completed step's `observed` field to `true`, then set `status` to `captured`.
+8. Save the five named evidence files in that session's `evidence/` folder.
 8. Validate the record:
 
 ```powershell
@@ -66,7 +67,7 @@ pnpm e2e:chatgpt:transcript
 
 To include the transcript in the consolidated run, keep `ATLAS_CHATGPT_TRANSCRIPT` set and rerun `pnpm e2e:chatgpt`.
 
-The validator requires every step to be explicitly marked observed, every public tool, visible success for open/note/trail, marker 2 followed by a Miami-Dade/active-stop state read, Springfield ambiguity without mutation, an atomic failed trail, the deployed HTTPS URL, the ChatGPT/client version, and four non-empty local evidence files. It prints each evidence file's SHA-256 digest so the acceptance packet can bind the transcript to the exact captures. A copied template, sample result, or placeholder cannot pass as captured proof.
+The validator requires every step to be explicitly marked observed with a unique call ID and observation time, every public tool, visible success for open/note/trail, marker 2 followed by a Miami-Dade/active-stop state read, post-failure state reads that exactly preserve the prior visible workspace, Springfield candidate proof, the deployed HTTPS URL, the ChatGPT/client version, and five contained, size-bounded local evidence files. Screenshot files must be real PNGs. It prints each evidence file's SHA-256 digest so the acceptance packet can bind the transcript to the exact captures. Flipping template booleans or pointing at arbitrary local files cannot pass as captured proof.
 
 ## Grok 4.6 adversarial evaluation
 
