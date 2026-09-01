@@ -17,7 +17,7 @@ Do not change the historical repository's visibility. Do not publish the sanitiz
 - Live route: `https://atlas-webmcp-production.up.railway.app/explore`
 - Railway project/service: `5c0ac24b-b588-4ba2-8d04-5118103b2999` / `807e65dc-37bd-43ae-8059-a05c4da62893`
 - Active deployment: `cd899386-c7b4-4f1c-816d-1bf6e67e20fa`
-- Rollback deployment: `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82`
+- Rollback content: exact candidate `986cf864927219f5f269a04b21a96f8440988cba` in `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-986cf86`; superseded deployment `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82` is now `REMOVED`
 - Challenge baseline disclosed in the public repo: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
 - Owner-selected license: Apache-2.0
 - Public tools: exactly `get_map_state`, `search_places`, `open_place`, `add_map_note`, and `create_map_trail`
@@ -143,13 +143,13 @@ Verified evidence:
 - same-origin place and plate APIs work;
 - normal-browser fallback works;
 - the deterministic smoke suite passes against the public URL;
-- rollback is recorded as prior successful deployment `020fa669-f926-47e6-9a15-0030d79863d7` or removal of the isolated challenge service.
+- rollback content and service-removal procedures are recorded without depending on Railway retaining a superseded deployment as active.
 
-The initial deployment was `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82`; after Gate 3b it became the rollback point. The active deployment is `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` in project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`. The live judge route is `https://atlas-webmcp-production.up.railway.app/explore`.
+The initial deployment was `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82`. Railway marks it `REMOVED` after Gate 3b, so rollback means redeploying preserved exact candidate `986cf864` from its clean clone, not assuming the old deployment remains restorable. The active deployment is `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` in project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`. The live judge route is `https://atlas-webmcp-production.up.railway.app/explore`.
 
 Risk: this is a public, no-login Atlas runtime and consumes Railway resources. A bad runtime would be reachable by URL even though the source repository remains private.
 
-Rollback: remove the isolated service or roll it back to successful deployment `020fa669-f926-47e6-9a15-0030d79863d7`.
+Rollback: remove the isolated service or redeploy the preserved exact prior candidate from its clean clone. Do not rely on Railway retaining a superseded deployment as active.
 
 Railway's current config-as-code documentation says `railway.toml` remains supported for legacy services until December 1, 2026, although Railway now prefers its Infrastructure as Code path. That does not block the September 3 challenge deployment, but the owner should not treat this file as a long-term platform contract.
 
@@ -161,7 +161,7 @@ Post-deploy evidence: `/ready` and `/explore` return HTTP 200; the route remains
 
 Risk: the public no-login runtime now serves the new candidate and consumes Railway resources. Post-deploy automated and visual acceptance found no regression.
 
-Rollback: restore successful deployment `5ce284dc-4fd1-43ab-ad5a-5f63b8ec0c82`, which serves exact candidate `986cf864927219f5f269a04b21a96f8440988cba`, then rerun `/ready`, `/explore`, and Chrome smoke. No rollback was needed.
+Rollback: from `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-986cf86`, redeploy exact candidate `986cf864927219f5f269a04b21a96f8440988cba` only to the isolated challenge service, then rerun `/ready`, `/explore`, and Chrome smoke. Superseded deployment `5ce284dc` is `REMOVED`; no rollback was needed.
 
 ### Gate 4 — real WebMCP acceptance
 
@@ -196,7 +196,7 @@ Required evidence:
 2. ~~Approve the one-commit private fast-forward to the ChatGPT-first candidate.~~ Complete at `04aa4aaa`.
 3. ~~Approve the one-commit private fast-forward to live-E2E candidate.~~ Complete at `049ec222`.
 4. ~~Approve the isolated Railway service and deployment while keeping the repository private.~~ Complete at deployment `5ce284dc` from exact candidate `986cf864`.
-5. ~~Approve the exact private fast-forward to `39d1e141` and the isolated Railway update, with immediate post-deploy checks and rollback to `5ce284dc` if any gate fails.~~ Complete at deployment `cd899386`; no rollback needed.
+5. ~~Approve the exact private fast-forward to `39d1e141` and the isolated Railway update, with immediate post-deploy checks and rollback to preserved candidate `986cf864` if any gate fails.~~ Complete at deployment `cd899386`; no rollback needed.
 6. Sign in to the already-open headed ChatGPT window and capture the real built-in-browser five-tool transcript using `docs/CHATGPT_E2E.md`.
 7. Provide `XAI_API_KEY` only in the local environment and run the exact `xai:grok-4.6` three-run/90% lane without recording the credential.
 8. Review the private tree, run one additional full-history secret scan, confirm Apache-2.0 detection, and approve public visibility.
