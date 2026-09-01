@@ -11,9 +11,9 @@
 ## Current Slice
 
 - Slice: `27 — Devpost narrative and Figma submission preflight`
-- Status: `FIGMA GREEN / DEVPOST RESOURCES NEXT — the verified judge board includes a screenshot-reviewed six-beat Devpost storyboard. Live Devpost MCP confirms the account is registered, submissions are open, and the owner explicitly acknowledged the current official rules with yes. The local journey is now at Resources. No Devpost project, draft, public-visibility change, or submission was created.`
+- Status: `FIGMA GREEN / DEVPOST RESOURCES COMPLETE / PREPARE NEXT — the verified judge board includes a screenshot-reviewed six-beat Devpost storyboard. Live Devpost MCP confirms the account is registered, submissions are open, the rules are acknowledged, and the organizer's current WebMCP resources were reviewed for Atlas. No Devpost project, draft, public-visibility change, or submission was created.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Extend the existing FigJam evidence wrapper with one restrained Devpost storyboard, visually validate the complete board, initialize the official Devpost plugin journey, verify registration, fetch current official rules/requirements/criteria/dates, record the owner's explicit rules acknowledgment, and advance to Resources without creating or submitting a project.`
+- Smallest complete boundary: `Extend and validate the Devpost storyboard, initialize the official journey, verify registration, rules, requirements, criteria, and dates, record explicit rules acknowledgment, review the live organizer resources relevant to Atlas, and advance the local journey to submission preparation without creating or submitting a project.`
 - Likely files: `WEBMCP_STATE.md`, local `.devpost-hackathon-state.json`, and two FigJam proof captures under artifacts/product-design-audit/devpost-figma-20260901/.`
 - Acceptance checks: `Existing judge/HCI evidence remains intact; the new storyboard has six ordered beats, one opening outcome, one shared-control middle, and one evidence close; the complete 6400x6090 board has no clipping or overlap; official Devpost data comes only from the live plugin; registration is already complete; rules_acknowledged changed only after the owner replied exactly yes; no submission or public release action occurs.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
@@ -80,6 +80,7 @@
 - [x] Live Devpost MCP confirms the authenticated account is already registered for The WebMCP Challenge and that submissions remain open through September 3, 2026 at 1:00 PM Pacific.
 - [x] Live official requirements confirm a working judge-accessible URL, a WebMCP-specific description, a public under-three-minute YouTube demo with audio, and a public licensed repository; the four judging criteria are WebMCP Leverage, Execution, Potential Impact, and Creativity & Ambition.
 - [x] The owner replied exactly `yes` to the current official rules review; local plugin state now records `rules_acknowledged: true`, `current_stage: resources`, and `next_command: resources` without creating a Devpost project or submission.
+- [x] The live Resources hub was reviewed and condensed to the specification, Chrome implementation/security/debug/evaluation guidance, and OpenAI WebMCP examples most relevant to Atlas; local plugin state records Resources complete and `next_command: prepare-submission`.
 
 ## Work Log
 
@@ -386,6 +387,7 @@
 - `pnpm verify:webmcp` remains green at 38/38 focused tests plus runtime and judge-copy guards; `git diff --check` passes. The storyboard and full-board PNG SHA-256 values are `75BF137B97CBE5C228266614228FFF11D0B3DF8F10B57A87ACE237F5261D2699` and `B270EB0C989ED385E3C7839A2556BC464A3B861E46C0FF3B260C69023653211F`.
 - Devpost MCP authenticated successfully, confirmed the account is already registered, and returned complete official overview, registration, rule, requirement, judging, date, and prize data on September 1, 2026 UTC.
 - The owner replied exactly `yes` to the official rules review. Local plugin state now records `rules_acknowledged: true`, `current_stage: resources`, `submission.status: not-started`, and `next_command: resources`; no draft, project, visibility change, or Devpost submission was created.
+- The live organizer Resources hub was fetched through Devpost MCP. Atlas already exceeds the thin-wrapper and generic-chatbot anti-patterns, so the recommended fork is to skip optional guided planning and enter submission preparation only when the owner advances; no Devpost write occurred.
 
 ### Slice 23 implemented HCI contract
 
@@ -481,7 +483,7 @@
 
 ## Exact Next Action
 
-Complete the Devpost Resources step, then fetch the current submission form through the prepare skill and create `devpost-submission.md` from verified release evidence without submitting or changing repository visibility. The real ChatGPT conversation transcript, optional Grok threshold, public source visibility, video upload, and final Devpost submission remain separate gates.
+When the owner advances, run the prepare-submission skill, fetch current live project and submission requirements through Devpost MCP, and create `devpost-submission.md` from verified release evidence without submitting or changing repository visibility. The real ChatGPT conversation transcript, optional Grok threshold, public source visibility, video upload, and final Devpost submission remain separate gates.
 
 ## Slice Queue
 
@@ -511,5 +513,5 @@ Complete the Devpost Resources step, then fetch the current submission form thro
 24. Release-grade visible completion and ChatGPT proof integrity — LOCALLY GREEN / EXTERNALLY OWNER-GATED (`abfe898a`; exact sanitized candidate `110fd05f`; no-local 37-test/Chrome/mobile/release proof complete)
 25. Quiet release-ready map entry — LOCALLY GREEN / REPLACEMENT SHA OWNER-GATED (`cc757316`; exact sanitized candidate `111b8fd`; current desktop/mobile and full no-local release proof complete)
 26. Pinned WebMCP and ChatGPT compatibility — GREEN / PRIVATE REMOTE AND RAILWAY DEPLOYED (`52b42b18`; exact sanitized candidate/private main `39d1e141`; deployment `cd899386`; current primary-source, 38-test, Chrome, real Codex in-app, shared human-agent handoff, refresh, clean-clone, public E2E, visual, and Gitleaks proof complete)
-27. Devpost narrative and Figma submission preflight — FIGMA GREEN / RULES ACKNOWLEDGED / RESOURCES NEXT (FigJam section `27:2`; live Devpost registration and official-data preflight complete; no draft, visibility change, or submission)
+27. Devpost narrative and Figma submission preflight — FIGMA GREEN / RESOURCES COMPLETE / PREPARE NEXT (FigJam section `27:2`; live Devpost registration, official-data preflight, rules acknowledgment, and resource review complete; no draft, visibility change, or submission)
 
