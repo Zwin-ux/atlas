@@ -85,7 +85,7 @@ pnpm e2e:chatgpt
 
 Run `pnpm e2e:chatgpt:session` first to create an ignored, timestamped ChatGPT desktop runbook, prefilled transcript, and evidence folder. The consolidated report keeps automated protocol proof, the real ChatGPT transcript, and the model threshold as separate evidence fields. See [docs/webmcp/CHATGPT_E2E.md](docs/webmcp/CHATGPT_E2E.md) for the complete session contract and the Grok 4.6 adversarial lane.
 
-The deterministic local gates currently pass. Chrome 152 WebMCP proof covers exact-five discovery, 9/9 official smoke steps, 13 deeper browser executions, visible trail rendering, keyboard marker navigation, ambiguity recovery, atomic failure, refresh/route registration, and zero console errors. Model-score and real ChatGPT built-in-browser acceptance remain separate credentialed or external gates.
+The deterministic local gates currently pass. Chrome 152 WebMCP proof covers exact-five discovery, 9/9 official smoke steps, 15 deeper browser executions, visible trail rendering, keyboard marker navigation, ambiguity recovery, atomic failure, refresh/route registration, and zero console errors. Model-score and real ChatGPT built-in-browser acceptance remain separate credentialed or external gates.
 
 ## Challenge-period delta
 

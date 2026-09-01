@@ -10,9 +10,9 @@ Do not change the historical repository's visibility. Do not publish the sanitiz
 
 - Local repository: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release`
 - Branch: `codex/release-design-pass`
-- Pending candidate SHA: `111b8fd068f08752cf76c194dd56f19778d95d2d`
-- Source provenance SHA: `cc757316a7ff93d187536828c01e16671ff93b2f`
-- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-111b8fd`
+- Pending candidate SHA: `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`
+- Source provenance SHA: `52b42b1899209de0cc38e11ea27e913d974d0129`
+- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-39d1e14`
 - Current private remote and deployed SHA: `986cf864927219f5f269a04b21a96f8440988cba`
 - Live route: `https://atlas-webmcp-production.up.railway.app/explore`
 - Railway project/service: `5c0ac24b-b588-4ba2-8d04-5118103b2999` / `807e65dc-37bd-43ae-8059-a05c4da62893`
@@ -25,19 +25,19 @@ The repository contains one challenge-only React entry, one small no-login Node 
 
 ## Final local proof
 
-The pending candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `111b8fd068f08752cf76c194dd56f19778d95d2d`:
+The pending candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`:
 
 | Command | Result |
 |---|---|
 | `pnpm install --frozen-lockfile` | PASS; lockfile policy green, 135 packages installed |
 | `pnpm typecheck` | PASS; standalone web and server contracts |
 | `pnpm build` | PASS; challenge client and server built |
-| `pnpm verify:webmcp` | PASS; 37/37 focused tests plus runtime and judge-copy guards |
+| `pnpm verify:webmcp` | PASS; 38/38 focused tests plus runtime, judge-copy, and pinned-compatibility guards |
 | `pnpm eval:webmcp:smoke` | PASS; Chrome 152, 9/9 official steps, 15 deeper tool executions, immediate route/marker visibility, usable 390x844 map area, 44px visible controls, and reduced-motion suppression |
-| `pnpm audit:release` | PASS; 3,339 files, 88,219,971 bytes, 14 commits, clean Git state, no oversized files, no audit failures |
+| `pnpm audit:release` | PASS; 3,340 files, 88,228,192 working-tree bytes after Windows line-ending checkout, 15 commits, clean Git state, no oversized files, no audit failures |
 | `git diff --check` and `git status --short --branch` | PASS; no whitespace errors and clean exact-SHA clone |
 
-The release-facing trail proof now includes a complete route and readable numbered markers before tool success, restrained continuity motion, explicit session-only context, a non-color `Current` state, usable mobile map area, 44px visible mobile controls, and the real Chrome WebMCP activity rail. The idle `Try a 3-stop trail` coaching and its dead responsive CSS are removed, leaving one calm availability signal until a real agent action occurs. ChatGPT-facing Site Tools also have plain-language titles, natural-intent descriptions, bounded visible/unchanged result signals, and a tamper-resistant capture workflow requiring unique call IDs, timestamps, real PNG evidence, and independent post-failure state reads.
+The release-facing trail proof includes a complete route and readable numbered markers before tool success, restrained continuity motion, explicit session-only context, a non-color `Current` state, usable mobile map area, 44px visible mobile controls, and the real Chrome WebMCP activity rail. The idle `Try a 3-stop trail` coaching and its dead responsive CSS are removed, leaving one calm availability signal until a real agent action occurs. ChatGPT-facing Site Tools have plain-language titles, natural-intent descriptions, bounded visible/unchanged result signals, a tamper-resistant capture workflow, and a compatibility record pinned to WebMCP proposal commit `41d12f057167ccf5954dbcf49d99502cb6c84491` plus OpenAI's current Site Tools documentation. Normal registration teardown can no longer be misreported as `Site tools offline`.
 
 The pending candidate is verified locally and from its no-local clone. The private remote and active Railway deployment deliberately remain on `986cf864927219f5f269a04b21a96f8440988cba` until the owner approves the exact update below.
 
@@ -45,8 +45,8 @@ The pending candidate is verified locally and from its no-local clone. The priva
 
 The sanitized repository audit reports:
 
-- 3,339 tracked files;
-- 88,219,971 audited source/data bytes in the final clean clone;
+- 3,340 tracked files;
+- 88,228,192 audited working-tree bytes in the final clean clone after Windows line-ending checkout;
 - 3,222 county geo packs and 52 state plates;
 - no tracked build output, eval output, `node_modules`, `.env`, historical apps, or historical workspace packages;
 - no file larger than 5 MiB;
@@ -55,7 +55,7 @@ The sanitized repository audit reports:
 - only `react` and `react-dom` as runtime dependencies;
 - a full Apache-2.0 license, Census attribution, and frozen dependency-license inventory.
 
-`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the pending history contains only 14 challenge commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
+`gitleaks` is not installed on this host, so the in-repo scanner is a bounded common-pattern scan rather than a third-party entropy verdict. Before public visibility, require one additional GitHub secret-scan or owner-approved entropy scanner over the new repository's complete history. Because the pending history contains only 15 challenge commits and matches the audited tree, this is a narrow remaining publication check, not evidence that the historical repository is safe.
 
 The selected README image was visually inspected: it contains only the Atlas national trail overview and no terminal, local path, account, or credential surface.
 
@@ -107,13 +107,13 @@ Risk: only the private challenge repository changed; no visibility, credential, 
 
 Rollback: revert the two narrow commits with normal follow-up commits. Moving the branch backward remains a separate destructive-history gate.
 
-### Gate 1e — human-agent design proof private fast-forward — PENDING OWNER APPROVAL
+### Gate 1e — pinned WebMCP compatibility candidate private fast-forward — PENDING OWNER APPROVAL
 
-Proposed action: fast-forward the still-private `Zwin-ux/atlas-webmcp-challenge` `main` branch from `986cf864927219f5f269a04b21a96f8440988cba` to exact candidate `111b8fd068f08752cf76c194dd56f19778d95d2d`. Do not force-push and do not change repository visibility. The owner's approval of `110fd05f` was not executed because the same response requested removal of the idle `Try` prompt, producing this new exact tree.
+Proposed action: fast-forward the still-private `Zwin-ux/atlas-webmcp-challenge` `main` branch from `986cf864927219f5f269a04b21a96f8440988cba` to exact candidate `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`. Do not force-push and do not change repository visibility. Earlier approvals named superseded trees before the owner-requested prompt removal and current primary-source review produced this new exact candidate.
 
-Evidence: source provenance `cc757316a7ff93d187536828c01e16671ff93b2f`; 3,339 projected files with zero byte mismatches; no-local clone green for frozen install, typecheck, build, 37/37 verification, Chrome 152 smoke with 9/9 official steps and 15 deeper executions, release audit, diff check, and clean status. Current desktop and `390x844` browser captures show no idle prompt node or text, zero horizontal overflow, and a `374x732` mobile map.
+Evidence: source provenance `52b42b1899209de0cc38e11ea27e913d974d0129`; 3,340 projected files with no missing prior tracked files and one intended new compatibility record; no-local clone green for frozen install, typecheck, build, 38/38 verification, Chrome 152 smoke with 9/9 official steps and 15 deeper executions, release audit, diff check, and clean status. The implementation is mapped to WebMCP proposal commit `41d12f057167ccf5954dbcf49d99502cb6c84491` and OpenAI Site Tools documentation reviewed August 31, 2026.
 
-Risk: the private remote will contain the new HCI manual, refined interaction/motion layer, and stricter ChatGPT evidence tooling. Source remains private, but a regression in this commit would become the input to the next deployment.
+Risk: the private remote will contain the HCI/motion work, stricter ChatGPT evidence tooling, the current compatibility record, and lifecycle hardening. Source remains private, but a regression in these commits would become the input to the next deployment.
 
 Rollback: create a normal revert commit in the private repository. Do not rewrite history or force the branch backward.
 
@@ -122,11 +122,11 @@ Rollback: create a normal revert commit in the private repository. Do not rewrit
 Required before changing visibility:
 
 - owner reviews the private GitHub tree and About panel;
-- GitHub or an owner-approved scanner reports no secrets across the complete 14-commit history;
+- GitHub or an owner-approved scanner reports no secrets across the complete 15-commit history;
 - license is detected as Apache-2.0;
 - README image and attribution render correctly;
 - GitHub Actions or a fresh remote clone repeats install, typecheck, build, verify, and smoke as applicable;
-- candidate SHA still matches `111b8fd068f08752cf76c194dd56f19778d95d2d` or a newer SHA is fully re-verified.
+- candidate SHA still matches `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` or a newer SHA is fully re-verified.
 
 Rollback: return the repository to private immediately. Do not attempt to repair an exposure by rewriting the historical Atlas repository.
 
@@ -152,9 +152,9 @@ Rollback: remove the isolated service or roll it back to successful deployment `
 
 Railway's current config-as-code documentation says `railway.toml` remains supported for legacy services until December 1, 2026, although Railway now prefers its Infrastructure as Code path. That does not block the September 3 challenge deployment, but the owner should not treat this file as a long-term platform contract.
 
-### Gate 3b — deploy the human-agent design proof — PENDING OWNER APPROVAL
+### Gate 3b — deploy the pinned WebMCP compatibility candidate — PENDING OWNER APPROVAL
 
-Proposed action: after Gate 1e succeeds and the private remote identifies exact candidate `111b8fd068f08752cf76c194dd56f19778d95d2d`, update only Railway project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`, then verify `/ready`, `/explore`, the exact-five registry, no-login fallback, and the Chrome smoke lane against the public URL.
+Proposed action: after Gate 1e succeeds and the private remote identifies exact candidate `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`, update only Railway project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`, then verify `/ready`, `/explore`, the exact-five registry, no-login fallback, and the Chrome smoke lane against the public URL.
 
 Risk: the public no-login runtime changes immediately and consumes Railway resources. A visual, browser, or resource regression would be reachable at the judge URL even though the source repository stays private.
 
@@ -193,7 +193,7 @@ Required evidence:
 2. ~~Approve the one-commit private fast-forward to the ChatGPT-first candidate.~~ Complete at `04aa4aaa`.
 3. ~~Approve the one-commit private fast-forward to live-E2E candidate.~~ Complete at `049ec222`.
 4. ~~Approve the isolated Railway service and deployment while keeping the repository private.~~ Complete at deployment `5ce284dc` from exact candidate `986cf864`.
-5. Approve the exact private fast-forward to `111b8fd` and the isolated Railway update, with immediate post-deploy checks and rollback to `5ce284dc` if any gate fails.
+5. Approve the exact private fast-forward to `39d1e141` and the isolated Railway update, with immediate post-deploy checks and rollback to `5ce284dc` if any gate fails.
 6. Sign in to the already-open headed ChatGPT window and capture the real built-in-browser five-tool transcript using `docs/CHATGPT_E2E.md`.
 7. Provide `XAI_API_KEY` only in the local environment and run the exact `xai:grok-4.6` three-run/90% lane without recording the credential.
 8. Review the private tree, run one additional full-history secret scan, confirm Apache-2.0 detection, and approve public visibility.
