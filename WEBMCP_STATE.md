@@ -10,12 +10,12 @@
 
 ## Current Slice
 
-- Slice: `26 — pinned WebMCP and ChatGPT compatibility`
-- Status: `GREEN / PRIVATE REMOTE AND ISOLATED RAILWAY UPDATED — exact sanitized candidate 39d1e141 is private remote main and deployment cd899386 is running at the public judge URL; live HTTPS preflight, exact-five Chrome execution, real Codex in-app Site Tools execution, shared human-agent state handoff, refresh lifecycle, mobile/reduced-motion checks, visual inspection, and a full-history Gitleaks scan pass. Real ChatGPT conversation evidence, the model threshold, public source visibility, video, and Devpost remain separate gates.`
-- Player-visible promise: `ChatGPT can discover the same five page-native tools reliably while the visible map remains the shared source of truth, including across normal React teardown and remount.`
-- Smallest complete boundary: `Inspect current primary sources, pin the compatibility record, fix the registration-abort race, add contract guards, project one sanitized candidate, reproduce its complete clean-clone proof, fast-forward the still-private remote without force, deploy only the isolated challenge service, and rerun public acceptance with an explicit rollback point.`
-- Likely files: `webmcpRegistry.ts`, registry and descriptor tests, source/release verifiers, official compatibility record, release assembler, public README and delta, release packet, and this ledger.`
-- Acceptance checks: `Exactly five valid top-level imperative tools remain; normal lifecycle abort cannot surface a false offline state; schemas serialize and use only current annotations; typecheck/build/38-test/Chrome/audit gates pass from an exact no-local clone; private remote main equals 39d1e141; deployment cd899386 is healthy; the public URL passes exact-five, visible-write, mutation-safety, fallback, mobile, reduced-motion, and visual checks; no remote MCP mutation path is added.`
+- Slice: `27 — Devpost narrative and Figma submission preflight`
+- Status: `FIGMA GREEN / DEVPOST RULES ACKNOWLEDGMENT REQUIRED — the verified judge board now includes a screenshot-reviewed six-beat Devpost storyboard. Live Devpost MCP confirms the account is registered, submissions are open, the exact requirements and criteria were fetched, and the local journey is correctly stopped at the mandatory rules gate. No Devpost project, draft, public-visibility change, or submission was created.`
+- Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
+- Smallest complete boundary: `Extend the existing FigJam evidence wrapper with one restrained Devpost storyboard, visually validate the complete board, initialize the official Devpost plugin journey, verify registration, fetch current official rules/requirements/criteria/dates, and stop before the explicit rules acknowledgment gate.`
+- Likely files: `WEBMCP_STATE.md`, local `.devpost-hackathon-state.json`, and two FigJam proof captures under artifacts/product-design-audit/devpost-figma-20260901/.`
+- Acceptance checks: `Existing judge/HCI evidence remains intact; the new storyboard has six ordered beats, one opening outcome, one shared-control middle, and one evidence close; the complete 6400x6090 board has no clipping or overlap; official Devpost data comes only from the live plugin; registration is already complete; rules_acknowledged remains false until the owner replies exactly yes; no submission or public release action occurs.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
 
 ## Acceptance Checks
@@ -75,6 +75,11 @@
 - [x] The public judge URL passes readiness, headers, no-login, exact-five metadata, 9/9 official Chrome steps, 15 deeper executions, visible trail completion, ambiguity safety, mobile geometry/targets, reduced motion, and desktop/mobile visual inspection.
 - [x] Official Gitleaks `8.30.1`, checksum-verified against its release manifest, scanned all fifteen sanitized commits and 88.28 MB with zero findings.
 - [x] The real Codex in-app browser discovered exactly five deployed page tools, invoked every tool, preserved revision zero for ambiguous Springfield, rendered the note/trail before success, reflected a human marker-2 click in the next agent state read, and rediscovered the exact five after refresh without a false offline state or console warning/error.
+- [x] FigJam wrapper `3:2` now includes Devpost storyboard section `27:2`: six ordered beats open on the visible trail, prove the shared controller and ambiguity safety, then close with exact-five/fallback/release evidence.
+- [x] `get_figjam` confirms the new section is contained at y=4310 inside the resized 6400x6090 wrapper; 2400px section and 4096px full-board renders were downloaded and visually inspected with no clipping, overlap, or competing product surface.
+- [x] Live Devpost MCP confirms the authenticated account is already registered for The WebMCP Challenge and that submissions remain open through September 3, 2026 at 1:00 PM Pacific.
+- [x] Live official requirements confirm a working judge-accessible URL, a WebMCP-specific description, a public under-three-minute YouTube demo with audio, and a public licensed repository; the four judging criteria are WebMCP Leverage, Execution, Potential Impact, and Creativity & Ambition.
+- [ ] The owner must reply exactly `yes` or `no` to the current official rules review before `rules_acknowledged` can change and the plugin may create `devpost-submission.md`.
 
 ## Work Log
 
@@ -372,6 +377,16 @@
 - Live `get_figjam` validation found the original evidence ending at y=2190 and the extension starting at y=2460. A 4096x2788 render of the 6400x4330 source board was downloaded and visually inspected.
 - Source commit `ea739a5ce7b98d161d161a6aebeea73cdef74bf2` contains the green repository guide; board URL `https://www.figma.com/board/lZBAfZeDClD4PG5KRkCwxa` contains the verified visual extension.
 
+### Slice 27 Devpost narrative and Figma submission preflight
+
+- The existing FigJam wrapper was inspected before mutation. Inter Regular, Medium, Semi Bold, and Bold were available, the prior content ended at y=4190, and wrapper `3:2` was 6400x4330.
+- One new light-blue Devpost storyboard section was added below the HCI evidence, not inside the product. It contains three columns and six concise beats: visible trail first, human-to-agent state handoff, Springfield recovery, visible note/manual editing, exact-five atomic/fallback proof, and an owner-gated release close.
+- Figma writes were incremental and atomic. Every created or mutated node ID was returned, placeholder treatments were removed, and a targeted typography pass raised all card copy from 24px to 32px.
+- Live `get_figjam` validation reports section `27:2` at 6200x1680 with two cards per column. A 2400px section render and a 4096px full-board render were downloaded and visually inspected; both are stored under `artifacts/product-design-audit/devpost-figma-20260901/`.
+- `pnpm verify:webmcp` remains green at 38/38 focused tests plus runtime and judge-copy guards; `git diff --check` passes. The storyboard and full-board PNG SHA-256 values are `75BF137B97CBE5C228266614228FFF11D0B3DF8F10B57A87ACE237F5261D2699` and `B270EB0C989ED385E3C7839A2556BC464A3B861E46C0FF3B260C69023653211F`.
+- Devpost MCP authenticated successfully, confirmed the account is already registered, and returned complete official overview, registration, rule, requirement, judging, date, and prize data on September 1, 2026 UTC.
+- The local plugin state is initialized at Review. It intentionally records `rules_acknowledged: false`, `submission.status: not-started`, and `next_command: review-hackathon-rules`; no draft or Devpost write was created past the already-complete registration check.
+
 ### Slice 23 implemented HCI contract
 
 - Product Design triage selected comprehension and recovery over new surface area: one ready-state trail cue, explicit unchanged-state language, and mobile prioritization of the agent outcome.
@@ -466,7 +481,7 @@
 
 ## Exact Next Action
 
-Complete the real ChatGPT desktop Site Tools journey using `C:\Users\mzwin\Documents\Atlas-WebMCP-Release\.evals\chatgpt-e2e\sessions\2026-09-01T03-46-41-354Z\RUNBOOK.md`, capture its five required PNG/text evidence files and observed call IDs, then run `pnpm e2e:chatgpt:transcript`. The browser and runbook are queued in the current Codex task. This is a credentialed human-observation gate; do not fabricate it. The optional exact `grok-4.6` three-run/90% lane remains separately credential-gated, and public visibility remains owner-gated.
+Present the current official rules review and obtain the owner's exact `yes` or `no`. On `yes`, set `rules_acknowledged: true`, advance the local Devpost journey, fetch the current form data through the prepare skill, and create `devpost-submission.md` from verified release evidence without submitting or changing repository visibility. The real ChatGPT conversation transcript, optional Grok threshold, public source visibility, video upload, and final Devpost submission remain separate gates.
 
 ## Slice Queue
 
@@ -496,4 +511,5 @@ Complete the real ChatGPT desktop Site Tools journey using `C:\Users\mzwin\Docum
 24. Release-grade visible completion and ChatGPT proof integrity — LOCALLY GREEN / EXTERNALLY OWNER-GATED (`abfe898a`; exact sanitized candidate `110fd05f`; no-local 37-test/Chrome/mobile/release proof complete)
 25. Quiet release-ready map entry — LOCALLY GREEN / REPLACEMENT SHA OWNER-GATED (`cc757316`; exact sanitized candidate `111b8fd`; current desktop/mobile and full no-local release proof complete)
 26. Pinned WebMCP and ChatGPT compatibility — GREEN / PRIVATE REMOTE AND RAILWAY DEPLOYED (`52b42b18`; exact sanitized candidate/private main `39d1e141`; deployment `cd899386`; current primary-source, 38-test, Chrome, real Codex in-app, shared human-agent handoff, refresh, clean-clone, public E2E, visual, and Gitleaks proof complete)
+27. Devpost narrative and Figma submission preflight — FIGMA GREEN / RULES ACKNOWLEDGMENT REQUIRED (FigJam section `27:2`; live Devpost registration and official-data preflight complete; no draft, visibility change, or submission)
 
