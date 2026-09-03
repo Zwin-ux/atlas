@@ -219,3 +219,14 @@
 - `XAI_API_KEY_PRESENT=False`; no credential value was printed or persisted.
 - `pnpm eval:webmcp:prepare` passed and wrote exactly five descriptor fixtures with SHA-256 prefix `06318ac7ae0611d9`.
 - Model gate status remains exactly `not run — credential unavailable`. Deterministic Chrome proof is not presented as a model score.
+
+### Item 8: new sanitized release candidate
+
+- Committed the live-evidence harness and allowlist at source `29bfbc3e`, assembled an initial local candidate, and found a Windows portability defect before release: Git line-ending conversion changed the raw byte hash of the JSON smoke report in its no-local clone.
+- Fixed the defect at source `339bd5ecc66a847b162502493fdb4c97df0fb49f` by declaring canonical JSON hashing, adding explicit LF/binary attributes to the release scaffold, and making `audit:release` validate all eight image hashes, PNG signatures, and the canonical report hash.
+- Preserved the superseded local candidate and assembled a new never-overwritten sibling repository at `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-20260902-339bd5e`.
+- Initialized one new local `main` history at exact candidate `14970b815b81b97cae0cb8bc67f87321b38f20b7`, then reproduced it with `git clone --no-local` at `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-14970b8`.
+- Both candidate and clone passed `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm verify:webmcp` (38/38), `pnpm eval:webmcp:smoke` (Chrome `152.0.7977.66`, exact five, 9/9 official steps, 15 deeper executions, reduced-motion screenshot), `pnpm audit:release`, `git diff --check`, and clean `git status`.
+- Release audit result in both trees: 3,351 tracked files, 3,222 county geo packs, 52 state plates, zero oversized files, zero failures, one commit, and a clean worktree. Byte totals differ only by working-tree line-ending representation; canonical evidence verification is green in both.
+- Checksum-verified official Gitleaks `8.30.1` archive SHA-256 `d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e` scanned the complete one-commit clean-clone history, about 87.89 MB, and reported zero findings.
+- This new candidate is local only. The existing private remote and live deployment remain at `39d1e141`; no push, visibility change, deployment, or submission occurred.

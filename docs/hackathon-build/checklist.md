@@ -60,11 +60,12 @@
   Verify: `pnpm eval:webmcp:prepare`; `pnpm eval:webmcp:grok`; inspect the generated report's run count, threshold, critical-failure count, model identifier, and redaction behavior.
   Status: `not run — credential unavailable`. `pnpm eval:webmcp:prepare` wrote exactly five live descriptors with SHA-256 prefix `06318ac7ae0611d9`; `XAI_API_KEY_PRESENT=False`, so no remote request or model-score claim was made.
 
-- [ ] **8. Assemble and prove one sanitized release candidate — 30 minutes**
+- [x] **8. Assemble and prove one sanitized release candidate — 30 minutes**
   Spec ref: `spec.md > Architecture > Verification, Sanitized Release, And Submission Evidence`
   What to build: Assemble the challenge allowlist into a brand-new absolute sibling directory, review the generated diff, initialize/commit the sanitized repository if needed, and prove it from a separate `git clone --no-local`. Run tracked-path, secret, oversized-file, generated-artifact, license/attribution, challenge-scope, and full-history checks. Do not publish or overwrite the existing release directory.
   Acceptance: The sanitized tree contains only the exact-five runtime, required Census data/plates, tests/evals, Apache-2.0 license, attribution, deployment files, challenge docs, and assets; its frozen clean clone is green; one immutable candidate SHA and rollback source are recorded.
   Verify: `node scripts/assemble-webmcp-release.mjs --target <new-absolute-empty-directory>`; in the candidate and no-local clone run `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm verify:webmcp`, `pnpm eval:webmcp:smoke`, `pnpm audit:release`, `git diff --check`, and `git status --short --branch`; repeat the approved Gitleaks full-history scan.
+  Status: Complete at immutable local candidate `14970b815b81b97cae0cb8bc67f87321b38f20b7`, assembled from source `339bd5ecc66a847b162502493fdb4c97df0fb49f` and reproduced in `Atlas-WebMCP-Release-Clean-14970b8`. Both trees pass every listed gate. The release audit verifies eight image hashes/PNG signatures plus a canonical JSON report hash; official checksum-matched Gitleaks `8.30.1` reports zero findings across the full one-commit history. The candidate remains local and unpublished.
 
 - [ ] **9. Produce the under-three-minute narrated demo — 30 minutes**
   Spec ref: `spec.md > Demo And Submission Flow`

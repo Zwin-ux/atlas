@@ -11,11 +11,11 @@
 ## Current Slice
 
 - Slice: `34 — Release build checkpoint 2: coherent proof, external gates, and sanitized clone`
-- Status: `IN_PROGRESS — checklist items 5–8 are active. Bind every visual artifact to the exact deployed candidate, capture an explicit reduced-motion trail frame, test the real ChatGPT evidence lane without impersonating unavailable page tools, record the credential-gated Grok lane honestly, and assemble a new non-public sanitized clean clone.`
+- Status: `CHECKPOINT 2 GREEN / VERIFY WITH PARTICIPANT — checklist items 5–8 are complete as far as local authority permits. The SHA-bound live visual set is coherent, the unavailable ChatGPT/Grok lanes are explicitly blocked without false claims, and a new unpublished sanitized candidate plus no-local clone pass every deterministic, browser, audit, integrity, and history-secret gate.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Complete checklist items 5–8: produce one SHA-bound live screenshot manifest; attempt the generated real-ChatGPT runbook and stop honestly if this task cannot access the page-native Site Tools; prepare or run the exact Grok gate based only on credential presence; assemble a brand-new sanitized candidate and prove a separate no-local clone through frozen install, typecheck, build, exact-five verification, Chrome smoke, release audit, diff, clean status, and full-history secret scan.`
-- Likely files: `scripts/verify-webmcp-browser-smoke.mjs`, `docs/hackathon-build/checklist.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, a new tracked proof manifest/screenshots, and new ignored ChatGPT/release sibling directories. No public descriptor, schema, controller, route, or product UI change is planned.`
-- Acceptance checks: `Pending — reduced-motion screenshot output; same-candidate manifest with dimensions, hashes, actions, browser and viewports; honest ChatGPT and Grok lane status; new sanitized candidate plus clean clone green on every required command; self-review; git diff --check; one coherent checkpoint commit.`
+- Smallest complete boundary: `PASS — items 5–8 produced a live proof folder with eight verified PNGs and a portable report; one isolated ChatGPT runbook with a deliberately rejected unobserved transcript; one exact-five model fixture with credential-unavailable status; and local candidate 14970b8 reproduced by no-local clone through every required gate.`
+- Likely files: `Checkpoint output is limited to the evidence harness, release allowlist/audit, proof artifacts, checklist/build notes, and this ledger. No public descriptor, schema, controller, route, or product UI changed.`
+- Acceptance checks: `PASS — proof manifest and screenshots verified; ChatGPT/model boundaries honest; source verification 38/38; candidate and clone frozen install/type/build/38-test/Chrome smoke/release audit/diff/clean status green; canonical hashes reproduce across Windows checkout; Gitleaks 8.30.1 full-history scan reports zero findings.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
 
 ### Release checkpoint 1 proof — September 2, 2026
@@ -34,7 +34,17 @@
 - The browser smoke harness now captures the reduced-motion trail explicitly and writes portable screenshot paths. A fresh live run passed 9/9 official steps plus the 15-execution deep journey in Chrome `152.0.7977.66`; the exact-five public surface and runtime product were unchanged.
 - Item 6 completed as an external block: `pnpm e2e:chatgpt:session` created isolated session `2026-09-03T04-13-21-091Z`; this Codex host does not expose the page-native exact-five Site Tools, and the untouched template was correctly rejected. Status: `BLOCKED_PENDING_AUTHENTICATED_CHATGPT_SESSION`, with no substituted plugin or acceptance claim.
 - Item 7 completed as a credential gate: `pnpm eval:webmcp:prepare` wrote exactly five descriptors with SHA-256 prefix `06318ac7ae0611d9`; `XAI_API_KEY_PRESENT=False`; status remains `not run — credential unavailable`.
-- Exact next action: commit the green proof-harness slice so release provenance is truthful, then assemble item 8 into a brand-new sibling directory and validate a separate `git clone --no-local` without publishing it.
+- Interim action completed: committed the green proof-harness slice, then assembled and validated item 8 in brand-new sibling candidate and no-local clone directories without publishing either.
+
+### Release checkpoint 2 completion proof — September 2, 2026
+
+- Source checkpoint: `339bd5ecc66a847b162502493fdb4c97df0fb49f`; new sanitized candidate: `14970b815b81b97cae0cb8bc67f87321b38f20b7`; exact no-local clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-14970b8`.
+- A pre-release self-review caught raw JSON hash drift under Windows line-ending conversion. The corrected release uses `canonical-json-utf8-lf`, explicit release Git attributes, and an audit that validates eight PNG signatures/hashes plus the canonical report hash in both the assembled tree and fresh clone.
+- Both candidate and clone pass frozen install, typecheck, build, 38/38 exact-five verification, Chrome `152.0.7977.66` 9/9 official smoke plus 15 deeper executions, reduced-motion screenshot, release audit, diff check, and clean status.
+- Release inventory: 3,351 tracked files, 3,222 county packs, 52 state plates, zero oversized files, zero release-audit failures, and one clean commit. The exact-five runtime is unchanged from deployed candidate `39d1e141`; only evidence/test/release files differ.
+- Official Gitleaks `8.30.1` was re-verified against archive SHA-256 `d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e`; it scanned the complete one-commit history and about 87.89 MB with zero findings.
+- External truth remains unchanged: candidate `14970b8` is not pushed or deployed; the private remote and public live runtime remain exact `39d1e141`; real ChatGPT, Grok, video publication, public repository visibility, and Devpost submission are still separate gates.
+- Exact next action after participant checkpoint: begin item 9 by producing the under-three-minute narrated demo from the immutable candidate and the approved shot list, without publishing it.
 
 ## Acceptance Checks
 
