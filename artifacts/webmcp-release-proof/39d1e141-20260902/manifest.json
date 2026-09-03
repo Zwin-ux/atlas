@@ -27,6 +27,7 @@
     "consoleErrors": 0,
     "report": {
       "file": "browser-smoke.json",
+      "hashMode": "canonical-json-utf8-lf",
       "sha256": "2ebb8b8b0e536a5d878cedb6b6eab02830aacb1c92b3cee3242ddc0d81d6d140"
     }
   },

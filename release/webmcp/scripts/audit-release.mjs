@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 
@@ -59,8 +60,28 @@ for (const path of relativeFiles) {
   }
 }
 
-for (const required of ["LICENSE", "ATTRIBUTION.md", "README.md", "CHALLENGE_DELTA.md", "docs/CHATGPT_ACCEPTANCE.md", "docs/CHATGPT_E2E.md", "docs/HCI_OPERATING_MANUAL.md", "docs/OFFICIAL_COMPATIBILITY.md", "docs/assets/trail-overview.png", "docs/evidence/39d1e141/manifest.json", "docs/evidence/39d1e141/browser-smoke.json", "evals/atlas-chatgpt.transcript.template.json", "scripts/prepare-chatgpt-session.mjs", "scripts/run-chatgpt-e2e.mjs", "scripts/verify-chatgpt-live.mjs", "scripts/verify-chatgpt-transcript.mjs", "pnpm-lock.yaml", "railway.toml", "data/census/us-county-town-anchors.json", "data/atlas-plates/nation.json"]) {
+for (const required of [".gitattributes", "LICENSE", "ATTRIBUTION.md", "README.md", "CHALLENGE_DELTA.md", "docs/CHATGPT_ACCEPTANCE.md", "docs/CHATGPT_E2E.md", "docs/HCI_OPERATING_MANUAL.md", "docs/OFFICIAL_COMPATIBILITY.md", "docs/assets/trail-overview.png", "docs/evidence/39d1e141/manifest.json", "docs/evidence/39d1e141/browser-smoke.json", "evals/atlas-chatgpt.transcript.template.json", "scripts/prepare-chatgpt-session.mjs", "scripts/run-chatgpt-e2e.mjs", "scripts/verify-chatgpt-live.mjs", "scripts/verify-chatgpt-transcript.mjs", "pnpm-lock.yaml", "railway.toml", "data/census/us-county-town-anchors.json", "data/atlas-plates/nation.json"]) {
   if (!relativeFiles.includes(required)) failures.push(`Missing required release file: ${required}`);
+}
+
+const evidenceRoot = resolve(root, "docs/evidence/39d1e141");
+try {
+  const manifest = JSON.parse(await readFile(resolve(evidenceRoot, "manifest.json"), "utf8"));
+  if (!Array.isArray(manifest.images) || manifest.images.length !== 8) failures.push("Release evidence manifest must list eight reviewed images.");
+  for (const image of manifest.images ?? []) {
+    const imageBytes = await readFile(resolve(evidenceRoot, image.file));
+    const imageHash = createHash("sha256").update(imageBytes).digest("hex");
+    if (imageHash !== image.sha256) failures.push(`Release evidence hash mismatch: ${image.file}`);
+    if (!imageBytes.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex"))) failures.push(`Release evidence is not a PNG: ${image.file}`);
+  }
+  const report = JSON.parse(await readFile(resolve(evidenceRoot, manifest.webmcpBrowser.report.file), "utf8"));
+  const canonicalReport = `${JSON.stringify(report, null, 2)}\n`;
+  const reportHash = createHash("sha256").update(canonicalReport, "utf8").digest("hex");
+  if (manifest.webmcpBrowser.report.hashMode !== "canonical-json-utf8-lf" || reportHash !== manifest.webmcpBrowser.report.sha256) {
+    failures.push("Release WebMCP report canonical hash mismatch.");
+  }
+} catch (error) {
+  failures.push(`Release evidence verification failed: ${error instanceof Error ? error.message : String(error)}`);
 }
 
 if (relativeFiles.includes("railway.toml")) {
