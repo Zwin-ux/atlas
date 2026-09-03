@@ -119,3 +119,27 @@
 - Created `docs/hackathon-build/prd.md`, expanding the fixed scope into product goals, experience principles, a complete user journey, seven behavior epics, screen-observable criteria, edge cases, priority tiers, explicit later items, non-goals, and submission proof points.
 - The PRD is intentionally user-facing. Technical architecture and code decisions remain deferred to build-spec.
 - No product code, Higgsfield job, release action, repository visibility change, or Devpost submission was authorized or performed.
+
+## 2026-09-02 — Repository-grounded technical spec
+
+### Mandatory beats 1-2: stack and deployment
+
+- The existing implementation was treated as the baseline rather than a blank-slate stack choice. Source inspection confirmed React 18, TypeScript 5.9, Node 22.12+, pnpm 11.7, a native SVG renderer, one in-memory `AtlasMapController`, deterministic Census-derived data, and an isolated Railway challenge service.
+- Recommended the boring reliable choice: no framework migration, renderer swap, state library, database, local persistence, remote MCP mutation server, or new runtime dependency.
+- Deployment remains the current public Railway judge route through the sanitized challenge projection. Repository publication, deployment changes, video publication, and Devpost submission remain separate owner gates.
+- Higgsfield remains optional and bounded to one pre-budgeted static visual study with no runtime dependency or geographic authority.
+
+### Mandatory beats 3-5: architecture, file structure, and data flow
+
+- Current version-specific WebMCP behavior is already pinned in `docs/webmcp/OFFICIAL_COMPATIBILITY.md`, including the reviewed upstream commit, ChatGPT top-level discovery boundary, annotations, abort lifecycle, and acceptance limits. No new dependency or speculative API research was needed.
+- Mapped all seven PRD epics onto the current route shell, shared controller, top-level registry/tool adapter, Census resolver and plate API, SVG geometry/overlay, finder/notebook/activity interface, and layered proof/release tooling.
+- Defined the challenge-relevant file tree with purpose annotations and explicitly fenced historical Atlas systems and generated `release/webmcp` files away from manual edits.
+- Walked the complete trail lifecycle: tool selection, schema bounds, all-stop resolution, pre-commit failure, one workspace revision, React plate load, projected county centers, base route and numbered marker render, expected-marker validation, visible-revision acknowledgment, compact tool success, and human marker/rail handoff back into the same controller.
+- Documented exact public HTTP endpoints, browser-owned session data, structured versus operational failure language, cancellation and supersession behavior, accessibility/privacy boundaries, deterministic/model/ChatGPT proof separation, and release drift controls.
+
+### Architecture approval and document decision
+
+- The participant approved every proposed technical decision with “approva all” and asked for an effective high-intensity execution workflow to finish the work.
+- That answer also selected writing the document now rather than adding another interview round. Deepening rounds taken: 0.
+- Created `docs/hackathon-build/spec.md`. It distinguishes verified implementation from the remaining bounded work, preserves the exact-five and shared-visible-state invariants, and gives `build-checklist` an explicit dependency-ordered handoff.
+- No product code, runtime dependency, generated asset, model credential, deployment, repository visibility, video publication, or Devpost submission changed during this planning stage.

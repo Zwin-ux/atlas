@@ -10,12 +10,12 @@
 
 ## Current Slice
 
-- Slice: `30 — User-facing Atlas PRD`
-- Status: `PRD GREEN / SPEC NEXT — prd.md is complete after all mandatory beats and zero deepening rounds. It expands the scope into seven user-facing epics, observable acceptance criteria, first-run and failure behavior, priority tiers, later items, non-goals, field-atlas experience requirements, and challenge proof points without making technical design decisions.`
+- Slice: `31 — Repository-grounded Atlas technical spec`
+- Status: `SPEC GREEN / CHECKLIST NEXT — the participant approved the current React/TypeScript/Node/pnpm/SVG stack, one AtlasMapController, exact-five top-level WebMCP surface, Census-backed resolver, session-only state, isolated Railway target, and static-only optional Higgsfield boundary. spec.md maps every PRD epic to real components, annotates the challenge file tree, walks the visible-revision lifecycle, records exact API/error/proof contracts, and hands a bounded execution order to build-checklist.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Interview the product behavior from first open through shared place exploration, trails, notes, errors, and completion feedback; express it as stable user stories with screen-observable acceptance criteria; guard the three-day cut; offer the optional deepening round; then write a substantial PRD.`
-- Likely files: `docs/hackathon-build/prd.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
-- Acceptance checks: `Every requirement describes user-visible behavior rather than implementation; each story has testable on-screen criteria; first-run and meaningful edge cases are explicit; existing verified behavior is not reinvented; cut features stay cut; no technical design, product code, generation credit, release, or submission action occurs during stage navigation.`
+- Smallest complete boundary: `Confirm the boring reliable stack and deployment decisions; map every PRD epic to current components; define an explicit file boundary and the lifecycle of map state from ChatGPT tool call through visible render acknowledgment; isolate the remaining visual, evidence, release, and optional generated-asset work; offer the optional deepening round; then write spec.md.`
+- Likely files: `docs/hackathon-build/spec.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
+- Acceptance checks: `The spec distinguishes existing implementation from remaining work; all seven PRD epics map to real files; the critical data lifecycle and failure behavior are explicit; exact-five top-level WebMCP and session-only shared state remain binding; deployment and optional generated assets have clear boundaries; cut features stay cut; no product code, generation credit, release, or submission action occurs during stage navigation.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
 
 ## Acceptance Checks
@@ -505,7 +505,7 @@
 
 ## Exact Next Action
 
-Run the build-spec skill using learner-profile.md, scope.md, prd.md, the branch audit, and current repository truth. Translate the accepted product behavior into the smallest technical change/evidence plan without reopening non-goals or mutating code during stage navigation.
+Run the build-checklist skill from `docs/hackathon-build/spec.md`. Convert the remaining design-audit, optional single polish slice, deterministic proof, real ChatGPT acceptance, sanitized-release, video, and owner-gated submission work into dependency-ordered tasks with exact files, commands, visible acceptance, and stop conditions.
 
 ## Slice Queue
 
@@ -539,4 +539,5 @@ Run the build-spec skill using learner-profile.md, scope.md, prd.md, the branch 
 28. Repository-grounded guided build onboarding — GREEN / SCOPE NEXT (learner profile, all-branch audit, broad-user framing, field-atlas direction, Higgsfield boundary, and anti-slop constraints complete)
 29. Winner-focused guided scope — GREEN / PRD NEXT (mandatory beats complete, zero deepening rounds, scope.md and three-day cut finalized)
 30. User-facing Atlas PRD — GREEN / SPEC NEXT (seven behavior epics, observable criteria, edge cases, priorities, later list, non-goals, and proof points complete)
+31. Repository-grounded Atlas technical spec — GREEN / CHECKLIST NEXT (approved existing stack and deployment boundary; seven epics mapped to real components; exact file, state, API, visible-revision, error, proof, and release contracts complete; zero deepening rounds)
 
