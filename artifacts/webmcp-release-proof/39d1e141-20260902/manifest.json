@@ -1,0 +1,113 @@
+{
+  "capturedAt": "2026-09-03T04:12:32Z",
+  "liveUrl": "https://atlas-webmcp-production.up.railway.app/explore",
+  "deploymentId": "cd899386-c7b4-4f1c-816d-1bf6e67e20fa",
+  "candidateSha": "39d1e1413e72ea050845ffbaa6323fffeb8c28f1",
+  "sourceRuntimeSha": "52b42b1899209de0cc38e11ea27e913d974d0129",
+  "sourceCheckpointSha": "dbb4619b",
+  "scope": "Every image in this folder shows the same deployed candidate. Normal-browser frames prove fallback and human interaction; Chrome 152 frames prove page-native WebMCP execution.",
+  "normalBrowser": {
+    "version": "HeadlessChrome/149.0.7827.55",
+    "webmcp": false,
+    "expectedBoundary": "The page stays usable and reports Site tools not detected. This lane may emit Chrome's experimental tools origin-trial warning; it is not counted as a product error."
+  },
+  "webmcpBrowser": {
+    "version": "Chrome/152.0.7977.66",
+    "webmcp": true,
+    "launchFeature": "WebMCP",
+    "registeredTools": [
+      "get_map_state",
+      "search_places",
+      "open_place",
+      "add_map_note",
+      "create_map_trail"
+    ],
+    "officialSmokeSteps": "9/9",
+    "deeperExecutions": 15,
+    "consoleErrors": 0,
+    "report": {
+      "file": "browser-smoke.json",
+      "sha256": "2ebb8b8b0e536a5d878cedb6b6eab02830aacb1c92b3cee3242ddc0d81d6d140"
+    }
+  },
+  "images": [
+    {
+      "file": "01-national-entry-desktop.png",
+      "browser": "normalBrowser",
+      "viewport": "1440x1000",
+      "action": "Open the live no-login route in the default light theme.",
+      "claim": "The first view is a quiet national atlas and the normal-browser fallback remains usable.",
+      "bytes": 517912,
+      "sha256": "7608a2043b06354884e39c1c7df4579e741b93518bc4595a18a85e16370084a9"
+    },
+    {
+      "file": "02-springfield-ambiguity-desktop.png",
+      "browser": "normalBrowser",
+      "viewport": "1440x1000",
+      "action": "Search Springfield and submit without a state.",
+      "claim": "Atlas returns eight deliberate candidates and states that the map is unchanged.",
+      "bytes": 496759,
+      "sha256": "3976d28195999526b2f53ea71a208e8519c0179fcae0acf2fe16b2bb95ce8a36"
+    },
+    {
+      "file": "03-springfield-ambiguity-mobile-390x844.png",
+      "browser": "normalBrowser",
+      "viewport": "390x844",
+      "action": "Repeat the ambiguous Springfield search at the exact mobile acceptance viewport.",
+      "claim": "Ambiguity recovery remains readable with no horizontal overflow and 44px candidate actions.",
+      "bytes": 143059,
+      "sha256": "250085018f5334a2fbf9a2ba433c778bb85c41b58d051e6cdf1df4ddbaf562b7"
+    },
+    {
+      "file": "04-national-entry-desktop-dark.png",
+      "browser": "normalBrowser",
+      "viewport": "1440x1000",
+      "action": "Open the live route with dark color-scheme emulation.",
+      "claim": "The field-atlas hierarchy and land-water contrast survive dark mode without generic glowing UI.",
+      "bytes": 493438,
+      "sha256": "97a99c5f7ce3691b1b098f2396737d1385ef1c304c87ddb145dc645efc2234e1"
+    },
+    {
+      "file": "05-keyboard-focus-desktop-dark.png",
+      "browser": "normalBrowser",
+      "viewport": "1440x1000",
+      "action": "Press Tab until the place finder receives keyboard focus in dark mode.",
+      "claim": "Keyboard focus is visibly distinct without depending on color alone.",
+      "bytes": 492888,
+      "sha256": "c9545e6f999da695916eb117c59890ac1b6d71dd13a9d1b63c6a519e5aa1868f"
+    },
+    {
+      "file": "06-webmcp-trail-desktop.png",
+      "browser": "webmcpBrowser",
+      "viewport": "1280x720",
+      "action": "Invoke add_map_note, then create_map_trail for Riverside, Miami-Dade, and Travis counties.",
+      "claim": "The completed national route, three numbered markers, editable notebook rail, visible note, and agent activity are present before tool success.",
+      "bytes": 354228,
+      "sha256": "f47f11e652150f470f3400402f0fe2724094c1859b519bc1ba29a3e05271d094"
+    },
+    {
+      "file": "07-human-stop-mobile-390x844.png",
+      "browser": "webmcpBrowser",
+      "viewport": "390x844",
+      "action": "After the agent-created trail, use the human rail control to open stop 2.",
+      "claim": "The map, breadcrumb, and rail agree on Miami-Dade as the current stop through the shared controller.",
+      "bytes": 66218,
+      "sha256": "4a467b6a2986852e471fdc4c0c80c52b52ee3c61061c19d6bb58a72b6369860d"
+    },
+    {
+      "file": "08-reduced-motion-trail-desktop.png",
+      "browser": "webmcpBrowser",
+      "viewport": "1280x720",
+      "action": "Emulate prefers-reduced-motion: reduce and create the same three-stop trail.",
+      "claim": "The complete route remains legible while route, marker, pin, active-ring, and activity animations compute to none.",
+      "bytes": 346892,
+      "sha256": "8643faf386a60af84d6a388789c7fa2662f3ce6ef6c862cc2290c8fe5924bdbc"
+    }
+  ],
+  "integrity": {
+    "pngSignature": "89504e470d0a1a0a",
+    "allImagesOpenedAtOriginalSize": true,
+    "privateDataVisible": false,
+    "developmentChromeVisible": false
+  }
+}

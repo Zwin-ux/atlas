@@ -10,12 +10,12 @@
 
 ## Current Slice
 
-- Slice: `33 — Release build checkpoint 1: baseline, judge audit, and deterministic gates`
-- Status: `CHECKPOINT 1 GREEN / VERIFY WITH PARTICIPANT — checklist items 1–4 are complete. The exact source/live boundary is frozen, seven fresh judge states were visually inspected, the combined Product Design audit found zero P0/P1/P2 issues and selected no runtime mutation, and the 38-test/type/build/Chrome-smoke/diff sequence is green.`
+- Slice: `34 — Release build checkpoint 2: coherent proof, external gates, and sanitized clone`
+- Status: `IN_PROGRESS — checklist items 5–8 are active. Bind every visual artifact to the exact deployed candidate, capture an explicit reduced-motion trail frame, test the real ChatGPT evidence lane without impersonating unavailable page tools, record the credential-gated Grok lane honestly, and assemble a new non-public sanitized clean clone.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Complete checklist items 1–4 against observed current evidence: verify branch/source/live candidate identity, audit fresh live states at desktop and 390x844, implement only one real P1/P2 fix if found, run verify/type/build/Chrome smoke/diff gates, visually inspect outputs, record the evidence, and commit one green checkpoint.`
-- Likely files: `docs/hackathon-build/checklist.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, local `.devpost-hackathon-state.json`, and `artifacts/product-design-audit/release-final-20260902/`. No runtime product file changed.`
-- Acceptance checks: `PASS — live preflight matched sanitized candidate 39d1e141 and exact-five descriptors; fresh desktop/mobile captures preserve the map-first hierarchy, 44px mobile targets, and zero horizontal overflow; dark/focus/reduced-motion states are green; no product mutation was justified; pnpm verify:webmcp passed 38/38, pnpm typecheck passed, pnpm build passed, pnpm eval:webmcp:smoke passed 9/9 plus 15 deeper Chrome executions, and git diff --check passed.`
+- Smallest complete boundary: `Complete checklist items 5–8: produce one SHA-bound live screenshot manifest; attempt the generated real-ChatGPT runbook and stop honestly if this task cannot access the page-native Site Tools; prepare or run the exact Grok gate based only on credential presence; assemble a brand-new sanitized candidate and prove a separate no-local clone through frozen install, typecheck, build, exact-five verification, Chrome smoke, release audit, diff, clean status, and full-history secret scan.`
+- Likely files: `scripts/verify-webmcp-browser-smoke.mjs`, `docs/hackathon-build/checklist.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, a new tracked proof manifest/screenshots, and new ignored ChatGPT/release sibling directories. No public descriptor, schema, controller, route, or product UI change is planned.`
+- Acceptance checks: `Pending — reduced-motion screenshot output; same-candidate manifest with dimensions, hashes, actions, browser and viewports; honest ChatGPT and Grok lane status; new sanitized candidate plus clean clone green on every required command; self-review; git diff --check; one coherent checkpoint commit.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
 
 ### Release checkpoint 1 proof — September 2, 2026
@@ -27,6 +27,14 @@
 - Accessibility evidence: named heading/map/scale/map controls in the accessibility snapshot; visible keyboard focus in dark mode; Enter on trail stop 2 produced Miami-Dade plus `activeIndex: 1`; reduced-motion computed every targeted animation as `none`.
 - Deterministic result: `pnpm verify:webmcp` 38/38 PASS; `pnpm typecheck` PASS; `pnpm build` PASS; post-build `pnpm eval:webmcp:smoke` PASS with Chrome `152.0.7977.66`, five tools, 9/9 official steps, 15 deeper executions, zero console errors; `git diff --check` PASS.
 - Evidence lanes still open: real ChatGPT conversation capture; Grok 4.6 (`not run — credential unavailable`); new sanitized clean clone; narrated video; public visibility; Devpost submission.
+
+### Release checkpoint 2 interim proof — September 2, 2026
+
+- Item 5 complete: `artifacts/webmcp-release-proof/39d1e141-20260902/` contains eight live-candidate PNGs, a sanitized Chrome report, and an integrity manifest bound to deployed candidate `39d1e141` and deployment `cd899386`. Every PNG signature, dimension, byte count, and SHA-256 matched; the Chrome report hash matched, with five tools, 15 deeper executions, and zero console errors.
+- The browser smoke harness now captures the reduced-motion trail explicitly and writes portable screenshot paths. A fresh live run passed 9/9 official steps plus the 15-execution deep journey in Chrome `152.0.7977.66`; the exact-five public surface and runtime product were unchanged.
+- Item 6 completed as an external block: `pnpm e2e:chatgpt:session` created isolated session `2026-09-03T04-13-21-091Z`; this Codex host does not expose the page-native exact-five Site Tools, and the untouched template was correctly rejected. Status: `BLOCKED_PENDING_AUTHENTICATED_CHATGPT_SESSION`, with no substituted plugin or acceptance claim.
+- Item 7 completed as a credential gate: `pnpm eval:webmcp:prepare` wrote exactly five descriptors with SHA-256 prefix `06318ac7ae0611d9`; `XAI_API_KEY_PRESENT=False`; status remains `not run — credential unavailable`.
+- Exact next action: commit the green proof-harness slice so release provenance is truthful, then assemble item 8 into a brand-new sibling directory and validate a separate `git clone --no-local` without publishing it.
 
 ## Acceptance Checks
 

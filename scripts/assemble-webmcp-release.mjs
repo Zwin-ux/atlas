@@ -103,7 +103,8 @@ for (const entry of (await readdir(geoPackSource)).filter((name) => name.endsWit
   await copyFile(`data/geo-packs/${entry}`, `data/geo-packs/${entry}`);
 }
 await copyTree("artifacts/atlas-plates", "data/atlas-plates");
-await copyFile("artifacts/webmcp-proof/trail-overview-desktop.png", "docs/assets/trail-overview.png");
+await copyTree("artifacts/webmcp-release-proof/39d1e141-20260902", "docs/evidence/39d1e141");
+await copyFile("artifacts/webmcp-release-proof/39d1e141-20260902/06-webmcp-trail-desktop.png", "docs/assets/trail-overview.png");
 
 await copyFile("docs/webmcp/VIDEO_SCRIPT.md", "docs/VIDEO_SCRIPT.md");
 await copyFile("docs/webmcp/EVALS.md", "docs/EVALS.md");

@@ -197,3 +197,25 @@
 - `pnpm eval:webmcp:smoke` — PASS after the production build in Chrome `152.0.7977.66`: 9/9 official steps, exactly five tools, 15 deeper executions, visible trail before success, human stop-2 handoff, note state, ambiguity/unknown-stop no-mutation checks, no console errors, exact `390x844`, and reduced motion.
 - `git diff --check` — PASS.
 - Expected normal-browser evidence: the browser without experimental WebMCP reports `Site tools not detected` and logs only Chrome's origin-trial warning for `tools`; the application remains usable and the WebMCP-capable Chrome lane is separately green.
+
+## 2026-09-02 — Build checkpoint 2, items 5–7
+
+### Item 5: coherent live visual proof
+
+- Created `artifacts/webmcp-release-proof/39d1e141-20260902/` for the exact deployed candidate `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` at deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa`.
+- The set contains eight stable frames: quiet national entry, desktop/mobile Springfield ambiguity, dark entry, keyboard focus, WebMCP trail plus visible note, human-selected mobile stop 2, and the same trail under reduced motion.
+- Normal-browser evidence is explicitly identified as HeadlessChrome `149.0.7827.55`; page-native execution evidence is Chrome `152.0.7977.66` with WebMCP enabled.
+- `manifest.json` records candidate/source SHA, deployment, browser/version, viewport, action, claim, byte count, and SHA-256 for every PNG. The integrity pass confirmed eight PNG signatures and dimensions plus the Chrome report hash, five tools, 15 deeper executions, and zero console errors.
+- `scripts/verify-webmcp-browser-smoke.mjs` now saves a dedicated reduced-motion screenshot and stores portable repository-relative screenshot paths in the JSON report. This is evidence-harness work only; the exact-five descriptors, schemas, controller, and product UI are unchanged.
+
+### Item 6: real ChatGPT lane
+
+- `pnpm e2e:chatgpt:session` created a new no-overwrite session at `.evals/chatgpt-e2e/sessions/2026-09-03T04-13-21-091Z/`.
+- The current Codex host exposes old Atlas plugin tools, not the deployed page's exact five Site Tools, so substituting those tools would be false evidence. The runbook was queued in the Codex right panel for the later authenticated ChatGPT session.
+- The fresh template validator failed as intended with `A release transcript must have status captured.` Lane status is `BLOCKED_PENDING_AUTHENTICATED_CHATGPT_SESSION`; no real-ChatGPT claim was made.
+
+### Item 7: exact Grok 4.6 lane
+
+- `XAI_API_KEY_PRESENT=False`; no credential value was printed or persisted.
+- `pnpm eval:webmcp:prepare` passed and wrote exactly five descriptor fixtures with SHA-256 prefix `06318ac7ae0611d9`.
+- Model gate status remains exactly `not run — credential unavailable`. Deterministic Chrome proof is not presented as a model score.

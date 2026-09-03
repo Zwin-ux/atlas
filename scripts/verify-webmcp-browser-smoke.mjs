@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { mkdir, realpath, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const args = process.argv.slice(2);
@@ -227,7 +227,7 @@ try {
   const screenshotPath = resolve(process.cwd(), process.env.ATLAS_WEBMCP_SMOKE_SCREENSHOT ?? ".evals/browser-smoke-trail.png");
   await mkdir(dirname(screenshotPath), { recursive: true });
   await page.screenshot({ path: screenshotPath, type: "png" });
-  report.screenshot = screenshotPath;
+  report.screenshot = relative(process.cwd(), screenshotPath).replaceAll("\\", "/");
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
   const compactTrail = await mobileTrailState(page);
@@ -240,7 +240,7 @@ try {
   assertMobileTrailState(await mobileTrailState(page), 1);
   const mobileScreenshotPath = resolve(process.cwd(), process.env.ATLAS_WEBMCP_SMOKE_MOBILE_SCREENSHOT ?? ".evals/browser-smoke-trail-mobile.png");
   await page.screenshot({ path: mobileScreenshotPath, type: "png" });
-  report.mobileScreenshot = mobileScreenshotPath;
+  report.mobileScreenshot = relative(process.cwd(), mobileScreenshotPath).replaceAll("\\", "/");
 
   await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
   await invoke(page, "create_map_trail", validTrailInput);
@@ -301,6 +301,13 @@ try {
     }));
   });
   assert.ok(Object.values(reducedMotion).every((name) => name === "none"), `Reduced motion must remove trail and activity animation: ${JSON.stringify(reducedMotion)}`);
+  const reducedMotionScreenshotPath = resolve(
+    process.cwd(),
+    process.env.ATLAS_WEBMCP_SMOKE_REDUCED_MOTION_SCREENSHOT ?? ".evals/browser-smoke-trail-reduced-motion.png",
+  );
+  await mkdir(dirname(reducedMotionScreenshotPath), { recursive: true });
+  await page.screenshot({ path: reducedMotionScreenshotPath, type: "png" });
+  report.reducedMotionScreenshot = relative(process.cwd(), reducedMotionScreenshotPath).replaceAll("\\", "/");
   await page.type('.atlas-app__finder input[placeholder="City or county, state"]', "Springfield");
   await page.keyboard.press("Enter");
   await page.waitForSelector(".atlas-app__finder-results li");
@@ -323,6 +330,7 @@ try {
     report: reportPath,
     screenshot: report.screenshot,
     mobileScreenshot: report.mobileScreenshot,
+    reducedMotionScreenshot: report.reducedMotionScreenshot,
     reducedMotion: true,
   }, null, 2));
 } finally {

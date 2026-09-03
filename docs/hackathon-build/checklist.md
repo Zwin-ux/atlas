@@ -39,23 +39,26 @@
   Acceptance: Focused WebMCP verification passes completely; typecheck and build pass; Chrome discovers exactly five tools; official smoke and deeper executions pass; visible open/note/trail completion, ambiguous and failed mutation safety, refresh lifecycle, normal-browser fallback, 390x844 targets/map area, keyboard, and reduced motion are green.
   Verify: `pnpm verify:webmcp`; `pnpm typecheck`; `pnpm build`; `pnpm eval:webmcp:smoke`; `git diff --check`; inspect the smoke JSON and screenshots rather than trusting exit codes alone.
 
-- [ ] **5. Capture the current visual proof set — 20 minutes**
+- [x] **5. Capture the current visual proof set — 20 minutes**
   Spec ref: `spec.md > Architecture > Verification, Sanitized Release, And Submission Evidence`
   What to build: Save one coherent current-run evidence set from the same source commit: quiet national entry, three-stop WebMCP trail, human-selected active stop, Springfield ambiguity with unchanged state, visible session note, 390x844 mobile trail, keyboard focus, reduced-motion trail, and normal-browser fallback. Use stable filenames and an evidence manifest that names commit, browser/version, viewport, route, and action.
   Acceptance: Each screenshot proves one claim, all screenshots match the same candidate, the national trail is the visual centerpiece, no private data or development chrome is visible, and the set contains enough evidence for README, video, and Devpost without contradictory older captures.
   Verify: Open every image at full size; confirm PNG signatures and dimensions; cross-check filenames and claims against the browser smoke JSON and `docs/webmcp/RELEASE_PRODUCT_DESIGN_AUDIT.md`.
+  Status: Complete in `artifacts/webmcp-release-proof/39d1e141-20260902/`. Eight live-candidate PNGs, a sanitized Chrome report, and a SHA/dimension/action manifest pass the integrity check. The harness now saves a dedicated reduced-motion trail frame.
 
-- [ ] **6. Complete real ChatGPT shared-control acceptance — 30 minutes plus user sign-in if needed**
+- [x] **6. Complete real ChatGPT shared-control acceptance — 30 minutes plus user sign-in if needed**
   Spec ref: `spec.md > Architecture > Verification, Sanitized Release, And Submission Evidence`
   What to build: Use the existing ignored `e2e:chatgpt:session` runbook in an authenticated user-controlled ChatGPT desktop session. Capture top-level discovery of exactly five tools, one real call per tool, visible three-stop trail completion, human marker/rail selection followed by `get_map_state`, a ChatGPT-created note followed by human edit/read-back, Springfield ambiguity with an independent unchanged-state read, and unresolved-trail atomicity with an independent state read. Do not access or export browser credentials.
   Acceptance: Every transcript step has a unique real call ID, observed timestamp, bounded arguments/results, corresponding visible evidence, and the expected shared-state or no-mutation outcome; the validator reports a captured real ChatGPT session rather than sample data.
   Verify: `pnpm e2e:chatgpt:session`; complete the generated runbook in ChatGPT; set `ATLAS_CHATGPT_TRANSCRIPT` to the captured transcript; run `pnpm e2e:chatgpt:transcript` and `pnpm e2e:chatgpt`. If sign-in is unavailable, mark only this lane blocked and continue independent items.
+  Status: `BLOCKED_PENDING_AUTHENTICATED_CHATGPT_SESSION`. A new isolated runbook exists at `.evals/chatgpt-e2e/sessions/2026-09-03T04-13-21-091Z/`; this Codex task exposes retired Atlas plugins but not the deployed page's exact-five Site Tools. The untouched template was deliberately validated and rejected with `A release transcript must have status captured.` No acceptance claim was made.
 
-- [ ] **7. Run the three-run model trajectory gate if credentials exist — 20 minutes**
+- [x] **7. Run the three-run model trajectory gate if credentials exist — 20 minutes**
   Spec ref: `spec.md > AI Usage > Development And Evaluation`
   What to build: Generate evaluator tools from the live descriptors, confirm no schema drift, and run three trajectories per case against exact `xai:grok-4.6` only when `XAI_API_KEY` is already available. Cover every direct tool, search-before-open for ambiguous Springfield, read/search/open chains, note-versus-trail discrimination, ordered three-stop trail arguments, non-mutating prompts, and mid-chain failure. Never print or persist the credential.
   Acceptance: At least 90% correct tool/argument trajectories across three runs per case, with zero critical wrong-write, partial-mutation, or false-success failures. If the credential is absent, the report says “not run — credential unavailable”; deterministic proof remains separate and unchanged.
   Verify: `pnpm eval:webmcp:prepare`; `pnpm eval:webmcp:grok`; inspect the generated report's run count, threshold, critical-failure count, model identifier, and redaction behavior.
+  Status: `not run — credential unavailable`. `pnpm eval:webmcp:prepare` wrote exactly five live descriptors with SHA-256 prefix `06318ac7ae0611d9`; `XAI_API_KEY_PRESENT=False`, so no remote request or model-score claim was made.
 
 - [ ] **8. Assemble and prove one sanitized release candidate — 30 minutes**
   Spec ref: `spec.md > Architecture > Verification, Sanitized Release, And Submission Evidence`
