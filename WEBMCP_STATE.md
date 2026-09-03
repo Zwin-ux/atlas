@@ -10,12 +10,12 @@
 
 ## Current Slice
 
-- Slice: `31 — Repository-grounded Atlas technical spec`
-- Status: `SPEC GREEN / CHECKLIST NEXT — the participant approved the current React/TypeScript/Node/pnpm/SVG stack, one AtlasMapController, exact-five top-level WebMCP surface, Census-backed resolver, session-only state, isolated Railway target, and static-only optional Higgsfield boundary. spec.md maps every PRD epic to real components, annotates the challenge file tree, walks the visible-revision lifecycle, records exact API/error/proof contracts, and hands a bounded execution order to build-checklist.`
+- Slice: `32 — Autonomous release build checklist`
+- Status: `CHECKLIST GREEN / BUILD NEXT — the participant locked an eleven-item autonomous speed-run contract. It sequences baseline/evidence freeze, fresh design audit, zero-or-one polish slice, deterministic gates, current visual proof, real ChatGPT acceptance, optional exact-Grok model evaluation, sanitized clean-clone release, narrated demo, release reconciliation, and Devpost handoff. Verification runs at every boundary; elective review pauses are disabled; green commits are revert points; credential and owner gates remain strict.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Confirm the boring reliable stack and deployment decisions; map every PRD epic to current components; define an explicit file boundary and the lifecycle of map state from ChatGPT tool call through visible render acknowledgment; isolate the remaining visual, evidence, release, and optional generated-asset work; offer the optional deepening round; then write spec.md.`
-- Likely files: `docs/hackathon-build/spec.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
-- Acceptance checks: `The spec distinguishes existing implementation from remaining work; all seven PRD epics map to real files; the critical data lifecycle and failure behavior are explicit; exact-five top-level WebMCP and session-only shared state remain binding; deployment and optional generated assets have clear boundaries; cut features stay cut; no product code, generation credit, release, or submission action occurs during stage navigation.`
+- Smallest complete boundary: `Encode autonomous build preferences; select the shared human-agent handoff as the submission wow moment; split remaining work into 8–12 atomic tasks with explicit dependencies, spec references, visible acceptance, commands, and stop conditions; preserve all owner gates; obtain one final scope gut-check; then lock checklist.md as the build-project execution contract.`
+- Likely files: `docs/hackathon-build/checklist.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
+- Acceptance checks: `The checklist header prevents build-mode re-interview; every item uses the required five-field format and is sized to 15–30 minutes; risky browser/ChatGPT proof happens before packaging; zero-or-one polish slice prevents decorative drift; deterministic, probabilistic, and real-ChatGPT evidence stay separate; the final item is the Devpost handoff; no product code, generation credit, deployment, visibility change, or submission occurs during stage navigation.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
 
 ## Acceptance Checks
@@ -505,7 +505,7 @@
 
 ## Exact Next Action
 
-Run the build-checklist skill from `docs/hackathon-build/spec.md`. Convert the remaining design-audit, optional single polish slice, deterministic proof, real ChatGPT acceptance, sanitized-release, video, and owner-gated submission work into dependency-ordered tasks with exact files, commands, visible acceptance, and stop conditions.
+Run the build-project skill in autonomous mode using `docs/hackathon-build/checklist.md` as the locked execution contract. Start with item 1's baseline/evidence inventory, mark tasks only from observed proof, continue through every independent green item, and stop only at a real failure, credential gate, or explicit owner-controlled publication/submission action.
 
 ## Slice Queue
 
@@ -540,4 +540,5 @@ Run the build-checklist skill from `docs/hackathon-build/spec.md`. Convert the r
 29. Winner-focused guided scope — GREEN / PRD NEXT (mandatory beats complete, zero deepening rounds, scope.md and three-day cut finalized)
 30. User-facing Atlas PRD — GREEN / SPEC NEXT (seven behavior epics, observable criteria, edge cases, priorities, later list, non-goals, and proof points complete)
 31. Repository-grounded Atlas technical spec — GREEN / CHECKLIST NEXT (approved existing stack and deployment boundary; seven epics mapped to real components; exact file, state, API, visible-revision, error, proof, and release contracts complete; zero deepening rounds)
+32. Autonomous release build checklist — GREEN / BUILD NEXT (eleven 15–30-minute tasks locked; shared human-agent handoff selected as wow moment; autonomous speed-run, verification, commit cadence, independent-lane continuation, and owner gates encoded; zero deepening rounds)
 

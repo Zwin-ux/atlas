@@ -143,3 +143,26 @@
 - That answer also selected writing the document now rather than adding another interview round. Deepening rounds taken: 0.
 - Created `docs/hackathon-build/spec.md`. It distinguishes verified implementation from the remaining bounded work, preserves the exact-five and shared-visible-state invariants, and gives `build-checklist` an explicit dependency-ordered handoff.
 - No product code, runtime dependency, generated asset, model credential, deployment, repository visibility, video publication, or Devpost submission changed during this planning stage.
+
+## 2026-09-02 — Autonomous release build checklist
+
+### Build preferences and submission moment
+
+- The participant repeatedly asked Codex to “get all this done,” approved the full technical architecture, and advanced immediately with “next.” This is encoded as plan handoff rather than co-design: Codex owns sequencing, build mode is autonomous, and execution uses a speed-run cadence.
+- Elective look-at-it pauses are disabled. Verification still occurs at every task boundary; the build pauses only for a material failure, unavailable credential that blocks its lane, or explicit owner-controlled publication/submission action.
+- Git cadence is one coherent green commit per implementation/documentation slice. Existing unrelated untracked files remain untouched.
+- The proposed submission wow moment is the shared human-agent handoff: ChatGPT creates the visible national trail, a person selects or edits it, and ChatGPT's next state read reflects that human change. This is stronger evidence than route animation alone.
+
+### Draft checklist
+
+- Drafted eleven dependency-ordered items, each targeted at 15–30 minutes: baseline/evidence freeze, fresh design audit, optional single polish slice, deterministic gates, current visual proof, real ChatGPT acceptance, optional exact-Grok model gate, sanitized clean-clone candidate, narrated demo, release-packet reconciliation, and final Devpost handoff.
+- Risky host acceptance happens before release packaging. Deterministic browser proof, probabilistic model evidence, and real ChatGPT acceptance remain separate lanes.
+- The participant's final gut-check is pending before the checklist is locked, marked complete, or handed to `$build-project`.
+- Deepening rounds taken so far: 0. No product code, generation credit, credential, deployment, visibility change, video publication, or Devpost write occurred during checklist drafting.
+
+### Checklist lock
+
+- The participant replied “lock it” after reviewing the eleven-item workload and the shared-handoff wow moment.
+- The checklist is now the execution contract for `$build-project`: autonomous speed run, no elective look-at-it pauses, verification at every task boundary, green commits as revert points, and strict credential/owner gates.
+- Final deepening rounds taken: 0. The participant used the handoff path, so the finished-checklist gut-check was the review round.
+- The guided-build state now points to `docs/hackathon-build/checklist.md`, records `spec` complete, and advances to `build-project`.
