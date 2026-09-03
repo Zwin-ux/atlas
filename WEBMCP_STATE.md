@@ -10,13 +10,23 @@
 
 ## Current Slice
 
-- Slice: `32 — Autonomous release build checklist`
-- Status: `CHECKLIST GREEN / BUILD NEXT — the participant locked an eleven-item autonomous speed-run contract. It sequences baseline/evidence freeze, fresh design audit, zero-or-one polish slice, deterministic gates, current visual proof, real ChatGPT acceptance, optional exact-Grok model evaluation, sanitized clean-clone release, narrated demo, release reconciliation, and Devpost handoff. Verification runs at every boundary; elective review pauses are disabled; green commits are revert points; credential and owner gates remain strict.`
+- Slice: `33 — Release build checkpoint 1: baseline, judge audit, and deterministic gates`
+- Status: `CHECKPOINT 1 GREEN / VERIFY WITH PARTICIPANT — checklist items 1–4 are complete. The exact source/live boundary is frozen, seven fresh judge states were visually inspected, the combined Product Design audit found zero P0/P1/P2 issues and selected no runtime mutation, and the 38-test/type/build/Chrome-smoke/diff sequence is green.`
 - Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `Encode autonomous build preferences; select the shared human-agent handoff as the submission wow moment; split remaining work into 8–12 atomic tasks with explicit dependencies, spec references, visible acceptance, commands, and stop conditions; preserve all owner gates; obtain one final scope gut-check; then lock checklist.md as the build-project execution contract.`
-- Likely files: `docs/hackathon-build/checklist.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, and local `.devpost-hackathon-state.json`.
-- Acceptance checks: `The checklist header prevents build-mode re-interview; every item uses the required five-field format and is sized to 15–30 minutes; risky browser/ChatGPT proof happens before packaging; zero-or-one polish slice prevents decorative drift; deterministic, probabilistic, and real-ChatGPT evidence stay separate; the final item is the Devpost handoff; no product code, generation credit, deployment, visibility change, or submission occurs during stage navigation.`
+- Smallest complete boundary: `Complete checklist items 1–4 against observed current evidence: verify branch/source/live candidate identity, audit fresh live states at desktop and 390x844, implement only one real P1/P2 fix if found, run verify/type/build/Chrome smoke/diff gates, visually inspect outputs, record the evidence, and commit one green checkpoint.`
+- Likely files: `docs/hackathon-build/checklist.md`, `docs/hackathon-build/build-notes.md`, `WEBMCP_STATE.md`, local `.devpost-hackathon-state.json`, and `artifacts/product-design-audit/release-final-20260902/`. No runtime product file changed.`
+- Acceptance checks: `PASS — live preflight matched sanitized candidate 39d1e141 and exact-five descriptors; fresh desktop/mobile captures preserve the map-first hierarchy, 44px mobile targets, and zero horizontal overflow; dark/focus/reduced-motion states are green; no product mutation was justified; pnpm verify:webmcp passed 38/38, pnpm typecheck passed, pnpm build passed, pnpm eval:webmcp:smoke passed 9/9 plus 15 deeper Chrome executions, and git diff --check passed.`
 - Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
+
+### Release checkpoint 1 proof — September 2, 2026
+
+- Source head: `bd1102352cdd5986fb25a1b7af5c89a8cf4342f7`; last runtime product content: `52b42b1899209de0cc38e11ea27e913d974d0129`; exact sanitized/private/live candidate: `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`.
+- Live preflight: PASS for HTTPS/no-login route, origin headers, 3,222 counties, 18,447 places, eight Springfield candidates, Riverside resolution, and the exact five human-titled tools.
+- Current-run audit: `artifacts/product-design-audit/release-final-20260902/audit.md` plus seven original-size screenshots and the Chrome report. Product Design result: zero P0/P1/P2; no product mutation selected.
+- Responsive evidence: desktop `1440x1000`; trail `1280x720`; exact mobile `390x844`; mobile ambiguity `scrollWidth=clientWidth=390`; all visible buttons at least `44x44`; result rows `349x44`.
+- Accessibility evidence: named heading/map/scale/map controls in the accessibility snapshot; visible keyboard focus in dark mode; Enter on trail stop 2 produced Miami-Dade plus `activeIndex: 1`; reduced-motion computed every targeted animation as `none`.
+- Deterministic result: `pnpm verify:webmcp` 38/38 PASS; `pnpm typecheck` PASS; `pnpm build` PASS; post-build `pnpm eval:webmcp:smoke` PASS with Chrome `152.0.7977.66`, five tools, 9/9 official steps, 15 deeper executions, zero console errors; `git diff --check` PASS.
+- Evidence lanes still open: real ChatGPT conversation capture; Grok 4.6 (`not run — credential unavailable`); new sanitized clean clone; narrated video; public visibility; Devpost submission.
 
 ## Acceptance Checks
 
@@ -505,7 +515,7 @@
 
 ## Exact Next Action
 
-Run the build-project skill in autonomous mode using `docs/hackathon-build/checklist.md` as the locked execution contract. Start with item 1's baseline/evidence inventory, mark tasks only from observed proof, continue through every independent green item, and stop only at a real failure, credential gate, or explicit owner-controlled publication/submission action.
+At the build-project checkpoint, have the participant try the live judge path and confirm it feels right. If confirmed, continue with checklist item 5: bind one current proof manifest to a single source/runtime candidate, then advance through the independent ChatGPT, model, and sanitized-release lanes.
 
 ## Slice Queue
 

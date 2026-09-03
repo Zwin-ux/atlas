@@ -166,3 +166,34 @@
 - The checklist is now the execution contract for `$build-project`: autonomous speed run, no elective look-at-it pauses, verification at every task boundary, green commits as revert points, and strict credential/owner gates.
 - Final deepening rounds taken: 0. The participant used the handoff path, so the finished-checklist gut-check was the review round.
 - The guided-build state now points to `docs/hackathon-build/checklist.md`, records `spec` complete, and advances to `build-project`.
+
+## 2026-09-02 — Build checkpoint 1
+
+### Item 1: baseline and evidence inventory
+
+- Source branch/head: `webmcp-challenge` at `bd1102352cdd5986fb25a1b7af5c89a8cf4342f7`. The preserved local-only files and the pre-existing untracked `judge-triage-20260831` folder were not modified.
+- Runtime source remains the last green product content at `52b42b1899209de0cc38e11ea27e913d974d0129`; the delta from that commit to this checkpoint contains challenge planning, evidence, README/release documentation, and no `web/`, `server/`, controller, schema, or descriptor change.
+- Sanitized/private/live candidate identity is consistent: local release repo, private remote `main`, and clean clone all resolve to `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`. The live isolated Railway route remains `https://atlas-webmcp-production.up.railway.app/explore`.
+- Current live preflight passed: HTTPS and no-login page, `Origin-Agent-Cluster: ?1`, `Permissions-Policy: tools=(self)`, 3,222 counties, 18,447 places, eight Springfield candidates, Riverside resolution, and the exact five human-titled descriptors.
+- Required/current proof: exact-five source contract, shared visible controller, atomic trails, current live route, normal-browser fallback, fresh desktop/mobile/dark/focus captures, and current Chrome WebMCP smoke.
+- Required but still pending: one release proof manifest, real ChatGPT conversation transcript, a new sanitized clean clone that includes the guided-build docs/evidence, demo export, final release reconciliation, and Devpost handoff.
+- Externally gated: real ChatGPT sign-in/observation, repository visibility, video publication, and Devpost submission.
+- Credential gated: `XAI_API_KEY` is absent, so Grok 4.6 remains `not run — credential unavailable` and cannot be represented as a passing model gate.
+- Optional and not selected: Higgsfield generation or another runtime visual effect. Neither is needed to repair an observed release defect.
+
+### Items 2–3: fresh Product Design audit and polish decision
+
+- Captured and opened seven current-run states under `artifacts/product-design-audit/release-final-20260902/`: live national entry, live Springfield ambiguity, exact `390x844` ambiguity recovery, dark entry, dark keyboard focus, committed-source WebMCP trail plus note, and the exact `390x844` human-selected Miami-Dade stop.
+- Desktop and mobile remain map-first. The `390x844` ambiguity state measured `scrollWidth=clientWidth=390`; every visible button was at least `44x44`, and result rows measured `349x44`.
+- Keyboard Tab produced a visible green focus treatment on the finder in dark mode. Chrome keyboard activation of stop 2 opened Miami-Dade and the next state read returned `trail.activeIndex: 1`.
+- Reduced-motion emulation removed route, marker, pin, active-ring, and activity animations by computed style.
+- Product Design disposition: zero P0, zero P1, zero P2. **No product mutation selected.** Another effect, prompt, or panel would add release risk without fixing an observed judge-path problem.
+
+### Item 4: deterministic gates
+
+- `pnpm verify:webmcp` — PASS, 38/38 focused tests; exact-five top-level registration, bounded outputs, mutation safety, atomic trails, visible completion, docs, license, and retired-scope guards green.
+- `pnpm typecheck` — PASS across starter and historical workspace TypeScript graphs.
+- `pnpm build` — PASS; challenge bundle/server/3,222 county plate build and workspace production build completed. The two skipped `_manifest.json`/`_failures.json` inputs are expected non-county build reports already excluded by the runtime.
+- `pnpm eval:webmcp:smoke` — PASS after the production build in Chrome `152.0.7977.66`: 9/9 official steps, exactly five tools, 15 deeper executions, visible trail before success, human stop-2 handoff, note state, ambiguity/unknown-stop no-mutation checks, no console errors, exact `390x844`, and reduced motion.
+- `git diff --check` — PASS.
+- Expected normal-browser evidence: the browser without experimental WebMCP reports `Site tools not detected` and logs only Chrome's origin-trial warning for `tools`; the application remains usable and the WebMCP-capable Chrome lane is separately green.

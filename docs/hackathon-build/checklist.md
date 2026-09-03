@@ -15,25 +15,25 @@
 
 ## Checklist
 
-- [ ] **1. Freeze the working baseline and evidence inventory — 15 minutes**
+- [x] **1. Freeze the working baseline and evidence inventory — 15 minutes**
   Spec ref: `spec.md > Build Checklist Handoff`
   What to build: Reconfirm `webmcp-challenge`, inspect the dirty tree without touching unrelated files, read the authority/state documents, verify the current live URL and recorded candidate SHA, inventory existing desktop/mobile/ChatGPT/model/release evidence, and mark every later item as required, already satisfied by current proof, optional, or externally gated. Do not rerun expensive gates before this inventory identifies what is stale.
   Acceptance: The exact-five candidate, current source commit, live candidate, preserved untracked files, missing proof, and owner gates are recorded in `WEBMCP_STATE.md`; no historical branch or unrelated system enters scope.
   Verify: `git status --short --branch`; `git log -5 --oneline`; read `WEBMCP_STATE.md`, `docs/webmcp/RELEASE_PACKET.md`, and current evidence manifests; check `https://atlas-webmcp-production.up.railway.app/ready` and `/explore` only with the existing non-mutating preflight.
 
-- [ ] **2. Run the fresh judge-path design and interaction audit — 25 minutes**
+- [x] **2. Run the fresh judge-path design and interaction audit — 25 minutes**
   Spec ref: `spec.md > Remaining Implementation Boundary > Current-state design audit`
   What to build: Launch the current committed source candidate and inspect first entry, county open, Springfield ambiguity, note creation/editing, three-stop trail, marker/rail handoff, dark theme, keyboard focus, reduced motion, and exact 390x844 mobile. Compare current screenshots against the PRD's map-first, field-atlas, plain-language, and touch-target criteria. Rank only observable P0/P1/P2 issues and choose zero or one implementation slice.
   Acceptance: The map remains the dominant object; the shared handoff is understandable without developer narration; no actionable issue is invented to justify decoration; any selected slice has one user-visible outcome, exact files, focused tests, and a rollback boundary.
   Verify: Run the existing local browser capture/QA path and visually inspect saved current-run PNGs; record viewport dimensions, overflow, map area, target sizes, focus, and reduced-motion results in the product-design audit and `WEBMCP_STATE.md`.
 
-- [ ] **3. Implement at most one winner-polish slice — 30 minutes**
+- [x] **3. Implement at most one winner-polish slice — 30 minutes**
   Spec ref: `spec.md > Remaining Implementation Boundary > One coherent visual/interaction slice`
   What to build: Only if item 2 identifies a real P1/P2 issue, make the smallest cohesive change in `AtlasApp.tsx`, `AtlasPlaceFinder.tsx`, `AtlasPlate.tsx`, and/or `atlas.css`. Preserve the warm paper-and-ink identity, map area, immediate base route/markers, 44px mobile controls, keyboard semantics, reduced-motion equivalence, and the shared controller. Add focused regression coverage. If the audit is clean, explicitly record “no product mutation selected” and move on.
   Acceptance: The chosen issue is visibly improved in the exact before/after state; exact-five descriptors and public schemas are unchanged; normal-browser use, active-state comprehension, and mobile map area do not regress; no permanent coaching, generic card, glow, or decorative panel is added.
   Verify: Run the narrowest affected test file first, then `pnpm verify:webmcp`; recapture the same desktop and 390x844 state; run `git diff --check`; perform a self-review for stale state, partial mutation, accessibility, and scope leakage; commit only when green.
 
-- [ ] **4. Close deterministic source and browser gates — 30 minutes**
+- [x] **4. Close deterministic source and browser gates — 30 minutes**
   Spec ref: `spec.md > Risks And Verification > Required Verification Commands`
   What to build: From the committed source candidate, run the frozen contract/type/build/browser sequence and preserve machine-readable output. Treat any pre-existing failure separately from a regression; never bypass or weaken a guard to turn it green.
   Acceptance: Focused WebMCP verification passes completely; typecheck and build pass; Chrome discovers exactly five tools; official smoke and deeper executions pass; visible open/note/trail completion, ambiguous and failed mutation safety, refresh lifecycle, normal-browser fallback, 390x844 targets/map area, keyboard, and reduced motion are green.
