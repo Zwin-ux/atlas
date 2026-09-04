@@ -244,4 +244,5 @@
 - Committed the complete green presentation slice at source `da0f4eae8582a345ada3de891422a21b0ac9c4dd`.
 - Assembled new sibling release `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-20260903-da0f4ea`, committed it as sanitized candidate `950f86b6542892c4b0199fe9fe86a6b0a580d705`, and reproduced it with `git clone --no-local` at `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-950f86b`.
 - Both candidate and clone pass frozen install, typecheck, build, 39/39 exact-five verification, Chrome 152 9/9 official smoke plus 15 deeper executions, release audit, diff check, and clean status. The audit reports 3,355 tracked files, 3,222 county packs, 52 state plates, one commit, zero oversized files, and zero failures.
+- The previously checksum-verified Gitleaks `8.30.1` binary scanned the clean candidate's complete one-commit history and about 87.91 MB with zero leaks.
 - Candidate `950f86b` is local only. Private remote `main` and the public Railway service remain exact deployed candidate `39d1e141`; no push, deployment, visibility change, or Devpost submission occurred.

@@ -4,6 +4,8 @@
 
 The standalone challenge repository is reproducible, privately mirrored at exact deployed candidate `39d1e141`, and live through isolated Railway deployment `cd899386`. The latest local presentation candidate `950f86b6`, projected from source `da0f4eae`, passes the full no-local clean-clone gate and remains unpublished. The GitHub remote remains private. The historical Atlas repository and its Git history are still **not safe to publish**.
 
+The checksum-verified Gitleaks `8.30.1` binary scanned candidate `950f86b6`'s complete one-commit history and about 87.91 MB with zero leaks.
+
 Live Devpost data fetched September 3 reports submissions open and an official twelve-hour extension to **September 4, 2026 at 1:00 AM Pacific**. The remaining external gates are now the critical path: real ChatGPT footage, final narrated video, public sanitized source, owner-only form answers, and submission.
 
 Do not change the historical repository's visibility. Do not publish the sanitized repository, configure secrets, or submit Devpost without the matching owner gate.
