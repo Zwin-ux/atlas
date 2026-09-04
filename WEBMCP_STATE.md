@@ -57,8 +57,10 @@
 - Product Design evidence is in `artifacts/product-design-audit/judge-presentation-20260903/`; before/after inspection found zero remaining P0/P1/P2 issues in this bounded flow.
 - Source commit `da0f4eae8582a345ada3de891422a21b0ac9c4dd` was projected into new sanitized candidate `950f86b6542892c4b0199fe9fe86a6b0a580d705` and reproduced through `git clone --no-local` at `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-950f86b`.
 - Both the assembled candidate and no-local clone pass frozen install, typecheck, build, 39/39 verification, Chrome `152.0.7977.66` smoke with 9/9 official steps and 15 deeper executions, release audit, diff check, and clean status. Release audit reports 3,355 tracked files, 3,222 county packs, 52 state plates, one commit, zero oversized files, and zero failures.
-- The checksum-verified Gitleaks `8.30.1` binary scanned candidate `950f86b`'s complete one-commit history and about 87.91 MB with zero leaks.
-- External truth remains unchanged: the public Railway deployment and private remote remain candidate `39d1e141`. Candidate `950f86b` is local and unpublished until a separately owner-approved push/deployment action exists.
+- The same sanitized tree was then applied without deletions to the preserved release checkout at deployed `origin/main` candidate `39d1e141`, producing normal fast-forward candidate `97792d84d66239745011624690769e99ab25838c`; `git merge-base --is-ancestor origin/main HEAD` passes. Its no-local clone is `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-97792d8`.
+- Candidate `97792d8` and its no-local clone pass frozen install, typecheck, build, 39/39 verification, Chrome `152.0.7977.66` smoke with 9/9 official steps and 15 deeper executions, release audit, diff check, and clean status. Release audit reports 3,355 tracked files, 3,222 county packs, 52 state plates, 16 commits, zero oversized files, and zero failures.
+- The checksum-verified Gitleaks `8.30.1` binary scanned all 16 commits and about 88.33 MB with zero leaks.
+- External truth remains unchanged: the public Railway deployment and private remote remain candidate `39d1e141`. Candidate `97792d8` is local and unpublished until a separately owner-approved push/deployment action exists.
 
 ## Acceptance Checks
 
