@@ -43,3 +43,11 @@ pnpm eval:webmcp:grok
 The consolidated report separates automated success from `releaseReady`; it cannot label missing ChatGPT or model evidence as complete.
 
 Before release, record the immutable candidate with `git rev-parse HEAD`. Public deployment, real ChatGPT built-in-browser acceptance, video upload, and Devpost submission require their own URLs and owner approval.
+
+For a local narrated timing cut made from the SHA-bound product captures:
+
+```powershell
+pnpm demo:webmcp:assemble -- --audio C:\absolute\path\to\voiceover.wav --candidate <candidate-sha> --out .evals\webmcp-demo\review
+```
+
+The command requires audio and rejects a missing audio stream, wrong output resolution, or a runtime of three minutes or longer. Its manifest makes clear that verified still-frame editorial motion is not a substitute for the required real ChatGPT conversation footage.

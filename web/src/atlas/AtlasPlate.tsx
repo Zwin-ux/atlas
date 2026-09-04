@@ -20,7 +20,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { labelBudget, placeLabels } from "@atlas/core/atlas";
 
 import type { MapTrail } from "./AtlasMapController";
-import { buildPlateGeometry, niceScaleDistance, type Plate } from "./plateGeometry";
+import { buildPlateGeometry, buildResearchTrailPath, niceScaleDistance, type Plate } from "./plateGeometry";
 
 export type AtlasPlateProps = {
   plate: Plate;
@@ -237,9 +237,7 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, trail, onOpenTrailS
     () => plate.plate === "nation" && trail ? projectTrailStops(trail, geometry.countyCenters) : [],
     [geometry.countyCenters, plate.plate, trail],
   );
-  const trailPath = trailStops.length > 1
-    ? trailStops.map((stop, index) => `${index === 0 ? "M" : "L"}${stop.x.toFixed(1)} ${stop.y.toFixed(1)}`).join("")
-    : undefined;
+  const trailPath = buildResearchTrailPath(trailStops);
 
   const activateTrailStop = useCallback((index: number) => {
     onOpenTrailStop?.(index);

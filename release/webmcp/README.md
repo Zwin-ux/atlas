@@ -10,7 +10,17 @@ No login. No saved profile. One map, one research session.
 
 - Live app: [atlas-webmcp-production.up.railway.app/explore](https://atlas-webmcp-production.up.railway.app/explore)
 - Public source: `[OWNER REQUIRED: approved public repository]`
-- Suggested prompt: “Create a civic research trail through Riverside County, California; Travis County, Texas; and Miami-Dade County, Florida.”
+- Suggested prompt: “Create a civic research trail through Riverside County, California; Miami-Dade County, Florida; and Travis County, Texas.”
+
+### The 20-second shared-control test
+
+1. Ask ChatGPT to create a trail through Riverside County, Miami-Dade County, and Travis County.
+2. Select stop 2 on the map yourself.
+3. Ask, “What place is open now?” ChatGPT reads the human-updated map and answers from the same visible session.
+
+The point is turn-taking on one map—not a chatbot beside a map.
+
+Atlas is for anyone curious about a U.S. place. Students, local reporters, civic researchers, and community organizers are concrete examples—not a login-gated specialist audience.
 
 The map supports pan, zoom, county drill-in, breadcrumbs, and a keyboard/touch place finder in every modern browser. A WebMCP-capable browser additionally discovers exactly five page-native tools:
 
@@ -55,11 +65,13 @@ Atlas existed before the challenge as a Census-backed map engine. [CHALLENGE_DEL
 - [Verification boundary](docs/VERIFICATION.md)
 - [Devpost copy](docs/SUBMISSION.md)
 - [Under-three-minute video script](docs/VIDEO_SCRIPT.md)
+- [Demo production and truth boundary](docs/VIDEO_PRODUCTION.md)
+- [Locked narration](docs/VIDEO_NARRATION.txt) and [captions](docs/VIDEO_CAPTIONS.srt)
 - [HCI, cognitive-accessibility, plain-language, and motion manual](docs/HCI_OPERATING_MANUAL.md)
 - [Official WebMCP and ChatGPT compatibility record](docs/OFFICIAL_COMPATIBILITY.md)
 - [SHA-bound live visual proof manifest](docs/evidence/39d1e141/manifest.json)
 
-The deterministic gates and public HTTPS route pass. Credentialed model scores, real ChatGPT acceptance, public source visibility, video upload, and Devpost submission remain separate evidence and must not be claimed until their artifacts exist.
+Tested clients are Chrome 152 with WebMCP enabled, the real Codex in-app browser Site Tools surface, and ordinary Chrome with WebMCP unavailable. The deterministic gates and public HTTPS route pass. The authenticated ChatGPT conversation transcript, credentialed model score, public source visibility, final video upload, and Devpost submission remain separate evidence and must not be claimed until their artifacts exist.
 
 ## License
 

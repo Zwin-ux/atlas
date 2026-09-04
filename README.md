@@ -6,7 +6,15 @@ No login. No saved profile. One map, one research session.
 
 Live build: [atlas-webmcp-production.up.railway.app/explore](https://atlas-webmcp-production.up.railway.app/explore)
 
-![Atlas national map with a numbered three-county research trail](artifacts/webmcp-proof/trail-overview-desktop.png)
+![Atlas national map with a numbered three-county research trail](artifacts/product-design-audit/judge-presentation-20260903/03-trail-after-curved.png)
+
+## The 20-second shared-control test
+
+1. Ask ChatGPT: “Create a civic research trail through Riverside County, California; Miami-Dade County, Florida; and Travis County, Texas.”
+2. Select stop 2 on the map yourself.
+3. Ask: “What place is open now?” ChatGPT reads the human-updated map and answers from the same visible session.
+
+The point is turn-taking on one map—not a chatbot beside a map.
 
 ## What the candidate does
 
@@ -103,6 +111,9 @@ The owner-selected Apache-2.0 license is applied only to the sanitized challenge
 
 - [Devpost copy and evidence map](docs/webmcp/SUBMISSION.md)
 - [Under-three-minute video script](docs/webmcp/VIDEO_SCRIPT.md)
+- [Demo production and truth boundary](docs/webmcp/VIDEO_PRODUCTION.md)
+- [Locked narration](docs/webmcp/VIDEO_NARRATION.txt) and [captions](docs/webmcp/VIDEO_CAPTIONS.srt)
+- [Deadline-aware Devpost handoff](docs/webmcp/DEVPOST_HANDOFF.md)
 - [Owner-gated release packet](docs/webmcp/RELEASE_PACKET.md)
 - [Evaluation guide and thresholds](docs/webmcp/EVALS.md)
 - [ChatGPT Site Tools acceptance script](docs/webmcp/CHATGPT_ACCEPTANCE.md)

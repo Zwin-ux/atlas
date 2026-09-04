@@ -24,6 +24,7 @@
     "e2e:chatgpt:session": "node scripts/prepare-chatgpt-session.mjs",
     "e2e:chatgpt:transcript": "node scripts/verify-chatgpt-transcript.mjs",
     "e2e:chatgpt": "node scripts/run-chatgpt-e2e.mjs",
+    "demo:webmcp:assemble": "node scripts/assemble-webmcp-demo.mjs",
     "audit:release": "node scripts/audit-release.mjs"
   },
   "dependencies": {

@@ -73,6 +73,48 @@ export type ShapePath = {
   label?: string | undefined;
 };
 
+type TrailPoint = { x: number; y: number };
+
+/**
+ * Connect research stops with a restrained ink-like curve.
+ *
+ * Endpoints stay exact so numbered markers remain truthful; only the line
+ * between them bows slightly. This is a conceptual research trail, not a
+ * turn-by-turn route.
+ */
+export function buildResearchTrailPath(points: readonly TrailPoint[]): string | undefined {
+  if (points.length < 2) return undefined;
+
+  let path = `M${points[0]!.x.toFixed(1)} ${points[0]!.y.toFixed(1)}`;
+  for (let index = 1; index < points.length; index += 1) {
+    const from = points[index - 1]!;
+    const to = points[index]!;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < 1e-6) {
+      path += `L${to.x.toFixed(1)} ${to.y.toFixed(1)}`;
+      continue;
+    }
+
+    const direction = index % 2 === 1 ? 1 : -1;
+    const bend = Math.min(36, distance * 0.06) * direction;
+    const normalX = -dy / distance;
+    const normalY = dx / distance;
+    const control1 = {
+      x: from.x + dx / 3 + normalX * bend,
+      y: from.y + dy / 3 + normalY * bend,
+    };
+    const control2 = {
+      x: from.x + (dx * 2) / 3 + normalX * bend,
+      y: from.y + (dy * 2) / 3 + normalY * bend,
+    };
+    path += `C${control1.x.toFixed(1)} ${control1.y.toFixed(1)} ${control2.x.toFixed(1)} ${control2.y.toFixed(1)} ${to.x.toFixed(1)} ${to.y.toFixed(1)}`;
+  }
+
+  return path;
+}
+
 export type PlateGeometry = {
   land: ShapePath[];
   context: ShapePath[];

@@ -17,7 +17,9 @@ The challenge edition adds:
 - one live-URL ChatGPT preflight, real-transcript validator, and Grok 4.6 adversarial model lane;
 - one isolated ChatGPT desktop acceptance-session command with an exact runbook, explicit observation markers, and portable evidence paths;
 - an isolated Railway deployment verified over public HTTPS with the exact-five Chrome protocol suite;
-- desktop, mobile, keyboard, and reduced-motion treatment.
-- a source-linked HCI operating manual, plain-language agent feedback, and an exact `390x844` active-editor browser gate.
+- desktop, mobile, keyboard, and reduced-motion treatment, including an exact-endpoint curved trail and restrained agent-origin stamp;
+- a source-linked HCI operating manual, plain-language agent feedback, and an exact `390x844` active-editor browser gate;
+- a 20-second judge flow proving ChatGPT creation, human selection, and the next agent state read on one map;
+- a reproducible under-three-minute demo production pack with locked narration, captions, SHA-bound product frames, and an explicit real-ChatGPT replacement gate.
 
 The challenge edition intentionally contains no account system, persistence, public posting, payment flow, or sixth tool. It includes only the runtime and evidence needed to reproduce the submitted experience.

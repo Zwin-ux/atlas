@@ -60,6 +60,7 @@ const evalFiles = [
   "evals/atlas-webmcp.evals.json",
   "evals/atlas-webmcp.smoke.json",
   "evals/atlas-chatgpt.transcript.template.json",
+  "scripts/assemble-webmcp-demo.mjs",
   "scripts/prepare-chatgpt-session.mjs",
   "scripts/run-chatgpt-e2e.mjs",
   "scripts/run-grok-webmcp-evals.mjs",
@@ -104,9 +105,12 @@ for (const entry of (await readdir(geoPackSource)).filter((name) => name.endsWit
 }
 await copyTree("artifacts/atlas-plates", "data/atlas-plates");
 await copyTree("artifacts/webmcp-release-proof/39d1e141-20260902", "docs/evidence/39d1e141");
-await copyFile("artifacts/webmcp-release-proof/39d1e141-20260902/06-webmcp-trail-desktop.png", "docs/assets/trail-overview.png");
+await copyFile("artifacts/product-design-audit/judge-presentation-20260903/03-trail-after-curved.png", "docs/assets/trail-overview.png");
 
 await copyFile("docs/webmcp/VIDEO_SCRIPT.md", "docs/VIDEO_SCRIPT.md");
+await copyFile("docs/webmcp/VIDEO_PRODUCTION.md", "docs/VIDEO_PRODUCTION.md");
+await copyFile("docs/webmcp/VIDEO_NARRATION.txt", "docs/VIDEO_NARRATION.txt");
+await copyFile("docs/webmcp/VIDEO_CAPTIONS.srt", "docs/VIDEO_CAPTIONS.srt");
 await copyFile("docs/webmcp/EVALS.md", "docs/EVALS.md");
 await copyFile("docs/webmcp/CHATGPT_ACCEPTANCE.md", "docs/CHATGPT_ACCEPTANCE.md");
 await copyFile("docs/webmcp/CHATGPT_E2E.md", "docs/CHATGPT_E2E.md");
@@ -120,9 +124,14 @@ const submission = (await readFile(submissionPath, "utf8"))
   .replace("- create a sanitized public source repository;\n- choose and add an open-source license;\n", "- approve and publish this sanitized source repository;\n")
   .replace("source release, license, video", "source publication, video")
   .replace("The detailed evidence ledger is in `CHALLENGE_DELTA.md` and `WEBMCP_STATE.md`.", "The public capability boundary is in `CHALLENGE_DELTA.md`; reproducible gates are in `docs/VERIFICATION.md`.")
-  .replace("Route verifier and desktop/mobile screenshots in `artifacts/webmcp-proof/`", "Clean-clone route/build gates and `docs/assets/trail-overview.png`")
+  .replaceAll("artifacts/webmcp-release-proof/39d1e141-20260902/", "docs/evidence/39d1e141/")
   .replace("gstack accessibility tree, 390x844 target/overflow audit, design review", "Keyboard/controller tests, responsive CSS guards, and the recorded challenge review");
 await writeFile(submissionPath, submission, "utf8");
+
+const videoProductionPath = resolve(targetRoot, "docs/VIDEO_PRODUCTION.md");
+const videoProduction = (await readFile(videoProductionPath, "utf8"))
+  .replaceAll("artifacts/webmcp-release-proof/39d1e141-20260902/", "docs/evidence/39d1e141/");
+await writeFile(videoProductionPath, videoProduction, "utf8");
 
 const evalGuidePath = resolve(targetRoot, "docs/EVALS.md");
 const evalGuide = (await readFile(evalGuidePath, "utf8"))

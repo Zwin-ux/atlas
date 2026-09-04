@@ -471,16 +471,27 @@ body {
 }
 
 .atlas-app__activity-event strong {
-  color: color-mix(in srgb, var(--atlas-page-fg) 82%, transparent);
-  font-weight: 700;
+  padding: 2px 4px 1px;
+  border: 1px solid color-mix(in srgb, var(--atlas-accent) 52%, transparent);
+  border-radius: 2px;
+  color: var(--atlas-accent);
+  font: 800 9px/1 ui-monospace, "Cascadia Mono", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .atlas-app__activity-event[data-state="failed"] {
   color: var(--atlas-error);
 }
 
+.atlas-app__activity-event[data-state="failed"] strong {
+  border-color: color-mix(in srgb, var(--atlas-error) 52%, transparent);
+  color: var(--atlas-error);
+}
+
 .atlas-app__activity-summary {
   overflow: hidden;
+  color: color-mix(in srgb, var(--atlas-page-fg) 74%, transparent);
   text-overflow: ellipsis;
 }
 

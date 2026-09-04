@@ -3,7 +3,20 @@ import test from "node:test";
 
 import type { LonLat } from "@atlas/core/atlas";
 
-import { buildPlateGeometry, type Plate } from "../src/atlas/plateGeometry";
+import { buildPlateGeometry, buildResearchTrailPath, type Plate } from "../src/atlas/plateGeometry";
+
+test("research trails use exact endpoints with a restrained alternating curve", () => {
+  assert.equal(buildResearchTrailPath([]), undefined);
+  assert.equal(buildResearchTrailPath([{ x: 0, y: 0 }]), undefined);
+  assert.equal(
+    buildResearchTrailPath([{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 200, y: 0 }]),
+    "M0.0 0.0C33.3 6.0 66.7 6.0 100.0 0.0C133.3 -6.0 166.7 -6.0 200.0 0.0",
+  );
+  assert.equal(
+    buildResearchTrailPath([{ x: 4, y: 7 }, { x: 4, y: 7 }]),
+    "M4.0 7.0L4.0 7.0",
+  );
+});
 
 test("national geometry exposes bounded projected county centers by slug", () => {
   const californiaRing: LonLat[] = [

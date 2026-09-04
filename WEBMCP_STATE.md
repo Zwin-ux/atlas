@@ -10,13 +10,13 @@
 
 ## Current Slice
 
-- Slice: `34 — Release build checkpoint 2: coherent proof, external gates, and sanitized clone`
-- Status: `CHECKPOINT 2 GREEN / VERIFY WITH PARTICIPANT — checklist items 5–8 are complete as far as local authority permits. The SHA-bound live visual set is coherent, the unavailable ChatGPT/Grok lanes are explicitly blocked without false claims, and a new unpublished sanitized candidate plus no-local clone pass every deterministic, browser, audit, integrity, and history-secret gate.`
-- Player-visible promise: `A judge can understand Atlas in the first fifteen seconds, then watch one continuous proof that agent actions, human edits, ambiguity recovery, and fallback all belong to the same visible county map.`
-- Smallest complete boundary: `PASS — items 5–8 produced a live proof folder with eight verified PNGs and a portable report; one isolated ChatGPT runbook with a deliberately rejected unobserved transcript; one exact-five model fixture with credential-unavailable status; and local candidate 14970b8 reproduced by no-local clone through every required gate.`
-- Likely files: `Checkpoint output is limited to the evidence harness, release allowlist/audit, proof artifacts, checklist/build notes, and this ledger. No public descriptor, schema, controller, route, or product UI changed.`
-- Acceptance checks: `PASS — proof manifest and screenshots verified; ChatGPT/model boundaries honest; source verification 38/38; candidate and clone frozen install/type/build/38-test/Chrome smoke/release audit/diff/clean status green; canonical hashes reproduce across Windows checkout; Gitleaks 8.30.1 full-history scan reports zero findings.`
-- Anti-scope: `No sixth tool, detached MCP state, tutorial modal, ChatGPT-branded chrome, new panel, auth, persistence, public posting, payment, mutation of any non-challenge service, public visibility change, or Devpost submission.`
+- Slice: `36 — Judge presentation and shared-control polish`
+- Status: `GREEN — the shared-control presentation slice passes focused tests, exact-five verification, typecheck, production build, Chrome smoke, and desktop/mobile/reduced-motion review; actual video production remains intentionally deprioritized.`
+- Player-visible promise: `A ChatGPT-created research trail reads as an authored field-atlas path, agent activity is unmistakable but restrained, and a judge can prove human-agent turn-taking in twenty seconds.`
+- Smallest complete boundary: `Replace the chart-like straight trail with a deterministic curved ink path, add a compact agent-origin stamp to the existing activity line, and lead the README/Devpost instructions with one three-step shared-control test.`
+- Likely files: `web/src/atlas/plateGeometry.ts; web/src/atlas/AtlasPlate.tsx; web/src/atlas/atlas.css; web/test/plate-geometry.test.ts; README.md; release/webmcp/README.md; docs/webmcp/SUBMISSION.md; docs/hackathon-build/build-notes.md; this ledger.`
+- Acceptance checks: `Focused geometry test; exact-five verifier; typecheck; production build; deterministic Chrome smoke; desktop and 390x844 visual review; reduced-motion proof; no tool/schema/controller expansion; documentation guard; diff check.`
+- Anti-scope: `No freehand toolbar, drawing dependency, sixth tool, routing claim, decorative panel, tutorial, generic SaaS treatment, auth, persistence, public posting, repository visibility change, deployment mutation, video publication, or Devpost submission.`
 
 ### Release checkpoint 1 proof — September 2, 2026
 
@@ -45,6 +45,17 @@
 - Official Gitleaks `8.30.1` was re-verified against archive SHA-256 `d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e`; it scanned the complete one-commit history and about 87.89 MB with zero findings.
 - External truth remains unchanged: candidate `14970b8` is not pushed or deployed; the private remote and public live runtime remain exact `39d1e141`; real ChatGPT, Grok, video publication, public repository visibility, and Devpost submission are still separate gates.
 - Exact next action after participant checkpoint: begin item 9 by producing the under-three-minute narrated demo from the immutable candidate and the approved shot list, without publishing it.
+
+### Judge presentation checkpoint — September 3, 2026
+
+- The participant redirected the priority from actual video production to the live product's presentation, aesthetic, and ChatGPT/Codex handoff. The linked GitHub `draw` topic was captured as interaction reference only; Atlas did not add a drawing dependency, freehand toolbar, or sixth tool.
+- Replaced the chart-like straight research polyline with a deterministic alternating cubic path. County-center endpoints remain exact, repeated points fall back safely, and the map explicitly remains a conceptual research trail rather than turn-by-turn routing.
+- The existing activity line now gives `Agent` a compact ink-stamp treatment with failure-state coloring; no new badge row, panel, or explanatory overlay was added.
+- Root/release README and Devpost testing copy now lead with one 20-second handoff: ChatGPT creates Riverside → Miami-Dade → Travis, the person selects stop 2, then ChatGPT reads Miami-Dade from the newest visible map state. The story is locked as `turn-taking on one map—not a chatbot beside a map.`
+- Verification: `pnpm test:webmcp-geometry` 2/2 PASS; `pnpm verify:webmcp` 39/39 PASS; `pnpm typecheck` PASS; `pnpm build` PASS; `pnpm eval:webmcp:smoke` PASS on Chrome `152.0.7977.66` with exact five tools, 9/9 official steps, 15 deeper executions, and current desktop/mobile/reduced-motion captures; `git diff --check` PASS.
+- gstack browser proof: current local production route returned `200`; the exact `390x844` Springfield flow returned eight candidates, preserved `scrollWidth = innerWidth = 390`, retained a usable map, and produced no new console messages after the flow began.
+- Product Design evidence is in `artifacts/product-design-audit/judge-presentation-20260903/`; before/after inspection found zero remaining P0/P1/P2 issues in this bounded flow.
+- External truth remains unchanged: the public Railway deployment and private remote remain candidate `39d1e141`. This presentation slice is local until a fresh sanitized candidate and separately owner-approved deployment exist.
 
 ## Acceptance Checks
 

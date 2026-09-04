@@ -14,7 +14,7 @@ function cssRule(source, selector, startAt = 0) {
   return blockStart === -1 || blockEnd === -1 ? "" : source.slice(blockStart + 1, blockEnd);
 }
 
-const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptSessionSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource, hciManualSource] = await Promise.all([
+const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptSessionSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource, hciManualSource, demoAssemblerSource] = await Promise.all([
   readFile("web/src/atlas/webmcpTools.ts", "utf8"),
   readFile("web/src/atlas/webmcpRegistry.ts", "utf8"),
   readFile("web/src/atlas/webmcpEvalSchema.ts", "utf8"),
@@ -37,6 +37,7 @@ const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, 
   readFile("scripts/run-grok-webmcp-evals.mjs", "utf8"),
   readFile("railway.toml", "utf8"),
   readFile("docs/HCI_OPERATING_MANUAL.md", "utf8"),
+  readFile("scripts/assemble-webmcp-demo.mjs", "utf8"),
 ]);
 
 const packageJson = JSON.parse(packageSource);
@@ -101,6 +102,8 @@ assert(!/@atlas\//.test(serverSource), "The standalone server must not depend on
 assert(packageJson.devDependencies?.["webmcp-evals"] === "0.0.4", "webmcp-evals must stay pinned to 0.0.4.");
 assert(Object.keys(packageJson.dependencies ?? {}).sort().join(",") === "react,react-dom", "Runtime dependencies must stay at the two-package public cut.");
 assert(["eval:webmcp:static", "eval:webmcp:browser", "eval:webmcp:smoke", "eval:webmcp:grok", "e2e:chatgpt:preflight", "e2e:chatgpt:session", "e2e:chatgpt:transcript", "e2e:chatgpt"].every((script) => packageJson.scripts?.[script]), "Static, browser, smoke, Grok, and ChatGPT end-to-end commands are required.");
+assert(packageJson.scripts?.["demo:webmcp:assemble"] === "node scripts/assemble-webmcp-demo.mjs", "The release demo must retain its reproducible assembly command.");
+assert(demoAssemblerSource.includes("proofManifest.candidateSha") && demoAssemblerSource.includes("proof-manifest hash") && demoAssemblerSource.includes("docs/evidence/39d1e141") && demoAssemblerSource.includes("durationSeconds < 180"), "The demo assembler must bind frames to the proof candidate, work in the sanitized tree, and enforce the time limit.");
 assert(evalRunnerSource.includes("Math.max(3, requestedRuns)") && evalRunnerSource.includes("Math.max(0.90, requestedThreshold)"), "Model thresholds must stay at three runs and 90% minimum.");
 assert(evalRunnerSource.includes('model.startsWith("xai:")') && evalRunnerSource.includes("XAI_API_KEY") && evalRunnerSource.includes("https://api.x.ai/v1"), "The xAI model lane must use the explicit Grok adapter and environment credential.");
 assert(grokRunnerSource.includes('xai:grok-4.6') && !grokRunnerSource.includes("OPENAI_API_KEY"), "The focused Grok runner must select grok-4.6 without copying credentials into source.");

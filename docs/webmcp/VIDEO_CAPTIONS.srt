@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:12,000
+Atlas is a shared U.S. county canvas. A WebMCP client creates a three-stop research trail, and the route is visible before the write reports success.
+
+2
+00:00:12,000 --> 00:00:23,000
+I select Miami-Dade by hand. The same controller moves the map, updates the active stop, and the next state read sees exactly what I changed.
+
+3
+00:00:23,000 --> 00:00:36,000
+Springfield is ambiguous, so Atlas does not guess. Search returns labeled candidates while the existing workspace stays untouched.
+
+4
+00:00:36,000 --> 00:00:48,000
+A note is not hidden in chat. It appears beside its place, stays editable, and is intentionally session-only.
+
+5
+00:00:48,000 --> 00:01:00,000
+Trail writes are atomic. If one stop cannot resolve, Atlas creates nothing partial and keeps the previous workspace intact.
+
+6
+00:01:00,000 --> 00:01:14,000
+Atlas exposes exactly five focused tools. Without WebMCP, the no-login atlas still works. This is shared control—not routing, persistence, or generated geography.

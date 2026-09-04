@@ -29,6 +29,9 @@ const chatgptAcceptance = await readFile("docs/CHATGPT_ACCEPTANCE.md", "utf8");
 const chatgptE2e = await readFile("docs/CHATGPT_E2E.md", "utf8");
 const hciManual = await readFile("docs/HCI_OPERATING_MANUAL.md", "utf8");
 const officialCompatibility = await readFile("docs/OFFICIAL_COMPATIBILITY.md", "utf8");
+const videoProduction = await readFile("docs/VIDEO_PRODUCTION.md", "utf8");
+const videoNarration = await readFile("docs/VIDEO_NARRATION.txt", "utf8");
+const videoCaptions = await readFile("docs/VIDEO_CAPTIONS.srt", "utf8");
 
 for (const toolName of toolNames) {
   assert(readme.includes(`\`${toolName}\``), `README is missing ${toolName}.`);
@@ -38,8 +41,11 @@ for (const [path, body] of content) {
   for (const pattern of forbidden) assert(!pattern.test(body), `${path} leaks retired scope through ${pattern}.`);
 }
 
-assert((submission.match(/\[OWNER REQUIRED:/g) ?? []).length === 2, "Submission copy must retain exactly the two source/video owner placeholders.");
+assert((submission.match(/\[OWNER REQUIRED/g) ?? []).length === 8, "Submission copy must retain all eight explicit owner-only markers, including its explanatory marker.");
+assert(submission.includes("September 4, 2026 at 1:00 AM Pacific") && submission.includes("submissions_open"), "Submission copy must record the live twelve-hour deadline extension without implying submission.");
 assert(readme.includes("https://atlas-webmcp-production.up.railway.app/explore") && submission.includes("https://atlas-webmcp-production.up.railway.app/explore"), "README and submission copy must link the verified live deployment.");
+assert(readme.includes("The 20-second shared-control test") && readme.includes("What place is open now?") && readme.includes("turn-taking on one map"), "README must lead judges through the shared human-agent handoff.");
+assert(submission.includes("What place is open now?") && submission.includes("turn-taking on one map"), "Submission copy must preserve the shared-control test and product thesis.");
 assert(submission.includes("Apache-2.0"), "Submission copy must identify the owner-selected Apache-2.0 license.");
 assert(video.includes("Target runtime: **2:45**") && video.includes("Hard maximum: **2:55**"), "The video must remain under three minutes.");
 assert(readme.includes("docs/SUBMISSION.md") && readme.includes("docs/VIDEO_SCRIPT.md") && readme.includes("docs/EVALS.md"), "README must link the public challenge documents.");
@@ -53,7 +59,11 @@ assert(chatgptE2e.includes("page-native WebMCP") && chatgptE2e.includes("should 
 assert(hciManual.includes("ASD-STE100") && hciManual.includes("does not claim ASD-STE100 conformance") && hciManual.includes("W3C Cognitive Accessibility"), "The HCI manual must explain its cognitive-accessibility and plain-language standards boundary.");
 assert(officialCompatibility.includes("41d12f057167ccf5954dbcf49d99502cb6c84491") && officialCompatibility.includes("https://learn.chatgpt.com/docs/webmcp"), "The public compatibility record must pin the reviewed WebMCP source and current ChatGPT Site Tools documentation.");
 assert(officialCompatibility.includes("document.modelContext.registerTool") && officialCompatibility.includes("AbortSignal") && officialCompatibility.includes("untrustedContentHint") && officialCompatibility.includes("not add a remote `/mcp` mutation path"), "The public compatibility record must cover the supported imperative API, cancellation, untrusted output, and shared-page boundary.");
-assert(!submission.includes("WEBMCP_STATE.md") && !submission.includes("artifacts/webmcp-proof"), "Submission evidence must resolve inside the sanitized repository.");
+assert(videoProduction.includes("not publishable") && videoProduction.includes("real ChatGPT") && videoProduction.includes("participant-approved narration"), "Demo production must preserve the real-ChatGPT, voice, and publication gates.");
+assert(videoNarration.includes("exactly five focused tools") && videoNarration.includes("not routing, persistence, or generated geography"), "Narration must explain the exact-five scope and avoid unsupported map claims.");
+assert(videoCaptions.includes("00:01:14,000") && videoCaptions.includes("session-only"), "Captions must cover the complete 74-second proof cut and the session-only boundary.");
+assert(!submission.includes("WEBMCP_STATE.md") && !submission.includes("artifacts/webmcp"), "Submission evidence must resolve inside the sanitized repository.");
+assert(!videoProduction.includes("artifacts/webmcp"), "Demo production paths must resolve inside the sanitized repository.");
 assert(license.includes("Apache License") && license.includes("Version 2.0, January 2004"), "Apache-2.0 license text is missing.");
 
-console.log(JSON.stringify({ ok: true, judgeFiles, ownerPlaceholders: 2, license: "Apache-2.0", retiredScope: "absent" }, null, 2));
+console.log(JSON.stringify({ ok: true, judgeFiles, ownerPlaceholders: 8, license: "Apache-2.0", retiredScope: "absent" }, null, 2));

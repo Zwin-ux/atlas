@@ -14,7 +14,7 @@ function cssRule(source, selector, startAt = 0) {
   return blockStart === -1 || blockEnd === -1 ? "" : source.slice(blockStart + 1, blockEnd);
 }
 
-const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptSessionSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource, hciManualSource] = await Promise.all([
+const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, appSource, plateSource, geometrySource, cssSource, serverSource, packageSource, modelEvalsSource, smokeEvalsSource, evalRunnerSource, chatgptSessionSource, chatgptRunnerSource, livePreflightSource, transcriptVerifierSource, transcriptTemplateSource, grokRunnerSource, railwayConfigSource, hciManualSource, demoAssemblerSource, releaseAssemblerSource] = await Promise.all([
   readFile(new URL("../web/src/atlas/webmcpTools.ts", import.meta.url), "utf8"),
   readFile(new URL("../web/src/atlas/webmcpRegistry.ts", import.meta.url), "utf8"),
   readFile(new URL("../web/src/atlas/webmcpEvalSchema.ts", import.meta.url), "utf8"),
@@ -37,6 +37,8 @@ const [toolsSource, registrySource, evalSchemaSource, mainSource, finderSource, 
   readFile(new URL("./run-grok-webmcp-evals.mjs", import.meta.url), "utf8"),
   readFile(new URL("../release/webmcp/railway.toml", import.meta.url), "utf8"),
   readFile(new URL("../docs/webmcp/HCI_OPERATING_MANUAL.md", import.meta.url), "utf8"),
+  readFile(new URL("./assemble-webmcp-demo.mjs", import.meta.url), "utf8"),
+  readFile(new URL("./assemble-webmcp-release.mjs", import.meta.url), "utf8"),
 ]);
 
 const packageJson = JSON.parse(packageSource);
@@ -65,6 +67,9 @@ assert((toolsSource.match(/context\?\.signal/g) ?? []).length === 4, "Async desc
 assert(evalSchemaSource.includes("createAtlasWebMcpTools(controller)"), "Eval schemas must be projected from the real runtime descriptors.");
 assert(packageJson.devDependencies?.["webmcp-evals"] === "0.0.4", "webmcp-evals must stay pinned to 0.0.4.");
 assert(["eval:webmcp:static", "eval:webmcp:browser", "eval:webmcp:smoke", "eval:webmcp:grok", "e2e:chatgpt:preflight", "e2e:chatgpt:session", "e2e:chatgpt:transcript", "e2e:chatgpt"].every((script) => packageJson.scripts?.[script]), "Static, browser, smoke, Grok, and ChatGPT end-to-end commands are required.");
+assert(packageJson.scripts?.["demo:webmcp:assemble"] === "node scripts/assemble-webmcp-demo.mjs", "The release demo must retain its reproducible assembly command.");
+assert(demoAssemblerSource.includes("proofManifest.candidateSha") && demoAssemblerSource.includes("proof-manifest hash") && demoAssemblerSource.includes("docs/evidence/39d1e141") && demoAssemblerSource.includes("durationSeconds < 180"), "The demo assembler must bind frames to the proof candidate, work in the sanitized tree, and enforce the time limit.");
+assert(releaseAssemblerSource.includes('"scripts/assemble-webmcp-demo.mjs"') && releaseAssemblerSource.includes('"docs/webmcp/VIDEO_PRODUCTION.md"') && releaseAssemblerSource.includes('artifacts/product-design-audit/judge-presentation-20260903/03-trail-after-curved.png') && releaseAssemblerSource.includes('replaceAll("artifacts/webmcp-release-proof/39d1e141-20260902/", "docs/evidence/39d1e141/")'), "The sanitized release must include the demo assembler, current curved-trail hero, production truth boundary, and portable proof paths.");
 assert(evalRunnerSource.includes("Math.max(3, requestedRuns)"), "Model evals must not run fewer than three trajectories per case.");
 assert(evalRunnerSource.includes("Math.max(0.90, requestedThreshold)"), "Model evals must not weaken the 90% release threshold.");
 assert(evalRunnerSource.includes('model.startsWith("xai:")') && evalRunnerSource.includes("XAI_API_KEY") && evalRunnerSource.includes("https://api.x.ai/v1"), "The xAI model lane must use the explicit Grok adapter and environment credential.");

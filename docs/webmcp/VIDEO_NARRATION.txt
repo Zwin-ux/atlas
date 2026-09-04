@@ -1,0 +1,11 @@
+Atlas is a shared U.S. county canvas. A WebMCP client creates a three-stop research trail, and the route is already visible before the write reports success.
+
+Now I select Miami-Dade by hand. The same controller moves the map, updates the active stop, and the next state read sees exactly what I changed.
+
+Springfield is ambiguous, so Atlas does not guess. Search returns labeled candidates while the existing workspace stays untouched. Only a deliberate state-qualified choice can open the map.
+
+A note is not hidden in the chat. It appears beside its place, stays editable by the person, and is intentionally session-only.
+
+Trail writes are atomic. If even one stop cannot resolve, Atlas creates nothing partial and keeps the previous map, route, notes, and trail intact.
+
+Atlas exposes exactly five focused tools: read state, find places, show a place, add a note, and build a trail. Without WebMCP, the same no-login atlas still works. The challenge work is the shared-control layer, not routing, persistence, or generated geography.

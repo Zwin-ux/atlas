@@ -230,3 +230,14 @@
 - Release audit result in both trees: 3,351 tracked files, 3,222 county geo packs, 52 state plates, zero oversized files, zero failures, one commit, and a clean worktree. Byte totals differ only by working-tree line-ending representation; canonical evidence verification is green in both.
 - Checksum-verified official Gitleaks `8.30.1` archive SHA-256 `d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e` scanned the complete one-commit clean-clone history, about 87.89 MB, and reported zero findings.
 - This new candidate is local only. The existing private remote and live deployment remain at `39d1e141`; no push, visibility change, deployment, or submission occurred.
+
+## 2026-09-03 — Judge presentation and shared-control polish
+
+- The participant explicitly deprioritized actual video production in favor of the live product's presentation, aesthetic, and ChatGPT/Codex experience.
+- Product Design review used the current Atlas entry, ambiguity, trail, mobile handoff, and reduced-motion states plus the linked GitHub `draw` topic. The useful lesson was direct manipulation on the working surface, not a new sketching feature.
+- The national research trail now follows a restrained deterministic cubic path between the same exact county centers. A pure geometry helper owns the path and a focused test covers empty, single-point, repeated-point, and alternating-curve behavior.
+- Agent authorship is now visible as a compact green ink stamp within the existing activity sentence, with a matching failure treatment. The map, not the status chrome, remains dominant.
+- Root/release README and Devpost instructions now explain the complete value in three steps: ChatGPT creates a trail, the person selects stop 2, and ChatGPT reads the human-updated map. Copy states the product distinction directly: turn-taking on one map, not a chatbot beside a map.
+- The Product Design audit at `artifacts/product-design-audit/judge-presentation-20260903/AUDIT.md` records all reviewed states, the before/after route comparison, the external reference boundary, and zero remaining P0/P1/P2 findings.
+- Gates passed: geometry 2/2; exact-five verifier 39/39; typecheck; full build; Chrome 152 smoke with 9/9 official steps and 15 deeper executions; exact `390x844` gstack ambiguity flow with no overflow or new console output; diff check.
+- No tool name, schema, controller contract, state scope, route claim, dependency, deployment, repository visibility, or Devpost record changed.

@@ -2,7 +2,9 @@
 
 ## Current verdict
 
-The standalone challenge repository is reproducible, privately mirrored at exact candidate `39d1e141`, and live through isolated Railway deployment `cd899386`. The private fast-forward and public-runtime update are complete and post-deploy acceptance is green. Its GitHub remote remains private. The historical Atlas repository and its Git history are still **not safe to publish**.
+The standalone challenge repository is reproducible, privately mirrored at exact deployed candidate `39d1e141`, and live through isolated Railway deployment `cd899386`. A later local documentation/evidence candidate `14970b81` also passed the full no-local clean-clone gate and remains unpublished. The GitHub remote remains private. The historical Atlas repository and its Git history are still **not safe to publish**.
+
+Live Devpost data fetched September 3 reports submissions open and an official twelve-hour extension to **September 4, 2026 at 1:00 AM Pacific**. The remaining external gates are now the critical path: real ChatGPT footage, final narrated video, public sanitized source, owner-only form answers, and submission.
 
 Do not change the historical repository's visibility. Do not publish the sanitized repository, configure secrets, or submit Devpost without the matching owner gate.
 
@@ -192,6 +194,12 @@ Required evidence:
 - challenge-period delta accurately disclosed;
 - owner approval to submit.
 
+Current local video evidence: `.evals/webmcp-demo/39d1e141-review/atlas-webmcp-proof-cut.mp4` is a 74-second 1280x720 H.264/AAC proof cut with normalized narration, sidecar captions, and a manifest hashing every source frame. It opens on the national trail and uses only real release-proof captures. It is intentionally **not publishable yet**: the ChatGPT picker/call shots are reserved, the authenticated transcript remains uncaptured, and participant audio/visual approval is outstanding.
+
+The strongest thumbnail is the unmodified national-trail capture at `artifacts/webmcp-release-proof/39d1e141-20260902/06-webmcp-trail-desktop.png`. Do not use the historical voxel-city thumbnail.
+
+The full deadline-aware field map, judge story, critical path, and separate owner packets are in `docs/webmcp/DEVPOST_HANDOFF.md`.
+
 ## Exact owner sequence
 
 1. ~~Approve creation of the new private GitHub repository and initial push.~~ Complete at `ad0d5ab`.
@@ -202,7 +210,7 @@ Required evidence:
 6. Sign in to the already-open headed ChatGPT window and capture the real built-in-browser five-tool transcript using `docs/CHATGPT_E2E.md`.
 7. Provide `XAI_API_KEY` only in the local environment and run the exact `xai:grok-4.6` three-run/90% lane without recording the credential.
 8. Review the private tree, run one additional full-history secret scan, confirm Apache-2.0 detection, and approve public visibility.
-9. Record and upload the demo.
-10. Review the final Devpost fields and approve submission.
+9. Replace the proof-cut placeholders with validated ChatGPT footage, approve the final narration, then approve a public YouTube upload.
+10. Fill the owner-only submitter/country/learning fields, review the final Devpost record, and explicitly approve submission before September 4 at 1:00 AM Pacific.
 
 Each gate names an exact action, evidence, risk, and rollback. None is implied by local green tests.

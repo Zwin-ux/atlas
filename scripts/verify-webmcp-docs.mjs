@@ -32,6 +32,10 @@ const ralphLoop = await readFile("docs/webmcp/RALPH_RELEASE_LOOP.md", "utf8");
 const releaseDesignAudit = await readFile("docs/webmcp/RELEASE_PRODUCT_DESIGN_AUDIT.md", "utf8");
 const hciManual = await readFile("docs/webmcp/HCI_OPERATING_MANUAL.md", "utf8");
 const officialCompatibility = await readFile("docs/webmcp/OFFICIAL_COMPATIBILITY.md", "utf8");
+const videoProduction = await readFile("docs/webmcp/VIDEO_PRODUCTION.md", "utf8");
+const videoNarration = await readFile("docs/webmcp/VIDEO_NARRATION.txt", "utf8");
+const videoCaptions = await readFile("docs/webmcp/VIDEO_CAPTIONS.srt", "utf8");
+const devpostHandoff = await readFile("docs/webmcp/DEVPOST_HANDOFF.md", "utf8");
 
 for (const name of toolNames) {
   assert(readme.includes(`\`${name}\``), `README is missing the ${name} tool.`);
@@ -44,8 +48,11 @@ for (const [path, content] of story) {
   }
 }
 
-assert((submission.match(/\[OWNER REQUIRED:/g) ?? []).length === 2, "Submission copy must keep the two remaining source/video owner placeholders.");
+assert((submission.match(/\[OWNER REQUIRED/g) ?? []).length === 8, "Submission copy must keep all eight explicit owner-only markers, including its explanatory marker.");
+assert(submission.includes("September 4, 2026 at 1:00 AM Pacific") && submission.includes("submissions_open"), "Submission copy must record the live twelve-hour deadline extension without implying submission.");
 assert(readme.includes("https://atlas-webmcp-production.up.railway.app/explore") && submission.includes("https://atlas-webmcp-production.up.railway.app/explore"), "README and submission copy must link the verified live deployment.");
+assert(readme.includes("The 20-second shared-control test") && readme.includes("What place is open now?") && readme.includes("turn-taking on one map"), "README must lead judges through the shared human-agent handoff.");
+assert(submission.includes("What place is open now?") && submission.includes("turn-taking on one map"), "Submission copy must preserve the shared-control test and product thesis.");
 assert(submission.includes("Apache-2.0"), "Submission copy must identify the owner-selected Apache-2.0 license.");
 assert(video.includes("Target runtime: **2:45**") && video.includes("Hard maximum: **2:55**"), "Video script must keep its under-three-minute budget.");
 assert(readme.includes("docs/webmcp/SUBMISSION.md") && readme.includes("docs/webmcp/VIDEO_SCRIPT.md") && readme.includes("docs/webmcp/RELEASE_PACKET.md"), "README must link the release documents.");
@@ -62,13 +69,17 @@ assert(hciManual.includes("ASD-STE100") && hciManual.includes("does not claim AS
 assert(officialCompatibility.includes("41d12f057167ccf5954dbcf49d99502cb6c84491") && officialCompatibility.includes("https://github.com/webmachinelearning/webmcp/commit/41d12f057167ccf5954dbcf49d99502cb6c84491"), "The compatibility record must pin the reviewed WebMCP source revision.");
 assert(officialCompatibility.includes("https://learn.chatgpt.com/docs/webmcp") && officialCompatibility.includes("top-level") && officialCompatibility.includes("document.modelContext.registerTool"), "The compatibility record must cover ChatGPT's current top-level imperative Site Tools subset.");
 assert(officialCompatibility.includes("AbortSignal") && officialCompatibility.includes("untrustedContentHint") && officialCompatibility.includes("not add a remote `/mcp` mutation path"), "The compatibility record must cover lifecycle cancellation, untrusted output, and the shared-page architecture boundary.");
+assert(videoProduction.includes("not publishable") && videoProduction.includes("real ChatGPT") && videoProduction.includes("participant-approved narration"), "Demo production must preserve the real-ChatGPT, voice, and publication gates.");
+assert(videoNarration.includes("exactly five focused tools") && videoNarration.includes("not routing, persistence, or generated geography"), "Narration must explain the exact-five scope and avoid unsupported map claims.");
+assert(videoCaptions.includes("00:01:14,000") && videoCaptions.includes("session-only"), "Captions must cover the complete 74-second proof cut and the session-only boundary.");
+assert(devpostHandoff.includes("September 4, 2026 at 1:00 AM Pacific") && devpostHandoff.includes("no listed project is currently connected") && devpostHandoff.includes("Do not infer these answers"), "Devpost handoff must preserve the live extension, no-submission state, and owner-answer boundary.");
 assert(release.includes("not safe to publish") && release.includes("## Owner gates"), "Release packet must preserve the public-safety stop gate.");
 
 console.log(JSON.stringify({
   ok: true,
   judgeStoryFiles,
   tools: toolNames,
-  ownerPlaceholders: 2,
+  ownerPlaceholders: 8,
   license: "Apache-2.0",
   videoTarget: "2:45",
   retiredScope: "absent",
