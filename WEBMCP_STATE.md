@@ -10,13 +10,13 @@
 
 ## Current Slice
 
-- Slice: `37 — Approved private release fast-forward`
-- Status: `GREEN — private GitHub main is exact candidate 97792d84, repository visibility remains PRIVATE, and the push was a normal fast-forward; Railway did not auto-deploy.`
-- Player-visible promise: `The fully verified presentation candidate is preserved on the private challenge remote without changing the public judge experience.`
-- Smallest complete boundary: `Reconfirm exact local candidate and ancestry, push only 97792d84 to private main, verify remote identity and visibility, inspect Railway for an automatic deployment, and record the resulting external state.`
+- Slice: `38 — Owner-approved Railway deployment of 97792d84`
+- Status: `GREEN — exact candidate 97792d84 is live through Railway deployment 99367264; readiness, exact-five Chrome, visible-write, desktop/mobile, fallback, and reduced-motion checks pass.`
+- Player-visible promise: `The public judge URL serves the finished curved-trail and shared-control presentation candidate with the same exact-five WebMCP contract.`
+- Smallest complete boundary: `Deploy exact private candidate 97792d84 to the existing isolated Railway production service, wait for a successful deployment, then repeat readiness, exact-five Chrome smoke, desktop/mobile visual proof, and deployment identity checks.`
 - Likely files: `WEBMCP_STATE.md; docs/hackathon-build/build-notes.md; docs/webmcp/RELEASE_PACKET.md; CHALLENGE_DELTA.md.`
-- Acceptance checks: `Clean release checkout; exact candidate SHA; origin/main ancestor; non-force push; git ls-remote exact match; GitHub PRIVATE visibility; Railway deployment inventory; documentation guard; diff check.`
-- Anti-scope: `No public visibility, manual Railway deployment, service/config/secret change, force push, historical-repository mutation, video publication, or Devpost submission.`
+- Acceptance checks: `Exact clean release SHA and private remote match; correct Railway project/service/environment; successful new deployment; /ready and /explore preflight; 39/39 verifier; production Chrome exact-five smoke; desktop and 390x844 proof; reduced motion; documentation guard; clean release checkout.`
+- Anti-scope: `No public repository visibility, service recreation, config/secret change, force push, historical-repository mutation, video publication, or Devpost submission. Roll back to 39d1e141 if any live gate fails.`
 
 ### Release checkpoint 1 proof — September 2, 2026
 
@@ -69,6 +69,17 @@
 - Post-push `git ls-remote` resolves `refs/heads/main` to exact `97792d84d66239745011624690769e99ab25838c`. GitHub reports repository `Zwin-ux/atlas-webmcp-challenge`, default branch `main`, visibility `PRIVATE`.
 - Railway project `atlas-webmcp-challenge`, service `atlas-webmcp`, still reports deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` as the newest deployment. No automatic deployment began, so the public judge URL still serves prior deployed candidate `39d1e141`.
 - A live update is a separate owner gate. Rollback for the private source push is a normal revert commit; do not rewrite or force-reset remote history.
+
+### Owner-approved Railway deployment — September 3, 2026
+
+- The owner explicitly approved `Railway deploy 97792d84`. Before upload, the clean release checkout and private remote `main` both resolved to exact `97792d84d66239745011624690769e99ab25838c`; Railway was linked to project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, production environment `d1025fef-c80b-4972-bd4c-7cb63292a731`, and service `807e65dc-37bd-43ae-8059-a05c4da62893`.
+- The first fully explicit CLI form, `railway up . --detach --json --yes --project ...`, failed before deployment creation with `prefix not found`. The materially different linked-checkout form succeeded: `railway up --detach --service atlas-webmcp --environment production --message "Deploy verified candidate 97792d84"`.
+- Deployment `99367264-120d-4db4-8a15-2e04bdd73a45` reached `SUCCESS`, is the active online instance, and reports image digest `sha256:83c67784def1389f70ef94102a3269ac4725b0b78cf3d830bc1f6328d5473a03`. Logs show the Node start command and `Atlas listening on http://0.0.0.0:8080` with no crash or application exception.
+- The public E2E preflight passed HTTPS `/ready` and `/explore`, no login, required origin headers, 3,222 counties, 18,447 places, eight Springfield candidates, Riverside resolution, and the exact five human-titled tools.
+- Chrome `152.0.7977.66` passed 9/9 official steps and 15 deeper executions. All five tools executed; trail/note writes returned only after visible completion; human stop 2 navigation was reflected in the next state read; unknown and ambiguous writes preserved state; console errors were empty; immediate route/marker treatment and reduced-motion suppression passed.
+- Independent gstack browser proof at `1280x720` and exact `390x844` confirmed the normal-browser fallback, map-first presentation, eight Springfield result rows, `scrollWidth = innerWidth = 390`, a 457px mobile map, and every visible input/button at least 44px. The browser emitted only Chrome's expected warning that the `tools` Permissions-Policy feature is unavailable without its origin-trial/WebMCP capability.
+- `pnpm verify:webmcp` passed 39/39 after deployment. The first composed E2E command incorrectly forwarded a literal `--` as the URL and failed before contacting Atlas; the documented `ATLAS_CHATGPT_URL` invocation then passed completely.
+- Railway marked superseded deployment `cd899386` as `REMOVED`. Rollback therefore means redeploying preserved exact candidate `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` from `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-39d1e14`, then rerunning the same live gates.
 
 ## Acceptance Checks
 
@@ -123,10 +134,11 @@
 - [x] Normal registration lifecycle abort is distinguished from a true registration failure, and descriptor guards cover valid names, serializable schemas, and the current annotation cut.
 - [x] Exact sanitized candidate `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`, projected from source `52b42b1899209de0cc38e11ea27e913d974d0129`, passes the complete no-local frozen-install, typecheck, build, 38/38 verifier, Chrome smoke, audit, and clean-status sequence.
 - [x] Private GitHub `main` was fast-forwarded normally from `986cf864` to exact candidate `39d1e141`; repository visibility remains `PRIVATE` and no force push occurred.
-- [x] Railway deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` runs exact candidate `39d1e141` on the isolated challenge service; prior candidate `986cf864` is preserved in an exact clean clone as rollback content because Railway marks superseded deployment `5ce284dc` as `REMOVED`.
+- [x] Railway deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` ran exact candidate `39d1e141` on the isolated challenge service before Gate 3c; candidate `39d1e141` remains preserved in an exact clean clone as current rollback content.
 - [x] The public judge URL passes readiness, headers, no-login, exact-five metadata, 9/9 official Chrome steps, 15 deeper executions, visible trail completion, ambiguity safety, mobile geometry/targets, reduced motion, and desktop/mobile visual inspection.
 - [x] Official Gitleaks `8.30.1`, checksum-verified against its release manifest, scanned all fifteen sanitized commits and 88.28 MB with zero findings.
-- [x] Owner-approved private `main` fast-forwarded normally to exact `97792d84d66239745011624690769e99ab25838c`; GitHub remains `PRIVATE`, and Railway correctly remains on deployment `cd899386` pending a separate deployment gate.
+- [x] Owner-approved private `main` fast-forwarded normally to exact `97792d84d66239745011624690769e99ab25838c`; GitHub remained `PRIVATE`, and Railway correctly stayed on deployment `cd899386` until the separate deployment gate was approved.
+- [x] Owner-approved Railway deployment `99367264-120d-4db4-8a15-2e04bdd73a45` runs exact private candidate `97792d84`; 39/39 verifier, public preflight, exact-five Chrome 9/9 plus 15 deeper executions, desktop/mobile fallback, and reduced-motion proof pass.
 - [x] The real Codex in-app browser discovered exactly five deployed page tools, invoked every tool, preserved revision zero for ambiguous Springfield, rendered the note/trail before success, reflected a human marker-2 click in the next agent state read, and rediscovered the exact five after refresh without a false offline state or console warning/error.
 - [x] FigJam wrapper `3:2` now includes Devpost storyboard section `27:2`: six ordered beats open on the visible trail, prove the shared controller and ambiguity safety, then close with exact-five/fallback/release evidence.
 - [x] `get_figjam` confirms the new section is contained at y=4310 inside the resized 6400x6090 wrapper; 2400px section and 4096px full-board renders were downloaded and visually inspected with no clipping, overlap, or competing product surface.
@@ -416,7 +428,7 @@
 | Exact `39d1e141` no-local release audit | PASS | 3,340 files, 88,228,192 working-tree bytes after Windows line-ending checkout, 3,222 county packs, 52 state plates, 15 commits, no oversized files, clean Git state, and zero failures. |
 | Slice 26 external-state recheck | UNCHANGED / OWNER-GATED | GitHub reports the challenge repository `PRIVATE` with remote `main` still at `986cf864`; Railway reports deployment `5ce284dc` still `SUCCESS` and serving the isolated `atlas-webmcp` service. No push, deploy, visibility, secret, or submission mutation occurred. |
 | Private fast-forward `git push origin HEAD:main` | PASS | After the user approved the exact gate, GitHub advanced normally from `986cf864` to `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`; `git ls-remote` confirms the target and `gh repo view` still reports `PRIVATE`. |
-| Railway deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` | PASS | Exact candidate `39d1e141` was uploaded only to project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`; Railway reports `SUCCESS`, one running instance, image digest `sha256:4eb08fa4d0bfe9a903a29e5d5ecc0dcfd4dc107a01dc1209fea466edde50248e`, and no error-level deploy logs. |
+| Railway deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` | PASS / SUPERSEDED | Exact candidate `39d1e141` was uploaded only to project `5c0ac24b-b588-4ba2-8d04-5118103b2999`, service `807e65dc-37bd-43ae-8059-a05c4da62893`; it reported `SUCCESS`, one running instance, image digest `sha256:4eb08fa4d0bfe9a903a29e5d5ecc0dcfd4dc107a01dc1209fea466edde50248e`, and no error-level deploy logs before Gate 3c replaced it. |
 | Public `/ready` and `/explore` preflight | PASS | HTTP 200; 3,222 counties and 18,447 places; `/explore` returns `Origin-Agent-Cluster: ?1`, `Permissions-Policy: tools=(self)`, Atlas markup, and no login gate. |
 | Public `pnpm e2e:chatgpt` | AUTOMATION PASS / CHATGPT AND MODEL GATED | Chrome `152.0.7977.64`; exactly five human-titled tools, 9/9 official steps, 15 deeper executions, visible atomic writes, Springfield ambiguity recovery, exact 390x844 coverage, and reduced-motion proof. `releaseReady` correctly remains false because the real ChatGPT transcript and Grok threshold are absent. |
 | Public production visual inspection | PASS | Fresh desktop capture keeps the national route and three numbered stops dominant with a restrained research rail; fresh 390x844 capture keeps the county map, controls, active stop, and editor legible without horizontal clipping. |
@@ -424,6 +436,7 @@
 | Real Codex in-app browser Site Tools acceptance | PASS | The deployed tab exposed the exact five tools with the expected origin, titles, schemas, and annotations. Direct app-native calls exercised all five: Springfield returned eight candidates and preserved revision/visibleRevision `0`; Riverside open/note and the three-stop trail returned `visible: true`; visible DOM showed all numbered markers, editable prompts, and the note. A human click on marker 2 opened Miami-Dade and the next `get_map_state` returned `activeIndex: 1`, county view, and revision/visibleRevision `4`. |
 | In-app refresh lifecycle regression | PASS | After a real deployed-tab reload, the app rediscovered exactly five tools, `get_map_state` returned a clean national revision zero, visible status read `Map ready · Site tools on`, `Site tools offline` count was zero, and captured warning/error logs were empty. |
 | GitHub publication preflight | PARTIAL / OWNER-GATED | Private remote `main` is exact `97792d84`; GitHub detects `Apache-2.0`, default branch `main`, and a healthy non-archived repository. The About description/homepage are empty and no GitHub Actions runs exist, so publication still requires owner-approved metadata plus either CI or an explicit decision to rely on the already green exact-SHA clean-clone/browser evidence. |
+| Railway presentation deployment `99367264-120d-4db4-8a15-2e04bdd73a45` | PASS | Exact private candidate `97792d84` is online in the isolated production service; `/ready`, `/explore`, exact-five metadata, Chrome 9/9 plus 15 deeper executions, visible atomic writes, 390x844 geometry/targets, reduced motion, normal-browser fallback, and visual inspection pass. |
 
 ### Slice 22 HCI and Figma continuity
 
@@ -508,7 +521,7 @@
 - The live-E2E Product Design audit records four current-run states under `artifacts/product-design-audit/chatgpt-e2e/`: map entry, Springfield ambiguity recovery, the exact 390x844 recovery state, and the WebMCP-created national trail.
 - The composed clean-clone run against `http://127.0.0.1:8898/explore` verified `Origin-Agent-Cluster: ?1`, `Permissions-Policy: tools=(self)`, the no-login route, all five human titles, eight Springfield candidates, Riverside resolution, 9/9 official Chrome steps, and 13 deeper executions.
 - The composed report distinguishes `ok: true` from `releaseReady: false`; this is intentional proof hygiene until the same journey is captured in ChatGPT's built-in browser and the Grok 4.6 model lane reaches its threshold.
-- Exact candidate `39d1e141` is live at `https://atlas-webmcp-production.up.railway.app/explore` through deployment `cd899386`; `/ready` reports 3,222 counties and 18,447 places and `/explore` carries the required origin headers.
+- Exact candidate `39d1e141` was live at `https://atlas-webmcp-production.up.railway.app/explore` through deployment `cd899386` at that checkpoint; Gate 3c later replaced it with exact `97792d84` while preserving the same readiness and origin-header contract.
 - Live release evidence is captured at `artifacts/product-design-audit/release-cc45be3/01-live-entry-desktop.png`, `02-springfield-ambiguity-desktop.png`, `03-springfield-ambiguity-mobile-390x844.png`, and `04-webmcp-trail-desktop.png`.
 - The 390x844 live page measured `scrollWidth=clientWidth=390`; the visual audit found no remaining high or medium issue and kept the national trail overlay as the single focal event.
 - A headed ChatGPT window is open on the sign-in screen. No credentials or browser-session data were accessed; the built-in-browser transcript awaits user sign-in.
@@ -543,11 +556,11 @@
 - Slice 24 review findings: `0` remaining after making the complete route and markers visible before success, measuring usable mobile map area and every visible 44px target, escaping generated PowerShell literals, rejecting unsafe target URLs, and requiring contained real evidence plus independent post-failure state reads.
 - Slice 25 Product Design findings: `0` remaining. The redundant idle instruction and 26 lines of prompt-only CSS were removed; availability, fallback, and meaningful activity feedback remain intact; current desktop/mobile captures preserve the map-first hierarchy.
 - Slice 26 standards review findings: `0` unresolved high/medium. The only implementation defect was a false offline status when normal cleanup rejected an in-flight registration promise; the lifecycle guard and remount regression test resolve it. Current descriptor names, schemas, annotations, signal forwarding, visible completion, and fallback are covered by executable guards.
-- Disposition: `CLEAN PRIVATE CANDIDATE / PRIOR DEPLOYMENT GREEN` for source provenance commit `da0f4eae`, exact sanitized/private remote candidate `97792d84`, prior Railway candidate `39d1e141` at deployment `cd899386`, and the complete deterministic Chrome, real Codex in-app, release, visual, lifecycle, and full-history scan sequence. Real ChatGPT conversation proof, the Grok model threshold, candidate deployment, public source visibility, video, and Devpost remain separate gates.
+- Disposition: `CLEAN AND DEPLOYED` for source provenance commit `da0f4eae`, exact sanitized/private remote candidate `97792d84`, Railway deployment `99367264`, and the complete deterministic Chrome, normal-browser, release, visual, lifecycle, and full-history scan sequence. The prior real Codex in-app evidence remains valid for the unchanged exact-five architecture; a new real ChatGPT conversation, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
 
-- Private GitHub `main` identifies exact candidate `97792d84`; the isolated Railway deployment remains prior candidate `39d1e141` at `cd899386`. GitHub visibility remains `PRIVATE`. Candidate deployment, public source visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- Private GitHub `main` and the isolated Railway service now identify exact candidate `97792d84` through active deployment `99367264`; GitHub visibility remains `PRIVATE`. Public source visibility and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 and the real Codex in-app browser both prove page-native WebMCP acceptance against the public deployed URL without API injection; ChatGPT conversation acceptance remains a separate credential-safe evidence gate.
 - The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
@@ -558,7 +571,7 @@
 
 ## Exact Next Action
 
-Next owner gate: approve deploying exact private candidate `97792d84d66239745011624690769e99ab25838c` to the existing isolated Railway production service `atlas-webmcp`. Before mutation, reconfirm remote SHA and service identity; after deployment, require `/ready`, `/explore`, exact-five Chrome smoke, desktop/mobile visual proof, and rollback to preserved candidate `39d1e141` if any gate fails.
+No independent local implementation slice remains unblocked. The next material steps each require an external gate: capture the real authenticated ChatGPT five-tool conversation, provide the optional Grok credential for the three-run model lane, or explicitly approve public visibility after final private-tree review. Do not infer any of these permissions from the completed deployment approval.
 
 ## Slice Queue
 
@@ -595,5 +608,6 @@ Next owner gate: approve deploying exact private candidate `97792d84d66239745011
 31. Repository-grounded Atlas technical spec — GREEN / CHECKLIST NEXT (approved existing stack and deployment boundary; seven epics mapped to real components; exact file, state, API, visible-revision, error, proof, and release contracts complete; zero deepening rounds)
 32. Autonomous release build checklist — GREEN / BUILD NEXT (eleven 15–30-minute tasks locked; shared human-agent handoff selected as wow moment; autonomous speed-run, verification, commit cadence, independent-lane continuation, and owner gates encoded; zero deepening rounds)
 33. Judge presentation and shared-control polish — GREEN (`da0f4eae`; exact sanitized candidate `97792d84`; 39/39 verifier, Chrome, mobile, reduced-motion, release-audit, and Gitleaks proof complete)
-34. Owner-approved private presentation push — GREEN / DEPLOYMENT NEXT (private remote `main` exact `97792d84`; normal fast-forward; GitHub remains private; Railway remains prior candidate `39d1e141` at `cd899386`)
+34. Owner-approved private presentation push — GREEN (private remote `main` exact `97792d84`; normal fast-forward; GitHub remains private)
+35. Owner-approved Railway presentation deployment — GREEN (`99367264`; exact `97792d84`; 39/39 verifier, live preflight, Chrome exact-five 9/9 plus 15 deeper executions, desktop/mobile fallback, visual, and reduced-motion proof complete)
 

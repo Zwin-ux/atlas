@@ -258,3 +258,15 @@
 - `git ls-remote` confirms private remote `main` at exact `97792d84d66239745011624690769e99ab25838c`; `gh repo view` confirms default branch `main` and visibility `PRIVATE`.
 - Railway did not auto-deploy from this private push. Isolated service `atlas-webmcp` still reports deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa`, which serves prior candidate `39d1e141` at the public judge URL.
 - Deploying `97792d84` is a separate owner gate. The content rollback is a normal revert commit; no history rewrite is authorized.
+
+## 2026-09-03 — Owner-approved Railway presentation deployment
+
+- The owner explicitly approved `Railway deploy 97792d84`.
+- Preflight matched the clean release checkout, private remote `main`, and requested candidate at exact `97792d84d66239745011624690769e99ab25838c`. Railway binding matched only the isolated challenge project, production environment, and `atlas-webmcp` service.
+- An explicit dot-path upload form failed before creating a deployment with `prefix not found`. Retrying through the already linked checkout without a path prefix created deployment `99367264-120d-4db4-8a15-2e04bdd73a45`, which reached `SUCCESS` and became the online instance.
+- Public preflight passed HTTPS readiness, no-login route, origin headers, 3,222 counties, 18,447 places, eight Springfield candidates, Riverside resolution, and exact-five human-titled tool discovery.
+- Chrome `152.0.7977.66` passed 9/9 official steps and 15 deeper executions with all five tools, visible note/trail completion, manual stop handoff, unknown/ambiguous mutation safety, exact `390x844` coverage, and reduced-motion suppression. `pnpm verify:webmcp` passed 39/39.
+- Independent gstack inspection passed the `1280x720` map-first entry and exact `390x844` Springfield fallback state: eight candidates, no horizontal overflow, 457px map height, and every visible target at least 44px. Desktop, mobile, WebMCP trail, and reduced-motion screenshots were visually inspected.
+- Deployment logs show the Node start command and a listening server with no crash or application exception. Railway reports image digest `sha256:83c67784def1389f70ef94102a3269ac4725b0b78cf3d830bc1f6328d5473a03`.
+- Superseded deployment `cd899386` is now `REMOVED`. Rollback content remains exact candidate `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` in `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-39d1e14` and must be redeployed if needed.
+- GitHub remains private. No repository visibility, secret, service topology, video, or Devpost submission action occurred.
