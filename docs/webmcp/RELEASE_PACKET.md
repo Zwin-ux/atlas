@@ -2,7 +2,7 @@
 
 ## Current verdict
 
-The standalone challenge repository is reproducible, privately mirrored at exact deployed candidate `39d1e141`, and live through isolated Railway deployment `cd899386`. The latest local presentation candidate `97792d84`, projected from source `da0f4eae`, is a normal fast-forward from deployed `origin/main`, passes the full no-local clean-clone gate, and remains unpublished. The GitHub remote remains private. The historical Atlas repository and its Git history are still **not safe to publish**.
+The standalone challenge repository is reproducible and privately mirrored at exact presentation candidate `97792d84`, projected from source `da0f4eae`. The public judge route remains on prior candidate `39d1e141` through isolated Railway deployment `cd899386`; Railway did not auto-deploy the private push. Candidate `97792d84` is a normal fast-forward, passes the full no-local clean-clone gate, and is private but not yet deployed. The historical Atlas repository and its Git history are still **not safe to publish**.
 
 The checksum-verified Gitleaks `8.30.1` binary scanned candidate `97792d84`'s complete 16-commit history and about 88.33 MB with zero leaks.
 
@@ -14,10 +14,10 @@ Do not change the historical repository's visibility. Do not publish the sanitiz
 
 - Local repository: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release`
 - Branch: `codex/release-design-pass`
+- Private remote candidate SHA: `97792d84d66239745011624690769e99ab25838c`
+- Source provenance SHA: `da0f4eae8582a345ada3de891422a21b0ac9c4dd`
+- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-97792d8`
 - Deployed candidate SHA: `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`
-- Source provenance SHA: `52b42b1899209de0cc38e11ea27e913d974d0129`
-- Final clean clone: `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-39d1e14`
-- Current private remote and deployed SHA: `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`
 - Live route: `https://atlas-webmcp-production.up.railway.app/explore`
 - Railway project/service: `5c0ac24b-b588-4ba2-8d04-5118103b2999` / `807e65dc-37bd-43ae-8059-a05c4da62893`
 - Active deployment: `cd899386-c7b4-4f1c-816d-1bf6e67e20fa`
@@ -30,28 +30,28 @@ The repository contains one challenge-only React entry, one small no-login Node 
 
 ## Final local proof
 
-The deployed candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`:
+The current private candidate was cloned with `git clone --no-local` into an empty directory. At exact SHA `97792d84d66239745011624690769e99ab25838c`:
 
 | Command | Result |
 |---|---|
 | `pnpm install --frozen-lockfile` | PASS; lockfile policy green, 135 packages installed |
 | `pnpm typecheck` | PASS; standalone web and server contracts |
 | `pnpm build` | PASS; challenge client and server built |
-| `pnpm verify:webmcp` | PASS; 38/38 focused tests plus runtime, judge-copy, and pinned-compatibility guards |
+| `pnpm verify:webmcp` | PASS; 39/39 focused tests plus runtime, judge-copy, presentation, and pinned-compatibility guards |
 | `pnpm eval:webmcp:smoke` | PASS; Chrome 152, 9/9 official steps, 15 deeper tool executions, immediate route/marker visibility, usable 390x844 map area, 44px visible controls, and reduced-motion suppression |
-| `pnpm audit:release` | PASS; 3,340 files, 88,228,192 working-tree bytes after Windows line-ending checkout, 15 commits, clean Git state, no oversized files, no audit failures |
+| `pnpm audit:release` | PASS; 3,355 files, 3,222 county packs, 52 state plates, 16 commits, clean Git state, no oversized files, no audit failures |
 | `git diff --check` and `git status --short --branch` | PASS; no whitespace errors and clean exact-SHA clone |
 
 The release-facing trail proof includes a complete route and readable numbered markers before tool success, restrained continuity motion, explicit session-only context, a non-color `Current` state, usable mobile map area, 44px visible mobile controls, and the real Chrome WebMCP activity rail. The idle `Try a 3-stop trail` coaching and its dead responsive CSS are removed, leaving one calm availability signal until a real agent action occurs. ChatGPT-facing Site Tools have plain-language titles, natural-intent descriptions, bounded visible/unchanged result signals, a tamper-resistant capture workflow, and a compatibility record pinned to WebMCP proposal commit `41d12f057167ccf5954dbcf49d99502cb6c84491` plus OpenAI's current Site Tools documentation. Normal registration teardown can no longer be misreported as `Site tools offline`.
 
-The candidate is verified locally, from its no-local clone, from private remote `main`, and through the active public Railway deployment. GitHub visibility remains `PRIVATE`.
+Candidate `97792d84` is verified locally, from its no-local clone, and on private remote `main`. The active public Railway deployment remains the independently verified prior candidate `39d1e141`. GitHub visibility remains `PRIVATE`.
 
 ## Scope, secret, size, and provenance audit
 
 The sanitized repository audit reports:
 
-- 3,340 tracked files;
-- 88,228,192 audited working-tree bytes in the final clean clone after Windows line-ending checkout;
+- 3,355 tracked files;
+- about 88.33 MB scanned across the complete sanitized history;
 - 3,222 county geo packs and 52 state plates;
 - no tracked build output, eval output, `node_modules`, `.env`, historical apps, or historical workspace packages;
 - no file larger than 5 MiB;
@@ -60,7 +60,7 @@ The sanitized repository audit reports:
 - only `react` and `react-dom` as runtime dependencies;
 - a full Apache-2.0 license, Census attribution, and frozen dependency-license inventory.
 
-Official Gitleaks `8.30.1` was downloaded from its GitHub release, its Windows x64 SHA-256 matched the published checksum, and it scanned all 15 sanitized commits plus about 88.28 MB with zero findings. This strengthens only the sanitized repository boundary; it is not evidence that the historical repository is safe. Public visibility still requires the owner's final remote-tree review and explicit approval.
+Official Gitleaks `8.30.1` was downloaded from its GitHub release, its Windows x64 SHA-256 matched the published checksum, and it scanned all 16 sanitized commits plus about 88.33 MB with zero findings. This strengthens only the sanitized repository boundary; it is not evidence that the historical repository is safe. Public visibility still requires the owner's final remote-tree review and explicit approval.
 
 The selected README image was visually inspected: it contains only the Atlas national trail overview and no terminal, local path, account, or credential surface.
 
@@ -122,18 +122,28 @@ Risk: the private remote now contains the HCI/motion work, stricter ChatGPT evid
 
 Rollback: create a normal revert commit in the private repository. Do not rewrite history or force the branch backward.
 
+### Gate 1f — presentation candidate private fast-forward — COMPLETE
+
+Completed September 3, 2026: after the owner explicitly approved `private push 97792d84`, the still-private `Zwin-ux/atlas-webmcp-challenge` `main` branch was fast-forwarded normally from `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` to exact candidate `97792d84d66239745011624690769e99ab25838c`. No force push or visibility change occurred.
+
+Evidence: `git ls-remote` returns exact `97792d84d66239745011624690769e99ab25838c`; `gh repo view` reports default branch `main` and visibility `PRIVATE`. The candidate and no-local clone passed frozen install, typecheck, build, 39/39 verification, Chrome exact-five smoke, release audit, clean status, and a checksum-verified 16-commit Gitleaks scan with zero findings.
+
+Risk: the private remote now contains the judge-presentation polish and supporting documentation. The public runtime did not change because Railway did not auto-deploy.
+
+Rollback: create a normal revert commit in the private repository. Do not rewrite history or force the branch backward.
+
 ### Gate 2 — public visibility
 
 Required before changing visibility:
 
 - owner reviews the private GitHub tree and About panel;
-- official Gitleaks `8.30.1` full-history scan reports zero findings across all 15 commits — COMPLETE;
+- official Gitleaks `8.30.1` full-history scan reports zero findings across all 16 commits — COMPLETE;
 - license is detected as Apache-2.0 — COMPLETE;
 - README image and attribution render correctly;
 - GitHub Actions or a fresh remote clone repeats install, typecheck, build, verify, and smoke as applicable;
-- candidate SHA still matches `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` or a newer SHA is fully re-verified.
+- candidate SHA still matches `97792d84d66239745011624690769e99ab25838c` or a newer SHA is fully re-verified.
 
-Current read-only GitHub preflight: visibility remains `PRIVATE`; default branch is `main`; Apache-2.0 detection passes; the repository is enabled and not archived. The About description and homepage are blank, and there are no GitHub Actions runs. Set judge-facing metadata and choose CI versus the existing exact-SHA clean-clone/public-browser evidence only with explicit owner approval.
+Current read-only GitHub preflight: exact remote `main` is `97792d84d66239745011624690769e99ab25838c`; visibility remains `PRIVATE`; default branch is `main`; Apache-2.0 detection passes; the repository is enabled and not archived. The About description and homepage are blank, and there are no GitHub Actions runs. Set judge-facing metadata and choose CI versus the existing exact-SHA clean-clone/browser evidence only with explicit owner approval.
 
 Rollback: return the repository to private immediately. Do not attempt to repair an exposure by rewriting the historical Atlas repository.
 
@@ -209,10 +219,12 @@ The full deadline-aware field map, judge story, critical path, and separate owne
 3. ~~Approve the one-commit private fast-forward to live-E2E candidate.~~ Complete at `049ec222`.
 4. ~~Approve the isolated Railway service and deployment while keeping the repository private.~~ Complete at deployment `5ce284dc` from exact candidate `986cf864`.
 5. ~~Approve the exact private fast-forward to `39d1e141` and the isolated Railway update, with immediate post-deploy checks and rollback to preserved candidate `986cf864` if any gate fails.~~ Complete at deployment `cd899386`; no rollback needed.
-6. Sign in to the already-open headed ChatGPT window and capture the real built-in-browser five-tool transcript using `docs/CHATGPT_E2E.md`.
-7. Provide `XAI_API_KEY` only in the local environment and run the exact `xai:grok-4.6` three-run/90% lane without recording the credential.
-8. Review the private tree, run one additional full-history secret scan, confirm Apache-2.0 detection, and approve public visibility.
-9. Replace the proof-cut placeholders with validated ChatGPT footage, approve the final narration, then approve a public YouTube upload.
-10. Fill the owner-only submitter/country/learning fields, review the final Devpost record, and explicitly approve submission before September 4 at 1:00 AM Pacific.
+6. ~~Approve the exact private fast-forward from `39d1e141` to presentation candidate `97792d84` without deploying it.~~ Complete; remote remains private and Railway remains at `cd899386`.
+7. Approve deploying exact private candidate `97792d84` to the existing isolated Railway service, with rollback to prior candidate `39d1e141` if post-deploy gates fail.
+8. Sign in to the already-open headed ChatGPT window and capture the real built-in-browser five-tool transcript using `docs/CHATGPT_E2E.md`.
+9. Provide `XAI_API_KEY` only in the local environment and run the exact `xai:grok-4.6` three-run/90% lane without recording the credential.
+10. Review the private tree, confirm Apache-2.0 detection, and explicitly approve public visibility.
+11. Replace the proof-cut placeholders with validated ChatGPT footage, approve the final narration, then approve a public YouTube upload.
+12. Fill the owner-only submitter/country/learning fields, review the final Devpost record, and explicitly approve submission before September 4 at 1:00 AM Pacific.
 
 Each gate names an exact action, evidence, risk, and rollback. None is implied by local green tests.

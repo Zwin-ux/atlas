@@ -248,4 +248,13 @@
 - Candidate `950f86b` is local only. Private remote `main` and the public Railway service remain exact deployed candidate `39d1e141`; no push, deployment, visibility change, or Devpost submission occurred.
 - To preserve normal release history, copied the sanitized candidate without deletions onto the clean release checkout at deployed `origin/main` `39d1e141` and committed fast-forward candidate `97792d84d66239745011624690769e99ab25838c`. The ancestry check confirms `origin/main` is an ancestor.
 - Fresh clone `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-97792d8` passes frozen install, typecheck, build, 39/39 verification, Chrome 152 smoke with 9/9 official steps and 15 deeper executions, release audit, diff check, and clean status. Gitleaks scanned all 16 commits and about 88.33 MB with zero leaks.
-- Candidate `97792d8` is the current fast-forwardable release candidate. It remains local; no push, deployment, visibility change, or submission occurred.
+- Candidate `97792d8` became the current fast-forwardable release candidate. At this checkpoint it was still local; no push, deployment, visibility change, or submission had occurred.
+
+## 2026-09-03 — Owner-approved private candidate push
+
+- The owner explicitly approved `private push 97792d84`.
+- Reconfirmed the release checkout was clean at exact `97792d84d66239745011624690769e99ab25838c` and that prior private `origin/main` `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` was an ancestor.
+- Pushed the exact candidate to `main` with a normal fast-forward. No force push, visibility change, service change, secret change, or Devpost mutation occurred.
+- `git ls-remote` confirms private remote `main` at exact `97792d84d66239745011624690769e99ab25838c`; `gh repo view` confirms default branch `main` and visibility `PRIVATE`.
+- Railway did not auto-deploy from this private push. Isolated service `atlas-webmcp` still reports deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa`, which serves prior candidate `39d1e141` at the public judge URL.
+- Deploying `97792d84` is a separate owner gate. The content rollback is a normal revert commit; no history rewrite is authorized.

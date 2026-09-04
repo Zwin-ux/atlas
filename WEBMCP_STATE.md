@@ -10,13 +10,13 @@
 
 ## Current Slice
 
-- Slice: `36 — Judge presentation and shared-control polish`
-- Status: `GREEN — the shared-control presentation slice passes focused tests, exact-five verification, typecheck, production build, Chrome smoke, and desktop/mobile/reduced-motion review; actual video production remains intentionally deprioritized.`
-- Player-visible promise: `A ChatGPT-created research trail reads as an authored field-atlas path, agent activity is unmistakable but restrained, and a judge can prove human-agent turn-taking in twenty seconds.`
-- Smallest complete boundary: `Replace the chart-like straight trail with a deterministic curved ink path, add a compact agent-origin stamp to the existing activity line, and lead the README/Devpost instructions with one three-step shared-control test.`
-- Likely files: `web/src/atlas/plateGeometry.ts; web/src/atlas/AtlasPlate.tsx; web/src/atlas/atlas.css; web/test/plate-geometry.test.ts; README.md; release/webmcp/README.md; docs/webmcp/SUBMISSION.md; docs/hackathon-build/build-notes.md; this ledger.`
-- Acceptance checks: `Focused geometry test; exact-five verifier; typecheck; production build; deterministic Chrome smoke; desktop and 390x844 visual review; reduced-motion proof; no tool/schema/controller expansion; documentation guard; diff check.`
-- Anti-scope: `No freehand toolbar, drawing dependency, sixth tool, routing claim, decorative panel, tutorial, generic SaaS treatment, auth, persistence, public posting, repository visibility change, deployment mutation, video publication, or Devpost submission.`
+- Slice: `37 — Approved private release fast-forward`
+- Status: `GREEN — private GitHub main is exact candidate 97792d84, repository visibility remains PRIVATE, and the push was a normal fast-forward; Railway did not auto-deploy.`
+- Player-visible promise: `The fully verified presentation candidate is preserved on the private challenge remote without changing the public judge experience.`
+- Smallest complete boundary: `Reconfirm exact local candidate and ancestry, push only 97792d84 to private main, verify remote identity and visibility, inspect Railway for an automatic deployment, and record the resulting external state.`
+- Likely files: `WEBMCP_STATE.md; docs/hackathon-build/build-notes.md; docs/webmcp/RELEASE_PACKET.md; CHALLENGE_DELTA.md.`
+- Acceptance checks: `Clean release checkout; exact candidate SHA; origin/main ancestor; non-force push; git ls-remote exact match; GitHub PRIVATE visibility; Railway deployment inventory; documentation guard; diff check.`
+- Anti-scope: `No public visibility, manual Railway deployment, service/config/secret change, force push, historical-repository mutation, video publication, or Devpost submission.`
 
 ### Release checkpoint 1 proof — September 2, 2026
 
@@ -60,7 +60,15 @@
 - The same sanitized tree was then applied without deletions to the preserved release checkout at deployed `origin/main` candidate `39d1e141`, producing normal fast-forward candidate `97792d84d66239745011624690769e99ab25838c`; `git merge-base --is-ancestor origin/main HEAD` passes. Its no-local clone is `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-97792d8`.
 - Candidate `97792d8` and its no-local clone pass frozen install, typecheck, build, 39/39 verification, Chrome `152.0.7977.66` smoke with 9/9 official steps and 15 deeper executions, release audit, diff check, and clean status. Release audit reports 3,355 tracked files, 3,222 county packs, 52 state plates, 16 commits, zero oversized files, and zero failures.
 - The checksum-verified Gitleaks `8.30.1` binary scanned all 16 commits and about 88.33 MB with zero leaks.
-- External truth remains unchanged: the public Railway deployment and private remote remain candidate `39d1e141`. Candidate `97792d8` is local and unpublished until a separately owner-approved push/deployment action exists.
+- External truth before the next gate remained unchanged: the public Railway deployment and private remote were candidate `39d1e141`. Candidate `97792d8` awaited a separately owner-approved push/deployment action.
+
+### Approved private fast-forward — September 3, 2026
+
+- The owner explicitly approved `private push 97792d84`. The clean release checkout was reconfirmed at exact `97792d84d66239745011624690769e99ab25838c`; previous private `origin/main` `39d1e1413e72ea050845ffbaa6323fffeb8c28f1` remained an ancestor.
+- `git push origin 97792d84d66239745011624690769e99ab25838c:main` completed as a normal fast-forward from `39d1e14` to `97792d8`; no force option was used.
+- Post-push `git ls-remote` resolves `refs/heads/main` to exact `97792d84d66239745011624690769e99ab25838c`. GitHub reports repository `Zwin-ux/atlas-webmcp-challenge`, default branch `main`, visibility `PRIVATE`.
+- Railway project `atlas-webmcp-challenge`, service `atlas-webmcp`, still reports deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` as the newest deployment. No automatic deployment began, so the public judge URL still serves prior deployed candidate `39d1e141`.
+- A live update is a separate owner gate. Rollback for the private source push is a normal revert commit; do not rewrite or force-reset remote history.
 
 ## Acceptance Checks
 
@@ -118,6 +126,7 @@
 - [x] Railway deployment `cd899386-c7b4-4f1c-816d-1bf6e67e20fa` runs exact candidate `39d1e141` on the isolated challenge service; prior candidate `986cf864` is preserved in an exact clean clone as rollback content because Railway marks superseded deployment `5ce284dc` as `REMOVED`.
 - [x] The public judge URL passes readiness, headers, no-login, exact-five metadata, 9/9 official Chrome steps, 15 deeper executions, visible trail completion, ambiguity safety, mobile geometry/targets, reduced motion, and desktop/mobile visual inspection.
 - [x] Official Gitleaks `8.30.1`, checksum-verified against its release manifest, scanned all fifteen sanitized commits and 88.28 MB with zero findings.
+- [x] Owner-approved private `main` fast-forwarded normally to exact `97792d84d66239745011624690769e99ab25838c`; GitHub remains `PRIVATE`, and Railway correctly remains on deployment `cd899386` pending a separate deployment gate.
 - [x] The real Codex in-app browser discovered exactly five deployed page tools, invoked every tool, preserved revision zero for ambiguous Springfield, rendered the note/trail before success, reflected a human marker-2 click in the next agent state read, and rediscovered the exact five after refresh without a false offline state or console warning/error.
 - [x] FigJam wrapper `3:2` now includes Devpost storyboard section `27:2`: six ordered beats open on the visible trail, prove the shared controller and ambiguity safety, then close with exact-five/fallback/release evidence.
 - [x] `get_figjam` confirms the new section is contained at y=4310 inside the resized 6400x6090 wrapper; 2400px section and 4096px full-board renders were downloaded and visually inspected with no clipping, overlap, or competing product surface.
@@ -189,7 +198,7 @@
 - `artifacts/webmcp-proof/webmcp-browser-smoke.json` — bounded Chrome 152 exact-five tool transcript with successful and mutation-safe journeys.
 - `scripts/assemble-webmcp-release.mjs` and `release/webmcp/` — assemble the challenge-only repository from an explicit allowlist with a standalone server/client, exact-five tools, tests, data, Apache-2.0 license, attribution, audit, deployment contract, and primary-source compatibility record.
 - `docs/webmcp/OFFICIAL_COMPATIBILITY.md` — pins the reviewed WebMCP proposal and OpenAI Site Tools sources, maps their current contracts to Atlas code/tests, and records why a detached remote MCP mutation path is outside this challenge architecture.
-- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` — clean fifteen-commit sanitized branch at exact candidate `39d1e1413e72ea050845ffbaa6323fffeb8c28f1`, now equal to still-private remote `main`.
+- `C:\Users\mzwin\Documents\Atlas-WebMCP-Release` — clean sixteen-commit sanitized branch at exact candidate `97792d84d66239745011624690769e99ab25838c`, now equal to still-private remote `main`.
 - `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-39d1e14` — exact no-local clone used for frozen install, typecheck, build, 38/38 verification, Chrome smoke, release audit, and clean-status proof.
 - `docs/webmcp/RELEASE_PACKET.md`, `CHALLENGE_DELTA.md`, README, and submission docs — record the exact sanitized SHA, local proof, publication boundaries, and owner-gated sequence.
 - `web/src/atlas/AtlasApp.tsx`, `AtlasPlaceFinder.tsx`, `AtlasPlate.tsx`, and `atlas.css` — clarify tool readiness, research-session hierarchy, non-color current-stop semantics, target sizes, mobile density, and trail-over-map priority without adding product surface.
@@ -414,7 +423,7 @@
 | Gitleaks `8.30.1` full-history scan | PASS | Official Windows x64 archive SHA-256 matched the release checksum; all 15 commits and about 88.28 MB scanned with zero leaks found. The disposable scanner directory remains under the exact Temp path because recursive cleanup was blocked by host policy. |
 | Real Codex in-app browser Site Tools acceptance | PASS | The deployed tab exposed the exact five tools with the expected origin, titles, schemas, and annotations. Direct app-native calls exercised all five: Springfield returned eight candidates and preserved revision/visibleRevision `0`; Riverside open/note and the three-stop trail returned `visible: true`; visible DOM showed all numbered markers, editable prompts, and the note. A human click on marker 2 opened Miami-Dade and the next `get_map_state` returned `activeIndex: 1`, county view, and revision/visibleRevision `4`. |
 | In-app refresh lifecycle regression | PASS | After a real deployed-tab reload, the app rediscovered exactly five tools, `get_map_state` returned a clean national revision zero, visible status read `Map ready · Site tools on`, `Site tools offline` count was zero, and captured warning/error logs were empty. |
-| GitHub publication preflight | PARTIAL / OWNER-GATED | Private remote `main` is exact `39d1e141`; GitHub detects `Apache-2.0`, default branch `main`, and a healthy non-archived repository. The About description/homepage are empty and no GitHub Actions runs exist, so publication still requires owner-approved metadata plus either CI or an explicit decision to rely on the already green exact-SHA clean-clone/public-browser evidence. |
+| GitHub publication preflight | PARTIAL / OWNER-GATED | Private remote `main` is exact `97792d84`; GitHub detects `Apache-2.0`, default branch `main`, and a healthy non-archived repository. The About description/homepage are empty and no GitHub Actions runs exist, so publication still requires owner-approved metadata plus either CI or an explicit decision to rely on the already green exact-SHA clean-clone/browser evidence. |
 
 ### Slice 22 HCI and Figma continuity
 
@@ -534,22 +543,22 @@
 - Slice 24 review findings: `0` remaining after making the complete route and markers visible before success, measuring usable mobile map area and every visible 44px target, escaping generated PowerShell literals, rejecting unsafe target URLs, and requiring contained real evidence plus independent post-failure state reads.
 - Slice 25 Product Design findings: `0` remaining. The redundant idle instruction and 26 lines of prompt-only CSS were removed; availability, fallback, and meaningful activity feedback remain intact; current desktop/mobile captures preserve the map-first hierarchy.
 - Slice 26 standards review findings: `0` unresolved high/medium. The only implementation defect was a false offline status when normal cleanup rejected an in-flight registration promise; the lifecycle guard and remount regression test resolve it. Current descriptor names, schemas, annotations, signal forwarding, visible completion, and fallback are covered by executable guards.
-- Disposition: `CLEAN AND DEPLOYED` for source provenance commit `52b42b18`, exact sanitized candidate/private remote main `39d1e141`, Railway deployment `cd899386`, and the complete deterministic Chrome, real Codex in-app, release, visual, lifecycle, and full-history scan sequence. Real ChatGPT conversation proof, the Grok model threshold, public source visibility, video, and Devpost remain separate gates.
+- Disposition: `CLEAN PRIVATE CANDIDATE / PRIOR DEPLOYMENT GREEN` for source provenance commit `da0f4eae`, exact sanitized/private remote candidate `97792d84`, prior Railway candidate `39d1e141` at deployment `cd899386`, and the complete deterministic Chrome, real Codex in-app, release, visual, lifecycle, and full-history scan sequence. Real ChatGPT conversation proof, the Grok model threshold, candidate deployment, public source visibility, video, and Devpost remain separate gates.
 
 ## Risks and Blockers
 
-- Private GitHub `main` and the isolated Railway deployment now identify exact candidate `39d1e141`; GitHub visibility remains `PRIVATE`. Public source visibility and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
+- Private GitHub `main` identifies exact candidate `97792d84`; the isolated Railway deployment remains prior candidate `39d1e141` at `cd899386`. GitHub visibility remains `PRIVATE`. Candidate deployment, public source visibility, and Devpost submission remain separate owner gates. Apache-2.0 is already selected and present only in the sanitized challenge edition.
 - Real ChatGPT built-in-browser acceptance cannot be claimed from local browser proof alone.
 - Chrome 152 and the real Codex in-app browser both prove page-native WebMCP acceptance against the public deployed URL without API injection; ChatGPT conversation acceptance remains a separate credential-safe evidence gate.
 - The three-run model-evaluation threshold is not met or claimed: no `XAI_API_KEY` is present. The exact `grok-4.6` adapter is verified statically and fails clearly when the credential is absent.
-- The historical repository and history remain unfit for publication. The sanitized fifteen-commit repository is clean-clone green and official Gitleaks `8.30.1` reports zero full-history findings; public visibility still requires explicit owner approval and a final remote-tree review.
+- The historical repository and history remain unfit for publication. The sanitized sixteen-commit repository is clean-clone green and official Gitleaks `8.30.1` reports zero full-history findings; public visibility still requires explicit owner approval and a final remote-tree review.
 - GitHub already detects Apache-2.0 on the private sanitized repository, but its About description/homepage are blank and it has no Actions history. Do not make it public until those judge-facing metadata choices and the CI/evidence policy are explicitly approved.
 - Obsolete, reproducible Atlas assembler-check directories under `C:\Users\mzwin\AppData\Local\Temp` were removed only after exact target validation to recover build space. One locked pack file from the disposable upstream clone remains outside both Git repositories and does not affect the candidate.
 - The checksum-verified Gitleaks binary/report remain in `C:\Users\mzwin\AppData\Local\Temp\atlas-gitleaks-8.30.1` because host policy rejected recursive cleanup after the scan. They contain public scanner files and a zero-finding report, not project secrets, and do not affect either repository.
 
 ## Exact Next Action
 
-At the build-project checkpoint, have the participant try the live judge path and confirm it feels right. If confirmed, continue with checklist item 5: bind one current proof manifest to a single source/runtime candidate, then advance through the independent ChatGPT, model, and sanitized-release lanes.
+Next owner gate: approve deploying exact private candidate `97792d84d66239745011624690769e99ab25838c` to the existing isolated Railway production service `atlas-webmcp`. Before mutation, reconfirm remote SHA and service identity; after deployment, require `/ready`, `/explore`, exact-five Chrome smoke, desktop/mobile visual proof, and rollback to preserved candidate `39d1e141` if any gate fails.
 
 ## Slice Queue
 
@@ -585,4 +594,6 @@ At the build-project checkpoint, have the participant try the live judge path an
 30. User-facing Atlas PRD — GREEN / SPEC NEXT (seven behavior epics, observable criteria, edge cases, priorities, later list, non-goals, and proof points complete)
 31. Repository-grounded Atlas technical spec — GREEN / CHECKLIST NEXT (approved existing stack and deployment boundary; seven epics mapped to real components; exact file, state, API, visible-revision, error, proof, and release contracts complete; zero deepening rounds)
 32. Autonomous release build checklist — GREEN / BUILD NEXT (eleven 15–30-minute tasks locked; shared human-agent handoff selected as wow moment; autonomous speed-run, verification, commit cadence, independent-lane continuation, and owner gates encoded; zero deepening rounds)
+33. Judge presentation and shared-control polish — GREEN (`da0f4eae`; exact sanitized candidate `97792d84`; 39/39 verifier, Chrome, mobile, reduced-motion, release-audit, and Gitleaks proof complete)
+34. Owner-approved private presentation push — GREEN / DEPLOYMENT NEXT (private remote `main` exact `97792d84`; normal fast-forward; GitHub remains private; Railway remains prior candidate `39d1e141` at `cd899386`)
 
