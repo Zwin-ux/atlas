@@ -5,7 +5,7 @@
 - Branch: `webmcp-challenge`
 - Baseline branch: `main`
 - Baseline SHA: `b6f2f8213a9acef3629a2c5f9f84cebab32fea56`
-- Last green content commit: `52b42b1899209de0cc38e11ea27e913d974d0129`
+- Last green content commit: `da0f4eae8582a345ada3de891422a21b0ac9c4dd`
 - Deadline: September 3, 2026 at 1:00 PM Pacific
 
 ## Current Slice
@@ -55,7 +55,9 @@
 - Verification: `pnpm test:webmcp-geometry` 2/2 PASS; `pnpm verify:webmcp` 39/39 PASS; `pnpm typecheck` PASS; `pnpm build` PASS; `pnpm eval:webmcp:smoke` PASS on Chrome `152.0.7977.66` with exact five tools, 9/9 official steps, 15 deeper executions, and current desktop/mobile/reduced-motion captures; `git diff --check` PASS.
 - gstack browser proof: current local production route returned `200`; the exact `390x844` Springfield flow returned eight candidates, preserved `scrollWidth = innerWidth = 390`, retained a usable map, and produced no new console messages after the flow began.
 - Product Design evidence is in `artifacts/product-design-audit/judge-presentation-20260903/`; before/after inspection found zero remaining P0/P1/P2 issues in this bounded flow.
-- External truth remains unchanged: the public Railway deployment and private remote remain candidate `39d1e141`. This presentation slice is local until a fresh sanitized candidate and separately owner-approved deployment exist.
+- Source commit `da0f4eae8582a345ada3de891422a21b0ac9c4dd` was projected into new sanitized candidate `950f86b6542892c4b0199fe9fe86a6b0a580d705` and reproduced through `git clone --no-local` at `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-950f86b`.
+- Both the assembled candidate and no-local clone pass frozen install, typecheck, build, 39/39 verification, Chrome `152.0.7977.66` smoke with 9/9 official steps and 15 deeper executions, release audit, diff check, and clean status. Release audit reports 3,355 tracked files, 3,222 county packs, 52 state plates, one commit, zero oversized files, and zero failures.
+- External truth remains unchanged: the public Railway deployment and private remote remain candidate `39d1e141`. Candidate `950f86b` is local and unpublished until a separately owner-approved push/deployment action exists.
 
 ## Acceptance Checks
 

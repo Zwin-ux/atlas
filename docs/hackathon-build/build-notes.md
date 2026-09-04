@@ -241,3 +241,7 @@
 - The Product Design audit at `artifacts/product-design-audit/judge-presentation-20260903/AUDIT.md` records all reviewed states, the before/after route comparison, the external reference boundary, and zero remaining P0/P1/P2 findings.
 - Gates passed: geometry 2/2; exact-five verifier 39/39; typecheck; full build; Chrome 152 smoke with 9/9 official steps and 15 deeper executions; exact `390x844` gstack ambiguity flow with no overflow or new console output; diff check.
 - No tool name, schema, controller contract, state scope, route claim, dependency, deployment, repository visibility, or Devpost record changed.
+- Committed the complete green presentation slice at source `da0f4eae8582a345ada3de891422a21b0ac9c4dd`.
+- Assembled new sibling release `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-20260903-da0f4ea`, committed it as sanitized candidate `950f86b6542892c4b0199fe9fe86a6b0a580d705`, and reproduced it with `git clone --no-local` at `C:\Users\mzwin\Documents\Atlas-WebMCP-Release-Clean-950f86b`.
+- Both candidate and clone pass frozen install, typecheck, build, 39/39 exact-five verification, Chrome 152 9/9 official smoke plus 15 deeper executions, release audit, diff check, and clean status. The audit reports 3,355 tracked files, 3,222 county packs, 52 state plates, one commit, zero oversized files, and zero failures.
+- Candidate `950f86b` is local only. Private remote `main` and the public Railway service remain exact deployed candidate `39d1e141`; no push, deployment, visibility change, or Devpost submission occurred.
