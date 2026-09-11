@@ -1,0 +1,7 @@
+pnpm build:starter
+cwd: C:/Users/mzwin/Documents/Atlas
+exit: 0
+web/dist/component.js 164.4kb
+web/dist/emulator.js 474.7kb
+atlas-plates nation 3222 counties 565kb; 52 states
+WARNING: skipped 2 packs (_failures.json, _manifest.json unknown state FIPS)

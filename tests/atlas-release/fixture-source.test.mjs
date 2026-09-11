@@ -56,10 +56,55 @@ describe("release fixtures match Census file fields", () => {
     assert.equal(townInCounty("kane-il", "Kane"), null);
   });
 
+  it("ID-10 non-US names are absent from the US Census file", () => {
+    const labels = [];
+    for (const county of Object.values(census.counties ?? {})) {
+      for (const a of county.anchors ?? []) labels.push(`${a.label}|${county.stateCode}`);
+    }
+    assert.equal(labels.includes("London|GB"), false);
+    assert.equal(labels.includes("Paris|FR"), false);
+    const londonOh = [...Object.entries(census.counties ?? {})].some(
+      ([, c]) => c.stateCode === "OH" && c.anchors?.some((a) => a.label === "London"),
+    );
+    assert.equal(
+      fixtures.fixtures.find((f) => f.id === "ID-10").expected.mustNotSubstituteUsPlace,
+      true,
+    );
+    assert.equal(typeof londonOh, "boolean");
+  });
+
+  it("ID-11 Española appears in two New Mexico counties", () => {
+    const rio = townInCounty("rio-arriba-nm", "Española");
+    const santa = townInCounty("santa-fe-nm", "Española");
+    assert.ok(rio);
+    assert.ok(santa);
+    assert.equal(rio.population2024, 7071);
+    assert.equal(santa.population2024, 3404);
+  });
+
+  it("NULL-01 King Salmon has no population2024 field", () => {
+    const row = townInCounty("bristol-bay-borough-ak", "King Salmon");
+    assert.ok(row);
+    assert.equal(row.population2024, undefined);
+  });
+
+  it("GEO-01 Kalawao County HI has one subdivision anchor", () => {
+    const county = census.counties["kalawao-hi"];
+    assert.equal(county.countyName, "Kalawao County");
+    assert.equal(county.stateCode, "HI");
+    assert.equal(county.anchors.length, 1);
+    assert.equal(county.anchors[0].label, "Kalawao");
+    assert.equal(county.anchors[0].kind, "county_subdivision");
+    assert.equal(county.anchors[0].population2024, undefined);
+  });
+
   it("does not treat gazetteer output as the fixture source", () => {
     const src = readFileSync(fixturePath, "utf8");
     assert.equal(src.includes("createGazetteer"), false);
     assert.equal(src.includes(".resolve("), false);
-    assert.ok(fixtures.fixtures.map((f) => f.id).includes("ID-01"));
+    const ids = fixtures.fixtures.map((f) => f.id);
+    for (const id of ["ID-01", "ID-10", "ID-11", "NULL-01", "GEO-01"]) {
+      assert.ok(ids.includes(id), id);
+    }
   });
 });

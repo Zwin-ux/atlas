@@ -84,7 +84,7 @@
       "expected": { "kind": "unresolved" }
     },
     {
-      "id": "ID-10",
+      "id": "COUNTY-01",
       "queryExamples": ["Riverside County, California"],
       "expected": {
         "kind": "county",
@@ -92,6 +92,54 @@
         "countySlug": "riverside-ca",
         "state": "CA"
       }
+    },
+    {
+      "id": "ID-10",
+      "queryExamples": ["London, United Kingdom", "Paris, France"],
+      "expected": {
+        "kind": "unresolved",
+        "mustNotSubstituteUsPlace": true
+      },
+      "notes": "These names are not US Census county/place rows. Do not pick London OH or Paris TX unless the query names that state."
+    },
+    {
+      "id": "ID-11",
+      "queryExamples": ["Española, New Mexico"],
+      "expected": {
+        "kind": "multi-county-place",
+        "label": "Española",
+        "memberships": [
+          { "countySlug": "rio-arriba-nm", "countyName": "Rio Arriba County", "state": "NM", "population2024": 7071 },
+          { "countySlug": "santa-fe-nm", "countyName": "Santa Fe County", "state": "NM", "population2024": 3404 }
+        ]
+      },
+      "notes": "Same Census place name appears in two NM counties. Do not flatten to one parent."
+    },
+    {
+      "id": "NULL-01",
+      "queryExamples": ["King Salmon, Alaska"],
+      "expected": {
+        "kind": "place",
+        "label": "King Salmon",
+        "countySlug": "bristol-bay-borough-ak",
+        "countyName": "Bristol Bay Borough",
+        "state": "AK",
+        "population2024": null
+      },
+      "notes": "population2024 is absent in the source. Missing is not zero."
+    },
+    {
+      "id": "GEO-01",
+      "queryExamples": ["Kalawao County, Hawaii"],
+      "expected": {
+        "kind": "county",
+        "label": "Kalawao County",
+        "countySlug": "kalawao-hi",
+        "state": "HI",
+        "anchorLabel": "Kalawao",
+        "anchorKind": "county_subdivision"
+      },
+      "notes": "Sparse island county; one subdivision anchor, no 2024 place population on that row."
     }
   ]
 }

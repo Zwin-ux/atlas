@@ -1,7 +1,7 @@
 # AT-003 baseline inventory
 
 Repo: C:/Users/mzwin/Documents/Atlas
-HEAD at inventory: 7cee6389 (after AT-001 receipt). Re-record SHA at acceptance.
+HEAD at first inventory: 7cee6389. Continue-session SHA recorded at receipt.
 
 ## Checks run this session
 
@@ -19,7 +19,9 @@ HEAD at inventory: 7cee6389 (after AT-001 receipt). Re-record SHA at acceptance.
 - Green and current: location truth, core tests, typecheck starter, public-http static, tool-surface.
 - Warning, not a fail: dead retired tool strings in index.ts (AT-031 later).
 - Stale STATUS verifier table still dated 2026-08-26 for MCP/live Railway; not re-run here.
-- Unrun: full `pnpm build`, live MCP against production, emulator audit, native workflow smoke, real ChatGPT.
+- Environment limit: live `ATLAS_HTTP_URL` public-http not re-run; static gate was 0.
+- Unrun: full workspace `pnpm build` (starter build attempted this continue session), live MCP, emulator audit, native workflow smoke, real ChatGPT.
+- Not a regression: Location Truth still 0 confidently wrong.
 
 ## First safe fix selected
 

@@ -1,0 +1,44 @@
+AT-003 command inventory
+cwd: C:/Users/mzwin/Documents/Atlas
+HEAD at log time: 9a3fee744f198b26c837cbf57820d1ef29ee8d9d then fixture follow-up uncommitted
+
+pnpm install --frozen-lockfile
+  exit 0
+  Already up to date, pnpm 11.7.0, 8 workspace projects
+
+pnpm test:core
+  exit 0
+  Test Files 38 passed; Tests 357 passed (includes atlas-gazetteer-county-ambiguity 24)
+
+pnpm typecheck:starter
+  exit 0
+  core + geo tsc; server --noEmit; web --noEmit
+
+pnpm brain:verify
+  exit 0
+  atlas-document-registry ok, 489 documents, 0 blockers
+
+pnpm verify:location-truth
+  exit 0
+  3222 counties, 21155 places, totalConfidentlyWrong 0
+  Springfield/Washington/Franklin/... status ambiguous
+  nonsense unresolved
+  exact-names 597/600 correct, 3 honest refusals
+
+pnpm verify:public-http
+  exit 0
+  static gate ok; live ATLAS_HTTP_URL not set this run (environment limit)
+
+node scripts/verify-atlas-source-of-truth-drift.mjs
+  exit 0
+  expectedToolCount 2; 5 retired names in dead server/src/index.ts (warning)
+
+pnpm test:release-fixtures
+  exit 0
+  10 passed after ID-10/11, NULL-01, GEO-01 added
+
+pnpm build:starter
+  exit 0
+  web/dist built; server tsc; atlas plates 3222 counties, 52 states
+  skipped _failures.json and _manifest.json (unknown state FIPS) — not a product fail
+  artifacts/atlas-plates is gitignored
