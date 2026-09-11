@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-004",
+  "verdict": "PASS",
+  "definition_sha256": "bc71a63ad21cad53d2710c02a220a132ecf8c0d1ebcd975774e817decf5ba546",
+  "recorded_at": "2026-09-10T20:30:00.000Z",
+  "executor": "grok-build-lead-20260911",
+  "reviewer": "grok-explore-01a08e6f-8103-7b51-a61e-a22f5b78cab9",
+  "git": {
+    "commit": "391d7caf76c9ca25bc7c3083aab6eb502e9a85a8",
+    "integrated": true,
+    "clean_tree": true
+  },
+  "depends_on_receipts": {
+    "AT-001": "17f19562b53200fe4e6fa8501fa445bb8d7382f4a01d7a3bffab7f469648c593"
+  },
+  "review": {
+    "verdict": "PASS",
+    "observation": "Census-sourced fixtures; ID-10 non-US; ID-11 dual-county Española; null pop and Kalawao present; kit cases remain SPEC_NOT_RUN.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-source",
+      "criteria": ["AT-004-AC1"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Fixture integrity tests against Census JSON, no gazetteer.",
+      "command": "pnpm test:release-fixtures",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-lead-20260911",
+      "observation": "10/10 pass. identities.json has no createGazetteer.",
+      "artifact_id": "test-log"
+    },
+    {
+      "id": "check-coverage",
+      "criteria": ["AT-004-AC2"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Confirm positive, ambiguity, unknown/out-of-country, null-data, challenging-geometry fixtures.",
+      "observer": "grok-explore-01a08e6f-8103-7b51-a61e-a22f5b78cab9",
+      "observation": "ID-01, ID-05, ID-09/10, NULL-01, GEO-01 all present and Census-checked.",
+      "artifact_id": "identities-copy"
+    },
+    {
+      "id": "check-case-classes",
+      "criteria": ["AT-004-AC3"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "CASES.md vs qa/cases.json statuses.",
+      "observer": "grok-explore-01a08e6f-8103-7b51-a61e-a22f5b78cab9",
+      "observation": "All kit cases SPEC_NOT_RUN. Source tests are separate from host procedures.",
+      "artifact_id": "cases-copy"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "review-log",
+      "path": "logs/AT-004/review.md",
+      "sha256": "2991ad91417fe3ed8997297c000dabe2cd30017abed873f54d5ab1cf2993f89c"
+    },
+    {
+      "id": "cases-copy",
+      "path": "logs/AT-004/CASES.md",
+      "sha256": "cf3fd7214cdcefef6ea1e7d9bab88d9a23c3a2a120a2c5786ec5d81d31cb1145"
+    },
+    {
+      "id": "identities-copy",
+      "path": "logs/AT-004/identities.json",
+      "sha256": "5c67c2a1e2d022067186977b591a3fa3a7d8a91f6a4934a1d69dcd497c1599cc"
+    },
+    {
+      "id": "test-log",
+      "path": "logs/AT-004/test-release-fixtures.txt",
+      "sha256": "455a98b76591106c7bc376e072d9c17e162a44ae4576958b18ee99edaa21b881"
+    }
+  ]
+}

@@ -17,14 +17,14 @@ was run or read on the date below, not copied from another document.
 
 Current scope: finish the read-only Census ChatGPT app (point-and-ask). Kit: `atlas-execution-kit/`.
 Graph: `atlas-execution-kit/graph/release-graph.json`. Receipts: `artifacts/execution-receipts/`.
-Active: AT-003 lead + AT-004 qa (after AT-001 PASS).
+Active: AT-006 lead (DESIGN.md inline/fullscreen).
 Blocked: AT-041/050–054 until owner host/deploy/portal permission.
 Invalidated: none.
-Last slice: AT-001 accepted on `1c11205ee64dff10c9336f4103ed5f949fce61db`.
+Last slice: AT-001/003/004 accepted. Work SHA `391d7caf76c9ca25bc7c3083aab6eb502e9a85a8`.
 Preserve: do not reset sibling worktrees.
-Failed/unrun: native workflow smoke; live MCP/Railway re-run; AT-003/AT-004 receipts not yet independently accepted.
-Baseline this session: `pnpm test:core` 357/357; `typecheck:starter` 0; `verify:location-truth` 0 confidently wrong; `verify:public-http` 0; source-of-truth 0 with dead-code warning. Fixtures: `pnpm test:release-fixtures` 6/6.
-Next: AT-003 baseline inventory; AT-004 fixtures. Planner: `node atlas-execution-kit/tools/atlas-plan.mjs next --receipts artifacts/execution-receipts --repo . --active AT-003,AT-004`
+Failed/unrun: native workflow smoke; live MCP/Railway; AT-006 receipt.
+Baseline: test:core 357; location-truth 0 wrong; build:starter 0; test:release-fixtures 10/10.
+Next: finish AT-006, then AT-002 workflows, then AT-005/AT-007.
 Owner gate: real ChatGPT / deploy / portal remain BLOCKED.
 
 ## Shipped surface

@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-003",
+  "verdict": "PASS",
+  "definition_sha256": "4b995888de7f54f97e963bd5ed394652699f42f4cc58eb106a9b621a6c40c0e5",
+  "recorded_at": "2026-09-10T20:30:00.000Z",
+  "executor": "grok-build-lead-20260911",
+  "reviewer": "grok-explore-01a08e6f-8102-77c2-9f19-d827a6f2055a",
+  "git": {
+    "commit": "391d7caf76c9ca25bc7c3083aab6eb502e9a85a8",
+    "integrated": true,
+    "clean_tree": true
+  },
+  "depends_on_receipts": {
+    "AT-001": "17f19562b53200fe4e6fa8501fa445bb8d7382f4a01d7a3bffab7f469648c593"
+  },
+  "review": {
+    "verdict": "PASS",
+    "observation": "Independent review: AC1 honestly met with static public-http; live URL scoped as environment limit. Location-truth not to be patched. Dead tool names remain warnings.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-build",
+      "criteria": ["AT-003-AC1"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Pinned starter build after frozen install.",
+      "command": "pnpm build:starter",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-lead-20260911",
+      "observation": "exit 0; also install frozen 0, typecheck:starter 0, test:core 357, brain:verify 0, location-truth 0 wrong, public-http static 0.",
+      "artifact_id": "build-log"
+    },
+    {
+      "id": "check-inventory",
+      "criteria": ["AT-003-AC2"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Separate green gates, warnings, stale STATUS table, unrun live MCP, environment limits.",
+      "observer": "grok-explore-01a08e6f-8102-77c2-9f19-d827a6f2055a",
+      "observation": "Inventory does not raise Location Truth tolerance or restore retired tools.",
+      "artifact_id": "inventory-log"
+    },
+    {
+      "id": "check-next-fix",
+      "criteria": ["AT-003-AC3"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Select first safe product work without waiting on ChatGPT/Notion.",
+      "observer": "grok-build-lead-20260911",
+      "observation": "Do not patch location-truth. Next is AT-006/AT-007 then widget stale-title hypothesis. Connectors not used as delay.",
+      "artifact_id": "commands-log"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "review-log",
+      "path": "logs/AT-003/review.md",
+      "sha256": "b06c0ccff73936cb36b6e923549bff6f75dc1f0cfa71372710f250f246da8958"
+    },
+    {
+      "id": "inventory-log",
+      "path": "logs/AT-003/inventory.md",
+      "sha256": "225a0bae7eae38648e055c8e7b42bce242f6e39f02b0b86c4fa347a2e61319ac"
+    },
+    {
+      "id": "commands-log",
+      "path": "logs/AT-003/commands.txt",
+      "sha256": "51d36a3251002ad6da800c21a1ee2485c04141f24e522a66da8dd34d82b49806"
+    },
+    {
+      "id": "build-log",
+      "path": "logs/AT-003/build-starter.txt",
+      "sha256": "ef278fa86f39f99cbd97530dcef25f39b1a3a634212a1c6670f6a99e260428ee"
+    }
+  ]
+}

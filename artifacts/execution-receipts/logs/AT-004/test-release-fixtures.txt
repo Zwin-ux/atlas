@@ -1,0 +1,27 @@
+﻿pnpm : $ node --test tests/atlas-release/fixture-source.test.mjs
+At line:5 char:1
++ pnpm test:release-fixtures 2>&1 | Out-File -Encoding utf8 artifacts\e ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ node --test t...source.test.mjs:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Γû╢ release fixtures match Census file fields
+  Γ£ö uses the 2024 source year recorded in the JSON (0.4961ms)
+  Γ£ö ID-01 Eastvale is a Riverside County CA place in the file (0.1396ms)
+  Γ£ö ID-05 Springfield exists in at least two counties (2.7277ms)
+  Γ£ö ID-07 Ca├▒on City is in Fremont County CO (0.1419ms)
+  Γ£ö ID-08 Kane the village is in Greene County, not Kane County (0.0928ms)
+  Γ£ö ID-10 non-US names are absent from the US Census file (5.0847ms)
+  Γ£ö ID-11 Espa├▒ola appears in two New Mexico counties (0.1423ms)
+  Γ£ö NULL-01 King Salmon has no population2024 field (0.1368ms)
+  Γ£ö GEO-01 Kalawao County HI has one subdivision anchor (0.1101ms)
+  Γ£ö does not treat gazetteer output as the fixture source (0.3469ms)
+Γ£ö release fixtures match Census file fields (10.4225ms)
+Γä╣ tests 10
+Γä╣ suites 1
+Γä╣ pass 10
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 92.0649
