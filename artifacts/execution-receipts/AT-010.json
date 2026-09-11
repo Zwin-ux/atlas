@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-010",
+  "verdict": "PASS",
+  "definition_sha256": "f4b2ff30cb518b0f97dd0effd34f64a121a047284ab40f954a54aec942eed72a",
+  "recorded_at": "2026-09-11T09:09:01.148Z",
+  "executor": "grok-build-lead-20260911",
+  "reviewer": "grok-build-01a08fb7-ad54-7422-bc93-1792dcfe179c",
+  "git": {
+    "commit": "bcc6dde318e83b928926a0443d4eda8bd8577343",
+    "integrated": true,
+    "clean_tree": true
+  },
+  "depends_on_receipts": {
+    "AT-004": "aa614483cd083a849927800f77acb9419891b0db6faf93fcfcb0fd14fd3b3e8d",
+    "AT-007": "10c0c90937df765ac155650e662510840473d4cdff1e3f578704791bb64866b0"
+  },
+  "review": {
+    "verdict": "PASS",
+    "observation": "Bare state names open the state when namesakes are in at most one state. Washington stays ambiguous. Location Truth 0 wrong. Two tools unchanged.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-levels",
+      "criteria": ["AT-010-AC1"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Gazetteer tests for state/nation vs namesake city; atlasTools honors explicit level.",
+      "command": "pnpm --dir packages/core test",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-01a08fb7-ad54-7422-bc93-1792dcfe179c",
+      "observation": "382 tests pass. Indiana is the state; Indiana, PA remains the town. USA is the nation.",
+      "artifact_id": "commands-log"
+    },
+    {
+      "id": "check-ambiguity",
+      "criteria": ["AT-010-AC2"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Location Truth ambiguity class plus gazetteer Springfield/Washington tests.",
+      "command": "pnpm verify:location-truth",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-01a08fb7-ad54-7422-bc93-1792dcfe179c",
+      "observation": "Washington and Springfield remain ambiguous. 0 confidently wrong.",
+      "artifact_id": "commands-log"
+    },
+    {
+      "id": "check-location-truth-floors",
+      "criteria": ["AT-010-AC3"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Full Location Truth plus tool-surface drift.",
+      "command": "pnpm verify:location-truth",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-01a08fb7-ad54-7422-bc93-1792dcfe179c",
+      "observation": "Floors held (exact-names 99.5%). expectedToolCount 2.",
+      "artifact_id": "commands-log"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "review-log",
+      "path": "logs/AT-010/review.md",
+      "sha256": "4b356b93e0800f0fe741386d954fa80c85e00d117cdc535454bea9af1f210fee"
+    },
+    {
+      "id": "commands-log",
+      "path": "logs/AT-010/commands.txt",
+      "sha256": "4441ad2b3972268fdf6e54771abb2738101b1beb45ac031ce3a67817ebb5084b"
+    }
+  ]
+}

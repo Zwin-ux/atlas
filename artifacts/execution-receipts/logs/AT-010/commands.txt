@@ -1,0 +1,25 @@
+AT-010 command evidence
+cwd: C:\Users\mzwin\Documents\Atlas
+
+pnpm --dir packages/core test
+exit 0
+382 passed
+
+pnpm typecheck:starter
+exit 0
+
+pnpm verify:location-truth
+exit 0
+0 confidently wrong. Washington and Springfield remain ambiguous.
+exact-names 597/600 (99.5%, floor 95). Did not raise refusal tolerance.
+
+node scripts/verify-atlas-source-of-truth-drift.mjs
+exit 0
+expectedToolCount 2
+
+Live resolve samples (tsx loadAtlasIndex):
+Indiana/Idaho/Maine/Hawaii/Georgia/CA → resolved_geography state
+USA/United States → nation
+Washington/California/Springfield → ambiguous
+Fresno → fresno-ca
+Indiana, PA → indiana-pa
