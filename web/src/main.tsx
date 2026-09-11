@@ -32,16 +32,26 @@ for (const eventType of HOST_GLOBALS_EVENT_TYPES) {
 }
 
 /**
- * The widget is served from a per-app sandbox origin, so plate fetches need the
- * absolute backend origin rather than a same-origin path. The bundle records it
- * at build time; in the local preview the widget and the API share an origin
- * and the empty default is correct.
+ * Plate JSON is fetched by the widget. Inside ChatGPT the document origin is
+ * a sandbox host (*.oaiusercontent.com), not Atlas, so relative `/api/atlas`
+ * URLs miss the server entirely — that looks like a loaded app with no map.
  */
-const API_BASE = (window as { __ATLAS_API_BASE__?: string }).__ATLAS_API_BASE__ ?? "";
+const PRODUCTION_API_ORIGIN = "https://atlas-backend-production-e6fc.up.railway.app";
+
+function atlasApiBase(): string {
+  const stamped = (window as { __ATLAS_API_BASE__?: string }).__ATLAS_API_BASE__;
+  if (typeof stamped === "string" && stamped.trim()) return stamped.replace(/\/+$/, "");
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") return "";
+  // srcdoc / blob / sandbox hosts are not Atlas. Always hit production there.
+  return PRODUCTION_API_ORIGIN;
+}
+
+const API_BASE = atlasApiBase();
 
 function AtlasWidget() {
-  const { ref, coverage } = useToolPlate();
-  return <AtlasApp initialRef={ref} coverage={coverage} apiBase={API_BASE} />;
+  const { ref, focus } = useToolPlate();
+  return <AtlasApp initialRef={ref} focus={focus} apiBase={API_BASE} />;
 }
 
 const root = document.getElementById("root");

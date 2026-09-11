@@ -8,7 +8,7 @@
 | Layer | Product reality | Infra reality |
 |-------|-----------------|---------------|
 | **Mode B board** | National **today** (3,222 Census geo packs) | ~83 MB in app image — OK |
-| **Towns / notes** | National **today** (18,447 anchors) | Small index files — OK |
+| **Towns / notes** | National **today** (21,155 anchors, max 40/county) | Small index files — OK |
 | **NEAR roads** | Progressive (metros first → all counties) | **~25–50 GB** national — **never** in the app image |
 | **Clay (Mode A)** | Riverside jewel only | Stay small |
 

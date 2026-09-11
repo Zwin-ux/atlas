@@ -324,17 +324,25 @@ export function extentOf(points: Iterable<Point>): Box {
  * Returns the affine transform to apply to projected points. Uniform scale on
  * both axes is non-negotiable: an equal-area projection stretched to fill a
  * box is no longer equal-area, and the map would lie about shape.
+ *
+ * `contain` (default) shows the whole extent; unused space is empty plate.
+ * `cover` fills the viewport and lets the overflow run off the edge — the
+ * printed-atlas behaviour a phone-sized ChatGPT widget needs, so a wide
+ * county is not a thin strip of sea.
  */
 export function fitToBox(
   extent: Box,
-  viewport: { width: number; height: number; padding?: number },
+  viewport: { width: number; height: number; padding?: number; fit?: "contain" | "cover" },
 ): { scale: number; translateX: number; translateY: number } {
   const padding = viewport.padding ?? 0;
   const innerWidth = Math.max(viewport.width - padding * 2, 1);
   const innerHeight = Math.max(viewport.height - padding * 2, 1);
   const spanX = Math.max(extent.maxX - extent.minX, 1e-9);
   const spanY = Math.max(extent.maxY - extent.minY, 1e-9);
-  const scale = Math.min(innerWidth / spanX, innerHeight / spanY);
+  const scale =
+    viewport.fit === "cover"
+      ? Math.max(innerWidth / spanX, innerHeight / spanY)
+      : Math.min(innerWidth / spanX, innerHeight / spanY);
 
   return {
     scale,

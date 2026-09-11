@@ -153,6 +153,20 @@ describe("fitToBox", () => {
     expect(right).toBeCloseTo(780, 6);
     expect((top + bottom) / 2).toBeCloseTo(400, 6);
   });
+
+  it("cover fills the viewport on the short axis so a wide county is not a strip", () => {
+    const extent = { minX: -2, minY: -0.5, maxX: 2, maxY: 0.5 };
+    const fit = fitToBox(extent, { width: 400, height: 800, padding: 0, fit: "cover" });
+    expect(fit.scale).toBeCloseTo(800 / 1, 6);
+    const left = extent.minX * fit.scale + fit.translateX;
+    const right = extent.maxX * fit.scale + fit.translateX;
+    const top = extent.minY * fit.scale + fit.translateY;
+    const bottom = extent.maxY * fit.scale + fit.translateY;
+    expect(top).toBeCloseTo(0, 6);
+    expect(bottom).toBeCloseTo(800, 6);
+    expect(left).toBeLessThan(0);
+    expect(right).toBeGreaterThan(400);
+  });
 });
 
 describe("ground distance", () => {

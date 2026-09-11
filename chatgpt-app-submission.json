@@ -28,15 +28,15 @@
     "commerce": {
       "links_out_for_purchases": false,
       "sells_digital_goods": false,
-      "notes": "Atlas has no commerce surface of any kind. It exposes no checkout, no paid tier, no subscription, and no link out to any purchase flow. All three tools are read-only reads of public-domain US Census data."
+      "notes": "Atlas has no commerce surface of any kind. It exposes no checkout, no paid tier, no subscription, and no link out to any purchase flow. Both tools are read-only reads of public-domain US Census data."
     },
     "starter_prompts": [
       "Show me Riverside County on a map.",
-      "What county is Eastvale in?",
+      "What county is Eastvale, CA in?",
       "Open Miami-Dade County and tell me what water is in it.",
       "Show me the whole United States by county."
     ],
-    "release_notes": "First release. Atlas draws all 3,222 US counties from public-domain Census TIGERweb geography on an Albers equal-area projection, with named water, 18,447 Census town positions, and a nation to state to county zoom. A county opens in context, with its neighbours running off the edge of the plate. Two read-only tools: open a place on the map with its Census facts, and look up which places carry a given name. Place resolution is gated by an automated battery requiring zero confidently-wrong answers across 1,472 cases; ambiguous names return candidates and unknown names are refused.",
+    "release_notes": "First release. Atlas draws all 3,222 US counties from public-domain Census TIGERweb geography on an Albers equal-area projection, with named water, 21,155 Census town positions, and a nation to state to county zoom. A county opens in context, with its neighbours running off the edge of the plate. Two read-only tools: open a place on the map with its Census facts, and look up which places carry a given name. Place resolution is gated by an automated battery requiring zero confidently-wrong answers across 1,472 cases; ambiguous names return candidates and unknown names are refused.",
     "domain_verification": {
       "challenge_path": "/.well-known/openai-apps-challenge",
       "status": "ROUTE_READY_PORTAL_TOKEN_REQUIRED",
@@ -63,7 +63,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Looks a name up in a static index of 18,447 Census places and 3,222 counties and returns matching entries. Nothing is written and the same query always returns the same entries.",
+        "read_only_justification": "Looks a name up in a static index of 21,155 Census places and 3,222 counties and returns matching entries. Nothing is written and the same query always returns the same entries.",
         "open_world_justification": "Searches a local dataset only. No search engine, no geocoding provider, no network call leaves the server.",
         "destructive_justification": "Returns index entries and nothing else. It has no capability to modify, delete, send, or purchase."
       }
@@ -79,7 +79,7 @@
     },
     {
       "description": "Look up which county a town is in.",
-      "user_prompt": "What county is Eastvale in?",
+      "user_prompt": "What county is Eastvale, CA in?",
       "tools_triggered": "search_atlas_places",
       "expected_output": "Answers that Eastvale is in Riverside County, California, from the Census place index.",
       "fixture_data": "No login. Uses the bundled Census place index."
@@ -88,7 +88,7 @@
       "description": "Open a county and get its Census facts with the map.",
       "user_prompt": "How big is Miami-Dade County and what water is in it?",
       "tools_triggered": "open_atlas_map",
-      "expected_output": "Opens Miami-Dade and reports roughly 1,900 square miles of land, its largest Census places, and named water such as Biscayne Bay.",
+      "expected_output": "Opens Miami-Dade and reports roughly 1,900 square miles of land, its largest Census places, and named water such as Florida Bay.",
       "fixture_data": "No login. Uses bundled Census geography for miami-dade-fl."
     },
     {

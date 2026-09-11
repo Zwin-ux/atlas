@@ -16,6 +16,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AtlasPlate } from "./AtlasPlate";
 import type { Plate } from "./plateGeometry";
+import type { PlateFocus } from "./useToolPlate";
+import { reportWidgetDebug } from "./widgetDebug";
 import "./atlas.css";
 
 export type PlateRef =
@@ -28,6 +30,12 @@ type LoadState =
   | { status: "loading"; ref: PlateRef }
   | { status: "ready"; ref: PlateRef; plate: Plate }
   | { status: "error"; ref: PlateRef; message: string };
+
+type FetchTrace = {
+  url: string;
+  status?: number;
+  error?: string;
+};
 
 const STATE_NAMES: Record<string, string> = {
   al: "Alabama", ak: "Alaska", az: "Arizona", ar: "Arkansas", ca: "California",
@@ -59,18 +67,50 @@ function plateTitle(ref: PlateRef, plate?: Plate): string {
 export type AtlasAppProps = {
   /** Plate the tool asked for. Defaults to the nation. */
   initialRef?: PlateRef | undefined;
-  /** Coverage sentence from the tool response, shown verbatim. */
-  coverage?: string | undefined;
+  /**
+   * Place the tool resolved inside the county (town/city). Only applied while
+   * the trail is still on the tool's initial plate — user drill-down clears it.
+   */
+  focus?: PlateFocus | undefined;
   /** Base URL for plate fetches; the widget runs on a sandbox origin. */
   apiBase?: string | undefined;
 };
 
-export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) {
+function hostDebugLines(apiBase: string, initialRef: PlateRef | undefined, trace: FetchTrace | null): string[] {
+  const host = typeof window !== "undefined" ? window.openai : undefined;
+  const meta = host?.toolResponseMetadata as { atlasPlate?: { level?: string; countySlug?: string } } | undefined;
+  const output = host?.toolOutput as { type?: string; level?: string; countySlug?: string } | undefined;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const href = typeof window !== "undefined" ? window.location.href : "";
+  return [
+    `origin ${origin || "(none)"}`,
+    `host ${typeof window !== "undefined" ? window.location.hostname || "(empty)" : ""}`,
+    `href ${href.slice(0, 160) || "(none)"}`,
+    `apiBase ${apiBase || "(relative)"}`,
+    `openai ${host ? "yes" : "missing"}`,
+    `metaPlate ${meta?.atlasPlate?.level ?? "none"}${meta?.atlasPlate?.countySlug ? ` ${meta.atlasPlate.countySlug}` : ""}`,
+    `output ${output?.type ?? "none"} ${output?.level ?? ""} ${output?.countySlug ?? ""}`.trim(),
+    `initialRef ${initialRef ? `${initialRef.level}${initialRef.level === "county" ? ` ${initialRef.countySlug}` : initialRef.level === "state" ? ` ${initialRef.state}` : ""}` : "none — defaulting to nation"}`,
+    trace
+      ? `fetch ${trace.url} ${trace.status != null ? `HTTP ${trace.status}` : trace.error ?? "pending"}`
+      : "fetch (none yet)",
+  ];
+}
+
+export function AtlasApp({ initialRef, focus, apiBase = "" }: AtlasAppProps) {
   const [trail, setTrail] = useState<PlateRef[]>([initialRef ?? { level: "nation" }]);
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
+  const [trace, setTrace] = useState<FetchTrace | null>(null);
   const requestId = useRef(0);
 
   const current = trail[trail.length - 1]!;
+
+  useEffect(() => {
+    document.getElementById("atlas-boot")?.setAttribute("hidden", "");
+    reportWidgetDebug(apiBase, "react-mount", initialRef ? `${initialRef.level}` : "no-initial-ref", {
+      slug: initialRef && "countySlug" in initialRef ? (initialRef.countySlug ?? "") : "",
+    });
+  }, []);
 
   // Follow the tool: when a new plate reference arrives, reset the trail to it.
   useEffect(() => {
@@ -81,28 +121,37 @@ export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) 
   useEffect(() => {
     const id = ++requestId.current;
     let cancelled = false;
+    const url = `${apiBase}${plateUrl(current)}`;
     setLoad({ status: "loading", ref: current });
+    setTrace({ url });
 
-    fetch(`${apiBase}${plateUrl(current)}`, { headers: { accept: "application/json" } })
+    fetch(url, { headers: { accept: "application/json" } })
       .then(async (response) => {
         if (!response.ok) {
           const body = (await response.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? `Atlas could not load that map (HTTP ${response.status}).`);
+          const message = body.error ?? `Atlas could not load that map (HTTP ${response.status}).`;
+          throw Object.assign(new Error(message), { status: response.status });
         }
+        setTrace({ url, status: response.status });
         return (await response.json()) as Plate;
       })
       .then((plate) => {
         // A slow plate must not overwrite a newer one the reader already moved to.
         if (cancelled || id !== requestId.current) return;
         setLoad({ status: "ready", ref: current, plate });
+        reportWidgetDebug(apiBase, "plate-ok", url, { status: "200" });
       })
       .catch((error: unknown) => {
         if (cancelled || id !== requestId.current) return;
-        setLoad({
-          status: "error",
-          ref: current,
-          message: error instanceof Error ? error.message : "Atlas could not load that map.",
-        });
+        const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: number }).status) : undefined;
+        const message = error instanceof Error ? error.message : "Atlas could not load that map.";
+        const enriched =
+          status != null
+            ? `${message} (${url})`
+            : `${message} fetching ${url} from ${typeof window !== "undefined" ? window.location.origin : "?"}`;
+        setTrace({ url, ...(status != null ? { status } : {}), error: enriched });
+        setLoad({ status: "error", ref: current, message: enriched });
+        reportWidgetDebug(apiBase, "plate-error", enriched, { url });
       });
 
     return () => {
@@ -123,6 +172,21 @@ export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) 
     [trail, load],
   );
 
+  // Focus applies only while the reader is still on the plate the tool opened.
+  // Clicking into another county or walking the breadcrumb clears it so we do
+  // not zoom into an unrelated place on a different plate.
+  const activeFocus =
+    focus &&
+    trail.length === 1 &&
+    current.level === "county" &&
+    initialRef?.level === "county" &&
+    current.countySlug === initialRef.countySlug
+      ? focus
+      : undefined;
+
+  const debugLines = hostDebugLines(apiBase, initialRef, trace);
+  const debugFailed = load.status === "error" || !initialRef;
+
   return (
     <div className="atlas-app">
       <nav className="atlas-app__crumbs" aria-label="Atlas location">
@@ -132,6 +196,7 @@ export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) 
             {i === crumbs.length - 1 ? (
               <span className="atlas-app__crumb is-current" aria-current="page">
                 {crumb.label}
+                {activeFocus?.name ? ` · ${activeFocus.name}` : ""}
               </span>
             ) : (
               <button type="button" className="atlas-app__crumb" onClick={() => goTo(crumb.depth)}>
@@ -147,8 +212,8 @@ export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) 
           <AtlasPlate
             plate={load.plate}
             focusSlug={current.level === "county" ? current.countySlug : undefined}
+            focus={activeFocus}
             onOpenCounty={openCounty}
-            coverage={trail.length === 1 ? coverage : undefined}
           />
         ) : load.status === "error" ? (
           <div className="atlas-app__message" role="alert">
@@ -165,6 +230,13 @@ export function AtlasApp({ initialRef, coverage, apiBase = "" }: AtlasAppProps) 
           </div>
         )}
       </div>
+
+      <aside className={`atlas-debug${debugFailed ? " is-error" : ""}`} role={debugFailed ? "alert" : "status"}>
+        <strong>{load.status === "error" ? "Atlas map failed" : load.status === "ready" ? "Atlas debug" : "Atlas loading"}</strong>
+        {debugLines.map((line) => (
+          <div key={line}>{line}</div>
+        ))}
+      </aside>
     </div>
   );
 }

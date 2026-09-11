@@ -3,7 +3,7 @@
  *
  * A book of maps is only usable because of the index at the back: you look up
  * a name and it tells you which plate to turn to. This is that index over
- * 18,447 Census places and 3,222 counties.
+ * 21,155 Census places and 3,222 counties.
  *
  * It is also the product's quality gate. The standing requirement is that a
  * location ask resolves to the right place or says honestly that it cannot —
@@ -279,6 +279,17 @@ export function createGazetteer(input: GazetteerInput): Gazetteer {
         const collapsed = collapseSameLocation(hits);
         if (collapsed) {
           return { status: "resolved", place: collapsed, confidence: 0.95, matchedOn: "same-location" };
+        }
+        // A county's population is the sum of its town anchors, so ranking a
+        // county against a town inside the same state is not a comparison
+        // between peers — it is an aggregate against one of its own members,
+        // and the aggregate always wins. "Kane, IL" would answer Kane County
+        // over the village of Kane every time, on arithmetic alone. When a
+        // state was named and the largest hit is a county sitting above a real
+        // settlement, the size gap carries no information about which one was
+        // meant, so ask.
+        if (stateFilter && hits[0]!.kind === "county" && hits.some((hit) => hit.kind === "place")) {
+          return { status: "ambiguous", candidates: hits.slice(0, 8), query: raw };
         }
         // A name shared by several places is ambiguous, and the honest answer
         // is to ask which one. The single exception is a city so large that

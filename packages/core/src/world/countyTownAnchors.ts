@@ -61,7 +61,8 @@ export function parseCountyTownAnchorIndex(value: unknown): CountyTownAnchorInde
   if (!isRecord(value.totals)) throw invalid("totals must be an object");
   if (!isRecord(value.counties)) throw invalid("counties must be an object");
 
-  const maximumAnchorsPerCounty = finiteInteger(value.method.maximumAnchorsPerCounty, "method.maximumAnchorsPerCounty", 1, 12);
+  // Raised for plate population (r/place-density maps): was 12, now up to 48.
+  const maximumAnchorsPerCounty = finiteInteger(value.method.maximumAnchorsPerCounty, "method.maximumAnchorsPerCounty", 1, 48);
   const counties: Record<string, CountyTownAnchorCounty> = {};
   let anchorCount = 0;
   const kindCounts: Partial<Record<CountyTownAnchorKind, number>> = {};

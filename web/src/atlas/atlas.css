@@ -7,6 +7,19 @@
  * ChatGPT shell's theme and a map that only works in light mode is half built.
  */
 
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #e8dfc8;
+  color: #33301f;
+}
+
 .atlas-plate {
   --atlas-sea: #cfe0e9;
   --atlas-land: #e3dcc9;
@@ -75,6 +88,8 @@
 
 .atlas-plate__canvas {
   display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   cursor: grab;
@@ -123,6 +138,7 @@
 .atlas-plate__labels {
   position: absolute;
   inset: 0;
+  z-index: 1;
   pointer-events: none;
 }
 
@@ -148,23 +164,129 @@
   transform: translateX(-100%);
 }
 
-.atlas-plate__dot {
+.atlas-plate__mark {
   position: absolute;
-  width: 3px;
-  height: 3px;
-  margin: -1.5px 0 0 -1.5px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  margin-top: -2.5px;
   border-radius: 50%;
   background: var(--atlas-label);
+  box-shadow: 0 0 0 1px var(--atlas-halo);
+}
+
+.atlas-plate__mark.is-seat {
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  margin-top: -3px;
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+.atlas-plate__mark.is-focus {
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  margin-top: -3.5px;
+  border-radius: 50%;
+  transform: none;
+  background: var(--atlas-focus);
+  box-shadow: 0 0 0 2px var(--atlas-halo);
+}
+
+/* A2 town hierarchy: seat > primary > secondary. */
+.atlas-plate__label.is-seat {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.atlas-plate__label.is-primary {
+  font-weight: 600;
+}
+
+.atlas-plate__label.is-secondary {
+  opacity: 0.88;
+}
+
+/* The place open_atlas_map resolved — stronger than ambient town labels. */
+.atlas-plate__label.is-focus {
+  color: var(--atlas-focus);
+  font-weight: 700;
+  text-shadow:
+    0 0 4px var(--atlas-halo),
+    0 0 4px var(--atlas-halo),
+    0 0 2px var(--atlas-halo);
 }
 
 .atlas-plate__furniture {
   position: absolute;
   left: 10px;
   bottom: 8px;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   pointer-events: none;
+  color: var(--atlas-chrome-fg);
+}
+
+.atlas-plate__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 4px 6px;
+  list-style: none;
+  background: var(--atlas-chrome-bg);
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.atlas-plate__legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.atlas-plate__swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--atlas-land-edge);
+  background: var(--atlas-land);
+}
+
+.atlas-plate__swatch.is-water {
+  background: var(--atlas-water);
+  border-color: var(--atlas-water-edge);
+}
+
+.atlas-plate__swatch.is-seat {
+  width: 7px;
+  height: 7px;
+  background: var(--atlas-label);
+  border-color: var(--atlas-halo);
+  transform: rotate(45deg);
+}
+
+.atlas-plate__measure {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.atlas-plate__north {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 3px 4px 2px;
+  background: var(--atlas-chrome-bg);
+  border-radius: 4px;
 }
 
 .atlas-plate__scale {
@@ -193,6 +315,7 @@
   position: absolute;
   top: 8px;
   right: 8px;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -217,26 +340,11 @@
   border-color: var(--atlas-chrome-fg);
 }
 
-.atlas-plate__coverage {
-  position: absolute;
-  left: 10px;
-  top: 8px;
-  max-width: min(60%, 420px);
-  margin: 0;
-  padding: 5px 8px;
-  border-radius: 6px;
-  background: var(--atlas-chrome-bg);
-  color: var(--atlas-chrome-fg);
-  font-size: 11px;
-  line-height: 1.35;
-}
-
 @media (max-width: 480px) {
-  /* On a phone the coverage note would eat the map, so it sits under the
-     controls and stays short. */
-  .atlas-plate__coverage {
-    max-width: calc(100% - 60px);
-    font-size: 10px;
+  .atlas-plate__legend {
+    max-width: calc(100% - 8px);
+    font-size: 9px;
+    gap: 6px 10px;
   }
 
   .atlas-plate__controls button {
@@ -319,6 +427,56 @@
   font-family: Georgia, "Times New Roman", serif;
   font-size: 13px;
   text-align: center;
+}
+
+.atlas-debug {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 42%;
+  overflow: auto;
+  border: 1px solid #8a6a3b;
+  border-radius: 6px;
+  background: #f4ead4;
+  color: #1a1208;
+  font: 11px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.atlas-debug.is-error {
+  background: #f3d5c4;
+  border-color: #8a3b2a;
+}
+
+.atlas-debug strong {
+  display: block;
+  margin-bottom: 4px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+}
+
+#atlas-boot {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 99999;
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 40%;
+  overflow: auto;
+  border: 1px solid #8a6a3b;
+  border-radius: 6px;
+  background: #f4ead4;
+  color: #1a1208;
+  font: 11px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+#atlas-boot[hidden] {
+  display: none;
 }
 
 /* Neighbouring counties on a county plate. Muted and non-interactive: they are

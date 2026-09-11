@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-08-01T11:32:14.740Z",
+  "program": "usa-accuracy-l0-l2",
+  "packet": "A1",
+  "nationBuilt": true,
+  "counties": [
+    {
+      "slug": "miami-dade-fl",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 34,
+      "context": 8,
+      "name": "Miami-Dade County"
+    },
+    {
+      "slug": "cook-il",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 40,
+      "context": 40,
+      "name": "Cook County"
+    },
+    {
+      "slug": "los-angeles-ca",
+      "ok": true,
+      "rings": 3,
+      "water": 18,
+      "anchors": 40,
+      "context": 22,
+      "name": "Los Angeles County"
+    },
+    {
+      "slug": "loving-tx",
+      "ok": true,
+      "rings": 1,
+      "water": 17,
+      "anchors": 1,
+      "context": 13,
+      "name": "Loving County"
+    },
+    {
+      "slug": "kalawao-hi",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 1,
+      "context": 1,
+      "name": "Kalawao County"
+    },
+    {
+      "slug": "honolulu-hi",
+      "ok": true,
+      "rings": 10,
+      "water": 11,
+      "anchors": 40,
+      "context": 5,
+      "name": "Honolulu County"
+    },
+    {
+      "slug": "san-francisco-ca",
+      "ok": true,
+      "rings": 2,
+      "water": 18,
+      "anchors": 1,
+      "context": 19,
+      "name": "San Francisco County"
+    },
+    {
+      "slug": "maricopa-az",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 25,
+      "context": 26,
+      "name": "Maricopa County"
+    },
+    {
+      "slug": "king-wa",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 39,
+      "context": 38,
+      "name": "King County"
+    },
+    {
+      "slug": "summit-co",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 6,
+      "context": 25,
+      "name": "Summit County"
+    },
+    {
+      "slug": "orleans-parish-la",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 1,
+      "context": 18,
+      "name": "Orleans Parish"
+    },
+    {
+      "slug": "suffolk-ma",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 4,
+      "context": 16,
+      "name": "Suffolk County"
+    },
+    {
+      "slug": "riverside-ca",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 28,
+      "context": 40,
+      "name": "Riverside County"
+    },
+    {
+      "slug": "district-of-columbia-dc",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 1,
+      "context": 18,
+      "name": "District of Columbia"
+    },
+    {
+      "slug": "new-york-ny",
+      "ok": true,
+      "rings": 3,
+      "water": 18,
+      "anchors": 1,
+      "context": 17,
+      "name": "New York County"
+    },
+    {
+      "slug": "harris-tx",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 34,
+      "context": 40,
+      "name": "Harris County"
+    },
+    {
+      "slug": "denver-co",
+      "ok": true,
+      "rings": 10,
+      "water": 18,
+      "anchors": 1,
+      "context": 17,
+      "name": "Denver County"
+    },
+    {
+      "slug": "fulton-ga",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 15,
+      "context": 40,
+      "name": "Fulton County"
+    },
+    {
+      "slug": "sedgwick-ks",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 20,
+      "context": 26,
+      "name": "Sedgwick County"
+    },
+    {
+      "slug": "apache-az",
+      "ok": true,
+      "rings": 1,
+      "water": 18,
+      "anchors": 3,
+      "context": 40,
+      "name": "Apache County"
+    }
+  ],
+  "placeFocus": [
+    {
+      "query": "Homestead, FL",
+      "expectCounty": "miami-dade-fl",
+      "status": "resolved",
+      "countySlug": "miami-dade-fl",
+      "name": "Homestead",
+      "lon": -80.447216,
+      "lat": 25.46645,
+      "insideCountyBBox": true
+    },
+    {
+      "query": "Eastvale, CA",
+      "expectCounty": "riverside-ca",
+      "status": "resolved",
+      "countySlug": "riverside-ca",
+      "name": "Eastvale",
+      "lon": -117.580313,
+      "lat": 33.961733,
+      "insideCountyBBox": true
+    },
+    {
+      "query": "Chicago, IL",
+      "expectCounty": "cook-il",
+      "status": "resolved",
+      "countySlug": "cook-il",
+      "name": "Chicago",
+      "lon": -87.684922,
+      "lat": 41.836962,
+      "insideCountyBBox": true
+    },
+    {
+      "query": "Honolulu",
+      "expectCounty": "honolulu-hi",
+      "status": "resolved",
+      "countySlug": "honolulu-hi",
+      "name": "Honolulu County",
+      "lon": -157.845344,
+      "lat": 21.325703,
+      "insideCountyBBox": true
+    }
+  ],
+  "blockers": []
+}

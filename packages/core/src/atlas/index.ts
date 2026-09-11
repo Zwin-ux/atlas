@@ -35,3 +35,6 @@ export type { LabelBox, LabelCandidate, LabelPlacementOptions, PlacedLabel } fro
 
 export { createGazetteer, editDistance, foldName } from "./gazetteer.js";
 export type { Gazetteer, GazetteerInput, GazetteerPlace, Resolution } from "./gazetteer.js";
+
+export { classifyTownAnchors, countyStem } from "./townTiers.js";
+export type { TieredTown, TownAnchorInput, TownTier } from "./townTiers.js";

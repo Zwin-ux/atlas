@@ -1,190 +1,176 @@
-# Atlas Agent Instructions
+# Atlas — agent instructions
 
-Build with strong product taste, not generic SaaS defaults.
+Atlas is a ChatGPT app: an atlas of the United States built on US Census
+geography. It draws a place — county, state, or the whole nation — as a real
+cartographic plate, and answers questions about that place from the same Census
+data. It is read-only: no accounts, no writes, no commerce, no third-party
+calls.
 
-Do not generate a generic SaaS homepage. Do not use the common AI fallback of a hero headline, subcopy, dual CTAs, floating mockup, and feature-card grid. Treat that pattern as a design failure for Atlas.
+This file is a router. It says where truth lives. It does not hold truth itself.
 
-## Current Product Law
+## The governing rule
 
-**Read `docs/NORTH_FACE.md` and `docs/PRODUCT_LANE.md` first.** They are ship
-authority. Conflicting slice history below is background only.
+**No prose restates a machine-checkable fact.**
 
-**North star:** *Riverside is the clay jewel. Every other county is a real Census
-board with notes. Everything else is parked.*
+Tool names, place counts, commit SHAs, image digests, and URLs live in code, in
+JSON, or behind a command you can run. Documentation links to them. It never
+copies them.
 
-Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget). Product lane NOW:
+This rule exists because the repo broke without it. On 2026-07-25 Atlas pivoted
+from a seven-tool voxel product to the two-tool read-only atlas that ships
+today. Nearly every document in the repo carried its own hand-written copy of
+the old tool list. One document was updated. The rest kept instructing agents to
+build the retired product, and agents did.
 
-- **Mode A — Clay:** Riverside/Eastvale only (playable craft proof)
-- **Mode B — Census board:** national default (outline + water + towns + notes)
-- **Mode B′ — Study:** generated clay only if explicitly requested (never default)
-- **Session pins and notes** on places/towns
-- Optional place questions / nearby lookup (keep board meta; do not force clay)
+So: if you are about to type a fact a script could check, link the script
+instead. If a document and a command disagree, the command is right and the
+document is the bug.
 
-**Park Clawd / Scout Drop / campaign / Hosted Clawd until later.** Do not use
-“Drop Clawd…” as the hero demo. Do not expand scout/campaign product work.
-**Do not** run national clay massing as the main project while Mode B is default.
+## Tool surface
 
-- Primary tools: `select_county`, `render_voxel_county`, `ask_county_question`,
-  `lookup_world_places`. Scout/campaign/upgrade tools stay stable but unmarketed.
-- Hosted Clawd / Stripe / saves / XP / evidence / automation / reports / exports
-  stay fenced (`ATLAS_SAVE_SURFACE` off; no paid claims).
-- Anaheim/Ontario remain hidden/non-public.
-- Provider lookup never becomes scene geometry or readiness.
+`scripts/lib/atlas-tool-surface.mjs` is the single executable source of truth
+for the public MCP tool surface. It exports the expected tool list, the retired
+names that must never come back, forbidden name patterns, and the annotations
+each tool must declare. Every verifier that inspects the surface imports from
+it.
 
-Parked: Clawd product story, owner-gate 0.45E, national clay-for-all, Mapbox.
+Do not restate the tool list in prose — not here, not in a doc, not in a code
+comment. Read the file.
 
-## National scale (current quest)
+Implementations live in `server/src/atlasTools.ts`. That file and the surface
+library must agree; `scripts/verify-atlas-source-of-truth-drift.mjs` fails if
+they do not.
 
-**Also read `docs/NATIONAL_SCALE.md`.** Same rank as product lane for infrastructure.
+## Hard stops
 
-**Quest:** `national-roads-origin-live` — make progressive TIGER roads work for
-millions of Americans without stuffing the nation into the Railway image.
+These were deleted in the pivot and stay deleted. Never restore one to make a
+check pass, to satisfy a stale doc, or to fill a gap you think you see:
 
-### User truth
+- Community notes / Commons — public note reads, writes, moderation queue
+- Hosted Clawd — accounts, saves, Stripe billing, subscription gates
+- Scout Drop and the campaign engine — lead generation
+- Upgrade, checkout, or paid-tier surfaces of any kind
+- The PixiJS voxel renderer as a product surface
+- Google Maps and Google Places lookup, and any third-party geodata call
 
-- Every supported county opens as a **Mode B Census board** (outline, water,
-  towns, notes) — already national (3,222 geo packs).
-- Streets are **progressive enhancement** at NEAR zoom only. Never block board
-  open on road bake. Never claim buildings.
-- Full national road trees ≈ **25–50 GB** — live on object storage / CDN, not
-  git and not the app image.
+Dead code from several of these still sits in `server/src/index.ts`. None of it
+is registered on the tool surface. Deleting it is welcome. Re-registering any
+of it is not.
 
-### Infra law
+If a verifier, a doc, or an artifact tells you to add one of these back, the
+verifier or doc is stale. Report it. Do not comply.
 
-| Env | Role |
-|-----|------|
-| `ATLAS_ROAD_CHUNKS_ORIGIN` | Server fallback HTTP origin (FS first, then origin) |
-| `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` | Browser-direct immutable chunks (skip Node egress) |
+## Location Truth
 
-- Layout: `/<slug>/catalog.json`, `/<slug>/roadchunk/1/<packHash>/…`
-- Bucket (prod): Railway `atlas-road-chunks` (iad)
-- Coverage: `data/road-chunks/_coverage.json` → `/map-config`, `/road-coverage`
-- Bake order: `data/road-chunks/_priority-metros.json`
-- Sync: `scripts/sync-road-chunks-to-origin.mjs` / `scripts/build-road-coverage.mjs`
+A location query resolves to the right place, or it refuses. Those are the only
+two acceptable outcomes.
 
-### Result gates (do not claim done without proof)
+A refusal is structured, not an apology. `ambiguous` returns the candidate
+places so the user can choose. `unresolved` says plainly that Atlas does not
+carry the name. Atlas is never confidently wrong: one wrong county stated as
+fact costs more trust than every refusal Atlas will ever make.
 
-- **A** Origin: public GET catalog/chunk 200; env set; `/map-config` shows publicOrigin
-- **B** Dogfood: Miami + Cook streets + honesty; unbaked county graceful
-- **C** Scale: windowed NEAR fetch (not full-county); chunks hit public origin
-- **D** Agents: this section + BUILD_LOG / NEXT_QUESTS current
+The gate is `scripts/verify-location-truth.mjs`, run as
+`pnpm verify:location-truth`. It samples the index across exact names, casing
+and punctuation, misspellings, dropped diacritics, shared names, and nonsense.
+It fails on a single confidently wrong answer no matter how well the rest
+scores. That is deliberate — do not raise the tolerance to get a green run.
 
-### Stop signs (scale)
+## Routing table
 
-- National clay massing as main work
-- Mapbox / new engines as default
-- Multi-GB road packs committed to git as the long-term path
-- Fake buildings when streets appear
-- New MCP tools for roads without product need
+| Task | Read |
+|------|------|
+| Current status, verifier results, open blockers | `docs/STATUS.md` |
+| What the public tool surface is | `scripts/lib/atlas-tool-surface.mjs` |
+| How a tool behaves | `server/src/atlasTools.ts` |
+| Place resolution and refusal semantics | `packages/core/src/atlas/gazetteer.ts` |
+| Plate geometry, projection, rendering | `server/src/atlasPlates.ts`, `web/src/atlas/` |
+| County and town anchor data | `data/census/us-county-town-anchors.json` |
+| Visual and interaction design | `DESIGN.md` |
+| Store submission record | `chatgpt-app-submission.json` |
+| Project plan and human priorities | `docs/brain/PROJECT_PLAN.md` |
+| Search all current and historical documents | `pnpm brain:query -- "task terms"` |
+| Build, test, and verify commands | `package.json` scripts |
+| CI gates | `.github/workflows/ci.yml` |
+| ChatGPT / GitHub handoff | `CHATGPT.md`, `GITHUB.md` |
+| LLM wiki (compiled knowledge) | `llm-wiki/CLAUDE.md`, `llm-wiki/wiki/index.md` |
 
-### Continue rule
+Except for `docs/STATUS.md`, the local GBrain outputs, legal policy sources, and
+exact-path exceptions classified by the document policy, everything else under
+`docs/` and all of `artifacts/` predates the pivot. Treat it as history, not
+instruction. `scripts/lib/atlas-document-policy.mjs` is authoritative for
+those exceptions; a title or directory name is not.
+`STATE.md`, `LOOP.md`, `docs/NORTH_FACE.md`, and
+`artifacts/current-update.json` describe a product that no longer exists.
+`docs/STATUS.md` supersedes them.
 
-If the human says "continue" / "go for it" / "get results" on Atlas maps, work
-**this quest** (origin live → windowed fetch → wave-1 metros), not Hosted Clawd
-and not national clay.
+## Local GBrain
 
-## Named-Slice Rule
+The local context harness lives in `docs/brain/README.md`. Its policy in
+`scripts/lib/atlas-document-policy.mjs` classifies every repository-visible
+document as canonical, active reference, generated, review-required, or
+historical. Do not promote an old document by citing its title. Query the
+registry, then follow its authority label.
 
-Work must happen as named, gated slices. Every slice needs:
+Before major planning, product, design, or implementation work:
 
-- player-facing promise
-- engineering promise
-- axis
-- contract
-- metric or verifier
-- proof
-- anti-scope
-- logs
-- stop condition
+1. Read `AGENTS.md`, `docs/STATUS.md`, and `docs/brain/PROJECT_PLAN.md`.
+2. Run `pnpm brain:verify`.
+3. Query the registry for the task terms.
+4. State any local authority conflict before editing.
 
-If the human says "continue," continue only the named next quest. If the next quest conflicts with permanent gates, stop and report the conflict.
+Do not require Notion, MCP, browser state, or a global memory service to start
+or continue work. `docs/brain/notion.json` is an optional human mirror pointer,
+not an agent dependency. The repository owns planning and executable truth.
 
-The next quest is chosen from:
+## Commands
 
-1. `artifacts/current-update.json`
-2. `docs/NEXT_QUESTS.md`
-3. latest selector output
-4. a new verifier or selector result created during the current slice
+Verified against `package.json`:
 
-## Architecture Law
+- `pnpm typecheck:starter` — server and web typecheck
+- `pnpm typecheck` — starter plus workspaces
+- `pnpm build` — full build
+- `pnpm test:core` — core package tests
+- `pnpm verify:location-truth` — the honesty gate
+- `pnpm verify:mcp` — live MCP flow; asserts the tool surface
+- `pnpm verify:submission` — submission record against a live server
+- `pnpm dev` — build web and geo, then run the server under tsx
 
-- Mock-first.
-- Typed data contracts.
-- Service-layer first.
-- Renderer consumes compiled `VoxelScene` / `CityWorldScene` only.
-- Google Maps and provider data stay behind `GeoDataAdapter` and provider policy.
-- Provider lookup is not coverage readiness and must not create scene geometry.
-- Widget renders from server/tool state; it should not require the transcript to carry giant voxel arrays.
-- Railway may compile/cache scene packets, but browser pan/zoom must not wait on Railway.
-- Use curated county and district packs first. Do not hallucinate live data.
-- Do not introduce unnecessary dependencies.
-- Do not overengineer.
+Host note: on this Windows machine `pnpm` resolves in PowerShell but not in the
+Git Bash shell. Run pnpm scripts from PowerShell, or call the underlying script
+directly with `node scripts/<name>.mjs`.
 
-## ChatGPT App Rules
+## Working agreements
 
-- Keep MCP tool surface stable.
-- Current public tools are: `select_county`, `ask_county_question`, `render_voxel_county`, `lookup_world_places`, `preview_scout_drop`, `preview_campaign_engine`, `get_upgrade_options`.
-- Do not add new MCP tools casually.
-- Keep `structuredContent` concise.
-- Put large widget-only or renderer-only scene data in `_meta`.
-- Keep server tools, structured data, and iframe UI responsibilities separate.
-- Use `window.openai` as an optional ChatGPT extension layer, not as the baseline app contract.
-- Version widget resource URIs when markup or bundle contracts change.
+Commits follow the shape already in the log: `type(scope): what changed and why
+it matters` — lowercase, one line, naming the consequence rather than the
+mechanism.
 
-## Engine And Visual Grammar
+Architecture: mock-first, typed data contracts, service layer before renderer.
+The widget renders from server and tool state; the transcript does not carry
+bulk geometry. Use the curated Census packs. Do not invent live data. Do not
+add dependencies you do not need. Do not overengineer.
 
-- No labels, props, cars, humans, panels, glows, or decorative clutter to hide weak art.
-- Improve identity through silhouettes, geometry, massing, roof/facade rhythm, contact shadows, object-kit metadata, and renderer/compiler grammar.
-- Map-first remains the product surface. No dashboard shell.
-- Desktop and mobile both matter; 390x844 mobile proof is required when the product surface changes.
-- Mobile is a primary interaction mode, especially inside ChatGPT on iPhone-sized screens. Use 44x44 CSS pixel targets for primary touch controls, keep one-tap alternatives for core map gestures, make trays/bottom sheets keyboard and screen-reader reachable, announce async Hosted Clawd states with status semantics, and honor reduced motion in Pixi as well as CSS.
-- Public Riverside quality beats hidden district polish unless a selector or owner gate changes the axis.
+Design: no generic SaaS homepage. No hero headline, subcopy, dual CTAs,
+floating mockup, feature-card grid — that pattern is a design failure here. The
+map is the product surface; there is no dashboard shell. Mobile is a primary
+mode inside ChatGPT, so 390x844 proof is required whenever the product surface
+changes. `DESIGN.md` owns the durable visual and interaction system; read it
+before changing the product surface.
 
-## Required Reading Before Product Patches
+Copy: direct and human. No "seamless", "empower", "leveraging",
+"revolutionary", or corporate filler.
 
-- `docs/PRODUCT_NORTH_STAR.md`
-- `docs/ENGINEERING_ROUTE.md`
-- `docs/PHASE_PLAN.md`
-- `docs/TOOL_CONTRACTS.md`
-- `docs/NEXT_QUESTS.md`
-- `artifacts/current-update.json`
+Browsing: use `/browse` from gstack. Never use `mcp__claude-in-chrome__*`.
 
-State the current quest, likely files, and anti-scope before substantial edits.
+## After a patch
 
-## Required After Every Patch
+Update `docs/STATUS.md`. It is the only mutable status file in the repo and it
+is capped at 200 lines. Do not start a second status document. Do not update
+`artifacts/current-update.json` — it is a retired packet.
 
-- Update `docs/BUILD_LOG.md`.
-- Update `docs/NEXT_QUESTS.md`.
-- Update `docs/DECISIONS.md` if a durable architecture or product choice was made.
-- Update `artifacts/current-update.json` for named update slices.
-- Run the relevant Engine Beta ladder verifiers, not just one arbitrary command.
-- Return files changed, what works, what was skipped, and the next quest.
+If any document or executable knowledge source changed, run `pnpm brain:build`
+and `pnpm brain:verify`. Commit the generated registry with the source change.
 
-## Testing Rule
-
-Avoid testing hell, but do not skip the relevant gate.
-
-For Engine Beta source-of-truth and code slices, default to:
-
-- core tests when core contracts changed
-- starter typecheck/build when server or web contracts changed
-- focused verifier for the slice
-- provider boundary guard
-- tool-result shape guard
-- strict `engine-beta-data` split guard, strict `hosted-clawd-scaffold` split guard for the reopened Hosted Clawd scaffold slice, strict `hosted-clawd-fable-integration` split guard for the integrated local canonical candidate, strict `hosted-clawd-persistence-foundation` split guard for the 0.60H DB/Auth foundation, strict `hosted-clawd-save-ux` split guard for the 0.61H save UX branch, strict `hosted-clawd-stripe-billing` split guard for the 0.62H billing branch, strict `hosted-clawd-protected-tool-gate` split guard for the 0.63H protected gate branch, strict `hosted-clawd-saved-read-surface` split guard for the 0.64H saved read branch, strict `hosted-clawd-browser-proof` split guard for the 0.65H browser proof branch, strict `mobile-interaction-hardening` split guard for the 0.66H mobile hardening branch, strict `product-feel-cleanup` split guard for the 0.67H graphics cleanup branch, or strict `national-generation-contract` split guard for the current national-generation and real-geography branch
-
-Browser screenshot proof is required only when renderer or UI output changes.
-
-## Safety
-
-Atlas plans campaigns. It does not auto-post, auto-DM, scrape private individuals, target sensitive traits, guarantee ROI, silently persist state, or imply paid access before Hosted Clawd is explicitly reopened.
-
-Keep local marketing outputs public and business-oriented. Ask users to verify local rules before flyers, outreach, or regulated local actions.
-
-## Copy
-
-Remove AI-sounding phrasing, corporate filler, and hype language. Use direct, human, concise copy. Avoid words like "seamless", "empower", "leveraging", and "revolutionary".
-
-## gstack
-
-Use `/browse` from gstack for web browsing. Never use `mcp__claude-in-chrome__*` tools.
+Report what changed, what you verified with which command and which exit code,
+and what you left undone.

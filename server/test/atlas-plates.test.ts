@@ -101,8 +101,11 @@ test("composes a county plate with anchors ranked by population", () => {
   assert.equal(plate.slug, "riverside-ca");
   assert.equal(plate.name, "Riverside County");
   assert.equal(plate.rings.length, 1);
-  assert.equal(plate.anchors[0].name, "Riverside", "largest place must lead");
+  assert.equal(plate.anchors[0].name, "Riverside", "seat / dominant town must lead");
+  assert.equal(plate.anchors[0].tier, "seat");
+  assert.equal(plate.anchors[0].seatSource, "name");
   assert.equal(plate.anchors[1].name, "Eastvale");
+  assert.equal(plate.anchors[1].tier, "primary");
   assert.ok(plate.source.includes("Census"), "attribution must travel with the plate");
 });
 

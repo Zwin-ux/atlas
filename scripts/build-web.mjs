@@ -10,15 +10,15 @@ const outdir = resolve(root, "web/dist");
 await rm(outdir, { recursive: true, force: true });
 await mkdir(outdir, { recursive: true });
 
+// ChatGPT snapshots this file into the widget HTML. ESM + code-splitting
+// leaves `import` of chunks that resolve against the sandbox origin and
+// never run. One classic IIFE is the format the iframe can actually execute.
 await esbuild.build({
   entryPoints: [entry],
-  outdir,
-  entryNames: "component",
-  chunkNames: "chunks/[name]-[hash]",
+  outfile: resolve(outdir, "component.js"),
   bundle: true,
-  format: "esm",
+  format: "iife",
   platform: "browser",
-  splitting: true,
   target: ["es2022"],
   jsx: "automatic",
   define: {

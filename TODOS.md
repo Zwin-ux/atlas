@@ -43,14 +43,11 @@
 ## 3. Atlas plate polish (from /qa, 2026-07-25)
 
 - **What:** Three deferred findings from the exhaustive QA pass.
-  - *Portrait letterbox (ISSUE-003, low):* a wide county in a tall phone plate
-    leaves vertical space. The plate fills its container and context is 46
-    neighbours deep, but the fit is computed against the subject alone. Fix is
-    to fit against subject-plus-margin with viewport awareness.
-  - *No legend (ISSUE-004, low):* nothing tells a reader what the fills and
-    line weights mean. Atlas plates carry a key.
-  - *No north indicator (ISSUE-005, low):* Albers rotates meridians away from
-    vertical, so north is not straight up at the plate edges.
+  - *Portrait letterbox (ISSUE-003, low):* a wide county on a tall phone still
+    has sea above/below because the county is wide. The county is now fully
+    visible (2026-08-22); do not cover-zoom it into a sliver.
+  - *Legend (ISSUE-004):* done 2026-08-22 — land / water / county seat.
+  - *North indicator (ISSUE-005):* done 2026-08-22 — N with approximate-north note.
 - **Why:** None block submission; all three are the difference between a map
   that works and one that reads as cartography.
 - **Context:** `.gstack/qa-reports/qa-report-atlas-localhost-2026-07-25.md`.

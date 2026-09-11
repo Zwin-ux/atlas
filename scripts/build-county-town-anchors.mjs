@@ -23,7 +23,9 @@ const TIGER_SERVICE =
 const COUNTY_LAYER =
   "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/11/query";
 const DEFAULT_OUTPUT = "data/census/us-county-town-anchors.json";
-const DEFAULT_MAX_ANCHORS = 12;
+// County plates need enough real places to feel populated (r/place density,
+// still Census-true). 12 left metros looking empty; 40 fills overview + zoom.
+const DEFAULT_MAX_ANCHORS = 40;
 const BOUNDARY_CONCURRENCY = 6;
 
 function parseArgs(argv) {
@@ -33,8 +35,8 @@ function parseArgs(argv) {
     if (argv[index] === "--output") output = requireValue(argv, ++index, "--output");
     else if (argv[index] === "--max-anchors") {
       maxAnchors = Number.parseInt(requireValue(argv, ++index, "--max-anchors"), 10);
-      if (!Number.isInteger(maxAnchors) || maxAnchors < 1 || maxAnchors > 12) {
-        throw new Error("--max-anchors must be an integer from 1 to 12.");
+      if (!Number.isInteger(maxAnchors) || maxAnchors < 1 || maxAnchors > 48) {
+        throw new Error("--max-anchors must be an integer from 1 to 48.");
       }
     } else {
       throw new Error(`Unknown argument: ${argv[index]}`);

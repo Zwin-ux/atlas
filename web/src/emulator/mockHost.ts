@@ -198,6 +198,11 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
   let innerWindow: Window | null = null;
   let lastDisplayModeGestureAt = Number.NEGATIVE_INFINITY;
   let gestureCleanup: (() => void) | null = null;
+  // Plate-era widget reads tool output from host globals (useToolPlate), not
+  // only from the postMessage tool-result notification. Mirror ChatGPT: keep
+  // the latest structuredContent + _meta on window.openai after every delivery.
+  let toolResponseMetadata: Record<string, unknown> | undefined;
+  let toolOutput: unknown;
   const markDisplayModeGesture = () => {
     lastDisplayModeGestureAt = performance.now();
   };
@@ -215,6 +220,12 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
     get widgetState() {
       return widgetState;
     },
+    get toolResponseMetadata() {
+      return toolResponseMetadata;
+    },
+    get toolOutput() {
+      return toolOutput;
+    },
     setWidgetState: (next: unknown) => {
       if (next && typeof next === "object") widgetState = next as Record<string, unknown>;
       dispatchGlobals({ widgetState });
@@ -230,6 +241,20 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
       options.onDisplayModeChange?.(request.mode);
       return Promise.resolve({ mode: request.mode });
     },
+  };
+
+  /**
+   * Turn an Atlas county slug into a gazetteer-friendly open_atlas_map query.
+   * "miami-dade-fl" → "Miami Dade, FL"; "orleans-parish-la" → "Orleans Parish, LA".
+   */
+  const placeQueryFromSlug = (slug: string): string => {
+    const match = /^(.+)-([a-z]{2})$/i.exec(slug.trim());
+    if (!match) return slug.replace(/-/g, " ");
+    const body = match[1]!
+      .split("-")
+      .map((part) => (part.length ? part[0]!.toUpperCase() + part.slice(1) : part))
+      .join(" ");
+    return `${body}, ${match[2]!.toUpperCase()}`;
   };
   parentWindow.__ATLAS_EMULATOR_OPENAI_FACTORY__ = (inner: Window) => {
     gestureCleanup?.();
@@ -265,6 +290,8 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
   const deliverResult = (tool: string, raw: CallToolResult) => {
     const { result, truncated } = applyHostPayloadPolicy(raw, options.truncateChars);
     const meta = result._meta as Record<string, unknown> | undefined;
+    toolResponseMetadata = meta && typeof meta === "object" ? meta : undefined;
+    toolOutput = result.structuredContent ?? undefined;
     qa.deliveries.push({
       tool,
       at: Date.now(),
@@ -274,6 +301,13 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
       generatedDraftSpecChars: serializedChars((raw._meta as Record<string, unknown> | undefined)?.generatedDraftSpec),
       metaKeys: meta ? Object.keys(meta) : [],
       truncated,
+    });
+    // Host globals first so useToolPlate sees the plate ref, then postMessage
+    // for any legacy subscribers.
+    dispatchGlobals({
+      toolResponseMetadata,
+      toolOutput,
+      theme: qa.theme,
     });
     void bridge.sendToolResult(result as Parameters<typeof bridge.sendToolResult>[0]);
     qa.state = "delivered";
@@ -303,7 +337,16 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
     }
     if (/riverside\/?eastvale|open riverside/i.test(text)) {
       qa.county = "riverside-ca";
-      void runToolTurn({ name: "select_county", arguments: { countySlug: "riverside-ca" } }, "open riverside");
+      void runToolTurn(
+        { name: "open_atlas_map", arguments: { place: "Riverside County, CA" } },
+        "open riverside",
+      );
+      return;
+    }
+    // Free-text place opens: "open Homestead Florida" → open_atlas_map.
+    const openPlace = /^(?:open|show|map)\s+(.+)$/i.exec(text.trim());
+    if (openPlace?.[1]) {
+      void runToolTurn({ name: "open_atlas_map", arguments: { place: openPlace[1].trim() } }, "open place");
       return;
     }
     status(`ui/message recorded (no tool route): ${text.slice(0, 80)}`);
@@ -344,18 +387,16 @@ export async function createMockHost(options: MockHostOptions): Promise<MockHost
     status("widget initialized — running seed tool turn");
     void (async () => {
       try {
+        // Plate-era seed: open_atlas_map (retired select_county is forbidden).
         const seed: ToolCallSpec = {
-          name: "select_county",
+          name: "open_atlas_map",
           arguments: {
-            countySlug: options.county,
-            ...(options.includeGeneratedDraft ? { includeGeneratedDraft: true } : {}),
+            place: placeQueryFromSlug(options.county),
           },
         };
-        const result = options.includeGeneratedDraft
-          ? await toolSource.callUntilDraftScene(seed)
-          : await toolSource.call(seed);
+        const result = await toolSource.call(seed);
         deliverResult(seed.name, result);
-        status(`seed delivered: ${options.county}${options.includeGeneratedDraft ? " + generated draft" : ""}`);
+        status(`seed delivered: ${options.county} via open_atlas_map`);
         resolveReady();
       } catch (error) {
         fail("seed tool turn", error);

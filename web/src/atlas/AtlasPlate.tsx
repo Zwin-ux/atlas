@@ -20,23 +20,34 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { labelBudget, placeLabels } from "@atlas/core/atlas";
 
 import { buildPlateGeometry, niceScaleDistance, type Plate } from "./plateGeometry";
+import type { PlateFocus } from "./useToolPlate";
 
 export type AtlasPlateProps = {
   plate: Plate;
   /** Highlighted county slug, when a tool opened a specific one. */
   focusSlug?: string | undefined;
+  /**
+   * Town/place inside a county plate. On load, the camera flies here so
+   * "open Homestead" lands on Homestead — not just the county outline.
+   */
+  focus?: PlateFocus | undefined;
   /** Called when the reader clicks through to a county. */
   onOpenCounty?: ((slug: string, name: string) => void) | undefined;
-  /** Coverage sentence from the tool; shown verbatim so copy stays honest. */
-  coverage?: string | undefined;
 };
+
+/** How tight the first fly-to frame is (fraction of full plate width). */
+const FOCUS_VIEW_FRACTION = 1 / 5.5;
+
+function normalizeLabel(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
 
 type Viewport = { x: number; y: number; width: number; height: number };
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 40;
 
-export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPlateProps) {
+export function AtlasPlate({ plate, focusSlug, focus, onOpenCounty }: AtlasPlateProps) {
   const [size, setSize] = useState({ width: 640, height: 448 });
 
   // Rebuild when the container's proportions change so the plate always fills
@@ -53,18 +64,34 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
   const svgRef = useRef<SVGSVGElement | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; pointerId: number } | null>(null);
 
-  // Reset the view whenever a different plate arrives, or a zoomed-in reader
-  // would land somewhere arbitrary in the new geography.
+  // Reset / fly whenever the plate or focus changes. Without focus this is a
+  // full-plate fit; with focus it is a town-centred frame (USA accuracy A1).
   useEffect(() => {
+    if (focus && plate.plate === "county") {
+      const point = geometry.toPlatePoint(focus.lon, focus.lat);
+      if (point) {
+        const width = base.width * FOCUS_VIEW_FRACTION;
+        const height = base.height * FOCUS_VIEW_FRACTION;
+        const slackX = base.width - width;
+        const slackY = base.height - height;
+        setView({
+          width,
+          height,
+          x: Math.min(Math.max(point.x - width / 2, -width / 3), slackX + width / 3),
+          y: Math.min(Math.max(point.y - height / 2, -height / 3), slackY + height / 3),
+        });
+        return;
+      }
+    }
     setView({ x: 0, y: 0, width: base.width, height: base.height });
-  }, [plate, base.width, base.height]);
+  }, [plate, base.width, base.height, focus?.lon, focus?.lat, focus?.name, geometry]);
 
   useEffect(() => {
     const element = svgRef.current;
     if (!element || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
-      if (rect && rect.width > 0) setSize({ width: rect.width, height: rect.height });
+      if (rect && rect.width > 0 && rect.height > 0) setSize({ width: rect.width, height: rect.height });
     });
     observer.observe(element);
     return () => observer.disconnect();
@@ -182,37 +209,44 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
 
   // Labels are placed against the *visible* window, so zooming in reveals more
   // names rather than keeping the same handful spread further apart.
+  // Hierarchy: secondary names after light zoom; cells already show them.
   const placed = useMemo(() => {
     if (geometry.labels.length === 0) return [];
-    const visible = geometry.labels.filter(
-      (label) =>
-        label.x >= view.x &&
-        label.x <= view.x + view.width &&
-        label.y >= view.y &&
-        label.y <= view.y + view.height,
-    );
-    const scale = base.width / view.width;
+    const focusKey = focus?.name ? normalizeLabel(focus.name) : null;
+    const showSecondary = zoom >= 1.35 || plate.plate !== "county";
+    const showPrimaryLabels = true;
+    const visible = geometry.labels.filter((label) => {
+      if (label.x < view.x || label.x > view.x + view.width || label.y < view.y || label.y > view.y + view.height) {
+        return false;
+      }
+      if (!showSecondary && label.tier === "secondary") {
+        if (focusKey && normalizeLabel(label.text) === focusKey) return true;
+        return false;
+      }
+      if (!showPrimaryLabels && label.tier === "primary") return false;
+      return true;
+    });
+    // Zoom buys more names: denser budget when the reader is in close.
+    const budgetScale = zoom >= 3 ? 1.6 : zoom >= 1.8 ? 1.25 : 1;
     return placeLabels(
       visible.map((label) => ({
         text: label.text,
-        // Place in screen space so collision boxes match what is drawn.
         x: (label.x - view.x) * (size.width / view.width),
         y: (label.y - view.y) * (size.height / view.height),
-        importance: label.importance,
+        importance:
+          focusKey && normalizeLabel(label.text) === focusKey
+            ? Number.MAX_SAFE_INTEGER
+            : label.importance,
         meta: label,
       })),
       {
-        // Type scales with the plate. At a fixed 12px a phone-width plate gave
-        // labels boxes so large relative to the map that collision rejection
-        // dropped all but six of California's seventy-eight names — a state map
-        // with no place names on it. Clamped so it never becomes unreadable.
         fontSize: labelFontSize,
         markerRadius: 2.5,
-        maxLabels: labelBudget(size.width, size.height),
+        maxLabels: Math.round(labelBudget(size.width, size.height) * budgetScale),
         bounds: { minX: 4, minY: 4, maxX: size.width - 4, maxY: size.height - 4 },
       },
-    ).map((label) => ({ ...label, scale }));
-  }, [geometry.labels, view, size, base.width]);
+    );
+  }, [geometry.labels, view, size, focus?.name, labelFontSize, zoom, plate.plate]);
 
   // Scale bar: aim for roughly a fifth of the plate width, rounded to a number
   // a person can read at a glance.
@@ -297,35 +331,88 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
           size stays constant as the plate zooms — a name that scales with the
           map becomes unreadable at both ends of the range. */}
       <div className="atlas-plate__labels" aria-hidden="true">
-        {placed.map((label) => (
-          <span
-            key={`${label.text}-${label.textX.toFixed(0)}-${label.textY.toFixed(0)}`}
-            className="atlas-plate__label"
-            style={{ left: `${label.textX}px`, top: `${label.textY}px`, fontSize: `${labelFontSize}px` }}
-            data-anchor={label.anchor}
-          >
-            {label.text}
-          </span>
-        ))}
-        {placed.map((label) => (
-          <span
-            key={`dot-${label.text}-${label.x.toFixed(0)}`}
-            className="atlas-plate__dot"
-            style={{ left: `${label.x}px`, top: `${label.y}px` }}
-          />
-        ))}
+        {placed.map((label) => {
+          const meta = label.meta as { tier?: "seat" | "primary" | "secondary" } | undefined;
+          const tier = meta?.tier;
+          const isFocus =
+            Boolean(focus?.name) && normalizeLabel(label.text) === normalizeLabel(focus!.name!);
+          const fontSize =
+            isFocus || tier === "seat"
+              ? labelFontSize + 2
+              : tier === "primary"
+                ? labelFontSize + 0.5
+                : labelFontSize - (tier === "secondary" ? 1 : 0);
+          const className = [
+            "atlas-plate__label",
+            tier === "seat" ? "is-seat" : "",
+            tier === "primary" ? "is-primary" : "",
+            tier === "secondary" ? "is-secondary" : "",
+            isFocus ? "is-focus" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const markClass = [
+            "atlas-plate__mark",
+            tier === "seat" ? "is-seat" : "",
+            isFocus ? "is-focus" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return (
+            <span key={`${label.text}-${label.textX.toFixed(0)}-${label.textY.toFixed(0)}`}>
+              <span
+                className={markClass}
+                style={{ left: `${label.x}px`, top: `${label.y}px` }}
+              />
+              <span
+                className={className}
+                style={{
+                  left: `${label.textX}px`,
+                  top: `${label.textY}px`,
+                  fontSize: `${Math.max(9, fontSize)}px`,
+                }}
+                data-anchor={label.anchor}
+                data-tier={tier ?? "unknown"}
+              >
+                {label.text}
+              </span>
+            </span>
+          );
+        })}
       </div>
 
       <div className="atlas-plate__furniture">
-        <div className="atlas-plate__scale" aria-label={`Scale bar: ${scaleBar.km} kilometres`}>
-          <span className="atlas-plate__scale-bar" style={{ width: `${scaleBar.pixels}px` }} />
-          <span className="atlas-plate__scale-text">
-            {scaleBar.km} km
-            {/* Alaska, Hawaii, and Puerto Rico are drawn at their own reduced
-                scales, so one bar cannot describe them. Saying which part of
-                the plate it measures is the honest alternative to omitting it. */}
-            {geometry.scaleAppliesTo === "contiguous" ? " · contiguous states" : ""}
-          </span>
+        <ul className="atlas-plate__legend">
+          <li>
+            <i className="atlas-plate__swatch is-land" aria-hidden="true" />
+            land
+          </li>
+          <li>
+            <i className="atlas-plate__swatch is-water" aria-hidden="true" />
+            water
+          </li>
+          {plate.plate === "county" ? (
+            <li>
+              <i className="atlas-plate__swatch is-seat" aria-hidden="true" />
+              county seat
+            </li>
+          ) : null}
+        </ul>
+        <div className="atlas-plate__measure">
+          <div className="atlas-plate__scale" aria-label={`Scale bar: ${scaleBar.km} kilometres`}>
+            <span className="atlas-plate__scale-bar" style={{ width: `${scaleBar.pixels}px` }} />
+            <span className="atlas-plate__scale-text">
+              {scaleBar.km} km
+              {geometry.scaleAppliesTo === "contiguous" ? " · contiguous states" : ""}
+            </span>
+          </div>
+          <div
+            className="atlas-plate__north"
+            title="North is approximate: this plate uses an equal-area projection, so meridians tilt at the edges."
+          >
+            <span aria-hidden="true">▲</span>
+            N
+          </div>
         </div>
         <p className="atlas-plate__attribution">{geometry.attribution}</p>
       </div>
@@ -345,8 +432,6 @@ export function AtlasPlate({ plate, focusSlug, onOpenCounty, coverage }: AtlasPl
           Fit
         </button>
       </div>
-
-      {coverage ? <p className="atlas-plate__coverage">{coverage}</p> : null}
     </div>
   );
 }

@@ -29,8 +29,8 @@ describe("national Census town-anchor contract", () => {
   it("covers every supported county with a real named anchor", () => {
     expect(index.totals.supportedCountyCount).toBe(US_COUNTY_INDEX.length);
     expect(index.totals.coveredCountyCount).toBe(3_222);
-    expect(index.totals.anchorCount).toBe(18_447);
-    expect(index.method.maximumAnchorsPerCounty).toBe(12);
+    expect(index.totals.anchorCount).toBe(21_155);
+    expect(index.method.maximumAnchorsPerCounty).toBe(40);
     expect(Object.keys(index.counties)).toHaveLength(US_COUNTY_INDEX.length);
 
     for (const supported of US_COUNTY_INDEX) {

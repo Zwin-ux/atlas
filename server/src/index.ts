@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 import {
   registerAppResource,
   registerAppTool,
-  RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server";
 import { loadAtlasIndex } from "./atlasIndex.js";
 import { createAtlasPlateService, plateHttpStatus } from "./atlasPlates.js";
@@ -37,13 +36,14 @@ import {
   type UsUnsupportedWorldResponse,
   type CityWorldScene,
   type DeterministicGeneratedDistrictSpec,
-  type WorldLookupPlaceInput,
   type WorldPlaceLookupResponse,
   type WorldSourceKind,
   type WorldSourceNote,
 } from "@atlas/core";
 import { compileCountyGeoScene, riversideDemoVoxelScene, type CountyGeoPack } from "@atlas/core/voxel";
-import { createGeoDataAdapter, isGoogleMapsConfigured, readGeoAdapterConfig } from "@atlas/geo";
+// Atlas makes no third-party request. The Google geo adapter (@atlas/geo) and
+// every route that reached it were deleted on 2026-08-01 so the origin cannot
+// contradict the store listing: no provider lookup, no geocode, no live key.
 import { z } from "zod";
 import {
   createLazyRedisConnector,
@@ -54,27 +54,23 @@ import {
   type ScenePacketGeneratedDraftJob,
   type ScenePacketMemorySummary,
 } from "./scenePacketMemoryAdapter.js";
+// Only the OAuth/DB primitives Atlas Commons borrows survive here. The Hosted
+// Clawd service, its Postgres persistence, and the entire Stripe billing port
+// were unwired from the server entrypoint on 2026-08-01: Atlas has no commerce
+// surface, so the shipping binary must not even import a payments SDK. The
+// modules still exist under server/src/hostedClawd/ for their unit tests.
+// Deliberately imported from the leaf modules, not ./hostedClawd/index.js. The
+// barrel re-exports billing.js, which imports the Stripe SDK — going through it
+// would load a payments library into a process that has no commerce surface.
 import {
   buildAuthChallengeHeader,
   buildOAuthProtectedResourceMetadata,
-  constructHostedClawdStripeEvent,
-  createHostedClawdPool,
-  createHostedClawdRepositoryPersistence,
-  createPostgresHostedClawdRepository,
-  createStripeHostedClawdBillingPort,
-  createStripeHostedClawdClient,
-  handleHostedClawdStripeWebhook,
-  HOSTED_CLAWD_READ_SCOPE,
   HOSTED_CLAWD_WRITE_SCOPE,
   HostedClawdAuthenticator,
-  HostedClawdService,
-  readHostedClawdBillingConfig,
   readHostedClawdAuthConfig,
-  readHostedClawdFeatureFlags,
-  type HostedClawdAuthContext,
-  type HostedClawdContext,
-  type HostedClawdContextInput,
-} from "./hostedClawd/index.js";
+} from "./hostedClawd/auth.js";
+import { createHostedClawdPool } from "./hostedClawd/postgres.js";
+import { readHostedClawdFeatureFlags } from "./hostedClawd/service.js";
 import {
   ATLAS_COMMONS_READ_SCOPE,
   ATLAS_COMMONS_WRITE_SCOPE,
@@ -105,10 +101,12 @@ import {
 } from "./roadChunkStore.js";
 
 const SERVER_VERSION = "0.1.0";
-const WIDGET_URI = "ui://widget/atlas-city-world-081d.html";
+const WIDGET_URI = "ui://widget/atlas-plate.html";
+/** Cached ChatGPT connections still ask for the voxel-era template name. */
+const LEGACY_WIDGET_URI = "ui://widget/atlas-city-world-081d.html";
+const WIDGET_TEMPLATE_FILES = new Set(["atlas-plate.html", "atlas-city-world-081d.html"]);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = resolve(__dirname, "../..");
-const MAX_WORLD_LOOKUP_CACHE_ENTRIES = 100;
 const MAX_SCENE_PACKET_MEMORY_ENTRIES = 32;
 const MAX_MCP_SESSIONS = 100;
 const MCP_SESSION_IDLE_TTL_MS = 30 * 60_000;
@@ -223,11 +221,11 @@ const scenePacketMemory = createScenePacketMemoryAdapter<ScoutPreviewState["scen
 const rateLimitRedisConnector: LazyRedisConnector | undefined = scenePacketRuntimeConfig.redisUrl
   ? createLazyRedisConnector(scenePacketRuntimeConfig.redisUrl)
   : undefined;
-// Hosted Clawd persistence foundation (0.60H). Persistence stays OFF unless
-// the flag and DATABASE_URL are configured. Protected user writes still require
-// OAuth/OIDC bearer tokens; iframe cookies and model text are never identity.
-// The repository is intentionally independent from auth so webhooks and
-// readiness can use the database before the public account-linking gate opens.
+// Atlas Commons borrows two primitives that were first written for Hosted
+// Clawd: the OIDC bearer verifier and the Postgres pool factory. Everything
+// else Hosted Clawd owned — the service, the persistence adapter, the Stripe
+// billing port, and every HTTP route that reached them — was removed from this
+// entrypoint on 2026-08-01. Atlas has no accounts, no payments, no checkout.
 const hostedClawdFlags = readHostedClawdFeatureFlags(process.env);
 const atlasCommonsConfig = readAtlasCommonsConfig(process.env);
 const hostedClawdAuthConfig = readHostedClawdAuthConfig(process.env);
@@ -239,32 +237,9 @@ const atlasDatabasePool =
   (hostedClawdFlags.persistenceEnabled || atlasCommonsConfig.enabled) && hostedClawdDatabaseUrl
     ? createHostedClawdPool(hostedClawdDatabaseUrl)
     : undefined;
+// Readiness still fails closed on database health when persistence is flagged
+// on, so this pool handle stays even though nothing writes through it here.
 const hostedClawdPool = hostedClawdFlags.persistenceEnabled ? atlasDatabasePool : undefined;
-const hostedClawdRepository =
-  hostedClawdPool
-    ? createPostgresHostedClawdRepository(hostedClawdPool)
-    : undefined;
-const hostedClawdPersistence =
-  hostedClawdRepository
-    ? createHostedClawdRepositoryPersistence(hostedClawdRepository)
-    : undefined;
-const hostedClawdBillingConfig = hostedClawdFlags.moneyEnabled
-  ? readHostedClawdBillingConfig(process.env)
-  : undefined;
-const hostedClawdBilling =
-  hostedClawdFlags.moneyEnabled && hostedClawdRepository && hostedClawdBillingConfig
-    ? createStripeHostedClawdBillingPort({
-        stripe: createStripeHostedClawdClient(hostedClawdBillingConfig),
-        repository: hostedClawdRepository,
-        config: hostedClawdBillingConfig,
-      })
-    : undefined;
-const hostedClawdService = new HostedClawdService({
-  flags: hostedClawdFlags,
-  persistence: hostedClawdPersistence,
-  billing: hostedClawdBilling,
-});
-const hostedClawdWriteRouterMounted = Boolean(hostedClawdPersistence);
 const atlasSaveSurfaceEnabled = (process.env.ATLAS_SAVE_SURFACE ?? "off").trim().toLowerCase() === "on";
 const atlasCommonsRepository =
   atlasCommonsConfig.enabled && atlasDatabasePool
@@ -277,13 +252,6 @@ const atlasCommonsService = new AtlasCommonsService({
   authConfigured: Boolean(hostedClawdAuthenticator),
 });
 
-type WorldLookupCacheEntry = {
-  response: WorldPlaceLookupResponse;
-  expiresAtMs: number;
-};
-
-const worldLookupCache = new Map<string, WorldLookupCacheEntry>();
-
 type RateLimitBucket = {
   resetAtMs: number;
   count: number;
@@ -292,8 +260,6 @@ type RateLimitBucket = {
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
 const RATE_LIMIT_REDIS_PREFIX = "atlas:rate-limit:";
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const WORLD_LOOKUP_RATE_LIMIT = 30;
-const HOSTED_CLAWD_WRITE_RATE_LIMIT = 20;
 const GENERATED_DRAFT_RATE_LIMIT = 20;
 const MCP_EXPENSIVE_TOOL_RATE_LIMIT = 120;
 // Own bucket for the read-only /geo-pack route. This is a direct static route
@@ -308,13 +274,6 @@ const GEO_PACK_RATE_LIMIT = 120;
 // plan decision #46). 240/min is calibration-pending against a measured
 // NEAR-pan burst on miami-dade-fl before it is frozen.
 const ROAD_CHUNKS_RATE_LIMIT = 240;
-const HOSTED_CLAWD_WRITE_PATHS = new Set([
-  "/api/hosted-clawd/create-or-attach",
-  "/api/hosted-clawd/promote-session",
-  "/api/hosted-clawd/saved-artifacts/campaigns",
-  "/api/hosted-clawd/checkout",
-  "/api/hosted-clawd/billing-portal",
-]);
 
 type RequestContext = {
   requestId: string;
@@ -1629,158 +1588,10 @@ function isWorldSourceKind(value: string): value is WorldSourceKind {
   return value === "mock" || value === "curated" || value === "google" || value === "census" || value === "osm" || value === "local-open-data";
 }
 
-function upgradeOptionsStructuredContent(trigger?: string) {
-  const hostedClawd = hostedClawdService.getContext({
-    trigger: "upgrade_tool",
-    businessType: trigger === "pricing" || trigger === "general" ? "local business" : undefined,
-    countySlug: PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
-    countyLabel: "Riverside County",
-    placeLabel: "Eastvale",
-  });
-  const ownerGatedTest = hostedClawd.canPersist || hostedClawd.canStartCheckout;
-  const hostedIncluded = ownerGatedTest
-    ? [
-        "Saved business profile, Scout Drop history, and campaign drafts.",
-        "Test-mode Checkout after account linking.",
-        "Saved history stays readable when billing needs attention.",
-      ]
-    : [
-        "Saved business profile and Scout Drop history.",
-        "Campaign drafts after saved work is approved.",
-        "New saves after account and billing approval.",
-      ];
-  const unavailableActions = ownerGatedTest
-    ? [
-        "Public paid access is not live.",
-        "Returning from Checkout does not turn on saving by itself.",
-        "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
-      ]
-    : [
-        "Checkout is not live.",
-        "Atlas cannot create an account or persist campaign history yet.",
-        "Atlas will not auto-post, auto-DM, buy ads, or scrape private people.",
-      ];
-  const nextStep = ownerGatedTest
-    ? "Use Hosted Clawd as a closed test surface only; public paid access stays closed and checkout is not started here."
-    : "Use the session-only map now; Hosted Clawd saving is not live and does not start checkout.";
-
-  if (!atlasSaveSurfaceEnabled) {
-    return {
-      type: "upgradeOptions" as const,
-      ...(trigger ? { trigger } : {}),
-      free: {
-        label: "Atlas V1",
-        included: [
-          "Explore the Riverside/Eastvale playable map.",
-          "Open generated county maps for US counties when requested.",
-          "Keep pins and notes in this chat.",
-        ],
-        limits: [
-          "No account or cross-chat memory.",
-          "No saved campaigns, quests, evidence, XP, reports, or exports.",
-          "No posting, messaging, ad buying, checkout, or automated outreach.",
-        ],
-      },
-      hosted: {
-        label: "Hosted Clawd",
-        status: ownerGatedTest ? ("owner_gated_test" as const) : ("planned_beta" as const),
-        included: [
-          "Saved business memory and campaign history are not live in this free loop.",
-          "Pins and notes stay in this chat only.",
-        ],
-      },
-      unavailableActions: [
-        "Atlas does not create an account or save progress across chats in V1.",
-        "Atlas does not start checkout, charge money, grant XP, collect evidence, post, message, buy ads, or run automated outreach.",
-        "Lookup results are for manual review; they are not saved state, scene geometry, or coverage proof.",
-      ],
-      nextStep: "Use Atlas as a complete session-only map; pins and notes stay in this chat.",
-    };
-  }
-
-  return {
-    type: "upgradeOptions" as const,
-    ...(trigger ? { trigger } : {}),
-    free: {
-      label: "Clawd Companion",
-      included: [
-        "Explore the Riverside city map.",
-        "Run temporary Scout Drop previews.",
-        "Draft manual campaign previews from a Scout Drop.",
-      ],
-      limits: [
-        "No saved business memory.",
-        "No saved campaigns, quests, evidence, or XP.",
-        "No posting, messaging, ad buying, or automated outreach.",
-      ],
-    },
-    hosted: {
-      label: "Hosted Clawd Daemon",
-      status: ownerGatedTest ? ("owner_gated_test" as const) : ("planned_beta" as const),
-      included: hostedIncluded,
-    },
-    unavailableActions,
-    nextStep,
-    hostedClawd: publicHostedClawdContext(hostedClawd),
-  };
-}
-
-function hostedClawdMeta(hostedClawd: HostedClawdContext): { hostedClawd: HostedClawdContext } | Record<string, never> {
-  return atlasSaveSurfaceEnabled ? { hostedClawd: publicHostedClawdContext(hostedClawd) } : {};
-}
-
-function publicHostedClawdContext(context: HostedClawdContext): HostedClawdContext {
-  return {
-    ...context,
-    statusLabel: publicHostedClawdCopy(context.statusLabel),
-    primaryCopy: publicHostedClawdCopy(context.primaryCopy),
-    secondaryCopy: publicHostedClawdCopy(context.secondaryCopy),
-    sessionBoundary: publicHostedClawdCopy(context.sessionBoundary),
-    paymentCopy: publicHostedClawdCopy(context.paymentCopy),
-    billing: {
-      ...context.billing,
-      title: publicHostedClawdCopy(context.billing.title),
-      detail: publicHostedClawdCopy(context.billing.detail),
-      checkoutLabel: publicHostedClawdCopy(context.billing.checkoutLabel),
-      webhookLabel: publicHostedClawdCopy(context.billing.webhookLabel),
-      returnLabel: publicHostedClawdCopy(context.billing.returnLabel),
-      portalLabel: publicHostedClawdCopy(context.billing.portalLabel),
-    },
-    primaryAction: {
-      ...context.primaryAction,
-      label: publicHostedClawdCopy(context.primaryAction.label),
-    },
-    savePreview: context.savePreview.map((item) => ({
-      ...item,
-      label: publicHostedClawdCopy(item.label),
-      value: publicHostedClawdCopy(item.value),
-    })),
-    gates: context.gates.map((gate) => ({
-      ...gate,
-      requiredFor: publicHostedClawdCopy(gate.requiredFor),
-    })),
-  };
-}
-
-function publicHostedClawdCopy(value: string): string {
-  return publicAtlasCopy(value)
-    .replace(/\bsession Free\b/g, "Session-only map")
-    .replace(/\bpreview Free\b/g, "Session-only map")
-    .replace(/\bsession Invite\b/g, "Save invite")
-    .replace(/\bpreview Invite\b/g, "Save invite")
-    .replace(/\bsession paid\b/gi, "Paid saves")
-    .replace(/\bpreview paid\b/gi, "Paid saves")
-    .replace(/\bTest billing\b/g, "Billing setup")
-    .replace(/\bTest-mode Checkout\b/g, "Checkout setup")
-    .replace(/\bTest Checkout\b/g, "Checkout setup")
-    .replace(/\btest Checkout\b/g, "checkout setup")
-    .replace(/\bStripe Checkout\b/g, "Checkout")
-    .replace(/\bStripe test Checkout\b/g, "checkout setup")
-    .replace(/\bBilling is off in preview\./g, "Billing is not live.")
-    .replace(/billing is off in session\./gi, "Billing is not live.")
-    .replace(/\bexternal session promotion\b/gi, "public save promotion")
-    .replace(/\bexternal preview promotion\b/gi, "public save promotion");
-}
+// upgradeOptionsStructuredContent, hostedClawdMeta, publicHostedClawdContext
+// and publicHostedClawdCopy were deleted on 2026-08-01. Nothing called them —
+// the tools they fed were retired in the pivot — but they were the last place
+// the words Stripe, Checkout, and Test billing lived in the shipping server.
 
 function atlasCommonsMeta(): { atlasCommons: ReturnType<AtlasCommonsService["publicMeta"]> } | Record<string, never> {
   return atlasCommonsConfig.enabled ? { atlasCommons: atlasCommonsService.publicMeta() } : {};
@@ -1837,65 +1648,107 @@ function requiredCommonsToolString(value: string | undefined, label: string): st
   return value.trim();
 }
 
-function hostedClawdContextForScene(scene: ScoutPreviewState["scene"], trigger: HostedClawdContextInput["trigger"]): HostedClawdContext {
-  const selectedPlace = scene.world?.places.find((place) => place.nodeId === scene.selectedNodeId) ?? scene.world?.places[0];
-  return publicHostedClawdContext(hostedClawdService.getContext({
-    trigger,
-    countySlug: scene.county.slug,
-    countyLabel: scene.county.name,
-    placeLabel: selectedPlace?.label ?? scene.county.name,
-  }));
-}
-
-function hostedClawdContextForScout(preview: ScoutPreviewState): HostedClawdContext {
-  const selectedPlace = preview.scene.world?.places.find((place) => place.nodeId === preview.selectedNodeId) ?? preview.scene.world?.places[0];
-  return publicHostedClawdContext(hostedClawdService.getContext({
-    trigger: "scout_drop",
-    businessType: preview.businessType,
-    primaryGoal: preview.goal,
-    countySlug: preview.countySlug,
-    countyLabel: preview.scene.county.name,
-    placeLabel: selectedPlace?.label ?? "Eastvale",
-    scoutPreviewId: preview.id,
-  }));
-}
-
-function hostedClawdContextForCampaign(preview: CampaignPreviewState): HostedClawdContext {
-  const selectedPlace = preview.scene.world?.places.find((place) => place.nodeId === preview.selectedNodeId) ?? preview.scene.world?.places[0];
-  return publicHostedClawdContext(hostedClawdService.getContext({
-    trigger: "campaign_preview",
-    businessType: preview.businessType,
-    countySlug: preview.countySlug,
-    countyLabel: preview.scene.county.name,
-    placeLabel: selectedPlace?.label ?? "Eastvale",
-    scoutPreviewId: preview.scoutPreviewId,
-    campaignPreviewId: preview.id,
-  }));
-}
-
 // The widget shell is intentionally small; Pixi and renderer code live in lazy
 // chunks served from /widget/* so the iframe can paint chrome/fallback first.
 let builtWidgetCache: string | null = null;
 
+const WIDGET_BOOT_SCRIPT = `(function(){
+  var stamp = typeof window.__ATLAS_API_BASE__ === 'string' ? window.__ATLAS_API_BASE__ : '';
+  var fallback = 'https://atlas-backend-production-e6fc.up.railway.app';
+  var host = location.hostname;
+  var api = stamp.replace(/\\/+$/, '');
+  if (!api && host !== 'localhost' && host !== '127.0.0.1') api = fallback;
+  var box = document.createElement('pre');
+  box.id = 'atlas-boot';
+  function line(k, v) { return k + ': ' + String(v).slice(0, 240); }
+  function paint(extra) {
+    var o = window.openai;
+    var meta = o && o.toolResponseMetadata;
+    var out = o && o.toolOutput;
+    var plate = meta && meta.atlasPlate;
+    box.textContent = [
+      line('href', location.href),
+      line('origin', location.origin),
+      line('host', host || '(empty)'),
+      line('apiBase', api || '(relative)'),
+      line('openai', o ? 'yes' : 'missing'),
+      line('metaPlate', plate ? (plate.level + ' ' + (plate.countySlug || plate.state || '')) : 'none'),
+      line('output', out && out.type ? (out.type + ' ' + (out.level || '') + ' ' + (out.countySlug || '')) : 'none'),
+      extra || 'boot'
+    ].join('\\n');
+  }
+  function beacon(kind, detail) {
+    if (!api) return;
+    var q = 'kind=' + encodeURIComponent(kind)
+      + '&origin=' + encodeURIComponent(location.origin)
+      + '&host=' + encodeURIComponent(host)
+      + '&href=' + encodeURIComponent(String(location.href).slice(0, 180))
+      + '&detail=' + encodeURIComponent(String(detail || '').slice(0, 300));
+    var img = new Image();
+    img.referrerPolicy = 'no-referrer';
+    img.src = api + '/api/widget-debug?' + q;
+  }
+  window.addEventListener('error', function(e) {
+    paint('error: ' + (e.message || e.type));
+    beacon('window-error', e.message || e.type);
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    var r = e.reason;
+    var m = r && r.message ? r.message : String(r);
+    paint('rejection: ' + m);
+    beacon('unhandledrejection', m);
+  });
+  function ready() {
+    document.body.appendChild(box);
+    paint('boot');
+    beacon('boot', 'ok');
+    setTimeout(function() {
+      var root = document.getElementById('root');
+      if (root && root.childElementCount === 0) {
+        paint('JS did not mount. Bundle script failed or was blocked.');
+        beacon('no-mount', 'root-empty');
+      }
+    }, 2500);
+  }
+  if (document.body) ready();
+  else document.addEventListener('DOMContentLoaded', ready);
+})();`;
+
 function readBuiltWidget(): string {
   if (builtWidgetCache !== null) return builtWidgetCache;
 
-  if (!existsSync(resolve(WEB_DIST, "component.js")) || !existsSync(resolve(WEB_DIST, "component.css"))) {
+  const jsPath = resolve(WEB_DIST, "component.js");
+  const cssPath = resolve(WEB_DIST, "component.css");
+  if (!existsSync(jsPath) || !existsSync(cssPath)) {
     throw new Error("Widget bundle not found. Run `pnpm build:web` before starting the MCP server.");
   }
 
-  const assetBase = widgetAssetBase();
+  // ChatGPT snapshots this HTML as the template. External script/link tags
+  // make their backend fetch fail ("Failed to fetch template"). Inline a
+  // classic IIFE so the sandbox does not have to resolve ESM imports, and
+  // stamp the API origin so plate fetches leave the sandbox.
+  const css = readFileSync(cssPath, "utf8");
+  const js = readFileSync(jsPath, "utf8").replace(/<\/script/gi, "<\\/script");
+  const apiBase = (process.env.WIDGET_DOMAIN ?? "").replace(/\/+$/, "");
   builtWidgetCache = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Atlas City Map</title>
-    <link rel="stylesheet" href="${assetBase}/component.css" />
+    <title>Atlas</title>
+    <script>window.__ATLAS_API_BASE__=${JSON.stringify(apiBase)};</script>
+    <style>${css}</style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="${assetBase}/component.js"></script>
+    <script>${WIDGET_BOOT_SCRIPT}</script>
+    <script>
+try {
+${js}
+} catch (err) {
+  window.dispatchEvent(new ErrorEvent("error", { message: err && err.message ? err.message : String(err) }));
+}
+    </script>
   </body>
 </html>`;
   return builtWidgetCache;
@@ -2016,9 +1869,33 @@ function sendWidgetAssetResponse(res: ServerResponse, assetPath: string): void {
 function contentTypeForWidgetAsset(path: string): string {
   if (path.endsWith(".js")) return "text/javascript; charset=utf-8";
   if (path.endsWith(".css")) return "text/css; charset=utf-8";
+  if (path.endsWith(".html")) return "text/html; charset=utf-8";
   if (path.endsWith(".map")) return "application/json; charset=utf-8";
   if (path.endsWith(".svg")) return "image/svg+xml";
   return "application/octet-stream";
+}
+
+function sendWidgetTemplateResponse(res: ServerResponse): void {
+  const body = readBuiltWidget();
+  res.writeHead(200, {
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-cache",
+    "access-control-allow-origin": "*",
+    "cross-origin-resource-policy": "cross-origin",
+  });
+  res.end(body);
+}
+
+function atlasWidgetResourceMeta() {
+  const origins = widgetResourceDomains();
+  return {
+    prefersBorder: false,
+    ...(process.env.WIDGET_DOMAIN ? { domain: process.env.WIDGET_DOMAIN } : {}),
+    csp: {
+      connectDomains: origins,
+      resourceDomains: origins,
+    },
+  };
 }
 
 function requestIdFor(req: IncomingMessage): string {
@@ -2306,7 +2183,7 @@ function jsonResponse(res: ServerResponse, status: number, body: unknown): void 
 // behavior (verified by verify-submission.mjs / verify-provider-boundaries.mjs),
 // not boilerplate. Owner contact is overridable via ATLAS_CONTACT_EMAIL.
 const ATLAS_CONTACT_EMAIL = process.env.ATLAS_CONTACT_EMAIL ?? "mzwin3545@gmail.com";
-const LEGAL_LAST_UPDATED = "2026-07-15";
+const LEGAL_LAST_UPDATED = "2026-08-01";
 
 function legalPageShell(title: string, bodyHtml: string): string {
   return `<!doctype html>
@@ -2341,71 +2218,78 @@ function legalPageShell(title: string, bodyHtml: string): string {
 function privacyPageHtml(): string {
   return legalPageShell(
     "Privacy Policy",
-    `<p>Atlas County Maps is a ChatGPT app for exploring U.S. county maps,
-      looking up nearby places, and reading and writing short public notes about
-      the places on those maps. Reading notes is open to everyone. Writing a
-      note requires an Atlas identity and is currently limited to invited
-      contributors.</p>
-    <h2>Data Atlas processes</h2>
+    `<p>Atlas is a map of the United States inside ChatGPT. It draws counties,
+      states, and the country from public-domain U.S. Census geography, and
+      answers questions about them from the same data.</p>
+    <p>Atlas has no accounts and no sign-in. It has no payments and no
+      advertising. It collects no personal information, and it stores nothing
+      you send it.</p>
+    <h2>What Atlas receives</h2>
+    <p>When ChatGPT calls Atlas, it sends the tool input and nothing else: a
+      place name as you wrote it, and optionally a two-letter state code and a
+      zoom level. Atlas does not receive your ChatGPT conversation, your
+      account, your name, your email address, your IP-derived location, or any
+      file you have attached.</p>
+    <h2>What Atlas does with it</h2>
+    <p>Atlas matches the place name against a fixed index of U.S. Census places
+      and counties that is built into the server, and returns the map for that
+      place along with its Census facts. The request is answered and the input
+      is discarded. Atlas runs no database of user data and writes nothing to
+      disk in response to a request.</p>
+    <h2>What Atlas keeps</h2>
+    <p>Nothing you send. Two operational records exist, and neither is a
+      profile:</p>
     <ul>
-      <li>The county, Atlas place id, question text, and other tool inputs
-        needed to answer your request.</li>
-      <li>Map interactions such as pins and private notes. These remain in the
-        current ChatGPT conversation and are never written to Atlas storage
-        unless you explicitly choose to post a note publicly.</li>
-      <li>For a public note you choose to post: the note text, the Atlas place
-        it is attached to, a pseudonymous author label derived from your Atlas
-        identity, its moderation status, reactions, reports, and the moderation
-        events recorded against it.</li>
-      <li>A nearby-place lookup and its normalized results when you request live
-        place information.</li>
-      <li>Service logs needed to run the app and prevent abuse, including
-        request timing, rate-limit counters, and error records.</li>
+      <li>Service logs. Each request writes one line holding a timestamp, an
+        event name, a random per-request identifier, which tool ran, how long it
+        took, whether it succeeded, and the class of any error. Place names and
+        query text are not written to the log. The random request identifier is
+        generated per request and is not linked to you or to any earlier
+        request. Logs are held by the hosting provider under that provider's own
+        retention settings.</li>
+      <li>Rate-limit counters. So that one client cannot flood the server, Atlas
+        counts requests against the requesting network address for a
+        sixty-second window. The counter holds a number and an expiry time. It
+        expires automatically sixty seconds after it is created and is not
+        joined to anything else.</li>
     </ul>
-    <h2>How the data is used</h2>
-    <p>Atlas uses these inputs to return the requested map, place summary, or
-      answer; to display and moderate public notes; to keep the service
-      reliable; and to prevent abuse. Atlas does not sell personal data, serve
-      ads, build advertising profiles, or use cross-site tracking.</p>
-    <h2>Public notes are public</h2>
-    <p>A note you post publicly is visible to anyone using Atlas, is attributed
-      to your pseudonymous author label, and can be reported by other people.
-      Do not put personal information, contact details, or anything you would
-      not want read by a stranger into a public note.</p>
-    <h2>Recipients</h2>
-    <p>OpenAI processes the conversation and tool call as the ChatGPT host. When
-      you request nearby places, Atlas sends the Atlas-derived area label and
-      radius to Google Maps Platform. The production hosting provider processes
-      the network request and stores the note database needed to run the
-      service. Atlas does not send these requests to advertisers or data
-      brokers.</p>
-    <h2>Retention</h2>
-    <ul>
-      <li>Atlas has no public user accounts and no password database. Pins and
-        private notes are not persisted in Atlas storage.</li>
-      <li>A published public note is retained until you or a moderator remove
-        it. A removed note is deleted from the readable store within 30 days.</li>
-      <li>Moderation records — the note id, the action taken, the reason, and
-        the timestamp — are retained for 12 months after the action so Atlas can
-        handle repeat abuse and appeals. These records do not contain the note
-        body after removal.</li>
-      <li>Nearby-place lookups and normalized results may remain in an in-memory
-        provider cache for up to 24 hours, then expire. The cache is not tied to
-        an identity and is cleared when the server process restarts.</li>
-      <li>Atlas does not copy conversation content into a separate analytics
-        store. ChatGPT and infrastructure-provider retention follow their own
-        published policies and service settings.</li>
-    </ul>
-    <h2>Your controls</h2>
-    <p>You can use Atlas without ever posting a note, avoid the optional
-      nearby-place lookup, and manage or delete the ChatGPT conversation through
-      ChatGPT controls. To remove a public note you wrote, or to request
-      deletion of every note tied to your Atlas identity, email the address
-      below with the place and approximate posting time; Atlas removes it within
-      30 days and confirms by reply. To report someone else's note, use the
-      report action in the app or email the same address.</p>
+    <h2>Who else receives data</h2>
+    <p>OpenAI, as the host of ChatGPT, processes your conversation and the tool
+      call under its own privacy policy. The hosting provider that runs the
+      Atlas server processes the network request in order to deliver it.</p>
+    <p>Atlas sends nothing to anyone else. There is no analytics provider, no
+      advertising network, no data broker, no geocoding service, and no mapping
+      service. Atlas makes no outbound network request to any third party while
+      answering a request.</p>
+    <h2>User content</h2>
+    <p>Atlas has none. There are no notes, comments, reviews, ratings, messages,
+      uploads, or profiles. There is nothing to post, nothing published, and
+      nothing to moderate.</p>
+    <h2>Selling, tracking, and profiling</h2>
+    <p>Atlas does not sell or share personal information. It does not serve
+      advertising, build advertising or behavioural profiles, use cookies for
+      tracking, or perform cross-site or cross-context tracking. It does no
+      automated decision-making about anyone.</p>
+    <h2>How the maps are made</h2>
+    <p>Every shape in Atlas is read from a published file. County and state
+      outlines, water, and town positions come from 2024 U.S. Census TIGERweb
+      boundary files and the Census Gazetteer, both in the public domain. Atlas
+      renders them as vector outlines on an Albers equal-area projection. Atlas
+      holds no satellite or aerial imagery and generates no depiction of any
+      place.</p>
+    <h2>Your choices</h2>
+    <p>Because Atlas keeps nothing tied to you, there is nothing of yours for it
+      to export, correct, or delete. Your conversation belongs to your ChatGPT
+      account, and you can review or delete it using ChatGPT's own controls. If
+      you believe Atlas holds something about you, write to the address below
+      and it will be checked and answered.</p>
     <h2>Children</h2>
-    <p>Atlas is not directed to children under 13.</p>
+    <p>Atlas is not directed to children under 13 and does not knowingly collect
+      information from them.</p>
+    <h2>Changes</h2>
+    <p>If Atlas ever begins collecting or storing information, or sends data to
+      anyone beyond the two recipients named above, this page will be updated
+      and the date at the top will change before the new behaviour ships.</p>
     <h2 id="contact">Contact</h2>
     <p>Questions about this policy: <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>`,
   );
@@ -2414,121 +2298,114 @@ function privacyPageHtml(): string {
 function termsPageHtml(): string {
   return legalPageShell(
     "Terms of Service",
-    `<p>By using Atlas County Maps you agree to these terms.</p>
+    `<p>By using Atlas you agree to these terms. If you do not agree, do not use
+      it.</p>
     <h2>What Atlas is</h2>
-    <p>Atlas is a U.S. county map inside ChatGPT with a public community-notes
-      layer. Riverside/Eastvale is the interactive map. Other supported counties
-      open on a real Census county outline with real town names, and their
-      streets and buildings are generated illustrations rather than verified
-      local coverage. Public notes are written by other people, moderated, and
-      governed by the <a href="/community">Commons Community Standard</a>.</p>
-    <h2>Boundaries</h2>
-    <ul>
-      <li>Map content outside Riverside/Eastvale is a labeled illustration. Do
-        not rely on Atlas for navigation, emergency response, property
-        boundaries, or any decision that needs surveyed geography.</li>
-      <li>Public notes are opinions of the people who wrote them. Atlas does not
-        verify them and does not endorse them.</li>
-      <li>Atlas does not post on your behalf, message anyone, advertise, submit
-        forms, or process payments. Atlas has no paid tier and no checkout.</li>
-      <li>Private notes stay in the ChatGPT conversation. Nothing publishes
-        without you explicitly choosing to post it.</li>
-      <li>Nearby-place results are lookup-only and may be cached for up to 24
-        hours; they do not prove map coverage.</li>
-    </ul>
-    <h2>Posting rules</h2>
-    <ul>
-      <li>Writing a public note requires an Atlas identity. Invites are issued
-        by the operator and may be revoked.</li>
-      <li>You keep ownership of what you write and grant Atlas the right to
-        display, moderate, and remove it within the service.</li>
-      <li>You are responsible for what you post. Do not post anything you do not
-        have the right to share.</li>
-      <li>A note that receives three reports is hidden automatically pending
-        review. Moderation decisions are reviewed within 24 hours.</li>
-    </ul>
+    <p>Atlas is a map of the United States inside ChatGPT. It opens any of the
+      3,222 U.S. counties, any state, or the whole country, and returns 2024
+      U.S. Census facts about the place it opened: land area, the largest Census
+      places in it, and its named water. It also answers which county and state
+      a town is in.</p>
+    <p>Atlas has two tools and both only read. It has no accounts, no payments,
+      no advertising, and no user content of any kind.</p>
+    <h2>How the maps are made, and what that means for using them</h2>
+    <p>Every shape Atlas draws is read from a published file. Boundaries, water,
+      and town positions come from 2024 U.S. Census TIGERweb geography and the
+      Census Gazetteer, both public domain, rendered as vector outlines on an
+      Albers equal-area projection so that counties appear at honest relative
+      size. Atlas holds no satellite or aerial imagery and does not generate,
+      synthesize, or alter any depiction of a place.</p>
+    <p>Census boundaries are generalized for publication and are not
+      survey-grade. Do not use Atlas for navigation, emergency response,
+      property or jurisdictional boundaries, legal descriptions, or any decision
+      that needs surveyed geography. Most counties have no street data in Atlas
+      at all, and Atlas says so when it opens one; it cannot tell you about a
+      road, an address, a business, a travel time, or current conditions.</p>
+    <p>Atlas covers the United States. It holds no geography for any other
+      country and will say so rather than return a similarly named U.S.
+      place.</p>
+    <p>When a place name could mean more than one place, Atlas returns the
+      candidates instead of choosing. When it does not hold a name at all, it
+      says so. Those refusals are the intended behaviour, not a failure.</p>
+    <h2>What Atlas will not do</h2>
+    <p>Atlas cannot write, delete, publish, or send anything. It does not post
+      on your behalf, message anyone, submit a form, advertise, or process a
+      payment. It has no paid tier, no checkout, and no link out to any
+      purchase.</p>
     <h2>Acceptable use</h2>
-    <p>Do not use Atlas for spam, scraping, harassment, doxxing, sensitive-trait
-      targeting, regulated outreach, provider-data extraction, or activity that
-      violates OpenAI's usage policies. The operator may remove content, revoke
-      an invite, or block access to enforce these terms.</p>
-    <h2>Ownership</h2>
-    <p>Atlas, its map interface, and app content belong to the Atlas project or
-      its licensors. You remain responsible for the ideas and materials you
-      provide.</p>
-    <h2>No warranty</h2>
-    <p>Atlas is provided "as is" without warranties of any kind. To the maximum
-      extent permitted by law, the operator is not liable for any damages arising
-      from its use.</p>
+    <p>Do not use Atlas to scrape or bulk-extract its data, to overload or probe
+      the service, to circumvent its rate limits, to misrepresent its output as
+      surveyed or authoritative geography, or in any way that breaks OpenAI's
+      usage policies or applicable law. Access may be blocked to enforce
+      this.</p>
+    <h2>Data, ownership, and attribution</h2>
+    <p>The underlying geography is U.S. Census Bureau data in the public domain,
+      and the Census Bureau does not endorse Atlas. The Atlas software,
+      interface, and presentation belong to the Atlas project. You are
+      responsible for anything you do with what Atlas returns.</p>
+    <h2>No warranty and limitation of liability</h2>
+    <p>Atlas is provided as is, without warranty of any kind, express or
+      implied, including any warranty of accuracy, fitness for a particular
+      purpose, or uninterrupted availability. To the maximum extent permitted by
+      law, the operator is not liable for any damages arising from use of Atlas
+      or reliance on anything it returns.</p>
+    <h2>Changes and termination</h2>
+    <p>These terms may change; the date at the top will change with them. Atlas
+      may be modified or withdrawn at any time.</p>
     <h2 id="contact">Contact</h2>
     <p><a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>`,
   );
 }
 
-function communityPageHtml(): string {
-  return legalPageShell(
-    "Commons Community Standard",
-    `<p>This standard governs every public note in Atlas. Anyone can read notes.
-      Writing one requires an Atlas identity and an invite from the operator.
-      The named moderation owner for Atlas is the operator reachable at
-      <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>, who
-      reviews reported content within 24 hours.</p>
-    <h2>Keep notes useful</h2>
-    <p>Write short, place-specific observations that help someone understand a
-      location: access, timing, wayfinding, atmosphere, or a practical local
-      detail. Treat every public note as public.</p>
-    <h2>Do not post</h2>
-    <ul>
-      <li>Personal contact details, precise routines, credentials, financial
-        details, or other sensitive personal information.</li>
-      <li>Hate, threats, harassment, sexual content, false accusations,
-        doxxing, impersonation, or content that could put someone at risk.</li>
-      <li>Spam, advertising, referral links, scams, malware, copied provider
-        data, or copyrighted material you do not have permission to share.</li>
-      <li>Emergency requests. Atlas Commons is not an emergency service.</li>
-    </ul>
-    <h2>Reports and removals</h2>
-    <p>Anyone can report a visible note. Three reports hide a note automatically
-      while it waits for review, so a harmful note stops being visible before a
-      human sees it. Moderators may reject, hide, remove, restore, or limit
-      content to enforce this standard or protect the service, and may revoke an
-      author's invite. Reported content is reviewed within 24 hours.</p>
-    <p>For a removal request, contact <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>
-      with the selected place and approximate posting time. Removed notes leave
-      the readable store within 30 days; a moderation record without the note
-      body is kept for 12 months. Do not send sensitive information by email.</p>
-    <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/support">Support</a></p>`,
-  );
-}
+// communityPageHtml was deleted on 2026-08-01 along with the /community route.
+// It published a moderation SLA and retention schedule for a notes feature the
+// 2026-07-25 pivot removed. Recover it from git history on the day notes ship,
+// and set the SLA to a number one person can actually keep.
 
 function supportPageHtml(): string {
   return legalPageShell(
     "Support",
-    `<p>For help with Atlas County Maps, email
-      <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>.</p>
+    `<p>Atlas is a map of the United States inside ChatGPT, drawn from 2024 U.S.
+      Census geography. For help with it, email
+      <a href="mailto:${ATLAS_CONTACT_EMAIL}">${ATLAS_CONTACT_EMAIL}</a>. One
+      person reads that address and answers within three business days.</p>
     <h2>What to include</h2>
     <ul>
-      <li>The prompt or Atlas action that did not work.</li>
-      <li>Whether you were using ChatGPT on web or mobile.</li>
-      <li>A screenshot with private conversation details removed, if useful.</li>
+      <li>The prompt you used, and the place name you asked for.</li>
+      <li>What Atlas returned, and what you expected instead.</li>
+      <li>Whether you were using ChatGPT on the web, desktop, or mobile.</li>
+      <li>A screenshot, with anything private in the conversation removed, if it
+        helps.</li>
     </ul>
     <p>Do not send passwords, API keys, payment details, government identifiers,
-      health information, or other sensitive personal data.</p>
-    <h2>Common requests</h2>
+      health information, or other sensitive personal data. Nothing Atlas does
+      requires any of it.</p>
+    <h2>Common questions</h2>
     <ul>
-      <li><strong>Remove a note I wrote.</strong> Email the place and the
-        approximate posting time. Removal happens within 30 days.</li>
-      <li><strong>Report someone else's note.</strong> Use the report action in
-        the app, or email the same details. Reports are reviewed within 24
-        hours, and three reports hide a note automatically in the meantime.</li>
-      <li><strong>Request an invite to post.</strong> Reading notes needs no
-        account. Posting is invite-only while a single person moderates.</li>
+      <li><strong>Atlas gave me a list of places instead of a map.</strong> That
+        is deliberate. The name you used matches more than one U.S. place, and
+        Atlas returns the real candidates rather than guessing. Ask again with
+        the state included.</li>
+      <li><strong>Atlas says it does not have a place.</strong> Atlas carries
+        U.S. Census places and counties only. It holds no geography outside the
+        United States, and it does not carry every neighbourhood, subdivision,
+        or informal name. It refuses rather than returning something close.</li>
+      <li><strong>The map has no streets or buildings.</strong> Most counties
+        have no street data in Atlas. It draws the county boundary, its named
+        water, and the positions of its towns, and it states which of those it
+        has. It is not a street map and has no addresses, businesses, routing,
+        or imagery.</li>
+      <li><strong>Something looks wrong on a boundary.</strong> Census
+        boundaries are generalized for publication and are not survey-grade. If
+        a boundary looks wrong beyond that, send the county and what you
+        expected and it will be checked against the source file.</li>
+      <li><strong>How do I delete my data?</strong> There is none to delete.
+        Atlas has no accounts and stores nothing you send. Your conversation
+        lives in your ChatGPT account and you can delete it there.</li>
+      <li><strong>Can I get a paid plan, or an account?</strong> Neither exists.
+        Atlas has no accounts, no paid tier, and no checkout.</li>
     </ul>
-    <h2>Product boundaries</h2>
-    <p>Atlas has no paid tier, no checkout, and no automated outreach. Nearby-place
-      lookups are read-only and may use Google Maps Platform. Map detail outside
-      Riverside/Eastvale is a labeled illustration, not surveyed geography.</p>
-    <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/community">Community Standard</a></p>`,
+    <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p>`,
   );
 }
 
@@ -2565,31 +2442,14 @@ function unquoteEnvValue(value: string): string {
   return value;
 }
 
-function geoStatusPayload(): unknown {
-  const config = readGeoAdapterConfig(process.env);
-  return {
-    mode: config.mode,
-    googleMapsConfigured: isGoogleMapsConfigured(process.env),
-    liveApiCallsEnabled: config.mode === "google" && isGoogleMapsConfigured(process.env),
-    selectedApis: ["Geocoding API", "Places API (New)", "Places Aggregate API"],
-  };
-}
-
 async function readyPayload(): Promise<unknown> {
   const scenePacketStatus = await scenePacketMemory.status();
-  const geoStatus = geoStatusPayload() as {
-    mode: string;
-    googleMapsConfigured: boolean;
-    liveApiCallsEnabled: boolean;
-  };
   const webDistPresent = existsSync(WEB_DIST);
   const redisReady =
     scenePacketStatus.cacheBackend === "memory" || scenePacketStatus.redisReachable === true;
   const hostedClawdDatabaseReachable = await hostedClawdDatabaseReachablePayload();
   const hostedClawdDatabaseReady =
     !hostedClawdFlags.persistenceEnabled || hostedClawdDatabaseReachable === true;
-  const atlasCommonsReady = await atlasCommonsReadyPayload();
-  const atlasCommonsDatabaseReady = await atlasCommonsDatabaseReadyPayload();
   const ok =
     webDistPresent &&
     redisReady &&
@@ -2612,38 +2472,10 @@ async function readyPayload(): Promise<unknown> {
       oldestQueuedMs: scenePacketStatus.oldestQueuedMs,
       oldestClaimedMs: scenePacketStatus.oldestClaimedMs,
     },
-    // Internal capability posture stays off the public readiness surface
-    // while the save surface is closed (the submission story is session-only;
-    // readiness still fails closed on DB health via `ok` above).
-    ...(atlasSaveSurfaceEnabled
-      ? {
-          hostedClawd: {
-            persistenceEnabled: hostedClawdFlags.persistenceEnabled,
-            databaseConfigured: Boolean(hostedClawdDatabaseUrl),
-            databaseReachable: hostedClawdDatabaseReachable,
-            authConfigured: Boolean(hostedClawdAuthenticator),
-            moneyEnabled: hostedClawdFlags.moneyEnabled,
-            stripeConfigured: Boolean(hostedClawdBillingConfig),
-          },
-        }
-      : {}),
-    ...(atlasCommonsConfig.enabled
-      ? {
-          atlasCommons: {
-            ...atlasCommonsService.publicMeta(),
-            databaseConfigured: Boolean(hostedClawdDatabaseUrl),
-            databaseReady: atlasCommonsDatabaseReady,
-            ready: atlasCommonsReady,
-            authConfigured: Boolean(hostedClawdAuthenticator),
-            operatorConfigured: Boolean(atlasCommonsConfig.operatorToken),
-          },
-        }
-      : {}),
-    providerLookup: {
-      mode: geoStatus.mode,
-      googleMapsConfigured: geoStatus.googleMapsConfigured,
-      liveApiCallsEnabled: geoStatus.liveApiCallsEnabled,
-    },
+    // /ready describes the map and nothing else. The Hosted Clawd capability
+    // block, the providerLookup block, and the atlasCommons block were removed
+    // so this payload cannot advertise notes, billing, or a third-party geo
+    // provider. Readiness still fails closed on database health via `ok` above.
     // National scale posture (docs/NATIONAL_SCALE.md) — boards are national;
     // roads are progressive + origin-backed when configured.
     roadChunks: {
@@ -2792,172 +2624,11 @@ function handleWorldRoute(url: URL, res: ServerResponse): boolean {
   return false;
 }
 
-async function handleWorldLookup(req: IncomingMessage, url: URL, res: ServerResponse): Promise<void> {
-  if (!(await enforceRateLimit(req, res, "world_lookup", WORLD_LOOKUP_RATE_LIMIT))) return;
-  const query = url.searchParams.get("query")?.trim();
-  if (!query) {
-    jsonResponse(res, 400, { ok: false, error: "Missing query." });
-    return;
-  }
-
-  const radiusMeters = parseRadiusMeters(url.searchParams.get("radiusMeters"));
-  if (!radiusMeters) {
-    jsonResponse(res, 400, { ok: false, error: "radiusMeters must be between 100 and 50000." });
-    return;
-  }
-
-  try {
-    jsonResponse(res, 200, await performWorldLookup(query, radiusMeters, String(res.getHeader("x-request-id") ?? "")));
-  } catch (error) {
-    jsonResponse(res, 500, {
-      ok: false,
-      error: error instanceof Error ? error.message : "World lookup failed.",
-    });
-  }
-}
-
-async function handleGeoGeocode(req: IncomingMessage, url: URL, res: ServerResponse): Promise<void> {
-  if (!(await enforceRateLimit(req, res, "geo_geocode", WORLD_LOOKUP_RATE_LIMIT))) return;
-  const query = url.searchParams.get("query")?.trim();
-  if (!query) {
-    jsonResponse(res, 400, { ok: false, error: "Missing query." });
-    return;
-  }
-
-  try {
-    const adapter = createGeoDataAdapter(readGeoAdapterConfig(process.env));
-    const location = await adapter.geocode({ query });
-    jsonResponse(res, 200, { ok: true, mode: adapter.mode, location });
-  } catch (error) {
-    jsonResponse(res, 500, {
-      ok: false,
-      error: error instanceof Error ? error.message : "Geocode failed.",
-    });
-  }
-}
-
-function parseRadiusMeters(value: string | null): number | undefined {
-  const radius = value ? Number.parseInt(value, 10) : 3500;
-  if (!Number.isFinite(radius) || radius < 100 || radius > 50_000) {
-    return undefined;
-  }
-  return radius;
-}
-
-async function performWorldLookup(
-  query: string,
-  radiusMeters: number,
-  requestId?: string,
-): Promise<WorldPlaceLookupResponse> {
-  const config = readGeoAdapterConfig(process.env);
-  const cacheKey = worldLookupCacheKey(query, radiusMeters, config.mode);
-  const cached = getWorldLookupCache(cacheKey);
-  if (cached) {
-    logBackendEvent("provider_lookup_cache_hit", {
-      requestId,
-      mode: config.mode,
-      radiusMeters,
-      queryLength: query.length,
-    });
-    return withLookupRuntime(cached.response, true, cached.expiresAtMs);
-  }
-
-  logBackendEvent("provider_lookup_cache_miss", {
-    requestId,
-    mode: config.mode,
-    radiusMeters,
-    queryLength: query.length,
-  });
-  const adapter = createGeoDataAdapter(config);
-  const resolvedLocation = await adapter.geocode({ query });
-  const places = await adapter.nearbySearch({
-    center: resolvedLocation.coordinates,
-    radiusMeters,
-    maxResultCount: 20,
-    rankPreference: "POPULARITY",
-  });
-
-  const response = worldService.lookupPlaces({
-    query,
-    radiusMeters,
-    mode: adapter.mode,
-    resolvedLocation: {
-      id: resolvedLocation.id,
-      label: resolvedLocation.label,
-      coordinates: resolvedLocation.coordinates,
-      ...(resolvedLocation.formattedAddress ? { formattedAddress: resolvedLocation.formattedAddress } : {}),
-    },
-    places: places.map(
-      (place, index): WorldLookupPlaceInput => ({
-        atlasLookupId: atlasLookupPlaceId(place.category, place.label, index),
-        label: place.label,
-        category: place.category,
-        ...(place.coordinates ? { coordinates: place.coordinates } : {}),
-        ...(place.address ? { address: place.address } : {}),
-        source: place.source,
-        attribution: place.attribution,
-        ttlSeconds: place.ttlSeconds,
-      }),
-    ),
-  });
-  const expiresAtMs = Date.now() + response.cache.ttlSeconds * 1000;
-  setWorldLookupCache(cacheKey, response, expiresAtMs);
-  return withLookupRuntime(response, false, expiresAtMs);
-}
-
-function atlasLookupPlaceId(category: string, label: string, index: number): string {
-  const safeCategory = slugifyLookupToken(category || "unknown");
-  const safeLabel = slugifyLookupToken(label || `place-${index + 1}`).slice(0, 36);
-  return `lookup-${safeCategory}-${index + 1}-${safeLabel}`;
-}
-
-function slugifyLookupToken(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "unknown";
-}
-
-function worldLookupCacheKey(query: string, radiusMeters: number, mode: "mock" | "google"): string {
-  return `world-lookup:${mode}:${radiusMeters}:${query.trim().toLowerCase().replace(/\s+/g, " ")}`;
-}
-
-function getWorldLookupCache(cacheKey: string): WorldLookupCacheEntry | undefined {
-  const entry = worldLookupCache.get(cacheKey);
-  if (!entry) return undefined;
-  if (Date.now() >= entry.expiresAtMs) {
-    worldLookupCache.delete(cacheKey);
-    return undefined;
-  }
-  return entry;
-}
-
-function setWorldLookupCache(cacheKey: string, response: WorldPlaceLookupResponse, expiresAtMs: number): void {
-  if (worldLookupCache.size >= MAX_WORLD_LOOKUP_CACHE_ENTRIES) {
-    const oldestKey = worldLookupCache.keys().next().value;
-    if (oldestKey) {
-      worldLookupCache.delete(oldestKey);
-    }
-  }
-  worldLookupCache.set(cacheKey, { response, expiresAtMs });
-}
-
-function withLookupRuntime(
-  response: WorldPlaceLookupResponse,
-  cacheHit: boolean,
-  expiresAtMs: number,
-): WorldPlaceLookupResponse {
-  const cachedAt = new Date().toISOString();
-  return {
-    ...response,
-    runtime: {
-      cacheHit,
-      cachedAt,
-      expiresAt: new Date(expiresAtMs).toISOString(),
-    },
-  };
-}
+// handleWorldLookup, handleGeoGeocode, performWorldLookup and the whole
+// provider-lookup cache were deleted on 2026-08-01 together with their routes.
+// They were the only code path that called a third-party geo API from this
+// server. Atlas draws US Census geography it already ships; it contacts no
+// external system.
 
 function lookupQueryForAtlasContext(countySlug = PLAYABLE_ENGINE_BETA_COUNTY_SLUG, placeId?: string): string {
   const coverage = countyCoverageForSlug(countySlug);
@@ -3005,22 +2676,6 @@ function publicWorldPlaceLookup(response: WorldPlaceLookupResponse) {
 // handleScoutDrop and handleCampaignPreview were removed with their routes on
 // 2026-07-25. Atlas is a map; it has no scouting or campaign product.
 
-function hostedClawdInputFromUrl(url: URL): HostedClawdContextInput {
-  return {
-    trigger: hostedClawdTriggerFromString(url.searchParams.get("trigger")),
-    businessName: optionalQuery(url, "businessName"),
-    businessType: optionalQuery(url, "businessType"),
-    serviceArea: optionalQuery(url, "serviceArea"),
-    primaryGoal: optionalQuery(url, "primaryGoal"),
-    countySlug: optionalQuery(url, "countySlug") ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
-    countyLabel: optionalQuery(url, "countyLabel") ?? "Riverside County",
-    placeLabel: optionalQuery(url, "placeLabel") ?? "Eastvale",
-    scoutPreviewId: optionalQuery(url, "scoutPreviewId"),
-    campaignPreviewId: optionalQuery(url, "campaignPreviewId"),
-    selectedNoteCount: optionalNumberQuery(url, "selectedNoteCount"),
-  };
-}
-
 function hostedClawdResourceMetadataUrl(req: IncomingMessage): string {
   const host = req.headers.host ?? `localhost:${PORT}`;
   const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
@@ -3049,192 +2704,10 @@ function setHostedClawdAuthChallenge(
   );
 }
 
-// Bearer extraction for protected Hosted Clawd writes. Missing or bad
-// credentials produce an auth challenge instead of silently creating state.
-async function verifiedHostedClawdAuth(
-  req: IncomingMessage,
-  res: ServerResponse,
-): Promise<{ ok: true; auth?: HostedClawdAuthContext } | { ok: false }> {
-  const header = req.headers.authorization;
-  if (!hostedClawdAuthenticator || !header) {
-    return { ok: true };
-  }
-
-  const verdict = await hostedClawdAuthenticator.verifyAuthorizationHeader(header);
-  if (!verdict.ok) {
-    logBackendEvent("hosted_clawd_auth_denied", {
-      requestId: String(res.getHeader("x-request-id") ?? ""),
-      reason: verdict.reason,
-    });
-    setHostedClawdAuthChallenge(req, res);
-    jsonResponse(res, 401, { ok: false, reason: verdict.reason, error: verdict.detail });
-    return { ok: false };
-  }
-
-  return { ok: true, auth: verdict.auth };
-}
-
-async function handleHostedClawdAction(
-  req: IncomingMessage,
-  res: ServerResponse,
-  operation: "create_or_attach_clawd" | "promote_session" | "save_campaign_artifact" | "start_checkout" | "open_billing_portal",
-): Promise<void> {
-  try {
-    const requestId = String(res.getHeader("x-request-id") ?? "");
-    const verified = await verifiedHostedClawdAuth(req, res);
-    if (!verified.ok) return;
-
-    const body = await readJsonObjectBody(req);
-    const input = hostedClawdInputFromObject(body);
-    const result =
-      operation === "create_or_attach_clawd"
-        ? await hostedClawdService.createOrAttachClawd(input, verified.auth)
-        : operation === "promote_session"
-          ? await hostedClawdService.promoteSession(input, verified.auth)
-          : operation === "save_campaign_artifact"
-            ? await hostedClawdService.saveCampaignArtifact(input, verified.auth)
-            : operation === "start_checkout"
-              ? await hostedClawdService.startCheckout(input, verified.auth)
-              : await hostedClawdService.openBillingPortal(input, verified.auth);
-    logBackendEvent("hosted_clawd_write_result", {
-      requestId,
-      operation,
-      reason: result.reason,
-      status: result.status,
-      persistenceEnabled: hostedClawdFlags.persistenceEnabled,
-      moneyEnabled: hostedClawdFlags.moneyEnabled,
-    });
-
-    if (result.reason === "auth_required") {
-      logBackendEvent("hosted_clawd_auth_denied", { requestId, operation, reason: result.reason });
-      setHostedClawdAuthChallenge(req, res);
-      jsonResponse(res, 401, { ok: false, result });
-      return;
-    }
-
-    if (result.reason === "write_scope_required") {
-      logBackendEvent("hosted_clawd_auth_denied", { requestId, operation, reason: result.reason });
-      setHostedClawdAuthChallenge(req, res);
-      jsonResponse(res, 403, { ok: false, result });
-      return;
-    }
-
-    if (result.reason === "read_scope_required") {
-      logBackendEvent("hosted_clawd_auth_denied", { requestId, operation, reason: result.reason });
-      setHostedClawdAuthChallenge(req, res, HOSTED_CLAWD_READ_SCOPE);
-      jsonResponse(res, 403, { ok: false, result });
-      return;
-    }
-
-    jsonResponse(res, 200, { ok: true, result });
-  } catch (error) {
-    jsonResponse(res, 400, {
-      ok: false,
-      error: error instanceof Error ? error.message : "Hosted Clawd action failed.",
-    });
-  }
-}
-
-async function handleHostedClawdSavedState(
-  req: IncomingMessage,
-  res: ServerResponse,
-  url: URL,
-): Promise<void> {
-  try {
-    const input = hostedClawdInputFromUrl(url);
-    if (hostedClawdAuthenticator && !req.headers.authorization) {
-      const context = hostedClawdService.getContext(input);
-      const result = {
-        type: "hostedClawdAction" as const,
-        operation: "read_saved_state" as const,
-        status: "blocked" as const,
-        reason: "auth_required" as const,
-        screenState: context.screenState,
-        message: "Connect ChatGPT to load saved items.",
-        nextAction: "create_hosted_clawd" as const,
-        context,
-      };
-      setHostedClawdAuthChallenge(req, res, HOSTED_CLAWD_READ_SCOPE);
-      jsonResponse(res, 401, { ok: false, result, hostedClawd: context });
-      return;
-    }
-
-    const verified = await verifiedHostedClawdAuth(req, res);
-    if (!verified.ok) return;
-
-    const result = await hostedClawdService.readSavedState(input, verified.auth);
-    if (result.reason === "auth_required") {
-      setHostedClawdAuthChallenge(req, res, HOSTED_CLAWD_READ_SCOPE);
-      jsonResponse(res, 401, { ok: false, result });
-      return;
-    }
-
-    if (result.reason === "read_scope_required") {
-      setHostedClawdAuthChallenge(req, res, HOSTED_CLAWD_READ_SCOPE);
-      jsonResponse(res, 403, { ok: false, result });
-      return;
-    }
-
-    jsonResponse(res, 200, {
-      ok: true,
-      result,
-      hostedClawd: result.context,
-      savedState: result.savedState,
-    });
-  } catch (error) {
-    jsonResponse(res, 400, {
-      ok: false,
-      error: error instanceof Error ? error.message : "Hosted Clawd saved-state read failed.",
-    });
-  }
-}
-
-async function handleHostedClawdStripeWebhookRoute(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const requestId = String(res.getHeader("x-request-id") ?? "");
-  if (!hostedClawdRepository || !hostedClawdBillingConfig) {
-    logBackendEvent("stripe_webhook_decision", {
-      requestId,
-      decision: "blocked",
-      reason: "billing_not_configured",
-    });
-    jsonResponse(res, 503, {
-      ok: false,
-      error: "Hosted Clawd Stripe billing is not configured on this deployment.",
-    });
-    return;
-  }
-
-  try {
-    const rawBody = await readRawBody(req);
-    const signature = Array.isArray(req.headers["stripe-signature"])
-      ? req.headers["stripe-signature"][0]
-      : req.headers["stripe-signature"];
-    const event = constructHostedClawdStripeEvent({
-      stripe: createStripeHostedClawdClient(hostedClawdBillingConfig),
-      rawBody,
-      signature,
-      webhookSecret: hostedClawdBillingConfig.webhookSecret,
-    });
-    const result = await handleHostedClawdStripeWebhook(hostedClawdRepository, event);
-    logBackendEvent("stripe_webhook_decision", {
-      requestId,
-      decision: "accepted",
-      eventType: event.type,
-      reused: result.reused,
-      subscriptionStatus: result.subscriptionStatus ?? null,
-    });
-    jsonResponse(res, 200, { ok: true, result });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Stripe webhook failed.";
-    const signatureFailure = /signature|stripe-signature|webhook payload|constructEvent/i.test(message);
-    logBackendEvent("stripe_webhook_decision", {
-      requestId,
-      decision: "blocked",
-      reason: signatureFailure ? "signature_or_payload_failed" : "handler_failed",
-    });
-    jsonResponse(res, signatureFailure ? 400 : 500, { ok: false, error: message });
-  }
-}
+// verifiedHostedClawdAuth, handleHostedClawdAction, handleHostedClawdSavedState
+// and handleHostedClawdStripeWebhookRoute were deleted on 2026-08-01 with the
+// /api/hosted-clawd/* and /api/stripe/webhook routes they served. Atlas has no
+// accounts, no payments, and no advertising, so the origin answers nothing there.
 
 async function readJsonObjectBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const body = await new Promise<string>((resolveBody, rejectBody) => {
@@ -3258,94 +2731,14 @@ async function readJsonObjectBody(req: IncomingMessage): Promise<Record<string, 
   return parsed as Record<string, unknown>;
 }
 
-async function readRawBody(req: IncomingMessage): Promise<Buffer> {
-  return await new Promise<Buffer>((resolveBody, rejectBody) => {
-    const chunks: Buffer[] = [];
-    let totalBytes = 0;
-    req.on("data", (chunk: Buffer | string) => {
-      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      totalBytes += buffer.length;
-      if (totalBytes > 256_000) {
-        rejectBody(new Error("Request body is too large."));
-        return;
-      }
-      chunks.push(buffer);
-    });
-    req.on("end", () => resolveBody(Buffer.concat(chunks)));
-    req.on("error", rejectBody);
-  });
-}
 
-function hostedClawdInputFromObject(value: Record<string, unknown>): HostedClawdContextInput & {
-  clientRequestId?: string;
-  confirmedFields?: string[];
-  campaignSummary?: string;
-} {
-  return {
-    trigger: hostedClawdTriggerFromString(stringFromObject(value, "trigger")),
-    businessName: stringFromObject(value, "businessName"),
-    businessType: stringFromObject(value, "businessType"),
-    serviceArea: stringFromObject(value, "serviceArea"),
-    primaryGoal: stringFromObject(value, "primaryGoal"),
-    offerNotes: stringFromObject(value, "offerNotes"),
-    countySlug: stringFromObject(value, "countySlug") ?? PLAYABLE_ENGINE_BETA_COUNTY_SLUG,
-    countyLabel: stringFromObject(value, "countyLabel") ?? "Riverside County",
-    placeLabel: stringFromObject(value, "placeLabel") ?? "Eastvale",
-    scoutPreviewId: stringFromObject(value, "scoutPreviewId"),
-    campaignPreviewId: stringFromObject(value, "campaignPreviewId"),
-    selectedNoteCount: numberFromObject(value, "selectedNoteCount"),
-    clientRequestId: stringFromObject(value, "clientRequestId"),
-    campaignSummary: stringFromObject(value, "campaignSummary"),
-    confirmedFields: arrayOfStringsFromObject(value, "confirmedFields"),
-  };
-}
-
-function hostedClawdTriggerFromString(value: string | null | undefined): HostedClawdContextInput["trigger"] {
-  switch (value) {
-    case "scout_drop":
-    case "campaign_preview":
-    case "upgrade_tool":
-    case "map_tray":
-      return value;
-    default:
-      return "map_tray";
-  }
-}
-
-function optionalQuery(url: URL, key: string): string | undefined {
-  const value = url.searchParams.get(key)?.trim();
-  return value || undefined;
-}
-
-function optionalNumberQuery(url: URL, key: string): number | undefined {
-  const value = url.searchParams.get(key);
-  if (!value) return undefined;
-  const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? numberValue : undefined;
-}
-
-function stringFromObject(value: Record<string, unknown>, key: string): string | undefined {
-  const raw = value[key];
-  return typeof raw === "string" && raw.trim() ? raw.trim() : undefined;
-}
-
-function numberFromObject(value: Record<string, unknown>, key: string): number | undefined {
-  const raw = value[key];
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
-}
-
-function arrayOfStringsFromObject(value: Record<string, unknown>, key: string): string[] | undefined {
-  const raw = value[key];
-  if (!Array.isArray(raw)) return undefined;
-  return raw.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim());
-}
 
 function createAtlasServer(): McpServer {
   const server = new McpServer(
     { name: "atlas-chatgpt-app", version: SERVER_VERSION },
     {
       instructions:
-        `Atlas is an atlas of the United States inside ChatGPT. It draws real US Census geography: county and state boundaries, named water, and the position of every Census town. Use open_atlas_map to show a place, search_atlas_places to find which county and state a town is in, and describe_atlas_place to answer a factual question from Census data.
+        `Atlas is an atlas of the United States inside ChatGPT. It draws real US Census geography: county and state boundaries, named water, and the position of every Census town. Use open_atlas_map to show a place and return its Census facts together. Use search_atlas_places to find which county and state a town is in when the name may be ambiguous.
 
 Atlas covers the United States only, at the level of counties and towns. It does not do directions, travel times, businesses, addresses, postcodes, weather, or history. When someone asks for those, say Atlas does not carry that rather than answering from memory as though the map showed it.
 
@@ -3359,32 +2752,42 @@ Speak in plain words. Never repeat internal codes, slugs, or field names in your
     },
   );
 
-  registerAppResource(server, "atlas-city-world-widget", WIDGET_URI, {}, async () => ({
+  const widgetDescription =
+    "Draws a US county, state, or the whole country from 2024 Census boundary files: real outline, named water, and Census town positions.";
+  const origins = widgetResourceDomains();
+  const skybridgeMime = "text/html+skybridge";
+  const readWidget = (uri: string) => async () => ({
     contents: [
       {
-        uri: WIDGET_URI,
-        mimeType: RESOURCE_MIME_TYPE,
+        uri,
+        mimeType: skybridgeMime,
         text: readBuiltWidget(),
         _meta: {
-          ui: {
-            prefersBorder: false,
-            ...(process.env.WIDGET_DOMAIN ? { domain: process.env.WIDGET_DOMAIN } : {}),
-            csp: {
-              connectDomains: [],
-              resourceDomains: widgetResourceDomains(),
-            },
+          ui: atlasWidgetResourceMeta(),
+          "openai/widgetDescription": widgetDescription,
+          "openai/widgetPrefersBorder": false,
+          "openai/widgetCSP": {
+            connect_domains: origins,
+            resource_domains: origins,
           },
-          "openai/widgetDescription": atlasCommonsConfig.enabled
-            ? "Shows Atlas county maps with moderated public place notes plus private notes that stay in this chat."
-            : "Shows Atlas county maps: Riverside/Eastvale full clay map, plus U.S. Census geography boards (real outline, water, town names). Pins and notes stay in this chat.",
         },
       },
     ],
-  }));
+  });
+  // ChatGPT still keys widgets as Apps SDK / skybridge, not only MCP Apps.
+  registerAppResource(server, "atlas-plate-widget", WIDGET_URI, { mimeType: skybridgeMime }, readWidget(WIDGET_URI));
+  registerAppResource(
+    server,
+    "atlas-plate-widget-compat",
+    LEGACY_WIDGET_URI,
+    { mimeType: skybridgeMime },
+    readWidget(LEGACY_WIDGET_URI),
+  );
 
-  // The Atlas tool surface lives in atlasTools.ts: three read-only tools over
-  // Census geography, no auth and no third-party calls. The voxel-era scout,
-  // campaign, upgrade, and public-note tools were retired with the 2D atlas.
+  // The Atlas tool surface lives in atlasTools.ts. The authoritative count and
+  // names are in scripts/lib/atlas-tool-surface.mjs — do not restate them here.
+  // No auth and no third-party calls. The voxel-era scout, campaign, upgrade,
+  // and public-note tools were retired with the 2D atlas.
   registerAtlasTools(server, {
     index: atlasIndex,
     plates: atlasPlateService,
@@ -3659,10 +3062,6 @@ function shouldValidateOrigin(url: URL, method: string | undefined): boolean {
   return ["POST", "PUT", "PATCH", "DELETE"].includes(method);
 }
 
-function isHostedClawdWriteRoute(url: URL, method: string | undefined): boolean {
-  return method === "POST" && HOSTED_CLAWD_WRITE_PATHS.has(url.pathname);
-}
-
 // A cache dependency must never kill the API server: @redis/client v6 can
 // throw from internal timer/abort callbacks (uncaught, not routed to any
 // promise — crashed two production healthchecks). Guard ONLY that class;
@@ -3701,7 +3100,12 @@ const httpServer = createServer(async (req, res) => {
   // traffic (G8): status + duration, plus caller identity (origin/UA) for
   // the surfaces ChatGPT touches. No query strings, no bodies, no PII.
   res.on("finish", () => {
-    const interesting = requestPath === MCP_PATH || requestPath.startsWith("/widget/") || requestPath === "/ready";
+    const interesting =
+      requestPath === MCP_PATH ||
+      requestPath.startsWith("/widget/") ||
+      requestPath === "/ready" ||
+      requestPath.startsWith("/api/atlas") ||
+      requestPath === "/api/widget-debug";
     logBackendEvent("http_request_finished", {
       requestId,
       method: req.method,
@@ -3794,6 +3198,40 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  // Widget iframe debug beacon. GET so ChatGPT origin admission cannot 403 it
+  // the way a POST would. Public, no PII: kind/origin/href/detail only.
+  if (url.pathname === "/api/widget-debug" && (req.method === "GET" || req.method === "OPTIONS")) {
+    res.setHeader("access-control-allow-origin", "*");
+    res.setHeader("cross-origin-resource-policy", "cross-origin");
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, {
+        "access-control-allow-methods": "GET, OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
+      });
+      res.end();
+      return;
+    }
+    logBackendEvent("widget_debug", {
+      requestId,
+      kind: String(url.searchParams.get("kind") ?? "unknown").slice(0, 40),
+      origin: String(url.searchParams.get("origin") ?? "").slice(0, 120),
+      host: String(url.searchParams.get("host") ?? "").slice(0, 80),
+      href: String(url.searchParams.get("href") ?? "").slice(0, 180),
+      detail: String(url.searchParams.get("detail") ?? "").slice(0, 300),
+      urlParam: String(url.searchParams.get("url") ?? "").slice(0, 180),
+      slug: String(url.searchParams.get("slug") ?? "").slice(0, 64),
+      referer: String(req.headers.referer ?? "").slice(0, 120),
+    });
+    res.writeHead(204, {
+      "access-control-allow-origin": "*",
+      "cross-origin-resource-policy": "cross-origin",
+      "cache-control": "no-store",
+    });
+    res.end();
+    return;
+  }
+
   // Atlas plates. The widget fetches these directly rather than receiving them
   // through the MCP payload: the national plate is ~550 KB, and this project
   // has already crashed a ChatGPT session once by routing large geometry
@@ -3854,7 +3292,11 @@ const httpServer = createServer(async (req, res) => {
     }
 
     if (req.headers["if-none-match"] === result.etag) {
-      res.writeHead(304, { ETag: result.etag });
+      res.writeHead(304, {
+        ETag: result.etag,
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+      });
       res.end();
       return;
     }
@@ -3865,20 +3307,9 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname === "/api/geo/status" && req.method === "GET") {
-    jsonResponse(res, 200, geoStatusPayload());
-    return;
-  }
-
-  if (url.pathname === "/api/geo/geocode" && req.method === "GET") {
-    await handleGeoGeocode(req, url, res);
-    return;
-  }
-
-  if (url.pathname === "/api/world/lookup" && req.method === "GET") {
-    await handleWorldLookup(req, url, res);
-    return;
-  }
+  // /api/geo/status, /api/geo/geocode and /api/world/lookup were removed on
+  // 2026-08-01. They reached a third-party geo provider on an unauthenticated
+  // URL. Atlas makes no third-party request.
 
   if (url.pathname === "/api/engine/scene-packets/status" && req.method === "GET") {
     jsonResponse(res, 200, {
@@ -3901,92 +3332,19 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname === "/api/atlas-commons/moderation" && req.method === "POST") {
-    await handleAtlasCommonsModeration(req, res);
-    return;
-  }
+  // /api/atlas-commons/moderation GET and POST were removed on 2026-08-22.
+  // They were a UGC moderation queue for public notes the 2026-07-25 pivot
+  // deleted. Atlas has no user content and no operator queue.
 
-  if (url.pathname === "/api/atlas-commons/moderation" && req.method === "GET") {
-    await handleAtlasCommonsModerationQueue(req, url, res);
-    return;
-  }
+  // /.well-known/oauth-protected-resource was removed on 2026-08-22. It
+  // advertised Hosted Clawd and Commons OAuth scopes on a product whose
+  // listing is authentication NONE. Nothing authenticates.
 
-  // OAuth protected-resource metadata (RFC 9728) for enabled protected Atlas
-  // capabilities. Commons-only staging must not request Hosted Clawd scopes.
-  if (url.pathname === "/.well-known/oauth-protected-resource" && req.method === "GET") {
-    setCors(req, res);
-    if (!hostedClawdAuthConfig) {
-      jsonResponse(res, 404, {
-        ok: false,
-        error: "OAuth protected-resource metadata is not configured on this deployment.",
-      });
-      return;
-    }
-    jsonResponse(
-      res,
-      200,
-      buildOAuthProtectedResourceMetadata(
-        hostedClawdAuthConfig,
-        hostedClawdProtectedResourceUrl(req),
-        atlasCommonsConfig.enabled ? [ATLAS_COMMONS_READ_SCOPE, ATLAS_COMMONS_WRITE_SCOPE] : [],
-        atlasSaveSurfaceEnabled || hostedClawdFlags.persistenceEnabled,
-      ),
-    );
-    return;
-  }
-
-  if (url.pathname === "/api/hosted-clawd/state" && req.method === "GET") {
-    jsonResponse(res, 200, {
-      ok: true,
-      hostedClawd: hostedClawdService.getContext(hostedClawdInputFromUrl(url)),
-    });
-    return;
-  }
-
-  if (url.pathname === "/api/hosted-clawd/saved" && req.method === "GET") {
-    await handleHostedClawdSavedState(req, res, url);
-    return;
-  }
-
-  if (url.pathname === "/api/stripe/webhook" && req.method === "POST") {
-    await handleHostedClawdStripeWebhookRoute(req, res);
-    return;
-  }
-
-  if (isHostedClawdWriteRoute(url, req.method) && !hostedClawdWriteRouterMounted) {
-    textResponse(res, 404, "Not Found");
-    return;
-  }
-
-  if (url.pathname === "/api/hosted-clawd/create-or-attach" && req.method === "POST") {
-    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "create_or_attach_clawd"))) return;
-    await handleHostedClawdAction(req, res, "create_or_attach_clawd");
-    return;
-  }
-
-  if (url.pathname === "/api/hosted-clawd/promote-session" && req.method === "POST") {
-    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "promote_session"))) return;
-    await handleHostedClawdAction(req, res, "promote_session");
-    return;
-  }
-
-  if (url.pathname === "/api/hosted-clawd/saved-artifacts/campaigns" && req.method === "POST") {
-    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "save_campaign_artifact"))) return;
-    await handleHostedClawdAction(req, res, "save_campaign_artifact");
-    return;
-  }
-
-  if (url.pathname === "/api/hosted-clawd/checkout" && req.method === "POST") {
-    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "start_checkout"))) return;
-    await handleHostedClawdAction(req, res, "start_checkout");
-    return;
-  }
-
-  if (url.pathname === "/api/hosted-clawd/billing-portal" && req.method === "POST") {
-    if (!(await enforceRateLimit(req, res, "hosted_clawd_write", HOSTED_CLAWD_WRITE_RATE_LIMIT, "open_billing_portal"))) return;
-    await handleHostedClawdAction(req, res, "open_billing_portal");
-    return;
-  }
+  // /api/hosted-clawd/state, /saved, /create-or-attach, /promote-session,
+  // /saved-artifacts/campaigns, /checkout, /billing-portal and
+  // /api/stripe/webhook were removed on 2026-08-01. They answered on
+  // unauthenticated URLs and described a paid mode, a checkout screen, and a
+  // billing check that Atlas does not have. Nothing routes there now.
 
   if (req.method === "GET" && handleWorldRoute(url, res)) {
     return;
@@ -4094,8 +3452,18 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname === "/community" && req.method === "GET") {
-    htmlResponse(res, 200, communityPageHtml());
+  // Retired 2026-08-01. This served a community standard — a named moderation
+  // owner, a 24-hour review SLA, a three-report auto-hide, 30-day and 12-month
+  // retention — for a public-notes feature that is not in the product. Those
+  // were published commitments, not stale descriptions, governing a subsystem
+  // that is switched off. Publishing a UGC standard for an app with no UGC also
+  // volunteers it into the stricter store-review lane for nothing in return.
+  // The page draft is kept in git for the release that actually ships notes.
+  // 308 rather than 404 because old links exist; a redirect to a page that is
+  // true beats a dead end. /terms now states there is no user content.
+  if (url.pathname === "/community") {
+    res.writeHead(308, { location: "/terms" });
+    res.end();
     return;
   }
 
@@ -4105,7 +3473,12 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (url.pathname.startsWith("/widget/") && req.method === "GET") {
-    sendWidgetAssetResponse(res, url.pathname.slice("/widget/".length));
+    const assetPath = url.pathname.slice("/widget/".length);
+    if (WIDGET_TEMPLATE_FILES.has(assetPath)) {
+      sendWidgetTemplateResponse(res);
+      return;
+    }
+    sendWidgetAssetResponse(res, assetPath);
     return;
   }
 
@@ -4143,10 +3516,4 @@ const httpServer = createServer(async (req, res) => {
 
 httpServer.listen(PORT, () => {
   console.log(`Atlas MCP server listening on http://localhost:${PORT}${MCP_PATH}`);
-  logBackendEvent("hosted_clawd_router_mode", {
-    mode: hostedClawdWriteRouterMounted ? "write_routes_mounted" : "write_routes_404",
-    persistenceEnabled: hostedClawdFlags.persistenceEnabled,
-    persistenceAdapterConfigured: Boolean(hostedClawdPersistence),
-    moneyEnabled: hostedClawdFlags.moneyEnabled,
-  });
 });

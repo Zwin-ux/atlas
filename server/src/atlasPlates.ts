@@ -15,6 +15,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { classifyTownAnchors } from "@atlas/core/atlas";
+
 import { isValidCountySlug } from "./countyGeoPack.js";
 
 /** A state code is exactly two lowercase letters; nothing else can index a file. */
@@ -269,16 +271,26 @@ export function createAtlasPlateService(options: AtlasPlateServiceOptions): Atla
           result = { ok: false, reason: "missing" };
         } else {
           const identity = options.countyIdentity?.(slug);
-          const anchors = options
-            .townAnchorsFor(slug)
-            .slice()
-            .sort((a, b) => (b.population2024 ?? 0) - (a.population2024 ?? 0))
-            .map((anchor) => ({
+          const countyDisplayName = pack.name ?? identity?.name ?? slug;
+          // Seat / primary / secondary hierarchy (USA accuracy A2). Seats are
+          // inferred from the county name or largest place — not an official
+          // seat table yet — so orientation reads as an atlas, not a scatter.
+          const anchors = classifyTownAnchors(
+            countyDisplayName,
+            options.townAnchorsFor(slug).map((anchor) => ({
               name: anchor.label,
               lon: Number(anchor.longitude.toFixed(5)),
               lat: Number(anchor.latitude.toFixed(5)),
               population: anchor.population2024 ?? 0,
-            }));
+            })),
+          ).map((anchor) => ({
+            name: anchor.name,
+            lon: anchor.lon,
+            lat: anchor.lat,
+            population: anchor.population,
+            tier: anchor.tier,
+            ...(anchor.seatSource ? { seatSource: anchor.seatSource } : {}),
+          }));
 
           // Bounds of the subject, so the neighbour window is proportional to
           // the county rather than a fixed degree box (Loving County and San

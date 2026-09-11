@@ -190,6 +190,8 @@ declare global {
     openai?: {
       theme?: string;
       widgetState?: unknown;
+      toolOutput?: unknown;
+      toolResponseMetadata?: unknown;
       setWidgetState?: (state: unknown) => void;
       requestDisplayMode?: (payload: { mode: "inline" | "pip" | "fullscreen" }) => Promise<unknown>;
     };

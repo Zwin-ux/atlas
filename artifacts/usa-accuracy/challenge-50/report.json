@@ -1,0 +1,960 @@
+{
+  "generatedAt": "2026-07-30T05:35:11.479Z",
+  "program": "usa-accuracy-l0-l2",
+  "packet": "A3",
+  "counties": [
+    {
+      "requested": "los-angeles-ca",
+      "slug": "los-angeles-ca",
+      "open": true,
+      "rings": 3,
+      "water": 18,
+      "towns": 40,
+      "hasSeat": true,
+      "seatName": "Los Angeles",
+      "notes": [],
+      "name": "Los Angeles County"
+    },
+    {
+      "requested": "cook-il",
+      "slug": "cook-il",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 40,
+      "hasSeat": true,
+      "seatName": "Chicago",
+      "notes": [],
+      "name": "Cook County"
+    },
+    {
+      "requested": "harris-tx",
+      "slug": "harris-tx",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 34,
+      "hasSeat": true,
+      "seatName": "Houston",
+      "notes": [],
+      "name": "Harris County"
+    },
+    {
+      "requested": "maricopa-az",
+      "slug": "maricopa-az",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 25,
+      "hasSeat": true,
+      "seatName": "Phoenix",
+      "notes": [],
+      "name": "Maricopa County"
+    },
+    {
+      "requested": "king-wa",
+      "slug": "king-wa",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 39,
+      "hasSeat": true,
+      "seatName": "Seattle",
+      "notes": [],
+      "name": "King County"
+    },
+    {
+      "requested": "miami-dade-fl",
+      "slug": "miami-dade-fl",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 34,
+      "hasSeat": true,
+      "seatName": "Miami",
+      "notes": [],
+      "name": "Miami-Dade County"
+    },
+    {
+      "requested": "new-york-ny",
+      "slug": "new-york-ny",
+      "open": true,
+      "rings": 3,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "New York",
+      "notes": [],
+      "name": "New York County"
+    },
+    {
+      "requested": "philadelphia-pa",
+      "slug": "philadelphia-pa",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "Philadelphia",
+      "notes": [],
+      "name": "Philadelphia County"
+    },
+    {
+      "requested": "fulton-ga",
+      "slug": "fulton-ga",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 15,
+      "hasSeat": true,
+      "seatName": "South Fulton",
+      "notes": [],
+      "name": "Fulton County"
+    },
+    {
+      "requested": "denver-co",
+      "slug": "denver-co",
+      "open": true,
+      "rings": 10,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "Denver",
+      "notes": [],
+      "name": "Denver County"
+    },
+    {
+      "requested": "san-francisco-ca",
+      "slug": "san-francisco-ca",
+      "open": true,
+      "rings": 2,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "San Francisco",
+      "notes": [],
+      "name": "San Francisco County"
+    },
+    {
+      "requested": "honolulu-hi",
+      "slug": "honolulu-hi",
+      "open": true,
+      "rings": 10,
+      "water": 11,
+      "towns": 40,
+      "hasSeat": true,
+      "seatName": "Urban Honolulu",
+      "notes": [],
+      "name": "Honolulu County"
+    },
+    {
+      "requested": "kalawao-hi",
+      "slug": "kalawao-hi",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "Kalawao",
+      "notes": [],
+      "name": "Kalawao County"
+    },
+    {
+      "requested": "orleans-parish-la",
+      "slug": "orleans-parish-la",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "New Orleans",
+      "notes": [],
+      "name": "Orleans Parish"
+    },
+    {
+      "requested": "suffolk-ma",
+      "slug": "suffolk-ma",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 4,
+      "hasSeat": true,
+      "seatName": "Boston",
+      "notes": [],
+      "name": "Suffolk County"
+    },
+    {
+      "requested": "monroe-fl",
+      "slug": "monroe-fl",
+      "open": true,
+      "rings": 2,
+      "water": 18,
+      "towns": 5,
+      "hasSeat": true,
+      "seatName": "Key West",
+      "notes": [],
+      "name": "Monroe County"
+    },
+    {
+      "requested": "charleston-sc",
+      "slug": "charleston-sc",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 17,
+      "hasSeat": true,
+      "seatName": "Charleston",
+      "notes": [],
+      "name": "Charleston County"
+    },
+    {
+      "requested": "mobile-al",
+      "slug": "mobile-al",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 11,
+      "hasSeat": true,
+      "seatName": "Mobile",
+      "notes": [],
+      "name": "Mobile County"
+    },
+    {
+      "requested": "san-juan-pr",
+      "slug": "san-juan-municipio-pr",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 2,
+      "hasSeat": true,
+      "seatName": "San Juan",
+      "notes": [],
+      "name": "San Juan Municipio"
+    },
+    {
+      "requested": "district-of-columbia-dc",
+      "slug": "district-of-columbia-dc",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "Washington",
+      "notes": [],
+      "name": "District of Columbia"
+    },
+    {
+      "requested": "loving-tx",
+      "slug": "loving-tx",
+      "open": true,
+      "rings": 1,
+      "water": 17,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "Mentone",
+      "notes": [],
+      "name": "Loving County"
+    },
+    {
+      "requested": "summit-co",
+      "slug": "summit-co",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 6,
+      "hasSeat": true,
+      "seatName": "Silverthorne",
+      "notes": [],
+      "name": "Summit County"
+    },
+    {
+      "requested": "teton-wy",
+      "slug": "teton-wy",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "Jackson",
+      "notes": [],
+      "name": "Teton County"
+    },
+    {
+      "requested": "apache-az",
+      "slug": "apache-az",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 3,
+      "hasSeat": true,
+      "seatName": "Eagar",
+      "notes": [],
+      "name": "Apache County"
+    },
+    {
+      "requested": "coconino-az",
+      "slug": "coconino-az",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 6,
+      "hasSeat": true,
+      "seatName": "Flagstaff",
+      "notes": [],
+      "name": "Coconino County"
+    },
+    {
+      "requested": "inyo-ca",
+      "slug": "inyo-ca",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "Bishop",
+      "notes": [],
+      "name": "Inyo County"
+    },
+    {
+      "requested": "north-slope-borough-ak",
+      "slug": "north-slope-borough-ak",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 7,
+      "hasSeat": true,
+      "seatName": "Utqiaġvik",
+      "notes": [],
+      "name": "North Slope Borough"
+    },
+    {
+      "requested": "yukon-koyukuk-census-area-ak",
+      "slug": "yukon-koyukuk-census-area-ak",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 18,
+      "hasSeat": true,
+      "seatName": "Koyukuk",
+      "notes": [],
+      "name": "Yukon-Koyukuk Census Area"
+    },
+    {
+      "requested": "essex-ny",
+      "slug": "essex-ny",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 2,
+      "hasSeat": true,
+      "seatName": "Lake Placid",
+      "notes": [],
+      "name": "Essex County"
+    },
+    {
+      "requested": "garfield-ut",
+      "slug": "garfield-ut",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 9,
+      "hasSeat": true,
+      "seatName": "Panguitch",
+      "notes": [],
+      "name": "Garfield County"
+    },
+    {
+      "requested": "sedgwick-ks",
+      "slug": "sedgwick-ks",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 20,
+      "hasSeat": true,
+      "seatName": "Sedgwick",
+      "notes": [],
+      "name": "Sedgwick County"
+    },
+    {
+      "requested": "linn-ia",
+      "slug": "linn-ia",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 18,
+      "hasSeat": true,
+      "seatName": "Cedar Rapids",
+      "notes": [],
+      "name": "Linn County"
+    },
+    {
+      "requested": "benton-ar",
+      "slug": "benton-ar",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 20,
+      "hasSeat": true,
+      "seatName": "Rogers",
+      "notes": [],
+      "name": "Benton County"
+    },
+    {
+      "requested": "adams-co",
+      "slug": "adams-co",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 10,
+      "hasSeat": true,
+      "seatName": "Thornton",
+      "notes": [],
+      "name": "Adams County"
+    },
+    {
+      "requested": "davidson-tn",
+      "slug": "davidson-tn",
+      "open": true,
+      "rings": 2,
+      "water": 18,
+      "towns": 6,
+      "hasSeat": true,
+      "seatName": "Goodlettsville",
+      "notes": [],
+      "name": "Davidson County"
+    },
+    {
+      "requested": "travis-tx",
+      "slug": "travis-tx",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 22,
+      "hasSeat": true,
+      "seatName": "Austin",
+      "notes": [],
+      "name": "Travis County"
+    },
+    {
+      "requested": "multnomah-or",
+      "slug": "multnomah-or",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 8,
+      "hasSeat": true,
+      "seatName": "Portland",
+      "notes": [],
+      "name": "Multnomah County"
+    },
+    {
+      "requested": "hennepin-mn",
+      "slug": "hennepin-mn",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 40,
+      "hasSeat": true,
+      "seatName": "Minneapolis",
+      "notes": [],
+      "name": "Hennepin County"
+    },
+    {
+      "requested": "mecklenburg-nc",
+      "slug": "mecklenburg-nc",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 11,
+      "hasSeat": true,
+      "seatName": "Charlotte",
+      "notes": [],
+      "name": "Mecklenburg County"
+    },
+    {
+      "requested": "milwaukee-wi",
+      "slug": "milwaukee-wi",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 19,
+      "hasSeat": true,
+      "seatName": "Milwaukee",
+      "notes": [],
+      "name": "Milwaukee County"
+    },
+    {
+      "requested": "riverside-ca",
+      "slug": "riverside-ca",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 28,
+      "hasSeat": true,
+      "seatName": "Riverside",
+      "notes": [],
+      "name": "Riverside County"
+    },
+    {
+      "requested": "orange-ca",
+      "slug": "orange-ca",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 34,
+      "hasSeat": true,
+      "seatName": "Orange",
+      "notes": [],
+      "name": "Orange County"
+    },
+    {
+      "requested": "broward-fl",
+      "slug": "broward-fl",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 31,
+      "hasSeat": true,
+      "seatName": "Fort Lauderdale",
+      "notes": [],
+      "name": "Broward County"
+    },
+    {
+      "requested": "queens-ny",
+      "slug": "queens-ny",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "New York",
+      "notes": [],
+      "name": "Queens County"
+    },
+    {
+      "requested": "kings-ny",
+      "slug": "kings-ny",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "New York",
+      "notes": [],
+      "name": "Kings County"
+    },
+    {
+      "requested": "santa-clara-ca",
+      "slug": "santa-clara-ca",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 15,
+      "hasSeat": true,
+      "seatName": "Santa Clara",
+      "notes": [],
+      "name": "Santa Clara County"
+    },
+    {
+      "requested": "clark-nv",
+      "slug": "clark-nv",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 5,
+      "hasSeat": true,
+      "seatName": "Las Vegas",
+      "notes": [],
+      "name": "Clark County"
+    },
+    {
+      "requested": "fairbanks-north-star-borough-ak",
+      "slug": "fairbanks-north-star-borough-ak",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 2,
+      "hasSeat": true,
+      "seatName": "Fairbanks",
+      "notes": [],
+      "name": "Fairbanks North Star Borough"
+    },
+    {
+      "requested": "maui-hi",
+      "slug": "maui-hi",
+      "open": true,
+      "rings": 3,
+      "water": 18,
+      "towns": 30,
+      "hasSeat": true,
+      "seatName": "Haiku-Pauwela",
+      "notes": [],
+      "name": "Maui County"
+    },
+    {
+      "requested": "st-louis-city-mo",
+      "slug": "st-louis-city-mo",
+      "open": true,
+      "rings": 1,
+      "water": 18,
+      "towns": 1,
+      "hasSeat": true,
+      "seatName": "St. Louis",
+      "notes": [],
+      "name": "St. Louis city"
+    }
+  ],
+  "blockers": [],
+  "tierChecks": [
+    {
+      "slug": "los-angeles-ca",
+      "seat": "Los Angeles",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 31
+    },
+    {
+      "slug": "cook-il",
+      "seat": "Chicago",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 31
+    },
+    {
+      "slug": "harris-tx",
+      "seat": "Houston",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 25
+    },
+    {
+      "slug": "maricopa-az",
+      "seat": "Phoenix",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 16
+    },
+    {
+      "slug": "king-wa",
+      "seat": "Seattle",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 30
+    },
+    {
+      "slug": "miami-dade-fl",
+      "seat": "Miami",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 25
+    },
+    {
+      "slug": "new-york-ny",
+      "seat": "New York",
+      "seatSource": "name",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "philadelphia-pa",
+      "seat": "Philadelphia",
+      "seatSource": "name",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "fulton-ga",
+      "seat": "South Fulton",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 6
+    },
+    {
+      "slug": "denver-co",
+      "seat": "Denver",
+      "seatSource": "name",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "san-francisco-ca",
+      "seat": "San Francisco",
+      "seatSource": "name",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "honolulu-hi",
+      "seat": "Urban Honolulu",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 31
+    },
+    {
+      "slug": "kalawao-hi",
+      "seat": "Kalawao",
+      "seatSource": "name",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "orleans-parish-la",
+      "seat": "New Orleans",
+      "seatSource": "name",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "suffolk-ma",
+      "seat": "Boston",
+      "seatSource": "largest",
+      "primary": 3,
+      "secondary": 0
+    },
+    {
+      "slug": "monroe-fl",
+      "seat": "Key West",
+      "seatSource": "largest",
+      "primary": 4,
+      "secondary": 0
+    },
+    {
+      "slug": "charleston-sc",
+      "seat": "Charleston",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 8
+    },
+    {
+      "slug": "mobile-al",
+      "seat": "Mobile",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 2
+    },
+    {
+      "slug": "san-juan-municipio-pr",
+      "seat": "San Juan",
+      "seatSource": "name",
+      "primary": 1,
+      "secondary": 0
+    },
+    {
+      "slug": "district-of-columbia-dc",
+      "seat": "Washington",
+      "seatSource": "only",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "loving-tx",
+      "seat": "Mentone",
+      "seatSource": "only",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "summit-co",
+      "seat": "Silverthorne",
+      "seatSource": "largest",
+      "primary": 5,
+      "secondary": 0
+    },
+    {
+      "slug": "teton-wy",
+      "seat": "Jackson",
+      "seatSource": "only",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "apache-az",
+      "seat": "Eagar",
+      "seatSource": "largest",
+      "primary": 2,
+      "secondary": 0
+    },
+    {
+      "slug": "coconino-az",
+      "seat": "Flagstaff",
+      "seatSource": "largest",
+      "primary": 5,
+      "secondary": 0
+    },
+    {
+      "slug": "inyo-ca",
+      "seat": "Bishop",
+      "seatSource": "only",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "north-slope-borough-ak",
+      "seat": "Utqiaġvik",
+      "seatSource": "largest",
+      "primary": 6,
+      "secondary": 0
+    },
+    {
+      "slug": "yukon-koyukuk-census-area-ak",
+      "seat": "Koyukuk",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 9
+    },
+    {
+      "slug": "essex-ny",
+      "seat": "Lake Placid",
+      "seatSource": "largest",
+      "primary": 1,
+      "secondary": 0
+    },
+    {
+      "slug": "garfield-ut",
+      "seat": "Panguitch",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 0
+    },
+    {
+      "slug": "sedgwick-ks",
+      "seat": "Sedgwick",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 11
+    },
+    {
+      "slug": "linn-ia",
+      "seat": "Cedar Rapids",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 9
+    },
+    {
+      "slug": "benton-ar",
+      "seat": "Rogers",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 11
+    },
+    {
+      "slug": "adams-co",
+      "seat": "Thornton",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 1
+    },
+    {
+      "slug": "davidson-tn",
+      "seat": "Goodlettsville",
+      "seatSource": "largest",
+      "primary": 5,
+      "secondary": 0
+    },
+    {
+      "slug": "travis-tx",
+      "seat": "Austin",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 13
+    },
+    {
+      "slug": "multnomah-or",
+      "seat": "Portland",
+      "seatSource": "largest",
+      "primary": 7,
+      "secondary": 0
+    },
+    {
+      "slug": "hennepin-mn",
+      "seat": "Minneapolis",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 31
+    },
+    {
+      "slug": "mecklenburg-nc",
+      "seat": "Charlotte",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 2
+    },
+    {
+      "slug": "milwaukee-wi",
+      "seat": "Milwaukee",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 10
+    },
+    {
+      "slug": "riverside-ca",
+      "seat": "Riverside",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 19
+    },
+    {
+      "slug": "orange-ca",
+      "seat": "Orange",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 25
+    },
+    {
+      "slug": "broward-fl",
+      "seat": "Fort Lauderdale",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 22
+    },
+    {
+      "slug": "queens-ny",
+      "seat": "New York",
+      "seatSource": "only",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "kings-ny",
+      "seat": "New York",
+      "seatSource": "only",
+      "primary": 0,
+      "secondary": 0
+    },
+    {
+      "slug": "santa-clara-ca",
+      "seat": "Santa Clara",
+      "seatSource": "name",
+      "primary": 8,
+      "secondary": 6
+    },
+    {
+      "slug": "clark-nv",
+      "seat": "Las Vegas",
+      "seatSource": "largest",
+      "primary": 4,
+      "secondary": 0
+    },
+    {
+      "slug": "fairbanks-north-star-borough-ak",
+      "seat": "Fairbanks",
+      "seatSource": "name",
+      "primary": 1,
+      "secondary": 0
+    },
+    {
+      "slug": "maui-hi",
+      "seat": "Haiku-Pauwela",
+      "seatSource": "largest",
+      "primary": 8,
+      "secondary": 21
+    },
+    {
+      "slug": "st-louis-city-mo",
+      "seat": "St. Louis",
+      "seatSource": "name",
+      "primary": 0,
+      "secondary": 0
+    }
+  ]
+}

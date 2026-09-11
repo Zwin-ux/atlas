@@ -1,6 +1,14 @@
 # Atlas County Maps (ChatGPT App)
 
-**Product law:** [`docs/NORTH_FACE.md`](docs/NORTH_FACE.md).
+> **Current product (2026-09-10):** read-only US Census atlas for ChatGPT.
+> Start at [`CHATGPT.md`](CHATGPT.md), then [`AGENTS.md`](AGENTS.md) and
+> [`docs/STATUS.md`](docs/STATUS.md). Compiled wiki: [`llm-wiki/wiki/index.md`](llm-wiki/wiki/index.md).
+> GitHub map: [`GITHUB.md`](GITHUB.md).
+>
+> The copy below is **historical** (voxel plugin era). `docs/NORTH_FACE.md`
+> is not current product law. Do not implement from it.
+
+**Product law:** [`AGENTS.md`](AGENTS.md). Historical note only: [`docs/NORTH_FACE.md`](docs/NORTH_FACE.md).
 
 Atlas is a ChatGPT **plugin** (Apps SDK / MCP + widget) for **high-quality
 voxel county maps** and **session notes**. The playable proof is Riverside /

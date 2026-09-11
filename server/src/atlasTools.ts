@@ -158,6 +158,7 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
         securitySchemes: [{ type: "noauth" }],
         ui: { resourceUri: deps.widgetUri },
         "openai/outputTemplate": deps.widgetUri,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Opening the atlas...",
         "openai/toolInvocation/invoked": "Atlas plate ready.",
       },
@@ -173,7 +174,11 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
               title: "United States",
               status: "opened" as const,
             },
-            _meta: { atlasPlate: { level: "nation" } },
+            _meta: {
+              atlasPlate: { level: "nation" },
+              ui: { resourceUri: deps.widgetUri },
+              "openai/outputTemplate": deps.widgetUri,
+            },
             content: [
               {
                 type: "text" as const,
@@ -216,7 +221,11 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
               state: target.state.toUpperCase(),
               status: "opened" as const,
             },
-            _meta: { atlasPlate: { level: "state", state: target.state } },
+            _meta: {
+              atlasPlate: { level: "state", state: target.state },
+              ui: { resourceUri: deps.widgetUri },
+              "openai/outputTemplate": deps.widgetUri,
+            },
             content: [
               {
                 type: "text" as const,
@@ -285,6 +294,8 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
               state: target.state,
               ...(target.kind === "place" ? { focus: { name: target.name, lon: target.lon, lat: target.lat } } : {}),
             },
+            ui: { resourceUri: deps.widgetUri },
+            "openai/outputTemplate": deps.widgetUri,
           },
           content: [
             {

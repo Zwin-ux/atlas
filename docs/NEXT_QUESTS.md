@@ -8,34 +8,59 @@ verifier/selector result created during the current slice. If the human says
 "continue," continue only the named next quest. If that quest conflicts with
 permanent gates, stop and report the conflict.
 
-## CURRENT QUEST (2026-07-20): `national-roads-origin-live`
+## CURRENT QUEST (2026-07-29): `usa-accuracy-l0-l2`
 
-**Authority:** `AGENTS.md` § National scale · `docs/NATIONAL_SCALE.md` · `docs/PRODUCT_LANE.md`
+**Authority:** `docs/USA_ACCURACY_PROGRAM.md` (program of record) ·
+`AGENTS.md` · `docs/NATIONAL_SCALE.md` · `docs/PRODUCT_LANE.md` ·
+`docs/GOOGLE_MAPS_ADAPTER_SPEC.md`
 
-**Player promise:** Any US county opens as a real Census board. Zoom to a town
-and see real TIGER streets where published — never fake buildings. Works for
-millions without a multi-GB app image.
+**Player promise:** Any US county opens as **real land** (Census). Zoom NEAR for
+**real TIGER streets** where published. Ask what's nearby and see **real Google
+places** as Atlas pins (attributed). Atlas stays voxel — never a Google map as
+the main surface.
 
-**Engineering promise:** Object-store origin for road packs; client hits public
-origin for immutable bytes; windowed NEAR fetch; progressive metro bake.
+**Engineering promise:** Hybrid spine — Census L0 national default; TIGER L1
+progressive on origin/CDN; Google L2 live viewport enrichment with TTL +
+place_id rules. Packet ladder A → B → D; Phase C roads continue in parallel.
 
 **Do now (in order):**
+
+1. [x] **A1** National Census plate open + place focus fly-to (plate-era default).
+2. [x] **A2** County-seat styling + town hierarchy (seat / primary / secondary).
+3. [x] **A3** Fifty-county challenge gate → `artifacts/usa-accuracy/challenge-50/` (50/50).
+4. [x] **Control env** — `pnpm verify:usa-accuracy-control` + emulator on `open_atlas_map`.
+5. [x] **Agentic harness** — `docs/AGENTIC_WORKFLOW.md` + `.grok/workflows/atlas-*.rhai` (smoke-checked).
+6. [x] **Population** — denser Census places (max 40/county, 21,155 national) + r/place settlement cells; certs unlocked.
+7. [ ] **Deploy** A1–A3 + control-env fixes to prod/staging.
+8. [ ] **A4** Real-host G8 on ChatGPT Pro (Atlas plugin) after deploy.
+5. [ ] **B0–B1** Provider policy rewrite + prod Google adapter (if reopened for places).
+6. [ ] **B2–B6** places-near API, widget pins, budgets, attribution.
+7. [ ] **D1–D3** Geocode-anywhere polish on `open_atlas_map` resolve path.
+8. [ ] **C1–C2** (parallel) ChatGPT Miami/Cook roads dogfood + wave-1 metros to origin.
+
+**Stop:** national clay massing, Google Map Tiles as primary map, bulk Google
+geometry bake, multi-GB roads in git, Clawd hero, fake buildings.
+
+**Baseline:** 3,222 geo packs + national town anchors exist; Mode B still
+flag-dark in places; 10 dogfood road packs on private S3; Google adapter code
+exists for lookup but must not yet claim on-map place accuracy.
+
+**Prior quest absorbed:** `national-roads-origin-live` → Phase C of this program
+(roads remain progressive enhancement, not the only accuracy work).
+
+---
+
+## Prior: `national-roads-origin-live` (2026-07-20)
+
+Absorbed into `usa-accuracy-l0-l2` Phase C. Completed items remain true:
 
 1. [x] Sync dogfood `data/road-chunks/*` to the private Railway bucket.
 2. [x] Wire the signed S3 fallback; production `/ready` reports the store configured.
 3. [x] Cap the windowed NEAR selection at 48 chunks.
 4. [x] Fix and prove the Maricopa large-county bake on Windows.
-5. [ ] ChatGPT dogfood Miami + Cook streets + honesty.
-6. [ ] Bake wave-1 metros to object storage only, not Git.
-7. [ ] Add a public CDN / `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` when immutable
-   chunk bytes can be served with public GET + CORS. This is an optimization,
-   not a Mode B board blocker.
-
-**Stop:** national clay, Mapbox default, multi-GB roads in git, Clawd hero.
-
-**Baseline:** Mode B national live; 10 dogfood road packs synced to private S3;
-signed server fallback and a 48-chunk NEAR window are live. Maricopa now bakes
-and round-trips locally; real ChatGPT Miami/Cook acceptance is still pending.
+5. [ ] ChatGPT dogfood Miami + Cook streets + honesty. → **C1**
+6. [ ] Bake wave-1 metros to object storage only, not Git. → **C2**
+7. [ ] Public CDN / `ATLAS_ROAD_CHUNKS_PUBLIC_ORIGIN` when ready. → **C** opt
 
 ---
 

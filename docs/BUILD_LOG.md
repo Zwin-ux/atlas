@@ -1,5 +1,26 @@
 # Build Log
 
+## Entry 229
+
+Quest: `usa-accuracy-l0-l2` / packet `population-rplace-v1`
+
+What changed:
+- Rebuilt `data/census/us-county-town-anchors.json` with `--max-anchors 40`
+  (was frozen at 12 / 18,447). National total is now **21,155** real Census
+  places across 3,222 counties.
+- Dense metros gain fabric (e.g. cook-il=40, miami-dade-fl=34, riverside-ca=28);
+  sparse America stays sparse (loving-tx=1 Mentone, kalawao-hi=1).
+- Unlocked certs: verify-county-town-anchors, core + server unit tests now
+  expect maximumAnchorsPerCounty=40 and anchorCount=21,155.
+- Product docs (PRODUCT_LANE, NATIONAL_SCALE, NEXT_QUESTS) reflect denser
+  Mode B town density. classifyTownAnchors seat/primary/secondary unchanged;
+  generated-draft still truncates to 6 anchors for the 10k-char wire ceiling;
+  plates carry the full denser set for r/place settlement cells.
+
+Boundary:
+- Census honesty only — no invented places. No Mapbox, no national clay.
+- Network rebuild used Census popest + TIGERweb.
+
 ## Entry 228
 
 Quest: `national-roads-origin-live` Windows continuation

@@ -1,0 +1,163 @@
+{
+  "generatedAt": "2026-07-30T05:39:55.237Z",
+  "base": "http://127.0.0.1:8787",
+  "layers": {
+    "l1": [
+      {
+        "slug": "miami-dade-fl",
+        "status": 200,
+        "seat": "Miami",
+        "towns": 34,
+        "water": 18
+      },
+      {
+        "slug": "loving-tx",
+        "status": 200,
+        "seat": "Mentone",
+        "towns": 1,
+        "water": 17
+      },
+      {
+        "slug": "kalawao-hi",
+        "status": 200,
+        "seat": "Kalawao",
+        "towns": 1,
+        "water": 18
+      },
+      {
+        "slug": "cook-il",
+        "status": 200,
+        "seat": "Chicago",
+        "towns": 40,
+        "water": 18
+      },
+      {
+        "slug": "riverside-ca",
+        "status": 200,
+        "seat": "Riverside",
+        "towns": 28,
+        "water": 18
+      },
+      {
+        "slug": "san-francisco-ca",
+        "status": 200,
+        "seat": "San Francisco",
+        "towns": 1,
+        "water": 18
+      },
+      {
+        "slug": "district-of-columbia-dc",
+        "status": 200,
+        "seat": "Washington",
+        "towns": 1,
+        "water": 18
+      },
+      {
+        "slug": "honolulu-hi",
+        "status": 200,
+        "seat": "Urban Honolulu",
+        "towns": 40,
+        "water": 11
+      },
+      {
+        "slug": "maricopa-az",
+        "status": 200,
+        "seat": "Phoenix",
+        "towns": 25,
+        "water": 18
+      },
+      {
+        "slug": "summit-co",
+        "status": 200,
+        "seat": "Silverthorne",
+        "towns": 6,
+        "water": 18
+      }
+    ],
+    "l2": [
+      {
+        "place": "Homestead, FL",
+        "expectCounty": "miami-dade-fl",
+        "expectFocus": true,
+        "status": "opened",
+        "countySlug": "miami-dade-fl",
+        "hasFocus": true,
+        "focusName": "Homestead"
+      },
+      {
+        "place": "Eastvale, CA",
+        "expectCounty": "riverside-ca",
+        "expectFocus": true,
+        "status": "opened",
+        "countySlug": "riverside-ca",
+        "hasFocus": true,
+        "focusName": "Eastvale"
+      },
+      {
+        "place": "Chicago, IL",
+        "expectCounty": "cook-il",
+        "expectFocus": true,
+        "status": "opened",
+        "countySlug": "cook-il",
+        "hasFocus": true,
+        "focusName": "Chicago"
+      },
+      {
+        "place": "Key West",
+        "expectCounty": "monroe-fl",
+        "expectFocus": true,
+        "status": "opened",
+        "countySlug": "monroe-fl",
+        "hasFocus": true,
+        "focusName": "Key West"
+      },
+      {
+        "place": "Loving County, TX",
+        "expectCounty": "loving-tx",
+        "expectFocus": false,
+        "status": "opened",
+        "countySlug": "loving-tx",
+        "hasFocus": false
+      },
+      {
+        "place": "Springfield",
+        "expectStatus": "ambiguous",
+        "status": "ambiguous"
+      }
+    ],
+    "l3": [
+      {
+        "path": "/preview?county=miami-dade-fl",
+        "label": "miami-county",
+        "status": 200,
+        "bytes": 386
+      },
+      {
+        "path": "/preview?county=miami-dade-fl&focusLon=-80.4472&focusLat=25.4664&focusName=Homestead",
+        "label": "miami-homestead-focus",
+        "status": 200,
+        "bytes": 386
+      },
+      {
+        "path": "/preview?county=loving-tx",
+        "label": "loving",
+        "status": 200,
+        "bytes": 386
+      },
+      {
+        "path": "/preview?county=riverside-ca",
+        "label": "riverside",
+        "status": 200,
+        "bytes": 386
+      },
+      {
+        "path": "/preview?nation=1",
+        "label": "nation",
+        "status": 200,
+        "bytes": 386
+      }
+    ],
+    "shots": []
+  },
+  "blockers": []
+}

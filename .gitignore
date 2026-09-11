@@ -22,3 +22,6 @@ Thumbs.db
 
 # Built atlas plates — regenerate with `node scripts/build-atlas-plates.mjs`
 artifacts/atlas-plates/
+
+# Local runtime heartbeat; do not snapshot
+ready.json

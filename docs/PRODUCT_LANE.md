@@ -28,7 +28,7 @@ See session plan / dogfood: Riverside clay; national board; honesty; notes on to
 
 1. **Fit county** — full outline (center control) ✅  
 2. **Tap town** — camera focuses real Census place (zoom 1.62 → NEAR band) ✅  
-3. **More towns** — up to **12** Census places/county (18,447 national) ✅  
+3. **More towns** — up to **40** Census places/county (21,155 national) ✅  
 4. **Zoom-aware labels** — more names when zoomed in ✅  
 5. **Roads at near zoom** — TIGER road-chunks for dogfood set ✅  
 6. **National scale path** — boards nationwide; roads progressive + origin/CDN ✅ law  
@@ -53,14 +53,24 @@ See session plan / dogfood: Riverside clay; national board; honesty; notes on to
 
 Honesty: band-aware banner + `roadStatus` (ready / sparse / loading / unavailable). No fake buildings.
 
-## Next (quest: `national-roads-origin-live`)
+## Next (quest: `usa-accuracy-l0-l2`)
 
-Full plan: session plan + `docs/NATIONAL_SCALE.md`. Agent law: `AGENTS.md` § National scale.
+**Program of record:** `docs/USA_ACCURACY_PROGRAM.md`.  
+Roads infra law: `docs/NATIONAL_SCALE.md`. Agent law: `AGENTS.md` § USA accuracy.
+
+Hybrid accuracy ladder:
+
+1. **L0 Census board default-on** (Phase A) — national silhouette/water/towns
+2. **L2 Google place pins** (Phase B) — live nearby, attributed overlays
+3. **Geocode-anywhere** (Phase D) — free text → county + camera
+4. **L1 TIGER roads progressive** (Phase C, was `national-roads-origin-live`)
+
+Road infra already done:
 
 1. **Phase 0** — AGENTS / BUILD_LOG / NEXT_QUESTS lock ✅
 2. **Phase 1–2** — Dogfood packs synced to private S3; signed server fallback live ✅
 3. **Phase 3** — Windowed NEAR fetch, capped at 48 chunks ✅
 4. **Phase 4** — Maricopa large-county bake stability ✅
-5. Human ChatGPT dogfood R1–R8
-6. Wave-1 metros → origin only (not multi-GB Git)
-7. Optional public CDN; never restart national clay massing
+
+Still open under Phase C: ChatGPT Miami/Cook dogfood; wave-1 metros → origin;
+optional public CDN. Never restart national clay massing.

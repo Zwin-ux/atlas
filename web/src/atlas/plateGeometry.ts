@@ -29,7 +29,13 @@ export type PlateCounty = {
   rings: number[][] | LonLat[][];
   water?: number[][] | LonLat[][];
   waterNames?: (string | null)[];
-  anchors?: Array<{ name: string; lon: number; lat: number; population: number }>;
+  anchors?: Array<{
+    name: string;
+    lon: number;
+    lat: number;
+    population: number;
+    tier?: "seat" | "primary" | "secondary";
+  }>;
   population?: number;
 };
 
@@ -46,7 +52,14 @@ export type Plate = {
   rings?: number[][] | LonLat[][];
   water?: number[][] | LonLat[][];
   waterNames?: (string | null)[];
-  anchors?: Array<{ name: string; lon: number; lat: number; population: number }>;
+  anchors?: Array<{
+    name: string;
+    lon: number;
+    lat: number;
+    population: number;
+    tier?: "seat" | "primary" | "secondary";
+    seatSource?: "name" | "largest" | "only";
+  }>;
   stateOutlines?: Record<string, number[][]>;
   /** Postal code to state name, used to label the national plate. */
   states?: Record<string, string>;
@@ -78,7 +91,13 @@ export type PlateGeometry = {
   context: ShapePath[];
   water: ShapePath[];
   borders: ShapePath[];
-  labels: Array<{ text: string; x: number; y: number; importance: number }>;
+  labels: Array<{
+    text: string;
+    x: number;
+    y: number;
+    importance: number;
+    tier?: "seat" | "primary" | "secondary";
+  }>;
   /** Plate-space viewBox the geometry was laid out in. */
   viewBox: { width: number; height: number };
   /** Convert a plate-space distance to kilometres, for the scale bar. */
@@ -86,6 +105,11 @@ export type PlateGeometry = {
   /** Whether the scale bar describes the whole plate or only the mainland. */
   scaleAppliesTo: "all" | "contiguous";
   attribution: string;
+  /**
+   * Project a WGS84 lon/lat into plate space using the same transform as the
+   * drawn paths. Used to fly the camera to a town the tool resolved.
+   */
+  toPlatePoint: (lon: number, lat: number) => { x: number; y: number } | null;
 };
 
 const PLATE_WIDTH = 1000;
@@ -108,7 +132,13 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
   const context: ShapePath[] = [];
   const water: ShapePath[] = [];
   const borders: ShapePath[] = [];
-  const labelSeeds: Array<{ text: string; lonLat: LonLat; importance: number; state: string }> = [];
+  const labelSeeds: Array<{
+    text: string;
+    lonLat: LonLat;
+    importance: number;
+    state: string;
+    tier?: "seat" | "primary" | "secondary";
+  }> = [];
 
   // Gather every ring in lon/lat first so the projection can be chosen from
   // the real extent rather than guessed.
@@ -151,7 +181,22 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
       kind: "water",
     });
     for (const anchor of plate.anchors ?? []) {
-      labelSeeds.push({ text: anchor.name, lonLat: [anchor.lon, anchor.lat], importance: anchor.population, state });
+      // Prefer server-assigned tier weights (A2); fall back to raw population.
+      const importance =
+        typeof anchor.population === "number" && anchor.tier
+          ? anchor.tier === "seat"
+            ? 1_000_000_000_000 + anchor.population
+            : anchor.tier === "primary"
+              ? 1_000_000_000 + anchor.population
+              : anchor.population
+          : anchor.population;
+      labelSeeds.push({
+        text: anchor.name,
+        lonLat: [anchor.lon, anchor.lat],
+        importance,
+        state,
+        ...(anchor.tier ? { tier: anchor.tier } : {}),
+      });
     }
   } else {
     for (const county of plate.counties ?? []) {
@@ -206,7 +251,21 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
     }
   }
 
-  const fit = fitToBox(extentOf(projectedAll), { width: PLATE_WIDTH, height: PLATE_HEIGHT, padding: 12 });
+  const subjectExtent = extentOf(projectedAll);
+  const spanX = Math.max(subjectExtent.maxX - subjectExtent.minX, 1e-9);
+  const spanY = Math.max(subjectExtent.maxY - subjectExtent.minY, 1e-9);
+  // County and state plates are the page. Match the subject's shape so a wide
+  // county is not a strip of sea on a tall phone; the SVG letterboxes. The
+  // national plate still follows the widget so the whole country stays in view.
+  const fittedHeight =
+    plate.plate === "nation"
+      ? PLATE_HEIGHT
+      : Math.round(PLATE_WIDTH / Math.min(Math.max(spanX / spanY, 0.35), 2.8));
+  const fit = fitToBox(subjectExtent, {
+    width: PLATE_WIDTH,
+    height: fittedHeight,
+    padding: 16,
+  });
   const toScreen = (point: LonLat, state: string): Point => {
     const [x, y] = project(point, state);
     return [x * fit.scale + fit.translateX, y * fit.scale + fit.translateY];
@@ -279,7 +338,13 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
 
   const labels = labelSeeds.map((seed) => {
     const [x, y] = toScreen(seed.lonLat, seed.state);
-    return { text: displayName(seed.text), x, y, importance: seed.importance };
+    return {
+      text: displayName(seed.text),
+      x,
+      y,
+      importance: seed.importance,
+      ...(seed.tier ? { tier: seed.tier } : {}),
+    };
   });
 
   // Ground scale: measure a known lon/lat span against its projected length.
@@ -303,6 +368,11 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
   const sampleState = useNational ? "ks" : (gathered[0]?.state ?? "");
   const projectedSpan = Math.abs(toScreen(east, sampleState)[0] - toScreen(west, sampleState)[0]) || 1;
 
+  // County/state plates project focus towns through the subject state code.
+  // National focus is rare; fall back to a mid-continent state so the call
+  // still returns a finite point rather than throwing.
+  const focusState = plate.state ?? gathered.find((entry) => entry.kind === "land")?.state ?? "ks";
+
   return {
     land,
     context,
@@ -310,9 +380,16 @@ export function buildPlateGeometry(plate: Plate, aspectRatio = PLATE_WIDTH / DEF
     borders,
     labels,
     scaleAppliesTo: useNational ? ("contiguous" as const) : ("all" as const),
-    viewBox: { width: PLATE_WIDTH, height: PLATE_HEIGHT },
+    viewBox: { width: PLATE_WIDTH, height: fittedHeight },
     kmPerUnit: groundKm / projectedSpan,
     attribution: plate.source,
+    toPlatePoint: (lon, lat) => {
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+      if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return null;
+      const [x, y] = toScreen([lon, lat], focusState);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+      return { x, y };
+    },
   };
 }
 

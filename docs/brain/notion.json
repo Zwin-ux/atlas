@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "project": "Atlas",
+  "planningPage": {
+    "title": "Atlas Project Brain — WebMCP 2026",
+    "pageId": "3c993161-83be-81ce-a29f-f59d639445df",
+    "url": "https://app.notion.com/p/3c99316183be81cea29ff59d639445df?pvs=204",
+    "role": "optional-human-mirror-not-required-by-agents"
+  },
+  "historicalParent": {
+    "title": "Atlas Release Command Center",
+    "pageId": "3a393161-83be-8128-bda0-cdbf9cddf3c9",
+    "url": "https://app.notion.com/p/3a39316183be8128bda0cdbf9cddf3c9?pvs=204",
+    "role": "pre-pivot-history"
+  },
+  "repositoryAuthority": [
+    "AGENTS.md",
+    "docs/STATUS.md",
+    "scripts/lib/atlas-tool-surface.mjs"
+  ],
+  "createdOn": "2026-08-26"
+}
