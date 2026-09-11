@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-001",
+  "verdict": "PASS",
+  "definition_sha256": "198aae3c6ccf879da8e79d2c31cb08b2877c005f40b6b4ec00b8835b0e59e310",
+  "recorded_at": "2026-09-10T19:55:34.288Z",
+  "executor": "grok-build-lead-20260911",
+  "reviewer": "grok-explore-01a08e60-3b66-75c0-8229-5cb8935bbdec",
+  "git": {
+    "commit": "1c11205ee64dff10c9336f4103ed5f949fce61db",
+    "integrated": true,
+    "clean_tree": true
+  },
+  "depends_on_receipts": {},
+  "review": {
+    "verdict": "PASS",
+    "observation": "Independent explore reviewer confirmed kit install, authority routing, graph validation, no runtime product edits, sibling worktrees intact, STATUS under 200 lines.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-1",
+      "criteria": ["AT-001-AC1"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Record actual repo/remotes/branch/worktrees/dirty state without discarding unrelated files.",
+      "observer": "grok-build-lead-20260911",
+      "observation": "Documents/Atlas main at 1c11205ee64dff10c9336f4103ed5f949fce61db; atlas and origin remotes recorded; sibling worktrees left in place; kit extracted to atlas-execution-kit/.",
+      "artifact_id": "check-1-log"
+    },
+    {
+      "id": "check-2",
+      "criteria": ["AT-001-AC2"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Read current instructions, status, plan and registry; distinguish stale sources from kit adoption.",
+      "observer": "grok-build-lead-20260911",
+      "observation": "AGENTS/STATUS/PLAN remain canonical. PRODUCT_SPEC_v2 is review-required. WebMCP challenge parked. Kit classified execution-kit.",
+      "artifact_id": "check-2-log"
+    },
+    {
+      "id": "check-3",
+      "criteria": ["AT-001-AC3"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Validate kit graph and record next action in STATUS.",
+      "command": "node tools/atlas-plan.mjs validate",
+      "cwd": "C:/Users/mzwin/Documents/Atlas/atlas-execution-kit",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-lead-20260911",
+      "observation": "valid true, 37 tasks, 80 edges, 13 requirements, 64 cases. Next after receipt: planner next with receipts dir.",
+      "artifact_id": "check-3-log"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "review-log",
+      "path": "logs/AT-001/review.md",
+      "sha256": "d3c961a8e7ce536bee381ba7bc3ef1d8c28ccf1fd34f94c2ba3b4e7129369d4e"
+    },
+    {
+      "id": "check-1-log",
+      "path": "logs/AT-001/check-1.txt",
+      "sha256": "2432f05d7053bdff8095bb69a499e48565e81d43514fd1426a2a87ab7da681d0"
+    },
+    {
+      "id": "check-2-log",
+      "path": "logs/AT-001/check-2.txt",
+      "sha256": "579be6b4508edb26152c3001d850977929d3b253b4f16c71cc3a6eb28ebae645"
+    },
+    {
+      "id": "check-3-log",
+      "path": "logs/AT-001/check-3.txt",
+      "sha256": "422f6487d29eb0500e616fb3fc39527fb01c9a603f280964e8e71aacc12f4d63"
+    }
+  ]
+}

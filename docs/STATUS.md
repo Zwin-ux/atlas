@@ -17,13 +17,13 @@ was run or read on the date below, not copied from another document.
 
 Current scope: finish the read-only Census ChatGPT app (point-and-ask). Kit: `atlas-execution-kit/`.
 Graph: `atlas-execution-kit/graph/release-graph.json`. Receipts: `artifacts/execution-receipts/`.
-Active: AT-001 lead on `Documents/Atlas` `main` (authority + coordinator).
+Active: AT-003 lead + AT-004 qa (after AT-001 PASS).
 Blocked: AT-041/050–054 until owner host/deploy/portal permission.
 Invalidated: none.
-Last slice: kit installed, graph validated, plan pointed at this DAG.
+Last slice: AT-001 accepted on `1c11205ee64dff10c9336f4103ed5f949fce61db`.
 Preserve: do not reset sibling worktrees.
-Failed/unrun: Location Truth not re-run this session; native workflow smoke not yet run.
-Next: `node atlas-execution-kit/tools/atlas-plan.mjs next --receipts artifacts/execution-receipts --repo .`
+Failed/unrun: Location Truth this session; native workflow smoke.
+Next: AT-003 baseline inventory; AT-004 fixtures. Planner: `node atlas-execution-kit/tools/atlas-plan.mjs next --receipts artifacts/execution-receipts --repo . --active AT-003,AT-004`
 Owner gate: real ChatGPT / deploy / portal remain BLOCKED.
 
 ## Shipped surface
