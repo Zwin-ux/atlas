@@ -13,6 +13,9 @@ export const ATLAS_VIEW_CONTRACT_VERSION = 1 as const;
 
 export type AtlasViewStatus = "opened" | "ambiguous" | "unresolved" | "transport_error";
 
+/** Widget-only: no tool result yet. Not the same as unresolved input. */
+export type WidgetViewStatus = AtlasViewStatus | "idle";
+
 export type AtlasPlateRef =
   | { readonly level: "nation" }
   | { readonly level: "state"; readonly state: string }
@@ -201,6 +204,155 @@ export function readHostCapabilities(host: unknown): AtlasHostCapabilities {
       record !== undefined && "toolResponseMetadata" in record && record.toolResponseMetadata !== undefined,
     displayMode: display === "inline" || display === "fullscreen" || display === "pip" ? display : "unknown",
   };
+}
+
+/**
+ * First-load absence is idle. A parsed refusal is never idle and never opened.
+ * Legacy/_meta plates count as opened only when no structured refusal exists.
+ */
+export function widgetStatusAfterParse(
+  parsed: AtlasMapView | undefined,
+  hasLegacyOpenedPlate: boolean,
+  hasPreview: boolean,
+): WidgetViewStatus {
+  if (parsed) return parsed.status;
+  if (hasLegacyOpenedPlate || hasPreview) return "opened";
+  return "idle";
+}
+
+export function isAtlasRefusalStatus(
+  status: WidgetViewStatus | AtlasViewStatus,
+): status is "ambiguous" | "unresolved" | "transport_error" {
+  return status === "ambiguous" || status === "unresolved" || status === "transport_error";
+}
+
+/**
+ * Honor an explicit refusal even when `type` is missing, so a stale
+ * `level: "nation"` cannot be read as a successful open.
+ */
+export function parseMapViewOrRefusal(input: unknown): AtlasMapView | undefined {
+  const direct = parseAtlasMapView(input);
+  if (direct) return direct;
+  if (!isRecord(input)) return undefined;
+  if (!isAtlasRefusalStatus(input.status as WidgetViewStatus)) return undefined;
+  return parseAtlasMapView({ ...input, type: "atlasMapView" });
+}
+
+export type ResolvedWidgetPlate = {
+  readonly status: WidgetViewStatus;
+  readonly displayed?: AtlasPlateRef | undefined;
+  readonly requested?: AtlasPlateRef | undefined;
+  readonly coverage?: string | undefined;
+  readonly candidates?: readonly AtlasPublicPlace[] | undefined;
+  readonly title?: string | undefined;
+  readonly query?: string | undefined;
+  readonly generation: number;
+  readonly fingerprint: string;
+};
+
+function bumpGeneration(fingerprint: string, previous: string, generation: number): number {
+  return fingerprint === previous ? generation : nextRequestGeneration(generation);
+}
+
+function coverageFromUnknown(value: unknown): string | undefined {
+  if (!isRecord(value)) return undefined;
+  return asTrimmedString(value.coverage, 400);
+}
+
+function legacyFingerprint(plate: AtlasPlateRef): string {
+  if (plate.level === "nation") return "legacy:nation";
+  if (plate.level === "state") return `legacy:state:${plate.state}`;
+  return `legacy:county:${plate.countySlug}`;
+}
+
+/**
+ * Widget interpretation of a host payload. Refusal always wins over level,
+ * leftover `_meta` plates, and nation defaults. No payload on a fresh
+ * instance is idle, not unresolved and not an opened United States map.
+ */
+export function resolveWidgetPlate(input: {
+  readonly structured: unknown;
+  readonly legacyPlate?: AtlasPlateRef | undefined;
+  readonly preview?: AtlasPlateRef | undefined;
+  readonly previous?: ResolvedWidgetPlate | undefined;
+  readonly generation: number;
+  readonly lastFingerprint: string;
+}): ResolvedWidgetPlate {
+  const parsed = parseMapViewOrRefusal(input.structured);
+
+  if (parsed?.status === "opened") {
+    const fingerprint = fingerprintMapView(parsed);
+    return {
+      status: "opened",
+      displayed: parsed.plate,
+      requested: parsed.plate,
+      ...(parsed.coverage ? { coverage: parsed.coverage } : {}),
+      title: parsed.title,
+      generation: bumpGeneration(fingerprint, input.lastFingerprint, input.generation),
+      fingerprint,
+    };
+  }
+
+  if (parsed && isAtlasRefusalStatus(parsed.status)) {
+    const fingerprint = fingerprintMapView(parsed);
+    const previousDisplayed = input.previous?.displayed;
+    return {
+      status: parsed.status,
+      ...(previousDisplayed ? { displayed: previousDisplayed } : {}),
+      ...(input.previous?.coverage ? { coverage: input.previous.coverage } : {}),
+      ...(parsed.candidates && parsed.candidates.length > 0 ? { candidates: parsed.candidates } : {}),
+      ...(parsed.title ? { title: parsed.title } : {}),
+      ...(parsed.query ? { query: parsed.query } : {}),
+      generation: bumpGeneration(fingerprint, input.lastFingerprint, input.generation),
+      fingerprint,
+    };
+  }
+
+  if (input.legacyPlate) {
+    const fingerprint = legacyFingerprint(input.legacyPlate);
+    const coverage = coverageFromUnknown(input.structured);
+    return {
+      status: "opened",
+      displayed: input.legacyPlate,
+      requested: input.legacyPlate,
+      ...(coverage ? { coverage } : {}),
+      generation: bumpGeneration(fingerprint, input.lastFingerprint, input.generation),
+      fingerprint,
+    };
+  }
+
+  if (input.preview) {
+    return {
+      status: "opened",
+      displayed: input.preview,
+      requested: input.preview,
+      generation: input.generation,
+      fingerprint: input.lastFingerprint || "preview",
+    };
+  }
+
+  if (input.previous) {
+    return input.previous;
+  }
+
+  return {
+    status: "idle",
+    generation: input.generation,
+    fingerprint: input.lastFingerprint,
+  };
+}
+
+/** Empty first-load ref is an empty trail, never a silent nation plate. */
+export function startingPlateTrail(ref: AtlasPlateRef | undefined): AtlasPlateRef[] {
+  return ref ? [ref] : [];
+}
+
+/** Fetch only a successfully opened plate. Idle and refusals do not load a map. */
+export function shouldFetchDisplayedPlate(
+  status: WidgetViewStatus,
+  displayed: AtlasPlateRef | undefined,
+): boolean {
+  return status === "opened" && displayed !== undefined;
 }
 
 export function fingerprintMapView(view: AtlasMapView): string {

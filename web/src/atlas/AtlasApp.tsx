@@ -1,8 +1,9 @@
 /**
  * Atlas widget shell.
  *
- * Reads the plate reference the MCP tool put in `_meta.atlasPlate`, fetches
- * that plate over HTTP, and hands it to the renderer. Plates travel over HTTP
+ * Reads the plate the MCP tool opened, through the view-contract status
+ * first. Idle and refusals do not fetch a map. Successful opens fetch
+ * that plate over HTTP, and the renderer draws it. Plates travel over HTTP
  * rather than inside the tool payload because the national plate is ~550 KB
  * and this project has already crashed a ChatGPT session by pushing large
  * geometry through connector storage (finding G8-2).
@@ -13,6 +14,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  isAtlasRefusalStatus,
+  type AtlasPublicPlace,
+  type WidgetViewStatus,
+} from "../../../packages/core/src/atlas/viewContract.js";
 
 import { AtlasPlate } from "./AtlasPlate";
 import type { Plate } from "./plateGeometry";
@@ -65,7 +72,7 @@ function plateTitle(ref: PlateRef, plate?: Plate): string {
 }
 
 export type AtlasAppProps = {
-  /** Plate the tool asked for. Defaults to the nation. */
+  /** Plate the tool successfully opened. Empty first-load is idle, not the nation. */
   initialRef?: PlateRef | undefined;
   /**
    * Place the tool resolved inside the county (town/city). Only applied while
@@ -74,12 +81,22 @@ export type AtlasAppProps = {
   focus?: PlateFocus | undefined;
   /** Base URL for plate fetches; the widget runs on a sandbox origin. */
   apiBase?: string | undefined;
+  /** Discriminated host result. Missing output is idle. */
+  viewStatus?: WidgetViewStatus | undefined;
+  candidates?: readonly AtlasPublicPlace[] | undefined;
+  refusalTitle?: string | undefined;
+  refusalQuery?: string | undefined;
 };
 
-function hostDebugLines(apiBase: string, initialRef: PlateRef | undefined, trace: FetchTrace | null): string[] {
+function hostDebugLines(
+  apiBase: string,
+  initialRef: PlateRef | undefined,
+  viewStatus: WidgetViewStatus,
+  trace: FetchTrace | null,
+): string[] {
   const host = typeof window !== "undefined" ? window.openai : undefined;
   const meta = host?.toolResponseMetadata as { atlasPlate?: { level?: string; countySlug?: string } } | undefined;
-  const output = host?.toolOutput as { type?: string; level?: string; countySlug?: string } | undefined;
+  const output = host?.toolOutput as { type?: string; status?: string; level?: string; countySlug?: string } | undefined;
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const href = typeof window !== "undefined" ? window.location.href : "";
   return [
@@ -88,22 +105,58 @@ function hostDebugLines(apiBase: string, initialRef: PlateRef | undefined, trace
     `href ${href.slice(0, 160) || "(none)"}`,
     `apiBase ${apiBase || "(relative)"}`,
     `openai ${host ? "yes" : "missing"}`,
+    `viewStatus ${viewStatus}`,
     `metaPlate ${meta?.atlasPlate?.level ?? "none"}${meta?.atlasPlate?.countySlug ? ` ${meta.atlasPlate.countySlug}` : ""}`,
-    `output ${output?.type ?? "none"} ${output?.level ?? ""} ${output?.countySlug ?? ""}`.trim(),
-    `initialRef ${initialRef ? `${initialRef.level}${initialRef.level === "county" ? ` ${initialRef.countySlug}` : initialRef.level === "state" ? ` ${initialRef.state}` : ""}` : "none — defaulting to nation"}`,
+    `output ${output?.type ?? "none"} ${output?.status ?? ""} ${output?.level ?? ""} ${output?.countySlug ?? ""}`.trim(),
+    `initialRef ${initialRef ? `${initialRef.level}${initialRef.level === "county" ? ` ${initialRef.countySlug}` : initialRef.level === "state" ? ` ${initialRef.state}` : ""}` : "none — idle, not nation"}`,
     trace
       ? `fetch ${trace.url} ${trace.status != null ? `HTTP ${trace.status}` : trace.error ?? "pending"}`
       : "fetch (none yet)",
   ];
 }
 
-export function AtlasApp({ initialRef, focus, apiBase = "" }: AtlasAppProps) {
-  const [trail, setTrail] = useState<PlateRef[]>([initialRef ?? { level: "nation" }]);
+function viewCopy(
+  status: WidgetViewStatus,
+  title: string | undefined,
+  query: string | undefined,
+): { heading: string; body?: string } {
+  if (status === "unresolved") {
+    return {
+      heading: title?.trim() || "Atlas does not carry that name.",
+      ...(query ? { body: `No Census place matched “${query}”.` } : {}),
+    };
+  }
+  if (status === "ambiguous") {
+    return {
+      heading: title?.trim() || "That name matches more than one place.",
+      ...(query ? { body: `“${query}” is used in more than one county.` } : {}),
+    };
+  }
+  if (status === "transport_error") {
+    return {
+      heading: title?.trim() || "Atlas could not complete that request.",
+      body: "The last correct map, if any, stays on screen.",
+    };
+  }
+  return { heading: "Ask Atlas for a US county, state, or town." };
+}
+
+export function AtlasApp({
+  initialRef,
+  focus,
+  apiBase = "",
+  viewStatus = "idle",
+  candidates,
+  refusalTitle,
+  refusalQuery,
+}: AtlasAppProps) {
+  const [trail, setTrail] = useState<PlateRef[]>(() => (initialRef ? [initialRef] : []));
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const [trace, setTrace] = useState<FetchTrace | null>(null);
   const requestId = useRef(0);
 
-  const current = trail[trail.length - 1]!;
+  const current = trail[trail.length - 1];
+  const copy = viewCopy(viewStatus, refusalTitle, refusalQuery);
 
   useEffect(() => {
     document.getElementById("atlas-boot")?.setAttribute("hidden", "");
@@ -119,10 +172,18 @@ export function AtlasApp({ initialRef, focus, apiBase = "" }: AtlasAppProps) {
   }, [initialRef?.level, (initialRef as { countySlug?: string })?.countySlug, (initialRef as { state?: string })?.state]);
 
   useEffect(() => {
+    // Fetch the trail plate only. Idle/first-load refusal keep an empty trail,
+    // so this cannot silently load the United States. User drill-down still
+    // fetches during a later refusal because the last good map stays in trail.
+    if (!current) {
+      setLoad({ status: "idle" });
+      return;
+    }
+    const target = current;
     const id = ++requestId.current;
     let cancelled = false;
-    const url = `${apiBase}${plateUrl(current)}`;
-    setLoad({ status: "loading", ref: current });
+    const url = `${apiBase}${plateUrl(target)}`;
+    setLoad({ status: "loading", ref: target });
     setTrace({ url });
 
     fetch(url, { headers: { accept: "application/json" } })
@@ -138,7 +199,7 @@ export function AtlasApp({ initialRef, focus, apiBase = "" }: AtlasAppProps) {
       .then((plate) => {
         // A slow plate must not overwrite a newer one the reader already moved to.
         if (cancelled || id !== requestId.current) return;
-        setLoad({ status: "ready", ref: current, plate });
+        setLoad({ status: "ready", ref: target, plate });
         reportWidgetDebug(apiBase, "plate-ok", url, { status: "200" });
       })
       .catch((error: unknown) => {
@@ -150,7 +211,7 @@ export function AtlasApp({ initialRef, focus, apiBase = "" }: AtlasAppProps) {
             ? `${message} (${url})`
             : `${message} fetching ${url} from ${typeof window !== "undefined" ? window.location.origin : "?"}`;
         setTrace({ url, ...(status != null ? { status } : {}), error: enriched });
-        setLoad({ status: "error", ref: current, message: enriched });
+        setLoad({ status: "error", ref: target, message: enriched });
         reportWidgetDebug(apiBase, "plate-error", enriched, { url });
       });
 
@@ -177,6 +238,7 @@ export function AtlasApp({ initialRef, focus, apiBase = "" }: AtlasAppProps) {
   // not zoom into an unrelated place on a different plate.
   const activeFocus =
     focus &&
+    current &&
     trail.length === 1 &&
     current.level === "county" &&
     initialRef?.level === "county" &&
@@ -184,31 +246,49 @@ export function AtlasApp({ initialRef, focus, apiBase = "" }: AtlasAppProps) {
       ? focus
       : undefined;
 
-  const debugLines = hostDebugLines(apiBase, initialRef, trace);
-  const debugFailed = load.status === "error" || !initialRef;
+  const debugLines = hostDebugLines(apiBase, initialRef, viewStatus, trace);
+  const debugFailed = load.status === "error" || viewStatus === "transport_error";
+  const showRefusalSheet = isAtlasRefusalStatus(viewStatus);
+  const showIdleStage = viewStatus === "idle" && load.status !== "ready";
+  const debugHeading =
+    load.status === "error"
+      ? "Atlas map failed"
+      : viewStatus === "idle"
+        ? "Atlas waiting"
+        : viewStatus === "ambiguous"
+          ? "Atlas needs a more specific name"
+          : viewStatus === "unresolved"
+            ? "Atlas does not carry that name"
+            : viewStatus === "transport_error"
+              ? "Atlas could not complete that request"
+              : load.status === "ready"
+                ? "Atlas debug"
+                : "Atlas loading";
 
   return (
     <div className="atlas-app">
-      <nav className="atlas-app__crumbs" aria-label="Atlas location">
-        {crumbs.map((crumb, i) => (
-          <span key={`${crumb.ref.level}-${i}`}>
-            {i > 0 ? <span className="atlas-app__sep" aria-hidden="true">›</span> : null}
-            {i === crumbs.length - 1 ? (
-              <span className="atlas-app__crumb is-current" aria-current="page">
-                {crumb.label}
-                {activeFocus?.name ? ` · ${activeFocus.name}` : ""}
-              </span>
-            ) : (
-              <button type="button" className="atlas-app__crumb" onClick={() => goTo(crumb.depth)}>
-                {crumb.label}
-              </button>
-            )}
-          </span>
-        ))}
-      </nav>
+      {trail.length > 0 ? (
+        <nav className="atlas-app__crumbs" aria-label="Atlas location">
+          {crumbs.map((crumb, i) => (
+            <span key={`${crumb.ref.level}-${i}`}>
+              {i > 0 ? <span className="atlas-app__sep" aria-hidden="true">›</span> : null}
+              {i === crumbs.length - 1 ? (
+                <span className="atlas-app__crumb is-current" aria-current="page">
+                  {crumb.label}
+                  {activeFocus?.name ? ` · ${activeFocus.name}` : ""}
+                </span>
+              ) : (
+                <button type="button" className="atlas-app__crumb" onClick={() => goTo(crumb.depth)}>
+                  {crumb.label}
+                </button>
+              )}
+            </span>
+          ))}
+        </nav>
+      ) : null}
 
       <div className="atlas-app__stage">
-        {load.status === "ready" ? (
+        {load.status === "ready" && current ? (
           <AtlasPlate
             plate={load.plate}
             focusSlug={current.level === "county" ? current.countySlug : undefined}
@@ -224,19 +304,56 @@ export function AtlasApp({ initialRef, focus, apiBase = "" }: AtlasAppProps) {
               </button>
             ) : null}
           </div>
-        ) : (
+        ) : showIdleStage || (showRefusalSheet && load.status !== "ready") ? (
+          <div className="atlas-app__message" role="status" aria-live="polite">
+            <p>{copy.heading}</p>
+            {copy.body ? <p>{copy.body}</p> : null}
+            {viewStatus === "ambiguous" && candidates && candidates.length > 0 ? (
+              <CandidateList candidates={candidates} />
+            ) : null}
+          </div>
+        ) : current ? (
           <div className="atlas-app__message" aria-live="polite">
             <p>Drawing {plateTitle(current)}…</p>
+          </div>
+        ) : (
+          <div className="atlas-app__message" aria-live="polite">
+            <p>{copy.heading}</p>
           </div>
         )}
       </div>
 
+      {showRefusalSheet && load.status === "ready" ? (
+        <div className="atlas-app__sheet" role="status" aria-live="polite">
+          <p className="atlas-app__sheet-title">{copy.heading}</p>
+          {copy.body ? <p>{copy.body}</p> : null}
+          {viewStatus === "ambiguous" && candidates && candidates.length > 0 ? (
+            <CandidateList candidates={candidates} />
+          ) : null}
+        </div>
+      ) : null}
+
       <aside className={`atlas-debug${debugFailed ? " is-error" : ""}`} role={debugFailed ? "alert" : "status"}>
-        <strong>{load.status === "error" ? "Atlas map failed" : load.status === "ready" ? "Atlas debug" : "Atlas loading"}</strong>
+        <strong>{debugHeading}</strong>
         {debugLines.map((line) => (
           <div key={line}>{line}</div>
         ))}
       </aside>
     </div>
+  );
+}
+
+function CandidateList({ candidates }: { candidates: readonly AtlasPublicPlace[] }) {
+  return (
+    <ul className="atlas-app__candidates">
+      {candidates.map((place) => (
+        <li key={`${place.kind}:${place.countySlug}:${place.name}`}>
+          {place.name}
+          <span className="atlas-app__candidate-meta">
+            {place.kind === "county" ? place.state : `${place.county}, ${place.state}`}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

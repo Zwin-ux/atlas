@@ -1,27 +1,30 @@
 /**
  * Reads the plate the MCP tool published on the host, through the AT-007 view
  * contract. Status is checked before any plate reference. A refusal never
- * replaces the last opened map.
+ * replaces the last opened map. First-load absence is idle, not a US map.
  */
 
 import { useEffect, useRef, useState } from "react";
 
 import {
-  fingerprintMapView,
-  nextRequestGeneration,
-  parseAtlasMapView,
   parseAtlasPlateRef,
-  plateFromMapView,
   readHostCapabilities,
-  retainDisplayedPlate,
+  resolveWidgetPlate,
   type AtlasHostCapabilities,
   type AtlasPublicPlace,
-  type AtlasViewStatus,
+  type ResolvedWidgetPlate,
+  type WidgetViewStatus,
 } from "../../../packages/core/src/atlas/viewContract.js";
 
 import type { PlateRef } from "./AtlasApp";
 
 const GLOBALS_EVENTS = ["openai:set_globals", "globals-change", "openai:tool_response"] as const;
+
+const IDLE_RESOLVED: ResolvedWidgetPlate = {
+  status: "idle",
+  generation: 0,
+  fingerprint: "",
+};
 
 type ToolPayload = {
   atlasPlate?: {
@@ -48,10 +51,12 @@ export type ToolPlate = {
   ref?: PlateRef | undefined;
   coverage?: string | undefined;
   focus?: PlateFocus | undefined;
-  status: AtlasViewStatus;
+  status: WidgetViewStatus;
   requestGeneration: number;
   requested?: PlateRef | undefined;
   candidates?: readonly AtlasPublicPlace[] | undefined;
+  title?: string | undefined;
+  query?: string | undefined;
   hostCapabilities: AtlasHostCapabilities;
 };
 
@@ -105,125 +110,75 @@ type Displayed = {
   focus?: PlateFocus | undefined;
 };
 
-function applyHostOutput(
-  previous: Displayed,
-  generation: number,
-  lastFingerprint: string,
-): { displayed: Displayed; generation: number; fingerprint: string; status: AtlasViewStatus; requested?: PlateRef | undefined; candidates?: readonly AtlasPublicPlace[] | undefined } {
+type HostInterpretation = {
+  displayed: Displayed;
+  resolved: ResolvedWidgetPlate;
+};
+
+function applyHostOutput(previous: HostInterpretation): HostInterpretation {
   const host = typeof window !== "undefined" ? window.openai : undefined;
   const meta = (host as { toolResponseMetadata?: ToolPayload; toolOutput?: unknown } | undefined)
     ?.toolResponseMetadata;
   const structured = (host as { toolOutput?: unknown } | undefined)?.toolOutput;
-  const parsed = parseAtlasMapView(structured);
   const preview = readPreviewRef();
   const previewFocus = readPreviewFocus();
+  const resolved = resolveWidgetPlate({
+    structured,
+    legacyPlate: asPlateRef(parseAtlasPlateRef(meta?.atlasPlate)),
+    preview,
+    previous: previous.resolved,
+    generation: previous.resolved.generation,
+    lastFingerprint: previous.resolved.fingerprint,
+  });
 
-  if (parsed) {
-    const fingerprint = fingerprintMapView(parsed);
-    const generationNext = fingerprint === lastFingerprint ? generation : nextRequestGeneration(generation);
-    if (parsed.status === "opened") {
-      const plate = asPlateRef(plateFromMapView(parsed));
-      return {
-        displayed: {
-          ref: plate,
-          coverage: parsed.coverage,
-          focus: readPlateFocus(meta) ?? previewFocus,
-        },
-        generation: generationNext,
-        fingerprint,
-        status: "opened",
-        requested: plate,
-      };
-    }
-    return {
-      displayed: {
-        ...previous,
-        ref: asPlateRef(retainDisplayedPlate(previous.ref, parsed)),
-      },
-      generation: generationNext,
-      fingerprint,
-      status: parsed.status,
-      candidates: parsed.candidates,
-    };
-  }
-
-  const legacyPlate = asPlateRef(parseAtlasPlateRef(meta?.atlasPlate));
-  if (legacyPlate) {
-    const fingerprint = `legacy:${legacyPlate.level}:${"countySlug" in legacyPlate ? legacyPlate.countySlug : "state" in legacyPlate ? legacyPlate.state : "nation"}`;
-    const generationNext = fingerprint === lastFingerprint ? generation : nextRequestGeneration(generation);
-    return {
-      displayed: {
-        ref: legacyPlate,
-        coverage: typeof structured === "object" && structured && "coverage" in structured && typeof structured.coverage === "string"
-          ? structured.coverage
-          : undefined,
-        focus: readPlateFocus(meta) ?? previewFocus,
-      },
-      generation: generationNext,
-      fingerprint,
-      status: "opened",
-      requested: legacyPlate,
-    };
-  }
-
-  if (preview) {
-    return {
-      displayed: { ref: preview, focus: previewFocus },
-      generation,
-      fingerprint: lastFingerprint,
-      status: "opened",
-      requested: preview,
-    };
-  }
+  const openedFresh =
+    resolved.status === "opened" && resolved.fingerprint !== previous.resolved.fingerprint;
+  const focus = openedFresh
+    ? (readPlateFocus(meta) ?? previewFocus)
+    : previous.displayed.focus ?? (resolved.status === "opened" ? (readPlateFocus(meta) ?? previewFocus) : undefined);
 
   return {
-    displayed: previous,
-    generation,
-    fingerprint: lastFingerprint,
-    status: "opened",
-    requested: previous.ref,
+    displayed: {
+      ...(resolved.displayed ? { ref: asPlateRef(resolved.displayed) } : {}),
+      ...(resolved.coverage ? { coverage: resolved.coverage } : {}),
+      ...(focus ? { focus } : {}),
+    },
+    resolved,
+  };
+}
+
+function toToolPlate(applied: HostInterpretation, host: unknown): ToolPlate {
+  return {
+    ...(applied.displayed.ref ? { ref: applied.displayed.ref } : {}),
+    ...(applied.displayed.coverage ? { coverage: applied.displayed.coverage } : {}),
+    ...(applied.displayed.focus ? { focus: applied.displayed.focus } : {}),
+    status: applied.resolved.status,
+    requestGeneration: applied.resolved.generation,
+    ...(applied.resolved.requested ? { requested: asPlateRef(applied.resolved.requested) } : {}),
+    ...(applied.resolved.candidates ? { candidates: applied.resolved.candidates } : {}),
+    ...(applied.resolved.title ? { title: applied.resolved.title } : {}),
+    ...(applied.resolved.query ? { query: applied.resolved.query } : {}),
+    hostCapabilities: readHostCapabilities(host),
   };
 }
 
 export function useToolPlate(): ToolPlate {
-  const displayedRef = useRef<Displayed>({});
-  const generationRef = useRef(0);
-  const fingerprintRef = useRef("");
+  const snapshotRef = useRef<HostInterpretation>({
+    displayed: {},
+    resolved: IDLE_RESOLVED,
+  });
   const [plate, setPlate] = useState<ToolPlate>(() => {
-    const applied = applyHostOutput({}, 0, "");
-    displayedRef.current = applied.displayed;
-    generationRef.current = applied.generation;
-    fingerprintRef.current = applied.fingerprint;
+    const applied = applyHostOutput(snapshotRef.current);
+    snapshotRef.current = applied;
     const host = typeof window !== "undefined" ? window.openai : undefined;
-    return {
-      ref: applied.displayed.ref,
-      coverage: applied.displayed.coverage,
-      focus: applied.displayed.focus,
-      status: applied.status,
-      requestGeneration: applied.generation,
-      requested: applied.requested,
-      candidates: applied.candidates,
-      hostCapabilities: readHostCapabilities(host),
-    };
+    return toToolPlate(applied, host);
   });
 
   useEffect(() => {
     const update = () => {
-      const applied = applyHostOutput(displayedRef.current, generationRef.current, fingerprintRef.current);
-      displayedRef.current = applied.displayed;
-      generationRef.current = applied.generation;
-      fingerprintRef.current = applied.fingerprint;
-      const host = window.openai;
-      setPlate({
-        ref: applied.displayed.ref,
-        coverage: applied.displayed.coverage,
-        focus: applied.displayed.focus,
-        status: applied.status,
-        requestGeneration: applied.generation,
-        requested: applied.requested,
-        candidates: applied.candidates,
-        hostCapabilities: readHostCapabilities(host),
-      });
+      const applied = applyHostOutput(snapshotRef.current);
+      snapshotRef.current = applied;
+      setPlate(toToolPlate(applied, window.openai));
     };
     for (const type of GLOBALS_EVENTS) {
       window.addEventListener(type, update, { passive: true });
@@ -239,10 +194,6 @@ export function useToolPlate(): ToolPlate {
 }
 
 /** Test helper: apply one host payload the same way the hook does. */
-export function interpretToolPlate(
-  previous: Displayed,
-  generation: number,
-  lastFingerprint: string,
-): ReturnType<typeof applyHostOutput> {
-  return applyHostOutput(previous, generation, lastFingerprint);
+export function interpretToolPlate(previous: HostInterpretation = { displayed: {}, resolved: IDLE_RESOLVED }): HostInterpretation {
+  return applyHostOutput(previous);
 }

@@ -50,8 +50,18 @@ function atlasApiBase(): string {
 const API_BASE = atlasApiBase();
 
 function AtlasWidget() {
-  const { ref, focus } = useToolPlate();
-  return <AtlasApp initialRef={ref} focus={focus} apiBase={API_BASE} />;
+  const plate = useToolPlate();
+  return (
+    <AtlasApp
+      initialRef={plate.ref}
+      focus={plate.focus}
+      apiBase={API_BASE}
+      viewStatus={plate.status}
+      candidates={plate.candidates}
+      refusalTitle={plate.title}
+      refusalQuery={plate.query}
+    />
+  );
 }
 
 const root = document.getElementById("root");

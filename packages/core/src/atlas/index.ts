@@ -39,12 +39,18 @@ export type { Gazetteer, GazetteerInput, GazetteerPlace, Resolution } from "./ga
 export {
   ATLAS_VIEW_CONTRACT_VERSION,
   fingerprintMapView,
+  isAtlasRefusalStatus,
   nextRequestGeneration,
   parseAtlasMapView,
   parseAtlasPlateRef,
+  parseMapViewOrRefusal,
   plateFromMapView,
   readHostCapabilities,
+  resolveWidgetPlate,
   retainDisplayedPlate,
+  shouldFetchDisplayedPlate,
+  startingPlateTrail,
+  widgetStatusAfterParse,
 } from "./viewContract.js";
 export type {
   AtlasHostCapabilities,
@@ -56,6 +62,8 @@ export type {
   AtlasSelectedFeature,
   AtlasViewStatus,
   AtlasWidgetView,
+  ResolvedWidgetPlate,
+  WidgetViewStatus,
 } from "./viewContract.js";
 
 export { classifyTownAnchors, countyStem } from "./townTiers.js";
