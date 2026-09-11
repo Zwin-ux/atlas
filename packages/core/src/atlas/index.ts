@@ -36,5 +36,27 @@ export type { LabelBox, LabelCandidate, LabelPlacementOptions, PlacedLabel } fro
 export { createGazetteer, editDistance, foldName } from "./gazetteer.js";
 export type { Gazetteer, GazetteerInput, GazetteerPlace, Resolution } from "./gazetteer.js";
 
+export {
+  ATLAS_VIEW_CONTRACT_VERSION,
+  fingerprintMapView,
+  nextRequestGeneration,
+  parseAtlasMapView,
+  parseAtlasPlateRef,
+  plateFromMapView,
+  readHostCapabilities,
+  retainDisplayedPlate,
+} from "./viewContract.js";
+export type {
+  AtlasHostCapabilities,
+  AtlasMapView,
+  AtlasOpenedMapView,
+  AtlasPlateRef,
+  AtlasPublicPlace,
+  AtlasRefusedMapView,
+  AtlasSelectedFeature,
+  AtlasViewStatus,
+  AtlasWidgetView,
+} from "./viewContract.js";
+
 export { classifyTownAnchors, countyStem } from "./townTiers.js";
 export type { TieredTown, TownAnchorInput, TownTier } from "./townTiers.js";

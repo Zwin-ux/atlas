@@ -19,6 +19,7 @@ import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import type { GazetteerPlace, Resolution } from "@atlas/core/atlas";
+import { ATLAS_VIEW_CONTRACT_VERSION } from "@atlas/core/atlas";
 import type { AtlasIndex } from "./atlasIndex.js";
 import type { AtlasPlateService } from "./atlasPlates.js";
 
@@ -122,8 +123,9 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
       },
       outputSchema: {
         type: z.literal("atlasMapView"),
-        level: z.enum(["nation", "state", "county"]),
+        level: z.enum(["nation", "state", "county"]).optional(),
         title: z.string(),
+        query: z.string().optional(),
         countySlug: z.string().optional(),
         county: z.string().optional(),
         state: z.string().optional(),
@@ -136,7 +138,8 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
         largestTowns: z.array(z.object({ name: z.string(), population: z.number() })).optional(),
         water: z.array(z.string()).optional(),
         source: z.string().optional(),
-        status: z.enum(["opened", "ambiguous", "unresolved"]),
+        contractVersion: z.literal(ATLAS_VIEW_CONTRACT_VERSION).optional(),
+        status: z.enum(["opened", "ambiguous", "unresolved", "transport_error"]),
         candidates: z
           .array(
             z.object({
@@ -165,11 +168,13 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
     },
     async ({ place, level }) =>
       instrument("open_atlas_map", async () => {
+        try {
         // No place named: open the national plate.
         if (!place || !place.trim()) {
           return {
             structuredContent: {
               type: "atlasMapView" as const,
+              contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
               level: "nation" as const,
               title: "United States",
               status: "opened" as const,
@@ -191,11 +196,14 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
         const resolution = index.gazetteer.resolve(place);
 
         if (resolution.status !== "resolved") {
+          // No plate reference on refusal. A nation level here used to make
+          // the widget treat Springfield as a successful US map.
           return {
             structuredContent: {
               type: "atlasMapView" as const,
-              level: "nation" as const,
+              contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
               title: place,
+              query: place,
               status: resolution.status,
               ...(resolution.status === "ambiguous"
                 ? { candidates: resolution.candidates.map(publicPlace) }
@@ -216,6 +224,7 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
           return {
             structuredContent: {
               type: "atlasMapView" as const,
+              contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
               level: "state" as const,
               title: identity?.name ?? target.state.toUpperCase(),
               state: target.state.toUpperCase(),
@@ -274,6 +283,7 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
         return {
           structuredContent: {
             type: "atlasMapView" as const,
+            contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
             level: "county" as const,
             title: target.kind === "place" ? target.name : target.countyName,
             countySlug: target.countySlug,
@@ -304,6 +314,22 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
             },
           ],
         };
+        } catch {
+          return {
+            structuredContent: {
+              type: "atlasMapView" as const,
+              contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
+              title: "Atlas could not complete that request",
+              status: "transport_error" as const,
+            },
+            content: [
+              {
+                type: "text" as const,
+                text: "Atlas hit an operational error opening that map. The last correct map, if any, should stay on screen. Retry the same place; do not invent geography.",
+              },
+            ],
+          };
+        }
       }),
   );
 

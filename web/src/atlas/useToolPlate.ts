@@ -1,15 +1,23 @@
 /**
- * Reads the plate reference the MCP tool put in `_meta.atlasPlate`.
- *
- * The host delivers tool output on `window.openai` and republishes it on a
- * globals event when the model calls a tool again. Both paths are handled, and
- * every host API result is treated as possibly-undefined: outside a user
- * gesture the real ChatGPT host returns `undefined` where the emulator
- * returned a Promise, which crashed the widget at mount once already
- * (finding G8-3).
+ * Reads the plate the MCP tool published on the host, through the AT-007 view
+ * contract. Status is checked before any plate reference. A refusal never
+ * replaces the last opened map.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import {
+  fingerprintMapView,
+  nextRequestGeneration,
+  parseAtlasMapView,
+  parseAtlasPlateRef,
+  plateFromMapView,
+  readHostCapabilities,
+  retainDisplayedPlate,
+  type AtlasHostCapabilities,
+  type AtlasPublicPlace,
+  type AtlasViewStatus,
+} from "../../../packages/core/src/atlas/viewContract.js";
 
 import type { PlateRef } from "./AtlasApp";
 
@@ -40,7 +48,16 @@ export type ToolPlate = {
   ref?: PlateRef | undefined;
   coverage?: string | undefined;
   focus?: PlateFocus | undefined;
+  status: AtlasViewStatus;
+  requestGeneration: number;
+  requested?: PlateRef | undefined;
+  candidates?: readonly AtlasPublicPlace[] | undefined;
+  hostCapabilities: AtlasHostCapabilities;
 };
+
+function asPlateRef(value: ReturnType<typeof parseAtlasPlateRef>): PlateRef | undefined {
+  return value;
+}
 
 function readPlateFocus(meta: ToolPayload | undefined): PlateFocus | undefined {
   const focus = meta?.atlasPlate?.focus;
@@ -56,46 +73,6 @@ function readPlateFocus(meta: ToolPayload | undefined): PlateFocus | undefined {
   };
 }
 
-function readPlateRef(meta: ToolPayload | undefined): PlateRef | undefined {
-  const plate = meta?.atlasPlate;
-  if (!plate?.level) return undefined;
-  if (plate.level === "nation") return { level: "nation" };
-  if (plate.level === "state" && plate.state) return { level: "state", state: plate.state.toLowerCase() };
-  if (plate.level === "county" && plate.countySlug) {
-    return {
-      level: "county",
-      countySlug: plate.countySlug,
-      ...(plate.state ? { state: plate.state.toLowerCase() } : {}),
-      ...(plate.name ? { name: plate.name } : {}),
-    };
-  }
-  return undefined;
-}
-
-/** ChatGPT sometimes only hydrates structuredContent onto toolOutput, not _meta. */
-function readPlateFromStructured(output: unknown): PlateRef | undefined {
-  if (!output || typeof output !== "object") return undefined;
-  const plate = output as {
-    level?: string;
-    countySlug?: string;
-    state?: string;
-    county?: string;
-    title?: string;
-  };
-  return readPlateRef({
-    atlasPlate: {
-      ...(typeof plate.level === "string" ? { level: plate.level } : {}),
-      ...(typeof plate.state === "string" ? { state: plate.state } : {}),
-      ...(typeof plate.countySlug === "string" ? { countySlug: plate.countySlug } : {}),
-      ...(typeof plate.county === "string"
-        ? { name: plate.county }
-        : typeof plate.title === "string"
-          ? { name: plate.title }
-          : {}),
-    },
-  });
-}
-
 /** Query-parameter override, so the plate can be opened directly in /preview. */
 function readPreviewRef(): PlateRef | undefined {
   if (typeof window === "undefined") return undefined;
@@ -108,7 +85,6 @@ function readPreviewRef(): PlateRef | undefined {
   return undefined;
 }
 
-/** Preview helpers: /preview?county=miami-dade-fl&focusLon=-80.48&focusLat=25.47&focusName=Homestead */
 function readPreviewFocus(): PlateFocus | undefined {
   if (typeof window === "undefined") return undefined;
   const params = new URLSearchParams(window.location.search);
@@ -123,28 +99,135 @@ function readPreviewFocus(): PlateFocus | undefined {
   return { lon, lat, ...(name ? { name } : {}) };
 }
 
-function currentToolPlate(): ToolPlate {
+type Displayed = {
+  ref?: PlateRef | undefined;
+  coverage?: string | undefined;
+  focus?: PlateFocus | undefined;
+};
+
+function applyHostOutput(
+  previous: Displayed,
+  generation: number,
+  lastFingerprint: string,
+): { displayed: Displayed; generation: number; fingerprint: string; status: AtlasViewStatus; requested?: PlateRef | undefined; candidates?: readonly AtlasPublicPlace[] | undefined } {
   const host = typeof window !== "undefined" ? window.openai : undefined;
   const meta = (host as { toolResponseMetadata?: ToolPayload; toolOutput?: unknown } | undefined)
     ?.toolResponseMetadata;
-  const structured = (host as { toolOutput?: { coverage?: string } } | undefined)?.toolOutput;
+  const structured = (host as { toolOutput?: unknown } | undefined)?.toolOutput;
+  const parsed = parseAtlasMapView(structured);
+  const preview = readPreviewRef();
+  const previewFocus = readPreviewFocus();
+
+  if (parsed) {
+    const fingerprint = fingerprintMapView(parsed);
+    const generationNext = fingerprint === lastFingerprint ? generation : nextRequestGeneration(generation);
+    if (parsed.status === "opened") {
+      const plate = asPlateRef(plateFromMapView(parsed));
+      return {
+        displayed: {
+          ref: plate,
+          coverage: parsed.coverage,
+          focus: readPlateFocus(meta) ?? previewFocus,
+        },
+        generation: generationNext,
+        fingerprint,
+        status: "opened",
+        requested: plate,
+      };
+    }
+    return {
+      displayed: {
+        ...previous,
+        ref: asPlateRef(retainDisplayedPlate(previous.ref, parsed)),
+      },
+      generation: generationNext,
+      fingerprint,
+      status: parsed.status,
+      candidates: parsed.candidates,
+    };
+  }
+
+  const legacyPlate = asPlateRef(parseAtlasPlateRef(meta?.atlasPlate));
+  if (legacyPlate) {
+    const fingerprint = `legacy:${legacyPlate.level}:${"countySlug" in legacyPlate ? legacyPlate.countySlug : "state" in legacyPlate ? legacyPlate.state : "nation"}`;
+    const generationNext = fingerprint === lastFingerprint ? generation : nextRequestGeneration(generation);
+    return {
+      displayed: {
+        ref: legacyPlate,
+        coverage: typeof structured === "object" && structured && "coverage" in structured && typeof structured.coverage === "string"
+          ? structured.coverage
+          : undefined,
+        focus: readPlateFocus(meta) ?? previewFocus,
+      },
+      generation: generationNext,
+      fingerprint,
+      status: "opened",
+      requested: legacyPlate,
+    };
+  }
+
+  if (preview) {
+    return {
+      displayed: { ref: preview, focus: previewFocus },
+      generation,
+      fingerprint: lastFingerprint,
+      status: "opened",
+      requested: preview,
+    };
+  }
 
   return {
-    ref: readPlateRef(meta) ?? readPlateFromStructured(structured) ?? readPreviewRef(),
-    coverage: typeof structured?.coverage === "string" ? structured.coverage : undefined,
-    focus: readPlateFocus(meta) ?? readPreviewFocus(),
+    displayed: previous,
+    generation,
+    fingerprint: lastFingerprint,
+    status: "opened",
+    requested: previous.ref,
   };
 }
 
 export function useToolPlate(): ToolPlate {
-  const [plate, setPlate] = useState<ToolPlate>(() => currentToolPlate());
+  const displayedRef = useRef<Displayed>({});
+  const generationRef = useRef(0);
+  const fingerprintRef = useRef("");
+  const [plate, setPlate] = useState<ToolPlate>(() => {
+    const applied = applyHostOutput({}, 0, "");
+    displayedRef.current = applied.displayed;
+    generationRef.current = applied.generation;
+    fingerprintRef.current = applied.fingerprint;
+    const host = typeof window !== "undefined" ? window.openai : undefined;
+    return {
+      ref: applied.displayed.ref,
+      coverage: applied.displayed.coverage,
+      focus: applied.displayed.focus,
+      status: applied.status,
+      requestGeneration: applied.generation,
+      requested: applied.requested,
+      candidates: applied.candidates,
+      hostCapabilities: readHostCapabilities(host),
+    };
+  });
 
   useEffect(() => {
-    const update = () => setPlate(currentToolPlate());
+    const update = () => {
+      const applied = applyHostOutput(displayedRef.current, generationRef.current, fingerprintRef.current);
+      displayedRef.current = applied.displayed;
+      generationRef.current = applied.generation;
+      fingerprintRef.current = applied.fingerprint;
+      const host = window.openai;
+      setPlate({
+        ref: applied.displayed.ref,
+        coverage: applied.displayed.coverage,
+        focus: applied.displayed.focus,
+        status: applied.status,
+        requestGeneration: applied.generation,
+        requested: applied.requested,
+        candidates: applied.candidates,
+        hostCapabilities: readHostCapabilities(host),
+      });
+    };
     for (const type of GLOBALS_EVENTS) {
       window.addEventListener(type, update, { passive: true });
     }
-    // The host may populate globals a tick after mount.
     const timer = window.setTimeout(update, 0);
     return () => {
       window.clearTimeout(timer);
@@ -153,4 +236,13 @@ export function useToolPlate(): ToolPlate {
   }, []);
 
   return plate;
+}
+
+/** Test helper: apply one host payload the same way the hook does. */
+export function interpretToolPlate(
+  previous: Displayed,
+  generation: number,
+  lastFingerprint: string,
+): ReturnType<typeof applyHostOutput> {
+  return applyHostOutput(previous, generation, lastFingerprint);
 }
