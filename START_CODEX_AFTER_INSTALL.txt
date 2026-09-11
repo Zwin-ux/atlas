@@ -1,0 +1,16 @@
+SAFE SETUP SHOULD NOW BE COMPLETE
+
+Open this folder as a NEW Codex project/chat:
+C:\Users\mzwin\Documents\Atlas-WebMCP
+
+A fresh session matters because Codex reads AGENTS.override.md when the run starts.
+
+Then:
+1. Select GPT-5.6 Sol, Extra High if available.
+2. Type /goal.
+3. Open CODEX_GOAL_PROMPT.txt in this folder.
+4. Select all, copy, and paste it as the goal.
+5. Let Codex begin. Do not paste the old blocked-session request again.
+
+The original dirty checkout remains here and should stay untouched:
+C:\Users\mzwin\Documents\Atlas
