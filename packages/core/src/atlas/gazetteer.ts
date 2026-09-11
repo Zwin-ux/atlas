@@ -9,9 +9,10 @@
  * location ask resolves to the right place or says honestly that it cannot —
  * never confidently wrong. So resolution returns one of exactly three shapes:
  *
- *   resolved     one place, and we are confident it is the one meant
- *   ambiguous    several real candidates; the caller must ask which
- *   unresolved   nothing matched well enough to name
+ *   resolved              one place, and we are confident it is the one meant
+ *   resolved_geography    the query named the nation or a whole state
+ *   ambiguous             several real candidates; the caller must ask which
+ *   unresolved            nothing matched well enough to name
  *
  * "I don't know" is a first-class answer here, not an error path. The
  * expensive failure for a geography product is confidently naming the wrong
@@ -38,8 +39,42 @@ export type GazetteerPlace = {
 
 export type Resolution =
   | { readonly status: "resolved"; readonly place: GazetteerPlace; readonly confidence: number; readonly matchedOn: string }
+  | {
+      readonly status: "resolved_geography";
+      readonly level: "nation" | "state";
+      readonly title: string;
+      readonly query: string;
+      readonly state?: string;
+    }
   | { readonly status: "ambiguous"; readonly candidates: readonly GazetteerPlace[]; readonly query: string }
   | { readonly status: "unresolved"; readonly query: string; readonly nearest?: readonly GazetteerPlace[] };
+
+const NATION_QUERIES = new Set([
+  "us",
+  "usa",
+  "u s",
+  "united states",
+  "the united states",
+  "united states of america",
+  "america",
+]);
+
+/** Display title for a two-letter state code ("ca" → "California"). */
+export function stateTitle(code: string): string {
+  const name = STATE_NAMES[code.toLowerCase()];
+  if (!name) return code.toUpperCase();
+  return name
+    .split(" ")
+    .map((word) => (word === "of" ? word : `${word[0]!.toUpperCase()}${word.slice(1)}`))
+    .join(" ");
+}
+
+function matchBareStateCode(folded: string): string | undefined {
+  const fromName = NAME_TO_STATE[folded];
+  if (fromName) return fromName;
+  if (folded.length === 2 && STATE_NAMES[folded]) return folded;
+  return undefined;
+}
 
 /** US state codes and their names, for parsing "Springfield, Illinois". */
 const STATE_NAMES: Record<string, string> = {
@@ -264,7 +299,28 @@ export function createGazetteer(input: GazetteerInput): Gazetteer {
     const folded = foldName(raw);
     if (!folded) return { status: "unresolved", query: raw };
 
+    if (NATION_QUERIES.has(folded)) {
+      return { status: "resolved_geography", level: "nation", title: "United States", query: raw };
+    }
+
     const { name, state } = splitStateQualifier(folded);
+
+    const bareState = matchBareStateCode(folded);
+    if (bareState) {
+      const stateNameHits = lookupExact(folded);
+      const hitStates = new Set(stateNameHits.map((hit) => hit.state));
+      // A lone namesake (Indiana, PA) must not beat the state. A name used as
+      // many real cities across states (Washington) stays a choice.
+      if (hitStates.size <= 1) {
+        return {
+          status: "resolved_geography",
+          level: "state",
+          state: bareState,
+          title: stateTitle(bareState),
+          query: raw,
+        };
+      }
+    }
 
     // 1. Exact match on the full string, then on the state-stripped name.
     for (const [key, stateFilter] of [

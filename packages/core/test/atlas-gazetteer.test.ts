@@ -172,8 +172,68 @@ describe("resolution — right or honest", () => {
     if (result.status === "resolved") {
       expect(result.place.state).toBe("tx");
     } else {
-      expect(["ambiguous", "unresolved"]).toContain(result.status);
+      expect(["ambiguous", "unresolved", "resolved_geography"]).toContain(result.status);
     }
+  });
+
+  it("opens a bare state name instead of a city or county with the same name", () => {
+    const withIndiana = createGazetteer({
+      places: [...FIXTURE, place("Indiana", "indiana-pa", "pa", 14_000)],
+    });
+    const indiana = withIndiana.resolve("Indiana");
+    expect(indiana.status).toBe("resolved_geography");
+    if (indiana.status !== "resolved_geography") return;
+    expect(indiana.level).toBe("state");
+    expect(indiana.state).toBe("in");
+    expect(indiana.title).toBe("Indiana");
+
+    const qualified = withIndiana.resolve("Indiana, PA");
+    expect(qualified.status).toBe("resolved");
+    if (qualified.status !== "resolved") return;
+    expect(qualified.place.countySlug).toBe("indiana-pa");
+  });
+
+  it("opens California the state, not California, PA", () => {
+    const withCalifornia = createGazetteer({
+      places: [...FIXTURE, place("California", "washington-pa", "pa", 6_000)],
+    });
+    const result = withCalifornia.resolve("California");
+    expect(result.status).toBe("resolved_geography");
+    if (result.status !== "resolved_geography") return;
+    expect(result.state).toBe("ca");
+  });
+
+  it("keeps Washington ambiguous when many real places share the name", () => {
+    const withWashington = createGazetteer({
+      places: [
+        ...FIXTURE,
+        place("Washington", "washington-pa", "pa", 13_000),
+        place("Washington", "beaufort-nc", "nc", 9_000),
+        place("Washington", "daviess-in", "in", 12_000),
+      ],
+    });
+    expect(withWashington.resolve("Washington").status).toBe("ambiguous");
+  });
+
+  it("opens Georgia when no town of that name exists", () => {
+    const result = gazetteer.resolve("Georgia");
+    expect(result.status).toBe("resolved_geography");
+    if (result.status !== "resolved_geography") return;
+    expect(result.state).toBe("ga");
+  });
+
+  it("treats USA and United States as the nation, not a missing town", () => {
+    const usa = gazetteer.resolve("USA");
+    expect(usa.status).toBe("resolved_geography");
+    if (usa.status !== "resolved_geography") return;
+    expect(usa.level).toBe("nation");
+    expect(gazetteer.resolve("United States").status).toBe("resolved_geography");
+  });
+
+  it("treats injection-looking input as a name, not as instructions", () => {
+    const result = gazetteer.resolve("'; DROP TABLE places; --");
+    expect(result.status).toBe("unresolved");
+    expect(gazetteer.resolve("<script>alert(1)</script>").status).toBe("unresolved");
   });
 });
 

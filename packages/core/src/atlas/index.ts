@@ -33,7 +33,7 @@ export type { EncodedRing, RingPrecision } from "./ringCodec.js";
 export { labelBudget, placeLabels } from "./labels.js";
 export type { LabelBox, LabelCandidate, LabelPlacementOptions, PlacedLabel } from "./labels.js";
 
-export { createGazetteer, editDistance, foldName } from "./gazetteer.js";
+export { createGazetteer, editDistance, foldName, stateTitle } from "./gazetteer.js";
 export type { Gazetteer, GazetteerInput, GazetteerPlace, Resolution } from "./gazetteer.js";
 
 export {

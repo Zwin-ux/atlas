@@ -18,7 +18,7 @@ import { z } from "zod";
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import type { GazetteerPlace, Resolution } from "@atlas/core/atlas";
+import { stateTitle, type GazetteerPlace, type Resolution } from "@atlas/core/atlas";
 import { ATLAS_VIEW_CONTRACT_VERSION } from "@atlas/core/atlas";
 import type { AtlasIndex } from "./atlasIndex.js";
 import type { AtlasPlateService } from "./atlasPlates.js";
@@ -77,7 +77,7 @@ function squareMiles(squareMeters: number | undefined): number | undefined {
  * Kept in one place so every tool refuses in the same voice, and so the
  * refusal always carries the candidates that make it actionable.
  */
-function refusalText(resolution: Exclude<Resolution, { status: "resolved" }>): string {
+function refusalText(resolution: Extract<Resolution, { status: "ambiguous" | "unresolved" }>): string {
   if (resolution.status === "ambiguous") {
     const names = resolution.candidates
       .map((candidate) => `${candidate.name}, ${candidate.state.toUpperCase()} (${candidate.countyName})`)
@@ -169,31 +169,61 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
     async ({ place, level }) =>
       instrument("open_atlas_map", async () => {
         try {
-        // No place named: open the national plate.
-        if (!place || !place.trim()) {
-          return {
-            structuredContent: {
-              type: "atlasMapView" as const,
-              contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
-              level: "nation" as const,
-              title: "United States",
-              status: "opened" as const,
+        const openNation = () => ({
+          structuredContent: {
+            type: "atlasMapView" as const,
+            contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
+            level: "nation" as const,
+            title: "United States",
+            status: "opened" as const,
+          },
+          _meta: {
+            atlasPlate: { level: "nation" as const },
+            ui: { resourceUri: deps.widgetUri },
+            "openai/outputTemplate": deps.widgetUri,
+          },
+          content: [
+            {
+              type: "text" as const,
+              text: "The United States is open in Atlas, drawn from Census county boundaries. Zoom to a state or county to see town names.",
             },
-            _meta: {
-              atlasPlate: { level: "nation" },
-              ui: { resourceUri: deps.widgetUri },
-              "openai/outputTemplate": deps.widgetUri,
+          ],
+        });
+
+        const openState = (state: string, title: string) => ({
+          structuredContent: {
+            type: "atlasMapView" as const,
+            contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
+            level: "state" as const,
+            title,
+            state: state.toUpperCase(),
+            status: "opened" as const,
+          },
+          _meta: {
+            atlasPlate: { level: "state" as const, state },
+            ui: { resourceUri: deps.widgetUri },
+            "openai/outputTemplate": deps.widgetUri,
+          },
+          content: [
+            {
+              type: "text" as const,
+              text: `${title} is open in Atlas with its counties drawn from Census boundaries.`,
             },
-            content: [
-              {
-                type: "text" as const,
-                text: "The United States is open in Atlas, drawn from Census county boundaries. Zoom to a state or county to see town names.",
-              },
-            ],
-          };
+          ],
+        });
+
+        if (level === "nation" || !place || !place.trim()) {
+          return openNation();
         }
 
         const resolution = index.gazetteer.resolve(place);
+
+        if (resolution.status === "resolved_geography") {
+          if (resolution.level === "state" && resolution.state) {
+            return openState(resolution.state, resolution.title);
+          }
+          return openNation();
+        }
 
         if (resolution.status !== "resolved") {
           // No plate reference on refusal. A nation level here used to make
@@ -214,34 +244,10 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
         }
 
         const target = resolution.place;
-        const identity = index.identityFor(target.countySlug);
         const anchors = index.anchorsFor(target.countySlug);
 
-        // An explicit state level, or a query that named only a state, opens
-        // the state plate rather than diving to one county.
-        const openAt = level ?? (target.kind === "county" ? "county" : "county");
-        if (openAt === "state") {
-          return {
-            structuredContent: {
-              type: "atlasMapView" as const,
-              contractVersion: ATLAS_VIEW_CONTRACT_VERSION,
-              level: "state" as const,
-              title: identity?.name ?? target.state.toUpperCase(),
-              state: target.state.toUpperCase(),
-              status: "opened" as const,
-            },
-            _meta: {
-              atlasPlate: { level: "state", state: target.state },
-              ui: { resourceUri: deps.widgetUri },
-              "openai/outputTemplate": deps.widgetUri,
-            },
-            content: [
-              {
-                type: "text" as const,
-                text: `${target.state.toUpperCase()} is open in Atlas with its counties drawn from Census boundaries.`,
-              },
-            ],
-          };
+        if (level === "state") {
+          return openState(target.state, stateTitle(target.state));
         }
 
         const plate = plates.county(target.countySlug);
@@ -405,6 +411,22 @@ export function registerAtlasTools(server: McpServer, deps: AtlasToolDependencie
                 text: `${place.name} is in ${place.countyName}, ${place.state.toUpperCase()}.`,
               },
             ],
+          };
+        }
+
+        if (resolution.status === "resolved_geography") {
+          const text =
+            resolution.level === "nation"
+              ? "That name is the United States as a whole."
+              : `${resolution.title} is a US state (${(resolution.state ?? "").toUpperCase()}).`;
+          return {
+            structuredContent: {
+              type: "atlasPlaceSearch" as const,
+              query,
+              candidates: suggestions.map(publicPlace),
+              status: "resolved" as const,
+            },
+            content: [{ type: "text" as const, text }],
           };
         }
 
