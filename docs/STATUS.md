@@ -134,11 +134,11 @@ They are directional documentation only, contain concept geography, and are
 not imported by the product bundle.
 
 **GitHub snapshot 2026-09-10.** The dirty ChatGPT-app working tree, LLM wiki
-scaffold, and handoff files were committed and pushed to private
-`Zwin-ux/atlas` so ChatGPT can read current product law. This is still not a
-tagged release SHA. Portal challenge token, Location Truth re-run, and the
-stale public README rewrite remain open. Env strip and production deploy
-from the August pass stay as recorded above.
+scaffold, and handoff files were committed and pushed to `Zwin-ux/atlas`.
+That repo is **public** as of 2026-09-11 so ChatGPT can fetch it without
+auth. This is still not a tagged release SHA. Portal challenge token,
+Location Truth re-run, and the stale public README rewrite remain open.
+Env strip and production deploy from the August pass stay as recorded above.
 
 ## What this file is for
 

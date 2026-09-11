@@ -4,7 +4,7 @@ Owner asked to push Atlas work so ChatGPT can read it, organize the trees,
 and add an LLM-wiki setup workflow.
 
 Canonical product tree: `C:\Users\mzwin\Documents\Atlas` on `main`.
-New remote: `Zwin-ux/atlas` (private).
+New remote: `Zwin-ux/atlas` (public as of 2026-09-11).
 WebMCP frozen candidate already at `Zwin-ux/atlas-webmcp-challenge`.
 Voxel checkpoint remains `Zwin-ux/atlas-alpha-engine-beta-checkpoint`.
 

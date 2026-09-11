@@ -11,7 +11,7 @@ tags: [summary, github]
 
 `CHATGPT.md` and `GITHUB.md` were added so a fresh ChatGPT session can enter
 the current product without drowning in voxel-era docs. Canonical GitHub
-remote for this tree is `Zwin-ux/atlas`. Sister remotes stay private:
+remote for this tree is public `Zwin-ux/atlas`. Sister remotes stay private:
 WebMCP challenge snapshot and the alpha-engine checkpoint.
 
 This wiki was scaffolded the same day. It compiles current law; it does not

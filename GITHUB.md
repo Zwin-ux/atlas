@@ -1,6 +1,6 @@
 # Atlas GitHub map
 
-Private unless noted. ChatGPT should treat this file as the repo index.
+`Zwin-ux/atlas` is **public** so ChatGPT can fetch it without auth. Sister remotes stay private unless noted.
 
 ## Canonical remotes
 
