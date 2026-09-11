@@ -39,6 +39,39 @@ survey instruments, not app-store stickers.
 The existing isometric county-house mark remains the brand silhouette. Do not
 turn it into a mascot or replace it with a globe, pin, or letterform.
 
+## Inline answer vs fullscreen maproom
+
+This is the AT-006 product decision. It does not add a second app.
+
+**Inline** is the ChatGPT message result. It must be useful without expansion:
+legible plate, requested-place identity and type, a discreet source/vintage
+affordance, and one primary “Explore map” action when the host can enlarge.
+No second chat composer, onboarding wall, analytics dashboard, or landing
+page. Named follow-up (“Ask about [place]”) appears only when a real
+selection exists and the host can hand the question back.
+
+**Fullscreen** deepens the same map: pan, zoom, fit, selection, parent, back.
+The host composer is part of the layout and must not be covered. Phone
+layouts keep one compact inspector or candidate sheet at a time. If the host
+does not advertise a larger mode, inline stays the complete human map.
+
+Entering or exiting fullscreen must not refetch a place solely because the
+component remounted. Restoration is per widget instance, never a saved
+account. Comparison views, extra geodata providers, and the frozen WebMCP
+challenge remain out of this surface.
+
+## Host-native chrome, cartographic plate
+
+Keep analog-field-atlas character on the **map**: land, water, hairlines,
+labels, one orange focus. Align **chrome** (buttons, status, candidate list,
+titles around the plate) with current ChatGPT Apps / widget guidance: system
+sizing, 44px targets, IBM Plex Sans for interface. Do not set every control
+in display serif or a custom all-height face. Cartographic labels may keep
+Georgia metrics until Newsreader passes the existing collision tests.
+
+If host guidance and this atlas character conflict, keep the plate; restyle
+the furniture. Do not flatten the map into a generic SaaS card.
+
 ## Color
 
 Brand colors remain sourced from `assets/brand/BRAND.md`. Product tokens extend

@@ -26,9 +26,9 @@ The frozen WebMCP challenge candidate remains
 competition work from this checkout. Do not resurrect voxel, Commons, Hosted
 Clawd, Google lookup, persistence, or commerce.
 
-Visual system: `DESIGN.md`. Inline vs fullscreen and host-native UI still
-need the AT-006 reconcile pass; until then, do not silently discard the
-map's cartographic character.
+Visual system: `DESIGN.md` (AT-006: inline vs fullscreen, host-native chrome,
+cartographic plate). Do not silently discard the map's character. Comparison,
+new geodata providers, and the WebMCP challenge stay deferred.
 
 ## Frozen — WebMCP challenge (do not resume here)
 
@@ -38,7 +38,8 @@ Parked. The sanitized candidate is the private challenge repo, not this tree.
 
 - [x] Install `atlas-execution-kit/` beside the current checkout.
 - [x] Validate the kit graph and planner tests.
-- [ ] Accept AT-001, then AT-002 / AT-003 / AT-004 / AT-006.
+- [x] Accept AT-001.
+- [ ] Accept AT-003 / AT-004 receipts, then AT-006 / AT-002.
 - [ ] First proven core-journey regression (identity, ambiguity, or stale label).
 
 ## Historical — WebMCP product spike (frozen)
