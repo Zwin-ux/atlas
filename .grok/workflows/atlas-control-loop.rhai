@@ -50,13 +50,13 @@ let verify_schema = #{
 let goal = if args == () { () } else { args.goal };
 let mode = if args == () { () } else { args.mode };
 let packet = if args == () { () } else { args.packet_id };
+let root = if args == () { () } else { args.root };
 if goal == () {
-    pause("verification", "Pass args.goal — short description of the Atlas packet (e.g. populate plates with denser Census places). Optional: mode=scout|implement, packet_id=slug.");
+    pause("verification", "Pass args.goal — short description of the Atlas packet. Optional: mode=scout|implement, packet_id=slug, root=checkout path.");
 }
 if mode == () { mode = "implement"; }
 if packet == () { packet = "packet"; }
-
-let root = "C:/Users/mzwin/Documents/Atlas";
+if root == () { root = "."; }
 let goal_json = json_encode(goal);
 let mode_json = json_encode(mode);
 let packet_json = json_encode(packet);
@@ -72,7 +72,9 @@ scout_prompt += "Goal (JSON): " + goal_json + "\n";
 scout_prompt += "Mode (JSON): " + mode_json + "\n";
 scout_prompt += "Packet id hint (JSON): " + packet_json + "\n\n";
 scout_prompt += "REQUIRED: use read_file, grep, list_dir on the real repo. Do not invent paths.\n";
-scout_prompt += "Read first if present: docs/AGENTIC_WORKFLOW.md, docs/USA_ACCURACY_CONTROL_ENV.md, docs/USA_ACCURACY_PROGRAM.md, AGENTS.md, docs/NORTH_FACE.md.\n";
+scout_prompt += "Read first: AGENTS.md, docs/STATUS.md, docs/brain/PROJECT_PLAN.md, DESIGN.md, scripts/lib/atlas-tool-surface.mjs.\n";
+scout_prompt += "Do not treat docs/NORTH_FACE.md, STATE.md, or LOOP.md as current product law.\n";
+scout_prompt += "Do not copy public tool names into your plan; cite scripts/lib/atlas-tool-surface.mjs.\n";
 scout_prompt += "Inspect plate/map code under web/src/atlas/, server/src/atlasPlates.ts, packages/core/src/atlas/, scripts/verify-usa-accuracy-*.mjs.\n\n";
 scout_prompt += "Return JSON matching the schema:\n";
 scout_prompt += "- packet_id: short slug\n";
@@ -131,7 +133,8 @@ build_prompt += "- 2D SVG plates are the product (web/src/atlas/). Do not resurr
 build_prompt += "- Census honesty: no fake streets/buildings; denser maps use more REAL places.\n";
 build_prompt += "- r/place inspiration = dense settlement cells + hierarchy, not random noise.\n";
 build_prompt += "- Do not add Mapbox as main renderer or bulk Google geometry.\n";
-build_prompt += "- Do not expand MCP tools casually (open_atlas_map + search_atlas_places only).\n\n";
+build_prompt += "- Public MCP tools are only those in scripts/lib/atlas-tool-surface.mjs. Do not restore retired names.\n";
+build_prompt += "- Do not use the goal string as a filesystem path.\n\n";
 build_prompt += "REQUIRED actions:\n";
 build_prompt += "1. Read every file in plan.files before editing.\n";
 build_prompt += "2. Implement the smallest change that satisfies the plan.\n";

@@ -20,9 +20,9 @@ let gate_schema = #{
 };
 
 let target = if args == () { () } else { args.target };
+let root = if args == () { () } else { args.root };
 if target == () { target = "control"; }
-
-let root = "C:/Users/mzwin/Documents/Atlas";
+if root == () { root = "."; }
 let target_json = json_encode(target);
 
 phase("Gates");
@@ -44,7 +44,7 @@ for g in gate_names {
     p += "Target (JSON): " + target_json + "\n\n";
     p += "Gate definitions:\n";
     p += "- control_verifier: run pnpm verify:usa-accuracy-control (start PORT=8787 server if needed). passed only if exit 0.\n";
-    p += "- tool_surface: public tools must be exactly open_atlas_map + search_atlas_places. Check scripts/lib/atlas-tool-surface.mjs and/or live MCP tools/list. select_county must not be public.\n";
+    p += "- tool_surface: live tools/list must match EXPECTED_TOOLS from scripts/lib/atlas-tool-surface.mjs. Retired names in RETIRED_TOOLS must not be registered.\n";
     p += "- honesty_and_provider_boundary: grep/read AGENTS.md, ProviderUsagePolicy, atlasTools — no provider geometry as scene spine; no fake buildings claims.\n";
     p += "- emulator_open_atlas_map: confirm web/src/emulator/mockHost.ts seeds open_atlas_map not select_county; toolResponseMetadata globals wired.\n\n";
     p += "Set gate field to exactly: " + g + "\n";
@@ -87,10 +87,10 @@ let report = "";
 report += "# Atlas ship gate\n\n";
 report += "Target: " + target + "\n\n";
 if all_pass {
-    report += "## VERDICT: SHIP-READY (control)\n\n";
-    report += "Still required for users: deploy + ChatGPT Pro A4 dogfood.\n\n";
+    report += "## VERDICT: LOCAL GATES PASS\n\n";
+    report += "This is not ChatGPT host proof, not a deploy authorization, and not a store submission.\n\n";
 } else {
-    report += "## VERDICT: NO SHIP\n\n";
+    report += "## VERDICT: LOCAL GATES FAIL\n\n";
 }
 report += "## Gates\n";
 for g in gates {
@@ -106,7 +106,7 @@ if blockers.len() == 0 {
 
 let path = write_scratch_file("ship-gate.md", report);
 complete(#{
-    summary: if all_pass { "SHIP-READY (control)" } else { "NO SHIP" },
+    summary: if all_pass { "LOCAL GATES PASS (not host/release proof)" } else { "LOCAL GATES FAIL" },
     ok: all_pass,
     path: path,
     gates: gates,

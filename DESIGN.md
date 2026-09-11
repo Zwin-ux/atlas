@@ -251,3 +251,6 @@ dark-mode contrast study. Do not average their palettes into one muddy theme.
   as the single focus signal.
 - **2026-08-26:** Treat generated concept art as directional reference, never
   as geographic truth.
+- **2026-09-10:** AT-006 — inline ChatGPT result vs same-map fullscreen;
+  host-native chrome; cartographic plate wins on conflict. Comparison, extra
+  geodata, and the WebMCP challenge stay deferred.
