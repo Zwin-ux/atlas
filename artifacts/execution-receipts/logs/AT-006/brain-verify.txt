@@ -1,0 +1,7 @@
+pnpm brain:verify
+cwd: C:/Users/mzwin/Documents/Atlas
+exit: 0
+documentCount: 499
+canonicalCount: 9
+blockers: []
+run after DESIGN.md AT-006 sections and registry rebuild

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-002",
+  "verdict": "PASS",
+  "definition_sha256": "6f70d44b3bd692feea1c0514e1d9d9ad36b801aa9b60e69e5f27ea29afb02179",
+  "recorded_at": "2026-09-10T20:25:00.000Z",
+  "executor": "grok-build-lead-20260911",
+  "reviewer": "grok-explore-01a08e77-5002-71a1-9fbe-e2a8c0732f14",
+  "git": {
+    "commit": "a74ad97198ef656f1d834f82cfcbde0571a66b92",
+    "integrated": true,
+    "clean_tree": true
+  },
+  "depends_on_receipts": {
+    "AT-001": "17f19562b53200fe4e6fa8501fa445bb8d7382f4a01d7a3bffab7f469648c593"
+  },
+  "review": {
+    "verdict": "PASS",
+    "observation": "Hard-coded root removed. NORTH_FACE not current law. LOCAL GATES PASS not SHIP-READY. Native live smoke not claimed; validate_only only.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-routing",
+      "criteria": ["AT-002-AC1"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Read atlas-control-loop.rhai and atlas-ship-gate.rhai.",
+      "observer": "grok-explore-01a08e77-5002-71a1-9fbe-e2a8c0732f14",
+      "observation": "args.root defaults to `.`. Goal is not a filesystem path. Tool contract is atlas-tool-surface.mjs.",
+      "artifact_id": "review-log"
+    },
+    {
+      "id": "check-smoke",
+      "criteria": ["AT-002-AC2"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "workflow validate_only on control-loop scout and ship-gate; no live children.",
+      "observer": "grok-build-lead-20260911",
+      "observation": "Both scripts compiled. Canned-host path only. Sequential packet/review remains default. No live native compatibility claim.",
+      "artifact_id": "review-log"
+    },
+    {
+      "id": "check-no-framework",
+      "criteria": ["AT-002-AC3"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Confirm only the two assigned workflow files changed for this task.",
+      "observer": "grok-explore-01a08e77-5002-71a1-9fbe-e2a8c0732f14",
+      "observation": "No new scheduler, wiki compiler, or agent platform.",
+      "artifact_id": "review-log"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "review-log",
+      "path": "logs/AT-002/review.md",
+      "sha256": "d8fe48850865da2f5f0f9e7299ee37ef4f75d5575b4286ae5ed44f0b34fb9eca"
+    }
+  ]
+}
