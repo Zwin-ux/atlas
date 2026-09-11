@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-005",
+  "verdict": "PASS",
+  "definition_sha256": "09461163a5e59c96b863d6b670808e1399ff92ba9b518468f77a050b1c63f090",
+  "recorded_at": "2026-09-11T09:15:00.000Z",
+  "executor": "grok-build-lead-20260911",
+  "reviewer": "grok-explore-01a08fbd-541f-76a3-aabb-ce7077557047",
+  "git": {
+    "commit": "daddaa77258ad92cd5dcbd08bf888a8ba99d14ab",
+    "integrated": true,
+    "clean_tree": true
+  },
+  "depends_on_receipts": {
+    "AT-003": "439ee58fb256cbbd6c43dc8e46ea9662633e73065750f5c272bb1c0d5b8837f8"
+  },
+  "review": {
+    "verdict": "PASS",
+    "observation": "Local versions, official MCP Apps vs window.openai aliases, and the real widget resource path are recorded. HOST-04 idle fallback is local only. Not ChatGPT proof. No product code.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-versions",
+      "criteria": ["AT-005-AC1"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Read installed package.json versions and current OpenAI Apps UI docs.",
+      "observer": "grok-explore-01a08fbd-541f-76a3-aabb-ce7077557047",
+      "observation": "sdk 1.29.0, ext-apps 1.7.4. Docs: ui.resourceUri + MCP Apps bridge; window.openai is a compatibility alias.",
+      "artifact_id": "notes"
+    },
+    {
+      "id": "check-widget-path",
+      "criteria": ["AT-005-AC2"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Trace ui://widget/atlas-plate.html and GET local /widget/atlas-plate.html plus /preview idle.",
+      "observer": "grok-build-lead-20260911",
+      "observation": "MCP resource skybridge MIME; HTTP 200 ~185KB IIFE. Preview without host is idle, not a hang.",
+      "artifact_id": "notes"
+    },
+    {
+      "id": "check-not-chatgpt",
+      "criteria": ["AT-005-AC3"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Confirm notes refuse ChatGPT proof and list owner portal/new-chat actions.",
+      "observer": "grok-explore-01a08fbd-541f-76a3-aabb-ce7077557047",
+      "observation": "No invented challenge token. ChatGPT session remains BLOCKED.",
+      "artifact_id": "review-log"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "notes",
+      "path": "logs/AT-005/notes.md",
+      "sha256": "4f4d52d38fe34d591e3a0a052b22934bd6a4cfd7d83c62761497523a5d8eeaf0"
+    },
+    {
+      "id": "review-log",
+      "path": "logs/AT-005/review.md",
+      "sha256": "0b2495f8174e6f8c9d95f6967844e7c57c4c34d15ca19a4385da2abe519e6e73"
+    }
+  ]
+}

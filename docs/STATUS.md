@@ -3,7 +3,7 @@
 The only mutable status file in this repo. Hard cap 200 lines. Everything here
 was run or read on the date below, not copied from another document.
 
-**Last verified: 2026-09-11 (AT-010). Verifier table below is still the 2026-08-26 pass.**
+**Last verified: 2026-09-11 (AT-005). Verifier table below is still the 2026-08-26 pass.**
 
 ## Where the work is
 
@@ -17,10 +17,10 @@ was run or read on the date below, not copied from another document.
 
 Current scope: finish the read-only Census ChatGPT app (point-and-ask). Kit: `atlas-execution-kit/`.
 Graph: `atlas-execution-kit/graph/release-graph.json`. Receipts: `artifacts/execution-receipts/`.
-Active: none. Next: AT-005 (host spike, lock-limited) and AT-021 (widget lifecycle).
-Blocked: AT-041/050–054 until owner host/deploy/portal permission.
+Active: none. Next: AT-021 (widget lifecycle) and AT-011 (identity facts).
+Blocked: AT-041/050–054 until owner host/deploy/portal permission. ChatGPT host proof remains BLOCKED.
 Invalidated: none.
-Last slice: AT-010 on `bcc6dde318e83b928926a0443d4eda8bd8577343`. Prior: AT-001–004, AT-006, AT-007, AT-020.
+Last slice: AT-005 notes on `daddaa77258ad92cd5dcbd08bf888a8ba99d14ab` (no product code). Prior: AT-001–004, AT-006, AT-007, AT-010, AT-020.
 Preserve: do not reset sibling worktrees.
 Failed/unrun: live native workflow children; live MCP/Railway HTTP; ChatGPT host.
 Baseline: test:core 382; location-truth 0 wrong; typecheck:starter 0; source-of-truth 0.
