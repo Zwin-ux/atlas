@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-007",
+  "verdict": "PASS",
+  "definition_sha256": "c0b8b4b4f1cab3312304dc77e66d1fa42f1da826b27a90a3dca7a44614d913f3",
+  "recorded_at": "2026-09-11T07:10:00.000Z",
+  "executor": "grok-build-lead-20260911",
+  "reviewer": "grok-explore-01a08f4b-4661-77c3-8c32-39a175093259",
+  "git": {
+    "commit": "2ad83a8471691df26fe88e0a4f7a7db327e56dfa",
+    "integrated": true,
+    "clean_tree": true
+  },
+  "depends_on_receipts": {
+    "AT-003": "439ee58fb256cbbd6c43dc8e46ea9662633e73065750f5c272bb1c0d5b8837f8",
+    "AT-004": "aa614483cd083a849927800f77acb9419891b0db6faf93fcfcb0fd14fd3b3e8d",
+    "AT-006": "17c804fa802c86abe4b304fb9fa968b3c74bd640e504d8e0e42f037cb6f1fd07"
+  },
+  "review": {
+    "verdict": "PASS",
+    "observation": "Refusal statuses never yield a plate. Two public tools unchanged. Empty AtlasApp nation default is AT-020.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-status",
+      "criteria": ["AT-007-AC1"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Core contract tests including ambiguous+nation payload.",
+      "command": "pnpm --dir packages/core test",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-lead-20260911",
+      "observation": "367 tests pass. Ambiguous Springfield-style payload does not produce a plate.",
+      "artifact_id": "commands-log"
+    },
+    {
+      "id": "check-envelope",
+      "criteria": ["AT-007-AC2"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Read viewContract.ts and useToolPlate.ts for generation and host capabilities.",
+      "observer": "grok-explore-01a08f4b-4661-77c3-8c32-39a175093259",
+      "observation": "contractVersion 1; requestGeneration; bounded hostCapabilities; selected identity typed.",
+      "artifact_id": "review-log"
+    },
+    {
+      "id": "check-surface",
+      "criteria": ["AT-007-AC3"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Tool-surface drift gate after contract change.",
+      "command": "node scripts/verify-atlas-source-of-truth-drift.mjs",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-lead-20260911",
+      "observation": "expectedToolCount 2. No new registerAppTool.",
+      "artifact_id": "commands-log"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "review-log",
+      "path": "logs/AT-007/review.md",
+      "sha256": "c2dc18f11b7031876a2b9bbb6645727d62527d532b3cfafd16d18fccaf1ae17a"
+    },
+    {
+      "id": "commands-log",
+      "path": "logs/AT-007/commands.txt",
+      "sha256": "6928b2290a977a3ccf0f6a6e80dd4697020e7cc6a1fa5ef8586d0abd87f8fd97"
+    }
+  ]
+}

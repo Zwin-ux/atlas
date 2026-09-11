@@ -1,0 +1,17 @@
+AT-007 commands
+HEAD: 2ad83a8471691df26fe88e0a4f7a7db327e56dfa
+
+pnpm --dir packages/core test
+  exit 0
+  39 files, 367 tests (10 new in atlas-view-contract.test.ts)
+
+pnpm typecheck:starter
+  exit 0
+
+pnpm build:web
+  exit 0
+  web/dist/component.js 167.6kb (bundled viewContract)
+
+node scripts/verify-atlas-source-of-truth-drift.mjs
+  exit 0
+  expectedToolCount 2
