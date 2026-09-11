@@ -1,0 +1,29 @@
+AT-020 local widget verification
+Date: 2026-09-11
+Server: http://127.0.0.1:8787 (tsx server/src/index.ts after pnpm build:web)
+Not ChatGPT host proof. Local /preview only.
+
+Idle /preview (no query, no host payload)
+- Copy: "Ask Atlas for a US county, state, or town."
+- Debug: viewStatus idle; initialRef none — idle, not nation; fetch (none yet)
+- Network: no fetch/xhr to /api/atlas/nation
+- Desktop 1280x800 and phone 390x844: no United States map
+
+Explicit nation /preview?nation=1
+- Crumb "United States"; map of the United States; fetch /api/atlas/nation HTTP 200; viewStatus opened
+
+STATE-01 first-load ambiguous + leftover level/meta nation
+- initScript: structured status=ambiguous, level=nation, title=Springfield, two candidates; _meta atlasPlate.level=nation
+- UI: Springfield + Sangamon County, IL + Hampden County, MA
+- Debug: viewStatus ambiguous; metaPlate nation; output atlasMapView ambiguous nation; initialRef none; fetch (none yet)
+- No United States map. Phone 390x844 same.
+
+ID-09 first-load unresolved + leftover nation meta
+- structured status=unresolved, query Zzyzxqqq, level=nation
+- "No Census place matched “Zzyzxqqq”."; viewStatus unresolved; fetch (none yet); no nation map
+
+STATE-02 later refusal over leftover success metadata
+- Opened /preview?county=riverside-ca (map ready)
+- Then set toolOutput ambiguous Springfield with level=nation; leftover _meta atlasPlate riverside-ca; dispatch openai:set_globals
+- Riverside County map remained; candidate sheet for Springfield; viewStatus ambiguous; output atlasMapView ambiguous nation; metaPlate county riverside-ca
+- Did not navigate to a national success map

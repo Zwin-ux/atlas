@@ -1,0 +1,22 @@
+AT-020 command evidence (executor grok-build-lead-20260911)
+cwd: C:\Users\mzwin\Documents\Atlas
+
+pnpm --dir packages/core test
+exit 0
+376 passed (376)
+includes packages/core/test/atlas-view-contract.test.ts (19 tests): idle ≠ unresolved, STATE-01, STATE-02, ID-09
+
+pnpm typecheck:starter
+exit 0
+
+node scripts/verify-atlas-source-of-truth-drift.mjs
+exit 0
+expectedToolCount 2; blockerCount 0
+warning: 5 retired names in dead server/src/index.ts (AT-031 later)
+
+Local /preview (not ChatGPT):
+idle: no /api/atlas/nation fetch
+STATE-01: Springfield ambiguous + leftover nation meta, no map fetch
+ID-09: Zzyzxqqq unresolved, no map fetch
+STATE-02: Riverside stayed on screen after later Springfield refusal
+explicit /preview?nation=1 still opens the national plate

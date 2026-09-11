@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-020",
+  "verdict": "PASS",
+  "definition_sha256": "540f43ee47490fd8e2fa6212df518a25d270ec05f6954db54dcc7f867a9afd02",
+  "recorded_at": "2026-09-11T08:39:20.459Z",
+  "executor": "grok-build-lead-20260911",
+  "reviewer": "grok-explore-01a08f8b-5da9-7133-a791-2aa021dfaae7",
+  "git": {
+    "commit": "b4693c45cb69c8f7a7172897b65f1ba8f6f5805a",
+    "integrated": true,
+    "clean_tree": true
+  },
+  "depends_on_receipts": {
+    "AT-004": "aa614483cd083a849927800f77acb9419891b0db6faf93fcfcb0fd14fd3b3e8d",
+    "AT-007": "10c0c90937df765ac155650e662510840473d4cdff1e3f578704791bb64866b0"
+  },
+  "review": {
+    "verdict": "PASS",
+    "observation": "Empty first-load is idle, not a US map. Explicit refusal beats leftover level and _meta. Two public tools unchanged. Not ChatGPT host proof.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-refusal-wins",
+      "criteria": ["AT-020-AC1"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Core resolveWidgetPlate tests for leftover level/nation and leftover success metadata.",
+      "command": "pnpm --dir packages/core test",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-01a08f98-f8dd-7240-883c-fc9b62ea4c10",
+      "observation": "376 tests pass. STATE-01/STATE-02 cases do not yield an opened nation plate.",
+      "artifact_id": "commands-log"
+    },
+    {
+      "id": "check-idle-not-nation",
+      "criteria": ["AT-020-AC2"],
+      "kind": "manual",
+      "status": "PASS",
+      "procedure": "Read AtlasApp trail init and local /preview with no query.",
+      "observer": "grok-explore-01a08f8b-5da9-7133-a791-2aa021dfaae7",
+      "observation": "Trail is empty when initialRef is missing. Local preview: viewStatus idle, fetch none, no United States map.",
+      "artifact_id": "browser-log"
+    },
+    {
+      "id": "check-regression",
+      "criteria": ["AT-020-AC3"],
+      "kind": "command",
+      "status": "PASS",
+      "procedure": "Tool-surface drift gate after widget interpretation change.",
+      "command": "node scripts/verify-atlas-source-of-truth-drift.mjs",
+      "cwd": "C:/Users/mzwin/Documents/Atlas",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "observer": "grok-build-01a08f98-f8dd-7240-883c-fc9b62ea4c10",
+      "observation": "expectedToolCount 2. Former nation default reproduced in tests as the failing shape, then confirmed gone.",
+      "artifact_id": "commands-log"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "review-log",
+      "path": "logs/AT-020/review.md",
+      "sha256": "8e1317eb9a13e946667596b4b6058c73f06fd083ac7b98719a9ea18040585180"
+    },
+    {
+      "id": "commands-log",
+      "path": "logs/AT-020/commands.txt",
+      "sha256": "e7cb63cc1086ac28a55af22f5fe5fb842f52b8afafa3c97fefbf14a3a5fb3f5a"
+    },
+    {
+      "id": "browser-log",
+      "path": "logs/AT-020/browser.txt",
+      "sha256": "ac8f3a3f06eeb20b41c498cca3c7a8539c0cb9fad4e3ed4ad128f0659d394597"
+    }
+  ]
+}

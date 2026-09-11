@@ -3,7 +3,7 @@
 The only mutable status file in this repo. Hard cap 200 lines. Everything here
 was run or read on the date below, not copied from another document.
 
-**Last verified: 2026-09-11 (orientation). Verifier table below is still the 2026-08-26 pass.**
+**Last verified: 2026-09-11 (AT-020). Verifier table below is still the 2026-08-26 pass.**
 
 ## Where the work is
 
@@ -17,13 +17,13 @@ was run or read on the date below, not copied from another document.
 
 Current scope: finish the read-only Census ChatGPT app (point-and-ask). Kit: `atlas-execution-kit/`.
 Graph: `atlas-execution-kit/graph/release-graph.json`. Receipts: `artifacts/execution-receipts/`.
-Active: none. Next: AT-020 (refusal UI / empty-ref nation default) and AT-005 (host spike, lock-limited).
+Active: none. Next: AT-010 (state/county/place) and AT-005 (host spike, lock-limited).
 Blocked: AT-041/050–054 until owner host/deploy/portal permission.
 Invalidated: none.
-Last slice: AT-007 accepted on `2ad83a8471691df26fe88e0a4f7a7db327e56dfa`. Prior: AT-001–004, AT-006.
+Last slice: AT-020 on `b4693c45cb69c8f7a7172897b65f1ba8f6f5805a`. Prior: AT-001–004, AT-006, AT-007.
 Preserve: do not reset sibling worktrees.
-Failed/unrun: live native workflow children; live MCP/Railway HTTP.
-Baseline: test:core 357; location-truth 0 wrong; build:starter 0; fixtures 10/10.
+Failed/unrun: live native workflow children; live MCP/Railway HTTP; ChatGPT host.
+Baseline: test:core 376; location-truth not re-run this slice; typecheck:starter 0; source-of-truth 0.
 Next: `node atlas-execution-kit/tools/atlas-plan.mjs next --receipts artifacts/execution-receipts --repo .`
 Owner gate: real ChatGPT / deploy / portal remain BLOCKED.
 
