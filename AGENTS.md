@@ -94,6 +94,7 @@ scores. That is deliberate — do not raise the tolerance to get a green run.
 | CI gates | `.github/workflows/ci.yml` |
 | ChatGPT / GitHub handoff | `CHATGPT.md`, `GITHUB.md` |
 | LLM wiki (compiled knowledge) | `llm-wiki/CLAUDE.md`, `llm-wiki/wiki/index.md` |
+| Execution kit / task DAG | `atlas-execution-kit/00_START_HERE.md`, `atlas-execution-kit/graph/release-graph.json` |
 
 Except for `docs/STATUS.md`, the local GBrain outputs, legal policy sources, and
 exact-path exceptions classified by the document policy, everything else under

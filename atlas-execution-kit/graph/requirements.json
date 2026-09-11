@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "requirements": [
+    {
+      "id": "R-00",
+      "title": "Execution integrity",
+      "goal": "Preserve current repo authority, narrow scope, isolated assignments, reviewed evidence, and resumption without duplicate work.",
+      "scope": "release",
+      "task_ids": [
+        "AT-001",
+        "AT-002",
+        "AT-003"
+      ],
+      "case_ids": [
+        "OPS-01",
+        "OPS-02"
+      ]
+    },
+    {
+      "id": "R-01",
+      "title": "Correct geographic identity",
+      "goal": "Supported names/levels resolve correctly; ambiguity, unknown and out-of-scope requests never masquerade as successful geography.",
+      "scope": "release",
+      "task_ids": [
+        "AT-004",
+        "AT-007",
+        "AT-010",
+        "AT-020",
+        "AT-027",
+        "AT-033",
+        "AT-037"
+      ],
+      "case_ids": [
+        "ID-01",
+        "ID-02",
+        "ID-03",
+        "ID-04",
+        "ID-05",
+        "ID-06",
+        "ID-07",
+        "ID-08",
+        "ID-09",
+        "ID-10",
+        "ID-12",
+        "STATE-01",
+        "STATE-09",
+        "HOST-03",
+        "SEC-02"
+      ]
+    },
+    {
+      "id": "R-02",
+      "title": "Honest facts and coverage",
+      "goal": "Facts, types, units, vintage, parent relationships and map representation agree with supported source data.",
+      "scope": "release",
+      "task_ids": [
+        "AT-004",
+        "AT-007",
+        "AT-011",
+        "AT-024",
+        "AT-026",
+        "AT-033"
+      ],
+      "case_ids": [
+        "ID-01",
+        "ID-11",
+        "FACT-01",
+        "FACT-02",
+        "FACT-03",
+        "FACT-04",
+        "FACT-05",
+        "FACT-06"
+      ]
+    },
+    {
+      "id": "R-03",
+      "title": "Useful inline answer",
+      "goal": "A correct readable map answers the initial request without a second search, dashboard, or excessive interface.",
+      "scope": "release",
+      "task_ids": [
+        "AT-006",
+        "AT-022",
+        "AT-029",
+        "AT-033",
+        "AT-034"
+      ],
+      "case_ids": [
+        "STATE-04",
+        "UI-01",
+        "UI-02",
+        "UI-05"
+      ]
+    },
+    {
+      "id": "R-04",
+      "title": "Coherent exploration",
+      "goal": "Host-supported fullscreen and return preserve compatible view/selection; parent and back have distinct meanings.",
+      "scope": "release",
+      "task_ids": [
+        "AT-006",
+        "AT-023",
+        "AT-026",
+        "AT-033",
+        "AT-034"
+      ],
+      "case_ids": [
+        "ID-04",
+        "NAV-01",
+        "NAV-02",
+        "UI-03"
+      ]
+    },
+    {
+      "id": "R-05",
+      "title": "Point and ask",
+      "goal": "Selection identifies an actual supported feature, updates bounded context, and supports an intentional named follow-up.",
+      "scope": "release",
+      "task_ids": [
+        "AT-007",
+        "AT-024",
+        "AT-025",
+        "AT-030",
+        "AT-033",
+        "AT-037",
+        "AT-041"
+      ],
+      "case_ids": [
+        "STATE-08",
+        "SEL-01",
+        "SEL-02",
+        "SEL-03",
+        "SEL-04",
+        "SEL-05",
+        "HOST-02"
+      ]
+    },
+    {
+      "id": "R-06",
+      "title": "Reliable recovery",
+      "goal": "Loading, refusal, retry, cancellation and stale event handling preserve the last good view without mislabelling it.",
+      "scope": "release",
+      "task_ids": [
+        "AT-004",
+        "AT-007",
+        "AT-020",
+        "AT-021",
+        "AT-022",
+        "AT-027",
+        "AT-033",
+        "AT-037"
+      ],
+      "case_ids": [
+        "ID-09",
+        "FACT-05",
+        "STATE-01",
+        "STATE-02",
+        "STATE-03",
+        "STATE-04",
+        "STATE-05",
+        "STATE-06",
+        "STATE-07",
+        "STATE-08",
+        "STATE-09",
+        "STATE-10",
+        "HOST-03"
+      ]
+    },
+    {
+      "id": "R-07",
+      "title": "Accessible mobile product",
+      "goal": "Touch, keyboard, screen-reader, reduced-motion and small-view flows reach the same meaningful actions.",
+      "scope": "release",
+      "task_ids": [
+        "AT-004",
+        "AT-006",
+        "AT-027",
+        "AT-028",
+        "AT-029",
+        "AT-034",
+        "AT-041"
+      ],
+      "case_ids": [
+        "UI-02",
+        "UI-04",
+        "UI-05",
+        "A11Y-01",
+        "A11Y-02",
+        "A11Y-03",
+        "A11Y-04"
+      ]
+    },
+    {
+      "id": "R-08",
+      "title": "Correct ChatGPT integration",
+      "goal": "Current supported bridge/resources, bounded output, actual host lifecycle and refreshed-client evidence support the product.",
+      "scope": "release",
+      "task_ids": [
+        "AT-005",
+        "AT-007",
+        "AT-012",
+        "AT-023",
+        "AT-025",
+        "AT-033",
+        "AT-041",
+        "AT-054"
+      ],
+      "case_ids": [
+        "STATE-02",
+        "STATE-07",
+        "SEL-02",
+        "SEL-03",
+        "SEL-05",
+        "UI-03",
+        "HOST-01",
+        "HOST-02",
+        "HOST-03",
+        "HOST-04",
+        "HOST-05"
+      ]
+    },
+    {
+      "id": "R-09",
+      "title": "Safe read-only boundaries",
+      "goal": "Retired writes/providers stay unavailable; input, diagnostics, privacy and secrets handling fit actual behavior.",
+      "scope": "release",
+      "task_ids": [
+        "AT-012",
+        "AT-031",
+        "AT-037",
+        "AT-050",
+        "AT-051"
+      ],
+      "case_ids": [
+        "STATE-06",
+        "HOST-05",
+        "SEC-01",
+        "SEC-02",
+        "SEC-03",
+        "SEC-04"
+      ]
+    },
+    {
+      "id": "R-10",
+      "title": "Reproducible measurable operation",
+      "goal": "A clean candidate builds with pinned dependencies, tested assets, measured behavior, and identifiable artifacts.",
+      "scope": "release",
+      "task_ids": [
+        "AT-003",
+        "AT-032",
+        "AT-035",
+        "AT-036",
+        "AT-037",
+        "AT-040",
+        "AT-051"
+      ],
+      "case_ids": [
+        "STATE-10",
+        "SEL-04",
+        "PERF-01",
+        "PERF-02",
+        "BUILD-01",
+        "REL-01",
+        "REL-02"
+      ]
+    },
+    {
+      "id": "R-11",
+      "title": "Truthful discovery and release",
+      "goal": "Descriptions, docs, demo, permissions, deployment, host proof and submission claims match observed scope.",
+      "scope": "release",
+      "task_ids": [
+        "AT-002",
+        "AT-006",
+        "AT-030",
+        "AT-036",
+        "AT-040",
+        "AT-043",
+        "AT-050",
+        "AT-051",
+        "AT-052",
+        "AT-054",
+        "AT-053"
+      ],
+      "case_ids": [
+        "ID-10",
+        "FACT-02",
+        "ROUTE-01",
+        "ROUTE-02",
+        "REL-01",
+        "REL-02",
+        "REL-03"
+      ]
+    },
+    {
+      "id": "R-12",
+      "title": "Demonstrated usefulness",
+      "goal": "Formative human testing checks comprehension, selection handoff, recovery and scope understanding without inventing participants.",
+      "scope": "advisory",
+      "task_ids": [
+        "AT-042"
+      ],
+      "case_ids": [
+        "USER-01"
+      ]
+    }
+  ]
+}

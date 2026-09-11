@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "task_id": "AT-001",
+  "verdict": "NOT_RUN",
+  "definition_sha256": "198aae3c6ccf879da8e79d2c31cb08b2877c005f40b6b4ec00b8835b0e59e310",
+  "recorded_at": "REPLACE_WITH_ACTUAL_ISO_TIMESTAMP",
+  "executor": "REPLACE_BUILDER_SESSION",
+  "reviewer": "REPLACE_DISTINCT_REVIEWER_SESSION",
+  "git": {
+    "commit": "REPLACE_FULL_INTEGRATED_GIT_SHA",
+    "integrated": false,
+    "clean_tree": false
+  },
+  "depends_on_receipts": {},
+  "review": {
+    "verdict": "NOT_RUN",
+    "observation": "Record actual independent review.",
+    "artifact_id": "review-log"
+  },
+  "checks": [
+    {
+      "id": "check-1",
+      "criteria": [
+        "AT-001-AC1"
+      ],
+      "kind": "manual",
+      "status": "NOT_RUN",
+      "procedure": "Actual repo/remotes/branch/worktrees/dirty state are recorded without changing or discarding unrelated files.",
+      "observer": "REPLACE_OBSERVER",
+      "observation": "No run performed.",
+      "artifact_id": "check-1-log"
+    },
+    {
+      "id": "check-2",
+      "criteria": [
+        "AT-001-AC2"
+      ],
+      "kind": "manual",
+      "status": "NOT_RUN",
+      "procedure": "Current instructions, status, plan and registry classification are read; stale sources and the pack adoption path are distinguished.",
+      "observer": "REPLACE_OBSERVER",
+      "observation": "No run performed.",
+      "artifact_id": "check-2-log"
+    },
+    {
+      "id": "check-3",
+      "criteria": [
+        "AT-001-AC3"
+      ],
+      "kind": "manual",
+      "status": "NOT_RUN",
+      "procedure": "Initial task graph is validated and the exact next bounded action is recorded in the existing status/checkpoint.",
+      "observer": "REPLACE_OBSERVER",
+      "observation": "No run performed.",
+      "artifact_id": "check-3-log"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "review-log",
+      "path": "logs/AT-001/review.md",
+      "sha256": "REPLACE_ACTUAL_FILE_SHA256"
+    },
+    {
+      "id": "check-1-log",
+      "path": "logs/AT-001/check-1.txt",
+      "sha256": "REPLACE_ACTUAL_FILE_SHA256"
+    },
+    {
+      "id": "check-2-log",
+      "path": "logs/AT-001/check-2.txt",
+      "sha256": "REPLACE_ACTUAL_FILE_SHA256"
+    },
+    {
+      "id": "check-3-log",
+      "path": "logs/AT-001/check-3.txt",
+      "sha256": "REPLACE_ACTUAL_FILE_SHA256"
+    }
+  ]
+}

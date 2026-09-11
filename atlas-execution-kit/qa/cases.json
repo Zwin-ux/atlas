@@ -1,0 +1,1396 @@
+{
+  "schema_version": 1,
+  "status": "SPEC_NOT_RUN",
+  "cases": [
+    {
+      "id": "ID-01",
+      "title": "Named place resolves at supported context",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Open a reviewed named-city fixture via the actual tool."
+      ],
+      "expected": [
+        "Expected canonical identity, geographic kind, county context and displayed title agree."
+      ],
+      "task_ids": [
+        "AT-004",
+        "AT-010",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-01",
+        "R-02"
+      ]
+    },
+    {
+      "id": "ID-02",
+      "title": "Bare state does not open an arbitrary county",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Open a supported state name without an explicit level."
+      ],
+      "expected": [
+        "State geography/title are correct; no county substituted."
+      ],
+      "task_ids": [
+        "AT-004",
+        "AT-010",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-01"
+      ]
+    },
+    {
+      "id": "ID-03",
+      "title": "Explicit nation level is honored",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Use a reviewed valid explicit national-level request."
+      ],
+      "expected": [
+        "Nation reference/rendering and narration agree with declared schema semantics."
+      ],
+      "task_ids": [
+        "AT-010",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-01"
+      ]
+    },
+    {
+      "id": "ID-04",
+      "title": "Explicit state level preserves requested context",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Open a supported place with explicit state level."
+      ],
+      "expected": [
+        "Correct parent-state plate and title, not the county title."
+      ],
+      "task_ids": [
+        "AT-010",
+        "AT-026"
+      ],
+      "requirements": [
+        "R-01",
+        "R-04"
+      ]
+    },
+    {
+      "id": "ID-05",
+      "title": "Shared name returns candidates",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Use a fixture with multiple supported identities sharing a name."
+      ],
+      "expected": [
+        "Structured ambiguity with distinguishable candidates; no confident choice."
+      ],
+      "task_ids": [
+        "AT-004",
+        "AT-010",
+        "AT-027",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-01"
+      ]
+    },
+    {
+      "id": "ID-06",
+      "title": "Case and punctuation equivalence",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Apply reviewed case/punctuation variations to a unique fixture."
+      ],
+      "expected": [
+        "Same identity or honest refusal under documented support, never another county."
+      ],
+      "task_ids": [
+        "AT-004",
+        "AT-010"
+      ],
+      "requirements": [
+        "R-01"
+      ]
+    },
+    {
+      "id": "ID-07",
+      "title": "Diacritic handling remains honest",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Apply supported diacritic/dropped-diacritic variants."
+      ],
+      "expected": [
+        "Matches expected identity where supported; otherwise refuses without substitution."
+      ],
+      "task_ids": [
+        "AT-004",
+        "AT-010"
+      ],
+      "requirements": [
+        "R-01"
+      ]
+    },
+    {
+      "id": "ID-08",
+      "title": "Near name is not a wrong confident match",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Use near-match spelling adjacent to multiple fixture identities."
+      ],
+      "expected": [
+        "Expected match or ambiguity/refusal; suggestions are not asserted answers."
+      ],
+      "task_ids": [
+        "AT-004",
+        "AT-010"
+      ],
+      "requirements": [
+        "R-01"
+      ]
+    },
+    {
+      "id": "ID-09",
+      "title": "Nonsense input is unresolved",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Supply a bounded nonsense string."
+      ],
+      "expected": [
+        "Structured unresolved result; no rendered success map."
+      ],
+      "task_ids": [
+        "AT-010",
+        "AT-020",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-01",
+        "R-06"
+      ]
+    },
+    {
+      "id": "ID-10",
+      "title": "Explicit non-US location stays out of scope",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Supply an explicit non-US identity with a similar US name."
+      ],
+      "expected": [
+        "No silently chosen US substitute; supported limitation is stated."
+      ],
+      "task_ids": [
+        "AT-004",
+        "AT-010",
+        "AT-030"
+      ],
+      "requirements": [
+        "R-01",
+        "R-11"
+      ]
+    },
+    {
+      "id": "ID-11",
+      "title": "Unique county assertion is source-supported",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Inspect a fixture with nontrivial place membership if represented in the dataset."
+      ],
+      "expected": [
+        "No unjustified unique-parent assertion; supported ambiguity/representation is documented."
+      ],
+      "task_ids": [
+        "AT-004",
+        "AT-011"
+      ],
+      "requirements": [
+        "R-02"
+      ]
+    },
+    {
+      "id": "ID-12",
+      "title": "Positive coverage cannot be gamed by refusal",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Run positive lookup fixtures together with Location Truth."
+      ],
+      "expected": [
+        "Expected supported successes pass alongside zero wrong confident resolutions."
+      ],
+      "task_ids": [
+        "AT-010",
+        "AT-033",
+        "AT-037"
+      ],
+      "requirements": [
+        "R-01"
+      ]
+    },
+    {
+      "id": "FACT-01",
+      "title": "Missing population is unknown",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Remove/null population in an isolated fixture."
+      ],
+      "expected": [
+        "No population zero appears unless zero is actual source data."
+      ],
+      "task_ids": [
+        "AT-011"
+      ],
+      "requirements": [
+        "R-02"
+      ]
+    },
+    {
+      "id": "FACT-02",
+      "title": "Largest label follows verified ordering",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Use non-sorted/partially missing fixture values."
+      ],
+      "expected": [
+        "Ranking is correctly computed from comparable data or ranking label is not used."
+      ],
+      "task_ids": [
+        "AT-011",
+        "AT-030"
+      ],
+      "requirements": [
+        "R-02",
+        "R-11"
+      ]
+    },
+    {
+      "id": "FACT-03",
+      "title": "Point is not advertised as boundary",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Open a place represented only by an anchor point."
+      ],
+      "expected": [
+        "UI and narration describe represented point/county context rather than municipal border."
+      ],
+      "task_ids": [
+        "AT-011",
+        "AT-024",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-02"
+      ]
+    },
+    {
+      "id": "FACT-04",
+      "title": "Source vintage and units are accurate",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Inspect facts from fixtures with known source dates and units."
+      ],
+      "expected": [
+        "Displayed/narrated units and dates follow source fields, not server date."
+      ],
+      "task_ids": [
+        "AT-011",
+        "AT-030"
+      ],
+      "requirements": [
+        "R-02"
+      ]
+    },
+    {
+      "id": "FACT-05",
+      "title": "Missing coordinate does not become origin",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Use a null/undefined coordinate fixture."
+      ],
+      "expected": [
+        "No unintended focus at numeric zero; safe clear/unsupported state."
+      ],
+      "task_ids": [
+        "AT-011",
+        "AT-024"
+      ],
+      "requirements": [
+        "R-02",
+        "R-06"
+      ]
+    },
+    {
+      "id": "FACT-06",
+      "title": "Partial place coverage is not exhaustive",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Use a bounded/truncated mapped-place list."
+      ],
+      "expected": [
+        "No claim that every community is listed."
+      ],
+      "task_ids": [
+        "AT-011",
+        "AT-030"
+      ],
+      "requirements": [
+        "R-02"
+      ]
+    },
+    {
+      "id": "STATE-01",
+      "title": "Refusal cannot create a national success",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Feed an ambiguous/unresolved payload that still contains a level field."
+      ],
+      "expected": [
+        "No success navigation; current correct map remains."
+      ],
+      "task_ids": [
+        "AT-020",
+        "AT-027",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-01",
+        "R-06"
+      ]
+    },
+    {
+      "id": "STATE-02",
+      "title": "Old success metadata cannot override new refusal",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Deliver success metadata, then a newer explicit refusal."
+      ],
+      "expected": [
+        "Newest result status takes precedence; no old plate falsely attributed to new request."
+      ],
+      "task_ids": [
+        "AT-020",
+        "AT-012"
+      ],
+      "requirements": [
+        "R-06",
+        "R-08"
+      ]
+    },
+    {
+      "id": "STATE-03",
+      "title": "A then B with reversed completions",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Delay A; start B; complete B; complete A."
+      ],
+      "expected": [
+        "B remains displayed; old response ignored."
+      ],
+      "task_ids": [
+        "AT-021",
+        "AT-033",
+        "AT-037"
+      ],
+      "requirements": [
+        "R-06"
+      ]
+    },
+    {
+      "id": "STATE-04",
+      "title": "Old map keeps old title during loading",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Start a new place while an old correct plate is visible."
+      ],
+      "expected": [
+        "Pending title is separate; old map never wears new place title."
+      ],
+      "task_ids": [
+        "AT-021",
+        "AT-022"
+      ],
+      "requirements": [
+        "R-06",
+        "R-03"
+      ]
+    },
+    {
+      "id": "STATE-05",
+      "title": "Network error preserves map and retry",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Fail a subsequent fetch and activate retry."
+      ],
+      "expected": [
+        "Map remains usable; retry targets failed intent and can succeed."
+      ],
+      "task_ids": [
+        "AT-021",
+        "AT-027",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-06"
+      ]
+    },
+    {
+      "id": "STATE-06",
+      "title": "Malformed geometry fails honestly",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Return malformed schema/geometry in an isolated mock boundary."
+      ],
+      "expected": [
+        "Safe error, no pretend valid plate or runtime debug leakage."
+      ],
+      "task_ids": [
+        "AT-021",
+        "AT-031"
+      ],
+      "requirements": [
+        "R-06",
+        "R-09"
+      ]
+    },
+    {
+      "id": "STATE-07",
+      "title": "Repeated tool event is idempotent",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Deliver the same tool result repeatedly."
+      ],
+      "expected": [
+        "No duplicate transition, listener or ask action."
+      ],
+      "task_ids": [
+        "AT-012",
+        "AT-021",
+        "AT-025"
+      ],
+      "requirements": [
+        "R-06",
+        "R-08"
+      ]
+    },
+    {
+      "id": "STATE-08",
+      "title": "Selection invalidates with incompatible plate",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Select a feature then navigate to unrelated supported geography."
+      ],
+      "expected": [
+        "Old selection cleared; no ghost focus or named action for old feature."
+      ],
+      "task_ids": [
+        "AT-024",
+        "AT-026"
+      ],
+      "requirements": [
+        "R-05",
+        "R-06"
+      ]
+    },
+    {
+      "id": "STATE-09",
+      "title": "Candidate click is bound to current result",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Open ambiguity A, replace with request B, then invoke old candidate action."
+      ],
+      "expected": [
+        "Stale action rejected or re-resolved explicitly, never silently applied."
+      ],
+      "task_ids": [
+        "AT-027"
+      ],
+      "requirements": [
+        "R-01",
+        "R-06"
+      ]
+    },
+    {
+      "id": "STATE-10",
+      "title": "Unmount removes task-owned resources",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Repeatedly mount/unmount and switch display modes."
+      ],
+      "expected": [
+        "No duplicate listeners/retained requests or growing task-owned resources."
+      ],
+      "task_ids": [
+        "AT-021",
+        "AT-023",
+        "AT-035"
+      ],
+      "requirements": [
+        "R-06",
+        "R-10"
+      ]
+    },
+    {
+      "id": "SEL-01",
+      "title": "Tap inspects without conversation turn",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Select several supported features."
+      ],
+      "expected": [
+        "Inspector/focus changes; no automatic model messages."
+      ],
+      "task_ids": [
+        "AT-024",
+        "AT-025"
+      ],
+      "requirements": [
+        "R-05"
+      ]
+    },
+    {
+      "id": "SEL-02",
+      "title": "Named follow-up uses current identity once",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Select A then B and trigger Ask about B."
+      ],
+      "expected": [
+        "One readable intentional question bound to B, no captured A."
+      ],
+      "task_ids": [
+        "AT-025",
+        "AT-033",
+        "AT-041"
+      ],
+      "requirements": [
+        "R-05",
+        "R-08"
+      ]
+    },
+    {
+      "id": "SEL-03",
+      "title": "Pronoun context is never guessed",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Test follow-up with missing/stale/unavailable selection context."
+      ],
+      "expected": [
+        "Explicit named fallback or clarification, not invented current selection."
+      ],
+      "task_ids": [
+        "AT-025",
+        "AT-041"
+      ],
+      "requirements": [
+        "R-05",
+        "R-08"
+      ]
+    },
+    {
+      "id": "SEL-04",
+      "title": "Pan does not flood conversation context",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Pan/zoom continuously then stop."
+      ],
+      "expected": [
+        "No turn spam or per-frame context feed; meaningful settled state only."
+      ],
+      "task_ids": [
+        "AT-025",
+        "AT-035"
+      ],
+      "requirements": [
+        "R-05",
+        "R-10"
+      ]
+    },
+    {
+      "id": "SEL-05",
+      "title": "Different widgets retain scoped identities",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Open two map results and reactivate an earlier one."
+      ],
+      "expected": [
+        "Named action refers to that widget selection; no assumed synchronized global map."
+      ],
+      "task_ids": [
+        "AT-025",
+        "AT-041"
+      ],
+      "requirements": [
+        "R-05",
+        "R-08"
+      ]
+    },
+    {
+      "id": "NAV-01",
+      "title": "Direct entry has geographic parent",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Open county directly, select Show state."
+      ],
+      "expected": [
+        "Correct state opens even with no prior state history."
+      ],
+      "task_ids": [
+        "AT-026",
+        "AT-033"
+      ],
+      "requirements": [
+        "R-04"
+      ]
+    },
+    {
+      "id": "NAV-02",
+      "title": "Back differs from parent",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Navigate through two non-parent views then use Back."
+      ],
+      "expected": [
+        "Actual previous view restored; parent action remains separate."
+      ],
+      "task_ids": [
+        "AT-026"
+      ],
+      "requirements": [
+        "R-04"
+      ]
+    },
+    {
+      "id": "UI-01",
+      "title": "Inline answer useful without expansion",
+      "priority": "P0",
+      "kind": "browser_and_manual",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Inspect initial supported result without clicking."
+      ],
+      "expected": [
+        "Place, readable geography and relevant context are understandable."
+      ],
+      "task_ids": [
+        "AT-022",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-03"
+      ]
+    },
+    {
+      "id": "UI-02",
+      "title": "Conversation scroll is not map zoom",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Scroll through inline result using normal wheel/touch gesture."
+      ],
+      "expected": [
+        "Conversation behavior is not unexpectedly captured by map zoom."
+      ],
+      "task_ids": [
+        "AT-022",
+        "AT-029",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-03",
+        "R-07"
+      ]
+    },
+    {
+      "id": "UI-03",
+      "title": "Fullscreen and return preserve subject",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Enter supported larger mode and return."
+      ],
+      "expected": [
+        "Compatible place, selection and view state persist; no duplicate ask."
+      ],
+      "task_ids": [
+        "AT-023",
+        "AT-034",
+        "AT-041"
+      ],
+      "requirements": [
+        "R-04",
+        "R-08"
+      ]
+    },
+    {
+      "id": "UI-04",
+      "title": "Reduced viewport does not hide control",
+      "priority": "P0",
+      "kind": "browser_and_manual",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Test existing phone size and reduced keyboard/visual viewport."
+      ],
+      "expected": [
+        "No white tail, inaccessible buttons or composer collision."
+      ],
+      "task_ids": [
+        "AT-029",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-07"
+      ]
+    },
+    {
+      "id": "UI-05",
+      "title": "Labels remain readable across density",
+      "priority": "P0",
+      "kind": "browser_and_manual",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Render simple and dense reviewed fixture plates."
+      ],
+      "expected": [
+        "Legible priority labels, no severe overlap with selection/controls."
+      ],
+      "task_ids": [
+        "AT-029",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-03",
+        "R-07"
+      ]
+    },
+    {
+      "id": "A11Y-01",
+      "title": "Keyboard reaches meaningful features",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Navigate selection, candidate choice, fit, back and parent using keyboard."
+      ],
+      "expected": [
+        "Visible focus and usable named controls reach the same actions as pointer."
+      ],
+      "task_ids": [
+        "AT-028",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-07"
+      ]
+    },
+    {
+      "id": "A11Y-02",
+      "title": "Agent updates do not steal focus",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Focus a control and deliver a valid agent map update."
+      ],
+      "expected": [
+        "Relevant announcement occurs without unwanted keyboard-focus theft."
+      ],
+      "task_ids": [
+        "AT-028",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-07"
+      ]
+    },
+    {
+      "id": "A11Y-03",
+      "title": "Candidate dismissal returns focus",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Human initiates ambiguous request; dismiss choice panel."
+      ],
+      "expected": [
+        "Focus returns to meaningful initiating control."
+      ],
+      "task_ids": [
+        "AT-027",
+        "AT-028",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-07"
+      ]
+    },
+    {
+      "id": "A11Y-04",
+      "title": "Reduced motion and text resize work",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Enable reduced motion and enlarged text."
+      ],
+      "expected": [
+        "No required animation or hidden essential controls/labels."
+      ],
+      "task_ids": [
+        "AT-028",
+        "AT-029",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-07"
+      ]
+    },
+    {
+      "id": "HOST-01",
+      "title": "Actual refreshed client renders candidate",
+      "priority": "P0",
+      "kind": "human_host",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Use fresh/refreshed authenticated ChatGPT connection on frozen revision."
+      ],
+      "expected": [
+        "Real intended resource loads with interactive map, not only success narration."
+      ],
+      "task_ids": [
+        "AT-041",
+        "AT-054"
+      ],
+      "requirements": [
+        "R-08"
+      ]
+    },
+    {
+      "id": "HOST-02",
+      "title": "Actual named selection question works",
+      "priority": "P0",
+      "kind": "human_host",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Perform open → expand → select → named follow-up in real host."
+      ],
+      "expected": [
+        "Answer is about current selected identity; evidence identifies client/build."
+      ],
+      "task_ids": [
+        "AT-041",
+        "AT-054"
+      ],
+      "requirements": [
+        "R-05",
+        "R-08"
+      ]
+    },
+    {
+      "id": "HOST-03",
+      "title": "Actual refusal and continuation work",
+      "priority": "P0",
+      "kind": "human_host",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "In actual host request ambiguous place, choose, then continue."
+      ],
+      "expected": [
+        "Correct candidate flow and subsequent interaction; no blank map or false reset."
+      ],
+      "task_ids": [
+        "AT-041",
+        "AT-054"
+      ],
+      "requirements": [
+        "R-01",
+        "R-06",
+        "R-08"
+      ]
+    },
+    {
+      "id": "HOST-04",
+      "title": "Absent capability has usable fallback",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Disable relevant optional host capability in preview/adapter fixture."
+      ],
+      "expected": [
+        "Human-operated map and truthful fallback remain; no indefinite wait."
+      ],
+      "task_ids": [
+        "AT-005",
+        "AT-012",
+        "AT-023"
+      ],
+      "requirements": [
+        "R-08"
+      ]
+    },
+    {
+      "id": "HOST-05",
+      "title": "Model-facing output remains bounded",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Inspect actual model-visible structured results/context."
+      ],
+      "expected": [
+        "No bulk geometry, host globals, secrets or unnecessary conversation history."
+      ],
+      "task_ids": [
+        "AT-012",
+        "AT-025",
+        "AT-031"
+      ],
+      "requirements": [
+        "R-08",
+        "R-09"
+      ]
+    },
+    {
+      "id": "SEC-01",
+      "title": "Retired actions remain unavailable",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Run current public tool and HTTP surface checks."
+      ],
+      "expected": [
+        "No accounts/billing/notes/provider-write surface accidentally exposed."
+      ],
+      "task_ids": [
+        "AT-031",
+        "AT-037",
+        "AT-051"
+      ],
+      "requirements": [
+        "R-09"
+      ]
+    },
+    {
+      "id": "SEC-02",
+      "title": "Untrusted location cannot execute instructions",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Use injection-looking bounded name/ID strings as data."
+      ],
+      "expected": [
+        "No executed code, arbitrary URL/path fetch or changed product instructions."
+      ],
+      "task_ids": [
+        "AT-010",
+        "AT-031",
+        "AT-037"
+      ],
+      "requirements": [
+        "R-01",
+        "R-09"
+      ]
+    },
+    {
+      "id": "SEC-03",
+      "title": "Production diagnostics stay private",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Exercise success and failure in production-mode build."
+      ],
+      "expected": [
+        "No raw stack/internal URL/host config in normal UI; log/privacy behavior checked."
+      ],
+      "task_ids": [
+        "AT-021",
+        "AT-031",
+        "AT-034"
+      ],
+      "requirements": [
+        "R-09"
+      ]
+    },
+    {
+      "id": "SEC-04",
+      "title": "Public candidate contains no exposed secrets",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Scan intended public diff/tracked material with approved local tooling."
+      ],
+      "expected": [
+        "Secret categories/locations reported securely; no values uploaded or copied."
+      ],
+      "task_ids": [
+        "AT-031",
+        "AT-036",
+        "AT-037"
+      ],
+      "requirements": [
+        "R-09"
+      ]
+    },
+    {
+      "id": "PERF-01",
+      "title": "Cold and warm costs are separated",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Measure representative cold/warm loads on stated environment."
+      ],
+      "expected": [
+        "Actual data/build/cache/environment recorded; no invented latency claim."
+      ],
+      "task_ids": [
+        "AT-035"
+      ],
+      "requirements": [
+        "R-10"
+      ]
+    },
+    {
+      "id": "PERF-02",
+      "title": "Repeated interaction stays bounded",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Repeat valid selections, navigation and display mode changes."
+      ],
+      "expected": [
+        "No unbounded listener/memory/fetch growth attributable to app."
+      ],
+      "task_ids": [
+        "AT-035",
+        "AT-037"
+      ],
+      "requirements": [
+        "R-10"
+      ]
+    },
+    {
+      "id": "BUILD-01",
+      "title": "Clean checkout reproduces candidate",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Run pinned install/build/tests with documented assets in clean environment."
+      ],
+      "expected": [
+        "No hidden personal credentials/files required; artifact tied to revision."
+      ],
+      "task_ids": [
+        "AT-032",
+        "AT-040"
+      ],
+      "requirements": [
+        "R-10"
+      ]
+    },
+    {
+      "id": "ROUTE-01",
+      "title": "Direct and indirect map requests invoke appropriately",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Run reviewed equivalent map/lookup prompts."
+      ],
+      "expected": [
+        "Supported intent routes without requiring an exact magic phrase."
+      ],
+      "task_ids": [
+        "AT-030",
+        "AT-041"
+      ],
+      "requirements": [
+        "R-11"
+      ]
+    },
+    {
+      "id": "ROUTE-02",
+      "title": "Unsupported requests do not hijack tools",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Test directions/weather/businesses and unrelated place mentions."
+      ],
+      "expected": [
+        "No fake data or inappropriate map invocation used as substitute."
+      ],
+      "task_ids": [
+        "AT-030",
+        "AT-041"
+      ],
+      "requirements": [
+        "R-11"
+      ]
+    },
+    {
+      "id": "REL-01",
+      "title": "Candidate revision stays frozen for proof",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Compare final receipt/build revision and tracked working tree."
+      ],
+      "expected": [
+        "Exact-revision final checks reject dirty or different code."
+      ],
+      "task_ids": [
+        "AT-040",
+        "AT-043"
+      ],
+      "requirements": [
+        "R-10",
+        "R-11"
+      ]
+    },
+    {
+      "id": "REL-02",
+      "title": "Deployment is authorized and traceable",
+      "priority": "P0",
+      "kind": "human_authorized",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Inspect scoped permission then deploy/smoke intended target."
+      ],
+      "expected": [
+        "Actual artifact/revision/target and rollback recorded; no unauthorized write."
+      ],
+      "task_ids": [
+        "AT-050",
+        "AT-051"
+      ],
+      "requirements": [
+        "R-10",
+        "R-11"
+      ]
+    },
+    {
+      "id": "REL-03",
+      "title": "Portal token/submission status is real",
+      "priority": "P0",
+      "kind": "human_authorized",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Perform current authorized portal flow."
+      ],
+      "expected": [
+        "No invented token/approval; actual configured state and acknowledgement recorded."
+      ],
+      "task_ids": [
+        "AT-052",
+        "AT-053"
+      ],
+      "requirements": [
+        "R-11"
+      ]
+    },
+    {
+      "id": "OPS-01",
+      "title": "Workflow uses current authority",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Inspect and harmlessly smoke adapted native workflow."
+      ],
+      "expected": [
+        "No hard-coded repo or retired product instruction; failures fail closed."
+      ],
+      "task_ids": [
+        "AT-001",
+        "AT-002"
+      ],
+      "requirements": [
+        "R-00"
+      ]
+    },
+    {
+      "id": "OPS-02",
+      "title": "Resume does not duplicate active work",
+      "priority": "P0",
+      "kind": "automated_candidate",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Interrupt a harmless task then resume with active assignment evidence."
+      ],
+      "expected": [
+        "Existing worktrees/owners checked; no second builder edits same scope."
+      ],
+      "task_ids": [
+        "AT-002"
+      ],
+      "requirements": [
+        "R-00"
+      ]
+    },
+    {
+      "id": "USER-01",
+      "title": "Uncoached comprehension and recovery",
+      "priority": "P2",
+      "kind": "human_research",
+      "status": "SPEC_NOT_RUN",
+      "fixture": "Use reviewed current Census/host fixtures; do not derive expected identity from the system under test.",
+      "steps": [
+        "Run consented formative protocol with actual participants."
+      ],
+      "expected": [
+        "Observed outcomes/limits reported; no synthetic participants counted."
+      ],
+      "task_ids": [
+        "AT-042"
+      ],
+      "requirements": [
+        "R-12"
+      ]
+    }
+  ]
+}

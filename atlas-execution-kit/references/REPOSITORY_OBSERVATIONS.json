@@ -1,0 +1,34 @@
+{
+  "scope": "Source inspection only, not execution",
+  "target_repository": "Zwin-ux/atlas",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "blob_sha": "6fdfe86c5fea94395c093e4df85ec7a1b4970205",
+      "observation": "Read-only Census scope, retired-feature hard stops, existing authority registry, sole mutable status file, and browser constraints."
+    },
+    {
+      "path": ".grok/workflows/atlas-control-loop.rhai",
+      "blob_sha": "5b1a873ddefc99e50cf0628ca28c2540eddfa3ca",
+      "observation": "Existing loop has fixed local root, retired doc references, copied tool names, local control verdict and separate artifact reporting; adapt before invocation."
+    },
+    {
+      "path": ".grok/workflows/atlas-ship-gate.rhai",
+      "blob_sha": "95829c097fa420cdcb78f8832932b45ccde5273f",
+      "observation": "Existing ship gate is local/control-oriented, uses fixed root and hand-written tool details, and does not itself prove full real-host/deployment acceptance."
+    }
+  ],
+  "discovered_workflows": [
+    "atlas-control-loop.rhai",
+    "atlas-llm-wiki-setup.rhai",
+    "atlas-map-quality.rhai",
+    "atlas-ship-gate.rhai"
+  ],
+  "not_claimed": [
+    "Full repository audit",
+    "Current production status",
+    "Grok native runtime compatibility",
+    "All workflow source inspected",
+    "Atlas tests passing"
+  ]
+}

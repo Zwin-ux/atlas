@@ -1,0 +1,20 @@
+AT-001-AC2 authority read (2026-09-11)
+
+Read:
+  CHATGPT.md, AGENTS.md, docs/STATUS.md, docs/brain/PROJECT_PLAN.md,
+  DESIGN.md, scripts/lib/atlas-document-policy.mjs, package.json,
+  atlas-execution-kit/00_START_HERE.md, 01_PASTE_IN_GROK.md,
+  product/PRODUCT_SPEC_v2.md, engineering/GRAPH_AND_CONTEXT.md,
+  grok/WORKFLOW_ADAPTATION.md, graph/TASK_INDEX.md
+
+Classification:
+  Canonical: AGENTS.md, docs/STATUS.md, docs/brain/PROJECT_PLAN.md,
+  scripts/lib/atlas-tool-surface.mjs
+  Kit: supporting DAG. PRODUCT_SPEC_v2.md is review-required, not ship law.
+  Historical: docs/NORTH_FACE.md, STATE.md, LOOP.md, voxel README body,
+  WebMCP challenge spike in the old plan
+  Frozen sibling: Zwin-ux/atlas-webmcp-challenge (do not mix)
+
+Adopted: PROJECT_PLAN current objective is ChatGPT app completion via the kit.
+Registry: atlas-execution-kit/ classified execution-kit / active-reference.
+Receipts: artifacts/execution-receipts/ (under artifacts/ evidence-history).

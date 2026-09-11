@@ -8,16 +8,40 @@ owns permanent boundaries. `docs/STATUS.md` owns current evidence and blockers.
 
 ## Current objective
 
-Enter the WebMCP challenge through one focused extension of the read-only
-cartographic Atlas. The challenge work must improve how a person and an agent
-use the same live map. It must not restart the retired voxel, Commons, Hosted
-Clawd, Google lookup, persistence, or commerce lanes. The approved product
-direction is the **Playable Maproom**: a curious person and an agent opening,
-observing, and focusing the same map state. The reviewable design is in
-`docs/superpowers/specs/2026-08-26-atlas-playable-maproom-design.md`; the visual
-system is in `DESIGN.md`.
+Finish the current **read-only Census ChatGPT app**. Promise: understand a US
+place without leaving the conversation. Core loop: ask → correctly framed
+map → explore → select a real mapped place → named follow-up → recover
+honestly.
 
-## P0 — WebMCP product spike
+Task DAG and acceptance live in `atlas-execution-kit/graph/release-graph.json`.
+Product brief: `atlas-execution-kit/product/PRODUCT_SPEC_v2.md` (proposed
+implementation brief; `AGENTS.md` and this file still outrank it). Planner:
+
+```powershell
+node atlas-execution-kit/tools/atlas-plan.mjs next --receipts artifacts/execution-receipts --repo .
+```
+
+The frozen WebMCP challenge candidate remains
+`Zwin-ux/atlas-webmcp-challenge` at the recorded release SHA. Do not resume
+competition work from this checkout. Do not resurrect voxel, Commons, Hosted
+Clawd, Google lookup, persistence, or commerce.
+
+Visual system: `DESIGN.md`. Inline vs fullscreen and host-native UI still
+need the AT-006 reconcile pass; until then, do not silently discard the
+map's cartographic character.
+
+## Frozen — WebMCP challenge (do not resume here)
+
+Parked. The sanitized candidate is the private challenge repo, not this tree.
+
+## P0 — ChatGPT app completion
+
+- [x] Install `atlas-execution-kit/` beside the current checkout.
+- [x] Validate the kit graph and planner tests.
+- [ ] Accept AT-001, then AT-002 / AT-003 / AT-004 / AT-006.
+- [ ] First proven core-journey regression (identity, ambiguity, or stale label).
+
+## Historical — WebMCP product spike (frozen)
 
 - [ ] Inspect the current public preview and identify the smallest page-tool
   boundary.

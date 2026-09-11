@@ -1,0 +1,1948 @@
+{
+  "schema_version": 1,
+  "contract_version": "atlas-readonly-point-and-ask-v2.0",
+  "target_repository": "Zwin-ux/atlas",
+  "status": "PROPOSED_PLAN_NOT_RUNTIME_EVIDENCE",
+  "limits": {
+    "max_active_children": 3,
+    "max_parallel_implementers": 2,
+    "max_rework_same_hypothesis": 2
+  },
+  "authority": {
+    "human_status": "docs/STATUS.md",
+    "project_plan": "docs/brain/PROJECT_PLAN.md",
+    "tool_contract": "scripts/lib/atlas-tool-surface.mjs",
+    "document_policy": "scripts/lib/atlas-document-policy.mjs"
+  },
+  "requirements_file": "requirements.json",
+  "cases_file": "../qa/cases.json",
+  "tasks": [
+    {
+      "id": "AT-001",
+      "title": "Orient to the real checkout and authoritative plan",
+      "depends_on": [],
+      "role": "lead",
+      "mode": "coordination",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "authority"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-00"
+      ],
+      "objective": "Locate current Atlas, preserve dirty work, and route all further work through current authority.",
+      "acceptance": [
+        {
+          "id": "AT-001-AC1",
+          "assertion": "Actual repo/remotes/branch/worktrees/dirty state are recorded without changing or discarding unrelated files."
+        },
+        {
+          "id": "AT-001-AC2",
+          "assertion": "Current instructions, status, plan and registry classification are read; stale sources and the pack adoption path are distinguished."
+        },
+        {
+          "id": "AT-001-AC3",
+          "assertion": "Initial task graph is validated and the exact next bounded action is recorded in the existing status/checkpoint."
+        }
+      ],
+      "case_ids": [
+        "OPS-01"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-002",
+      "title": "Repair stale Grok workflow routing minimally",
+      "depends_on": [
+        "AT-001"
+      ],
+      "role": "lead",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "authority",
+        "workflow"
+      ],
+      "candidate_write_paths": [
+        ".grok/workflows/atlas-control-loop.rhai",
+        ".grok/workflows/atlas-ship-gate.rhai"
+      ],
+      "requirements": [
+        "R-00",
+        "R-11"
+      ],
+      "objective": "Make existing native workflow usable without hard-coded paths, retired instructions or unqualified release verdicts.",
+      "acceptance": [
+        {
+          "id": "AT-002-AC1",
+          "assertion": "Current source contracts replace retired/hard-coded routing; arbitrary task text is not used as a filesystem path."
+        },
+        {
+          "id": "AT-002-AC2",
+          "assertion": "Either an installed-compatible native workflow passes a harmless smoke, or unsafe native invocation is disabled for this run and the sequential packet/review path is verified; never claim untested native compatibility."
+        },
+        {
+          "id": "AT-002-AC3",
+          "assertion": "No new agent platform/wiki/scheduler is introduced; sequential execution remains usable."
+        }
+      ],
+      "case_ids": [
+        "OPS-01",
+        "OPS-02"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-003",
+      "title": "Establish reproducible baseline and failure inventory",
+      "depends_on": [
+        "AT-001"
+      ],
+      "role": "lead",
+      "mode": "verification",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "integration",
+        "runtime-env"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-00",
+        "R-10"
+      ],
+      "objective": "Run applicable current gates and identify the first reproducible product failure.",
+      "acceptance": [
+        {
+          "id": "AT-003-AC1",
+          "assertion": "Pinned install/build/typecheck/core/authority/location/public-surface checks are attempted with real logs and environments."
+        },
+        {
+          "id": "AT-003-AC2",
+          "assertion": "Existing failures, environment limits, stale checks and new regressions are separated without weakening acceptance."
+        },
+        {
+          "id": "AT-003-AC3",
+          "assertion": "A first safe fix is selected; implementation is not delayed by optional connectors."
+        }
+      ],
+      "case_ids": [],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-004",
+      "title": "Create independent identity fixtures and product test plan",
+      "depends_on": [
+        "AT-001"
+      ],
+      "role": "qa",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "qa-fixtures"
+      ],
+      "candidate_write_paths": [
+        "tests/atlas-release/**"
+      ],
+      "requirements": [
+        "R-01",
+        "R-02",
+        "R-06",
+        "R-07"
+      ],
+      "objective": "Build source-reviewed expected identities and turn QA specifications into meaningful tests.",
+      "acceptance": [
+        {
+          "id": "AT-004-AC1",
+          "assertion": "Expected identities/parents are reviewed from actual data and not produced by the same resolver under test."
+        },
+        {
+          "id": "AT-004-AC2",
+          "assertion": "Positive, ambiguity, unknown/out-of-country, null-data and challenging-geometry fixtures are represented."
+        },
+        {
+          "id": "AT-004-AC3",
+          "assertion": "Cases distinguish executable tests, source observations and human-host procedures; none are marked passed without running."
+        }
+      ],
+      "case_ids": [
+        "ID-01",
+        "ID-02",
+        "ID-05",
+        "ID-06",
+        "ID-07",
+        "ID-08",
+        "ID-10",
+        "ID-11"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-005",
+      "title": "Prove installed host capabilities in a narrow spike",
+      "depends_on": [
+        "AT-003"
+      ],
+      "role": "lead",
+      "mode": "verification",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "server-host",
+        "host-adapter"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-08"
+      ],
+      "objective": "Verify bridge/resource/mode/context feasibility early without a speculative migration.",
+      "acceptance": [
+        {
+          "id": "AT-005-AC1",
+          "assertion": "Installed versions and current official host guidance are matched; required APIs and absent capabilities are recorded."
+        },
+        {
+          "id": "AT-005-AC2",
+          "assertion": "The real resource-to-widget path is traced and a local handshake/capability test is attempted."
+        },
+        {
+          "id": "AT-005-AC3",
+          "assertion": "Local feasibility is not reported as authenticated ChatGPT proof; necessary owner actions are identified early."
+        }
+      ],
+      "case_ids": [
+        "HOST-04"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-006",
+      "title": "Reconcile scope, inline/fullscreen and native UI decisions",
+      "depends_on": [
+        "AT-001"
+      ],
+      "role": "lead",
+      "mode": "coordination",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "authority"
+      ],
+      "candidate_write_paths": [
+        "DESIGN.md",
+        "docs/brain/PROJECT_PLAN.md"
+      ],
+      "requirements": [
+        "R-03",
+        "R-04",
+        "R-07",
+        "R-11"
+      ],
+      "objective": "Adopt a bounded product direction in existing authorities rather than multiplying briefs.",
+      "acceptance": [
+        {
+          "id": "AT-006-AC1",
+          "assertion": "Compact inline versus exploratory fullscreen is reconciled into current design and acceptance."
+        },
+        {
+          "id": "AT-006-AC2",
+          "assertion": "Typography/host-native controls are reconciled with official guidance while preserving cartographic character."
+        },
+        {
+          "id": "AT-006-AC3",
+          "assertion": "Comparison, new data providers and retired challenge scope remain deferred; registry updates follow policy."
+        }
+      ],
+      "case_ids": [],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-007",
+      "title": "Settle typed result and interaction contracts",
+      "depends_on": [
+        "AT-003",
+        "AT-004",
+        "AT-006"
+      ],
+      "role": "lead",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "contracts",
+        "tool-output",
+        "widget-state"
+      ],
+      "candidate_write_paths": [
+        "packages/core/src/atlas/**",
+        "server/src/atlasTools.ts",
+        "web/src/atlas/useToolPlate.ts"
+      ],
+      "requirements": [
+        "R-01",
+        "R-02",
+        "R-05",
+        "R-06",
+        "R-08"
+      ],
+      "objective": "Define shared success/refusal/error identities and requested/displayed/selected semantics before parallel edits.",
+      "acceptance": [
+        {
+          "id": "AT-007-AC1",
+          "assertion": "Explicit result status discriminates successful plate references from refusal and transport errors."
+        },
+        {
+          "id": "AT-007-AC2",
+          "assertion": "Selected identity, current plate, request generation and host capability contracts are versionable and bounded."
+        },
+        {
+          "id": "AT-007-AC3",
+          "assertion": "Dependent agents receive one reviewed contract; no public tool expansion or unchecked broad casts."
+        }
+      ],
+      "case_ids": [],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-010",
+      "title": "Correct resolver and geographic-level behavior",
+      "depends_on": [
+        "AT-007",
+        "AT-004"
+      ],
+      "role": "data",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "resolver",
+        "tool-output"
+      ],
+      "candidate_write_paths": [
+        "packages/core/src/atlas/gazetteer.ts",
+        "server/src/atlasTools.ts"
+      ],
+      "requirements": [
+        "R-01"
+      ],
+      "objective": "Make positive resolution and refusal truthful across supported levels.",
+      "acceptance": [
+        {
+          "id": "AT-010-AC1",
+          "assertion": "Named-place, state, county and explicit level requests produce the intended supported geography."
+        },
+        {
+          "id": "AT-010-AC2",
+          "assertion": "Ambiguity/out-of-scope/near-match cases cannot resolve confidently to the wrong place."
+        },
+        {
+          "id": "AT-010-AC3",
+          "assertion": "Existing Location Truth passes without shrinking expectations; positive completion also passes."
+        }
+      ],
+      "case_ids": [
+        "ID-01",
+        "ID-02",
+        "ID-03",
+        "ID-04",
+        "ID-05",
+        "ID-06",
+        "ID-07",
+        "ID-08",
+        "ID-09",
+        "ID-10",
+        "ID-12",
+        "SEC-02"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-011",
+      "title": "Correct identity facts, missing values and provenance",
+      "depends_on": [
+        "AT-007",
+        "AT-004"
+      ],
+      "role": "data",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "tool-output",
+        "plate-service"
+      ],
+      "candidate_write_paths": [
+        "server/src/atlasTools.ts",
+        "server/src/atlasPlates.ts"
+      ],
+      "requirements": [
+        "R-02"
+      ],
+      "objective": "Remove false zero/default/ranking and geography-description claims.",
+      "acceptance": [
+        {
+          "id": "AT-011-AC1",
+          "assertion": "Missing values remain unknown and ranking words are backed by actual sorted comparable data."
+        },
+        {
+          "id": "AT-011-AC2",
+          "assertion": "Type, represented point/boundary, supported parent, units and vintage are consistent between model and UI data."
+        },
+        {
+          "id": "AT-011-AC3",
+          "assertion": "No unsupported coverage, street, live-data or unique-membership claim is introduced."
+        }
+      ],
+      "case_ids": [
+        "ID-11",
+        "FACT-01",
+        "FACT-02",
+        "FACT-03",
+        "FACT-04",
+        "FACT-05",
+        "FACT-06"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-012",
+      "title": "Fix resource delivery and host bridge compatibility",
+      "depends_on": [
+        "AT-007",
+        "AT-005"
+      ],
+      "role": "data",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "server-host",
+        "host-adapter",
+        "tool-adapter"
+      ],
+      "candidate_write_paths": [
+        "server/src/index.ts",
+        "web/src/atlas/useToolPlate.ts",
+        "scripts/build-web.mjs"
+      ],
+      "requirements": [
+        "R-08",
+        "R-09"
+      ],
+      "objective": "Make the actual bundled widget/resource load through supported host mechanisms.",
+      "acceptance": [
+        {
+          "id": "AT-012-AC1",
+          "assertion": "Resource URI, template, MIME, CSP domains and API-base behavior match the installed/verified contract."
+        },
+        {
+          "id": "AT-012-AC2",
+          "assertion": "Initial/late/repeated events and absent-host preview are handled without infinite waiting or double application."
+        },
+        {
+          "id": "AT-012-AC3",
+          "assertion": "No wildcard security workaround, new provider or unverified migration is used."
+        }
+      ],
+      "case_ids": [
+        "STATE-02",
+        "STATE-07",
+        "HOST-04",
+        "HOST-05"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-020",
+      "title": "Fix refusal and stale-metadata interpretation",
+      "depends_on": [
+        "AT-007",
+        "AT-004"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "tool-adapter"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/useToolPlate.ts"
+      ],
+      "requirements": [
+        "R-01",
+        "R-06"
+      ],
+      "objective": "Prevent ambiguous/unresolved payloads from navigating as valid maps.",
+      "acceptance": [
+        {
+          "id": "AT-020-AC1",
+          "assertion": "Explicit refusal status wins over level/defaults and prior success metadata."
+        },
+        {
+          "id": "AT-020-AC2",
+          "assertion": "First-load absence is not confused with unresolved input; no false national-map success."
+        },
+        {
+          "id": "AT-020-AC3",
+          "assertion": "Regression cases reproduce the former concern and confirm correct behavior or establish it was already correct."
+        }
+      ],
+      "case_ids": [
+        "ID-09",
+        "STATE-01",
+        "STATE-02"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-021",
+      "title": "Stabilize requested/displayed state and async lifecycle",
+      "depends_on": [
+        "AT-020",
+        "AT-007"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "widget-state",
+        "widget-shell"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/AtlasApp.tsx"
+      ],
+      "requirements": [
+        "R-06"
+      ],
+      "objective": "Keep last good map and identity under loading, retry and reordering.",
+      "acceptance": [
+        {
+          "id": "AT-021-AC1",
+          "assertion": "Displayed map/title remain atomic; pending destination is labelled separately."
+        },
+        {
+          "id": "AT-021-AC2",
+          "assertion": "Out-of-order responses, repeated results, remounts and cancellation cannot overwrite newer intent."
+        },
+        {
+          "id": "AT-021-AC3",
+          "assertion": "Retry works against the actual failed intent and production diagnostics do not leak through error UI."
+        }
+      ],
+      "case_ids": [
+        "STATE-03",
+        "STATE-04",
+        "STATE-05",
+        "STATE-06",
+        "STATE-07",
+        "STATE-10",
+        "SEC-03"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-022",
+      "title": "Complete compact inline answer",
+      "depends_on": [
+        "AT-021",
+        "AT-006"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "widget-shell",
+        "widget-style"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/AtlasApp.tsx",
+        "web/src/atlas/atlas.css"
+      ],
+      "requirements": [
+        "R-03",
+        "R-06"
+      ],
+      "objective": "Give an immediate useful answer without a mini-dashboard or forced search.",
+      "acceptance": [
+        {
+          "id": "AT-022-AC1",
+          "assertion": "Requested subject, readable map, sparse contextual identity/source and real main action fit the host allocation."
+        },
+        {
+          "id": "AT-022-AC2",
+          "assertion": "Inline scrolling is not hijacked by map zoom; no nested deep navigation or duplicate composer."
+        },
+        {
+          "id": "AT-022-AC3",
+          "assertion": "Loading/refusal/error/ready states are composed coherently with diagnostics off."
+        }
+      ],
+      "case_ids": [
+        "STATE-04",
+        "UI-01",
+        "UI-02"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-023",
+      "title": "Implement fullscreen transition and restoration",
+      "depends_on": [
+        "AT-022",
+        "AT-012"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "widget-shell",
+        "host-adapter",
+        "tool-adapter"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/AtlasApp.tsx",
+        "web/src/atlas/useToolPlate.ts"
+      ],
+      "requirements": [
+        "R-04",
+        "R-08"
+      ],
+      "objective": "Expand/return without losing the current geographic subject.",
+      "acceptance": [
+        {
+          "id": "AT-023-AC1",
+          "assertion": "Supported host display transition preserves compatible view and selected identity."
+        },
+        {
+          "id": "AT-023-AC2",
+          "assertion": "Native composer/safe areas are respected and unsupported modes degrade without a fake fullscreen promise."
+        },
+        {
+          "id": "AT-023-AC3",
+          "assertion": "Remount/return does not duplicate requests, listeners or conversational actions."
+        }
+      ],
+      "case_ids": [
+        "STATE-10",
+        "UI-03",
+        "HOST-04"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-024",
+      "title": "Finish supported feature selection and inspector",
+      "depends_on": [
+        "AT-021",
+        "AT-011",
+        "AT-007"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "widget-renderer",
+        "widget-state"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/AtlasPlate.tsx",
+        "web/src/atlas/AtlasApp.tsx"
+      ],
+      "requirements": [
+        "R-05",
+        "R-02"
+      ],
+      "objective": "Let a person point to one real supported feature without sending a message.",
+      "acceptance": [
+        {
+          "id": "AT-024-AC1",
+          "assertion": "Selection uses a validated stable ID/type and matches the actual geometry/point."
+        },
+        {
+          "id": "AT-024-AC2",
+          "assertion": "Exactly one selection is clear; details remain bounded; unsupported shapes are not given invented facts."
+        },
+        {
+          "id": "AT-024-AC3",
+          "assertion": "Changing incompatible plates clears stale selection; panning does not silently change the question subject."
+        }
+      ],
+      "case_ids": [
+        "FACT-03",
+        "FACT-05",
+        "STATE-08",
+        "SEL-01"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-025",
+      "title": "Connect selection to intentional named follow-up",
+      "depends_on": [
+        "AT-024",
+        "AT-012",
+        "AT-007"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "host-adapter",
+        "widget-state",
+        "tool-adapter"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/useToolPlate.ts",
+        "web/src/atlas/AtlasApp.tsx"
+      ],
+      "requirements": [
+        "R-05",
+        "R-08"
+      ],
+      "objective": "Make conversation follow the actual selection without spamming turns.",
+      "acceptance": [
+        {
+          "id": "AT-025-AC1",
+          "assertion": "Meaningful settled context is bounded, validated and sent via verified supported mechanisms."
+        },
+        {
+          "id": "AT-025-AC2",
+          "assertion": "Named action reads current identity once, starts one intentional follow-up, and survives absent pronoun context."
+        },
+        {
+          "id": "AT-025-AC3",
+          "assertion": "No cross-widget/global-selection promise; stale context and delayed actions cannot silently target an old place."
+        }
+      ],
+      "case_ids": [
+        "STATE-07",
+        "SEL-01",
+        "SEL-02",
+        "SEL-03",
+        "SEL-04",
+        "SEL-05",
+        "HOST-05"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-026",
+      "title": "Separate parent geography from back history",
+      "depends_on": [
+        "AT-024",
+        "AT-010",
+        "AT-007"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "widget-state",
+        "widget-shell"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/AtlasApp.tsx"
+      ],
+      "requirements": [
+        "R-04",
+        "R-02"
+      ],
+      "objective": "Allow parent context from a directly opened place and preserve real navigation history.",
+      "acceptance": [
+        {
+          "id": "AT-026-AC1",
+          "assertion": "A direct county entry can open its supported parent without earlier visiting it."
+        },
+        {
+          "id": "AT-026-AC2",
+          "assertion": "Back restores the previous view, not an assumed parent; title/selection stay compatible."
+        },
+        {
+          "id": "AT-026-AC3",
+          "assertion": "Parent identities come from supported data, not guessed names."
+        }
+      ],
+      "case_ids": [
+        "ID-04",
+        "STATE-08",
+        "NAV-01",
+        "NAV-02"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-027",
+      "title": "Complete candidate-choice and refusal interaction",
+      "depends_on": [
+        "AT-020",
+        "AT-010",
+        "AT-022"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "widget-shell",
+        "widget-state"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/AtlasApp.tsx"
+      ],
+      "requirements": [
+        "R-01",
+        "R-06",
+        "R-07"
+      ],
+      "objective": "Make ambiguity actionable while preserving the last correct view.",
+      "acceptance": [
+        {
+          "id": "AT-027-AC1",
+          "assertion": "Candidates are distinguished by actual identity/context, with no silent best-guess selection."
+        },
+        {
+          "id": "AT-027-AC2",
+          "assertion": "Keyboard/touch choices, dismissal and retry maintain meaningful focus and state."
+        },
+        {
+          "id": "AT-027-AC3",
+          "assertion": "Stale candidates from an older result cannot be chosen against a newer request."
+        }
+      ],
+      "case_ids": [
+        "ID-05",
+        "STATE-01",
+        "STATE-05",
+        "STATE-09",
+        "A11Y-03"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-028",
+      "title": "Complete keyboard and assistive navigation",
+      "depends_on": [
+        "AT-023",
+        "AT-024",
+        "AT-026",
+        "AT-027"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "widget-renderer",
+        "widget-shell"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/AtlasPlate.tsx",
+        "web/src/atlas/AtlasApp.tsx"
+      ],
+      "requirements": [
+        "R-07"
+      ],
+      "objective": "Ensure equivalent control for keyboard and screen-reader users.",
+      "acceptance": [
+        {
+          "id": "AT-028-AC1",
+          "assertion": "Meaningful features/actions have semantic names, reachable keyboard paths and visible focus."
+        },
+        {
+          "id": "AT-028-AC2",
+          "assertion": "Agent updates announce without stealing focus; human candidate flows return it appropriately."
+        },
+        {
+          "id": "AT-028-AC3",
+          "assertion": "Zoom/text resizing and reduced motion do not hide controls or invalidate map identity."
+        }
+      ],
+      "case_ids": [
+        "A11Y-01",
+        "A11Y-02",
+        "A11Y-03",
+        "A11Y-04"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-029",
+      "title": "Refine phone layout, targets and cartographic labels",
+      "depends_on": [
+        "AT-023",
+        "AT-024",
+        "AT-027"
+      ],
+      "role": "widget",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "widget-style",
+        "widget-renderer"
+      ],
+      "candidate_write_paths": [
+        "web/src/atlas/atlas.css",
+        "web/src/atlas/AtlasPlate.tsx"
+      ],
+      "requirements": [
+        "R-07",
+        "R-03"
+      ],
+      "objective": "Make mobile map reading and interaction deliberate, not a shrunken desktop.",
+      "acceptance": [
+        {
+          "id": "AT-029-AC1",
+          "assertion": "Real screenshots at existing phone dimensions and reduced viewport show no white tail/covered controls."
+        },
+        {
+          "id": "AT-029-AC2",
+          "assertion": "Labels and touch targets are usable without relying on hover; selection remains visible."
+        },
+        {
+          "id": "AT-029-AC3",
+          "assertion": "No new visual concept, runtime concept-art geometry or distracting competing accents."
+        }
+      ],
+      "case_ids": [
+        "UI-02",
+        "UI-04",
+        "UI-05",
+        "A11Y-04"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-030",
+      "title": "Align invocation metadata, state copy and truthful listing",
+      "depends_on": [
+        "AT-010",
+        "AT-011",
+        "AT-025"
+      ],
+      "role": "data",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "tool-output"
+      ],
+      "candidate_write_paths": [
+        "server/src/atlasTools.ts",
+        "chatgpt-app-submission.json"
+      ],
+      "requirements": [
+        "R-11",
+        "R-05"
+      ],
+      "objective": "Make discovery and narration promise only implemented product value.",
+      "acceptance": [
+        {
+          "id": "AT-030-AC1",
+          "assertion": "Positive/indirect/follow-up/negative routing cases agree with actual scope."
+        },
+        {
+          "id": "AT-030-AC2",
+          "assertion": "Visible copy distinguishes missing data, failure, ambiguity and successful state."
+        },
+        {
+          "id": "AT-030-AC3",
+          "assertion": "Listing/demo language contains no unverified live-data, save, approval or model-training claim."
+        }
+      ],
+      "case_ids": [
+        "ID-10",
+        "FACT-02",
+        "FACT-04",
+        "FACT-06",
+        "ROUTE-01",
+        "ROUTE-02"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-031",
+      "title": "Harden read-only surface and remove proven risky dead paths",
+      "depends_on": [
+        "AT-012",
+        "AT-021"
+      ],
+      "role": "data",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "server-host",
+        "dependency"
+      ],
+      "candidate_write_paths": [
+        "server/src/index.ts",
+        "package.json",
+        "pnpm-lock.yaml"
+      ],
+      "requirements": [
+        "R-09"
+      ],
+      "objective": "Close real exposed risks without resurrecting retired functions or blindly deleting code.",
+      "acceptance": [
+        {
+          "id": "AT-031-AC1",
+          "assertion": "Retired HTTP/tool behavior remains unavailable; input/path/resource handling is bounded."
+        },
+        {
+          "id": "AT-031-AC2",
+          "assertion": "Diagnostics/logging/privacy statements match real behavior and public artifacts contain no secrets."
+        },
+        {
+          "id": "AT-031-AC3",
+          "assertion": "Removal/dependency changes are reference-checked, minimal and verified; revocation needs explicit permission."
+        }
+      ],
+      "case_ids": [
+        "STATE-06",
+        "HOST-05",
+        "SEC-01",
+        "SEC-02",
+        "SEC-03",
+        "SEC-04"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-032",
+      "title": "Verify clean packaging and CI reproducibility",
+      "depends_on": [
+        "AT-002",
+        "AT-031"
+      ],
+      "role": "lead",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "integration",
+        "dependency",
+        "runtime-env"
+      ],
+      "candidate_write_paths": [
+        "Dockerfile",
+        ".github/workflows/ci.yml",
+        "package.json",
+        "pnpm-lock.yaml"
+      ],
+      "requirements": [
+        "R-10"
+      ],
+      "objective": "Build the existing application on a clean checkout without personal-only assets/services.",
+      "acceptance": [
+        {
+          "id": "AT-032-AC1",
+          "assertion": "Frozen install and current build/CI gates use the pinned toolchain and documented data assets."
+        },
+        {
+          "id": "AT-032-AC2",
+          "assertion": "No private machine path, retired service credential or untracked personal file is required."
+        },
+        {
+          "id": "AT-032-AC3",
+          "assertion": "Actual container/build artifact is identified and startup does not perform retired side effects."
+        }
+      ],
+      "case_ids": [
+        "BUILD-01"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-033",
+      "title": "Verify integrated point-and-ask journey locally",
+      "depends_on": [
+        "AT-010",
+        "AT-011",
+        "AT-012",
+        "AT-025",
+        "AT-026",
+        "AT-027"
+      ],
+      "role": "qa",
+      "mode": "verification",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "runtime-env"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-01",
+        "R-02",
+        "R-03",
+        "R-04",
+        "R-05",
+        "R-06",
+        "R-08"
+      ],
+      "objective": "Check boundaries together rather than assuming passing modules form a correct product.",
+      "acceptance": [
+        {
+          "id": "AT-033-AC1",
+          "assertion": "Current actual MCP results drive the same widget/product code used by the release."
+        },
+        {
+          "id": "AT-033-AC2",
+          "assertion": "Named answer, structured identity, geometry, title, selection and follow-up agree."
+        },
+        {
+          "id": "AT-033-AC3",
+          "assertion": "Positive, refusal and injected race/failure cases pass; local results are not relabelled real-host proof."
+        }
+      ],
+      "case_ids": [
+        "ID-01",
+        "ID-02",
+        "ID-03",
+        "ID-05",
+        "ID-09",
+        "ID-12",
+        "FACT-03",
+        "STATE-01",
+        "STATE-03",
+        "STATE-05",
+        "SEL-02",
+        "NAV-01"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-034",
+      "title": "Verify visual and accessibility acceptance",
+      "depends_on": [
+        "AT-028",
+        "AT-029",
+        "AT-033"
+      ],
+      "role": "qa",
+      "mode": "verification",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "runtime-env"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-03",
+        "R-04",
+        "R-07"
+      ],
+      "objective": "Inspect real product screenshots and equivalent interaction paths.",
+      "acceptance": [
+        {
+          "id": "AT-034-AC1",
+          "assertion": "Desktop, phone, reduced viewport, dark/light where supported and reduced motion have inspected artifacts."
+        },
+        {
+          "id": "AT-034-AC2",
+          "assertion": "Keyboard/assistive paths, hit targets, focus return and no diagnostic leak are tested."
+        },
+        {
+          "id": "AT-034-AC3",
+          "assertion": "Concept art and mocked screenshots are not counted as runtime product evidence."
+        }
+      ],
+      "case_ids": [
+        "UI-01",
+        "UI-02",
+        "UI-03",
+        "UI-04",
+        "UI-05",
+        "A11Y-01",
+        "A11Y-02",
+        "A11Y-03",
+        "A11Y-04",
+        "SEC-03"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-035",
+      "title": "Measure responsiveness and resource behavior",
+      "depends_on": [
+        "AT-032",
+        "AT-033"
+      ],
+      "role": "qa",
+      "mode": "verification",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "runtime-env"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-10"
+      ],
+      "objective": "Establish honest cold/warm, dense/simple and repeated-use measurements.",
+      "acceptance": [
+        {
+          "id": "AT-035-AC1",
+          "assertion": "Environment/cache/data/build are stated and local interaction is separated from host/model time."
+        },
+        {
+          "id": "AT-035-AC2",
+          "assertion": "Representative loading/rendering/memory/listener behavior is measured against justified budgets."
+        },
+        {
+          "id": "AT-035-AC3",
+          "assertion": "No production stress test, invented score, paid infrastructure or geometry-in-model shortcut."
+        }
+      ],
+      "case_ids": [
+        "STATE-10",
+        "SEL-04",
+        "PERF-01",
+        "PERF-02"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-036",
+      "title": "Finish source-aligned README and reviewer packet",
+      "depends_on": [
+        "AT-030",
+        "AT-032",
+        "AT-034",
+        "AT-035"
+      ],
+      "role": "lead",
+      "mode": "implementation",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "authority",
+        "submission"
+      ],
+      "candidate_write_paths": [
+        "README.md",
+        "chatgpt-app-submission.json",
+        "docs/STATUS.md",
+        "docs/brain/PROJECT_PLAN.md"
+      ],
+      "requirements": [
+        "R-11",
+        "R-10"
+      ],
+      "objective": "Prepare accurate public documentation and reviewer instructions before final freeze.",
+      "acceptance": [
+        {
+          "id": "AT-036-AC1",
+          "assertion": "Readme/setup/limits/attribution and screenshots reflect the current app, not historical directions."
+        },
+        {
+          "id": "AT-036-AC2",
+          "assertion": "Actual source-derived facts are linked/generated; no competing mutable status file appears."
+        },
+        {
+          "id": "AT-036-AC3",
+          "assertion": "Demo and host/portal owner checklist are prepared without pretending external actions occurred."
+        }
+      ],
+      "case_ids": [
+        "SEC-04"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-037",
+      "title": "Independent release-candidate adversarial review",
+      "depends_on": [
+        "AT-033",
+        "AT-034",
+        "AT-035",
+        "AT-031"
+      ],
+      "role": "qa",
+      "mode": "verification",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "integration",
+        "runtime-env"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-01",
+        "R-05",
+        "R-06",
+        "R-09",
+        "R-10"
+      ],
+      "objective": "Try to disprove candidate correctness and scope after integration.",
+      "acceptance": [
+        {
+          "id": "AT-037-AC1",
+          "assertion": "Reviewer reads actual diff/build and challenges identity, context, failures, retired surfaces and test quality."
+        },
+        {
+          "id": "AT-037-AC2",
+          "assertion": "Critical defects reopen affected work with repro; superficial task completion is not approval."
+        },
+        {
+          "id": "AT-037-AC3",
+          "assertion": "Reviewer is independent of the reviewed implementation or the missing independence remains explicit."
+        }
+      ],
+      "case_ids": [
+        "ID-12",
+        "STATE-03",
+        "SEC-01",
+        "SEC-02",
+        "SEC-04",
+        "PERF-02"
+      ],
+      "proof_policy": "ancestor_with_impact_review",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-040",
+      "title": "Freeze clean candidate and rerun required gates",
+      "depends_on": [
+        "AT-036",
+        "AT-037"
+      ],
+      "role": "lead",
+      "mode": "verification",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "integration",
+        "runtime-env"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-10",
+        "R-11"
+      ],
+      "objective": "Identify one clean revision/build for final host and release verification.",
+      "acceptance": [
+        {
+          "id": "AT-040-AC1",
+          "assertion": "Tested revision has a clean tracked tree and identifiable reproducible build artifact."
+        },
+        {
+          "id": "AT-040-AC2",
+          "assertion": "Required final gates run on this revision; skipped/unavailable checks are not passes."
+        },
+        {
+          "id": "AT-040-AC3",
+          "assertion": "No subsequent source/config/data mutation is accepted without refreshing affected final evidence."
+        }
+      ],
+      "case_ids": [
+        "BUILD-01",
+        "REL-01"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-041",
+      "title": "Verify the actual refreshed ChatGPT client",
+      "depends_on": [
+        "AT-040"
+      ],
+      "role": "qa",
+      "mode": "human_gate",
+      "scope": "release",
+      "priority": 0,
+      "exclusive_locks": [
+        "actual-host"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-05",
+        "R-07",
+        "R-08"
+      ],
+      "objective": "Prove real initial, follow-up, refusal and display-mode behavior on the frozen candidate.",
+      "acceptance": [
+        {
+          "id": "AT-041-AC1",
+          "assertion": "Fresh/refreshed connected client uses the exact intended candidate resource/build."
+        },
+        {
+          "id": "AT-041-AC2",
+          "assertion": "The core journey and named follow-up pass in actual ChatGPT on target desktop/phone clients."
+        },
+        {
+          "id": "AT-041-AC3",
+          "assertion": "Host screenshots/procedure and limitations are recorded; preview/HTTP/model text alone cannot satisfy this gate."
+        }
+      ],
+      "case_ids": [
+        "SEL-02",
+        "SEL-03",
+        "SEL-05",
+        "UI-03",
+        "HOST-01",
+        "HOST-02",
+        "HOST-03",
+        "ROUTE-01",
+        "ROUTE-02"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": "actual-chatgpt-access",
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-042",
+      "title": "Observe real formative usability sessions",
+      "depends_on": [
+        "AT-041"
+      ],
+      "role": "qa",
+      "mode": "human_gate",
+      "scope": "advisory",
+      "priority": 2,
+      "exclusive_locks": [
+        "user-research"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-12"
+      ],
+      "objective": "Evaluate geographic comprehension and flow without invented participants.",
+      "acceptance": [
+        {
+          "id": "AT-042-AC1",
+          "assertion": "Consenting real participants perform tasks without being coached through controls."
+        },
+        {
+          "id": "AT-042-AC2",
+          "assertion": "Observed completion/understanding/errors are separated from interpretation and proposed targets."
+        },
+        {
+          "id": "AT-042-AC3",
+          "assertion": "Findings reopen relevant acceptance, while missing participant access is not a fabricated pass."
+        }
+      ],
+      "case_ids": [
+        "USER-01"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": "consenting-participants",
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-043",
+      "title": "Issue evidence-backed candidate readiness report",
+      "depends_on": [
+        "AT-040",
+        "AT-041"
+      ],
+      "role": "lead",
+      "mode": "verification",
+      "scope": "release",
+      "priority": 1,
+      "exclusive_locks": [
+        "authority"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-11"
+      ],
+      "objective": "Distinguish complete candidate from unexecuted production and publishing gates.",
+      "acceptance": [
+        {
+          "id": "AT-043-AC1",
+          "assertion": "Every required local/host acceptance is backed by valid exact-candidate evidence."
+        },
+        {
+          "id": "AT-043-AC2",
+          "assertion": "Open advisory findings and external permissions are explicit; no universal zero-bug claim."
+        },
+        {
+          "id": "AT-043-AC3",
+          "assertion": "Final report links evidence and smallest required owner action without changing frozen product source."
+        }
+      ],
+      "case_ids": [
+        "REL-01"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": null,
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-050",
+      "title": "Obtain scoped deployment authorization",
+      "depends_on": [
+        "AT-043"
+      ],
+      "role": "release",
+      "mode": "human_gate",
+      "scope": "publish",
+      "priority": 1,
+      "exclusive_locks": [
+        "owner-approval"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-11",
+        "R-09"
+      ],
+      "objective": "Obtain explicit target/revision authorization without bundling unrelated permissions.",
+      "acceptance": [
+        {
+          "id": "AT-050-AC1",
+          "assertion": "Owner authorization names target and candidate; excludes unrelated secret changes/spending."
+        },
+        {
+          "id": "AT-050-AC2",
+          "assertion": "Rollback target and intended change are understood; credentials stay out of evidence."
+        },
+        {
+          "id": "AT-050-AC3",
+          "assertion": "No deployment is triggered merely by planner readiness."
+        }
+      ],
+      "case_ids": [
+        "REL-02"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": "production-deploy-authorization",
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-051",
+      "title": "Deploy authorized candidate and smoke the actual target",
+      "depends_on": [
+        "AT-050"
+      ],
+      "role": "release",
+      "mode": "human_gate",
+      "scope": "publish",
+      "priority": 1,
+      "exclusive_locks": [
+        "deployment",
+        "runtime-env"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-10",
+        "R-11",
+        "R-09"
+      ],
+      "objective": "Tie an authorized deployment to the exact tested artifact and verify it.",
+      "acceptance": [
+        {
+          "id": "AT-051-AC1",
+          "assertion": "Existing authorized target deploys the candidate revision/artifact, not a dirty working tree."
+        },
+        {
+          "id": "AT-051-AC2",
+          "assertion": "Actual health/MCP/widget/retired-surface checks run against the intended target."
+        },
+        {
+          "id": "AT-051-AC3",
+          "assertion": "Rollback instructions and deployment identity are recorded; no unapproved new resource or secret rotation."
+        }
+      ],
+      "case_ids": [
+        "SEC-01",
+        "REL-02"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": "authorized-deployment-capability",
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-052",
+      "title": "Complete authorized portal/domain verification",
+      "depends_on": [
+        "AT-051"
+      ],
+      "role": "release",
+      "mode": "human_gate",
+      "scope": "publish",
+      "priority": 1,
+      "exclusive_locks": [
+        "owner-approval",
+        "portal"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-11"
+      ],
+      "objective": "Perform the current portal verification with the owner, without invented tokens.",
+      "acceptance": [
+        {
+          "id": "AT-052-AC1",
+          "assertion": "Actual current portal requirements are checked and legitimate configured/unconfigured behavior is tested."
+        },
+        {
+          "id": "AT-052-AC2",
+          "assertion": "Owner supplies necessary actions through an authorized secure interface; secret values are not copied into reports."
+        },
+        {
+          "id": "AT-052-AC3",
+          "assertion": "Portal verification status is recorded separately from submission or external approval."
+        }
+      ],
+      "case_ids": [
+        "REL-03"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": "portal-owner-access",
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-054",
+      "title": "Recheck ChatGPT against the deployed build",
+      "depends_on": [
+        "AT-051",
+        "AT-041"
+      ],
+      "role": "qa",
+      "mode": "human_gate",
+      "scope": "publish",
+      "priority": 1,
+      "exclusive_locks": [
+        "actual-host"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-08",
+        "R-11"
+      ],
+      "objective": "Ensure deployment/template caching did not invalidate the locally proven host experience.",
+      "acceptance": [
+        {
+          "id": "AT-054-AC1",
+          "assertion": "Refreshed real client is tied to the deployed artifact/target."
+        },
+        {
+          "id": "AT-054-AC2",
+          "assertion": "Core named-follow-up and refusal cases still hold after deployment."
+        },
+        {
+          "id": "AT-054-AC3",
+          "assertion": "Unexpected failures invalidate release claims and trigger owned rollback/fix procedures."
+        }
+      ],
+      "case_ids": [
+        "HOST-01",
+        "HOST-02",
+        "HOST-03"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": "actual-chatgpt-access",
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    },
+    {
+      "id": "AT-053",
+      "title": "Submit authorized current packet and record outcome",
+      "depends_on": [
+        "AT-052",
+        "AT-054"
+      ],
+      "role": "release",
+      "mode": "human_gate",
+      "scope": "publish",
+      "priority": 1,
+      "exclusive_locks": [
+        "submission",
+        "owner-approval"
+      ],
+      "candidate_write_paths": [],
+      "requirements": [
+        "R-11"
+      ],
+      "objective": "Finish the authorized submission step without confusing submission with approval.",
+      "acceptance": [
+        {
+          "id": "AT-053-AC1",
+          "assertion": "Owner permits the exact public submission and packet agrees with deployed scope."
+        },
+        {
+          "id": "AT-053-AC2",
+          "assertion": "Actual submission acknowledgement/state is recorded without invented acceptance."
+        },
+        {
+          "id": "AT-053-AC3",
+          "assertion": "Pending external review remains pending; ongoing changes are not automatically published."
+        }
+      ],
+      "case_ids": [
+        "REL-03"
+      ],
+      "proof_policy": "exact_head",
+      "human_gate": "directory-submission-authorization",
+      "stop_conditions": [
+        "Scope conflicts with current repository hard stops.",
+        "Assigned files/resource locks conflict with another active task.",
+        "Required evidence, permission or runtime capability cannot be obtained honestly."
+      ],
+      "review_required": true
+    }
+  ],
+  "milestones": {
+    "local_candidate": [
+      "AT-040"
+    ],
+    "host_proven_candidate": [
+      "AT-043"
+    ],
+    "published_submission": [
+      "AT-053"
+    ],
+    "advisory_usability": [
+      "AT-042"
+    ]
+  }
+}

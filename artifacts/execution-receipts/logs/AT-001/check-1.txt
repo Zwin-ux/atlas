@@ -1,0 +1,21 @@
+AT-001-AC1 repo identity (2026-09-11)
+
+root: C:/Users/mzwin/Documents/Atlas
+HEAD (before this slice commit): b25a3c99f434c288e2550bcf7bdd5215478cb382
+branch: main
+remotes:
+  atlas  https://github.com/Zwin-ux/atlas.git (public ChatGPT surface)
+  origin https://github.com/Zwin-ux/atlas-alpha-engine-beta-checkpoint.git
+dirty before kit install: none (main matched atlas/main)
+dirty after extract: ?? atlas-execution-kit/ plus authority-file edits for this slice
+worktrees left untouched:
+  Atlas-WebMCP (webmcp-challenge)
+  Atlas-national-roads
+  Atlas-0782a-core-quality
+  atlas-53e-fable
+  atlas-deploy-worktree
+  two detached Codex worktrees under .codex/worktrees
+no reset, stash, force-push, or sibling overwrite
+zip: C:\Users\mzwin\Downloads\Atlas_Grok_Product_Execution_Kit.zip
+installed at: atlas-execution-kit/
+node: v24.18.0

@@ -1,0 +1,80 @@
+{
+  "scope": "EXECUTION_KIT_ONLY_NOT_ATLAS_APPLICATION",
+  "environment": {
+    "platform": "linux",
+    "node": "v22.16.0"
+  },
+  "graph": {
+    "valid": true,
+    "tasks": 37,
+    "edges": 80,
+    "requirements": 13,
+    "cases": 64
+  },
+  "planner_tests": {
+    "tests": 56,
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0
+  },
+  "checks": [
+    {
+      "check": "graph_and_traceability",
+      "exit_code": 0
+    },
+    {
+      "check": "node_syntax",
+      "exit_code": 0
+    },
+    {
+      "check": "planner_unit_and_integration_tests",
+      "exit_code": 0
+    },
+    {
+      "check": "initial_queue",
+      "exit_code": 0
+    },
+    {
+      "check": "generated_mermaid",
+      "exit_code": 0
+    },
+    {
+      "check": "all_json_parses",
+      "result": "PASS"
+    },
+    {
+      "check": "original_briefs_byte_identical",
+      "result": "PASS"
+    },
+    {
+      "check": "relative_markdown_links",
+      "result": "PASS",
+      "broken": []
+    },
+    {
+      "check": "no_product_receipts_or_pretend_release",
+      "result": "PASS"
+    },
+    {
+      "check": "mermaid_matches_graph",
+      "result": "PASS"
+    }
+  ],
+  "explicitly_not_run": [
+    "Atlas application build or regression suite",
+    "Native Grok workflow/agent invocation",
+    "PowerShell launcher behavior on Windows",
+    "Authenticated ChatGPT desktop/mobile testing",
+    "Production deployment, portal verification or submission",
+    "Real participant usability sessions"
+  ],
+  "limitations": [
+    "Planner checks graph, receipt structure/artifact hashes and Git applicability; not the truth of reported observations or reviewer identity.",
+    "Resource locks are advisory scheduling constraints, not OS-enforced protection.",
+    "Ancestor evidence requires semantic impact review; final gates require exact HEAD and clean tracked state.",
+    "No background execution, agent daemon, blanket permission or auto-deployment is installed.",
+    "Current repo files and permissions must be rechecked by the coding agent."
+  ],
+  "archive_layout": "One top-level atlas-execution-kit folder; no root repo configuration overwrites.",
+  "manifest": "../MANIFEST.sha256"
+}

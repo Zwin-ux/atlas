@@ -1,0 +1,346 @@
+TAP version 13
+# Subtest: complete shipped graph and traceability validate
+ok 1 - complete shipped graph and traceability validate
+  ---
+  duration_ms: 5.03418
+  type: 'test'
+  ...
+# Subtest: duplicate task IDs are rejected
+ok 2 - duplicate task IDs are rejected
+  ---
+  duration_ms: 1.757553
+  type: 'test'
+  ...
+# Subtest: unknown dependencies are rejected
+ok 3 - unknown dependencies are rejected
+  ---
+  duration_ms: 1.432577
+  type: 'test'
+  ...
+# Subtest: self-dependency rejected
+ok 4 - self-dependency rejected
+  ---
+  duration_ms: 1.547289
+  type: 'test'
+  ...
+# Subtest: cycles are rejected
+ok 5 - cycles are rejected
+  ---
+  duration_ms: 1.364128
+  type: 'test'
+  ...
+# Subtest: unknown QA references rejected
+ok 6 - unknown QA references rejected
+  ---
+  duration_ms: 0.71367
+  type: 'test'
+  ...
+# Subtest: lost requirement test coverage rejected
+ok 7 - lost requirement test coverage rejected
+  ---
+  duration_ms: 2.393806
+  type: 'test'
+  ...
+# Subtest: duplicate acceptance IDs rejected
+ok 8 - duplicate acceptance IDs rejected
+  ---
+  duration_ms: 0.995171
+  type: 'test'
+  ...
+# Subtest: unsafe candidate write path rejected
+ok 9 - unsafe candidate write path rejected
+  ---
+  duration_ms: 0.933544
+  type: 'test'
+  ...
+# Subtest: human gate cannot masquerade as ordinary implementation
+ok 10 - human gate cannot masquerade as ordinary implementation
+  ---
+  duration_ms: 1.532703
+  type: 'test'
+  ...
+# Subtest: fresh queue starts only with orientation
+ok 11 - fresh queue starts only with orientation
+  ---
+  duration_ms: 15.534495
+  type: 'test'
+  ...
+# Subtest: initial batch after orientation respects coordinator and QA roles
+ok 12 - initial batch after orientation respects coordinator and QA roles
+  ---
+  duration_ms: 2.005743
+  type: 'test'
+  ...
+# Subtest: receipts without Git applicability cannot unlock tasks
+ok 13 - receipts without Git applicability cannot unlock tasks
+  ---
+  duration_ms: 2.95666
+  type: 'test'
+  ...
+# Subtest: unknown active task rejected
+ok 14 - unknown active task rejected
+  ---
+  duration_ms: 2.258857
+  type: 'test'
+  ...
+# Subtest: duplicate active task rejected
+ok 15 - duplicate active task rejected
+  ---
+  duration_ms: 1.803
+  type: 'test'
+  ...
+# Subtest: active assignment cannot ignore missing prerequisites
+ok 16 - active assignment cannot ignore missing prerequisites
+  ---
+  duration_ms: 0.55769
+  type: 'test'
+  ...
+# Subtest: conflicting coordinator tasks cannot run simultaneously
+ok 17 - conflicting coordinator tasks cannot run simultaneously
+  ---
+  duration_ms: 0.729568
+  type: 'test'
+  ...
+# Subtest: active work consumes capacity and does not get re-dispatched
+ok 18 - active work consumes capacity and does not get re-dispatched
+  ---
+  duration_ms: 4.001719
+  type: 'test'
+  ...
+# Subtest: already accepted active assignment forces reconciliation
+ok 19 - already accepted active assignment forces reconciliation
+  ---
+  duration_ms: 2.791108
+  type: 'test'
+  ...
+# Subtest: independent data/widget work can be proposed without overlapping locks
+ok 20 - independent data/widget work can be proposed without overlapping locks
+  ---
+  duration_ms: 1.332079
+  type: 'test'
+  ...
+# Subtest: single implementer setting is respected
+ok 21 - single implementer setting is respected
+  ---
+  duration_ms: 3.839827
+  type: 'test'
+  ...
+# Subtest: human-host gate never auto-dispatches
+ok 22 - human-host gate never auto-dispatches
+  ---
+  duration_ms: 5.338146
+  type: 'test'
+  ...
+# Subtest: ordinary evidence from ancestor can apply with impact-review caveat
+ok 23 - ordinary evidence from ancestor can apply with impact-review caveat
+  ---
+  duration_ms: 1.193091
+  type: 'test'
+  ...
+# Subtest: final proof is rejected on different HEAD
+ok 24 - final proof is rejected on different HEAD
+  ---
+  duration_ms: 5.160845
+  type: 'test'
+  ...
+# Subtest: final proof is rejected on dirty tracked tree
+ok 25 - final proof is rejected on dirty tracked tree
+  ---
+  duration_ms: 1.870755
+  type: 'test'
+  ...
+# Subtest: non-ancestor evidence is rejected
+ok 26 - non-ancestor evidence is rejected
+  ---
+  duration_ms: 3.417379
+  type: 'test'
+  ...
+# Subtest: dependency receipt replacement invalidates downstream
+ok 27 - dependency receipt replacement invalidates downstream
+  ---
+  duration_ms: 1.361164
+  type: 'test'
+  ...
+# Subtest: explicit invalidation reopens descendants
+ok 28 - explicit invalidation reopens descendants
+  ---
+  duration_ms: 1.095225
+  type: 'test'
+  ...
+# Subtest: impact traversal includes root and downstream final gates
+ok 29 - impact traversal includes root and downstream final gates
+  ---
+  duration_ms: 0.112237
+  type: 'test'
+  ...
+# Subtest: unknown impact root rejected
+ok 30 - unknown impact root rejected
+  ---
+  duration_ms: 0.133486
+  type: 'test'
+  ...
+# Subtest: definition fingerprint changes with acceptance content
+ok 31 - definition fingerprint changes with acceptance content
+  ---
+  duration_ms: 0.595192
+  type: 'test'
+  ...
+# Subtest: definition fingerprint changes when related case changes
+ok 32 - definition fingerprint changes when related case changes
+  ---
+  duration_ms: 4.061399
+  type: 'test'
+  ...
+# Subtest: valid synthetic receipt validates with real hashed test artifacts
+ok 33 - valid synthetic receipt validates with real hashed test artifacts
+  ---
+  duration_ms: 2.729007
+  type: 'test'
+  ...
+# Subtest: tampered evidence artifact rejected
+ok 34 - tampered evidence artifact rejected
+  ---
+  duration_ms: 1.004146
+  type: 'test'
+  ...
+# Subtest: missing artifact rejected
+ok 35 - missing artifact rejected
+  ---
+  duration_ms: 5.036769
+  type: 'test'
+  ...
+# Subtest: evidence traversal rejected
+ok 36 - evidence traversal rejected
+  ---
+  duration_ms: 3.495648
+  type: 'test'
+  ...
+# Subtest: evidence symlink escaping root rejected
+ok 37 - evidence symlink escaping root rejected
+  ---
+  duration_ms: 1.079172
+  type: 'test'
+  ...
+# Subtest: self-reviewed receipt rejected
+ok 38 - self-reviewed receipt rejected
+  ---
+  duration_ms: 2.156044
+  type: 'test'
+  ...
+# Subtest: non-PASS template is never evidence
+ok 39 - non-PASS template is never evidence
+  ---
+  duration_ms: 0.511051
+  type: 'test'
+  ...
+# Subtest: missing acceptance coverage rejected
+ok 40 - missing acceptance coverage rejected
+  ---
+  duration_ms: 3.21762
+  type: 'test'
+  ...
+# Subtest: changed task definition rejected
+ok 41 - changed task definition rejected
+  ---
+  duration_ms: 3.766736
+  type: 'test'
+  ...
+# Subtest: mismatched command exit rejected
+ok 42 - mismatched command exit rejected
+  ---
+  duration_ms: 2.683868
+  type: 'test'
+  ...
+# Subtest: arbitrary successful node cannot expect nonzero exit
+ok 43 - arbitrary successful node cannot expect nonzero exit
+  ---
+  duration_ms: 3.547166
+  type: 'test'
+  ...
+# Subtest: baseline inventory may document expected red check
+ok 44 - baseline inventory may document expected red check
+  ---
+  duration_ms: 0.796768
+  type: 'test'
+  ...
+# Subtest: human gate requires external confirmation artifact
+ok 45 - human gate requires external confirmation artifact
+  ---
+  duration_ms: 4.707909
+  type: 'test'
+  ...
+# Subtest: duplicate task receipts rejected rather than picking latest
+ok 46 - duplicate task receipts rejected rather than picking latest
+  ---
+  duration_ms: 5.084269
+  type: 'test'
+  ...
+# Subtest: receipt directory missing is explicit failure
+ok 47 - receipt directory missing is explicit failure
+  ---
+  duration_ms: 0.308474
+  type: 'test'
+  ...
+# Subtest: canonical receipt hash is property-order insensitive
+ok 48 - canonical receipt hash is property-order insensitive
+  ---
+  duration_ms: 0.24641
+  type: 'test'
+  ...
+# Subtest: Mermaid includes all nodes and edges
+ok 49 - Mermaid includes all nodes and edges
+  ---
+  duration_ms: 0.333479
+  type: 'test'
+  ...
+# Subtest: CLI fails closed on unknown command
+ok 50 - CLI fails closed on unknown command
+  ---
+  duration_ms: 124.448277
+  type: 'test'
+  ...
+# Subtest: CLI validates independently of working directory
+ok 51 - CLI validates independently of working directory
+  ---
+  duration_ms: 56.926505
+  type: 'test'
+  ...
+# Subtest: Git adapter tests real ancestry and tracked dirty state
+ok 52 - Git adapter tests real ancestry and tracked dirty state
+  ---
+  duration_ms: 83.190588
+  type: 'test'
+  ...
+# Subtest: declared blocked root is not repeatedly proposed
+ok 53 - declared blocked root is not repeatedly proposed
+  ---
+  duration_ms: 0.706452
+  type: 'test'
+  ...
+# Subtest: unknown declared blocker rejected
+ok 54 - unknown declared blocker rejected
+  ---
+  duration_ms: 0.79331
+  type: 'test'
+  ...
+# Subtest: blocked prerequisite invalidates existing acceptance
+ok 55 - blocked prerequisite invalidates existing acceptance
+  ---
+  duration_ms: 1.084205
+  type: 'test'
+  ...
+# Subtest: task cannot be active and blocked simultaneously
+ok 56 - task cannot be active and blocked simultaneously
+  ---
+  duration_ms: 3.089782
+  type: 'test'
+  ...
+1..56
+# tests 56
+# suites 0
+# pass 56
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 637.063465

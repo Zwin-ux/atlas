@@ -3,19 +3,28 @@
 The only mutable status file in this repo. Hard cap 200 lines. Everything here
 was run or read on the date below, not copied from another document.
 
-**Last verified: 2026-08-26.**
+**Last verified: 2026-09-11 (orientation). Verifier table below is still the 2026-08-26 pass.**
 
 ## Where the work is
 
-- **Repo: `C:\Users\mzwin\Documents\Atlas`.** Not the GitHub checkpoint clone
-  and not the other Atlas worktrees. This tree is the ChatGPT upload candidate.
-- **Branch: `main`.** HEAD is `b6f2f821` (2026-07-25). origin/main matches.
-- Working tree is still dirty and spans five mixed workstreams. There is still
-  no clean release SHA.
-- Local planning lives in `docs/brain/PROJECT_PLAN.md`; it requires no MCP or
-  remote connector. `docs/brain/notion.json` is an optional human mirror
-  pointer only. `docs/RAILWAY_DEPLOY.md` still tells agents to turn Google on;
-  that file is historical. Do not comply.
+- **Repo: `C:\Users\mzwin\Documents\Atlas`.** Public remote `atlas` → `Zwin-ux/atlas`. Checkpoint remote `origin` → `Zwin-ux/atlas-alpha-engine-beta-checkpoint`. Frozen WebMCP candidate is a different repo.
+- **Branch: `main`.** Tracked to `atlas/main`. Record the SHA from Git, not from this paragraph.
+- Execution pack: `atlas-execution-kit/` (extracted from `Downloads\Atlas_Grok_Product_Execution_Kit.zip`). Does not replace `AGENTS.md`.
+- Other worktrees exist (WebMCP, national-roads, fable slices). Leave them alone.
+- `docs/RAILWAY_DEPLOY.md` is historical. Do not turn Google on.
+
+## Execution checkpoint
+
+Current scope: finish the read-only Census ChatGPT app (point-and-ask). Kit: `atlas-execution-kit/`.
+Graph: `atlas-execution-kit/graph/release-graph.json`. Receipts: `artifacts/execution-receipts/`.
+Active: AT-001 lead on `Documents/Atlas` `main` (authority + coordinator).
+Blocked: AT-041/050–054 until owner host/deploy/portal permission.
+Invalidated: none.
+Last slice: kit installed, graph validated, plan pointed at this DAG.
+Preserve: do not reset sibling worktrees.
+Failed/unrun: Location Truth not re-run this session; native workflow smoke not yet run.
+Next: `node atlas-execution-kit/tools/atlas-plan.mjs next --receipts artifacts/execution-receipts --repo .`
+Owner gate: real ChatGPT / deploy / portal remain BLOCKED.
 
 ## Shipped surface
 

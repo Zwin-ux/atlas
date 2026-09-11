@@ -1,0 +1,257 @@
+{
+  "warning": "Planning/evidence metadata only. No commands were executed or agents launched; a receipt does not prove its assertions true.",
+  "repo_checked": false,
+  "head": null,
+  "tracked_tree_clean": null,
+  "scope": "release",
+  "accepted": [],
+  "active": [],
+  "declared_blocked": [],
+  "proposed_batch": [
+    {
+      "task_id": "AT-001",
+      "title": "Orient to the real checkout and authoritative plan",
+      "role": "lead",
+      "mode": "coordination",
+      "locks": [
+        "authority",
+        "role:coordinator"
+      ],
+      "definition_sha256": "198aae3c6ccf879da8e79d2c31cb08b2877c005f40b6b4ec00b8835b0e59e310"
+    }
+  ],
+  "ready_but_capacity_or_lock_limited": [],
+  "human_gates_ready": [],
+  "waiting_for_dependencies": [
+    {
+      "task_id": "AT-002",
+      "depends_on": [
+        "AT-001"
+      ]
+    },
+    {
+      "task_id": "AT-003",
+      "depends_on": [
+        "AT-001"
+      ]
+    },
+    {
+      "task_id": "AT-004",
+      "depends_on": [
+        "AT-001"
+      ]
+    },
+    {
+      "task_id": "AT-006",
+      "depends_on": [
+        "AT-001"
+      ]
+    },
+    {
+      "task_id": "AT-005",
+      "depends_on": [
+        "AT-003"
+      ]
+    },
+    {
+      "task_id": "AT-007",
+      "depends_on": [
+        "AT-003",
+        "AT-004",
+        "AT-006"
+      ]
+    },
+    {
+      "task_id": "AT-010",
+      "depends_on": [
+        "AT-007",
+        "AT-004"
+      ]
+    },
+    {
+      "task_id": "AT-011",
+      "depends_on": [
+        "AT-007",
+        "AT-004"
+      ]
+    },
+    {
+      "task_id": "AT-012",
+      "depends_on": [
+        "AT-007",
+        "AT-005"
+      ]
+    },
+    {
+      "task_id": "AT-020",
+      "depends_on": [
+        "AT-007",
+        "AT-004"
+      ]
+    },
+    {
+      "task_id": "AT-021",
+      "depends_on": [
+        "AT-020",
+        "AT-007"
+      ]
+    },
+    {
+      "task_id": "AT-022",
+      "depends_on": [
+        "AT-021",
+        "AT-006"
+      ]
+    },
+    {
+      "task_id": "AT-024",
+      "depends_on": [
+        "AT-021",
+        "AT-011",
+        "AT-007"
+      ]
+    },
+    {
+      "task_id": "AT-031",
+      "depends_on": [
+        "AT-012",
+        "AT-021"
+      ]
+    },
+    {
+      "task_id": "AT-023",
+      "depends_on": [
+        "AT-022",
+        "AT-012"
+      ]
+    },
+    {
+      "task_id": "AT-025",
+      "depends_on": [
+        "AT-024",
+        "AT-012",
+        "AT-007"
+      ]
+    },
+    {
+      "task_id": "AT-026",
+      "depends_on": [
+        "AT-024",
+        "AT-010",
+        "AT-007"
+      ]
+    },
+    {
+      "task_id": "AT-027",
+      "depends_on": [
+        "AT-020",
+        "AT-010",
+        "AT-022"
+      ]
+    },
+    {
+      "task_id": "AT-032",
+      "depends_on": [
+        "AT-002",
+        "AT-031"
+      ]
+    },
+    {
+      "task_id": "AT-028",
+      "depends_on": [
+        "AT-023",
+        "AT-024",
+        "AT-026",
+        "AT-027"
+      ]
+    },
+    {
+      "task_id": "AT-029",
+      "depends_on": [
+        "AT-023",
+        "AT-024",
+        "AT-027"
+      ]
+    },
+    {
+      "task_id": "AT-030",
+      "depends_on": [
+        "AT-010",
+        "AT-011",
+        "AT-025"
+      ]
+    },
+    {
+      "task_id": "AT-033",
+      "depends_on": [
+        "AT-010",
+        "AT-011",
+        "AT-012",
+        "AT-025",
+        "AT-026",
+        "AT-027"
+      ]
+    },
+    {
+      "task_id": "AT-034",
+      "depends_on": [
+        "AT-028",
+        "AT-029",
+        "AT-033"
+      ]
+    },
+    {
+      "task_id": "AT-035",
+      "depends_on": [
+        "AT-032",
+        "AT-033"
+      ]
+    },
+    {
+      "task_id": "AT-036",
+      "depends_on": [
+        "AT-030",
+        "AT-032",
+        "AT-034",
+        "AT-035"
+      ]
+    },
+    {
+      "task_id": "AT-037",
+      "depends_on": [
+        "AT-033",
+        "AT-034",
+        "AT-035",
+        "AT-031"
+      ]
+    },
+    {
+      "task_id": "AT-040",
+      "depends_on": [
+        "AT-036",
+        "AT-037"
+      ]
+    },
+    {
+      "task_id": "AT-041",
+      "depends_on": [
+        "AT-040"
+      ]
+    },
+    {
+      "task_id": "AT-043",
+      "depends_on": [
+        "AT-040",
+        "AT-041"
+      ]
+    }
+  ],
+  "stale_receipts": [],
+  "invalid_receipts": [],
+  "milestones": {
+    "local_candidate": false,
+    "host_proven_candidate": false,
+    "published_submission": false,
+    "advisory_usability": false
+  }
+}

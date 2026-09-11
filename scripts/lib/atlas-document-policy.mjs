@@ -104,6 +104,24 @@ const EXACT_POLICY = new Map([
     },
   ],
   [
+    "atlas-execution-kit/00_START_HERE.md",
+    {
+      lane: "planning",
+      authority: "active-reference",
+      readBeforeWork: false,
+      reason: "How to use the Grok execution pack. Does not outrank AGENTS.md.",
+    },
+  ],
+  [
+    "atlas-execution-kit/product/PRODUCT_SPEC_v2.md",
+    {
+      lane: "product-spec",
+      authority: "review-required",
+      readBeforeWork: false,
+      reason: "Proposed v2 brief. Adopt through PROJECT_PLAN and DESIGN.md; do not treat as ship law.",
+    },
+  ],
+  [
     "docs/brain/notion.json",
     {
       lane: "planning",
@@ -283,6 +301,15 @@ export function classifyKnowledgeSource(path) {
       authority: "historical",
       readBeforeWork: false,
       reason: "Preserved prompt, skill, experiment, or source-pack material from an earlier Atlas generation.",
+    });
+  }
+
+  if (normalized.startsWith("atlas-execution-kit/")) {
+    return withDefaults(normalized, {
+      lane: "execution-kit",
+      authority: "active-reference",
+      readBeforeWork: false,
+      reason: "Supporting task graph, planner, and briefs. Repository AGENTS/STATUS/plan still outrank it.",
     });
   }
 
