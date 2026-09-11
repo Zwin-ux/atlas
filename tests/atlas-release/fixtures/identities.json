@@ -1,0 +1,97 @@
+{
+  "source": "data/census/us-county-town-anchors.json",
+  "method": "Direct field reads from the Census JSON. Do not copy resolver output into expected.",
+  "sourceYear": 2024,
+  "reviewedAt": "2026-09-10",
+  "fixtures": [
+    {
+      "id": "ID-01",
+      "queryExamples": ["Eastvale, California", "Eastvale, CA"],
+      "expected": {
+        "kind": "place",
+        "label": "Eastvale",
+        "countySlug": "riverside-ca",
+        "countyName": "Riverside County",
+        "state": "CA",
+        "lon": -117.580313,
+        "lat": 33.961733,
+        "population2024": 70751
+      }
+    },
+    {
+      "id": "ID-02",
+      "queryExamples": ["California"],
+      "expected": {
+        "kind": "state",
+        "label": "California",
+        "state": "CA",
+        "mustNotBeCountySlug": true
+      },
+      "notes": "State plate identity is not a county pack row. Do not substitute riverside-ca."
+    },
+    {
+      "id": "ID-05",
+      "queryExamples": ["Springfield"],
+      "expected": {
+        "kind": "ambiguous",
+        "minCandidates": 2,
+        "knownPlaces": [
+          { "label": "Springfield", "countySlug": "sangamon-il", "state": "IL" },
+          { "label": "Springfield", "countySlug": "hampden-ma", "state": "MA" }
+        ]
+      }
+    },
+    {
+      "id": "ID-06",
+      "queryExamples": ["eastvale, california", "Eastvale California"],
+      "expected": {
+        "sameAs": "ID-01"
+      }
+    },
+    {
+      "id": "ID-07",
+      "queryExamples": ["Canon City", "Cañon City"],
+      "expected": {
+        "kind": "place",
+        "label": "Cañon City",
+        "countySlug": "fremont-co",
+        "state": "CO"
+      }
+    },
+    {
+      "id": "ID-08",
+      "queryExamples": ["Kane, IL"],
+      "expected": {
+        "kind": "ambiguous-or-town",
+        "mustNotConfidentlyReturn": { "countySlug": "kane-il", "kind": "county" },
+        "townInFile": {
+          "label": "Kane",
+          "countySlug": "greene-il",
+          "countyName": "Greene County",
+          "state": "IL",
+          "population2024": 280
+        },
+        "countyInFile": {
+          "label": "Kane County",
+          "countySlug": "kane-il",
+          "state": "IL"
+        }
+      }
+    },
+    {
+      "id": "ID-09",
+      "queryExamples": ["Zzyzxqqq"],
+      "expected": { "kind": "unresolved" }
+    },
+    {
+      "id": "ID-10",
+      "queryExamples": ["Riverside County, California"],
+      "expected": {
+        "kind": "county",
+        "label": "Riverside County",
+        "countySlug": "riverside-ca",
+        "state": "CA"
+      }
+    }
+  ]
+}

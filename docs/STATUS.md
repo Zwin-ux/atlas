@@ -22,7 +22,8 @@ Blocked: AT-041/050–054 until owner host/deploy/portal permission.
 Invalidated: none.
 Last slice: AT-001 accepted on `1c11205ee64dff10c9336f4103ed5f949fce61db`.
 Preserve: do not reset sibling worktrees.
-Failed/unrun: Location Truth this session; native workflow smoke.
+Failed/unrun: native workflow smoke; live MCP/Railway re-run; AT-003/AT-004 receipts not yet independently accepted.
+Baseline this session: `pnpm test:core` 357/357; `typecheck:starter` 0; `verify:location-truth` 0 confidently wrong; `verify:public-http` 0; source-of-truth 0 with dead-code warning. Fixtures: `pnpm test:release-fixtures` 6/6.
 Next: AT-003 baseline inventory; AT-004 fixtures. Planner: `node atlas-execution-kit/tools/atlas-plan.mjs next --receipts artifacts/execution-receipts --repo . --active AT-003,AT-004`
 Owner gate: real ChatGPT / deploy / portal remain BLOCKED.
 
