@@ -147,7 +147,9 @@ function countVertices(rings) {
 
 function main() {
   const anchorsByGeoid = loadAnchors();
-  const files = readdirSync(GEO_PACK_DIR).filter((name) => name.endsWith(".json"));
+  // Underscore-prefixed files are pipeline metadata (_manifest.json,
+  // _failures.json), not county packs — never feed them to the FIPS lookup.
+  const files = readdirSync(GEO_PACK_DIR).filter((name) => name.endsWith(".json") && !name.startsWith("_"));
   log(`Reading ${files.length} county packs from data/geo-packs`);
 
   const nationCounties = [];
