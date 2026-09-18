@@ -12,7 +12,7 @@
  * are measured on build and the county plate carries only what is drawn.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { classifyTownAnchors } from "@atlas/core/atlas";
@@ -86,6 +86,14 @@ function etagFor(body: string): string {
   return `W/"${body.length.toString(36)}-${(hash >>> 0).toString(36)}"`;
 }
 
+/**
+ * Last attempted die-cut retry stat signature per county slug
+ * (`mtimeMs:size` of nation.json). While nation plates stay empty/missing,
+ * every cached die-cut hit would otherwise do a full throwaway rebuild on an
+ * unauthenticated endpoint — recompute only when the plate file changed.
+ */
+const dieCutRetryStats = new Map<string, string>();
+
 type NeighborEntry = {
   slug: string;
   name: string;
@@ -110,14 +118,16 @@ export function createAtlasPlateService(options: AtlasPlateServiceOptions): Atla
    * already in memory and already carries every county's simplified outline.
    */
   let neighborIndex: NeighborEntry[] | undefined;
+  const rebuiltDieCutCounties = new Set<string>();
 
   function loadNeighborIndex(): NeighborEntry[] {
-    if (neighborIndex) return neighborIndex;
+    if (neighborIndex && neighborIndex.length > 0) return neighborIndex;
 
     const plate = nation();
     if (!plate.ok) {
-      neighborIndex = [];
-      return neighborIndex;
+      // Do not freeze an empty index: plates may appear after the first
+      // county request (local `pnpm build:atlas-plates` while the server runs).
+      return [];
     }
 
     try {
@@ -205,7 +215,7 @@ export function createAtlasPlateService(options: AtlasPlateServiceOptions): Atla
 
   function readPlateFile(key: string, path: string): PlateResult {
     const cached = cache.get(key);
-    if (cached) return cached;
+    if (cached?.ok) return cached;
 
     let result: PlateResult;
     try {
@@ -219,7 +229,23 @@ export function createAtlasPlateService(options: AtlasPlateServiceOptions): Atla
       result = { ok: false, reason: "not-built" };
     }
 
-    cache.set(key, result);
+    // A transiently empty nation body (partial write) is served but never
+    // cached: county retries evict it, but nation()/state()/isBuilt() would
+    // otherwise keep serving the stale-empty body forever.
+    if (result.ok && key === "nation") {
+      try {
+        const parsed = JSON.parse(result.body) as { counties?: unknown };
+        if (!Array.isArray(parsed.counties) || parsed.counties.length === 0) {
+          return result;
+        }
+      } catch {
+        return result;
+      }
+    }
+
+    // Cache hits only. A miss must be retried so a later plate build is
+    // visible without restarting the process.
+    if (result.ok) cache.set(key, result);
     return result;
   }
 
@@ -249,7 +275,48 @@ export function createAtlasPlateService(options: AtlasPlateServiceOptions): Atla
     if (!isValidCountySlug(slug)) return { ok: false, reason: "invalid" };
 
     const cached = cache.get(`county:${slug}`);
-    if (cached) return cached;
+    // Set while a cached die-cut entry is being re-proven below.
+    let dieCutRetry: PlateResult | undefined;
+    if (cached) {
+      // A county served before nation plates existed is a die-cut (empty
+      // context). Rebuild once the national plate is available.
+      if (cached.ok && nation().ok && !rebuiltDieCutCounties.has(slug)) {
+        try {
+          const parsed = JSON.parse(cached.body) as { context?: unknown[] };
+          if (!Array.isArray(parsed.context) || parsed.context.length === 0) {
+            // Stat-gate the forced fresh read: while the nation plate is
+            // unchanged since the last attempt, serve the cached die-cut
+            // entry immediately instead of a full throwaway rebuild.
+            const nationPath = resolve(options.plateDir, "nation.json");
+            let signature: string | undefined;
+            try {
+              const st = statSync(nationPath);
+              signature = `${st.mtimeMs}:${st.size}`;
+            } catch {
+              signature = undefined;
+            }
+            const lastAttempt = dieCutRetryStats.get(slug);
+            if (signature !== undefined && lastAttempt !== undefined && signature === lastAttempt) {
+              return cached;
+            }
+            if (signature !== undefined) dieCutRetryStats.set(slug, signature);
+            // Recompute first; the token is spent only when the fresh plate
+            // proves useful. Force a fresh nation read so a transiently empty
+            // plate cannot freeze this retry on a stale cached body.
+            dieCutRetry = cached;
+            cache.delete("nation");
+            neighborIndex = undefined;
+            cache.delete(`county:${slug}`);
+          } else {
+            return cached;
+          }
+        } catch {
+          return cached;
+        }
+      } else {
+        return cached;
+      }
+    }
 
     let result: PlateResult;
     try {
@@ -345,6 +412,30 @@ export function createAtlasPlateService(options: AtlasPlateServiceOptions): Atla
       }
     } catch {
       result = { ok: false, reason: "missing" };
+    }
+
+    if (dieCutRetry) {
+      if (!result.ok) {
+        // Fresh rebuild failed: propagate the miss instead of restoring the
+        // stale ok die-cut, and leave it uncached so the retry stays live.
+        return result;
+      }
+      let freshHasContext = false;
+      try {
+        if (result.ok) {
+          const fresh = JSON.parse(result.body) as { context?: unknown[] };
+          freshHasContext = Array.isArray(fresh.context) && fresh.context.length > 0;
+        }
+      } catch {
+        freshHasContext = false;
+      }
+      if (!freshHasContext) {
+        // Still empty: keep serving the cached die-cut entry and leave the
+        // token unspent so a later request retries the rebuild.
+        cache.set(`county:${slug}`, dieCutRetry);
+        return dieCutRetry;
+      }
+      rebuiltDieCutCounties.add(slug);
     }
 
     cache.set(`county:${slug}`, result);
